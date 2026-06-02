@@ -1,12 +1,32 @@
-# FinSight Alpha - Phase 1 dependencies
-# Pinned to reasonably modern, widely-available versions.
+# FinSight Alpha - Phase 1B dependencies
 # Install with:  pip install -r requirements.txt
 
+# --- Core data & analytics ---
 pandas>=2.0.0
 numpy>=1.24.0
 yfinance>=0.2.40
-matplotlib>=3.7.0
-plotly>=5.18.0
 scipy>=1.11.0
+
+# --- Visualization & dashboard ---
+plotly>=5.18.0
+streamlit>=1.30.0
+
+# --- Backend API (Phase 1C structure) ---
+fastapi>=0.110.0
+uvicorn>=0.27.0
+requests>=2.31.0
+
+# --- Config & environment ---
+python-dotenv>=1.0.0
+
+# --- Optional parquet engine (used by storage.py when available) ---
+pyarrow>=14.0.0
+
+# --- Cloud / persistence (activated in Phase 1C/1D) ---
+google-cloud-bigquery>=3.17.0
+google-cloud-storage>=2.14.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# --- Testing ---
 pytest>=7.4.0
-jupyter>=1.0.0

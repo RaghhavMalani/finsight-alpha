@@ -19,8 +19,11 @@ __pycache__/
 # Data
 data/raw/*.csv
 data/processed/*.csv
+data/exports/*.parquet
+data/exports/*.csv
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/exports/.gitkeep
 
 # IDEs
 .vscode/

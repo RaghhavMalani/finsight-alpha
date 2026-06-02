@@ -1,0 +1,31 @@
+# FinSight Alpha - Streamlit dashboard image.
+# Build from the project root:
+#   docker build -f infra/Dockerfile.streamlit -t finsight-streamlit .
+# Run:
+#   docker run -p 8080:8080 finsight-streamlit
+
+FROM python:3.11-slim
+
+# Avoid .pyc files and buffer issues in containers.
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Install dependencies first to leverage Docker layer caching.
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# Copy the application source.
+COPY . .
+
+# Cloud Run provides the port via $PORT (defaults to 8080 locally).
+ENV PORT=8080
+EXPOSE 8080
+
+# Streamlit must bind to 0.0.0.0 and the provided port; headless in containers.
+CMD streamlit run app/streamlit_app.py \
+    --server.port=${PORT} \
+    --server.address=0.0.0.0 \
+    --server.headless=true

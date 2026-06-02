@@ -1,8 +1,13 @@
-"""Data ingestion subpackage.
+"""Data subpackage.
 
-Exposes helpers for downloading and shaping raw market data.
+Exposes the market-data service, the backwards-compatible download helper, and
+storage utilities.
 """
 
-from .market_data import download_stock_data
+from .market_data import DataDownloadError, MarketDataService, download_stock_data
 
-__all__ = ["download_stock_data"]
+__all__ = [
+    "MarketDataService",
+    "download_stock_data",
+    "DataDownloadError",
+]

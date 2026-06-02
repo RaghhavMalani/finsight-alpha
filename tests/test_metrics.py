@@ -143,3 +143,55 @@ def test_summary_statistics_keys_and_total_return(sample_prices: pd.Series) -> N
 def test_type_validation() -> None:
     with pytest.raises(TypeError):
         metrics.calculate_simple_returns([1, 2, 3])  # not a Series
+
+
+def test_total_return(sample_prices: pd.Series) -> None:
+    # 99/100 - 1 = -0.01
+    assert metrics.calculate_total_return(sample_prices) == pytest.approx(-0.01)
+
+
+def test_annualized_volatility() -> None:
+    # Returns 0.10, -0.10, 0.00 -> sample std 0.10 ; annualised = 0.10 * sqrt(252)
+    returns = pd.Series([0.10, -0.10, 0.0])
+    expected = 0.10 * np.sqrt(252)
+    assert metrics.calculate_annualized_volatility(returns) == pytest.approx(expected)
+
+
+def test_annualized_volatility_too_few_points() -> None:
+    assert metrics.calculate_annualized_volatility(pd.Series([0.01])) == 0.0
+
+
+def test_correlation_pivot_and_matrix() -> None:
+    from src.analytics import build_returns_pivot, calculate_correlation_matrix
+
+    # Two tickers; B is a scaled copy of A, so their (varying) returns are
+    # identical -> correlation ~ 1.
+    df = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"] * 2),
+            "Close": [100.0, 110.0, 99.0, 50.0, 55.0, 49.5],
+            "Ticker": ["A", "A", "A", "B", "B", "B"],
+        }
+    )
+    pivot = build_returns_pivot(df)
+    assert set(pivot.columns) == {"A", "B"}
+
+    corr = calculate_correlation_matrix(pivot)
+    assert corr.loc["A", "B"] == pytest.approx(1.0, abs=1e-6)
+
+
+def test_sector_summary() -> None:
+    from src.analytics import calculate_sector_summary
+
+    df = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2024-01-01", "2024-01-02"] * 2),
+            "Close": [100.0, 110.0, 200.0, 180.0],
+            "Ticker": ["AAPL", "AAPL", "JPM", "JPM"],
+        }
+    )
+    summary = calculate_sector_summary(df)
+    # AAPL -> Information Technology, JPM -> Financials.
+    assert "Information Technology" in summary.index
+    assert "Financials" in summary.index
+    assert summary.loc["Information Technology", "num_tickers"] == 1

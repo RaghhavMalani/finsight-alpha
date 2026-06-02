@@ -1,0 +1,25 @@
+# FinSight Alpha - FastAPI backend image.
+# Build from the project root:
+#   docker build -f infra/Dockerfile.api -t finsight-api .
+# Run:
+#   docker run -p 8080:8080 finsight-api
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY . .
+
+# Cloud Run injects $PORT; default to 8080 for local runs.
+ENV PORT=8080
+EXPOSE 8080
+
+# Use shell form so ${PORT} is expanded at runtime.
+CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}

@@ -1,26 +1,98 @@
-"""Market data ingestion.
+"""Market data service.
 
-A thin, defensive wrapper around :mod:`yfinance` that downloads historical OHLCV
-data and returns it as a clean, tidy :class:`pandas.DataFrame`.
+:class:`MarketDataService` is the single entry point the rest of the app uses to
+obtain market data. It is provider-agnostic: it delegates the actual download to
+whichever :class:`~src.data.providers.base.MarketDataProvider` is selected
+(yfinance by default) and adds convenience for fetching many tickers at once.
 
-"Clean" here means:
-
-* a proper ``Date`` column (not a hidden DatetimeIndex),
-* a ``Ticker`` column so multiple assets can be concatenated unambiguously,
-* validated, non-empty data,
-* consistent column names.
+The function :func:`download_stock_data` is preserved for backwards
+compatibility with Phase 1A code and tests.
 """
 
 from __future__ import annotations
 
 import pandas as pd
-import yfinance as yf
 
 from src import config
+from src.data.providers import ProviderError, get_provider
+from src.data.providers.base import MarketDataProvider
+from src.utils.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
-class DataDownloadError(RuntimeError):
-    """Raised when market data cannot be downloaded or is empty/invalid."""
+# Re-exported alias so existing imports of DataDownloadError keep working.
+DataDownloadError = ProviderError
+
+
+class MarketDataService:
+    """Fetch and combine market data through a pluggable provider.
+
+    Parameters
+    ----------
+    provider:
+        Either a provider name (``"yfinance"``, ``"alpha_vantage"``,
+        ``"polygon"``) or an already-constructed
+        :class:`MarketDataProvider` instance. Defaults to ``"yfinance"``.
+    """
+
+    def __init__(self, provider: str | MarketDataProvider = "yfinance") -> None:
+        if isinstance(provider, MarketDataProvider):
+            self.provider = provider
+        else:
+            self.provider = get_provider(provider)
+        logger.info("MarketDataService using provider '%s'", self.provider.name)
+
+    def get_data(
+        self,
+        ticker: str,
+        start_date: str = config.DEFAULT_START_DATE,
+        end_date: str = config.DEFAULT_END_DATE,
+    ) -> pd.DataFrame:
+        """Download cleaned OHLCV data for a single ticker."""
+        return self.provider.get_historical_data(ticker, start_date, end_date)
+
+    def get_multiple(
+        self,
+        tickers: list[str],
+        start_date: str = config.DEFAULT_START_DATE,
+        end_date: str = config.DEFAULT_END_DATE,
+        skip_errors: bool = True,
+    ) -> pd.DataFrame:
+        """Download several tickers and return one combined, tidy DataFrame.
+
+        Parameters
+        ----------
+        tickers:
+            List of symbols to fetch.
+        start_date, end_date:
+            ISO date window.
+        skip_errors:
+            If ``True`` (default), a failed ticker is logged and skipped so one
+            bad symbol does not abort the whole batch. If ``False``, the first
+            error is re-raised.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Long-format frame (``Date, Open, ..., Ticker``) with all successful
+            tickers stacked vertically. Empty frame if nothing succeeded.
+        """
+        frames: list[pd.DataFrame] = []
+        for ticker in tickers:
+            try:
+                frames.append(self.get_data(ticker, start_date, end_date))
+            except ProviderError as exc:
+                logger.warning("Skipping '%s': %s", ticker, exc)
+                if not skip_errors:
+                    raise
+
+        if not frames:
+            logger.warning("No data fetched for any of: %s", tickers)
+            return pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume", "Ticker"])
+
+        combined = pd.concat(frames, ignore_index=True)
+        return combined.sort_values(["Ticker", "Date"]).reset_index(drop=True)
 
 
 def download_stock_data(
@@ -28,88 +100,13 @@ def download_stock_data(
     start_date: str = config.DEFAULT_START_DATE,
     end_date: str = config.DEFAULT_END_DATE,
 ) -> pd.DataFrame:
-    """Download and clean historical OHLCV data for a single ticker.
+    """Backwards-compatible single-ticker download (Phase 1A API).
 
-    Parameters
-    ----------
-    ticker:
-        The Yahoo Finance symbol, e.g. ``"AAPL"`` or ``"RELIANCE.NS"``.
-    start_date:
-        Inclusive start date as an ISO string ``"YYYY-MM-DD"``.
-    end_date:
-        Exclusive end date as an ISO string ``"YYYY-MM-DD"``.
-
-    Returns
-    -------
-    pandas.DataFrame
-        A tidy frame with columns:
-        ``[Date, Open, High, Low, Close, Volume, Ticker]``,
-        sorted by ``Date`` ascending and using a clean ``RangeIndex``.
+    Delegates to :class:`MarketDataService` with the default yfinance provider.
 
     Raises
     ------
     DataDownloadError
-        If the download fails or returns no rows for the ticker.
-
-    Notes
-    -----
-    ``auto_adjust=True`` makes yfinance return prices already adjusted for splits
-    and dividends. The adjusted price is what you should use for return
-    calculations, because it reflects the true economic value to an investor.
+        If the download fails or returns no rows.
     """
-    if not ticker or not str(ticker).strip():
-        raise DataDownloadError("Ticker must be a non-empty string.")
-
-    try:
-        # progress=False keeps console output clean when looping over tickers.
-        raw = yf.download(
-            tickers=ticker,
-            start=start_date,
-            end=end_date,
-            auto_adjust=True,
-            progress=False,
-        )
-    except Exception as exc:  # network / library errors -> uniform error type
-        raise DataDownloadError(
-            f"Failed to download data for '{ticker}': {exc}"
-        ) from exc
-
-    # yfinance returns an empty frame (not an error) for bad symbols / no data.
-    if raw is None or raw.empty:
-        raise DataDownloadError(
-            f"No data returned for '{ticker}' between {start_date} and {end_date}."
-        )
-
-    df = raw.copy()
-
-    # When a single ticker is requested newer yfinance versions may still return
-    # a MultiIndex column structure (e.g. ('Close', 'AAPL')). Flatten it so we
-    # always work with simple, predictable column names.
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-
-    # Move the DatetimeIndex into an explicit 'Date' column and reset to a clean
-    # integer index. This makes the frame easy to save to / load from CSV.
-    df = df.reset_index()
-
-    # yfinance names the index 'Date' for daily data; normalise just in case.
-    if "Date" not in df.columns:
-        df = df.rename(columns={df.columns[0]: "Date"})
-
-    # Tag every row with its ticker so several assets can be safely concatenated.
-    df["Ticker"] = ticker
-
-    # Keep only the canonical columns, in a predictable order, when present.
-    expected_cols = ["Date", "Open", "High", "Low", "Close", "Volume", "Ticker"]
-    available = [c for c in expected_cols if c in df.columns]
-    df = df[available]
-
-    # Drop rows with no Close price (occasional holidays / bad bars) and sort.
-    df = df.dropna(subset=["Close"]).sort_values("Date").reset_index(drop=True)
-
-    if df.empty:
-        raise DataDownloadError(
-            f"Data for '{ticker}' was empty after cleaning (all rows invalid)."
-        )
-
-    return df
+    return MarketDataService("yfinance").get_data(ticker, start_date, end_date)

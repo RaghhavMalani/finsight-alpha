@@ -185,6 +185,62 @@ def calculate_max_drawdown(prices: pd.Series) -> float:
     return float(drawdown.min())
 
 
+def calculate_annualized_volatility(
+    returns: pd.Series,
+    trading_days: int = config.TRADING_DAYS_PER_YEAR,
+) -> float:
+    """Annualised volatility from a series of (daily) returns.
+
+    Formula
+    -------
+    ``sigma_annual = std(daily_returns) * sqrt(trading_days)``
+
+    Parameters
+    ----------
+    returns:
+        Series of daily returns (simple or log).
+    trading_days:
+        Trading days per year used for annualisation.
+
+    Returns
+    -------
+    float
+        Annualised volatility as a decimal (e.g. ``0.25`` = 25%). Returns ``0.0``
+        if there are fewer than two observations.
+    """
+    if not isinstance(returns, pd.Series):
+        raise TypeError("returns must be a pandas Series.")
+    clean = returns.dropna()
+    if clean.shape[0] < 2:
+        return 0.0
+    return float(clean.std(ddof=1) * np.sqrt(trading_days))
+
+
+def calculate_total_return(prices: pd.Series) -> float:
+    """Total (cumulative) return over the whole price series.
+
+    Formula
+    -------
+    ``total_return = P_last / P_first - 1``
+
+    Parameters
+    ----------
+    prices:
+        Series of prices.
+
+    Returns
+    -------
+    float
+        Total return as a decimal (e.g. ``2.3`` = +230%).
+    """
+    if not isinstance(prices, pd.Series):
+        raise TypeError("prices must be a pandas Series.")
+    clean = prices.dropna()
+    if clean.empty:
+        raise ValueError("Cannot compute total return of an empty price series.")
+    return float(clean.iloc[-1] / clean.iloc[0] - 1.0)
+
+
 def calculate_summary_statistics(
     prices: pd.Series,
     trading_days: int = config.TRADING_DAYS_PER_YEAR,
