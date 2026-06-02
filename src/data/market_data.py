@@ -49,8 +49,15 @@ class MarketDataService:
         start_date: str = config.DEFAULT_START_DATE,
         end_date: str = config.DEFAULT_END_DATE,
     ) -> pd.DataFrame:
-        """Download cleaned OHLCV data for a single ticker."""
-        return self.provider.get_historical_data(ticker, start_date, end_date)
+        """Download cleaned OHLCV data for a single ticker.
+
+        The returned frame includes a ``Provider`` column recording which source
+        produced the data (useful for auditing once multiple providers are live).
+        """
+        df = self.provider.get_historical_data(ticker, start_date, end_date)
+        df = df.copy()
+        df["Provider"] = self.provider.name
+        return df
 
     def get_multiple(
         self,
@@ -89,7 +96,9 @@ class MarketDataService:
 
         if not frames:
             logger.warning("No data fetched for any of: %s", tickers)
-            return pd.DataFrame(columns=["Date", "Open", "High", "Low", "Close", "Volume", "Ticker"])
+            return pd.DataFrame(
+                columns=["Date", "Open", "High", "Low", "Close", "Volume", "Ticker", "Provider"]
+            )
 
         combined = pd.concat(frames, ignore_index=True)
         return combined.sort_values(["Ticker", "Date"]).reset_index(drop=True)

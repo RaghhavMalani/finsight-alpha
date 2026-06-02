@@ -17,9 +17,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-# Cloud Run injects $PORT; default to 8080 for local runs.
+# Expose the API port. Cloud Run also injects $PORT (defaults to 8080 here).
 ENV PORT=8080
 EXPOSE 8080
 
-# Use shell form so ${PORT} is expanded at runtime.
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}
+# Run the FastAPI app with uvicorn on 0.0.0.0:8080.
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]

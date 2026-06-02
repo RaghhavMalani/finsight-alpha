@@ -118,7 +118,9 @@ class _FakeProvider(MarketDataProvider):
 def test_market_data_service_single() -> None:
     service = MarketDataService(_FakeProvider())
     df = service.get_data("AAPL")
-    assert list(df.columns) == STANDARD_COLUMNS
+    # Service adds a Provider column on top of the canonical schema.
+    assert list(df.columns) == STANDARD_COLUMNS + ["Provider"]
+    assert (df["Provider"] == "fake").all()
     assert len(df) == 2
 
 

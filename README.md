@@ -8,35 +8,84 @@ adds a self-contained, portfolio-quality capability that later phases build on.
 ## Phases at a glance
 
 - **Phase 1A - Notebook EDA**: a clean market-data engine plus an exploratory
-  Jupyter notebook (`notebooks/01_market_data_eda.ipynb`). The notebook remains
-  for exploration only.
-- **Phase 1B - Dashboard + cloud-ready architecture (this phase)**: a
-  professional Streamlit dashboard, a pluggable data-provider architecture, a
-  FastAPI backend skeleton, and Docker/Cloud Run-ready infrastructure. **The
-  dashboard is the main deliverable.**
-- **Phase 1C/1D (future)**: live BigQuery / Cloud Storage / Cloud SQL
-  integration, a richer (e.g. React) frontend, and Vertex AI + RAG.
+  Jupyter notebook (`notebooks/01_market_data_eda.ipynb`). Exploration only.
+- **Phase 1B - Dashboard + cloud-ready architecture**: a professional Streamlit
+  dashboard, a pluggable data-provider architecture, and Docker/Cloud Run-ready
+  infrastructure.
+- **Phase 1C - Backend + database + cloud-ready storage (this phase)**: a full
+  FastAPI backend, Cloud SQL/PostgreSQL metadata, BigQuery analytics storage,
+  Cloud Storage for raw files, and a **dual-mode** dashboard (Local vs API).
 
 ---
 
-## What Phase 1B delivers
+## What Phase 1C delivers
 
-1. **Provider architecture** - a `MarketDataProvider` interface with a working
-   `YFinanceProvider` (default) plus `AlphaVantageProvider` and `PolygonProvider`
-   placeholders. Swap or add sources (NSE/BSE later) without touching downstream
-   code.
-2. **`MarketDataService`** - one entry point to fetch a single ticker or many,
-   returning a clean combined DataFrame.
-3. **Storage** - local CSV + Parquet now; BigQuery / Cloud Storage placeholders
-   ready for Phase 1C/1D.
-4. **Analytics** - returns, volatility, drawdown, summary stats, correlation
-   matrices, and sector-level aggregation.
-5. **Visualization** - Plotly charts: price, daily/cumulative returns, rolling
-   volatility, drawdown, correlation heatmap, sector comparison.
-6. **Streamlit dashboard** - six pages with sidebar controls, KPI cards, and
-   interactive charts.
-7. **FastAPI backend** - `/health`, `/tickers`, `/market-data`, `/summary`.
-8. **Infra** - Dockerfiles for both services and Cloud Run deployment notes.
+1. **FastAPI backend** (`backend/`) with routers: `/health`, `/assets`,
+   `/market-data/fetch`, `/market-data/{ticker}`, `/analytics/summary/{ticker}`,
+   `/analytics/correlation`, `/analytics/sector-comparison`, plus CORS.
+2. **Dual-mode dashboard** - a sidebar toggle switches between **Local Python
+   Mode** (in-process functions) and **API Mode** (calls FastAPI via
+   `API_BASE_URL`), with a live API health indicator.
+3. **Cloud clients** (all optional, degrade gracefully):
+   - `src/data/database.py` - SQLAlchemy engine for Cloud SQL / PostgreSQL.
+   - `src/data/bigquery_client.py` - BigQuery dataset/table + DataFrame upload.
+   - `src/data/cloud_storage_client.py` - GCS file / DataFrame upload.
+4. **Storage helpers** - `save_dataframe_csv/parquet`, `load_processed_ticker_data`,
+   `load_all_processed_data`, standardised `*_processed.csv` names.
+5. **SQL** - `sql/001_create_tables.sql` (assets, jobs, watchlists) and
+   `sql/bigquery_schema.md`.
+6. **Infra** - `infra/Dockerfile.api`, `infra/Dockerfile.streamlit`,
+   `infra/gcp_architecture.md`.
+
+## Local Mode vs API Mode
+
+- **Local Python Mode**: the dashboard imports and calls the Python functions
+  directly. Simplest for development; no server needed.
+- **API Mode**: the dashboard calls the FastAPI backend over HTTP. This mirrors
+  the production topology (separate UI and API services on Cloud Run) and lets
+  other clients (a future React app) reuse the same endpoints. Set the URL via
+  `API_BASE_URL` in `.env` (default `http://127.0.0.1:8000`).
+
+```mermaid
+flowchart LR
+  st[Streamlit Dashboard] -->|API Mode| api[FastAPI Backend]
+  st -.->|Local Mode| svc[MarketDataService]
+  api --> svc
+  svc --> store[Local CSV/Parquet]
+  api --> bq[(BigQuery)]
+  api --> sql[(Cloud SQL)]
+  svc --> gcs[(Cloud Storage)]
+```
+
+## How to run
+
+```bash
+# 1. FastAPI backend (terminal 1)
+uvicorn backend.main:app --reload
+
+# 2. Streamlit dashboard (terminal 2)
+streamlit run app/streamlit_app.py
+
+# 3. Tests
+pytest
+```
+
+In the dashboard sidebar, pick **API Mode** to route through the backend (make
+sure the API is running), or **Local Python Mode** to run everything in-process.
+
+## Enabling the cloud (later)
+
+Everything cloud-related is optional and controlled by environment variables in
+`.env` (see `.env.example`):
+
+- Set `DATABASE_URL` to enable Cloud SQL/PostgreSQL metadata (apply
+  `sql/001_create_tables.sql`).
+- Set `GCP_PROJECT_ID` + `BIGQUERY_DATASET` (and credentials) to enable BigQuery
+  uploads; pass `upload_bigquery: true` to `/market-data/fetch`.
+- Set `GCS_BUCKET_NAME` to enable Cloud Storage uploads.
+
+Without these, the app runs fully on local files. See
+[infra/gcp_architecture.md](infra/gcp_architecture.md) for the target design.
 
 ---
 

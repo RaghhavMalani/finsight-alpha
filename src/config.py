@@ -120,13 +120,32 @@ LOCAL_PROCESSED_DATA_PATH: Path = PROCESSED_DATA_DIR
 # ---------------------------------------------------------------------------
 # These are read from the environment (populated from ``.env``). They are all
 # optional - the app must run without any of them set.
+
+# API / dashboard wiring.
+API_BASE_URL: str = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+MARKET_DATA_PROVIDER: str = os.getenv("MARKET_DATA_PROVIDER", "yfinance")
+
+# Provider API keys.
 ALPHA_VANTAGE_API_KEY: str | None = os.getenv("ALPHA_VANTAGE_API_KEY") or None
 POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY") or None
 
+# Google Cloud: BigQuery (analytics) + Cloud Storage (raw files).
 GCP_PROJECT_ID: str | None = os.getenv("GCP_PROJECT_ID") or None
 GCS_BUCKET_NAME: str | None = os.getenv("GCS_BUCKET_NAME") or None
 BIGQUERY_DATASET: str = os.getenv("BIGQUERY_DATASET", "finsight_alpha")
+BIGQUERY_MARKET_PRICES_TABLE: str = os.getenv(
+    "BIGQUERY_MARKET_PRICES_TABLE", "market_prices_daily"
+)
+BIGQUERY_ANALYTICS_TABLE: str = os.getenv(
+    "BIGQUERY_ANALYTICS_TABLE", "market_analytics_daily"
+)
+
+# Database: Cloud SQL / PostgreSQL (app metadata).
 DATABASE_URL: str | None = os.getenv("DATABASE_URL") or None
+
+# Application metadata.
+APP_NAME: str = "FinSight Alpha API"
+APP_VERSION: str = "0.1.0"
 
 
 def ensure_data_dirs() -> None:

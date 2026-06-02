@@ -1,7 +1,11 @@
-"""FinSight Alpha - professional Streamlit dashboard (Phase 1B).
+"""FinSight Alpha - professional Streamlit dashboard (Phase 1C).
 
-A multi-page market-data analytics dashboard:
+A multi-page market-data analytics dashboard with a dual data backend:
 
+  * Local Python Mode - calls the in-process Python functions directly.
+  * API Mode          - calls the FastAPI backend over HTTP (API_BASE_URL).
+
+Pages:
   A. Market Overview        - KPI cards + price overview for the selection.
   B. Single Asset Analysis  - deep dive on one ticker (price, returns, vol, dd).
   C. Multi-Asset Comparison - normalised cumulative returns across tickers.
@@ -25,6 +29,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd
+import requests
 import streamlit as st
 
 from src import config
@@ -39,6 +44,9 @@ from src.analytics import (
 from src.data.market_data import MarketDataService
 from src.data.providers import AVAILABLE_PROVIDERS, ProviderError
 from src.visualization import plots
+
+LOCAL_MODE = "Local Python Mode"
+API_MODE = "API Mode"
 
 # ---------------------------------------------------------------------------
 # Page configuration
@@ -64,19 +72,90 @@ PAGES = [
 # Data loading (cached)
 # ---------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
-def load_data(
+def load_data_local(
     tickers: tuple[str, ...],
     start_date: str,
     end_date: str,
     provider: str,
 ) -> pd.DataFrame:
-    """Download a combined long-format frame for the selected tickers.
+    """Local Python Mode: download directly via :class:`MarketDataService`.
 
     Cached by argument value so re-rendering pages does not re-download. Tickers
     are passed as a tuple because cache keys must be hashable.
     """
     service = MarketDataService(provider)
     return service.get_multiple(list(tickers), start_date, end_date, skip_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# API Mode helpers (call the FastAPI backend over HTTP)
+# ---------------------------------------------------------------------------
+def check_api_health(base_url: str, timeout: float = 3.0) -> tuple[bool, str]:
+    """Ping the API ``/health`` endpoint. Returns ``(is_up, message)``."""
+    try:
+        resp = requests.get(f"{base_url.rstrip('/')}/health", timeout=timeout)
+        if resp.status_code == 200:
+            body = resp.json()
+            return True, f"{body.get('app', 'API')} v{body.get('version', '?')}"
+        return False, f"HTTP {resp.status_code}"
+    except Exception as exc:
+        return False, str(exc)
+
+
+@st.cache_data(show_spinner=False)
+def load_data_api(
+    tickers: tuple[str, ...],
+    start_date: str,
+    end_date: str,
+    provider: str,
+    base_url: str,
+) -> pd.DataFrame:
+    """API Mode: ask the backend to fetch+persist, then read rows back via HTTP.
+
+    1. ``POST /market-data/fetch`` triggers download, analytics, and local save.
+    2. ``GET /market-data/{ticker}`` returns the processed rows per ticker.
+    The frames are concatenated into the same long format Local Mode produces.
+    """
+    base = base_url.rstrip("/")
+    payload = {
+        "tickers": list(tickers),
+        "start_date": start_date,
+        "end_date": end_date,
+        "provider": provider,
+        "save_local": True,
+        "upload_bigquery": False,
+    }
+    fetch = requests.post(f"{base}/market-data/fetch", json=payload, timeout=120)
+    fetch.raise_for_status()
+
+    frames: list[pd.DataFrame] = []
+    for ticker in tickers:
+        resp = requests.get(f"{base}/market-data/{ticker}", params={"limit": 10000}, timeout=60)
+        if resp.status_code != 200:
+            continue
+        records = resp.json().get("data", [])
+        if records:
+            frames.append(pd.DataFrame(records))
+
+    if not frames:
+        return pd.DataFrame()
+    combined = pd.concat(frames, ignore_index=True)
+    combined["Date"] = pd.to_datetime(combined["Date"])
+    return combined.sort_values(["Ticker", "Date"]).reset_index(drop=True)
+
+
+def load_data(
+    mode: str,
+    tickers: tuple[str, ...],
+    start_date: str,
+    end_date: str,
+    provider: str,
+    base_url: str,
+) -> pd.DataFrame:
+    """Dispatch to the local or API loader based on the selected data mode."""
+    if mode == API_MODE:
+        return load_data_api(tickers, start_date, end_date, provider, base_url)
+    return load_data_local(tickers, start_date, end_date, provider)
 
 
 def _prices_for(df: pd.DataFrame, ticker: str) -> pd.Series:
@@ -95,9 +174,27 @@ def _fmt_pct(x: float) -> str:
 def render_sidebar() -> dict[str, object]:
     """Render the sidebar controls and return the chosen settings."""
     st.sidebar.title("FinSight Alpha")
-    st.sidebar.caption("Phase 1B - Market Analytics Dashboard")
+    st.sidebar.caption("Phase 1C - Backend-Driven Analytics")
 
     page = st.sidebar.radio("Navigation", PAGES, index=0)
+
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Data Mode")
+    data_mode = st.sidebar.radio(
+        "Backend",
+        options=[LOCAL_MODE, API_MODE],
+        index=0,
+        help="Local runs Python in-process; API calls the FastAPI backend.",
+    )
+
+    base_url = config.API_BASE_URL
+    if data_mode == API_MODE:
+        base_url = st.sidebar.text_input("API base URL", value=config.API_BASE_URL)
+        is_up, info = check_api_health(base_url)
+        if is_up:
+            st.sidebar.success(f"API online: {info}")
+        else:
+            st.sidebar.error(f"API offline: {info}")
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("Data Selection")
@@ -134,6 +231,8 @@ def render_sidebar() -> dict[str, object]:
 
     return {
         "page": page,
+        "data_mode": data_mode,
+        "base_url": base_url,
         "tickers": tickers,
         "start_date": start_date,
         "end_date": end_date,
@@ -342,13 +441,16 @@ def main() -> None:
         if not tickers:
             st.sidebar.error("Please select at least one ticker.")
         else:
+            mode = str(settings["data_mode"])
             try:
-                with st.spinner("Downloading market data..."):
+                with st.spinner(f"Loading market data ({mode})..."):
                     df = load_data(
+                        mode,
                         tuple(tickers),
                         str(settings["start_date"]),
                         str(settings["end_date"]),
                         str(settings["provider"]),
+                        str(settings["base_url"]),
                     )
                 if df.empty:
                     st.session_state.pop("data", None)
@@ -356,9 +458,13 @@ def main() -> None:
                 else:
                     st.session_state["data"] = df
                     st.session_state["loaded_tickers"] = tickers
-                    st.sidebar.success(f"Loaded {len(df):,} rows for {len(tickers)} tickers.")
+                    st.sidebar.success(
+                        f"Loaded {len(df):,} rows for {len(tickers)} tickers via {mode}."
+                    )
             except ProviderError as exc:
                 st.sidebar.error(f"Data error: {exc}")
+            except requests.RequestException as exc:
+                st.sidebar.error(f"API request failed: {exc}")
             except Exception as exc:  # defensive: never crash the dashboard
                 st.sidebar.error(f"Unexpected error: {exc}")
 

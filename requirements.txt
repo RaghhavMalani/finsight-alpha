@@ -1,4 +1,4 @@
-# FinSight Alpha - Phase 1B dependencies
+# FinSight Alpha - Phase 1C dependencies
 # Install with:  pip install -r requirements.txt
 
 # --- Core data & analytics ---
@@ -11,22 +11,25 @@ scipy>=1.11.0
 plotly>=5.18.0
 streamlit>=1.30.0
 
-# --- Backend API (Phase 1C structure) ---
+# --- Backend API ---
 fastapi>=0.110.0
 uvicorn>=0.27.0
 requests>=2.31.0
+pydantic>=2.5.0
 
 # --- Config & environment ---
 python-dotenv>=1.0.0
 
-# --- Optional parquet engine (used by storage.py when available) ---
+# --- Parquet engine (Parquet exports + BigQuery loads) ---
 pyarrow>=14.0.0
 
-# --- Cloud / persistence (activated in Phase 1C/1D) ---
-google-cloud-bigquery>=3.17.0
-google-cloud-storage>=2.14.0
+# --- Database (Cloud SQL / PostgreSQL metadata) ---
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.0
+
+# --- Cloud (BigQuery analytics + Cloud Storage raw files) ---
+google-cloud-bigquery>=3.17.0
+google-cloud-storage>=2.14.0
 
 # --- Testing ---
 pytest>=7.4.0
