@@ -1,0 +1,12 @@
+# FinSight Alpha - Phase 1 dependencies
+# Pinned to reasonably modern, widely-available versions.
+# Install with:  pip install -r requirements.txt
+
+pandas>=2.0.0
+numpy>=1.24.0
+yfinance>=0.2.40
+matplotlib>=3.7.0
+plotly>=5.18.0
+scipy>=1.11.0
+pytest>=7.4.0
+jupyter>=1.0.0
