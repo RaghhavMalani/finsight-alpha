@@ -1,0 +1,2 @@
+# This file keeps the data/processed directory under version control.
+# Cleaned datasets enriched with analytics columns are written here by main.py.

@@ -1,0 +1,2 @@
+# This file keeps the data/raw directory under version control.
+# Raw, unmodified OHLCV downloads are written here by main.py.
