@@ -138,6 +138,30 @@ def get_display_name(ticker: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Benchmarks (for beta / CAPM)
+# ---------------------------------------------------------------------------
+# Default market benchmark per region. Beta and CAPM measure an asset against
+# "the market"; we proxy the Indian market with the Nifty ETF and the US market
+# with the S&P 500 ETF.
+BENCHMARK_INDIA: str = "NIFTYBEES.NS"
+BENCHMARK_US: str = "SPY"
+
+
+def get_default_benchmark_for_ticker(ticker: str) -> str:
+    """Return the default market benchmark ticker for a given symbol.
+
+    Logic
+    -----
+    * Indian tickers (Yahoo suffix ``.NS``) -> :data:`BENCHMARK_INDIA`
+      (``NIFTYBEES.NS``).
+    * Everything else -> :data:`BENCHMARK_US` (``SPY``).
+    """
+    if str(ticker).upper().endswith(".NS"):
+        return BENCHMARK_INDIA
+    return BENCHMARK_US
+
+
+# ---------------------------------------------------------------------------
 # Financial conventions
 # ---------------------------------------------------------------------------
 # Number of trading days in a year - used to annualise returns and volatility.

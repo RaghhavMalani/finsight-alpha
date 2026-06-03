@@ -292,6 +292,145 @@ def plot_risk_return_scatter(summary_df: pd.DataFrame) -> go.Figure:
 
 
 # ---------------------------------------------------------------------------
+# Risk-adjusted performance charts (Phase 2)
+# ---------------------------------------------------------------------------
+def plot_cagr_bar(summary_df: pd.DataFrame) -> go.Figure:
+    """Bar chart of CAGR (annualized growth) per ticker.
+
+    Expects a ``Ticker`` column and a ``cagr`` column (decimal).
+    """
+    if summary_df is None or summary_df.empty or "cagr" not in summary_df.columns:
+        return _empty_figure("No CAGR data available.")
+
+    data = summary_df.dropna(subset=["cagr"]).sort_values("cagr", ascending=False)
+    if data.empty:
+        return _empty_figure("No CAGR data available.")
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=data["Ticker"],
+            y=data["cagr"] * 100.0,
+            marker_color=COLORS["accent"],
+            hovertemplate="%{x}<br>CAGR: %{y:.2f}%<extra></extra>",
+        )
+    )
+    return apply_plotly_theme(
+        fig, title="CAGR by Ticker",
+        yaxis={"title": "CAGR (%)", "gridcolor": COLORS["grid"]},
+        hovermode="closest",
+    )
+
+
+def plot_sharpe_sortino_bar(summary_df: pd.DataFrame) -> go.Figure:
+    """Grouped bar chart comparing Sharpe and Sortino ratios per ticker.
+
+    Expects ``Ticker``, ``sharpe_ratio``, and ``sortino_ratio`` columns.
+    """
+    required = {"Ticker", "sharpe_ratio", "sortino_ratio"}
+    if summary_df is None or summary_df.empty or not required.issubset(summary_df.columns):
+        return _empty_figure("No risk-adjusted ratio data available.")
+
+    data = summary_df.sort_values("sharpe_ratio", ascending=False)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=data["Ticker"], y=data["sharpe_ratio"], name="Sharpe",
+            marker_color=COLORS["accent"],
+            hovertemplate="%{x}<br>Sharpe: %{y:.2f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=data["Ticker"], y=data["sortino_ratio"], name="Sortino",
+            marker_color=COLORS["positive"],
+            hovertemplate="%{x}<br>Sortino: %{y:.2f}<extra></extra>",
+        )
+    )
+    return apply_plotly_theme(
+        fig, title="Risk-Adjusted Performance (Sharpe vs Sortino)",
+        yaxis={"title": "Ratio", "gridcolor": COLORS["grid"]},
+        barmode="group",
+        hovermode="closest",
+    )
+
+
+def plot_beta_bar(summary_df: pd.DataFrame) -> go.Figure:
+    """Bar chart of beta (market sensitivity) per ticker.
+
+    Expects ``Ticker`` and ``beta`` columns. A reference line at beta = 1 marks
+    "moves with the market".
+    """
+    if summary_df is None or summary_df.empty or "beta" not in summary_df.columns:
+        return _empty_figure("No beta data available (benchmark required).")
+
+    data = summary_df.dropna(subset=["beta"]).sort_values("beta", ascending=False)
+    if data.empty:
+        return _empty_figure("No beta data available (benchmark required).")
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=data["Ticker"],
+            y=data["beta"],
+            marker_color=COLORS["accent"],
+            hovertemplate="%{x}<br>Beta: %{y:.2f}<extra></extra>",
+        )
+    )
+    # Reference line at beta = 1 (same risk as the market).
+    fig.add_hline(y=1.0, line_dash="dash", line_color=COLORS["text_muted"])
+    return apply_plotly_theme(
+        fig, title="Beta vs Benchmark",
+        yaxis={"title": "Beta", "gridcolor": COLORS["grid"]},
+        hovermode="closest",
+    )
+
+
+def plot_risk_adjusted_scatter(summary_df: pd.DataFrame) -> go.Figure:
+    """Scatter of annualized volatility (x) vs CAGR (y), colored by Sharpe ratio.
+
+    Expects ``Ticker``, ``annualized_volatility``, ``cagr``, and ``sharpe_ratio``
+    columns. The classic view: top-left (high growth, low risk) is best, and
+    warmer colors mark better risk-adjusted performance.
+    """
+    required = {"Ticker", "annualized_volatility", "cagr"}
+    if summary_df is None or summary_df.empty or not required.issubset(summary_df.columns):
+        return _empty_figure("No risk-adjusted data available.")
+
+    data = summary_df.dropna(subset=["annualized_volatility", "cagr"])
+    if data.empty:
+        return _empty_figure("No risk-adjusted data available.")
+
+    color_values = data["sharpe_ratio"] if "sharpe_ratio" in data.columns else data["cagr"]
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=data["annualized_volatility"] * 100.0,
+            y=data["cagr"] * 100.0,
+            mode="markers+text",
+            text=data["Ticker"],
+            textposition="top center",
+            textfont={"color": COLORS["text_muted"], "size": 10},
+            marker={
+                "size": 13,
+                "color": color_values,
+                "colorscale": "RdYlGn",
+                "showscale": True,
+                "colorbar": {"title": "Sharpe"},
+                "line": {"width": 1, "color": COLORS["border"]},
+            },
+            hovertemplate="%{text}<br>Volatility: %{x:.1f}%<br>CAGR: %{y:.1f}%<extra></extra>",
+        )
+    )
+    return apply_plotly_theme(
+        fig, title="Risk-Adjusted Performance (CAGR vs Volatility)",
+        xaxis={"title": "Annualized Volatility (%)", "gridcolor": COLORS["grid"]},
+        yaxis={"title": "CAGR (%)", "gridcolor": COLORS["grid"]},
+        hovermode="closest",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Correlation
 # ---------------------------------------------------------------------------
 def plot_correlation_heatmap(correlation_matrix: pd.DataFrame) -> go.Figure:

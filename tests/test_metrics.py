@@ -248,6 +248,162 @@ def test_correlation_pair_handles_single_ticker() -> None:
     assert find_highest_correlation_pair(corr) is None
 
 
+# ---------------------------------------------------------------------------
+# Phase 2: Financial Math Engine
+# ---------------------------------------------------------------------------
+def test_clean_returns_strips_inf_and_nan() -> None:
+    raw = pd.Series([0.01, np.inf, np.nan, -0.02, -np.inf])
+    cleaned = metrics.clean_returns(raw)
+    assert cleaned.tolist() == pytest.approx([0.01, -0.02])
+
+
+def test_clean_returns_type_validation() -> None:
+    with pytest.raises(TypeError):
+        metrics.clean_returns([0.01, 0.02])  # not a Series
+
+
+def test_daily_volatility() -> None:
+    returns = pd.Series([0.01, -0.01, 0.01, -0.01])
+    assert metrics.calculate_daily_volatility(returns) == pytest.approx(
+        float(returns.std(ddof=1))
+    )
+
+
+def test_daily_volatility_too_few_points() -> None:
+    assert metrics.calculate_daily_volatility(pd.Series([0.01])) == 0.0
+
+
+def test_cagr_one_year_growth() -> None:
+    # ~1 year apart: 100 -> 110 should be ~10% CAGR.
+    df = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2021-01-01", "2022-01-01"]),
+            "Close": [100.0, 110.0],
+        }
+    )
+    assert metrics.calculate_cagr(df) == pytest.approx(0.10, abs=1e-2)
+
+
+def test_cagr_handles_bad_input() -> None:
+    # Too few rows -> NaN.
+    one = pd.DataFrame({"Date": pd.to_datetime(["2021-01-01"]), "Close": [100.0]})
+    assert np.isnan(metrics.calculate_cagr(one))
+    # Missing columns -> NaN.
+    assert np.isnan(metrics.calculate_cagr(pd.DataFrame({"x": [1, 2]})))
+    # Non-positive starting price -> NaN.
+    bad = pd.DataFrame(
+        {"Date": pd.to_datetime(["2021-01-01", "2022-01-01"]), "Close": [0.0, 110.0]}
+    )
+    assert np.isnan(metrics.calculate_cagr(bad))
+
+
+def test_sharpe_ratio_formula() -> None:
+    returns = pd.Series([0.01, 0.02, 0.03])
+    # mean=0.02, std(ddof=1)=0.01 ; with rf=0:
+    # sharpe = (0.02*252) / (0.01*sqrt(252)) = 2 * sqrt(252)
+    expected = 2.0 * np.sqrt(252)
+    assert metrics.calculate_sharpe_ratio(returns, risk_free_rate=0.0) == pytest.approx(expected)
+
+
+def test_sharpe_ratio_zero_volatility_is_nan() -> None:
+    flat = pd.Series([0.01, 0.01, 0.01])
+    assert np.isnan(metrics.calculate_sharpe_ratio(flat))
+
+
+def test_sharpe_ratio_too_few_points_is_nan() -> None:
+    assert np.isnan(metrics.calculate_sharpe_ratio(pd.Series([0.01])))
+
+
+def test_downside_deviation_target_and_annualize() -> None:
+    returns = pd.Series([0.03, -0.02, 0.01, -0.04])
+    # target=0, daily: only -0.02 and -0.04 count.
+    expected_daily = np.sqrt(np.mean(np.square([-0.02, -0.04])))
+    assert metrics.calculate_downside_deviation(
+        returns, target_return=0.0, annualize=False
+    ) == pytest.approx(expected_daily)
+    # Annualizing scales by sqrt(252).
+    assert metrics.calculate_downside_deviation(
+        returns, target_return=0.0, annualize=True, trading_days=252
+    ) == pytest.approx(expected_daily * np.sqrt(252))
+
+
+def test_downside_deviation_higher_target_increases_downside() -> None:
+    returns = pd.Series([0.03, -0.02, 0.01, -0.04])
+    low = metrics.calculate_downside_deviation(returns, target_return=0.0, annualize=False)
+    high = metrics.calculate_downside_deviation(returns, target_return=0.02, annualize=False)
+    # A higher minimum-acceptable return pulls more days into the "downside".
+    assert high > low
+
+
+def test_sortino_ratio_no_downside_is_nan() -> None:
+    only_gains = pd.Series([0.01, 0.02, 0.03])
+    assert np.isnan(metrics.calculate_sortino_ratio(only_gains))
+
+
+def test_sortino_ratio_positive_for_net_gains() -> None:
+    returns = pd.Series([0.02, -0.01, 0.03, -0.02])
+    sortino = metrics.calculate_sortino_ratio(returns, risk_free_rate=0.0)
+    assert np.isfinite(sortino)
+    assert sortino > 0
+
+
+def test_beta_scaled_asset_is_two() -> None:
+    benchmark = pd.Series([0.01, -0.02, 0.03, -0.01])
+    asset = benchmark * 2.0  # perfectly amplifies the market by 2x
+    assert metrics.calculate_beta(asset, benchmark) == pytest.approx(2.0)
+
+
+def test_beta_zero_variance_benchmark_is_nan() -> None:
+    asset = pd.Series([0.01, -0.02, 0.03])
+    flat_benchmark = pd.Series([0.01, 0.01, 0.01])
+    assert np.isnan(metrics.calculate_beta(asset, flat_benchmark))
+
+
+def test_beta_aligns_on_shared_index() -> None:
+    benchmark = pd.Series([0.01, -0.02, 0.03, -0.01], index=[0, 1, 2, 3])
+    # Asset overlaps benchmark on indices 1..3 only; still 2x on the overlap.
+    asset = pd.Series([-0.04, 0.06, -0.02], index=[1, 2, 3])
+    assert metrics.calculate_beta(asset, benchmark) == pytest.approx(2.0)
+
+
+def test_capm_expected_return() -> None:
+    # rf=0.05, market=0.10, beta=1 -> 0.10 ; beta=2 -> 0.15
+    assert metrics.calculate_capm_expected_return(1.0, 0.10, 0.05) == pytest.approx(0.10)
+    assert metrics.calculate_capm_expected_return(2.0, 0.10, 0.05) == pytest.approx(0.15)
+
+
+def test_capm_nan_inputs() -> None:
+    assert np.isnan(metrics.calculate_capm_expected_return(float("nan"), 0.10))
+    assert np.isnan(metrics.calculate_capm_expected_return(1.0, float("nan")))
+
+
+def test_default_benchmark_for_ticker() -> None:
+    from src import config
+
+    assert config.get_default_benchmark_for_ticker("RELIANCE.NS") == config.BENCHMARK_INDIA
+    assert config.get_default_benchmark_for_ticker("AAPL") == config.BENCHMARK_US
+
+
+def test_summary_statistics_with_benchmark() -> None:
+    dates = pd.date_range("2022-01-01", periods=6, freq="D")
+    asset = pd.Series([100.0, 101.0, 102.0, 101.0, 103.0, 104.0], index=dates)
+    benchmark = pd.Series([50.0, 50.5, 51.0, 50.5, 51.5, 52.0], index=dates)
+
+    stats = metrics.calculate_summary_statistics(asset, benchmark_prices=benchmark)
+    for key in ("cagr", "sortino_ratio", "beta", "capm_expected_return", "latest_close"):
+        assert key in stats
+    # With a benchmark provided, beta should be a real number.
+    assert np.isfinite(stats["beta"])
+
+
+def test_summary_statistics_without_benchmark_has_nan_beta() -> None:
+    dates = pd.date_range("2022-01-01", periods=4, freq="D")
+    asset = pd.Series([100.0, 101.0, 102.0, 103.0], index=dates)
+    stats = metrics.calculate_summary_statistics(asset)
+    assert np.isnan(stats["beta"])
+    assert np.isnan(stats["capm_expected_return"])
+
+
 def test_sector_summary() -> None:
     from src.analytics import calculate_sector_summary
 

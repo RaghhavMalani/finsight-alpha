@@ -28,6 +28,29 @@ in a classy, finance-terminal-style Streamlit dashboard.
 
 ---
 
+## What Phase 2 adds: Financial Math Engine
+
+Phase 2 upgrades the basic analytics into a reusable, benchmark-aware
+**risk-adjusted performance engine**:
+
+- **CAGR** - Compound Annual Growth Rate (smoothed annual return over the real
+  calendar span).
+- **Sharpe Ratio** - excess return per unit of *total* volatility.
+- **Sortino Ratio** - excess return per unit of *downside* volatility.
+- **Beta** - sensitivity to a market benchmark (Nifty ETF for `.NS`, SPY for US).
+- **CAPM Expected Return** - the return an asset *should* earn given its beta.
+- **Benchmark support** - the dashboard auto-fetches the matching benchmark and
+  degrades gracefully (beta/CAPM show `-`) if it's unavailable.
+- **`clean_returns` helper** - strips `inf`/`NaN` so one bad row can't poison a
+  metric.
+
+These appear as new KPI cards, ranking tables, and charts (CAGR bar, Sharpe vs
+Sortino bar, beta bar, and a CAGR-vs-volatility scatter colored by Sharpe). See
+[`docs/phase_2_financial_math_engine.md`](docs/phase_2_financial_math_engine.md)
+for the formulas and intuition.
+
+---
+
 ## Installation
 
 > Requires Python 3.10+ (3.11 recommended).
@@ -74,19 +97,22 @@ Tests are fully offline (no internet needed) - they use small hardcoded frames.
 1. **Market Overview** - headline KPIs (best/worst performer, average volatility,
    worst drawdown), normalized price comparison, cumulative return comparison,
    and a risk-return scatter.
-2. **Single Asset Analysis** - KPI cards (latest close, total return, annualized
-   volatility, max drawdown, average daily return, best/worst day) plus price,
-   daily returns, cumulative returns, rolling volatility, and drawdown charts,
-   with a summary statistics table.
+2. **Single Asset Analysis** - KPI cards (latest close, total return, CAGR,
+   annualized volatility, Sharpe, Sortino, beta, CAPM expected return, max
+   drawdown, average daily return, best/worst day) plus price, daily returns,
+   cumulative returns, rolling volatility, and drawdown charts, with a summary
+   statistics table.
 3. **Multi-Asset Comparison** - normalized price and cumulative-return curves,
-   plus total-return / volatility / max-drawdown rankings.
+   risk-adjusted charts (CAGR, Sharpe vs Sortino, beta, risk-adjusted scatter),
+   plus rankings for CAGR, Sharpe, Sortino, drawdown, volatility, total return,
+   and beta.
 4. **Correlation Heatmap** - returns correlation heatmap, highest and lowest
    correlated pairs, and a plain-English explanation.
 5. **Sector Comparison** - sector summary table and return / volatility /
    drawdown bar charts.
 6. **Risk Summary** - per-asset risk classification, annualized volatility,
-   downside deviation, max drawdown, a risk ranking table, and placeholders for
-   VaR / CVaR (coming in Phase 4).
+   downside deviation, max drawdown, Sharpe / Sortino / beta / CAPM, a risk
+   ranking table, and placeholders for VaR / CVaR (coming in Phase 4).
 7. **Data Quality Report** - rows per ticker, missing values, duplicates, first
    and last available dates, completeness percentage, and a coverage chart.
 
@@ -134,7 +160,7 @@ finsight-alpha/
 
 ## Future phases
 
-- **Phase 2** - Advanced financial metrics (Sharpe/Sortino/Calmar, beta, alpha).
+- **Phase 2 (done)** - Financial Math Engine: CAGR, Sharpe, Sortino, beta, CAPM.
 - **Phase 3** - Black-Scholes option pricing and the Greeks.
 - **Phase 4** - Monte Carlo simulation and VaR / CVaR risk.
 - **Phase 5** - Portfolio optimization (mean-variance, efficient frontier).
@@ -158,3 +184,8 @@ finsight-alpha/
 - **Drawdown / max drawdown**: decline from the running peak; worst such decline.
 - **Correlation**: co-movement of returns - the basis of diversification.
 - **Downside deviation**: volatility of only negative returns (downside risk).
+- **CAGR**: `(End/Start)^(1/years) - 1` - smoothed annual growth rate.
+- **Sharpe**: `(Annual Return - Rf) / Annual Volatility` - reward per unit risk.
+- **Sortino**: like Sharpe, but divides by downside deviation only.
+- **Beta**: `Cov(asset, market) / Var(market)` - sensitivity to the benchmark.
+- **CAPM**: `Rf + Beta * (Market Return - Rf)` - expected return for the risk taken.
