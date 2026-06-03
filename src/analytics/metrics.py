@@ -241,6 +241,72 @@ def calculate_total_return(prices: pd.Series) -> float:
     return float(clean.iloc[-1] / clean.iloc[0] - 1.0)
 
 
+def calculate_average_daily_return(returns: pd.Series) -> float:
+    """Average (mean) daily return.
+
+    Parameters
+    ----------
+    returns:
+        Series of daily returns (simple or log).
+
+    Returns
+    -------
+    float
+        The arithmetic mean of the returns as a decimal. ``0.0`` if there is no
+        valid observation.
+    """
+    if not isinstance(returns, pd.Series):
+        raise TypeError("returns must be a pandas Series.")
+    clean = returns.dropna()
+    if clean.empty:
+        return 0.0
+    return float(clean.mean())
+
+
+def calculate_best_day(returns: pd.Series) -> float:
+    """The single best daily return in the series.
+
+    Parameters
+    ----------
+    returns:
+        Series of daily returns.
+
+    Returns
+    -------
+    float
+        The maximum daily return as a decimal (e.g. ``0.08`` = +8%). ``0.0`` if
+        there is no valid observation.
+    """
+    if not isinstance(returns, pd.Series):
+        raise TypeError("returns must be a pandas Series.")
+    clean = returns.dropna()
+    if clean.empty:
+        return 0.0
+    return float(clean.max())
+
+
+def calculate_worst_day(returns: pd.Series) -> float:
+    """The single worst daily return in the series.
+
+    Parameters
+    ----------
+    returns:
+        Series of daily returns.
+
+    Returns
+    -------
+    float
+        The minimum daily return as a decimal (e.g. ``-0.09`` = -9%). ``0.0`` if
+        there is no valid observation.
+    """
+    if not isinstance(returns, pd.Series):
+        raise TypeError("returns must be a pandas Series.")
+    clean = returns.dropna()
+    if clean.empty:
+        return 0.0
+    return float(clean.min())
+
+
 def calculate_summary_statistics(
     prices: pd.Series,
     trading_days: int = config.TRADING_DAYS_PER_YEAR,
@@ -303,4 +369,7 @@ def calculate_summary_statistics(
         "annualized_volatility": annualized_volatility,
         "sharpe_ratio": sharpe_ratio,
         "max_drawdown": max_dd,
+        "average_daily_return": calculate_average_daily_return(simple_returns),
+        "best_day": calculate_best_day(simple_returns),
+        "worst_day": calculate_worst_day(simple_returns),
     }

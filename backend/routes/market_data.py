@@ -19,6 +19,7 @@ from src.analytics import (
 )
 from src.data import storage
 from src.data.bigquery_client import BigQueryClient
+from src.data.cloud_storage_client import CloudStorageClient
 from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
 from src.utils.logging_utils import get_logger
@@ -61,9 +62,28 @@ def fetch_market_data(request: MarketDataFetchRequest) -> MarketDataFetchRespons
       2. Enrich with analytics columns.
       3. Optionally save raw + processed CSV/Parquet locally.
       4. Optionally upload to BigQuery (no-op without GCP config).
+      5. Optionally upload raw CSV to Cloud Storage (no-op without GCP config).
+
+    Cloud failures never crash the request - each target reports a structured
+    status dictionary in the response.
     """
     if not request.tickers:
         raise HTTPException(status_code=400, detail="No tickers provided.")
+
+    # Default statuses (used when a target is not requested).
+    local_save_status: dict[str, object] = {
+        "success": False,
+        "message": "Local save not requested.",
+        "tickers": [],
+    }
+    bigquery_upload_status: dict[str, object] = {
+        "success": False,
+        "message": "BigQuery upload not requested.",
+    }
+    cloud_storage_upload_status: dict[str, object] = {
+        "success": False,
+        "message": "Cloud Storage upload not requested.",
+    }
 
     try:
         service = MarketDataService(request.provider)
@@ -82,10 +102,14 @@ def fetch_market_data(request: MarketDataFetchRequest) -> MarketDataFetchRespons
             provider=request.provider,
             status="empty",
             message="No data returned for the requested tickers/date range.",
+            local_save_status=local_save_status,
+            bigquery_upload_status=bigquery_upload_status,
+            cloud_storage_upload_status=cloud_storage_upload_status,
         )
 
     processed = _enrich_with_analytics(raw)
 
+    # 3. Local persistence.
     saved_tickers: list[str] = []
     if request.save_local:
         for ticker, group in processed.groupby("Ticker", sort=False):
@@ -96,17 +120,48 @@ def fetch_market_data(request: MarketDataFetchRequest) -> MarketDataFetchRespons
                 group, config.EXPORTS_DIR / f"{storage.safe_ticker_stem(str(ticker))}.parquet"
             )
             saved_tickers.append(str(ticker))
+        local_save_status = {
+            "success": True,
+            "message": f"Saved {len(saved_tickers)} ticker(s) locally.",
+            "tickers": saved_tickers,
+        }
 
-    bq_message = ""
+    # 4. BigQuery upload (optional, graceful).
     if request.upload_bigquery:
-        client = BigQueryClient()
-        ok_prices = client.upload_dataframe(raw, config.BIGQUERY_MARKET_PRICES_TABLE)
-        ok_analytics = client.upload_dataframe(processed, config.BIGQUERY_ANALYTICS_TABLE)
-        bq_message = (
-            " BigQuery upload attempted."
-            if (ok_prices or ok_analytics)
-            else " BigQuery not configured; upload skipped."
-        )
+        try:
+            bq = BigQueryClient()
+            prices_status = bq.upload_market_prices(raw)
+            analytics_status = bq.upload_market_analytics(processed)
+            bigquery_upload_status = {
+                "success": bool(prices_status.get("success") or analytics_status.get("success")),
+                "message": "BigQuery upload attempted.",
+                "prices": prices_status,
+                "analytics": analytics_status,
+            }
+        except Exception as exc:  # belt-and-braces: never crash the request
+            logger.warning("BigQuery upload raised: %s", exc)
+            bigquery_upload_status = {"success": False, "message": str(exc)}
+
+    # 5. Cloud Storage upload (optional, graceful).
+    if request.upload_cloud_storage:
+        try:
+            gcs = CloudStorageClient()
+            results: list[dict[str, object]] = []
+            any_ok = False
+            for ticker, group in raw.groupby("Ticker", sort=False):
+                stem = storage.safe_ticker_stem(str(ticker))
+                blob_name = f"raw/{stem}.csv"
+                res = gcs.upload_dataframe_as_csv(group, blob_name)
+                any_ok = any_ok or bool(res.get("success"))
+                results.append(res)
+            cloud_storage_upload_status = {
+                "success": any_ok,
+                "message": "Cloud Storage upload attempted.",
+                "uploads": results,
+            }
+        except Exception as exc:
+            logger.warning("Cloud Storage upload raised: %s", exc)
+            cloud_storage_upload_status = {"success": False, "message": str(exc)}
 
     fetched_tickers = sorted(processed["Ticker"].unique().tolist())
     return MarketDataFetchResponse(
@@ -116,7 +171,10 @@ def fetch_market_data(request: MarketDataFetchRequest) -> MarketDataFetchRespons
         end_date=request.end_date,
         provider=request.provider,
         status="success",
-        message=f"Fetched {len(fetched_tickers)} ticker(s)." + bq_message,
+        message=f"Fetched {len(fetched_tickers)} ticker(s).",
+        local_save_status=local_save_status,
+        bigquery_upload_status=bigquery_upload_status,
+        cloud_storage_upload_status=cloud_storage_upload_status,
     )
 
 

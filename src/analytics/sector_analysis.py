@@ -21,6 +21,19 @@ from src.utils.logging_utils import get_logger
 logger = get_logger(__name__)
 
 
+def add_sector_column(df: pd.DataFrame, ticker_col: str = "Ticker") -> pd.DataFrame:
+    """Return a copy of ``df`` with a ``Sector`` column derived from the ticker.
+
+    Uses the ticker-to-sector mapping in :mod:`src.config`. Unmapped tickers are
+    labelled ``"Unknown"``. The input frame is never mutated.
+    """
+    if df is None or df.empty or ticker_col not in df.columns:
+        return df.copy() if df is not None else pd.DataFrame()
+    out = df.copy()
+    out["Sector"] = out[ticker_col].astype(str).map(config.get_sector)
+    return out
+
+
 def _per_ticker_metrics(df: pd.DataFrame) -> pd.DataFrame:
     """Compute total return, annualised volatility, and max drawdown per ticker.
 
@@ -83,3 +96,19 @@ def calculate_sector_summary(df: pd.DataFrame) -> pd.DataFrame:
         num_tickers=("ticker", "count"),
     )
     return grouped.sort_values("avg_total_return", ascending=False)
+
+
+def calculate_sector_rankings(df: pd.DataFrame) -> pd.DataFrame:
+    """Rank sectors by average total return (best first).
+
+    Returns the sector summary with an added integer ``rank`` column and the
+    sector promoted to a regular column (so it is easy to display in a table).
+    Empty frame if there is no data.
+    """
+    summary = calculate_sector_summary(df)
+    if summary.empty:
+        return pd.DataFrame()
+
+    ranked = summary.sort_values("avg_total_return", ascending=False).reset_index()
+    ranked.insert(0, "rank", range(1, len(ranked) + 1))
+    return ranked

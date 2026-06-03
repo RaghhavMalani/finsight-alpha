@@ -6,6 +6,8 @@ them for validation, serialization, and the auto-generated OpenAPI docs.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from src import config
@@ -22,6 +24,9 @@ class MarketDataFetchRequest(BaseModel):
     upload_bigquery: bool = Field(
         False, description="Also upload to BigQuery (no-op if GCP not configured)."
     )
+    upload_cloud_storage: bool = Field(
+        False, description="Also upload to Cloud Storage (no-op if GCP not configured)."
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -32,13 +37,20 @@ class MarketDataFetchRequest(BaseModel):
                 "provider": "yfinance",
                 "save_local": True,
                 "upload_bigquery": False,
+                "upload_cloud_storage": False,
             }
         }
     }
 
 
 class MarketDataFetchResponse(BaseModel):
-    """Response for ``POST /market-data/fetch``."""
+    """Response for ``POST /market-data/fetch``.
+
+    The ``*_status`` fields are structured dictionaries describing what happened
+    for each persistence target. They are always present so the dashboard can
+    render them uniformly, even when a target was not requested or not
+    configured.
+    """
 
     tickers: list[str]
     rows_downloaded: int
@@ -47,6 +59,9 @@ class MarketDataFetchResponse(BaseModel):
     provider: str
     status: str
     message: str
+    local_save_status: dict[str, Any] = Field(default_factory=dict)
+    bigquery_upload_status: dict[str, Any] = Field(default_factory=dict)
+    cloud_storage_upload_status: dict[str, Any] = Field(default_factory=dict)
 
 
 class MarketDataPoint(BaseModel):

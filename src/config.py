@@ -39,25 +39,34 @@ DEFAULT_END_DATE: str = date.today().isoformat()
 INDIAN_TICKERS: list[str] = [
     "RELIANCE.NS",
     "TCS.NS",
-    "HDFCBANK.NS",
     "INFY.NS",
+    "HDFCBANK.NS",
     "ICICIBANK.NS",
+    "SBIN.NS",
+    "BHARTIARTL.NS",
+    "ITC.NS",
+    "NIFTYBEES.NS",
 ]
 
 # US equities / ETFs use their plain symbols.
 US_TICKERS: list[str] = [
     "AAPL",
     "MSFT",
+    "NVDA",
+    "GOOGL",
+    "AMZN",
+    "META",
     "JPM",
     "BLK",
     "SPY",
+    "QQQ",
 ]
 
 # Convenience: the full default universe processed by the pipeline / dashboard.
 ALL_TICKERS: list[str] = INDIAN_TICKERS + US_TICKERS
 
 # The default selection shown when the dashboard first loads.
-DEFAULT_TICKERS: list[str] = ["AAPL", "MSFT", "RELIANCE.NS", "TCS.NS", "SPY"]
+DEFAULT_TICKERS: list[str] = ["AAPL", "MSFT", "NVDA", "RELIANCE.NS", "TCS.NS", "SPY"]
 
 # ---------------------------------------------------------------------------
 # Ticker -> sector mapping
@@ -67,23 +76,65 @@ DEFAULT_TICKERS: list[str] = ["AAPL", "MSFT", "RELIANCE.NS", "TCS.NS", "SPY"]
 # market funds that are not a single sector.
 TICKER_SECTOR_MAP: dict[str, str] = {
     # India
-    "RELIANCE.NS": "Energy / Conglomerate",
+    "RELIANCE.NS": "Energy",
     "TCS.NS": "Information Technology",
-    "HDFCBANK.NS": "Financials",
     "INFY.NS": "Information Technology",
+    "HDFCBANK.NS": "Financials",
     "ICICIBANK.NS": "Financials",
+    "SBIN.NS": "Financials",
+    "BHARTIARTL.NS": "Communication Services",
+    "ITC.NS": "Consumer Staples",
+    "NIFTYBEES.NS": "ETF / Index",
     # US
     "AAPL": "Information Technology",
     "MSFT": "Information Technology",
+    "NVDA": "Information Technology",
+    "GOOGL": "Communication Services",
+    "AMZN": "Consumer Discretionary",
+    "META": "Communication Services",
     "JPM": "Financials",
     "BLK": "Financials",
     "SPY": "ETF / Index",
+    "QQQ": "ETF / Index",
+}
+
+# ---------------------------------------------------------------------------
+# Ticker -> human-readable display name
+# ---------------------------------------------------------------------------
+# Used in dashboard labels/tables so users see "Apple" instead of just "AAPL".
+TICKER_DISPLAY_NAMES: dict[str, str] = {
+    # India
+    "RELIANCE.NS": "Reliance Industries",
+    "TCS.NS": "Tata Consultancy Services",
+    "INFY.NS": "Infosys",
+    "HDFCBANK.NS": "HDFC Bank",
+    "ICICIBANK.NS": "ICICI Bank",
+    "SBIN.NS": "State Bank of India",
+    "BHARTIARTL.NS": "Bharti Airtel",
+    "ITC.NS": "ITC Ltd",
+    "NIFTYBEES.NS": "Nippon India ETF Nifty BeES",
+    # US
+    "AAPL": "Apple",
+    "MSFT": "Microsoft",
+    "NVDA": "NVIDIA",
+    "GOOGL": "Alphabet (Google)",
+    "AMZN": "Amazon",
+    "META": "Meta Platforms",
+    "JPM": "JPMorgan Chase",
+    "BLK": "BlackRock",
+    "SPY": "SPDR S&P 500 ETF",
+    "QQQ": "Invesco QQQ (Nasdaq 100)",
 }
 
 
 def get_sector(ticker: str) -> str:
     """Return the sector label for a ticker, or ``"Unknown"`` if unmapped."""
     return TICKER_SECTOR_MAP.get(ticker, "Unknown")
+
+
+def get_display_name(ticker: str) -> str:
+    """Return a human-readable name for a ticker, or the ticker itself if unmapped."""
+    return TICKER_DISPLAY_NAMES.get(ticker, ticker)
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +182,8 @@ POLYGON_API_KEY: str | None = os.getenv("POLYGON_API_KEY") or None
 
 # Google Cloud: BigQuery (analytics) + Cloud Storage (raw files).
 GCP_PROJECT_ID: str | None = os.getenv("GCP_PROJECT_ID") or None
+# Default deployment region (Mumbai). Used as the BigQuery dataset location.
+REGION: str = os.getenv("REGION", "asia-south1")
 GCS_BUCKET_NAME: str | None = os.getenv("GCS_BUCKET_NAME") or None
 BIGQUERY_DATASET: str = os.getenv("BIGQUERY_DATASET", "finsight_alpha")
 BIGQUERY_MARKET_PRICES_TABLE: str = os.getenv(

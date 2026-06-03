@@ -88,3 +88,81 @@ def calculate_correlation_matrix(
         return pd.DataFrame()
 
     return cleaned.corr(method="pearson", min_periods=min_periods)
+
+
+def create_returns_pivot(
+    df: pd.DataFrame,
+    price_col: str = "Close",
+    date_col: str = "Date",
+    ticker_col: str = "Ticker",
+) -> pd.DataFrame:
+    """Alias of :func:`build_returns_pivot` (preferred public name).
+
+    Pivots a long-format price frame into a wide table of daily simple returns
+    (one column per ticker, indexed by date).
+    """
+    return build_returns_pivot(df, price_col=price_col, date_col=date_col, ticker_col=ticker_col)
+
+
+def _extreme_correlation_pair(
+    correlation_matrix: pd.DataFrame, highest: bool
+) -> tuple[str, str, float] | None:
+    """Return the most/least correlated off-diagonal ticker pair.
+
+    Parameters
+    ----------
+    correlation_matrix:
+        Square correlation matrix.
+    highest:
+        If ``True`` find the maximum off-diagonal correlation, else the minimum.
+
+    Returns
+    -------
+    tuple[str, str, float] | None
+        ``(ticker_a, ticker_b, correlation)``, or ``None`` if there are fewer
+        than two tickers / no valid pairs.
+    """
+    if correlation_matrix is None or correlation_matrix.empty:
+        return None
+    if correlation_matrix.shape[0] < 2:
+        return None
+
+    best_pair: tuple[str, str, float] | None = None
+    cols = list(correlation_matrix.columns)
+    # Only scan the upper triangle (i < j) to avoid duplicates and the diagonal.
+    for i in range(len(cols)):
+        for j in range(i + 1, len(cols)):
+            value = correlation_matrix.iloc[i, j]
+            if pd.isna(value):
+                continue
+            value = float(value)
+            if best_pair is None:
+                best_pair = (cols[i], cols[j], value)
+            elif highest and value > best_pair[2]:
+                best_pair = (cols[i], cols[j], value)
+            elif not highest and value < best_pair[2]:
+                best_pair = (cols[i], cols[j], value)
+    return best_pair
+
+
+def find_highest_correlation_pair(
+    correlation_matrix: pd.DataFrame,
+) -> tuple[str, str, float] | None:
+    """Find the most positively correlated pair of tickers.
+
+    Returns ``(ticker_a, ticker_b, correlation)`` or ``None`` if not computable.
+    A high value (near +1) means the two assets tend to move together - they add
+    little diversification to each other.
+    """
+    return _extreme_correlation_pair(correlation_matrix, highest=True)
+
+
+def find_lowest_correlation_pair(
+    correlation_matrix: pd.DataFrame,
+) -> tuple[str, str, float] | None:
+    """Find the least correlated (or most negatively correlated) pair of tickers.
+
+    Returns ``(ticker_a, ticker_b, correlation)`` or ``None`` if not computable.
+    A low value (near 0 or negative) means the two assets diversify each other.
+    """
+    return _extreme_correlation_pair(correlation_matrix, highest=False)

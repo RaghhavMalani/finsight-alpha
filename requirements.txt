@@ -1,35 +1,38 @@
-# FinSight Alpha - Phase 1C dependencies
+# FinSight Alpha - local-first dependencies
 # Install with:  pip install -r requirements.txt
+#
+# This is everything the local Streamlit dashboard needs. No cloud accounts,
+# API keys, or databases required.
 
 # --- Core data & analytics ---
-pandas>=2.0.0
-numpy>=1.24.0
-yfinance>=0.2.40
-scipy>=1.11.0
+pandas
+numpy
+yfinance
+scipy
 
 # --- Visualization & dashboard ---
-plotly>=5.18.0
-streamlit>=1.30.0
+plotly
+streamlit
 
-# --- Backend API ---
-fastapi>=0.110.0
-uvicorn>=0.27.0
-requests>=2.31.0
-pydantic>=2.5.0
+# --- Local storage (Parquet engine) ---
+pyarrow
 
 # --- Config & environment ---
-python-dotenv>=1.0.0
-
-# --- Parquet engine (Parquet exports + BigQuery loads) ---
-pyarrow>=14.0.0
-
-# --- Database (Cloud SQL / PostgreSQL metadata) ---
-sqlalchemy>=2.0.0
-psycopg2-binary>=2.9.0
-
-# --- Cloud (BigQuery analytics + Cloud Storage raw files) ---
-google-cloud-bigquery>=3.17.0
-google-cloud-storage>=2.14.0
+python-dotenv
 
 # --- Testing ---
-pytest>=7.4.0
+pytest
+
+# ---------------------------------------------------------------------------
+# OPTIONAL / PAUSED: cloud + API stack (Phase 1C/1D, not required locally).
+# Cloud deployment is paused to avoid cost - the dashboard runs fully without
+# these. Uncomment only if you revisit the FastAPI backend or cloud uploads.
+# ---------------------------------------------------------------------------
+# fastapi
+# uvicorn
+# requests
+# pydantic
+# sqlalchemy
+# psycopg2-binary
+# google-cloud-bigquery
+# google-cloud-storage

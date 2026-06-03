@@ -1,9 +1,9 @@
 """Persistence helpers.
 
-Local persistence (CSV + Parquet) is implemented now. Cloud persistence
-(BigQuery, Cloud Storage) is stubbed with clear placeholders that will be
-activated in Phase 1C/1D. Keeping the function signatures stable now means the
-rest of the codebase can call them without changing later.
+Local-first persistence (CSV + Parquet). All data is saved under the local
+``data/`` folder - no cloud accounts or databases required. Cloud upload
+placeholders remain at the bottom of this module but are PAUSED (no-ops) while
+the project is local-first; they will be revisited in an optional future phase.
 """
 
 from __future__ import annotations
@@ -25,6 +25,11 @@ def _safe_filename(name: str) -> str:
 
 def safe_ticker_stem(ticker: str) -> str:
     """Return the filesystem-safe stem for a ticker (``RELIANCE.NS`` -> ``RELIANCE_NS``)."""
+    return _safe_filename(ticker)
+
+
+def safe_ticker_filename(ticker: str) -> str:
+    """Public alias for :func:`safe_ticker_stem` (``RELIANCE.NS`` -> ``RELIANCE_NS``)."""
     return _safe_filename(ticker)
 
 
@@ -169,7 +174,83 @@ def load_all_processed_data() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Cloud persistence (placeholders - activated in Phase 1C/1D)
+# Local-first public API (preferred names used by the dashboard)
+# ---------------------------------------------------------------------------
+def save_raw_data(df: pd.DataFrame, ticker: str) -> Path | None:
+    """Save a raw OHLCV frame to ``data/raw/<ticker>.csv``.
+
+    Returns the path written, or ``None`` if the frame is empty.
+    """
+    if df is None or df.empty:
+        logger.info("save_raw_data: nothing to save for '%s' (empty frame).", ticker)
+        return None
+    return save_raw_csv(df, ticker)
+
+
+def save_processed_data(df: pd.DataFrame, ticker: str) -> Path | None:
+    """Save a processed (analytics-enriched) frame using ``*_processed.csv`` naming.
+
+    Returns the path written, or ``None`` if the frame is empty.
+    """
+    if df is None or df.empty:
+        logger.info("save_processed_data: nothing to save for '%s' (empty frame).", ticker)
+        return None
+    return save_processed_dataframe(df, ticker)
+
+
+def save_combined_processed_data(
+    df: pd.DataFrame, filename: str = "combined_processed.csv"
+) -> Path | None:
+    """Save a combined multi-ticker processed frame to ``data/processed/``.
+
+    Returns the path written, or ``None`` if the frame is empty.
+    """
+    if df is None or df.empty:
+        logger.info("save_combined_processed_data: nothing to save (empty frame).")
+        return None
+    config.ensure_data_dirs()
+    path = config.PROCESSED_DATA_DIR / filename
+    return save_dataframe_csv(df, path)
+
+
+def load_processed_data(ticker: str) -> pd.DataFrame | None:
+    """Load processed data for one ticker, or ``None`` if not present."""
+    return load_processed_ticker_data(ticker)
+
+
+def export_to_csv(df: pd.DataFrame, filename: str) -> Path | None:
+    """Export any DataFrame to ``data/exports/<filename>`` as CSV.
+
+    A ``.csv`` suffix is added if missing. Returns ``None`` for empty frames.
+    """
+    if df is None or df.empty:
+        logger.info("export_to_csv: nothing to export (empty frame).")
+        return None
+    config.ensure_data_dirs()
+    if not filename.lower().endswith(".csv"):
+        filename = f"{filename}.csv"
+    path = config.EXPORTS_DIR / filename
+    return save_dataframe_csv(df, path)
+
+
+def export_to_parquet(df: pd.DataFrame, filename: str) -> Path | None:
+    """Export any DataFrame to ``data/exports/<filename>`` as Parquet.
+
+    A ``.parquet`` suffix is added if missing. Returns ``None`` for empty frames
+    or if no Parquet engine is installed.
+    """
+    if df is None or df.empty:
+        logger.info("export_to_parquet: nothing to export (empty frame).")
+        return None
+    config.ensure_data_dirs()
+    if not filename.lower().endswith(".parquet"):
+        filename = f"{filename}.parquet"
+    path = config.EXPORTS_DIR / filename
+    return save_dataframe_parquet(df, path)
+
+
+# ---------------------------------------------------------------------------
+# Cloud persistence (placeholders - PAUSED while project is local-first)
 # ---------------------------------------------------------------------------
 def upload_to_bigquery(
     df: pd.DataFrame,

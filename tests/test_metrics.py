@@ -180,6 +180,74 @@ def test_correlation_pivot_and_matrix() -> None:
     assert corr.loc["A", "B"] == pytest.approx(1.0, abs=1e-6)
 
 
+def test_average_best_worst_day() -> None:
+    returns = pd.Series([0.02, -0.03, 0.01, float("nan")])
+    # Mean of [0.02, -0.03, 0.01] = 0.0 ; best = 0.02 ; worst = -0.03
+    assert metrics.calculate_average_daily_return(returns) == pytest.approx(0.0)
+    assert metrics.calculate_best_day(returns) == pytest.approx(0.02)
+    assert metrics.calculate_worst_day(returns) == pytest.approx(-0.03)
+
+
+def test_average_best_worst_day_empty() -> None:
+    empty = pd.Series([float("nan")])
+    assert metrics.calculate_average_daily_return(empty) == 0.0
+    assert metrics.calculate_best_day(empty) == 0.0
+    assert metrics.calculate_worst_day(empty) == 0.0
+
+
+def test_summary_statistics_includes_new_keys(sample_prices: pd.Series) -> None:
+    stats = metrics.calculate_summary_statistics(sample_prices)
+    for key in ("average_daily_return", "best_day", "worst_day"):
+        assert key in stats
+
+
+def test_correlation_pair_helpers() -> None:
+    from src.analytics import (
+        calculate_correlation_matrix,
+        create_returns_pivot,
+        find_highest_correlation_pair,
+        find_lowest_correlation_pair,
+    )
+
+    # A and B move together (corr ~ +1); C moves opposite to A (corr ~ -1).
+    df = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"] * 3),
+            "Close": [
+                100.0, 110.0, 99.0,   # A
+                50.0, 55.0, 49.5,     # B (scaled copy of A)
+                100.0, 90.0, 100.0,   # C (opposite direction)
+            ],
+            "Ticker": ["A", "A", "A", "B", "B", "B", "C", "C", "C"],
+        }
+    )
+    corr = calculate_correlation_matrix(create_returns_pivot(df))
+
+    highest = find_highest_correlation_pair(corr)
+    lowest = find_lowest_correlation_pair(corr)
+    assert highest is not None and lowest is not None
+    # A & B are the most correlated pair (~1.0).
+    assert {highest[0], highest[1]} == {"A", "B"}
+    assert highest[2] == pytest.approx(1.0, abs=1e-6)
+    # The lowest pair correlation should be below the highest.
+    assert lowest[2] < highest[2]
+
+
+def test_correlation_pair_handles_single_ticker() -> None:
+    from src.analytics import calculate_correlation_matrix, create_returns_pivot, find_highest_correlation_pair
+
+    df = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2024-01-01", "2024-01-02"]),
+            "Close": [100.0, 110.0],
+            "Ticker": ["A", "A"],
+        }
+    )
+    corr = calculate_correlation_matrix(create_returns_pivot(df))
+    # Only one ticker -> no pair to return.
+    assert find_highest_correlation_pair(corr) is None
+
+
 def test_sector_summary() -> None:
     from src.analytics import calculate_sector_summary
 

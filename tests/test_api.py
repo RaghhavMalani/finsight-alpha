@@ -78,3 +78,80 @@ def test_correlation_requires_two_tickers() -> None:
         json={"tickers": ["AAPL"], "start_date": "2023-01-01", "end_date": "2024-01-01"},
     )
     assert resp.status_code == 400
+
+
+def test_fetch_request_schema_has_cloud_storage_flag() -> None:
+    # The request schema should advertise the new upload_cloud_storage flag.
+    from backend.schemas.market_data_schema import MarketDataFetchRequest
+
+    fields = MarketDataFetchRequest.model_fields
+    assert "upload_bigquery" in fields
+    assert "upload_cloud_storage" in fields
+    # Defaults are off so cloud is opt-in.
+    req = MarketDataFetchRequest(tickers=["AAPL"])
+    assert req.upload_bigquery is False
+    assert req.upload_cloud_storage is False
+
+
+def test_fetch_response_schema_has_status_dicts() -> None:
+    from backend.schemas.market_data_schema import MarketDataFetchResponse
+
+    fields = MarketDataFetchResponse.model_fields
+    for name in (
+        "local_save_status",
+        "bigquery_upload_status",
+        "cloud_storage_upload_status",
+    ):
+        assert name in fields
+
+
+def test_fetch_returns_structured_statuses(monkeypatch) -> None:
+    """The fetch route returns all three status dicts without real network/GCP.
+
+    We monkeypatch the market-data service so no download happens, and leave
+    cloud uploads disabled - they should report "not requested".
+    """
+    import pandas as pd
+
+    import backend.routes.market_data as md
+
+    sample = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2023-01-02", "2023-01-03", "2023-01-04"]),
+            "Open": [1.0, 2.0, 3.0],
+            "High": [1.0, 2.0, 3.0],
+            "Low": [1.0, 2.0, 3.0],
+            "Close": [1.0, 2.0, 3.0],
+            "Volume": [10, 20, 30],
+            "Ticker": ["AAPL", "AAPL", "AAPL"],
+            "Provider": ["fake", "fake", "fake"],
+        }
+    )
+
+    class _FakeService:
+        def __init__(self, provider: str) -> None:
+            self.provider = provider
+
+        def get_multiple(self, tickers, start, end, skip_errors=True):
+            return sample.copy()
+
+    monkeypatch.setattr(md, "MarketDataService", _FakeService)
+
+    resp = client.post(
+        "/market-data/fetch",
+        json={
+            "tickers": ["AAPL"],
+            "start_date": "2023-01-01",
+            "end_date": "2023-02-01",
+            "provider": "fake",
+            "save_local": False,
+            "upload_bigquery": False,
+            "upload_cloud_storage": False,
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "success"
+    assert "not requested" in body["bigquery_upload_status"]["message"]
+    assert "not requested" in body["cloud_storage_upload_status"]["message"]
+    assert body["local_save_status"]["success"] is False
