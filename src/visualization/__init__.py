@@ -4,6 +4,8 @@ Exposes the dashboard theme and all Plotly chart builders.
 """
 
 from .plots import (
+    plot_beta_bar,
+    plot_cagr_bar,
     plot_correlation_heatmap,
     plot_cumulative_return_comparison,
     plot_cumulative_returns,
@@ -12,11 +14,13 @@ from .plots import (
     plot_drawdown,
     plot_normalized_price_comparison,
     plot_price_chart,
+    plot_risk_adjusted_scatter,
     plot_risk_return_scatter,
     plot_rolling_volatility,
     plot_sector_drawdown_bar,
     plot_sector_return_bar,
     plot_sector_volatility_bar,
+    plot_sharpe_sortino_bar,
 )
 from .theme import (
     COLORS,
@@ -41,6 +45,11 @@ __all__ = [
     "plot_normalized_price_comparison",
     "plot_cumulative_return_comparison",
     "plot_risk_return_scatter",
+    # risk-adjusted (Phase 2)
+    "plot_cagr_bar",
+    "plot_sharpe_sortino_bar",
+    "plot_beta_bar",
+    "plot_risk_adjusted_scatter",
     # correlation / sector / quality
     "plot_correlation_heatmap",
     "plot_sector_return_bar",

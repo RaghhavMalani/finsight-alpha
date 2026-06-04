@@ -22,18 +22,25 @@ from .metrics import (
     calculate_annualized_volatility,
     calculate_average_daily_return,
     calculate_best_day,
+    calculate_beta,
+    calculate_cagr,
+    calculate_capm_expected_return,
     calculate_cumulative_returns,
+    calculate_daily_volatility,
+    calculate_downside_deviation,
     calculate_drawdown,
     calculate_log_returns,
     calculate_max_drawdown,
     calculate_rolling_volatility,
+    calculate_sharpe_ratio,
     calculate_simple_returns,
+    calculate_sortino_ratio,
     calculate_summary_statistics,
     calculate_total_return,
     calculate_worst_day,
+    clean_returns,
 )
 from .risk_summary import (
-    calculate_downside_deviation,
     calculate_risk_summary,
     classify_volatility_risk,
 )
@@ -45,10 +52,12 @@ from .sector_analysis import (
 
 __all__ = [
     # metrics
+    "clean_returns",
     "calculate_simple_returns",
     "calculate_log_returns",
     "calculate_cumulative_returns",
     "calculate_rolling_volatility",
+    "calculate_daily_volatility",
     "calculate_drawdown",
     "calculate_max_drawdown",
     "calculate_annualized_volatility",
@@ -56,6 +65,12 @@ __all__ = [
     "calculate_average_daily_return",
     "calculate_best_day",
     "calculate_worst_day",
+    "calculate_cagr",
+    "calculate_sharpe_ratio",
+    "calculate_sortino_ratio",
+    "calculate_downside_deviation",
+    "calculate_beta",
+    "calculate_capm_expected_return",
     "calculate_summary_statistics",
     # correlation
     "build_returns_pivot",
@@ -69,7 +84,6 @@ __all__ = [
     "calculate_sector_rankings",
     # risk
     "classify_volatility_risk",
-    "calculate_downside_deviation",
     "calculate_risk_summary",
     # data quality
     "calculate_missing_values",

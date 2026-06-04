@@ -33,17 +33,14 @@ import streamlit as st
 
 from src import config
 from src.analytics import (
-    calculate_annualized_volatility,
     calculate_average_daily_return,
     calculate_best_day,
     calculate_correlation_matrix,
     calculate_data_quality_report,
-    calculate_max_drawdown,
     calculate_risk_summary,
     calculate_sector_summary,
     calculate_simple_returns,
     calculate_summary_statistics,
-    calculate_total_return,
     calculate_worst_day,
     create_returns_pivot,
     find_highest_correlation_pair,
@@ -108,8 +105,26 @@ def _price_series(df: pd.DataFrame, ticker: str) -> pd.Series:
     return pd.Series(sub["Close"].to_numpy(), index=pd.to_datetime(sub["Date"]), name=str(ticker))
 
 
+def _benchmark_prices_for(ticker: str, benchmark_df: pd.DataFrame | None) -> pd.Series | None:
+    """Date-indexed benchmark Close series for the given asset, or ``None``.
+
+    The benchmark is chosen by :func:`config.get_default_benchmark_for_ticker`
+    (Nifty ETF for ``.NS`` symbols, SPY otherwise). Returns ``None`` if benchmark
+    data was not fetched, so beta/CAPM degrade gracefully to ``NaN``.
+    """
+    if benchmark_df is None or benchmark_df.empty:
+        return None
+    benchmark_ticker = config.get_default_benchmark_for_ticker(ticker)
+    if benchmark_ticker not in set(benchmark_df["Ticker"].unique()):
+        return None
+    prices = _price_series(benchmark_df, benchmark_ticker).dropna()
+    return prices if prices.shape[0] >= 2 else None
+
+
 def _fmt_pct(x: float) -> str:
     try:
+        if x is None or pd.isna(x):
+            return "-"
         return f"{x * 100:,.2f}%"
     except (TypeError, ValueError):
         return "-"
@@ -117,32 +132,48 @@ def _fmt_pct(x: float) -> str:
 
 def _fmt_num(x: float) -> str:
     try:
+        if x is None or pd.isna(x):
+            return "-"
         return f"{x:,.2f}"
     except (TypeError, ValueError):
         return "-"
 
 
-def build_summary(df: pd.DataFrame, tickers: list[str]) -> pd.DataFrame:
-    """Per-ticker headline metrics used across several pages.
+def build_summary(
+    df: pd.DataFrame,
+    tickers: list[str],
+    benchmark_df: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Per-ticker headline + risk-adjusted metrics used across several pages.
 
-    Columns: ``Ticker, Name, Sector, latest_close, total_return,
-    annualized_volatility, max_drawdown`` (numeric decimals).
+    Columns (numeric decimals unless noted): ``Ticker, Name, Sector, Benchmark,
+    latest_close, total_return, cagr, annualized_volatility, sharpe_ratio,
+    sortino_ratio, max_drawdown, beta, capm_expected_return``.
+
+    Beta and CAPM require ``benchmark_df``; when it is missing they are ``NaN``.
     """
     rows: list[dict[str, object]] = []
     for t in tickers:
         prices = _price_series(df, t).dropna()
         if prices.shape[0] < 2:
             continue
-        returns = calculate_simple_returns(prices)
+        benchmark_prices = _benchmark_prices_for(t, benchmark_df)
+        stats = calculate_summary_statistics(prices, benchmark_prices=benchmark_prices)
         rows.append(
             {
                 "Ticker": t,
                 "Name": config.get_display_name(t),
                 "Sector": config.get_sector(t),
-                "latest_close": float(prices.iloc[-1]),
-                "total_return": calculate_total_return(prices),
-                "annualized_volatility": calculate_annualized_volatility(returns),
-                "max_drawdown": calculate_max_drawdown(prices),
+                "Benchmark": config.get_default_benchmark_for_ticker(t),
+                "latest_close": stats["latest_close"],
+                "total_return": stats["total_return"],
+                "cagr": stats["cagr"],
+                "annualized_volatility": stats["annualized_volatility"],
+                "sharpe_ratio": stats["sharpe_ratio"],
+                "sortino_ratio": stats["sortino_ratio"],
+                "max_drawdown": stats["max_drawdown"],
+                "beta": stats["beta"],
+                "capm_expected_return": stats["capm_expected_return"],
             }
         )
     return pd.DataFrame(rows)
@@ -222,7 +253,7 @@ def render_sidebar() -> dict[str, object]:
     _render_export_controls()
 
     st.sidebar.markdown("---")
-    st.sidebar.caption("Local-first - no cloud, no API keys. Phase 1.")
+    st.sidebar.caption("Local-first - no cloud, no API keys. Phase 2: Financial Math Engine.")
 
     return {
         "page": page,
@@ -244,7 +275,8 @@ def _render_export_controls() -> None:
         return
 
     tickers = st.session_state.get("loaded_tickers", [])
-    summary = build_summary(df, tickers)
+    benchmark_df = st.session_state.get("benchmark_data")
+    summary = build_summary(df, tickers, benchmark_df)
     returns_pivot = create_returns_pivot(df)
     corr = calculate_correlation_matrix(returns_pivot)
 
@@ -287,9 +319,9 @@ def _render_export_controls() -> None:
 # ---------------------------------------------------------------------------
 # Pages
 # ---------------------------------------------------------------------------
-def page_market_overview(df: pd.DataFrame, tickers: list[str]) -> None:
+def page_market_overview(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame | None = None) -> None:
     st.header("Market Overview")
-    summary = build_summary(df, tickers)
+    summary = build_summary(df, tickers, benchmark_df)
     if summary.empty:
         st.warning("No valid data to summarize for the current selection.")
         return
@@ -318,7 +350,13 @@ def page_market_overview(df: pd.DataFrame, tickers: list[str]) -> None:
     st.plotly_chart(plots.plot_risk_return_scatter(summary), use_container_width=True)
 
 
-def page_single_asset(df: pd.DataFrame, tickers: list[str], default_ticker: str, vol_window: int) -> None:
+def page_single_asset(
+    df: pd.DataFrame,
+    tickers: list[str],
+    default_ticker: str,
+    vol_window: int,
+    benchmark_df: pd.DataFrame | None = None,
+) -> None:
     st.header("Single Asset Analysis")
     if not tickers:
         st.warning("No tickers loaded.")
@@ -333,20 +371,36 @@ def page_single_asset(df: pd.DataFrame, tickers: list[str], default_ticker: str,
         return
 
     returns = calculate_simple_returns(prices)
-    stats = calculate_summary_statistics(prices)
+    benchmark_prices = _benchmark_prices_for(ticker, benchmark_df)
+    stats = calculate_summary_statistics(prices, benchmark_prices=benchmark_prices)
+    benchmark_ticker = config.get_default_benchmark_for_ticker(ticker)
 
     st.subheader(f"{config.get_display_name(ticker)} ({ticker}) - {config.get_sector(ticker)}")
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Latest Close", _fmt_num(stats["end_price"]))
+    c1.metric("Latest Close", _fmt_num(stats["latest_close"]))
     c2.metric("Total Return", _fmt_pct(stats["total_return"]))
-    c3.metric("Annualized Volatility", _fmt_pct(stats["annualized_volatility"]))
-    c4.metric("Max Drawdown", _fmt_pct(stats["max_drawdown"]))
+    c3.metric("CAGR", _fmt_pct(stats["cagr"]))
+    c4.metric("Annualized Volatility", _fmt_pct(stats["annualized_volatility"]))
 
-    c5, c6, c7 = st.columns(3)
-    c5.metric("Avg Daily Return", _fmt_pct(calculate_average_daily_return(returns)))
-    c6.metric("Best Day", _fmt_pct(calculate_best_day(returns)))
-    c7.metric("Worst Day", _fmt_pct(calculate_worst_day(returns)))
+    # Phase 2 risk-adjusted KPIs.
+    c5, c6, c7, c8 = st.columns(4)
+    c5.metric("Sharpe Ratio", _fmt_num(stats["sharpe_ratio"]))
+    c6.metric("Sortino Ratio", _fmt_num(stats["sortino_ratio"]))
+    c7.metric(f"Beta vs {benchmark_ticker}", _fmt_num(stats["beta"]))
+    c8.metric("CAPM Expected Return", _fmt_pct(stats["capm_expected_return"]))
+
+    c9, c10, c11, c12 = st.columns(4)
+    c9.metric("Max Drawdown", _fmt_pct(stats["max_drawdown"]))
+    c10.metric("Avg Daily Return", _fmt_pct(calculate_average_daily_return(returns)))
+    c11.metric("Best Day", _fmt_pct(calculate_best_day(returns)))
+    c12.metric("Worst Day", _fmt_pct(calculate_worst_day(returns)))
+
+    if benchmark_prices is None:
+        st.caption(
+            f"Beta and CAPM need benchmark data ({benchmark_ticker}); it was not "
+            "available for this selection, so those values show as '-'."
+        )
 
     st.markdown("---")
     st.plotly_chart(plots.plot_price_chart(df, ticker), use_container_width=True)
@@ -365,7 +419,8 @@ def page_single_asset(df: pd.DataFrame, tickers: list[str], default_ticker: str,
         {
             "Metric": [
                 "Observations", "Start Price", "End Price", "Total Return",
-                "Annualized Return", "Annualized Volatility", "Sharpe Ratio",
+                "CAGR", "Annualized Return", "Annualized Volatility",
+                "Sharpe Ratio", "Sortino Ratio", "Beta", "CAPM Expected Return",
                 "Max Drawdown", "Avg Daily Return", "Best Day", "Worst Day",
             ],
             "Value": [
@@ -373,9 +428,13 @@ def page_single_asset(df: pd.DataFrame, tickers: list[str], default_ticker: str,
                 _fmt_num(stats["start_price"]),
                 _fmt_num(stats["end_price"]),
                 _fmt_pct(stats["total_return"]),
+                _fmt_pct(stats["cagr"]),
                 _fmt_pct(stats["annualized_return"]),
                 _fmt_pct(stats["annualized_volatility"]),
                 _fmt_num(stats["sharpe_ratio"]),
+                _fmt_num(stats["sortino_ratio"]),
+                _fmt_num(stats["beta"]),
+                _fmt_pct(stats["capm_expected_return"]),
                 _fmt_pct(stats["max_drawdown"]),
                 _fmt_pct(stats["average_daily_return"]),
                 _fmt_pct(stats["best_day"]),
@@ -386,9 +445,17 @@ def page_single_asset(df: pd.DataFrame, tickers: list[str], default_ticker: str,
     st.dataframe(stats_table, use_container_width=True, hide_index=True)
 
 
-def page_multi_asset(df: pd.DataFrame, tickers: list[str]) -> None:
+def _ranking_table(summary: pd.DataFrame, column: str, ascending: bool, fmt) -> pd.DataFrame:
+    """Two-column ranked table (Ticker + formatted metric) with NaNs dropped."""
+    data = summary.dropna(subset=[column]).sort_values(column, ascending=ascending)
+    out = data[["Ticker", column]].copy()
+    out[column] = out[column].map(fmt)
+    return out
+
+
+def page_multi_asset(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame | None = None) -> None:
     st.header("Multi-Asset Comparison")
-    summary = build_summary(df, tickers)
+    summary = build_summary(df, tickers, benchmark_df)
     if summary.empty:
         st.warning("No valid data to compare.")
         return
@@ -396,27 +463,48 @@ def page_multi_asset(df: pd.DataFrame, tickers: list[str]) -> None:
     st.plotly_chart(plots.plot_normalized_price_comparison(df), use_container_width=True)
     st.plotly_chart(plots.plot_cumulative_return_comparison(df), use_container_width=True)
 
+    # Phase 2 risk-adjusted comparison charts.
+    st.markdown("---")
+    st.subheader("Risk-adjusted performance")
+    st.plotly_chart(plots.plot_cagr_bar(summary), use_container_width=True)
+    st.plotly_chart(plots.plot_sharpe_sortino_bar(summary), use_container_width=True)
+    st.plotly_chart(plots.plot_beta_bar(summary), use_container_width=True)
+    st.plotly_chart(plots.plot_risk_adjusted_scatter(summary), use_container_width=True)
+
     st.markdown("---")
     st.subheader("Rankings")
     col1, col2, col3 = st.columns(3)
-
     with col1:
-        st.caption("Total Return (best first)")
-        tr = summary.sort_values("total_return", ascending=False)[["Ticker", "total_return"]].copy()
-        tr["total_return"] = tr["total_return"].map(_fmt_pct)
-        st.dataframe(tr, use_container_width=True, hide_index=True)
-
+        st.caption("Highest CAGR")
+        st.dataframe(_ranking_table(summary, "cagr", False, _fmt_pct), use_container_width=True, hide_index=True)
     with col2:
-        st.caption("Annualized Volatility (lowest first)")
-        vol = summary.sort_values("annualized_volatility")[["Ticker", "annualized_volatility"]].copy()
-        vol["annualized_volatility"] = vol["annualized_volatility"].map(_fmt_pct)
-        st.dataframe(vol, use_container_width=True, hide_index=True)
-
+        st.caption("Highest Sharpe Ratio")
+        st.dataframe(_ranking_table(summary, "sharpe_ratio", False, _fmt_num), use_container_width=True, hide_index=True)
     with col3:
-        st.caption("Max Drawdown (shallowest first)")
-        dd = summary.sort_values("max_drawdown", ascending=False)[["Ticker", "max_drawdown"]].copy()
-        dd["max_drawdown"] = dd["max_drawdown"].map(_fmt_pct)
-        st.dataframe(dd, use_container_width=True, hide_index=True)
+        st.caption("Highest Sortino Ratio")
+        st.dataframe(_ranking_table(summary, "sortino_ratio", False, _fmt_num), use_container_width=True, hide_index=True)
+
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        st.caption("Lowest Max Drawdown (shallowest first)")
+        st.dataframe(_ranking_table(summary, "max_drawdown", False, _fmt_pct), use_container_width=True, hide_index=True)
+    with col5:
+        st.caption("Lowest Annualized Volatility")
+        st.dataframe(_ranking_table(summary, "annualized_volatility", True, _fmt_pct), use_container_width=True, hide_index=True)
+    with col6:
+        st.caption("Total Return (best first)")
+        st.dataframe(_ranking_table(summary, "total_return", False, _fmt_pct), use_container_width=True, hide_index=True)
+
+    if summary["beta"].notna().any():
+        col7, col8 = st.columns(2)
+        with col7:
+            st.caption("Highest Beta (most market-sensitive)")
+            st.dataframe(_ranking_table(summary, "beta", False, _fmt_num), use_container_width=True, hide_index=True)
+        with col8:
+            st.caption("Lowest Beta (most defensive)")
+            st.dataframe(_ranking_table(summary, "beta", True, _fmt_num), use_container_width=True, hide_index=True)
+    else:
+        st.caption("Beta rankings need benchmark data, which was not available for this selection.")
 
 
 def page_correlation(df: pd.DataFrame, tickers: list[str]) -> None:
@@ -490,16 +578,35 @@ def page_sector(df: pd.DataFrame, tickers: list[str]) -> None:
     )
 
 
-def page_risk(df: pd.DataFrame, tickers: list[str]) -> None:
+def page_risk(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame | None = None) -> None:
     st.header("Risk Summary")
     risk = calculate_risk_summary(df)
     if risk.empty:
         st.warning("No risk data available for this selection.")
         return
 
+    # Enrich the risk table with Phase 2 risk-adjusted metrics.
+    summary = build_summary(df, tickers, benchmark_df)
+    if not summary.empty:
+        extra = summary[["Ticker", "sharpe_ratio", "sortino_ratio", "beta", "capm_expected_return"]]
+        risk = risk.merge(extra, on="Ticker", how="left")
+
     display = risk.copy()
     for col in ["Annualized Volatility", "Downside Deviation", "Max Drawdown"]:
         display[col] = display[col].map(_fmt_pct)
+    for col in ["sharpe_ratio", "sortino_ratio", "beta"]:
+        if col in display.columns:
+            display[col] = display[col].map(_fmt_num)
+    if "capm_expected_return" in display.columns:
+        display["capm_expected_return"] = display["capm_expected_return"].map(_fmt_pct)
+    display = display.rename(
+        columns={
+            "sharpe_ratio": "Sharpe Ratio",
+            "sortino_ratio": "Sortino Ratio",
+            "beta": "Beta",
+            "capm_expected_return": "CAPM Expected Return",
+        }
+    )
     st.dataframe(display, use_container_width=True, hide_index=True)
 
     st.markdown("---")
@@ -511,13 +618,15 @@ def page_risk(df: pd.DataFrame, tickers: list[str]) -> None:
     st.caption(
         "VaR, CVaR, and Monte Carlo simulation will quantify tail losses in "
         "Phase 4. For now, risk is summarized via volatility, downside deviation, "
-        "and max drawdown."
+        "max drawdown, and risk-adjusted ratios (Sharpe / Sortino / Beta)."
     )
 
     st.markdown("---")
     st.subheader("Risk ranking (riskiest first)")
-    ranking = risk[["Ticker", "Risk Classification", "Annualized Volatility"]].copy()
-    ranking["Annualized Volatility"] = ranking["Annualized Volatility"].map(_fmt_pct)
+    ranking_cols = ["Ticker", "Risk Classification", "Annualized Volatility"]
+    if "Sharpe Ratio" in display.columns:
+        ranking_cols.append("Sharpe Ratio")
+    ranking = display[ranking_cols].copy()
     st.dataframe(ranking, use_container_width=True, hide_index=True)
 
 
@@ -568,11 +677,25 @@ def main() -> None:
                         str(settings["start_date"]),
                         str(settings["end_date"]),
                     )
+                    # Also fetch the matching market benchmarks (Nifty ETF / SPY)
+                    # so beta + CAPM can be computed. Benchmark data is kept
+                    # separate so it never appears as an analyzed asset.
+                    benchmarks = sorted(
+                        {config.get_default_benchmark_for_ticker(t) for t in tickers}
+                        - set(tickers)
+                    )
+                    benchmark_df = (
+                        load_data(tuple(benchmarks), str(settings["start_date"]), str(settings["end_date"]))
+                        if benchmarks
+                        else pd.DataFrame()
+                    )
                 if df.empty:
                     st.session_state.pop("data", None)
+                    st.session_state.pop("benchmark_data", None)
                     st.sidebar.error("No data returned. Try different tickers or dates.")
                 else:
                     st.session_state["data"] = df
+                    st.session_state["benchmark_data"] = benchmark_df
                     st.session_state["loaded_tickers"] = tickers
                     fetched = sorted(df["Ticker"].unique().tolist())
                     failed = [t for t in tickers if t not in fetched]
@@ -595,6 +718,7 @@ def main() -> None:
     )
 
     df = st.session_state.get("data")
+    benchmark_df = st.session_state.get("benchmark_data")
     loaded_tickers = st.session_state.get("loaded_tickers", tickers)
 
     if df is None or df.empty:
@@ -608,17 +732,17 @@ def main() -> None:
     page = settings["page"]
 
     if page == "Market Overview":
-        page_market_overview(df, present)
+        page_market_overview(df, present, benchmark_df)
     elif page == "Single Asset Analysis":
-        page_single_asset(df, present, str(settings["single_ticker"]), int(settings["vol_window"]))
+        page_single_asset(df, present, str(settings["single_ticker"]), int(settings["vol_window"]), benchmark_df)
     elif page == "Multi-Asset Comparison":
-        page_multi_asset(df, present)
+        page_multi_asset(df, present, benchmark_df)
     elif page == "Correlation Heatmap":
         page_correlation(df, present)
     elif page == "Sector Comparison":
         page_sector(df, present)
     elif page == "Risk Summary":
-        page_risk(df, present)
+        page_risk(df, present, benchmark_df)
     elif page == "Data Quality Report":
         page_data_quality(df, present)
 

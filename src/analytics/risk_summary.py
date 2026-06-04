@@ -17,6 +17,7 @@ import pandas as pd
 from src import config
 from src.analytics.metrics import (
     calculate_annualized_volatility,
+    calculate_downside_deviation,
     calculate_max_drawdown,
     calculate_simple_returns,
 )
@@ -55,45 +56,6 @@ def classify_volatility_risk(annualized_volatility: float) -> str:
     if annualized_volatility <= HIGH_RISK_THRESHOLD:
         return "Medium Risk"
     return "High Risk"
-
-
-def calculate_downside_deviation(
-    returns: pd.Series,
-    trading_days: int = config.TRADING_DAYS_PER_YEAR,
-    annualize: bool = True,
-) -> float:
-    """Downside deviation: volatility computed from negative returns only.
-
-    Unlike standard deviation (which penalizes upside and downside equally),
-    downside deviation focuses on the losses investors actually care about. It is
-    the denominator of the Sortino ratio (Phase 2).
-
-    Parameters
-    ----------
-    returns:
-        Series of daily returns (simple or log).
-    trading_days:
-        Trading days per year, used when ``annualize`` is ``True``.
-    annualize:
-        If ``True`` (default), scale by ``sqrt(trading_days)``.
-
-    Returns
-    -------
-    float
-        Downside deviation as a decimal. ``0.0`` if there are no negative returns
-        or too few observations.
-    """
-    if not isinstance(returns, pd.Series):
-        raise TypeError("returns must be a pandas Series.")
-    clean = returns.dropna()
-    downside = clean[clean < 0]
-    if downside.shape[0] < 1:
-        return 0.0
-    # Root-mean-square of negative returns (deviation below the zero threshold).
-    dd = float(np.sqrt(np.mean(np.square(downside))))
-    if annualize:
-        dd *= np.sqrt(trading_days)
-    return dd
 
 
 def calculate_risk_summary(df: pd.DataFrame) -> pd.DataFrame:
