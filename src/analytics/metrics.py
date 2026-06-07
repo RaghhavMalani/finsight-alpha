@@ -467,7 +467,7 @@ def calculate_downside_deviation(
     clean = clean_returns(returns)
     downside = clean[clean < target_return] - target_return
     if downside.shape[0] < 1:
-        return 0.0
+        return np.nan
     dd = float(np.sqrt(np.mean(np.square(downside))))
     if annualize:
         dd *= np.sqrt(trading_days)
@@ -546,7 +546,7 @@ def calculate_sortino_ratio(
     downside_deviation = calculate_downside_deviation(
         clean, target_return=target_return, trading_days=trading_days, annualize=True
     )
-    if downside_deviation == 0:
+    if np.isnan(downside_deviation) or downside_deviation == 0:
         return np.nan
     return (annual_return - risk_free_rate) / downside_deviation
 
@@ -685,6 +685,7 @@ def calculate_summary_statistics(
     # Risk-adjusted ratios use the dedicated, edge-case-safe helpers.
     sharpe_ratio = calculate_sharpe_ratio(simple_returns, risk_free_rate, trading_days)
     sortino_ratio = calculate_sortino_ratio(simple_returns, risk_free_rate, 0.0, trading_days)
+    downside_deviation = calculate_downside_deviation(simple_returns, target_return=0.0, trading_days=trading_days, annualize=True)
 
     cagr = _cagr_from_price_series(prices, trading_days)
     max_dd = calculate_max_drawdown(prices)
@@ -710,6 +711,7 @@ def calculate_summary_statistics(
         "annualized_volatility": annualized_volatility,
         "sharpe_ratio": sharpe_ratio,
         "sortino_ratio": sortino_ratio,
+        "downside_deviation": downside_deviation,
         "max_drawdown": max_dd,
         "best_day": calculate_best_day(simple_returns),
         "worst_day": calculate_worst_day(simple_returns),

@@ -49,7 +49,8 @@ from src.analytics import (
 from src.data import storage
 from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
-from src.visualization import plots
+from src.pricing import black_scholes
+from src.visualization import option_plots, plots
 from src.visualization.theme import apply_streamlit_theme
 
 # ---------------------------------------------------------------------------
@@ -71,6 +72,7 @@ PAGES = [
     "Sector Comparison",
     "Risk Summary",
     "Data Quality Report",
+    "Option Pricing Lab",
 ]
 
 UNIVERSE_INDIAN = "Indian Market"
@@ -659,6 +661,77 @@ def page_data_quality(df: pd.DataFrame, tickers: list[str]) -> None:
         st.warning("Some gaps or duplicates were detected - see the table above.")
 
 
+def page_option_pricing() -> None:
+    st.header("Option Pricing Lab")
+    
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Option Parameters")
+    
+    option_type = st.sidebar.selectbox("Option Type", ["call", "put"]).lower()
+    S = st.sidebar.number_input("Spot Price (S)", min_value=0.01, value=100.0, step=1.0)
+    K = st.sidebar.number_input("Strike Price (K)", min_value=0.01, value=100.0, step=1.0)
+    T = st.sidebar.number_input("Time to Maturity (T) in years", min_value=0.01, value=1.0, step=0.1)
+    r = st.sidebar.number_input("Risk-Free Rate (r)", min_value=0.0, value=0.05, step=0.01, format="%.4f")
+    sigma = st.sidebar.number_input("Volatility (sigma)", min_value=0.01, value=0.20, step=0.01, format="%.4f")
+    q = st.sidebar.number_input("Dividend Yield (q)", min_value=0.0, value=0.0, step=0.01, format="%.4f")
+    
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Implied Volatility Solver")
+    market_price = st.sidebar.number_input("Market Price (optional)", min_value=0.0, value=0.0, step=0.1)
+    
+    # Calculate
+    price = black_scholes.calculate_option_price(S, K, T, r, sigma, q, option_type)
+    greeks = black_scholes.calculate_all_greeks(S, K, T, r, sigma, q, option_type)
+    
+    st.subheader(f"Theoretical {option_type.capitalize()} Option Price: {_fmt_num(price)}")
+    
+    # KPI Cards
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Delta", _fmt_num(greeks["delta"]))
+    c2.metric("Gamma", _fmt_num(greeks["gamma"]))
+    c3.metric("Vega", _fmt_num(greeks["vega"]))
+    c4.metric("Theta", _fmt_num(greeks["theta"]))
+    
+    c5, c6, c7, c8 = st.columns(4)
+    c5.metric("Rho", _fmt_num(greeks["rho"]))
+    if market_price > 0:
+        iv = black_scholes.calculate_implied_volatility(market_price, S, K, T, r, q, option_type)
+        c6.metric("Implied Volatility", _fmt_pct(iv) if not np.isnan(iv) else "Failed")
+    else:
+        c6.metric("Implied Volatility", "-")
+    c7.metric("Theta (per day)", _fmt_num(greeks["theta_per_day"]))
+    c8.metric("Vega (per 1%)", _fmt_num(greeks["vega_per_1pct"]))
+    
+    st.markdown("---")
+    st.subheader("Sensitivity Charts")
+    left, right = st.columns(2)
+    with left:
+        st.plotly_chart(option_plots.plot_option_price_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        st.plotly_chart(option_plots.plot_delta_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        st.plotly_chart(option_plots.plot_greeks_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
+    with right:
+        st.plotly_chart(option_plots.plot_option_price_vs_volatility(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        st.plotly_chart(option_plots.plot_gamma_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        
+        st.subheader("Greeks Explained")
+        st.markdown(
+            "**Delta**: How much option price changes when underlying changes by 1 unit.\n\n"
+            "**Gamma**: How fast delta changes when underlying moves.\n\n"
+            "**Vega**: Sensitivity to volatility.\n\n"
+            "**Theta**: Time decay.\n\n"
+            "**Rho**: Sensitivity to interest rates."
+        )
+        
+        st.subheader("Black-Scholes Assumptions")
+        st.markdown(
+            "- **European options** (exercised only at expiration)\n"
+            "- **Constant volatility** and **constant risk-free rate**\n"
+            "- **No arbitrage** opportunities\n"
+            "- **Lognormal stock price behavior**\n"
+            "- **Frictionless markets** (no transaction costs or taxes)"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -745,6 +818,8 @@ def main() -> None:
         page_risk(df, present, benchmark_df)
     elif page == "Data Quality Report":
         page_data_quality(df, present)
+    elif page == "Option Pricing Lab":
+        page_option_pricing()
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
