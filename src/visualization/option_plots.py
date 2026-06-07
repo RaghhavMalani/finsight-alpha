@@ -97,6 +97,52 @@ def plot_option_price_vs_volatility(
     )
 
 
+def plot_delta_vs_spot(
+    S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0, option_type: str = "call"
+) -> go.Figure:
+    """Plot Delta as spot price changes."""
+    spot_range = np.linspace(max(1.0, S * 0.5), S * 1.5, 100)
+    deltas = [black_scholes.calculate_delta(spot, K, T, r, sigma, q, option_type) for spot in spot_range]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=spot_range, y=deltas,
+        mode="lines",
+        name="Delta",
+        line=dict(color="#1f77b4", width=3)
+    ))
+    
+    return apply_plotly_theme(
+        fig,
+        title=f"Delta vs Spot Price ({option_type.capitalize()})",
+        xaxis_title="Spot Price",
+        yaxis_title="Delta",
+    )
+
+
+def plot_gamma_vs_spot(
+    S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0, option_type: str = "call"
+) -> go.Figure:
+    """Plot Gamma as spot price changes."""
+    spot_range = np.linspace(max(1.0, S * 0.5), S * 1.5, 100)
+    gammas = [black_scholes.calculate_gamma(spot, K, T, r, sigma, q, option_type) for spot in spot_range]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=spot_range, y=gammas,
+        mode="lines",
+        name="Gamma",
+        line=dict(color="#ff7f0e", width=3)
+    ))
+    
+    return apply_plotly_theme(
+        fig,
+        title=f"Gamma vs Spot Price ({option_type.capitalize()})",
+        xaxis_title="Spot Price",
+        yaxis_title="Gamma",
+    )
+
+
 def plot_greeks_vs_spot(
     S: float, K: float, T: float, r: float, sigma: float, q: float = 0.0, option_type: str = "call"
 ) -> go.Figure:

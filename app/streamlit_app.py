@@ -700,15 +700,18 @@ def page_option_pricing() -> None:
     else:
         c6.metric("Implied Volatility", "-")
     c7.metric("Theta (per day)", _fmt_num(greeks["theta_per_day"]))
-    c8.metric("Vega (per 1%)", _fmt_num(greeks["vega_per_1_pct"]))
+    c8.metric("Vega (per 1%)", _fmt_num(greeks["vega_per_1pct"]))
     
     st.markdown("---")
+    st.subheader("Sensitivity Charts")
     left, right = st.columns(2)
     with left:
         st.plotly_chart(option_plots.plot_option_price_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        st.plotly_chart(option_plots.plot_delta_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
         st.plotly_chart(option_plots.plot_greeks_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
     with right:
         st.plotly_chart(option_plots.plot_option_price_vs_volatility(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        st.plotly_chart(option_plots.plot_gamma_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
         
         st.subheader("Greeks Explained")
         st.markdown(
