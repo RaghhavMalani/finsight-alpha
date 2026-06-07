@@ -51,6 +51,22 @@ for the formulas and intuition.
 
 ---
 
+## What Phase 3 adds: Black-Scholes Option Pricing and Greeks
+
+Phase 3 introduces a professional option pricing engine based on the Black-Scholes-Merton model:
+
+- **Call and Put Pricing** - theoretical fair value of European options.
+- **The Greeks** - Delta, Gamma, Vega, Theta, and Rho to measure risk sensitivities.
+- **Implied Volatility Solver** - recovers market volatility from observed option prices using Brent's method.
+- **Option Pricing Lab** - a dedicated interactive dashboard page.
+- **Sensitivity Charts** - Plotly visualizations showing how option prices and Greeks change with spot price and volatility.
+
+These tools prepare the platform for advanced derivatives analysis, portfolio hedging, and tail-risk Monte Carlo simulations. See
+[`docs/phase_3_black_scholes_and_greeks.md`](docs/phase_3_black_scholes_and_greeks.md)
+for detailed documentation.
+
+---
+
 ## Installation
 
 > Requires Python 3.10+ (3.11 recommended).
@@ -161,7 +177,7 @@ finsight-alpha/
 ## Future phases
 
 - **Phase 2 (done)** - Financial Math Engine: CAGR, Sharpe, Sortino, beta, CAPM.
-- **Phase 3** - Black-Scholes option pricing and the Greeks.
+- **Phase 3 (done)** - Black-Scholes option pricing and the Greeks.
 - **Phase 4** - Monte Carlo simulation and VaR / CVaR risk.
 - **Phase 5** - Portfolio optimization (mean-variance, efficient frontier).
 - **Phase 6** - ML forecasting (return/volatility models).

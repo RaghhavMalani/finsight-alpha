@@ -41,7 +41,7 @@ def test_downside_deviation_only_uses_negatives() -> None:
 
 def test_downside_deviation_no_negatives_is_zero() -> None:
     returns = pd.Series([0.01, 0.02, 0.03])
-    assert risk_summary.calculate_downside_deviation(returns) == 0.0
+    assert np.isnan(risk_summary.calculate_downside_deviation(returns))
 
 
 def test_downside_deviation_annualized_scales() -> None:

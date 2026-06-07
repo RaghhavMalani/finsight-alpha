@@ -335,16 +335,26 @@ def test_downside_deviation_higher_target_increases_downside() -> None:
     assert high > low
 
 
+def test_downside_deviation_no_downside_is_nan() -> None:
+    only_gains = pd.Series([0.01, 0.02, 0.03])
+    assert np.isnan(metrics.calculate_downside_deviation(only_gains))
+
+
 def test_sortino_ratio_no_downside_is_nan() -> None:
     only_gains = pd.Series([0.01, 0.02, 0.03])
     assert np.isnan(metrics.calculate_sortino_ratio(only_gains))
 
 
 def test_sortino_ratio_positive_for_net_gains() -> None:
-    returns = pd.Series([0.02, -0.01, 0.03, -0.02])
+    returns = pd.Series([0.02, -0.01, 0.03, -0.02, 0.01])
     sortino = metrics.calculate_sortino_ratio(returns, risk_free_rate=0.0)
     assert np.isfinite(sortino)
     assert sortino > 0
+    
+def test_summary_statistics_includes_sortino_and_downside(sample_prices: pd.Series) -> None:
+    stats = metrics.calculate_summary_statistics(sample_prices)
+    assert "sortino_ratio" in stats
+    assert "downside_deviation" in stats
 
 
 def test_beta_scaled_asset_is_two() -> None:
