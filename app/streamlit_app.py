@@ -50,7 +50,9 @@ from src.data import storage
 from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
 from src.pricing import black_scholes
-from src.visualization import option_plots, plots
+from src.simulation import monte_carlo
+from src.risk import var_cvar
+from src.visualization import option_plots, plots, simulation_plots
 from src.visualization.theme import apply_streamlit_theme
 
 # ---------------------------------------------------------------------------
@@ -73,6 +75,7 @@ PAGES = [
     "Risk Summary",
     "Data Quality Report",
     "Option Pricing Lab",
+    "Monte Carlo Risk Lab",
 ]
 
 UNIVERSE_INDIAN = "Indian Market"
@@ -700,18 +703,20 @@ def page_option_pricing() -> None:
     else:
         c6.metric("Implied Volatility", "-")
     c7.metric("Theta (per day)", _fmt_num(greeks["theta_per_day"]))
-    c8.metric("Vega (per 1%)", _fmt_num(greeks["vega_per_1pct"]))
+    c8.metric("Vega (per 1%)", _fmt_num(greeks.get("vega_per_1pct", greeks.get("vega_per_1_pct"))))
     
     st.markdown("---")
     st.subheader("Sensitivity Charts")
     left, right = st.columns(2)
     with left:
         st.plotly_chart(option_plots.plot_option_price_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
-        st.plotly_chart(option_plots.plot_delta_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        if hasattr(option_plots, "plot_delta_vs_spot"):
+            st.plotly_chart(option_plots.plot_delta_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
         st.plotly_chart(option_plots.plot_greeks_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
     with right:
         st.plotly_chart(option_plots.plot_option_price_vs_volatility(S, K, T, r, sigma, q, option_type), use_container_width=True)
-        st.plotly_chart(option_plots.plot_gamma_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
+        if hasattr(option_plots, "plot_gamma_vs_spot"):
+            st.plotly_chart(option_plots.plot_gamma_vs_spot(S, K, T, r, sigma, q, option_type), use_container_width=True)
         
         st.subheader("Greeks Explained")
         st.markdown(
@@ -731,6 +736,121 @@ def page_option_pricing() -> None:
             "- **Frictionless markets** (no transaction costs or taxes)"
         )
 
+
+def page_monte_carlo(df: pd.DataFrame, tickers: list[str]) -> None:
+    st.header("Monte Carlo Risk Lab")
+    
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Simulation Parameters")
+    
+    # Auto-fill helper from loaded tickers
+    auto_fill = st.sidebar.checkbox("Auto-fill from loaded ticker", value=False)
+    selected_ticker = None
+    if auto_fill and len(tickers) > 0:
+        selected_ticker = st.sidebar.selectbox("Select ticker for auto-fill", options=tickers)
+    
+    default_S0 = 100.0
+    default_mu = 0.08
+    default_sigma = 0.20
+    
+    historical_returns = None
+    if selected_ticker and df is not None and not df.empty:
+        prices = _price_series(df, selected_ticker).dropna()
+        if len(prices) >= 2:
+            default_S0 = float(prices.iloc[-1])
+            stats = calculate_summary_statistics(prices)
+            default_mu = float(stats["cagr"])
+            default_sigma = float(stats["annualized_volatility"])
+            historical_returns = calculate_simple_returns(prices)
+            
+    # Inputs
+    S0 = st.sidebar.number_input("Initial Price (S0)", min_value=0.01, value=default_S0, step=1.0)
+    mu_pct = st.sidebar.number_input("Expected Annual Return (μ) %", value=default_mu * 100, step=1.0)
+    sigma_pct = st.sidebar.number_input("Annual Volatility (σ) %", min_value=0.1, value=default_sigma * 100, step=1.0)
+    T = st.sidebar.number_input("Time Horizon in Years", min_value=0.1, value=1.0, step=0.1)
+    steps = st.sidebar.number_input("Number of Time Steps", min_value=10, value=252, step=10)
+    n_simulations = st.sidebar.number_input("Number of Simulations", min_value=100, max_value=100000, value=5000, step=100)
+    confidence_level_pct = st.sidebar.number_input("Confidence Level %", min_value=50.0, max_value=99.9, value=95.0, step=1.0)
+    random_seed = st.sidebar.number_input("Random Seed (optional)", min_value=0, value=42, step=1)
+    
+    run_sim = st.button("Run Monte Carlo Simulation", type="primary")
+    
+    if run_sim:
+        with st.spinner("Running simulation..."):
+            mu = mu_pct / 100.0
+            sigma = sigma_pct / 100.0
+            conf_level = confidence_level_pct / 100.0
+            
+            paths = monte_carlo.simulate_gbm_paths(
+                S0=S0, mu=mu, sigma=sigma, T=T, steps=steps, n_simulations=n_simulations, random_seed=random_seed
+            )
+            
+            final_prices = monte_carlo.calculate_final_prices(paths)
+            sim_returns = monte_carlo.calculate_simulated_returns(final_prices, S0)
+            
+            sim_summary = monte_carlo.calculate_simulation_summary(paths, S0)
+            risk_summary = var_cvar.calculate_var_cvar_summary(historical_returns, sim_returns, conf_level)
+            
+            st.markdown("---")
+            st.subheader("Simulation Results")
+            
+            # KPI Cards
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Expected Final Price", _fmt_num(sim_summary["expected_final_price"]))
+            c2.metric("Median Final Price", _fmt_num(sim_summary["median_final_price"]))
+            c3.metric("Probability of Loss", _fmt_pct(sim_summary["probability_of_loss"]))
+            c4.metric("Worst Simulated Return", _fmt_pct(sim_summary["worst_return"]))
+            
+            c5, c6, c7, c8 = st.columns(4)
+            c5.metric("Best Simulated Return", _fmt_pct(sim_summary["best_return"]))
+            c6.metric("Monte Carlo VaR", _fmt_pct(risk_summary["monte_carlo_var"]))
+            c7.metric("Monte Carlo CVaR", _fmt_pct(risk_summary["monte_carlo_cvar"]))
+            c8.metric("Confidence Level", _fmt_pct(conf_level))
+            
+            if historical_returns is not None:
+                st.markdown("##### Historical & Parametric Comparison")
+                hc1, hc2, pc1, pc2 = st.columns(4)
+                hc1.metric("Historical VaR", _fmt_pct(risk_summary["historical_var"]))
+                hc2.metric("Historical CVaR", _fmt_pct(risk_summary["historical_cvar"]))
+                pc1.metric("Parametric VaR", _fmt_pct(risk_summary["parametric_var"]))
+                pc2.metric("Parametric CVaR", _fmt_pct(risk_summary["parametric_cvar"]))
+                
+            st.markdown("---")
+            st.subheader("Visualizations")
+            
+            left, right = st.columns(2)
+            with left:
+                st.plotly_chart(simulation_plots.plot_monte_carlo_paths(paths, max_paths=150), use_container_width=True)
+                st.plotly_chart(simulation_plots.plot_final_price_distribution(final_prices), use_container_width=True)
+            with right:
+                st.plotly_chart(simulation_plots.plot_percentile_fan_chart(paths), use_container_width=True)
+                st.plotly_chart(simulation_plots.plot_var_cvar_histogram(
+                    sim_returns, 
+                    risk_summary["monte_carlo_var"], 
+                    risk_summary["monte_carlo_cvar"], 
+                    conf_level
+                ), use_container_width=True)
+                
+            st.plotly_chart(simulation_plots.plot_simulated_return_distribution(sim_returns), use_container_width=True)
+            
+    st.markdown("---")
+    st.subheader("Educational Explanation")
+    
+    st.markdown(
+        "**Monte Carlo Simulation**: A method where we simulate thousands of possible future price paths using randomness to model uncertainty.\n\n"
+        "**Geometric Brownian Motion (GBM)**: A model that assumes returns follow a normal distribution and prices follow a lognormal path.\n\n"
+        "**Value-at-Risk (VaR)**: The maximum expected loss at a given confidence level over a given time horizon. For example, a 95% VaR of 5% means there is a 95% confidence that losses will not exceed 5%.\n\n"
+        "**Conditional Value-at-Risk (CVaR)**: Also known as Expected Shortfall. It calculates the average loss in the worst tail *beyond* the VaR threshold. It answers: 'If things do go bad, exactly how bad are they expected to get?'"
+    )
+    
+    st.subheader("Important Limitations")
+    st.markdown(
+        "- **GBM assumes constant volatility**, which is rarely true in live markets.\n"
+        "- **Returns are assumed normally distributed** in the basic formulation, which ignores 'fat tails' often seen in real financial panics.\n"
+        "- Real markets can experience discontinuous jumps or crashes.\n"
+        "- Historical future may not repeat; relying purely on auto-filled historical parameters can severely underestimate future stress.\n"
+        "- VaR does not describe how bad losses can get beyond the cutoff. (This is why CVaR is an essential complementary metric!)"
+    )
 
 # ---------------------------------------------------------------------------
 # Main
@@ -820,6 +940,8 @@ def main() -> None:
         page_data_quality(df, present)
     elif page == "Option Pricing Lab":
         page_option_pricing()
+    elif page == "Monte Carlo Risk Lab":
+        page_monte_carlo(df, present)
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
