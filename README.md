@@ -67,6 +67,23 @@ for detailed documentation.
 
 ---
 
+## What Phase 4 adds: Monte Carlo Simulation + VaR/CVaR Risk Engine
+
+Phase 4 introduces a professional simulation-based risk engine:
+
+- **GBM price path simulation** - Monte Carlo price-path simulation using Geometric Brownian Motion.
+- **Simulation summary statistics** - expected, median, worst/best returns and probability of loss.
+- **Historical, Parametric, and Monte Carlo VaR** - Value-at-Risk across three methodologies.
+- **Historical, Parametric, and Monte Carlo CVaR** - Expected Shortfall (CVaR) tail risk metrics.
+- **Monte Carlo Risk Lab** - a dedicated interactive dashboard page.
+- **Simulation charts and fan chart** - visualizations of simulated paths, percentile bands, return distributions, and VaR/CVaR histograms.
+
+These tools allow for advanced scenario generation and tail-risk quantification. See
+[`docs/phase_4_monte_carlo_var_cvar.md`](docs/phase_4_monte_carlo_var_cvar.md)
+for detailed documentation.
+
+---
+
 ## Installation
 
 > Requires Python 3.10+ (3.11 recommended).
@@ -178,7 +195,7 @@ finsight-alpha/
 
 - **Phase 2 (done)** - Financial Math Engine: CAGR, Sharpe, Sortino, beta, CAPM.
 - **Phase 3 (done)** - Black-Scholes option pricing and the Greeks.
-- **Phase 4** - Monte Carlo simulation and VaR / CVaR risk.
+- **Phase 4 (done)** - Monte Carlo simulation and VaR / CVaR risk.
 - **Phase 5** - Portfolio optimization (mean-variance, efficient frontier).
 - **Phase 6** - ML forecasting (return/volatility models).
 - **Phase 7** - Market regime detection.
