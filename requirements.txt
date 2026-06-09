@@ -14,6 +14,10 @@ scipy
 plotly
 streamlit
 
+# --- ML Forecasting ---
+scikit-learn
+joblib
+
 # --- Local storage (Parquet engine) ---
 pyarrow
 

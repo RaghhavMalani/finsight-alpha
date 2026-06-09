@@ -68,6 +68,26 @@ ALL_TICKERS: list[str] = INDIAN_TICKERS + US_TICKERS
 # The default selection shown when the dashboard first loads.
 DEFAULT_TICKERS: list[str] = ["AAPL", "MSFT", "NVDA", "RELIANCE.NS", "TCS.NS", "SPY"]
 
+# Example portfolios for Portfolio Optimization Engine (Phase 5)
+INDIAN_PORTFOLIO_TICKERS: list[str] = [
+    "RELIANCE.NS",
+    "TCS.NS",
+    "HDFCBANK.NS",
+    "INFY.NS",
+    "ICICIBANK.NS",
+    "NIFTYBEES.NS",
+]
+
+US_PORTFOLIO_TICKERS: list[str] = [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "JPM",
+    "BLK",
+    "SPY",
+    "QQQ",
+]
+
 # ---------------------------------------------------------------------------
 # Ticker -> sector mapping
 # ---------------------------------------------------------------------------

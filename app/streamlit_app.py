@@ -51,8 +51,9 @@ from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
 from src.pricing import black_scholes
 from src.simulation import monte_carlo
-from src.risk import var_cvar
-from src.visualization import option_plots, plots, simulation_plots
+from src.risk import var_cvar, portfolio_optimization
+from src.ml import features, targets, models, evaluation, walk_forward
+from src.visualization import option_plots, plots, simulation_plots, portfolio_plots, ml_plots
 from src.visualization.theme import apply_streamlit_theme
 
 # ---------------------------------------------------------------------------
@@ -76,6 +77,8 @@ PAGES = [
     "Data Quality Report",
     "Option Pricing Lab",
     "Monte Carlo Risk Lab",
+    "Portfolio Optimization Lab",
+    "ML Forecasting Lab",
 ]
 
 UNIVERSE_INDIAN = "Indian Market"
@@ -852,6 +855,608 @@ def page_monte_carlo(df: pd.DataFrame, tickers: list[str]) -> None:
         "- VaR does not describe how bad losses can get beyond the cutoff. (This is why CVaR is an essential complementary metric!)"
     )
 
+def page_portfolio_optimization(df: pd.DataFrame, tickers: list[str]) -> None:
+    st.header("Portfolio Optimization Lab")
+    
+    if len(tickers) < 2:
+        st.warning("Please select at least two assets for portfolio optimization.")
+        return
+        
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Section 1: Portfolio Setup")
+    
+    risk_free_rate = st.sidebar.number_input("Risk-Free Rate (%)", min_value=0.0, value=5.0, step=0.1) / 100.0
+    max_weight = st.sidebar.number_input("Max Weight per Asset (%)", min_value=1.0, max_value=100.0, value=100.0, step=5.0) / 100.0
+    return_method = st.sidebar.selectbox("Return Method", ["log", "simple"])
+    
+    optimization_mode = st.sidebar.selectbox(
+        "Optimization Mode", 
+        ["Minimum Variance", "Maximum Sharpe", "Risk Parity", "Compare All"],
+        index=3
+    )
+    
+    run_opt = st.button("Run Portfolio Optimization", type="primary")
+    
+    if run_opt:
+        with st.spinner("Running optimizations..."):
+            # Prepare data
+            price_pivot = portfolio_optimization.create_price_pivot(df)
+            price_pivot = price_pivot[tickers].dropna()
+            
+            if price_pivot.empty or len(price_pivot) < 2:
+                st.error("Not enough overlapping valid data for the selected tickers.")
+                return
+                
+            returns = portfolio_optimization.calculate_asset_returns(price_pivot, method=return_method)
+            expected_returns = portfolio_optimization.calculate_expected_returns(returns)
+            covariance_matrix = portfolio_optimization.calculate_covariance_matrix(returns)
+            
+            st.markdown("---")
+            st.subheader("Section 2: Portfolio Summary KPI Cards")
+            
+            summary_res = None
+            opt_weights = None
+            
+            if optimization_mode == "Minimum Variance":
+                res = portfolio_optimization.minimum_variance_portfolio(expected_returns, covariance_matrix, max_weight)
+                if res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = res["weights"]
+                else:
+                    st.error("Optimization failed: " + res["message"])
+            elif optimization_mode == "Maximum Sharpe":
+                res = portfolio_optimization.maximum_sharpe_portfolio(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                if res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = res["weights"]
+                else:
+                    st.error("Optimization failed: " + res["message"])
+            elif optimization_mode == "Risk Parity":
+                res = portfolio_optimization.risk_parity_portfolio(covariance_matrix, max_weight)
+                if res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = res["weights"]
+                else:
+                    st.error("Optimization failed: " + res["message"])
+            
+            if optimization_mode == "Compare All":
+                comp_df = portfolio_optimization.compare_portfolios(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                st.dataframe(comp_df, use_container_width=True)
+                
+                # Default to Max Sharpe for the detailed views if comparing all
+                ms_res = portfolio_optimization.maximum_sharpe_portfolio(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                if ms_res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(ms_res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = ms_res["weights"]
+                    st.info("Showing detailed allocation for Maximum Sharpe portfolio below.")
+            
+            if summary_res:
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Expected Return", _fmt_pct(summary_res["expected_return"]))
+                c2.metric("Volatility", _fmt_pct(summary_res["volatility"]))
+                c3.metric("Sharpe Ratio", _fmt_num(summary_res["sharpe_ratio"]))
+                c4.metric("Number of Assets", summary_res["num_assets"])
+                
+                c5, c6, c7, c8 = st.columns(4)
+                c5.metric("Largest Holding", summary_res["largest_weight_asset"])
+                c6.metric("Largest Weight", _fmt_pct(summary_res["largest_weight"]))
+                c7.metric("Smallest Holding", summary_res["smallest_weight_asset"])
+                c8.metric("Smallest Weight", _fmt_pct(summary_res["smallest_weight"]))
+                
+                st.markdown("---")
+                st.subheader("Section 3: Optimized Allocation")
+                left, right = st.columns(2)
+                with left:
+                    if opt_weights is not None:
+                        st.plotly_chart(portfolio_plots.plot_portfolio_weights(opt_weights, "Portfolio Weights"), use_container_width=True)
+                with right:
+                    if opt_weights is not None:
+                        st.plotly_chart(portfolio_plots.plot_allocation_pie_chart(opt_weights, "Asset Allocation Breakdown"), use_container_width=True)
+                    
+            st.markdown("---")
+            st.subheader("Section 4: Efficient Frontier")
+            with st.spinner("Calculating efficient frontier..."):
+                frontier_df = portfolio_optimization.calculate_efficient_frontier(expected_returns, covariance_matrix, n_portfolios=30, max_weight=max_weight)
+                min_var = portfolio_optimization.minimum_variance_portfolio(expected_returns, covariance_matrix, max_weight)
+                max_sharpe = portfolio_optimization.maximum_sharpe_portfolio(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                
+                st.plotly_chart(portfolio_plots.plot_efficient_frontier(frontier_df, min_var, max_sharpe), use_container_width=True)
+                
+            st.markdown("---")
+            st.subheader("Section 5: Risk Contribution")
+            if opt_weights is not None:
+                rc_df = portfolio_optimization.calculate_risk_contribution(opt_weights.values, covariance_matrix)
+                st.plotly_chart(portfolio_plots.plot_risk_contribution(rc_df), use_container_width=True)
+                st.markdown("**Note:** An asset's *weight* (how much capital is allocated) is often different from its *risk contribution* (how much it adds to total portfolio volatility). This is due to volatility and correlation differences.")
+                
+            if optimization_mode == "Compare All":
+                st.markdown("---")
+                st.subheader("Section 6: Asset Allocation Comparison")
+                st.plotly_chart(portfolio_plots.plot_portfolio_comparison(comp_df), use_container_width=True)
+                
+    st.markdown("---")
+    st.subheader("Section 7: Educational Explanation")
+    st.markdown(
+        "**Markowitz Optimization**: Builds portfolios by balancing expected return and risk using the efficient frontier.\n\n"
+        "**Minimum Variance Portfolio**: The portfolio with the lowest possible volatility regardless of return.\n\n"
+        "**Maximum Sharpe Portfolio**: The portfolio with the best risk-adjusted return (steepest capital market line).\n\n"
+        "**Efficient Frontier**: The set of portfolios that offer the highest expected return for a given risk level.\n\n"
+        "**Risk Parity**: A portfolio where each asset contributes roughly equally to total risk (rather than equal capital).\n\n"
+        "**Covariance Matrix**: Shows how assets move together; essential for modeling portfolio risk and diversification."
+    )
+    
+    st.subheader("Section 8: Limitations")
+    st.markdown(
+        "- Expected returns are estimated from historical data, which is famously unreliable.\n"
+        "- Covariance and correlation can change dramatically over time (especially during crises).\n"
+        "- Optimization can 'overfit' to historical noise, resulting in extreme allocations.\n"
+        "- Real markets have transaction costs and liquidity constraints not modeled here.\n"
+        "- Past performance does not guarantee future results.\n"
+        "- Long-only constraints limit short-selling assumptions."
+    )
+
+def page_ml_forecasting(df: pd.DataFrame, tickers: list[str]) -> None:
+    st.header("ML Forecasting Lab")
+    
+    if not tickers:
+        st.warning("Please load at least one ticker to begin.")
+        return
+
+    sub_mode = st.radio("Select Mode", ["General ML Forecasting", "Reliance Signal Research Mode"], horizontal=True)
+    
+    if sub_mode == "Reliance Signal Research Mode":
+        page_reliance_signal_research(df)
+        return
+
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Section 1: Model Setup")
+
+    ticker = st.sidebar.selectbox("Select ticker", options=tickers)
+
+    task_options = [
+        "1. Next-Day Direction Classification",
+        "2. Future Return Regression",
+        "3. Future Volatility Regression"
+    ]
+    task = st.sidebar.selectbox("Prediction task", task_options)
+
+    # Defaults and logic based on task
+    is_classification = "Classification" in task
+    
+    if is_classification:
+        horizon = st.sidebar.number_input("Target horizon (days)", min_value=1, value=1, step=1)
+        model_options = ["Logistic Regression", "Random Forest", "Gradient Boosting"]
+    elif "Return" in task:
+        horizon = st.sidebar.number_input("Target horizon (days)", min_value=1, value=5, step=1)
+        model_options = ["Linear Regression", "Random Forest", "Gradient Boosting"]
+    else:
+        # Volatility
+        horizon = st.sidebar.number_input("Target horizon (days)", min_value=1, value=5, step=1)
+        model_options = ["Linear Regression", "Random Forest", "Gradient Boosting"]
+
+    model_choice = st.sidebar.selectbox("Model selection", model_options)
+    test_size = st.sidebar.slider("Test size", min_value=0.05, max_value=0.5, value=0.2, step=0.05)
+    random_state = st.sidebar.number_input("Random state", value=42, step=1)
+    
+    run_walk_forward = st.sidebar.checkbox("Run walk-forward validation", value=False)
+    
+    run_model = st.button("Train ML Model", type="primary")
+
+    if run_model:
+        with st.spinner("Preparing features and targets..."):
+            # 1. Isolate the data for the ticker
+            ticker_df = df[df["Ticker"] == ticker].copy().sort_values("Date").reset_index(drop=True)
+            
+            # 2. Build features
+            feature_df = features.create_ml_feature_dataset(ticker_df)
+            
+            # 3. Build target
+            if "Direction" in task:
+                target_col = "target_direction"
+                full_df = targets.create_direction_target(feature_df, horizon=horizon)
+            elif "Return" in task:
+                target_col = f"target_return_{horizon}d"
+                full_df = targets.create_future_return_target(feature_df, horizon=horizon)
+            else:
+                target_col = f"target_volatility_{horizon}d"
+                if "log_return" not in feature_df.columns:
+                    feature_df["log_return"] = np.log(feature_df["Close"] / feature_df["Close"].shift(1))
+                full_df = targets.create_future_volatility_target(feature_df, return_col="log_return", horizon=horizon)
+                
+            # Drop rows with missing targets
+            ml_df = full_df.dropna(subset=[target_col]).reset_index(drop=True)
+            
+            if ml_df.empty or len(ml_df) < 50:
+                st.error("Not enough data to train the model after dropping missing values.")
+                return
+                
+            feature_cols = features.get_feature_columns(ml_df)
+            
+            # Force Streamlit to drop non-numeric columns in case the module hot-reload was missed
+            feature_cols = [c for c in feature_cols if pd.api.types.is_numeric_dtype(ml_df[c])]
+            
+            st.markdown("---")
+            st.subheader("Section 2: Data Preview")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Total Rows", len(ml_df))
+            c2.metric("Number of Features", len(feature_cols))
+            c3.metric("Train Size", int(len(ml_df) * (1 - test_size)))
+            c4.metric("Test Size", len(ml_df) - int(len(ml_df) * (1 - test_size)))
+            
+            if is_classification:
+                class_balance = ml_df[target_col].mean()
+                st.info(f"Class Balance: {class_balance:.1%} positive class (Up), {1 - class_balance:.1%} negative class (Down)")
+                
+        with st.spinner("Training model..."):
+            # Convert model UI string to internal key
+            model_key = model_choice.lower().replace(" ", "_")
+            model_type = "classification" if is_classification else "regression"
+            
+            X_train, X_test, y_train, y_test = walk_forward.time_series_train_test_split(
+                ml_df, feature_cols, target_col, test_size=test_size
+            )
+            
+            if is_classification:
+                model = models.get_classification_model(model_key, random_state=random_state)
+            else:
+                model = models.get_regression_model(model_key, random_state=random_state)
+                
+            model = models.train_model(model, X_train, y_train)
+            preds, probs = models.make_predictions(model, X_test)
+            
+            st.markdown("---")
+            st.subheader("Section 3: Model Performance")
+            
+            if is_classification:
+                eval_metrics = evaluation.evaluate_classification_model(y_test, preds, probs)
+                c1, c2, c3, c4, c5 = st.columns(5)
+                c1.metric("Accuracy", _fmt_pct(eval_metrics["accuracy"]))
+                c2.metric("Precision", _fmt_pct(eval_metrics["precision"]))
+                c3.metric("Recall", _fmt_pct(eval_metrics["recall"]))
+                c4.metric("F1 Score", _fmt_pct(eval_metrics["f1_score"]))
+                if "roc_auc" in eval_metrics and pd.notna(eval_metrics["roc_auc"]):
+                    c5.metric("ROC-AUC", _fmt_pct(eval_metrics["roc_auc"]))
+                else:
+                    c5.metric("ROC-AUC", "-")
+            else:
+                eval_metrics = evaluation.evaluate_regression_model(y_test, preds)
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("MAE", _fmt_num(eval_metrics["mae"]))
+                c2.metric("RMSE", _fmt_num(eval_metrics["rmse"]))
+                c3.metric("R² Score", _fmt_num(eval_metrics["r2_score"]))
+                c4.metric("Directional Accuracy", _fmt_pct(eval_metrics["directional_accuracy"]))
+
+            st.markdown("---")
+            st.subheader("Section 4: Charts")
+            
+            feat_imp = models.get_feature_importance(model, feature_cols)
+            
+            left, right = st.columns(2)
+            with left:
+                st.plotly_chart(ml_plots.plot_feature_importance(feat_imp), use_container_width=True)
+                
+                if is_classification and probs is not None:
+                    st.plotly_chart(ml_plots.plot_probability_distribution(probs), use_container_width=True)
+                elif not is_classification:
+                    st.plotly_chart(ml_plots.plot_regression_scatter(y_test, preds), use_container_width=True)
+                    
+            with right:
+                if is_classification:
+                    st.plotly_chart(ml_plots.plot_classification_confusion_matrix(y_test, preds), use_container_width=True)
+                else:
+                    test_dates = ml_df.loc[X_test.index, "Date"] if "Date" in ml_df.columns else None
+                    st.plotly_chart(ml_plots.plot_predictions_vs_actual(y_test, preds, test_dates), use_container_width=True)
+            
+            if run_walk_forward:
+                st.markdown("#### Walk-Forward Validation")
+                with st.spinner("Running walk-forward validation..."):
+                    wf_df = walk_forward.walk_forward_validation(
+                        ml_df, feature_cols, target_col, model_type, model_key,
+                        initial_train_size=1-test_size, step_size=20, random_state=random_state
+                    )
+                    if not wf_df.empty:
+                        st.plotly_chart(ml_plots.plot_walk_forward_predictions(wf_df), use_container_width=True)
+                    else:
+                        st.warning("Walk-forward validation failed or returned no data.")
+                        
+            st.markdown("---")
+            st.subheader("Section 5: Latest Prediction")
+            
+            # Predict the absolute latest available data point (which has no target yet)
+            latest_feature_row = feature_df.iloc[-1:]
+            latest_X = latest_feature_row[feature_cols]
+            latest_pred, latest_prob = models.make_predictions(model, latest_X)
+            
+            lc1, lc2, lc3 = st.columns(3)
+            lc1.metric("Model Used", model_choice)
+            lc2.metric("Prediction Horizon", f"{horizon} day(s)")
+            
+            if is_classification:
+                pred_label = "Up" if latest_pred[0] == 1 else "Down"
+                lc3.metric("Predicted Direction", pred_label)
+                if latest_prob is not None:
+                    conf = latest_prob[0] if pred_label == "Up" else (1 - latest_prob[0])
+                    st.info(f"Confidence: {_fmt_pct(conf)}")
+            else:
+                lc3.metric("Predicted Value", _fmt_num(latest_pred[0]))
+                
+            st.warning("⚠️ **Disclaimer**: These predictions are strictly educational. Machine learning models easily overfit to historical financial data. This is NOT financial advice.")
+
+    st.markdown("---")
+    st.subheader("Section 6: Educational Explanation")
+    st.markdown(
+        "**Why predict returns instead of price?** Prices are non-stationary (they drift upwards over time). Predicting raw price usually results in a model that just predicts yesterday's price, which is practically useless. Predicting returns or direction is much harder, but actually useful.\n\n"
+        "**Feature Engineering**: Transforming raw data (Open, High, Low, Close) into meaningful signals like momentum, volatility, and technical indicators.\n\n"
+        "**Data Leakage**: The biggest trap in financial ML. If your model accidentally sees future information during training (like using a future rolling average as a feature), it will look perfect in testing but fail completely in reality.\n\n"
+        "**Time-Series Split**: Standard random train/test splits (like 80/20 random rows) cause severe data leakage in finance because the model learns from the future to predict the past. We strictly separate train (past) and test (future) chronologically.\n\n"
+        "**Walk-Forward Validation**: A robust way to evaluate financial models by training on a rolling window of past data and predicting the immediate future, stepping forward slowly."
+    )
+    st.subheader("Section 7: Limitations")
+    st.markdown(
+        "- **Markets are noisy**: The signal-to-noise ratio in financial data is extremely low.\n"
+        "- **Past != Future**: Patterns that existed in 2018 may completely disappear in 2024.\n"
+        "- **Transaction Costs**: A model might predict small positive returns every day, but trading fees and bid-ask spread would turn it into a loss.\n"
+        "- **Overfitting**: Tree models (like Random Forest) can easily memorize the training data. Always check the test set performance.\n"
+        "- **Predictions are educational**, not investment advice."
+    )
+
+# ---------------------------------------------------------------------------
+# Reliance Signal Research Lab
+# ---------------------------------------------------------------------------
+def page_reliance_signal_research(df: pd.DataFrame) -> None:
+    from src.ml import reliance_features, reliance_targets, reliance_modeling, reliance_walk_forward, signal_engine, models, evaluation
+    from src.visualization import ml_plots
+    import numpy as np
+    
+    # -------------------------------------------------------------------------
+    # SECTION 1: Header
+    # -------------------------------------------------------------------------
+    st.markdown("<h2 class='finsight-title'>Reliance Signal Research Lab</h2>", unsafe_allow_html=True)
+    st.markdown("<div class='finsight-subtitle'>Institutional-style ML diagnostics for RELIANCE.NS</div>", unsafe_allow_html=True)
+    st.caption("Educational quantitative research dashboard. Not financial advice.")
+    
+    # Isolate RELIANCE.NS
+    rel_df = df[df["Ticker"] == "RELIANCE.NS"].copy().sort_values("Date").reset_index(drop=True)
+    if rel_df.empty:
+        st.error("RELIANCE.NS data not found in current dataset. Please load Indian Market with Reliance.")
+        return
+        
+    # Isolate Benchmark
+    bm_df = df[df["Ticker"] == "NIFTYBEES.NS"].copy().sort_values("Date").reset_index(drop=True)
+    if bm_df.empty:
+        bm_df = df[df["Ticker"] == "^NSEI"].copy().sort_values("Date").reset_index(drop=True)
+        
+    # Generate Features
+    with st.spinner("Generating institutional features..."):
+        feat_df = reliance_features.create_reliance_signal_features(rel_df, benchmark_df=bm_df)
+        
+    if feat_df.empty:
+        st.error("Failed to generate features. Check data quality.")
+        return
+
+    # -------------------------------------------------------------------------
+    # SECTION 2: Market Context Strip
+    # -------------------------------------------------------------------------
+    st.markdown("---")
+    st.subheader("Market Context Strip")
+    latest = feat_df.iloc[-1]
+    
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
+    c2.metric("1D Return", _fmt_pct(latest.get("simple_return", 0)))
+    c3.metric("5D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-6].get("Close", 1)) - 1 if len(feat_df) > 5 else 0))
+    c4.metric("20D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-21].get("Close", 1)) - 1 if len(feat_df) > 20 else 0))
+    c5.metric("20D Realized Vol", _fmt_pct(latest.get("realized_vol_20", 0)))
+    
+    c6, c7, c8, c9, c10 = st.columns(5)
+    c6.metric("Drawdown from 52W High", _fmt_pct(latest.get("drawdown_from_252_high", 0)))
+    c7.metric("Trend Regime", latest.get("trend_regime", "Unknown"))
+    c8.metric("Volatility Regime", latest.get("volatility_regime", "Unknown"))
+    
+    rel_ret = latest.get("reliance_minus_benchmark_return", 0)
+    c9.metric("Rel Return vs Benchmark", _fmt_pct(rel_ret))
+    c10.metric("Rolling Beta (60D)", _fmt_num(latest.get("rolling_beta_60", 0)))
+    
+    # -------------------------------------------------------------------------
+    # SECTION 3: Model Control Panel
+    # -------------------------------------------------------------------------
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Reliance Research Controls")
+    
+    target_map = {
+        "Next-day Direction": ("target_direction", 1),
+        "Strong Up Move": ("target_strong_up", 1),
+        "Strong Down Move": ("target_strong_down", 1),
+        "Risk Event": ("target_risk_event", 1)
+    }
+    target_choice = st.sidebar.selectbox("Prediction Target", list(target_map.keys()))
+    horizon = st.sidebar.selectbox("Horizon (days)", [1, 3, 5])
+    
+    test_size = st.sidebar.slider("Test Size", 0.1, 0.4, 0.2)
+    use_wf = st.sidebar.checkbox("Run Walk-Forward Validation", value=True)
+    
+    bullish_threshold = st.sidebar.slider("Bullish Threshold", 0.50, 0.70, 0.57)
+    bearish_threshold = st.sidebar.slider("Bearish Threshold", 0.30, 0.50, 0.43)
+    
+    run_signal = st.button("Run Reliance Signal Research", type="primary")
+    
+    if run_signal:
+        target_col_base, _ = target_map[target_choice]
+        with st.spinner("Building Targets..."):
+            ml_df = reliance_targets.create_reliance_targets(feat_df, horizon=horizon)
+            
+        target_col = target_col_base
+        
+        feature_cols = [c for c in ml_df.columns if pd.api.types.is_numeric_dtype(ml_df[c])]
+        exclude_cols = ["Date", "Ticker", "Open", "High", "Low", "Close", "Volume", "target_return_1d", "target_return_3d", "target_return_5d",
+                        "target_direction", "target_strong_up", "target_strong_down", "target_risk_event"]
+        feature_cols = [c for c in feature_cols if c not in exclude_cols]
+        
+        with st.spinner("Training Ensemble..."):
+            suite_results = reliance_modeling.train_reliance_model_suite(
+                ml_df, feature_cols, target_col, test_size=test_size
+            )
+            
+        res_df = suite_results["model_results"]
+        best_model_name = suite_results["best_model_name"]
+        prob_up = suite_results["latest_confidence"]
+        
+        signal_data = signal_engine.generate_trading_signal(
+            probability_up=prob_up,
+            bullish_threshold=bullish_threshold,
+            bearish_threshold=bearish_threshold
+        )
+        
+        # -------------------------------------------------------------------------
+        # SECTION 4: Executive Signal Summary
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Executive Signal Summary")
+        
+        sc1, sc2, sc3, sc4 = st.columns(4)
+        sig = signal_data["signal"]
+        color = "green" if sig == "Bullish" else "red" if sig == "Bearish" else "gray"
+        sc1.markdown(f"**Final Signal**: <span style='color:{color}; font-size:1.2em;'>{sig}</span>", unsafe_allow_html=True)
+        sc2.markdown(f"**Signal Strength**: {signal_data['signal_strength']}")
+        sc3.markdown(f"**Prob (Up)**: {_fmt_pct(signal_data['probability_up'])}")
+        sc4.markdown(f"**Prob (Down)**: {_fmt_pct(signal_data['probability_down'])}")
+        
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        mc1.metric("Best Model", best_model_name)
+        
+        # Edge calculation
+        baseline_acc = evaluation.calculate_baseline_accuracy(suite_results["y_test"])
+        edge = evaluation.calculate_model_edge(suite_results["best_model_metrics"]["accuracy"], baseline_acc)
+        
+        mc2.metric("Model Edge (Accuracy)", f"{edge*100:+.1f}%")
+        
+        roc = suite_results["best_model_metrics"]["roc_auc"]
+        mc3.metric("ROC-AUC", _fmt_pct(roc))
+        mc4.metric("F1 Score", _fmt_pct(suite_results["best_model_metrics"]["f1_score"]))
+        
+        st.info(signal_data["explanation"])
+        
+        if roc < 0.55:
+            st.warning("⚠️ **Model edge is weak.** Treat signal as low-confidence research output.")
+        elif 0.45 <= prob_up <= 0.55:
+            st.warning("⚠️ **Neutral zone:** model does not have a strong directional edge.")
+            
+        # -------------------------------------------------------------------------
+        # SECTION 5: Model Performance Scorecard
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Model Performance Scorecard")
+        st.plotly_chart(ml_plots.plot_model_scorecard(res_df), use_container_width=True)
+        
+        # -------------------------------------------------------------------------
+        # SECTION 6: Walk-Forward Validation
+        # -------------------------------------------------------------------------
+        if use_wf:
+            st.markdown("---")
+            st.subheader("Walk-Forward Validation")
+            with st.spinner("Running walk-forward cross-validation..."):
+                wf_df = reliance_walk_forward.run_reliance_walk_forward_validation(
+                    ml_df, feature_cols, target_col, best_model_name,
+                    initial_train_size=1-test_size, step_size=20
+                )
+            
+            if not wf_df.empty:
+                wf_acc = (wf_df["y_true"] == wf_df["y_pred"]).mean()
+                wc1, wc2, wc3 = st.columns(3)
+                wc1.metric("WF Accuracy", _fmt_pct(wf_acc))
+                wc2.metric("Number of Folds", wf_df["fold"].nunique())
+                wc3.metric("Test Samples", len(wf_df))
+                
+                left, right = st.columns(2)
+                with left:
+                    st.plotly_chart(ml_plots.plot_walk_forward_fold_metrics(wf_df), use_container_width=True)
+                with right:
+                    hit_rate = evaluation.calculate_rolling_hit_rate(wf_df["y_true"], wf_df["y_pred"], window=30)
+                    st.plotly_chart(ml_plots.plot_rolling_hit_rate(wf_df["Date"], hit_rate), use_container_width=True)
+                    
+        # -------------------------------------------------------------------------
+        # SECTION 7: Feature Intelligence
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Feature Intelligence")
+        st.caption("Feature importance shows which signals the model used most, not guaranteed causal drivers.")
+        
+        fi = suite_results["feature_importance"]
+        f1, f2 = st.columns(2)
+        with f1:
+            st.plotly_chart(ml_plots.plot_feature_importance(fi.head(15)), use_container_width=True)
+        with f2:
+            st.plotly_chart(ml_plots.plot_feature_group_importance(fi), use_container_width=True)
+            
+        # -------------------------------------------------------------------------
+        # SECTION 8: Signal Timeline
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Signal Timeline")
+        
+        y_test_probs = pd.Series(suite_results["y_pred_proba"], index=suite_results["X_test"].index)
+        dates = ml_df.loc[suite_results["X_test"].index, "Date"] if "Date" in ml_df.columns else suite_results["X_test"].index
+        
+        t1, t2 = st.columns(2)
+        with t1:
+            st.plotly_chart(ml_plots.plot_signal_probability_timeline(dates, y_test_probs, bullish_threshold, bearish_threshold), use_container_width=True)
+        with t2:
+            st.plotly_chart(ml_plots.plot_reliance_price_with_signal(ml_df.loc[suite_results["X_test"].index], y_test_probs, bullish_threshold, bearish_threshold), use_container_width=True)
+            
+        # -------------------------------------------------------------------------
+        # SECTION 9: Error Diagnostics
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Error Diagnostics")
+        
+        d1, d2 = st.columns(2)
+        with d1:
+            st.plotly_chart(ml_plots.plot_classification_confusion_matrix(suite_results["y_test"], suite_results["y_pred"]), use_container_width=True)
+        with d2:
+            st.plotly_chart(ml_plots.plot_confidence_distribution(y_test_probs), use_container_width=True)
+            
+        # -------------------------------------------------------------------------
+        # SECTION 10: Professional Interpretation
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Professional Interpretation")
+        
+        grouped = fi.copy()
+        def get_group(name):
+            if "return" in name: return "Momentum/Returns"
+            if "vol" in name: return "Volatility"
+            if "ma_" in name or "ema_" in name: return "Trend"
+            if "volume" in name: return "Volume"
+            if "rsi" in name or "macd" in name or "bollinger" in name: return "Technicals"
+            if "benchmark" in name or "relative" in name or "beta" in name: return "Relative Value"
+            return "Other"
+        grouped["group"] = grouped["feature"].apply(get_group)
+        top_groups = grouped.groupby("group")["importance"].sum().nlargest(2).index.tolist()
+        
+        interp_text = (
+            f"The current ensemble model shows a **{sig}** signal for RELIANCE.NS. "
+            f"The latest predicted probability of an upward move is **{prob_up*100:.1f}%**. "
+            f"The strongest contributing feature groups driving this decision are **{top_groups[0]}** and **{top_groups[1]}**. "
+        )
+        if roc < 0.55:
+            interp_text += f"However, with a ROC-AUC of just **{roc*100:.1f}%**, the signal separability is weak. This should be interpreted as moderate research evidence rather than a high-conviction trading recommendation."
+        else:
+            interp_text += f"The model demonstrates a solid edge with a ROC-AUC of **{roc*100:.1f}%**, making this a robust quantitative signal to consider alongside fundamentals."
+            
+        st.info(interp_text)
+        
+        # -------------------------------------------------------------------------
+        # SECTION 11: Limitations
+        # -------------------------------------------------------------------------
+        st.subheader("Limitations")
+        st.markdown(
+            "- **Edge vs Randomness:** A ROC-AUC near 50% implies performance is close to random chance. Market noise often outweighs signal.\n"
+            "- **Missing Macro Context:** This model relies on price/volume and benchmark correlation. It does not currently ingest live news sentiment, crude oil prices, USD/INR rates, or options implied volatility.\n"
+            "- **Regime Shifts:** Financial markets experience structural breaks. A model trained during a secular bull market may perform poorly in a bear regime.\n"
+            "- **Execution Reality:** The model assumes frictionless trading. It does not account for slippage, bid-ask spread, or capital gains taxes.\n"
+            "- **Educational Purpose:** This dashboard is strictly a quantitative research tool and does not constitute financial advice."
+        )
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -942,6 +1547,10 @@ def main() -> None:
         page_option_pricing()
     elif page == "Monte Carlo Risk Lab":
         page_monte_carlo(df, present)
+    elif page == "Portfolio Optimization Lab":
+        page_portfolio_optimization(df, present)
+    elif page == "ML Forecasting Lab":
+        page_ml_forecasting(df, present)
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:

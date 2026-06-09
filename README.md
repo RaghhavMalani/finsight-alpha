@@ -84,6 +84,53 @@ for detailed documentation.
 
 ---
 
+## What Phase 5 adds: Portfolio Optimization Engine
+
+Phase 5 introduces a professional Portfolio Optimization Engine based on Markowitz Modern Portfolio Theory:
+
+- **Markowitz Optimization** - calculate minimum variance and maximum Sharpe Ratio portfolios.
+- **Efficient Frontier** - compute and visualize the efficient frontier.
+- **Risk Contribution & Parity** - analyze component risk contribution and construct risk parity portfolios.
+- **Asset Allocation Comparison** - compare multiple portfolio strategies simultaneously.
+- **Portfolio Optimization Lab** - a dedicated interactive dashboard page.
+- **Example Portfolios** - built-in Indian and US portfolio examples.
+
+These features enable professional-grade portfolio construction and risk budgeting. See
+[`docs/phase_5_portfolio_optimization.md`](docs/phase_5_portfolio_optimization.md)
+for detailed documentation.
+
+---
+
+## What Phase 6 adds: Machine Learning Forecasting Engine
+
+Phase 6 introduces a professional Machine Learning Forecasting Engine to generate predictive signals:
+
+- **Financial feature engineering** - add lags, rolling averages, momentum, volatility, and technical indicators (RSI, MACD, Bollinger Bands) without data leakage.
+- **Direction classification** - predict whether the price will go up or down.
+- **Future return regression** - predict the expected percentage return over N days.
+- **Future volatility regression** - predict the expected realized volatility over N days.
+- **Time-series validation** - strict chronological train/test splitting and robust walk-forward validation.
+- **Feature importance** - analyze which signals the models rely on most.
+- **ML Forecasting Lab** - a dedicated interactive dashboard page.
+
+These tools allow for advanced signal generation and quantitative research. See
+[`docs/phase_6_ml_forecasting.md`](docs/phase_6_ml_forecasting.md)
+for detailed documentation.
+
+---
+
+## What Phase 6.5 adds: Professional Reliance Signal Research Lab
+
+- **Specialized Signal Extraction** - Custom feature engineering pipelines for Reliance-specific intraday and daily patterns.
+- **Alpha Decay Analysis** - Measuring the performance degradation of signals over time.
+- **Ensemble Forecasting** - Combining multiple ML models to increase prediction accuracy.
+- **Signal Robustness Testing** - Stress-testing reliance signals against market anomalies.
+- **Reliance Lab Dashboard** - Focused visualization for Reliance trade setups and signal strength.
+
+See [`docs/phase_6_5_reliance_signals.md`](docs/phase_6_5_reliance_signals.md) for detailed documentation.
+
+---
+
 ## Installation
 
 > Requires Python 3.10+ (3.11 recommended).
@@ -194,10 +241,11 @@ finsight-alpha/
 ## Future phases
 
 - **Phase 2 (done)** - Financial Math Engine: CAGR, Sharpe, Sortino, beta, CAPM.
-- **Phase 3 (done)** - Black-Scholes option pricing and the Greeks.
-- **Phase 4 (done)** - Monte Carlo simulation and VaR / CVaR risk.
-- **Phase 5** - Portfolio optimization (mean-variance, efficient frontier).
-- **Phase 6** - ML forecasting (return/volatility models).
+- **Option Pricing Lab**: Black-Scholes engine, implied volatility solver, and Greek surfaces.
+- **Monte Carlo Risk Engine**: Geometric Brownian Motion simulations with Value-at-Risk (VaR) and Expected Shortfall (CVaR).
+- **Portfolio Optimization**: Markowitz Mean-Variance optimization, Efficient Frontier, and Sharpe ratio maximization.
+- **Reliance Signal Research Lab**: Institutional-grade Machine Learning forecasting engine with walk-forward validation and feature intelligence for Reliance.
+- **Phase 6 (done)** - ML forecasting (return/volatility models).
 - **Phase 7** - Market regime detection.
 - **Phase 8** - RAG financial assistant over filings/news.
 - **Phase 9** - Optional cloud deployment (revisited later).
