@@ -29,6 +29,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd
+import numpy as np
 import streamlit as st
 
 from src import config
@@ -53,7 +54,8 @@ from src.pricing import black_scholes
 from src.simulation import monte_carlo
 from src.risk import var_cvar, portfolio_optimization
 from src.ml import features, targets, models, evaluation, walk_forward
-from src.visualization import option_plots, plots, simulation_plots, portfolio_plots, ml_plots
+from src import regime
+from src.visualization import option_plots, plots, simulation_plots, portfolio_plots, ml_plots, regime_plots
 from src.visualization.theme import apply_streamlit_theme
 
 # ---------------------------------------------------------------------------
@@ -78,7 +80,8 @@ PAGES = [
     "Option Pricing Lab",
     "Monte Carlo Risk Lab",
     "Portfolio Optimization Lab",
-    "ML Forecasting Lab",
+    "Signal Research Lab",
+    "Market Regime Lab",
 ]
 
 UNIVERSE_INDIAN = "Indian Market"
@@ -225,10 +228,9 @@ def render_sidebar() -> dict[str, object]:
     )
 
     single_ticker = st.sidebar.selectbox(
-        "Focus ticker (Single Asset page)",
+        "Focus Ticker (Single Asset / ML Lab)",
         options=tickers if tickers else options,
-        index=0,
-        help="The ticker shown on the Single Asset Analysis page.",
+        help="Choose the ticker to analyze in the Single Asset and Signal Research Lab views."
     )
 
     today = pd.Timestamp.today().normalize()
@@ -995,273 +997,201 @@ def page_portfolio_optimization(df: pd.DataFrame, tickers: list[str]) -> None:
         "- Long-only constraints limit short-selling assumptions."
     )
 
-def page_ml_forecasting(df: pd.DataFrame, tickers: list[str]) -> None:
-    st.header("ML Forecasting Lab")
+
+def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame | None = None) -> None:
+    st.header("Market Regime Lab")
+    st.markdown("<div class='finsight-subtitle'>Hidden-state market regime detection for equities and ETFs.</div>", unsafe_allow_html=True)
     
     if not tickers:
         st.warning("Please load at least one ticker to begin.")
         return
-
-    sub_mode = st.radio("Select Mode", ["General ML Forecasting", "Reliance Signal Research Mode"], horizontal=True)
-    
-    if sub_mode == "Reliance Signal Research Mode":
-        page_reliance_signal_research(df)
-        return
-
+        
     st.sidebar.markdown("---")
-    st.sidebar.subheader("Section 1: Model Setup")
-
-    ticker = st.sidebar.selectbox("Select ticker", options=tickers)
-
-    task_options = [
-        "1. Next-Day Direction Classification",
-        "2. Future Return Regression",
-        "3. Future Volatility Regression"
-    ]
-    task = st.sidebar.selectbox("Prediction task", task_options)
-
-    # Defaults and logic based on task
-    is_classification = "Classification" in task
+    st.sidebar.subheader("Regime Controls")
     
-    if is_classification:
-        horizon = st.sidebar.number_input("Target horizon (days)", min_value=1, value=1, step=1)
-        model_options = ["Logistic Regression", "Random Forest", "Gradient Boosting"]
-    elif "Return" in task:
-        horizon = st.sidebar.number_input("Target horizon (days)", min_value=1, value=5, step=1)
-        model_options = ["Linear Regression", "Random Forest", "Gradient Boosting"]
-    else:
-        # Volatility
-        horizon = st.sidebar.number_input("Target horizon (days)", min_value=1, value=5, step=1)
-        model_options = ["Linear Regression", "Random Forest", "Gradient Boosting"]
-
-    model_choice = st.sidebar.selectbox("Model selection", model_options)
-    test_size = st.sidebar.slider("Test size", min_value=0.05, max_value=0.5, value=0.2, step=0.05)
-    random_state = st.sidebar.number_input("Random state", value=42, step=1)
+    ticker = st.sidebar.selectbox("Ticker", options=tickers)
     
-    run_walk_forward = st.sidebar.checkbox("Run walk-forward validation", value=False)
+    default_bench = config.get_default_benchmark(ticker)
+    available_benchmarks = list(benchmark_df["Ticker"].unique()) if benchmark_df is not None and not benchmark_df.empty else []
+    if default_bench not in available_benchmarks and available_benchmarks:
+        default_bench = available_benchmarks[0]
+        
+    benchmark_choice = st.sidebar.selectbox(
+        "Benchmark (for relative features)", 
+        options=["None"] + available_benchmarks,
+        index=(available_benchmarks.index(default_bench) + 1) if default_bench in available_benchmarks else 0
+    )
     
-    run_model = st.button("Train ML Model", type="primary")
-
-    if run_model:
-        with st.spinner("Preparing features and targets..."):
-            # 1. Isolate the data for the ticker
-            ticker_df = df[df["Ticker"] == ticker].copy().sort_values("Date").reset_index(drop=True)
+    model_type = st.sidebar.selectbox("Regime Model", ["HMM", "Gaussian Mixture", "KMeans"])
+    n_states = st.sidebar.selectbox("Number of States", [3, 4, 5], index=1)
+    
+    feature_set = st.sidebar.selectbox("Feature Set", ["Basic", "With Benchmark", "Full"])
+    
+    run_regime = st.button("Run Regime Detection", type="primary")
+    
+    if run_regime:
+        asset_df = df[df["Ticker"] == ticker].copy().sort_values("Date").reset_index(drop=True)
+        if asset_df.empty:
+            st.error(f"Data not found for {ticker}.")
+            return
             
-            # 2. Build features
-            feature_df = features.create_ml_feature_dataset(ticker_df)
+        b_df = None
+        if benchmark_choice != "None" and benchmark_df is not None:
+            b_df = benchmark_df[benchmark_df["Ticker"] == benchmark_choice].copy()
             
-            # 3. Build target
-            if "Direction" in task:
-                target_col = "target_direction"
-                full_df = targets.create_direction_target(feature_df, horizon=horizon)
-            elif "Return" in task:
-                target_col = f"target_return_{horizon}d"
-                full_df = targets.create_future_return_target(feature_df, horizon=horizon)
+        with st.spinner("Engineering regime features..."):
+            feat_df = regime.create_regime_features(asset_df, benchmark_df=b_df)
+            
+        if feat_df.empty:
+            st.error("Failed to generate features. Check data.")
+            return
+            
+        cols = regime.get_regime_feature_columns(feat_df)
+        if feature_set == "Basic":
+            cols = [c for c in cols if "benchmark" not in c and "beta" not in c and "volume" not in c]
+        elif feature_set == "With Benchmark":
+            cols = [c for c in cols if "volume" not in c]
+            
+        if not cols:
+            st.error("No valid features selected.")
+            return
+            
+        with st.spinner(f"Fitting {model_type} model with {n_states} states..."):
+            if model_type == "HMM":
+                if not regime.is_hmmlearn_available():
+                    st.warning("hmmlearn not installed. Falling back to Gaussian Mixture.")
+                    res_df = regime.run_gmm_regime_detection(feat_df, cols, n_states=n_states)
+                    state_col, prob_col = "gmm_state", "gmm_state_probability"
+                else:
+                    res_df = regime.run_hmm_regime_detection(feat_df, cols, n_states=n_states)
+                    state_col, prob_col = "hmm_state", "hmm_state_probability"
+            elif model_type == "Gaussian Mixture":
+                res_df = regime.run_gmm_regime_detection(feat_df, cols, n_states=n_states)
+                state_col, prob_col = "gmm_state", "gmm_state_probability"
             else:
-                target_col = f"target_volatility_{horizon}d"
-                if "log_return" not in feature_df.columns:
-                    feature_df["log_return"] = np.log(feature_df["Close"] / feature_df["Close"].shift(1))
-                full_df = targets.create_future_volatility_target(feature_df, return_col="log_return", horizon=horizon)
+                res_df = regime.run_kmeans_regime_detection(feat_df, cols, n_states=n_states)
+                state_col, prob_col = "kmeans_state", "kmeans_state_probability"
                 
-            # Drop rows with missing targets
-            ml_df = full_df.dropna(subset=[target_col]).reset_index(drop=True)
-            
-            if ml_df.empty or len(ml_df) < 50:
-                st.error("Not enough data to train the model after dropping missing values.")
+            if state_col not in res_df.columns or res_df[state_col].isna().all():
+                st.error("Model failed to fit. Try a different model or fewer states.")
                 return
                 
-            feature_cols = features.get_feature_columns(ml_df)
+        with st.spinner("Labeling Regimes..."):
+            reg_summary = regime.summarize_regime_states(res_df, state_col)
+            labels = regime.label_regime_states(reg_summary)
+            res_df = regime.map_regime_labels_to_rows(res_df, state_col, labels)
             
-            # Force Streamlit to drop non-numeric columns in case the module hot-reload was missed
-            feature_cols = [c for c in feature_cols if pd.api.types.is_numeric_dtype(ml_df[c])]
+            # Recalculate summary with labels
+            perf_summary = regime.calculate_regime_performance_summary(res_df)
+            current_summary = regime.calculate_current_regime_summary(res_df, probability_col=prob_col)
+            durations = regime.calculate_regime_duration(res_df)
             
-            st.markdown("---")
-            st.subheader("Section 2: Data Preview")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Total Rows", len(ml_df))
-            c2.metric("Number of Features", len(feature_cols))
-            c3.metric("Train Size", int(len(ml_df) * (1 - test_size)))
-            c4.metric("Test Size", len(ml_df) - int(len(ml_df) * (1 - test_size)))
+            # Matrix
+            trans_matrix = regime.calculate_regime_transition_matrix(res_df["regime_label"])
             
-            if is_classification:
-                class_balance = ml_df[target_col].mean()
-                st.info(f"Class Balance: {class_balance:.1%} positive class (Up), {1 - class_balance:.1%} negative class (Down)")
-                
-        with st.spinner("Training model..."):
-            # Convert model UI string to internal key
-            model_key = model_choice.lower().replace(" ", "_")
-            model_type = "classification" if is_classification else "regression"
+        st.markdown("---")
+        st.subheader("Current Regime Summary")
+        
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Current Regime", current_summary.get("current_regime", "Unknown"))
+        
+        prob = current_summary.get("current_regime_probability", np.nan)
+        c2.metric("Regime Probability", _fmt_pct(prob) if pd.notna(prob) else "N/A")
+        
+        c3.metric("Regime Risk Level", current_summary.get("current_regime_risk_level", "Unknown"))
+        c4.metric("Current Duration (Days)", current_summary.get("current_regime_duration", 0))
+        
+        latest = res_df.iloc[-1]
+        c5, c6, c7, c8 = st.columns(4)
+        c5.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
+        c6.metric("20D Volatility", _fmt_pct(latest.get("realized_vol_20", 0)))
+        c7.metric("Drawdown from 52W High", _fmt_pct(latest.get("drawdown_from_252_high", 0)))
+        c8.metric("Features Used", len(cols))
+        
+        st.markdown("---")
+        st.subheader("Price and Regime Timeline")
+        st.plotly_chart(regime_plots.plot_price_with_regimes(res_df), use_container_width=True)
+        
+        left, right = st.columns(2)
+        with left:
+            st.plotly_chart(regime_plots.plot_regime_timeline(res_df), use_container_width=True)
+        with right:
+            st.plotly_chart(regime_plots.plot_regime_probability(res_df, prob_col=prob_col), use_container_width=True)
             
-            X_train, X_test, y_train, y_test = walk_forward.time_series_train_test_split(
-                ml_df, feature_cols, target_col, test_size=test_size
-            )
-            
-            if is_classification:
-                model = models.get_classification_model(model_key, random_state=random_state)
-            else:
-                model = models.get_regression_model(model_key, random_state=random_state)
-                
-            model = models.train_model(model, X_train, y_train)
-            preds, probs = models.make_predictions(model, X_test)
-            
-            st.markdown("---")
-            st.subheader("Section 3: Model Performance")
-            
-            if is_classification:
-                eval_metrics = evaluation.evaluate_classification_model(y_test, preds, probs)
-                c1, c2, c3, c4, c5 = st.columns(5)
-                c1.metric("Accuracy", _fmt_pct(eval_metrics["accuracy"]))
-                c2.metric("Precision", _fmt_pct(eval_metrics["precision"]))
-                c3.metric("Recall", _fmt_pct(eval_metrics["recall"]))
-                c4.metric("F1 Score", _fmt_pct(eval_metrics["f1_score"]))
-                if "roc_auc" in eval_metrics and pd.notna(eval_metrics["roc_auc"]):
-                    c5.metric("ROC-AUC", _fmt_pct(eval_metrics["roc_auc"]))
-                else:
-                    c5.metric("ROC-AUC", "-")
-            else:
-                eval_metrics = evaluation.evaluate_regression_model(y_test, preds)
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("MAE", _fmt_num(eval_metrics["mae"]))
-                c2.metric("RMSE", _fmt_num(eval_metrics["rmse"]))
-                c3.metric("R² Score", _fmt_num(eval_metrics["r2_score"]))
-                c4.metric("Directional Accuracy", _fmt_pct(eval_metrics["directional_accuracy"]))
+        st.markdown("---")
+        st.subheader("Regime State Diagnostics")
+        st.dataframe(perf_summary, use_container_width=True, hide_index=True)
+        st.plotly_chart(regime_plots.plot_regime_performance(perf_summary), use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("Transition Matrix")
+        st.markdown("Transition matrix shows the probability of moving from one regime to another.")
+        st.plotly_chart(regime_plots.plot_regime_transition_matrix(trans_matrix), use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("Regime Duration")
+        st.plotly_chart(regime_plots.plot_regime_duration(durations), use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("Feature Space")
+        st.markdown("How unsupervised models cluster market states based on engineered features.")
+        st.plotly_chart(regime_plots.plot_regime_feature_scatter(res_df), use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("Signal Integration")
+        st.info("This regime output can be added to ML Signal Research Lab as an additional feature. It can also adjust signal confidence. For example, bullish ML signals in a high-volatility selloff regime may be suppressed.")
+        
+        st.markdown("---")
+        st.subheader("Limitations")
+        st.markdown(
+            "- HMM/GMM states are statistical clusters, not guaranteed economic truths.\n"
+            "- Regime labels are assigned after the model using summary statistics.\n"
+            "- Regimes can shift suddenly.\n"
+            "- Model can overfit if too many states are used.\n"
+            "- Educational only."
+        )
 
-            st.markdown("---")
-            st.subheader("Section 4: Charts")
-            
-            feat_imp = models.get_feature_importance(model, feature_cols)
-            
-            left, right = st.columns(2)
-            with left:
-                st.plotly_chart(ml_plots.plot_feature_importance(feat_imp), use_container_width=True)
-                
-                if is_classification and probs is not None:
-                    st.plotly_chart(ml_plots.plot_probability_distribution(probs), use_container_width=True)
-                elif not is_classification:
-                    st.plotly_chart(ml_plots.plot_regression_scatter(y_test, preds), use_container_width=True)
-                    
-            with right:
-                if is_classification:
-                    st.plotly_chart(ml_plots.plot_classification_confusion_matrix(y_test, preds), use_container_width=True)
-                else:
-                    test_dates = ml_df.loc[X_test.index, "Date"] if "Date" in ml_df.columns else None
-                    st.plotly_chart(ml_plots.plot_predictions_vs_actual(y_test, preds, test_dates), use_container_width=True)
-            
-            if run_walk_forward:
-                st.markdown("#### Walk-Forward Validation")
-                with st.spinner("Running walk-forward validation..."):
-                    wf_df = walk_forward.walk_forward_validation(
-                        ml_df, feature_cols, target_col, model_type, model_key,
-                        initial_train_size=1-test_size, step_size=20, random_state=random_state
-                    )
-                    if not wf_df.empty:
-                        st.plotly_chart(ml_plots.plot_walk_forward_predictions(wf_df), use_container_width=True)
-                    else:
-                        st.warning("Walk-forward validation failed or returned no data.")
-                        
-            st.markdown("---")
-            st.subheader("Section 5: Latest Prediction")
-            
-            # Predict the absolute latest available data point (which has no target yet)
-            latest_feature_row = feature_df.iloc[-1:]
-            latest_X = latest_feature_row[feature_cols]
-            latest_pred, latest_prob = models.make_predictions(model, latest_X)
-            
-            lc1, lc2, lc3 = st.columns(3)
-            lc1.metric("Model Used", model_choice)
-            lc2.metric("Prediction Horizon", f"{horizon} day(s)")
-            
-            if is_classification:
-                pred_label = "Up" if latest_pred[0] == 1 else "Down"
-                lc3.metric("Predicted Direction", pred_label)
-                if latest_prob is not None:
-                    conf = latest_prob[0] if pred_label == "Up" else (1 - latest_prob[0])
-                    st.info(f"Confidence: {_fmt_pct(conf)}")
-            else:
-                lc3.metric("Predicted Value", _fmt_num(latest_pred[0]))
-                
-            st.warning("⚠️ **Disclaimer**: These predictions are strictly educational. Machine learning models easily overfit to historical financial data. This is NOT financial advice.")
 
-    st.markdown("---")
-    st.subheader("Section 6: Educational Explanation")
-    st.markdown(
-        "**Why predict returns instead of price?** Prices are non-stationary (they drift upwards over time). Predicting raw price usually results in a model that just predicts yesterday's price, which is practically useless. Predicting returns or direction is much harder, but actually useful.\n\n"
-        "**Feature Engineering**: Transforming raw data (Open, High, Low, Close) into meaningful signals like momentum, volatility, and technical indicators.\n\n"
-        "**Data Leakage**: The biggest trap in financial ML. If your model accidentally sees future information during training (like using a future rolling average as a feature), it will look perfect in testing but fail completely in reality.\n\n"
-        "**Time-Series Split**: Standard random train/test splits (like 80/20 random rows) cause severe data leakage in finance because the model learns from the future to predict the past. We strictly separate train (past) and test (future) chronologically.\n\n"
-        "**Walk-Forward Validation**: A robust way to evaluate financial models by training on a rolling window of past data and predicting the immediate future, stepping forward slowly."
-    )
-    st.subheader("Section 7: Limitations")
-    st.markdown(
-        "- **Markets are noisy**: The signal-to-noise ratio in financial data is extremely low.\n"
-        "- **Past != Future**: Patterns that existed in 2018 may completely disappear in 2024.\n"
-        "- **Transaction Costs**: A model might predict small positive returns every day, but trading fees and bid-ask spread would turn it into a loss.\n"
-        "- **Overfitting**: Tree models (like Random Forest) can easily memorize the training data. Always check the test set performance.\n"
-        "- **Predictions are educational**, not investment advice."
-    )
-
-# ---------------------------------------------------------------------------
-# Reliance Signal Research Lab
-# ---------------------------------------------------------------------------
-def page_reliance_signal_research(df: pd.DataFrame) -> None:
-    from src.ml import reliance_features, reliance_targets, reliance_modeling, reliance_walk_forward, signal_engine, models, evaluation
+def page_signal_research_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame, target_ticker: str) -> None:
+    from src.ml import signal_features, signal_targets, signal_modeling, signal_walk_forward, signal_engine, models, evaluation
     from src.visualization import ml_plots
+    from src import config
     import numpy as np
     
     # -------------------------------------------------------------------------
     # SECTION 1: Header
     # -------------------------------------------------------------------------
-    st.markdown("<h2 class='finsight-title'>Reliance Signal Research Lab</h2>", unsafe_allow_html=True)
-    st.markdown("<div class='finsight-subtitle'>Institutional-style ML diagnostics for RELIANCE.NS</div>", unsafe_allow_html=True)
+    st.markdown("<h2 class='finsight-title'>Signal Research Lab</h2>", unsafe_allow_html=True)
+    st.markdown("<div class='finsight-subtitle'>Institutional-style ML diagnostics for equities and ETFs.</div>", unsafe_allow_html=True)
     st.caption("Educational quantitative research dashboard. Not financial advice.")
     
-    # Isolate RELIANCE.NS
-    rel_df = df[df["Ticker"] == "RELIANCE.NS"].copy().sort_values("Date").reset_index(drop=True)
-    if rel_df.empty:
-        st.error("RELIANCE.NS data not found in current dataset. Please load Indian Market with Reliance.")
-        return
-        
-    # Isolate Benchmark
-    bm_df = df[df["Ticker"] == "NIFTYBEES.NS"].copy().sort_values("Date").reset_index(drop=True)
-    if bm_df.empty:
-        bm_df = df[df["Ticker"] == "^NSEI"].copy().sort_values("Date").reset_index(drop=True)
-        
-    # Generate Features
-    with st.spinner("Generating institutional features..."):
-        feat_df = reliance_features.create_reliance_signal_features(rel_df, benchmark_df=bm_df)
-        
-    if feat_df.empty:
-        st.error("Failed to generate features. Check data quality.")
+    if not tickers:
+        st.warning("Please load at least one ticker to begin.")
         return
 
     # -------------------------------------------------------------------------
-    # SECTION 2: Market Context Strip
-    # -------------------------------------------------------------------------
-    st.markdown("---")
-    st.subheader("Market Context Strip")
-    latest = feat_df.iloc[-1]
-    
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
-    c2.metric("1D Return", _fmt_pct(latest.get("simple_return", 0)))
-    c3.metric("5D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-6].get("Close", 1)) - 1 if len(feat_df) > 5 else 0))
-    c4.metric("20D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-21].get("Close", 1)) - 1 if len(feat_df) > 20 else 0))
-    c5.metric("20D Realized Vol", _fmt_pct(latest.get("realized_vol_20", 0)))
-    
-    c6, c7, c8, c9, c10 = st.columns(5)
-    c6.metric("Drawdown from 52W High", _fmt_pct(latest.get("drawdown_from_252_high", 0)))
-    c7.metric("Trend Regime", latest.get("trend_regime", "Unknown"))
-    c8.metric("Volatility Regime", latest.get("volatility_regime", "Unknown"))
-    
-    rel_ret = latest.get("reliance_minus_benchmark_return", 0)
-    c9.metric("Rel Return vs Benchmark", _fmt_pct(rel_ret))
-    c10.metric("Rolling Beta (60D)", _fmt_num(latest.get("rolling_beta_60", 0)))
-    
-    # -------------------------------------------------------------------------
-    # SECTION 3: Model Control Panel
+    # SECTION 2: Ticker and Benchmark Controls
     # -------------------------------------------------------------------------
     st.sidebar.markdown("---")
-    st.sidebar.subheader("Reliance Research Controls")
+    st.sidebar.subheader("Signal Research Controls")
+    
+    if target_ticker not in tickers:
+        st.error(f"Selected ticker {target_ticker} has no loaded data. Please click 'Load / Refresh Data'.")
+        return
+        
+    ticker = target_ticker
+    display_name = config.get_display_name(ticker)
+    
+    default_bench = config.get_default_benchmark(ticker)
+    available_benchmarks = list(benchmark_df["Ticker"].unique()) if not benchmark_df.empty else []
+    if default_bench not in available_benchmarks and available_benchmarks:
+        default_bench = available_benchmarks[0]
+        
+    benchmark_choice = st.sidebar.selectbox(
+        "Select Benchmark (for relative features)", 
+        options=available_benchmarks if available_benchmarks else [default_bench],
+        index=available_benchmarks.index(default_bench) if default_bench in available_benchmarks else 0
+    )
     
     target_map = {
         "Next-day Direction": ("target_direction", 1),
@@ -1274,38 +1204,112 @@ def page_reliance_signal_research(df: pd.DataFrame) -> None:
     
     test_size = st.sidebar.slider("Test Size", 0.1, 0.4, 0.2)
     use_wf = st.sidebar.checkbox("Run Walk-Forward Validation", value=True)
+    use_regime = st.sidebar.checkbox("Use Regime Features", value=False)
     
     bullish_threshold = st.sidebar.slider("Bullish Threshold", 0.50, 0.70, 0.57)
     bearish_threshold = st.sidebar.slider("Bearish Threshold", 0.30, 0.50, 0.43)
     
-    run_signal = st.button("Run Reliance Signal Research", type="primary")
+    run_signal = st.button("Run Signal Research", type="primary")
+    
+    st.markdown(f"### {display_name} Signal Research Lab")
+    st.markdown(f"**Ticker**: `{ticker}` | **Benchmark**: `{benchmark_choice}`")
     
     if run_signal:
         target_col_base, _ = target_map[target_choice]
+        
+        # Isolate Asset
+        asset_df = df[df["Ticker"] == ticker].copy().sort_values("Date").reset_index(drop=True)
+        if asset_df.empty:
+            st.error(f"Data not found for {ticker}.")
+            return
+            
+        # Isolate Benchmark
+        b_df = benchmark_df[benchmark_df["Ticker"] == benchmark_choice].copy() if not benchmark_df.empty else pd.DataFrame()
+        
+        with st.spinner("Generating institutional features..."):
+            feat_df = signal_features.create_signal_research_features(asset_df, benchmark_df=b_df, ticker=ticker)
+            
+        if feat_df.empty:
+            st.error("Failed to generate features. Check data quality.")
+            return
+
         with st.spinner("Building Targets..."):
-            ml_df = reliance_targets.create_reliance_targets(feat_df, horizon=horizon)
+            ml_df = signal_targets.create_signal_research_targets(feat_df, horizon=horizon)
             
         target_col = target_col_base
         
+        
+        if use_regime:
+            from src import regime as regime_mod
+            with st.spinner("Generating regime features..."):
+                reg_feat = regime_mod.create_regime_features(asset_df, benchmark_df=b_df)
+                reg_cols = regime_mod.get_regime_feature_columns(reg_feat)
+                
+                if regime_mod.is_hmmlearn_available():
+                    reg_df = regime_mod.run_hmm_regime_detection(reg_feat, reg_cols, n_states=4)
+                    state_col, prob_col = "hmm_state", "hmm_state_probability"
+                else:
+                    reg_df = regime_mod.run_gmm_regime_detection(reg_feat, reg_cols, n_states=4)
+                    state_col, prob_col = "gmm_state", "gmm_state_probability"
+                    
+                reg_summary = regime_mod.summarize_regime_states(reg_df, state_col)
+                labels = regime_mod.label_regime_states(reg_summary)
+                reg_df = regime_mod.map_regime_labels_to_rows(reg_df, state_col, labels)
+                current_reg_summary = regime_mod.calculate_current_regime_summary(reg_df, probability_col=prob_col)
+                
+                ml_df = regime_mod.add_regime_features_to_ml_dataset(ml_df, reg_df)
+                
         feature_cols = [c for c in ml_df.columns if pd.api.types.is_numeric_dtype(ml_df[c])]
         exclude_cols = ["Date", "Ticker", "Open", "High", "Low", "Close", "Volume", "target_return_1d", "target_return_3d", "target_return_5d",
                         "target_direction", "target_strong_up", "target_strong_down", "target_risk_event"]
         feature_cols = [c for c in feature_cols if c not in exclude_cols]
         
+        # Drop missing targets and features
+        ml_df = ml_df.dropna(subset=[target_col] + feature_cols).reset_index(drop=True)
+        
+        if ml_df.empty or len(ml_df) < 50:
+            st.error("Not enough data to train the model after dropping missing values.")
+            return
+        
         with st.spinner("Training Ensemble..."):
-            suite_results = reliance_modeling.train_reliance_model_suite(
-                ml_df, feature_cols, target_col, test_size=test_size
+            suite_results = signal_modeling.train_signal_model_suite(
+                ml_df, feature_cols, target_col, test_size=test_size, ticker=ticker
             )
             
         res_df = suite_results["model_results"]
         best_model_name = suite_results["best_model_name"]
-        prob_up = suite_results["latest_confidence"]
         
-        signal_data = signal_engine.generate_trading_signal(
-            probability_up=prob_up,
-            bullish_threshold=bullish_threshold,
-            bearish_threshold=bearish_threshold
-        )
+        signal_data = suite_results["institutional_signal"]
+        
+        # -------------------------------------------------------------------------
+        # SECTION 3: Market Context Strip
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Market Context Strip")
+        latest = feat_df.iloc[-1]
+        
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
+        c2.metric("1D Return", _fmt_pct(latest.get("simple_return", 0)))
+        c3.metric("5D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-6].get("Close", 1)) - 1 if len(feat_df) > 5 else 0))
+        c4.metric("20D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-21].get("Close", 1)) - 1 if len(feat_df) > 20 else 0))
+        c5.metric("20D Realized Vol", _fmt_pct(latest.get("realized_vol_20", 0)))
+        
+        c6, c7, c8, c9, c10 = st.columns(5)
+        c6.metric("Drawdown from 52W High", _fmt_pct(latest.get("drawdown_from_252_high", 0)))
+        c7.metric("Trend Regime", latest.get("trend_regime", "Unknown"))
+        c8.metric("Volatility Regime", latest.get("volatility_regime", "Unknown"))
+        
+        if "asset_minus_benchmark_return" in latest and pd.notna(latest["asset_minus_benchmark_return"]):
+            rel_ret = latest["asset_minus_benchmark_return"]
+            c9.metric("Rel Return vs Benchmark", _fmt_pct(rel_ret))
+        else:
+            c9.metric("Rel Return vs Benchmark", "N/A")
+            
+        if "rolling_beta_60" in latest and pd.notna(latest["rolling_beta_60"]):
+            c10.metric("Rolling Beta (60D)", _fmt_num(latest["rolling_beta_60"]))
+        else:
+            c10.metric("Rolling Beta (60D)", "N/A")
         
         # -------------------------------------------------------------------------
         # SECTION 4: Executive Signal Summary
@@ -1316,48 +1320,72 @@ def page_reliance_signal_research(df: pd.DataFrame) -> None:
         sc1, sc2, sc3, sc4 = st.columns(4)
         sig = signal_data["signal"]
         color = "green" if sig == "Bullish" else "red" if sig == "Bearish" else "gray"
-        sc1.markdown(f"**Final Signal**: <span style='color:{color}; font-size:1.2em;'>{sig}</span>", unsafe_allow_html=True)
-        sc2.markdown(f"**Signal Strength**: {signal_data['signal_strength']}")
-        sc3.markdown(f"**Prob (Up)**: {_fmt_pct(signal_data['probability_up'])}")
-        sc4.markdown(f"**Prob (Down)**: {_fmt_pct(signal_data['probability_down'])}")
+        sc1.markdown(f"**Final Research Signal**: <span style='color:{color}; font-size:1.2em;'>{sig}</span>", unsafe_allow_html=True)
+        sc2.markdown(f"**Research Confidence**: {signal_data['research_confidence']}")
+        sc3.markdown(f"**Raw Probability (Up)**: {_fmt_pct(signal_data['raw_probability_up'])}")
+        sc4.markdown(f"**Validation-Adjusted Prob**: {_fmt_pct(signal_data['calibrated_probability_up'])}")
         
         mc1, mc2, mc3, mc4 = st.columns(4)
-        mc1.metric("Best Model", best_model_name)
-        
-        # Edge calculation
-        baseline_acc = evaluation.calculate_baseline_accuracy(suite_results["y_test"])
-        edge = evaluation.calculate_model_edge(suite_results["best_model_metrics"]["accuracy"], baseline_acc)
-        
-        mc2.metric("Model Edge (Accuracy)", f"{edge*100:+.1f}%")
+        mc1.metric("Best Model Used", best_model_name)
         
         roc = suite_results["best_model_metrics"]["roc_auc"]
-        mc3.metric("ROC-AUC", _fmt_pct(roc))
-        mc4.metric("F1 Score", _fmt_pct(suite_results["best_model_metrics"]["f1_score"]))
+        mc2.metric("ROC-AUC", _fmt_pct(roc))
+        mc3.metric("F1 Score", _fmt_pct(suite_results["best_model_metrics"]["f1_score"]))
         
+        edge = suite_results["model_edge"]
+        mc4.metric("Model Edge vs Baseline", f"{edge*100:+.1f}%")
+        
+        if not signal_data["is_signal_allowed"]:
+            st.error("⚠️ **Signal suppressed because validation edge is weak.**")
+            
         st.info(signal_data["explanation"])
+
+        if use_regime:
+            adj_signal_data = regime_mod.adjust_signal_for_regime(signal_data, current_reg_summary)
+            st.markdown("---")
+            st.subheader("Regime Adjustment")
+            r1, r2, r3 = st.columns(3)
+            r1.metric("Current Regime", adj_signal_data["current_regime"])
+            r2.metric("Regime Risk Level", current_reg_summary.get("current_regime_risk_level", "Unknown"))
+            
+            sig2 = adj_signal_data["regime_adjusted_signal"]
+            color2 = "green" if sig2 == "Bullish" else "red" if sig2 == "Bearish" else "gray"
+            r3.markdown(f"**Adjusted Signal**: <span style='color:{color2}; font-size:1.2em;'>{sig2}</span>", unsafe_allow_html=True)
+            
+            st.info(adj_signal_data["regime_adjustment_reason"])
+            
+            # Use adjusted signal for interpreting
+            sig = sig2
         
-        if roc < 0.55:
-            st.warning("⚠️ **Model edge is weak.** Treat signal as low-confidence research output.")
-        elif 0.45 <= prob_up <= 0.55:
-            st.warning("⚠️ **Neutral zone:** model does not have a strong directional edge.")
             
         # -------------------------------------------------------------------------
-        # SECTION 5: Model Performance Scorecard
+        # SECTION 5: Confidence Diagnostics
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Confidence Diagnostics")
+        dc1, dc2, dc3, dc4 = st.columns(4)
+        dc1.metric("Raw Probability Up", _fmt_pct(signal_data['raw_probability_up']))
+        dc2.metric("Calibrated Probability", _fmt_pct(signal_data['calibrated_probability_up']))
+        dc3.metric("Brier Score", _fmt_num(suite_results["brier_score"]))
+        dc4.metric("Baseline Accuracy", _fmt_pct(suite_results["baseline_accuracy"]))
+        
+        # -------------------------------------------------------------------------
+        # SECTION 6: Model Performance Scorecard
         # -------------------------------------------------------------------------
         st.markdown("---")
         st.subheader("Model Performance Scorecard")
         st.plotly_chart(ml_plots.plot_model_scorecard(res_df), use_container_width=True)
         
         # -------------------------------------------------------------------------
-        # SECTION 6: Walk-Forward Validation
+        # SECTION 7: Walk-Forward Validation
         # -------------------------------------------------------------------------
         if use_wf:
             st.markdown("---")
             st.subheader("Walk-Forward Validation")
             with st.spinner("Running walk-forward cross-validation..."):
-                wf_df = reliance_walk_forward.run_reliance_walk_forward_validation(
+                wf_df = signal_walk_forward.run_signal_walk_forward_validation(
                     ml_df, feature_cols, target_col, best_model_name,
-                    initial_train_size=1-test_size, step_size=20
+                    initial_train_size=1-test_size, step_size=20, ticker=ticker
                 )
             
             if not wf_df.empty:
@@ -1375,7 +1403,7 @@ def page_reliance_signal_research(df: pd.DataFrame) -> None:
                     st.plotly_chart(ml_plots.plot_rolling_hit_rate(wf_df["Date"], hit_rate), use_container_width=True)
                     
         # -------------------------------------------------------------------------
-        # SECTION 7: Feature Intelligence
+        # SECTION 8: Feature Intelligence
         # -------------------------------------------------------------------------
         st.markdown("---")
         st.subheader("Feature Intelligence")
@@ -1389,7 +1417,7 @@ def page_reliance_signal_research(df: pd.DataFrame) -> None:
             st.plotly_chart(ml_plots.plot_feature_group_importance(fi), use_container_width=True)
             
         # -------------------------------------------------------------------------
-        # SECTION 8: Signal Timeline
+        # SECTION 9: Signal Timeline
         # -------------------------------------------------------------------------
         st.markdown("---")
         st.subheader("Signal Timeline")
@@ -1401,10 +1429,15 @@ def page_reliance_signal_research(df: pd.DataFrame) -> None:
         with t1:
             st.plotly_chart(ml_plots.plot_signal_probability_timeline(dates, y_test_probs, bullish_threshold, bearish_threshold), use_container_width=True)
         with t2:
-            st.plotly_chart(ml_plots.plot_reliance_price_with_signal(ml_df.loc[suite_results["X_test"].index], y_test_probs, bullish_threshold, bearish_threshold), use_container_width=True)
+            # If signal is suppressed, pass neutral thresholds to hide markers
+            if not signal_data["is_signal_allowed"]:
+                b_thresh, br_thresh = 1.1, -0.1
+            else:
+                b_thresh, br_thresh = bullish_threshold, bearish_threshold
+            st.plotly_chart(ml_plots.plot_price_with_signal(ml_df.loc[suite_results["X_test"].index], y_test_probs, b_thresh, br_thresh), use_container_width=True)
             
         # -------------------------------------------------------------------------
-        # SECTION 9: Error Diagnostics
+        # SECTION 10: Error Diagnostics
         # -------------------------------------------------------------------------
         st.markdown("---")
         st.subheader("Error Diagnostics")
@@ -1416,13 +1449,14 @@ def page_reliance_signal_research(df: pd.DataFrame) -> None:
             st.plotly_chart(ml_plots.plot_confidence_distribution(y_test_probs), use_container_width=True)
             
         # -------------------------------------------------------------------------
-        # SECTION 10: Professional Interpretation
+        # SECTION 11: Professional Interpretation
         # -------------------------------------------------------------------------
         st.markdown("---")
         st.subheader("Professional Interpretation")
         
         grouped = fi.copy()
         def get_group(name):
+            name = name.lower()
             if "return" in name: return "Momentum/Returns"
             if "vol" in name: return "Volatility"
             if "ma_" in name or "ema_" in name: return "Trend"
@@ -1434,26 +1468,36 @@ def page_reliance_signal_research(df: pd.DataFrame) -> None:
         top_groups = grouped.groupby("group")["importance"].sum().nlargest(2).index.tolist()
         
         interp_text = (
-            f"The current ensemble model shows a **{sig}** signal for RELIANCE.NS. "
-            f"The latest predicted probability of an upward move is **{prob_up*100:.1f}%**. "
-            f"The strongest contributing feature groups driving this decision are **{top_groups[0]}** and **{top_groups[1]}**. "
+            f"The current model shows **{sig}** for {ticker}. "
         )
-        if roc < 0.55:
-            interp_text += f"However, with a ROC-AUC of just **{roc*100:.1f}%**, the signal separability is weak. This should be interpreted as moderate research evidence rather than a high-conviction trading recommendation."
+        if not signal_data["is_signal_allowed"]:
+            interp_text += (
+                f"Although the latest raw probability is {signal_data['raw_probability_up']*100:.0f}%, "
+                f"out-of-sample ROC-AUC is only {roc*100:.1f}%, so the signal is suppressed. "
+            )
         else:
-            interp_text += f"The model demonstrates a solid edge with a ROC-AUC of **{roc*100:.1f}%**, making this a robust quantitative signal to consider alongside fundamentals."
+            interp_text += (
+                f"The model demonstrates a solid edge with a ROC-AUC of **{roc*100:.1f}%**, "
+                f"making this a robust quantitative signal. "
+            )
+            
+        if len(top_groups) >= 2:
+            interp_text += f"The strongest feature groups are {top_groups[0]} and {top_groups[1]}. "
+            
+        interp_text += "This should be treated as a research diagnostic, not a trading signal."
             
         st.info(interp_text)
         
         # -------------------------------------------------------------------------
-        # SECTION 11: Limitations
+        # SECTION 12: Limitations
         # -------------------------------------------------------------------------
+        st.markdown("---")
         st.subheader("Limitations")
         st.markdown(
-            "- **Edge vs Randomness:** A ROC-AUC near 50% implies performance is close to random chance. Market noise often outweighs signal.\n"
-            "- **Missing Macro Context:** This model relies on price/volume and benchmark correlation. It does not currently ingest live news sentiment, crude oil prices, USD/INR rates, or options implied volatility.\n"
-            "- **Regime Shifts:** Financial markets experience structural breaks. A model trained during a secular bull market may perform poorly in a bear regime.\n"
-            "- **Execution Reality:** The model assumes frictionless trading. It does not account for slippage, bid-ask spread, or capital gains taxes.\n"
+            "- **Edge vs Randomness:** Model performance close to random chance (ROC-AUC ~ 50%) means no reliable edge. Market noise often outweighs signal.\n"
+            "- **Missing Context:** Missing macro, news, options IV, and earnings data may limit signal quality.\n"
+            "- **Regime Shifts:** Financial markets experience structural breaks. Models trained during bull markets may perform poorly in bear regimes.\n"
+            "- **Execution Reality:** Transaction costs, slippage, bid-ask spread, and taxes are not included.\n"
             "- **Educational Purpose:** This dashboard is strictly a quantitative research tool and does not constitute financial advice."
         )
 
@@ -1480,7 +1524,6 @@ def main() -> None:
                     # separate so it never appears as an analyzed asset.
                     benchmarks = sorted(
                         {config.get_default_benchmark_for_ticker(t) for t in tickers}
-                        - set(tickers)
                     )
                     benchmark_df = (
                         load_data(tuple(benchmarks), str(settings["start_date"]), str(settings["end_date"]))
@@ -1549,8 +1592,10 @@ def main() -> None:
         page_monte_carlo(df, present)
     elif page == "Portfolio Optimization Lab":
         page_portfolio_optimization(df, present)
-    elif page == "ML Forecasting Lab":
-        page_ml_forecasting(df, present)
+    elif page == "Signal Research Lab":
+        page_signal_research_lab(df, present, benchmark_df, str(settings["single_ticker"]))
+    elif page == "Market Regime Lab":
+        page_market_regime_lab(df, present, benchmark_df)
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:

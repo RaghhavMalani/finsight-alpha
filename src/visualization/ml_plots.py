@@ -325,8 +325,8 @@ def plot_signal_probability_timeline(dates, probs, bullish_thresh, bearish_thres
     return fig
 
 
-def plot_reliance_price_with_signal(df, probs, bullish_thresh, bearish_thresh) -> go.Figure:
-    """Plot Reliance price overlaying signal markers."""
+def plot_price_with_signal(df, probs, bullish_thresh, bearish_thresh) -> go.Figure:
+    """Plot asset price overlaying signal markers."""
     # Ensure dates is a Series or array
     if hasattr(df, "columns") and "Date" in df.columns:
         dates = df["Date"]

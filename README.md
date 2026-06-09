@@ -119,15 +119,15 @@ for detailed documentation.
 
 ---
 
-## What Phase 6.5 adds: Professional Reliance Signal Research Lab
+## What Phase 6.5 adds: Professional Signal Research Lab
 
-- **Specialized Signal Extraction** - Custom feature engineering pipelines for Reliance-specific intraday and daily patterns.
-- **Alpha Decay Analysis** - Measuring the performance degradation of signals over time.
-- **Ensemble Forecasting** - Combining multiple ML models to increase prediction accuracy.
-- **Signal Robustness Testing** - Stress-testing reliance signals against market anomalies.
-- **Reliance Lab Dashboard** - Focused visualization for Reliance trade setups and signal strength.
+- **Universal Signal Extraction** - Institutional feature engineering pipelines that auto-adapt to any ticker (Indian or US) and its corresponding benchmark.
+- **Dynamic Benchmarking** - Automatically compares an asset's beta and momentum relative to the correct regional index (e.g., NIFTYBEES vs SPY).
+- **Ensemble Forecasting** - Combining Logistic Regression, Random Forest, and Gradient Boosting to increase prediction robustness.
+- **Strict Validation Rules** - The signal engine suppresses recommendations (defaults to "No Edge") if Out-of-Sample ROC-AUC is below 0.55 or model edge is weak, preventing false confidence.
+- **Signal Research Dashboard** - Focused visualizations for walk-forward validation folds, probability distributions, and institutional signal strength.
 
-See [`docs/phase_6_5_reliance_signals.md`](docs/phase_6_5_reliance_signals.md) for detailed documentation.
+See [`docs/ml_signal_research_lab.md`](docs/ml_signal_research_lab.md) for detailed documentation.
 
 ---
 
@@ -238,15 +238,20 @@ finsight-alpha/
 
 ---
 
+## Current Status
+
+- **Phase 1**: Core Dashboard (Data loading, summary KPIs, Plotly charts).
+- **Phase 2**: Financial Math Engine (Risk-adjusted performance, correlation, drawdown).
+- **Phase 3**: Option Pricing Lab (Black-Scholes, Greeks, Implied Volatility).
+- **Phase 4**: Monte Carlo Risk Lab (GBM simulation, VaR, CVaR).
+- **Phase 5**: Portfolio Optimization Lab (Markowitz efficient frontier, Max Sharpe).
+- **Phase 6**: ML Signal Research Lab (Walk-forward classification, institutional signals).
+- **Phase 7**: Market Regime Detection Engine (HMM, Gaussian Mixture, state transition).
+
+---
+
 ## Future phases
 
-- **Phase 2 (done)** - Financial Math Engine: CAGR, Sharpe, Sortino, beta, CAPM.
-- **Option Pricing Lab**: Black-Scholes engine, implied volatility solver, and Greek surfaces.
-- **Monte Carlo Risk Engine**: Geometric Brownian Motion simulations with Value-at-Risk (VaR) and Expected Shortfall (CVaR).
-- **Portfolio Optimization**: Markowitz Mean-Variance optimization, Efficient Frontier, and Sharpe ratio maximization.
-- **Reliance Signal Research Lab**: Institutional-grade Machine Learning forecasting engine with walk-forward validation and feature intelligence for Reliance.
-- **Phase 6 (done)** - ML forecasting (return/volatility models).
-- **Phase 7** - Market regime detection.
 - **Phase 8** - RAG financial assistant over filings/news.
 - **Phase 9** - Optional cloud deployment (revisited later).
 

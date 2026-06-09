@@ -1,34 +1,26 @@
 import pandas as pd
 from src.ml import models, evaluation
 
-def run_reliance_walk_forward_validation(
+def run_signal_walk_forward_validation(
     df: pd.DataFrame,
     feature_cols: list[str],
     target_col: str,
     model_name: str,
     initial_train_size: float = 0.6,
     step_size: int = 30,
-    random_state: int = 42
+    random_state: int = 42,
+    ticker: str | None = None
 ) -> pd.DataFrame:
-    """Run expanding-window walk-forward validation with fold tracking.
-    
-    Args:
-        df: DataFrame sorted chronologically.
-        feature_cols: List of feature columns.
-        target_col: Target column.
-        model_name: Name of the model to use.
-        initial_train_size: Initial fraction of data to train on.
-        step_size: Number of rows to test in each fold.
-        random_state: Random state.
-        
-    Returns:
-        DataFrame with true, predicted, and fold metadata for each test row.
-    """
+    """Run generic expanding-window walk-forward validation with fold tracking."""
     total_len = len(df)
     train_end = int(total_len * initial_train_size)
     
     if train_end >= total_len:
         return pd.DataFrame()
+        
+    # If the user selected the "No reliable edge found" string as model name, we fallback to random forest
+    if model_name == "No reliable edge found":
+        model_name = "random_forest"
         
     model_base = models.get_classification_model(model_name, random_state=random_state)
     
@@ -67,6 +59,7 @@ def run_reliance_walk_forward_validation(
             idx = test_df.index[i]
             row_data = {
                 "Date": test_df.loc[idx, "Date"] if "Date" in test_df.columns else idx,
+                "ticker": ticker if ticker else (test_df.loc[idx, "Ticker"] if "Ticker" in test_df.columns else "UNKNOWN"),
                 "y_true": y_test.iloc[i],
                 "y_pred": preds[i],
                 "y_pred_proba": probs[i] if probs is not None else None,
