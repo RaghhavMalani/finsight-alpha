@@ -1873,7 +1873,7 @@ def page_ai_equity_research_terminal() -> None:
                         results = download_documents_batch(
                             selected_candidates,
                             output_dir="data/documents",
-                            max_downloads=5,
+                            max_downloads=len(selected_candidates),
                             respect_robots=respect_robots
                         )
                         health_records = []
