@@ -94,7 +94,7 @@ def load_documents_from_folder(folder_path: str) -> List[Dict[str, Any]]:
     if not folder.exists() or not folder.is_dir():
         return all_pages
         
-    for item in folder.iterdir():
+    for item in folder.rglob('*'):
         if item.is_file() and item.suffix.lower() in [".pdf", ".txt", ".docx"]:
             try:
                 pages = load_document(str(item))
