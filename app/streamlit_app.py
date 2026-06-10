@@ -82,7 +82,7 @@ PAGES = [
     "Portfolio Optimization Lab",
     "Signal Research Lab",
     "Market Regime Lab",
-    "Financial Document Intelligence",
+    "AI Equity Research Terminal",
 ]
 
 UNIVERSE_INDIAN = "Indian Market"
@@ -1293,7 +1293,7 @@ def page_signal_research_lab(df: pd.DataFrame, tickers: list[str], benchmark_df:
                     ml_df = merge_factors_with_market_data(ml_df, factor_df, date_col="Date", ticker_col="Ticker")
                     st.success(f"Merged Document Factors for ML features.")
                 else:
-                    st.warning("No document factor records found. Use Financial Document Intelligence page to extract factors first.")
+                    st.warning("No document factor records found. Use AI Equity Research Terminal page to extract factors first.")
         
         
         if use_regime:
@@ -1653,8 +1653,8 @@ def main() -> None:
         page_signal_research_lab(df, present, benchmark_df, str(settings["single_ticker"]))
     elif page == "Market Regime Lab":
         page_market_regime_lab(df, present, benchmark_df, str(settings["single_ticker"]))
-    elif page == "Financial Document Intelligence":
-        page_financial_document_intelligence()
+    elif page == "AI Equity Research Terminal":
+        page_ai_equity_research_terminal()
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
@@ -1670,358 +1670,472 @@ def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
 
 
 # -------------------------------------------------------------------------
-# RAG Page
+# RAG Page: AI Equity Research Terminal
 # -------------------------------------------------------------------------
-def page_financial_document_intelligence() -> None:
+def page_ai_equity_research_terminal() -> None:
     import pandas as pd
-    st.markdown("<h2 class='finsight-title'>Financial Document Intelligence</h2>", unsafe_allow_html=True)
-    st.markdown("<div class='finsight-subtitle'>RAG-based financial research assistant and factor extraction engine.</div>", unsafe_allow_html=True)
+    import json
+    import glob
+    import os
+    from src.rag.vector_store import LocalVectorStore
+    from src.config import config
+    
+    st.markdown("<h2 class='finsight-title'>AI Equity Research Terminal</h2>", unsafe_allow_html=True)
+    st.markdown("<div class='finsight-subtitle'>Document-grounded company research, factor extraction, and ML-ready intelligence.</div>", unsafe_allow_html=True)
     
     st.markdown("---")
     
     # -------------------------------------------------------------------------
-    # SECTION 1: Auto Document Discovery
+    # SECTION 1: Workspace Setup
     # -------------------------------------------------------------------------
-    st.subheader("Auto Document Discovery")
-    with st.expander("Search for Documents", expanded=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            disc_ticker = st.selectbox("Ticker", config.ALL_TICKERS, key="disc_ticker")
-            disc_company = st.text_input("Company Name (Optional)", placeholder="e.g. Reliance Industries")
-            
-        with col2:
-            disc_sources = st.multiselect("Sources", ["company_ir", "screener", "nse", "bse", "web_search"], default=["company_ir", "screener"])
-            disc_types = st.multiselect("Document Types", ["annual_report", "quarterly_result", "investor_presentation", "earnings_transcript"], default=["annual_report", "earnings_transcript"])
-            
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            max_candidates = st.number_input("Max Candidates", min_value=1, max_value=50, value=25)
-        with c2:
-            max_downloads = st.number_input("Max Downloads", min_value=1, max_value=10, value=3)
-        with c3:
-            respect_robots = st.checkbox("Respect robots.txt", value=True)
-            
-        if st.button("Discover Documents"):
-            from src.rag.document_discovery import discover_financial_documents
-            with st.spinner("Discovering documents..."):
-                candidates = discover_financial_documents(
-                    ticker=disc_ticker,
-                    company_name=disc_company,
-                    sources=disc_sources,
-                    document_types=disc_types,
-                    max_candidates=max_candidates,
-                    respect_robots=respect_robots
-                )
-                if candidates:
-                    st.session_state["disc_candidates"] = candidates
-                    st.success(f"Found {len(candidates)} candidate documents.")
-                else:
-                    st.warning("No candidate documents found.")
-                    
-    if "disc_candidates" in st.session_state and st.session_state["disc_candidates"]:
-        st.markdown("#### Discovered Candidates")
+    st.subheader("Research Workspace Setup")
+    
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        selected_ticker = st.selectbox("Select Company Ticker", config.ALL_TICKERS, key="term_ticker")
+    with col2:
+        research_depth = st.selectbox("Research Depth", ["Quick Scan", "Standard Research", "Deep Research"])
+    with col3:
+        market = st.selectbox("Market", ["India", "US", "Custom"])
         
-        candidates = st.session_state["disc_candidates"]
-        
-        df_c = pd.DataFrame(candidates)
-        df_c["Select"] = False
-        
-        cols = ["Select", "title", "source_name", "document_type", "confidence", "downloadable", "document_url"]
-        df_c = df_c[[c for c in cols if c in df_c.columns]]
-        
-        edited_df = st.data_editor(
-            df_c,
-            column_config={
-                "Select": st.column_config.CheckboxColumn("Download", default=False),
-                "document_url": st.column_config.LinkColumn("URL")
-            },
-            hide_index=True,
-            key="disc_editor"
+    c1, c2 = st.columns([3, 1])
+    with c1:
+        sources = st.multiselect(
+            "Discovery Sources", 
+            ["company_ir", "screener", "nse", "bse", "web_search", "local_documents"], 
+            default=["company_ir", "screener", "local_documents"]
         )
+    with c2:
+        respect_robots = st.checkbox("Respect robots.txt", value=True)
         
-        if st.button("Download Selected Documents", type="primary"):
-            selected_indices = edited_df[edited_df["Select"] == True].index.tolist()
-            selected_candidates = [candidates[i] for i in selected_indices]
+    colA, colB, colC = st.columns(3)
+    
+    if "workspace_built" not in st.session_state:
+        st.session_state["workspace_built"] = False
+        
+    with colA:
+        if st.button("Build Research Workspace", type="primary"):
+            st.session_state["workspace_built"] = True
+            st.session_state["active_ticker"] = selected_ticker
             
-            if not selected_candidates:
-                st.warning("Please select at least one document to download.")
+            from src.rag.screener_snapshot import fetch_screener_snapshot
+            with st.spinner("Fetching company snapshot..."):
+                snap = fetch_screener_snapshot(selected_ticker)
+                st.session_state["company_snapshot"] = snap
+                
+    with colB:
+        if st.button("Discover Documents"):
+            if not st.session_state.get("workspace_built"):
+                st.warning("Build Workspace first.")
             else:
-                from src.rag.download_manager import download_documents_batch
-                with st.spinner(f"Downloading {len(selected_candidates)} documents..."):
-                    results = download_documents_batch(
-                        selected_candidates,
-                        output_dir=f"data/documents",
-                        max_downloads=max_downloads,
+                from src.rag.document_discovery import discover_financial_documents
+                with st.spinner("Discovering documents..."):
+                    candidates = discover_financial_documents(
+                        ticker=st.session_state["active_ticker"],
+                        sources=[s for s in sources if s != "local_documents"],
+                        document_types=["annual_report", "earnings_transcript", "investor_presentation"],
+                        max_candidates=15,
                         respect_robots=respect_robots
                     )
-                    from src.rag.source_health import record_source_status, summarize_source_health
-                    
-                    health_records = []
-                    success_count = 0
-                    
-                    for r in results:
-                        source = r["candidate"].get("source_name", "Unknown")
-                        url = r["result"]["url"]
+                    st.session_state["disc_candidates"] = candidates
+                    if candidates:
+                        st.success(f"Discovered {len(candidates)} candidate documents.")
+                    else:
+                        st.warning("No candidates discovered.")
                         
-                        if r["result"]["success"]:
-                            success_count += 1
-                            st.success(f"Downloaded: {r['result']['local_path']}")
-                            health_records.append(record_source_status(source, "Success", "Download successful", url))
-                        else:
-                            msg = r['result']['message']
-                            status_label = "Blocked by robots.txt" if "robots.txt" in msg.lower() else "Failed"
-                            health_records.append(record_source_status(source, status_label, msg, url))
-                            
-                    if success_count < len(selected_candidates):
-                        st.warning(f"Successfully downloaded {success_count} out of {len(selected_candidates)} documents. Some sources restrict automated downloads.")
-                        
-                    if health_records:
-                        summary_df = summarize_source_health(health_records)
-                        st.markdown("##### Source Health Summary")
-                        st.dataframe(summary_df, hide_index=True, use_container_width=True)
-                            
+    with colC:
+        if st.button("Process Selected Documents"):
+            from src.rag.document_loader import load_documents_from_folder
+            from src.rag.chunker import chunk_documents
+            from src.rag.embeddings import embed_texts
+            
+            with st.spinner("Processing local and downloaded documents..."):
+                pages = load_documents_from_folder("data/documents")
+                if not pages:
+                    st.warning("No documents found in data/documents. Download or upload first.")
+                else:
+                    chunks = chunk_documents(pages)
+                    active_chunks = [c for c in chunks if c.get("ticker") == st.session_state.get("active_ticker")]
+                    if not active_chunks:
+                        active_chunks = chunks
+                    
+                    texts = [c["text"] for c in active_chunks]
+                    embeddings = embed_texts(texts)
+                    vs = LocalVectorStore()
+                    vs.build_index(active_chunks, embeddings)
+                    vs.save("data/rag_index")
+                    
+                    st.session_state["rag_store"] = vs
+                    st.session_state["rag_chunks"] = active_chunks
+                    st.success(f"Indexed {len(active_chunks)} chunks into Workspace.")
+                    
+    st.markdown("---")
+    
+    if not st.session_state.get("workspace_built"):
+        st.info("Please select a ticker and click 'Build Research Workspace' to begin.")
+        return
+        
+    active_ticker = st.session_state["active_ticker"]
+    
+    # -------------------------------------------------------------------------
+    # SECTION 2: Company Research Header
+    # -------------------------------------------------------------------------
+    st.subheader("Company Snapshot")
+    snap = st.session_state.get("company_snapshot", {})
+    
+    c_name = snap.get("company_name", active_ticker) if snap.get("success") else active_ticker
+    st.markdown(f"### {c_name}")
+    
+    if snap.get("success"):
+        metrics = snap.get("snapshot_metrics", {})
+        
+        m_cols = st.columns(4)
+        m_keys = list(metrics.keys())
+        for i, col in enumerate(m_cols):
+            if i < len(m_keys):
+                k = m_keys[i]
+                col.metric(k, metrics[k])
+                
+        m_cols2 = st.columns(4)
+        for i, col in enumerate(m_cols2):
+            idx = i + 4
+            if idx < len(m_keys):
+                k = m_keys[idx]
+                col.metric(k, metrics[k])
+                
+        with st.expander("Business Overview"):
+            st.write(snap.get("about", "No summary available."))
+    else:
+        st.info(f"Screener snapshot unavailable. ({snap.get('message', '')}). Continue with document-based research.")
+        
     st.markdown("---")
     
     # -------------------------------------------------------------------------
-    # SECTION 2: Manual Document Upload
+    # SECTION 3: Research Document Library
     # -------------------------------------------------------------------------
-    st.subheader("Document Upload & Processing")
+    st.subheader("Research Document Library")
     
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        target_ticker = st.selectbox("Assign Ticker (Optional)", ["None"] + config.ALL_TICKERS)
-    with c2:
-        doc_type = st.selectbox("Document Type", ["auto", "annual_report", "quarterly_result", "investor_presentation", "earnings_transcript", "news_article", "brokerage_report", "sector_report"])
-    with c3:
-        fiscal_year = st.selectbox("Fiscal Year", ["auto", "2024", "2023", "2022", "2021", "2020"])
-        
-    uploaded_files = st.file_uploader("Upload financial documents (PDF, TXT, DOCX)", accept_multiple_files=True)
-    load_local = st.checkbox("Also load from data/documents/ folder", value=True)
+    tab1, tab2, tab3, tab4 = st.tabs(["Indexed Documents", "Discovered Candidates", "Manual Upload", "Source Health"])
     
-    if st.button("Process Documents", type="primary"):
-        from src.rag.document_loader import load_document, load_documents_from_folder
-        from src.rag.chunker import chunk_documents
-        from src.rag.embeddings import embed_texts
-        from src.rag.vector_store import LocalVectorStore
-        import os
+    with tab1:
+        if "rag_store" not in st.session_state:
+            vs = LocalVectorStore()
+            if vs.load("data/rag_index"):
+                st.session_state["rag_store"] = vs
+                st.session_state["rag_chunks"] = vs.chunks
+                
+        chunks = st.session_state.get("rag_chunks", [])
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
         
-        with st.spinner("Processing documents..."):
-            pages = []
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Indexed Chunks", len(active_chunks))
+        sources = list(set(c.get("source_file", "unknown") for c in active_chunks))
+        col2.metric("Indexed Documents", len(sources))
+        types = list(set(c.get("document_type", "unknown") for c in active_chunks))
+        col3.metric("Document Types", len(types))
+        
+        if sources:
+            st.write("Files in index:")
+            st.write(sources)
+        else:
+            st.info("No documents indexed for this ticker.")
             
-            # Load uploaded
+    with tab2:
+        if "disc_candidates" in st.session_state and st.session_state["disc_candidates"]:
+            candidates = st.session_state["disc_candidates"]
+            df_c = pd.DataFrame(candidates)
+            df_c["Select"] = False
+            
+            cols = ["Select", "title", "source_name", "document_type", "confidence", "downloadable", "document_url"]
+            df_c = df_c[[c for c in cols if c in df_c.columns]]
+            
+            edited_df = st.data_editor(
+                df_c,
+                column_config={
+                    "Select": st.column_config.CheckboxColumn("Download", default=False),
+                    "document_url": st.column_config.LinkColumn("URL")
+                },
+                hide_index=True,
+                key="disc_editor_workspace"
+            )
+            
+            if st.button("Download Selected Documents", type="primary"):
+                selected_indices = edited_df[edited_df["Select"] == True].index.tolist()
+                selected_candidates = [candidates[i] for i in selected_indices]
+                
+                if not selected_candidates:
+                    st.warning("Please select at least one document.")
+                else:
+                    from src.rag.download_manager import download_documents_batch
+                    from src.rag.source_health import record_source_status, summarize_source_health
+                    
+                    with st.spinner(f"Downloading {len(selected_candidates)} documents..."):
+                        results = download_documents_batch(
+                            selected_candidates,
+                            output_dir="data/documents",
+                            max_downloads=5,
+                            respect_robots=respect_robots
+                        )
+                        health_records = []
+                        success_count = 0
+                        
+                        for r in results:
+                            source = r["candidate"].get("source_name", "Unknown")
+                            url = r["result"]["url"]
+                            if r["result"]["success"]:
+                                success_count += 1
+                                health_records.append(record_source_status(source, "Success", "Download successful", url))
+                            else:
+                                msg = r['result']['message']
+                                status_label = "Blocked by robots.txt" if "robots.txt" in msg.lower() else "Failed"
+                                health_records.append(record_source_status(source, status_label, msg, url))
+                                
+                        if "health_records" not in st.session_state:
+                            st.session_state["health_records"] = []
+                        st.session_state["health_records"].extend(health_records)
+                        
+                        st.success(f"Downloaded {success_count} documents. View Source Health tab for details.")
+        else:
+            st.info("Click 'Discover Documents' to find candidates.")
+            
+    with tab3:
+        st.markdown("If a document is blocked by robots.txt or missing, manually upload it here.")
+        uploaded_files = st.file_uploader("Upload financial documents (PDF, TXT, DOCX)", accept_multiple_files=True)
+        if st.button("Save Uploaded Files"):
             if uploaded_files:
                 os.makedirs("data/documents", exist_ok=True)
                 for f in uploaded_files:
                     path = f"data/documents/{f.name}"
                     with open(path, "wb") as out_f:
                         out_f.write(f.read())
-                    try:
-                        pages.extend(load_document(path))
-                    except Exception as e:
-                        st.error(f"Failed to load {f.name}: {e}")
+                    meta = {"ticker": active_ticker, "source_name": "Manual Upload", "document_type": "unknown"}
+                    with open(path + ".meta.json", "w") as out_m:
+                        json.dump(meta, out_m)
+                st.success("Files saved. Go back to Section 1 and click 'Process Selected Documents' to index them.")
+                
+    with tab4:
+        records = st.session_state.get("health_records", [])
+        if records:
+            from src.rag.source_health import summarize_source_health
+            summary_df = summarize_source_health(records)
+            st.dataframe(summary_df, hide_index=True, use_container_width=True)
+        else:
+            st.info("No download actions performed yet.")
             
-            # Load local
-            if load_local:
-                pages.extend(load_documents_from_folder("data/documents"))
-                
-            if not pages:
-                st.warning("No valid documents found.")
-                return
-                
-            # Chunking
-            st.info(f"Loaded {len(pages)} pages. Chunking...")
-            chunks = chunk_documents(pages)
-            
-            # Embeddings
-            st.info(f"Creating embeddings for {len(chunks)} chunks...")
-            texts = [c["text"] for c in chunks]
-            try:
-                embeddings = embed_texts(texts)
-                
-                # Build index
-                st.info("Building local vector index...")
-                vs = LocalVectorStore()
-                vs.build_index(chunks, embeddings)
-                vs.save("data/rag_index")
-                
-                st.session_state["rag_store"] = vs
-                st.session_state["rag_chunks"] = chunks
-                st.success("Successfully processed documents and built local index!")
-            except Exception as e:
-                st.error(f"Embedding failed (ensure sentence-transformers is installed): {e}")
-                
     st.markdown("---")
     
     # -------------------------------------------------------------------------
-    # SECTION 3: Document Library
+    # SECTION 4: AI Research Workspace
     # -------------------------------------------------------------------------
-    st.subheader("Document Library")
-    import glob, json
-    import pandas as pd
+    st.subheader("AI Research Workspace")
     
-    st.markdown("#### Local Document Files")
-    doc_meta = []
-    for meta_file in glob.glob("data/documents/**/*.meta.json", recursive=True):
-        try:
-            with open(meta_file, 'r') as f:
-                meta = json.load(f)
-                doc_meta.append(meta)
-        except:
-            pass
-            
-    if doc_meta:
-        df_meta = pd.DataFrame(doc_meta)
+    preset_questions = [
+        "What are the key risks for this company?",
+        "What are the main growth drivers?",
+        "What does management say about margins?",
+        "What are the capex plans?",
+        "What are the debt and leverage concerns?",
+        "What are the key business segments?"
+    ]
+    
+    q_col1, q_col2 = st.columns([1, 2])
+    with q_col1:
+        selected_preset = st.radio("Preset Questions", preset_questions)
+    with q_col2:
+        custom_query = st.text_input("Or ask a custom question:")
         
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            tickers_meta = df_meta['ticker'].dropna().unique().tolist()
-            f_ticker = st.multiselect("Filter Ticker", tickers_meta)
-        with c2:
-            if 'content_type' in df_meta.columns:
-                types_meta = df_meta['content_type'].dropna().unique().tolist()
-                f_type = st.multiselect("Filter Type", types_meta)
-            else:
-                f_type = []
-        with c3:
-            if 'source_name' in df_meta.columns:
-                sources_meta = df_meta['source_name'].dropna().unique().tolist()
-                f_source = st.multiselect("Filter Source", sources_meta)
-            else:
-                f_source = []
-            
-        df_filtered = df_meta.copy()
-        if f_ticker:
-            df_filtered = df_filtered[df_filtered['ticker'].isin(f_ticker)]
-        if f_type:
-            df_filtered = df_filtered[df_filtered['content_type'].isin(f_type)]
-        if f_source:
-            df_filtered = df_filtered[df_filtered['source_name'].isin(f_source)]
-            
-        st.dataframe(df_filtered, use_container_width=True)
-    else:
-        st.info("No discovered documents in data/documents/ yet.")
-        
-    st.markdown("#### RAG Index Summary")
+    query = custom_query if custom_query else selected_preset
     
-    from src.rag.vector_store import LocalVectorStore
-    
-    if "rag_store" not in st.session_state:
-        # Try to load
-        vs = LocalVectorStore()
-        if vs.load("data/rag_index"):
-            st.session_state["rag_store"] = vs
-            st.session_state["rag_chunks"] = vs.chunks
-            
-    if "rag_store" in st.session_state:
-        vs = st.session_state["rag_store"]
+    if st.button("Search & Answer") and query:
         chunks = st.session_state.get("rag_chunks", [])
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        vs = st.session_state.get("rag_store")
         
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Total Chunks", len(chunks))
-        
-        sources = list(set(c.get("source_file", "unknown") for c in chunks))
-        col2.metric("Total Documents", len(sources))
-        
-        tickers = list(set(c.get("ticker", "Unknown") for c in chunks if c.get("ticker") != "Unknown"))
-        col3.metric("Companies/Tickers", len(tickers))
-        
-        types = list(set(c.get("document_type", "unknown") for c in chunks))
-        col4.metric("Document Types", len(types))
-        
-        with st.expander("View Source Files in Index"):
-            st.write(sources)
-            
-        st.markdown("---")
-        
-        # -------------------------------------------------------------------------
-        # SECTION 4 & 5: Ask Financial Questions & Evidence Panel
-        # -------------------------------------------------------------------------
-        st.subheader("Ask Financial Questions")
-        
-        query = st.text_input("Ask a question about the documents:", placeholder="e.g. What are the key risks mentioned for Reliance?")
-        
-        if st.button("Search & Answer") and query:
+        if not active_chunks or not vs:
+            st.warning("No indexed documents found. Discover, download, or upload documents first, then Process them.")
+        else:
             from src.rag.retriever import hybrid_retrieve
             from src.rag.reranker import rerank_chunks
             from src.rag.rag_answer import generate_llm_answer
             
-            with st.spinner("Searching and generating answer..."):
-                retrieved = hybrid_retrieve(query, chunks, vector_store=vs, top_k=10)
+            with st.spinner("Generating answer..."):
+                retrieved = hybrid_retrieve(query, active_chunks, vector_store=vs, top_k=10)
                 reranked = rerank_chunks(query, retrieved, top_k=5)
-                
                 answer_data = generate_llm_answer(query, reranked, llm_provider="none")
                 
-                st.markdown("### Answer")
+                st.markdown("#### Summary Answer")
                 st.info(answer_data["answer"])
                 
-                st.markdown("### Evidence Panel")
+                st.markdown("#### Supporting Evidence")
                 for i, chunk in enumerate(answer_data["retrieved_chunks"]):
-                    with st.expander(f"Evidence {i+1} - {chunk.get('source_file')} (Page {chunk.get('page_number')}) - Score: {chunk.get('rerank_score', 0.0):.2f}"):
+                    with st.expander(f"Evidence {i+1} | Score: {chunk.get('rerank_score', 0.0):.2f} | {chunk.get('source_file')}"):
                         st.write(chunk["text"])
                         
-        st.markdown("---")
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 5: Investment Research Brief
+    # -------------------------------------------------------------------------
+    st.subheader("Investment Research Brief")
+    
+    if st.button("Generate Research Brief", type="primary"):
+        chunks = st.session_state.get("rag_chunks", [])
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        snap = st.session_state.get("company_snapshot")
         
-        # -------------------------------------------------------------------------
-        # SECTION 6 & 7: Factor Extraction
-        # -------------------------------------------------------------------------
-        st.subheader("Factor Extraction")
-        st.markdown("Extract structured financial factors from the documents.")
+        if not active_chunks:
+            st.warning("No indexed documents found to generate a brief.")
+        else:
+            from src.rag.research_brief import generate_research_brief
+            with st.spinner("Compiling structured brief..."):
+                brief = generate_research_brief(active_ticker, active_chunks, snap)
+                st.session_state["research_brief"] = brief
+                
+    if "research_brief" in st.session_state:
+        brief = st.session_state["research_brief"]
         
-        if st.button("Extract Financial Factors"):
-            from src.rag.factor_extractor import extract_financial_factors_llm
-            from src.rag.factor_store import save_factor_record
-            from src.visualization import rag_plots
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            st.markdown("#### Business Overview")
+            st.write(brief.get("business_summary", ""))
             
-            with st.spinner("Extracting factors..."):
-                factor_record = extract_financial_factors_llm(chunks, ticker=tickers[0] if tickers else None)
+            st.markdown("#### Growth Drivers")
+            for g in brief.get("key_growth_drivers", []):
+                st.write("- " + g)
                 
-                st.session_state["last_factor_record"] = factor_record
+            st.markdown("#### Margins & Capex")
+            st.write(brief.get("margin_outlook", ""))
+            st.write(brief.get("capex_and_cashflow", ""))
+            
+        with col_b2:
+            st.markdown("#### Key Risks")
+            for r in brief.get("key_risks", []):
+                st.write("- " + r)
                 
-                st.markdown("### Extracted Factors")
-                
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Overall Sentiment", f"{factor_record['overall_sentiment_score']:.2f}")
-                col2.metric("Growth Score", f"{factor_record['growth_score']:.2f}")
-                col3.metric("Risk Score", f"{factor_record['risk_score']:.2f}")
-                
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Debt Risk", f"{factor_record['debt_risk_score']:.2f}")
-                c2.metric("Capex Intensity", f"{factor_record['capex_intensity_score']:.2f}")
-                c3.metric("Margin Pressure", f"{factor_record['margin_pressure_score']:.2f}")
-                
-                # Charts
-                p1, p2 = st.columns(2)
-                with p1:
-                    st.plotly_chart(rag_plots.plot_factor_scores(factor_record), use_container_width=True)
-                with p2:
-                    st.plotly_chart(rag_plots.plot_risk_growth_radar(factor_record), use_container_width=True)
-                    
-                st.markdown("#### Key Factors Found")
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.success("Positive Factors: " + ", ".join(factor_record['key_positive_factors']))
-                with c2:
-                    st.error("Negative Factors: " + ", ".join(factor_record['key_negative_factors']))
-                    
-                # Save
-                save_factor_record(factor_record)
-                st.success("Factor record saved to `data/factors/factor_records.csv`.")
+            st.markdown("#### Debt & Balance Sheet")
+            st.write(brief.get("debt_and_balance_sheet", ""))
+            
+            st.markdown("#### Open Questions")
+            for oq in brief.get("open_questions", []):
+                st.warning(oq)
                 
     st.markdown("---")
     
     # -------------------------------------------------------------------------
-    # SECTION 8 & 9: ML Integration & Limitations
+    # SECTION 6: Factor Extraction Matrix
     # -------------------------------------------------------------------------
-    st.subheader("ML Integration")
-    st.write("These extracted factor scores can be merged into **Signal Research Lab** as additional features. This allows the model to use both market behavior and document-based business context.")
+    st.subheader("Factor Extraction Matrix")
+    st.markdown("Extract structured quant factors from qualitative text.")
     
-    st.subheader("Limitations")
-    st.markdown(
-        "- **PDF Extraction:** Extracted text from PDFs can be imperfect.\\n"
-        "- **RAG Answers:** RAG answers depend strictly on uploaded documents.\\n"
-        "- **Rule-based Extraction:** Rule-based factor extraction is approximate.\\n"
-        "- **Not Financial Advice:** This is an educational research tool."
-    )
+    if st.button("Compute Factor Matrix"):
+        chunks = st.session_state.get("rag_chunks", [])
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        
+        if not active_chunks:
+            st.warning("No indexed documents found.")
+        else:
+            from src.rag.factor_extractor import extract_financial_factors_llm
+            from src.visualization import rag_plots
+            
+            with st.spinner("Extracting institutional factors..."):
+                factor_record = extract_financial_factors_llm(active_chunks, ticker=active_ticker)
+                st.session_state["last_factor_record"] = factor_record
+                
+    if "last_factor_record" in st.session_state:
+        factor_record = st.session_state["last_factor_record"]
+        from src.visualization import rag_plots
+        
+        st.markdown("#### Multi-Factor Scores")
+        
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Overall Sentiment", f"{factor_record['overall_sentiment_score']:.2f}")
+        m2.metric("Growth", f"{factor_record['growth_score']:.2f}")
+        m3.metric("Risk", f"{factor_record['risk_score']:.2f}")
+        m4.metric("Debt Risk", f"{factor_record['debt_risk_score']:.2f}")
+        
+        m5, m6, m7, m8 = st.columns(4)
+        m5.metric("Capex Intensity", f"{factor_record['capex_intensity_score']:.2f}")
+        m6.metric("Margin Pressure", f"{factor_record['margin_pressure_score']:.2f}")
+        m7.metric("Cash Flow Quality", f"{factor_record.get('cash_flow_quality_score', 0.5):.2f}")
+        m8.metric("Management Tone", f"{factor_record.get('management_tone_score', 0.5):.2f}")
+        
+        p1, p2 = st.columns(2)
+        with p1:
+            st.plotly_chart(rag_plots.plot_factor_scores(factor_record), use_container_width=True)
+        with p2:
+            st.plotly_chart(rag_plots.plot_risk_growth_radar(factor_record), use_container_width=True)
+            
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 7: Segment Intelligence
+    # -------------------------------------------------------------------------
+    st.subheader("Segment Intelligence")
+    st.markdown("Detect sub-segment performance (e.g. O2C vs Jio vs Retail).")
+    
+    if st.button("Extract Segment Intelligence"):
+        chunks = st.session_state.get("rag_chunks", [])
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        
+        if not active_chunks:
+            st.warning("No indexed documents found.")
+        else:
+            from src.rag.segment_intelligence import extract_segment_intelligence
+            with st.spinner("Isolating segments..."):
+                seg_intel = extract_segment_intelligence(active_chunks, ticker=active_ticker)
+                st.session_state["segment_intelligence"] = seg_intel
+                
+    if "segment_intelligence" in st.session_state:
+        seg_intel = st.session_state["segment_intelligence"]
+        segments = seg_intel.get("segments", {})
+        
+        if not segments:
+            st.info("No major business segments cleanly detected in text.")
+        else:
+            for s_name, s_data in segments.items():
+                with st.expander(f"Segment: {s_name} | Sentiment: {s_data['sentiment_score']:.2f} | Evidence: {s_data['evidence_count']}"):
+                    c1, c2 = st.columns(2)
+                    c1.metric("Growth Score", f"{s_data['growth_score']:.2f}")
+                    c2.metric("Risk Score", f"{s_data['risk_score']:.2f}")
+                    
+                    st.write("**Top Evidence Snippets:**")
+                    for ev in s_data["evidence"]:
+                        st.write("- " + ev)
+                        
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 8: Export to ML Signal Lab
+    # -------------------------------------------------------------------------
+    st.subheader("Export to ML Signal Lab")
+    st.write("These extracted factors are mapped to dates and exported to `data/factors/factor_records.csv` to be used by the Signal Engine.")
+    
+    if "last_factor_record" in st.session_state:
+        factor_record = st.session_state["last_factor_record"]
+        if st.button("Save Factor Record"):
+            from src.rag.factor_store import save_factor_record
+            save_factor_record(factor_record)
+            st.success("Factor record securely saved and ready for ML integration.")
+    else:
+        st.info("Compute Factor Matrix first.")
+        
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 9: Limitations
+    # -------------------------------------------------------------------------
+    with st.expander("Limitations & Compliance"):
+        st.markdown(
+            "- **PDF Extraction:** Extracted text from PDFs can be imperfect due to formatting.
+"
+            "- **RAG Answers:** RAG answers depend strictly on indexed documents.
+"
+            "- **Rule-based Extraction:** Rule-based factor extraction is approximate.
+"
+            "- **Robots.txt:** The downloader respects source policies and will skip blocked files.
+"
+            "- **Not Financial Advice:** This is an educational and research tool."
+        )
 
 
 if __name__ == "__main__":
