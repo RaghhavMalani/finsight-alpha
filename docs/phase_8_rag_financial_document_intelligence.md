@@ -1,7 +1,7 @@
-# Phase 8: Financial Document Intelligence
+# Phase 8: AI Equity Research Terminal
 
 ## Overview
-Phase 8 introduces a local-first RAG (Retrieval-Augmented Generation) engine to FinSight Alpha. This module enables the platform to ingest financial documents (e.g., annual reports, earnings transcripts), semantically search through them, and extract structured financial factors.
+This phase introduces an institutional-grade, RAG-powered workspace for analyzing financial documents, extracting signals, and conducting company-first qualitative research.
 
 ## Key Features
 1. **Local-First RAG**: All embedding generation and vector search is done locally using `sentence-transformers` and `faiss`/`scikit-learn`.

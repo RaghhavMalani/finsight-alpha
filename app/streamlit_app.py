@@ -2126,15 +2126,13 @@ def page_ai_equity_research_terminal() -> None:
     # -------------------------------------------------------------------------
     with st.expander("Limitations & Compliance"):
         st.markdown(
-            "- **PDF Extraction:** Extracted text from PDFs can be imperfect due to formatting.
-"
-            "- **RAG Answers:** RAG answers depend strictly on indexed documents.
-"
-            "- **Rule-based Extraction:** Rule-based factor extraction is approximate.
-"
-            "- **Robots.txt:** The downloader respects source policies and will skip blocked files.
-"
-            "- **Not Financial Advice:** This is an educational and research tool."
+            """
+            - **PDF Extraction:** Extracted text from PDFs can be imperfect due to formatting.
+            - **RAG Answers:** RAG answers depend strictly on indexed documents.
+            - **Rule-based Extraction:** Rule-based factor extraction is approximate.
+            - **Robots.txt:** The downloader respects source policies and will skip blocked files.
+            - **Not Financial Advice:** This is an educational and research tool.
+            """
         )
 
 

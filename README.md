@@ -252,7 +252,7 @@ finsight-alpha/
 
 ## Future phases
 
-- **Phase 8**: Financial Document Intelligence (RAG engine, auto document discovery, factor extraction).
+- **Phase 8**: AI Equity Research Terminal (company snapshot, document discovery, source health, research brief, segment intelligence, factor extraction matrix).
 - **Phase 9** - Optional cloud deployment (revisited later).
 
 > **Note:** Cloud deployment is **paused for now to avoid cost**. The project is
