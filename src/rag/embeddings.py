@@ -1,4 +1,8 @@
+import os
 import numpy as np
+
+# Disable TensorFlow in transformers to avoid SystemError on Windows with numpy 2.x
+os.environ["USE_TF"] = "NO"
 
 try:
     from sentence_transformers import SentenceTransformer
