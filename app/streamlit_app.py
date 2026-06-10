@@ -1678,7 +1678,7 @@ def page_ai_equity_research_terminal() -> None:
     import glob
     import os
     from src.rag.vector_store import LocalVectorStore
-    from src.config import config
+    from src import config
     
     st.markdown("<h2 class='finsight-title'>AI Equity Research Terminal</h2>", unsafe_allow_html=True)
     st.markdown("<div class='finsight-subtitle'>Document-grounded company research, factor extraction, and ML-ready intelligence.</div>", unsafe_allow_html=True)
