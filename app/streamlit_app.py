@@ -82,6 +82,7 @@ PAGES = [
     "Portfolio Optimization Lab",
     "Signal Research Lab",
     "Market Regime Lab",
+    "Financial Document Intelligence",
 ]
 
 UNIVERSE_INDIAN = "Indian Market"
@@ -1248,6 +1249,7 @@ def page_signal_research_lab(df: pd.DataFrame, tickers: list[str], benchmark_df:
     test_size = st.sidebar.slider("Test Size", 0.1, 0.4, 0.2)
     use_wf = st.sidebar.checkbox("Run Walk-Forward Validation", value=True)
     use_regime = st.sidebar.checkbox("Use Regime Features", value=False)
+    use_rag_factors = st.sidebar.checkbox("Use Document Factor Features", value=False)
     
     bullish_threshold = st.sidebar.slider("Bullish Threshold", 0.50, 0.70, 0.57)
     bearish_threshold = st.sidebar.slider("Bearish Threshold", 0.30, 0.50, 0.43)
@@ -1280,6 +1282,18 @@ def page_signal_research_lab(df: pd.DataFrame, tickers: list[str], benchmark_df:
             ml_df = signal_targets.create_signal_research_targets(feat_df, horizon=horizon)
             
         target_col = target_col_base
+        
+        # Merge Document Factors if selected
+        if use_rag_factors:
+            from src.rag.factor_store import load_factor_records, merge_factors_with_market_data
+            with st.spinner("Merging RAG Document Factors..."):
+                factor_df = load_factor_records()
+                if not factor_df.empty:
+                    # ML lab expects Date to be datetime
+                    ml_df = merge_factors_with_market_data(ml_df, factor_df, date_col="Date", ticker_col="Ticker")
+                    st.success(f"Merged Document Factors for ML features.")
+                else:
+                    st.warning("No document factor records found. Use Financial Document Intelligence page to extract factors first.")
         
         
         if use_regime:
@@ -1639,6 +1653,8 @@ def main() -> None:
         page_signal_research_lab(df, present, benchmark_df, str(settings["single_ticker"]))
     elif page == "Market Regime Lab":
         page_market_regime_lab(df, present, benchmark_df, str(settings["single_ticker"]))
+    elif page == "Financial Document Intelligence":
+        page_financial_document_intelligence()
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
@@ -1651,6 +1667,210 @@ def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
         storage.save_combined_processed_data(df)
     except Exception:  # saving must never break the UI
         pass
+
+
+# -------------------------------------------------------------------------
+# RAG Page
+# -------------------------------------------------------------------------
+def page_financial_document_intelligence() -> None:
+    st.markdown("<h2 class='finsight-title'>Financial Document Intelligence</h2>", unsafe_allow_html=True)
+    st.markdown("<div class='finsight-subtitle'>RAG-based financial research assistant and factor extraction engine.</div>", unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 2: Document Upload
+    # -------------------------------------------------------------------------
+    st.subheader("Document Upload & Processing")
+    
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        target_ticker = st.selectbox("Assign Ticker (Optional)", ["None"] + config.ALL_TICKERS)
+    with c2:
+        doc_type = st.selectbox("Document Type", ["auto", "annual_report", "quarterly_result", "investor_presentation", "earnings_transcript", "news_article", "brokerage_report", "sector_report"])
+    with c3:
+        fiscal_year = st.selectbox("Fiscal Year", ["auto", "2024", "2023", "2022", "2021", "2020"])
+        
+    uploaded_files = st.file_uploader("Upload financial documents (PDF, TXT, DOCX)", accept_multiple_files=True)
+    load_local = st.checkbox("Also load from data/documents/ folder", value=True)
+    
+    if st.button("Process Documents", type="primary"):
+        from src.rag.document_loader import load_document, load_documents_from_folder
+        from src.rag.chunker import chunk_documents
+        from src.rag.embeddings import embed_texts
+        from src.rag.vector_store import LocalVectorStore
+        import os
+        
+        with st.spinner("Processing documents..."):
+            pages = []
+            
+            # Load uploaded
+            if uploaded_files:
+                os.makedirs("data/documents", exist_ok=True)
+                for f in uploaded_files:
+                    path = f"data/documents/{f.name}"
+                    with open(path, "wb") as out_f:
+                        out_f.write(f.read())
+                    try:
+                        pages.extend(load_document(path))
+                    except Exception as e:
+                        st.error(f"Failed to load {f.name}: {e}")
+            
+            # Load local
+            if load_local:
+                pages.extend(load_documents_from_folder("data/documents"))
+                
+            if not pages:
+                st.warning("No valid documents found.")
+                return
+                
+            # Chunking
+            st.info(f"Loaded {len(pages)} pages. Chunking...")
+            chunks = chunk_documents(pages)
+            
+            # Embeddings
+            st.info(f"Creating embeddings for {len(chunks)} chunks...")
+            texts = [c["text"] for c in chunks]
+            try:
+                embeddings = embed_texts(texts)
+                
+                # Build index
+                st.info("Building local vector index...")
+                vs = LocalVectorStore()
+                vs.build_index(chunks, embeddings)
+                vs.save("data/rag_index")
+                
+                st.session_state["rag_store"] = vs
+                st.session_state["rag_chunks"] = chunks
+                st.success("Successfully processed documents and built local index!")
+            except Exception as e:
+                st.error(f"Embedding failed (ensure sentence-transformers is installed): {e}")
+                
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 3: Document Library
+    # -------------------------------------------------------------------------
+    from src.rag.vector_store import LocalVectorStore
+    
+    if "rag_store" not in st.session_state:
+        # Try to load
+        vs = LocalVectorStore()
+        if vs.load("data/rag_index"):
+            st.session_state["rag_store"] = vs
+            st.session_state["rag_chunks"] = vs.chunks
+            
+    if "rag_store" in st.session_state:
+        vs = st.session_state["rag_store"]
+        chunks = st.session_state.get("rag_chunks", [])
+        
+        st.subheader("Document Library")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Chunks", len(chunks))
+        
+        sources = list(set(c.get("source_file", "unknown") for c in chunks))
+        col2.metric("Total Documents", len(sources))
+        
+        tickers = list(set(c.get("ticker", "Unknown") for c in chunks if c.get("ticker") != "Unknown"))
+        col3.metric("Companies/Tickers", len(tickers))
+        
+        types = list(set(c.get("document_type", "unknown") for c in chunks))
+        col4.metric("Document Types", len(types))
+        
+        with st.expander("View Source Files"):
+            st.write(sources)
+            
+        st.markdown("---")
+        
+        # -------------------------------------------------------------------------
+        # SECTION 4 & 5: Ask Financial Questions & Evidence Panel
+        # -------------------------------------------------------------------------
+        st.subheader("Ask Financial Questions")
+        
+        query = st.text_input("Ask a question about the documents:", placeholder="e.g. What are the key risks mentioned for Reliance?")
+        
+        if st.button("Search & Answer") and query:
+            from src.rag.retriever import hybrid_retrieve
+            from src.rag.reranker import rerank_chunks
+            from src.rag.rag_answer import generate_llm_answer
+            
+            with st.spinner("Searching and generating answer..."):
+                retrieved = hybrid_retrieve(query, chunks, vector_store=vs, top_k=10)
+                reranked = rerank_chunks(query, retrieved, top_k=5)
+                
+                answer_data = generate_llm_answer(query, reranked, llm_provider="none")
+                
+                st.markdown("### Answer")
+                st.info(answer_data["answer"])
+                
+                st.markdown("### Evidence Panel")
+                for i, chunk in enumerate(answer_data["retrieved_chunks"]):
+                    with st.expander(f"Evidence {i+1} - {chunk.get('source_file')} (Page {chunk.get('page_number')}) - Score: {chunk.get('rerank_score', 0.0):.2f}"):
+                        st.write(chunk["text"])
+                        
+        st.markdown("---")
+        
+        # -------------------------------------------------------------------------
+        # SECTION 6 & 7: Factor Extraction
+        # -------------------------------------------------------------------------
+        st.subheader("Factor Extraction")
+        st.markdown("Extract structured financial factors from the documents.")
+        
+        if st.button("Extract Financial Factors"):
+            from src.rag.factor_extractor import extract_financial_factors_llm
+            from src.rag.factor_store import save_factor_record
+            from src.visualization import rag_plots
+            
+            with st.spinner("Extracting factors..."):
+                factor_record = extract_financial_factors_llm(chunks, ticker=tickers[0] if tickers else None)
+                
+                st.session_state["last_factor_record"] = factor_record
+                
+                st.markdown("### Extracted Factors")
+                
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Overall Sentiment", f"{factor_record['overall_sentiment_score']:.2f}")
+                col2.metric("Growth Score", f"{factor_record['growth_score']:.2f}")
+                col3.metric("Risk Score", f"{factor_record['risk_score']:.2f}")
+                
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Debt Risk", f"{factor_record['debt_risk_score']:.2f}")
+                c2.metric("Capex Intensity", f"{factor_record['capex_intensity_score']:.2f}")
+                c3.metric("Margin Pressure", f"{factor_record['margin_pressure_score']:.2f}")
+                
+                # Charts
+                p1, p2 = st.columns(2)
+                with p1:
+                    st.plotly_chart(rag_plots.plot_factor_scores(factor_record), use_container_width=True)
+                with p2:
+                    st.plotly_chart(rag_plots.plot_risk_growth_radar(factor_record), use_container_width=True)
+                    
+                st.markdown("#### Key Factors Found")
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.success("Positive Factors: " + ", ".join(factor_record['key_positive_factors']))
+                with c2:
+                    st.error("Negative Factors: " + ", ".join(factor_record['key_negative_factors']))
+                    
+                # Save
+                save_factor_record(factor_record)
+                st.success("Factor record saved to `data/factors/factor_records.csv`.")
+                
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 8 & 9: ML Integration & Limitations
+    # -------------------------------------------------------------------------
+    st.subheader("ML Integration")
+    st.write("These extracted factor scores can be merged into **Signal Research Lab** as additional features. This allows the model to use both market behavior and document-based business context.")
+    
+    st.subheader("Limitations")
+    st.markdown(
+        "- **PDF Extraction:** Extracted text from PDFs can be imperfect.\\n"
+        "- **RAG Answers:** RAG answers depend strictly on uploaded documents.\\n"
+        "- **Rule-based Extraction:** Rule-based factor extraction is approximate.\\n"
+        "- **Not Financial Advice:** This is an educational research tool."
+    )
 
 
 if __name__ == "__main__":
