@@ -32,37 +32,33 @@ def sample_benchmark_data(sample_market_data):
     return df
 
 def test_create_regime_features(sample_market_data):
-    # Action
     features_df = create_regime_features(sample_market_data)
-    
-    # Assert
     assert not features_df.empty
-    # Expect roughly 252 days lost due to max rolling window (if using 252 max, actually our max is 252 for drawdown)
-    # The max rolling window used in features is 252 (rolling_max_252).
-    # Since we drop missing values only after all features are created, 
-    # we might lose up to 251 rows, leaving ~49 rows.
-    # Actually rolling max min_periods=1, but SMA 200 drops 199.
-    
     assert "log_return" in features_df.columns
     assert "realized_vol_20" in features_df.columns
     assert "drawdown_from_252_high" in features_df.columns
     assert "volume_zscore_20" in features_df.columns
-    
-    # Ensure no NAs in final set
     assert features_df.isna().sum().sum() == 0
 
 def test_create_regime_features_with_benchmark(sample_market_data, sample_benchmark_data):
     features_df = create_regime_features(sample_market_data, benchmark_df=sample_benchmark_data)
-    
     assert "benchmark_return" in features_df.columns
     assert "asset_minus_benchmark_return" in features_df.columns
     assert "rolling_beta_60" in features_df.columns
     
-def test_get_regime_feature_columns(sample_market_data):
+def test_get_regime_feature_columns_basic(sample_market_data):
     features_df = create_regime_features(sample_market_data)
-    cols = get_regime_feature_columns(features_df)
-    
+    cols = get_regime_feature_columns(features_df, feature_set="Basic")
     assert isinstance(cols, list)
-    assert len(cols) > 0
+    assert len(cols) == 5
     assert "log_return" in cols
     assert "realized_vol_20" in cols
+
+def test_get_regime_feature_columns_full(sample_market_data, sample_benchmark_data):
+    features_df = create_regime_features(sample_market_data, benchmark_df=sample_benchmark_data)
+    cols = get_regime_feature_columns(features_df, feature_set="Full")
+    assert isinstance(cols, list)
+    assert len(cols) > 5  # Should be ~22
+    assert "abs_return" in cols
+    assert "volatility_ratio_5_20" in cols
+    assert "rolling_beta_60" in cols

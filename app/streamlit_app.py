@@ -998,7 +998,7 @@ def page_portfolio_optimization(df: pd.DataFrame, tickers: list[str]) -> None:
     )
 
 
-def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame | None = None) -> None:
+def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame | None, target_ticker: str) -> None:
     st.header("Market Regime Lab")
     st.markdown("<div class='finsight-subtitle'>Hidden-state market regime detection for equities and ETFs.</div>", unsafe_allow_html=True)
     
@@ -1006,10 +1006,14 @@ def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: p
         st.warning("Please load at least one ticker to begin.")
         return
         
+    if target_ticker not in tickers:
+        st.error(f"Selected ticker {target_ticker} has no loaded data. Please click 'Load / Refresh Data'.")
+        return
+        
+    ticker = target_ticker
+        
     st.sidebar.markdown("---")
     st.sidebar.subheader("Regime Controls")
-    
-    ticker = st.sidebar.selectbox("Ticker", options=tickers)
     
     default_bench = config.get_default_benchmark(ticker)
     available_benchmarks = list(benchmark_df["Ticker"].unique()) if benchmark_df is not None and not benchmark_df.empty else []
@@ -1046,11 +1050,7 @@ def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: p
             st.error("Failed to generate features. Check data.")
             return
             
-        cols = regime.get_regime_feature_columns(feat_df)
-        if feature_set == "Basic":
-            cols = [c for c in cols if "benchmark" not in c and "beta" not in c and "volume" not in c]
-        elif feature_set == "With Benchmark":
-            cols = [c for c in cols if "volume" not in c]
+        cols = regime.get_regime_feature_columns(feat_df, feature_set)
             
         if not cols:
             st.error("No valid features selected.")
@@ -1090,27 +1090,55 @@ def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: p
             trans_matrix = regime.calculate_regime_transition_matrix(res_df["regime_label"])
             
         st.markdown("---")
-        st.subheader("Current Regime Summary")
         
+        # Part A: Professional Header
+        from src.config import get_display_name
+        st.markdown("### Configuration Summary")
+        col_a1, col_a2, col_a3 = st.columns(3)
+        col_a1.markdown(f"**Selected Asset:** {ticker} — {get_display_name(ticker)}")
+        col_a1.markdown(f"**Benchmark:** {benchmark_choice}")
+        col_a2.markdown(f"**Model:** {model_type}")
+        col_a2.markdown(f"**States:** {n_states}")
+        min_dt = res_df['Date'].min() if 'Date' in res_df.columns else res_df.index.min()
+        max_dt = res_df['Date'].max() if 'Date' in res_df.columns else res_df.index.max()
+        col_a3.markdown(f"**Date Range:** {min_dt.strftime('%Y-%m-%d')} to {max_dt.strftime('%Y-%m-%d')}")
+        col_a3.markdown(f"**Feature Set:** {feature_set}")
+        
+        with st.expander(f"Features used by regime model ({len(cols)} total)"):
+            st.write(", ".join(cols))
+            
+        st.markdown("---")
+        
+        # Part E: Regime Interpretation Panel
+        st.subheader("Current Regime Summary")
+        from src.regime.regime_analysis import generate_regime_interpretation
+        interpretation_text = generate_regime_interpretation(current_summary, perf_summary, trans_matrix, asset_name=get_display_name(ticker))
+        st.info(interpretation_text)
+        
+        # Part C: Confidence Quality KPI
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Current Regime", current_summary.get("current_regime", "Unknown"))
         
         prob = current_summary.get("current_regime_probability", np.nan)
         c2.metric("Regime Probability", _fmt_pct(prob) if pd.notna(prob) else "N/A")
+        c3.metric("Confidence Quality", current_summary.get("regime_confidence_quality", "Unknown"))
+        c4.metric("Regime Stability", current_summary.get("regime_stability", "Unknown"))
         
-        c3.metric("Regime Risk Level", current_summary.get("current_regime_risk_level", "Unknown"))
-        c4.metric("Current Duration (Days)", current_summary.get("current_regime_duration", 0))
+        c5, c6, c7, c8 = st.columns(4)
+        c5.metric("Current Duration", f"{current_summary.get('current_regime_duration', 0)} days")
+        c6.metric("Regime Risk Level", current_summary.get("current_regime_risk_level", "Unknown"))
         
         latest = res_df.iloc[-1]
-        c5, c6, c7, c8 = st.columns(4)
-        c5.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
-        c6.metric("20D Volatility", _fmt_pct(latest.get("realized_vol_20", 0)))
-        c7.metric("Drawdown from 52W High", _fmt_pct(latest.get("drawdown_from_252_high", 0)))
-        c8.metric("Features Used", len(cols))
+        c7.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
+        c8.metric("20D Volatility", _fmt_pct(latest.get("realized_vol_20", 0)))
+        
+        st.caption("Regime probability is model assignment confidence, not a guaranteed market truth.")
         
         st.markdown("---")
         st.subheader("Price and Regime Timeline")
-        st.plotly_chart(regime_plots.plot_price_with_regimes(res_df), use_container_width=True)
+        st.plotly_chart(regime_plots.plot_recent_regime_timeline(res_df, years=3), use_container_width=True)
+        with st.expander("View Full Historical Regime Timeline"):
+            st.plotly_chart(regime_plots.plot_price_with_regimes(res_df), use_container_width=True)
         
         left, right = st.columns(2)
         with left:
@@ -1126,11 +1154,26 @@ def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: p
         st.markdown("---")
         st.subheader("Transition Matrix")
         st.markdown("Transition matrix shows the probability of moving from one regime to another.")
-        st.plotly_chart(regime_plots.plot_regime_transition_matrix(trans_matrix), use_container_width=True)
+        
+        t_c1, t_c2 = st.columns([2, 1])
+        with t_c1:
+            st.plotly_chart(regime_plots.plot_regime_transition_matrix(trans_matrix), use_container_width=True)
+        with t_c2:
+            from src.regime.regime_analysis import analyze_transition_matrix
+            trans_analysis = analyze_transition_matrix(trans_matrix, current_summary.get("current_regime", "Unknown"))
+            st.markdown("#### Matrix Analysis")
+            st.write(trans_analysis.get("interpretation", ""))
+            
+            st.metric("Most Stable Regime", trans_analysis.get("most_stable_regime", "N/A"), f"{trans_analysis.get('most_stable_probability', 0):.1%}")
+            st.metric("Most Unstable Regime", trans_analysis.get("least_stable_regime", "N/A"), f"{trans_analysis.get('least_stable_probability', 0):.1%}")
+            st.metric("Probability of Staying", current_summary.get("current_regime", "N/A"), f"{trans_analysis.get('current_regime_stay_probability', 0):.1%}")
+            
         
         st.markdown("---")
         st.subheader("Regime Duration")
-        st.plotly_chart(regime_plots.plot_regime_duration(durations), use_container_width=True)
+        st.plotly_chart(regime_plots.plot_regime_duration_distribution(durations), use_container_width=True)
+        with st.expander("View all historical regime episodes"):
+            st.plotly_chart(regime_plots.plot_regime_duration(durations), use_container_width=True)
         
         st.markdown("---")
         st.subheader("Feature Space")
@@ -1595,7 +1638,7 @@ def main() -> None:
     elif page == "Signal Research Lab":
         page_signal_research_lab(df, present, benchmark_df, str(settings["single_ticker"]))
     elif page == "Market Regime Lab":
-        page_market_regime_lab(df, present, benchmark_df)
+        page_market_regime_lab(df, present, benchmark_df, str(settings["single_ticker"]))
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:

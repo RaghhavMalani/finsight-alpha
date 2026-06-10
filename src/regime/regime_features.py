@@ -148,19 +148,61 @@ def create_regime_features(
     
     return result
 
-def get_regime_feature_columns(df: pd.DataFrame) -> List[str]:
+def get_regime_feature_columns(df: pd.DataFrame, feature_set: str = "Basic") -> List[str]:
     """
-    Return columns to be used for unsupervised regime models.
+    Return columns to be used for unsupervised regime models based on the selected feature set.
     """
-    suggested = [
-        "log_return",
-        "realized_vol_20",
-        "realized_vol_60",
-        "drawdown_from_252_high",
-        "rolling_return_20",
-        "volume_zscore_20",
-        "asset_minus_benchmark_return",
-        "rolling_beta_60"
-    ]
-    
-    return [col for col in suggested if col in df.columns]
+    if feature_set == "Basic":
+        suggested = [
+            "log_return",
+            "realized_vol_20",
+            "rolling_return_20",
+            "drawdown_from_252_high",
+            "volume_zscore_20"
+        ]
+    elif feature_set == "With Benchmark":
+        suggested = [
+            "log_return",
+            "realized_vol_20",
+            "rolling_return_20",
+            "drawdown_from_252_high",
+            "volume_zscore_20",
+            "benchmark_return",
+            "asset_minus_benchmark_return",
+            "rolling_beta_60",
+            "rolling_corr_60"
+        ]
+    else:  # Full
+        suggested = [
+            "log_return",
+            "abs_return",
+            "squared_return",
+            "rolling_return_5",
+            "rolling_return_20",
+            "rolling_return_60",
+            "realized_vol_5",
+            "realized_vol_20",
+            "realized_vol_60",
+            "volatility_ratio_5_20",
+            "volatility_ratio_20_60",
+            "drawdown_from_252_high",
+            "max_drawdown_60",
+            "price_to_sma_50",
+            "price_to_sma_200",
+            "trend_strength_50_200",
+            "volume_zscore_20",
+            "abnormal_volume_flag",
+            "benchmark_return",
+            "asset_minus_benchmark_return",
+            "rolling_beta_60",
+            "rolling_corr_60"
+        ]
+        
+    # Only return columns that exist and are not entirely NaN
+    valid_cols = []
+    for col in suggested:
+        if col in df.columns:
+            if not df[col].isna().all():
+                valid_cols.append(col)
+                
+    return valid_cols

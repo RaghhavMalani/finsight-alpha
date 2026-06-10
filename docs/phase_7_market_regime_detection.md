@@ -59,8 +59,14 @@ How long does a regime typically last? By calculating the consecutive days spent
 ## Integration with ML Signal Research Lab
 
 Regimes are not just for visualization. They actively improve the Phase 6 ML Signal Engine:
-1. **Regime as a Feature**: The current regime state and probability are fed directly into the ML model (Random Forest, XGBoost) to give it context.
+1. **Regime as a Feature**: The current regime state, duration, risk level code, and probability are fed directly into the ML model (Random Forest, XGBoost) to give it context. The **Feature Intelligence** section will show exactly how heavily the ML model relied on the regime output.
 2. **Regime-Adjusted Confidence**: The final output signal is passed through a heuristic filter. If the ML model outputs a "Bullish" signal, but the market is in a "Stress / Selloff" regime, the system will downgrade the signal confidence or suppress it entirely to protect capital.
+
+## Regime Diagnostics (Phase 7.5)
+To add robustness and institutional feel, several key diagnostic metrics are incorporated:
+- **Regime Stability**: Analyzes the last 20 days to see how often the model is oscillating between states. Too many flips imply a "Low" stability environment where regime signals may be less reliable.
+- **Confidence Quality**: Combines assignment probability with regime duration. A regime must be active for an extended period with high probability to achieve "High" confidence quality.
+- **Transition Matrix Analysis**: Explicitly details the most stable regime and the statistical probability of staying in the current state vs migrating to a new one tomorrow.
 
 ## Limitations
 

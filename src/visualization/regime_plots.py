@@ -72,6 +72,29 @@ def plot_price_with_regimes(
     )
     return apply_plotly_theme(fig)
 
+def plot_recent_regime_timeline(
+    df: pd.DataFrame,
+    price_col: str = "Close",
+    regime_col: str = "regime_label",
+    date_col: str = "Date",
+    years: int = 3
+) -> go.Figure:
+    """Show recent price line with colored background regions for regimes."""
+    out = df.copy()
+    if date_col not in out.columns:
+        out["Date"] = out.index
+    
+    out["Date"] = pd.to_datetime(out["Date"])
+    latest_date = out["Date"].max()
+    cutoff_date = latest_date - pd.DateOffset(years=years)
+    recent_df = out[out["Date"] >= cutoff_date]
+    
+    fig = plot_price_with_regimes(recent_df, price_col, regime_col, date_col)
+    # The title will be set, but we can override it
+    fig.update_layout(title=f"Recent {years}-Year Regime Timeline")
+    return fig
+
+
 def plot_regime_timeline(
     df: pd.DataFrame,
     regime_col: str = "regime_label",
@@ -224,6 +247,49 @@ def plot_regime_duration(duration_df: pd.DataFrame) -> go.Figure:
         xaxis_title="Date",
         yaxis_title="Duration (Days)"
     )
+    return apply_plotly_theme(fig)
+
+def plot_regime_duration_distribution(duration_df: pd.DataFrame) -> go.Figure:
+    """Show average and maximum duration by regime."""
+    if duration_df.empty:
+        return go.Figure()
+        
+    stats = duration_df.groupby("regime_label")["duration_days"].agg(["mean", "max"]).reset_index()
+    
+    fig = go.Figure()
+    colors = [REGIME_COLORS.get(r, REGIME_COLORS["Unknown"]) for r in stats["regime_label"]]
+    
+    fig.add_trace(go.Bar(
+        name="Average Duration",
+        x=stats["regime_label"],
+        y=stats["mean"],
+        marker_color=colors,
+        opacity=0.8,
+        text=stats["mean"].round(0).astype(int),
+        textposition='auto'
+    ))
+    
+    fig.add_trace(go.Scatter(
+        name="Max Duration",
+        x=stats["regime_label"],
+        y=stats["max"],
+        mode="markers",
+        marker=dict(
+            symbol="line-ew",
+            size=30,
+            color="white",
+            line=dict(width=3)
+        )
+    ))
+    
+    fig.update_layout(
+        title="Regime Duration Distribution (Average vs Max)",
+        xaxis_title="Regime",
+        yaxis_title="Days",
+        barmode="overlay",
+        showlegend=True
+    )
+    
     return apply_plotly_theme(fig)
 
 def plot_regime_feature_scatter(

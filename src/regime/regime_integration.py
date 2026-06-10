@@ -58,8 +58,23 @@ def add_regime_features_to_ml_dataset(
         
     out["regime_risk_level"] = out["regime_label"].apply(get_risk)
     
+    risk_map = {"Low": 0, "Moderate": 1, "High": 2, "Unknown": 1}
+    out["regime_risk_level_code"] = out["regime_risk_level"].map(risk_map).fillna(1).astype(int)
+    
     # probability feature
     out["regime_probability_feature"] = out["regime_probability"].fillna(0.0)
+    
+    # Add regime_duration
+    out["regime_block"] = (out["regime_label"] != out["regime_label"].shift(1)).cumsum()
+    out["regime_duration"] = out.groupby("regime_block").cumcount() + 1
+    out.drop(columns=["regime_block"], inplace=True)
+    
+    # Add current_regime_flag
+    if not out.empty:
+        current_label = out["regime_label"].iloc[-1]
+        out["current_regime_flag"] = (out["regime_label"] == current_label).astype(int)
+    else:
+        out["current_regime_flag"] = 0
     
     return out
 

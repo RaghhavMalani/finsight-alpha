@@ -25,6 +25,9 @@ def test_add_regime_features_to_ml_dataset():
     assert "regime_label" in merged.columns
     assert "regime_risk_level" in merged.columns
     assert "regime_code" in merged.columns
+    assert "regime_risk_level_code" in merged.columns
+    assert "regime_duration" in merged.columns
+    assert "current_regime_flag" in merged.columns
     
     assert merged["regime_label"].iloc[0] == "Low-Vol Bullish"
     assert merged["regime_risk_level"].iloc[2] == "High"
@@ -44,3 +47,18 @@ def test_adjust_signal_for_regime():
     assert adjusted["regime_adjusted_signal"] == "Neutral"
     assert adjusted["regime_adjusted_confidence"] == "Low"
     assert "Stress / Selloff" in adjusted["regime_adjustment_reason"]
+
+def test_adjust_signal_no_edge():
+    signal = {
+        "signal": "Neutral",
+        "research_confidence": "Low"
+    }
+    
+    regime_summary = {
+        "current_regime": "Low-Vol Bullish"
+    }
+    
+    adjusted = adjust_signal_for_regime(signal, regime_summary)
+    
+    # Should not turn a neutral signal into Bullish just because of regime
+    assert adjusted["regime_adjusted_signal"] == "Neutral"
