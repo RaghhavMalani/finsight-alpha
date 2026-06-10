@@ -84,6 +84,53 @@ for detailed documentation.
 
 ---
 
+## What Phase 5 adds: Portfolio Optimization Engine
+
+Phase 5 introduces a professional Portfolio Optimization Engine based on Markowitz Modern Portfolio Theory:
+
+- **Markowitz Optimization** - calculate minimum variance and maximum Sharpe Ratio portfolios.
+- **Efficient Frontier** - compute and visualize the efficient frontier.
+- **Risk Contribution & Parity** - analyze component risk contribution and construct risk parity portfolios.
+- **Asset Allocation Comparison** - compare multiple portfolio strategies simultaneously.
+- **Portfolio Optimization Lab** - a dedicated interactive dashboard page.
+- **Example Portfolios** - built-in Indian and US portfolio examples.
+
+These features enable professional-grade portfolio construction and risk budgeting. See
+[`docs/phase_5_portfolio_optimization.md`](docs/phase_5_portfolio_optimization.md)
+for detailed documentation.
+
+---
+
+## What Phase 6 adds: Machine Learning Forecasting Engine
+
+Phase 6 introduces a professional Machine Learning Forecasting Engine to generate predictive signals:
+
+- **Financial feature engineering** - add lags, rolling averages, momentum, volatility, and technical indicators (RSI, MACD, Bollinger Bands) without data leakage.
+- **Direction classification** - predict whether the price will go up or down.
+- **Future return regression** - predict the expected percentage return over N days.
+- **Future volatility regression** - predict the expected realized volatility over N days.
+- **Time-series validation** - strict chronological train/test splitting and robust walk-forward validation.
+- **Feature importance** - analyze which signals the models rely on most.
+- **ML Forecasting Lab** - a dedicated interactive dashboard page.
+
+These tools allow for advanced signal generation and quantitative research. See
+[`docs/phase_6_ml_forecasting.md`](docs/phase_6_ml_forecasting.md)
+for detailed documentation.
+
+---
+
+## What Phase 6.5 adds: Professional Signal Research Lab
+
+- **Universal Signal Extraction** - Institutional feature engineering pipelines that auto-adapt to any ticker (Indian or US) and its corresponding benchmark.
+- **Dynamic Benchmarking** - Automatically compares an asset's beta and momentum relative to the correct regional index (e.g., NIFTYBEES vs SPY).
+- **Ensemble Forecasting** - Combining Logistic Regression, Random Forest, and Gradient Boosting to increase prediction robustness.
+- **Strict Validation Rules** - The signal engine suppresses recommendations (defaults to "No Edge") if Out-of-Sample ROC-AUC is below 0.55 or model edge is weak, preventing false confidence.
+- **Signal Research Dashboard** - Focused visualizations for walk-forward validation folds, probability distributions, and institutional signal strength.
+
+See [`docs/ml_signal_research_lab.md`](docs/ml_signal_research_lab.md) for detailed documentation.
+
+---
+
 ## Installation
 
 > Requires Python 3.10+ (3.11 recommended).
@@ -191,14 +238,20 @@ finsight-alpha/
 
 ---
 
+## Current Status
+
+- **Phase 1**: Core Dashboard (Data loading, summary KPIs, Plotly charts).
+- **Phase 2**: Financial Math Engine (Risk-adjusted performance, correlation, drawdown).
+- **Phase 3**: Option Pricing Lab (Black-Scholes, Greeks, Implied Volatility).
+- **Phase 4**: Monte Carlo Risk Lab (GBM simulation, VaR, CVaR).
+- **Phase 5**: Portfolio Optimization Lab (Markowitz efficient frontier, Max Sharpe).
+- **Phase 6**: ML Signal Research Lab (Walk-forward classification, institutional signals).
+- **Phase 7**: Market Regime Detection Engine (HMM, Gaussian Mixture, state transition).
+
+---
+
 ## Future phases
 
-- **Phase 2 (done)** - Financial Math Engine: CAGR, Sharpe, Sortino, beta, CAPM.
-- **Phase 3 (done)** - Black-Scholes option pricing and the Greeks.
-- **Phase 4 (done)** - Monte Carlo simulation and VaR / CVaR risk.
-- **Phase 5** - Portfolio optimization (mean-variance, efficient frontier).
-- **Phase 6** - ML forecasting (return/volatility models).
-- **Phase 7** - Market regime detection.
 - **Phase 8** - RAG financial assistant over filings/news.
 - **Phase 9** - Optional cloud deployment (revisited later).
 

@@ -29,6 +29,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import pandas as pd
+import numpy as np
 import streamlit as st
 
 from src import config
@@ -51,8 +52,10 @@ from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
 from src.pricing import black_scholes
 from src.simulation import monte_carlo
-from src.risk import var_cvar
-from src.visualization import option_plots, plots, simulation_plots
+from src.risk import var_cvar, portfolio_optimization
+from src.ml import features, targets, models, evaluation, walk_forward
+from src import regime
+from src.visualization import option_plots, plots, simulation_plots, portfolio_plots, ml_plots, regime_plots
 from src.visualization.theme import apply_streamlit_theme
 
 # ---------------------------------------------------------------------------
@@ -76,6 +79,9 @@ PAGES = [
     "Data Quality Report",
     "Option Pricing Lab",
     "Monte Carlo Risk Lab",
+    "Portfolio Optimization Lab",
+    "Signal Research Lab",
+    "Market Regime Lab",
 ]
 
 UNIVERSE_INDIAN = "Indian Market"
@@ -222,10 +228,9 @@ def render_sidebar() -> dict[str, object]:
     )
 
     single_ticker = st.sidebar.selectbox(
-        "Focus ticker (Single Asset page)",
+        "Focus Ticker (Single Asset / ML Lab)",
         options=tickers if tickers else options,
-        index=0,
-        help="The ticker shown on the Single Asset Analysis page.",
+        help="Choose the ticker to analyze in the Single Asset and Signal Research Lab views."
     )
 
     today = pd.Timestamp.today().normalize()
@@ -852,6 +857,693 @@ def page_monte_carlo(df: pd.DataFrame, tickers: list[str]) -> None:
         "- VaR does not describe how bad losses can get beyond the cutoff. (This is why CVaR is an essential complementary metric!)"
     )
 
+def page_portfolio_optimization(df: pd.DataFrame, tickers: list[str]) -> None:
+    st.header("Portfolio Optimization Lab")
+    
+    if len(tickers) < 2:
+        st.warning("Please select at least two assets for portfolio optimization.")
+        return
+        
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Section 1: Portfolio Setup")
+    
+    risk_free_rate = st.sidebar.number_input("Risk-Free Rate (%)", min_value=0.0, value=5.0, step=0.1) / 100.0
+    max_weight = st.sidebar.number_input("Max Weight per Asset (%)", min_value=1.0, max_value=100.0, value=100.0, step=5.0) / 100.0
+    return_method = st.sidebar.selectbox("Return Method", ["log", "simple"])
+    
+    optimization_mode = st.sidebar.selectbox(
+        "Optimization Mode", 
+        ["Minimum Variance", "Maximum Sharpe", "Risk Parity", "Compare All"],
+        index=3
+    )
+    
+    run_opt = st.button("Run Portfolio Optimization", type="primary")
+    
+    if run_opt:
+        with st.spinner("Running optimizations..."):
+            # Prepare data
+            price_pivot = portfolio_optimization.create_price_pivot(df)
+            price_pivot = price_pivot[tickers].dropna()
+            
+            if price_pivot.empty or len(price_pivot) < 2:
+                st.error("Not enough overlapping valid data for the selected tickers.")
+                return
+                
+            returns = portfolio_optimization.calculate_asset_returns(price_pivot, method=return_method)
+            expected_returns = portfolio_optimization.calculate_expected_returns(returns)
+            covariance_matrix = portfolio_optimization.calculate_covariance_matrix(returns)
+            
+            st.markdown("---")
+            st.subheader("Section 2: Portfolio Summary KPI Cards")
+            
+            summary_res = None
+            opt_weights = None
+            
+            if optimization_mode == "Minimum Variance":
+                res = portfolio_optimization.minimum_variance_portfolio(expected_returns, covariance_matrix, max_weight)
+                if res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = res["weights"]
+                else:
+                    st.error("Optimization failed: " + res["message"])
+            elif optimization_mode == "Maximum Sharpe":
+                res = portfolio_optimization.maximum_sharpe_portfolio(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                if res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = res["weights"]
+                else:
+                    st.error("Optimization failed: " + res["message"])
+            elif optimization_mode == "Risk Parity":
+                res = portfolio_optimization.risk_parity_portfolio(covariance_matrix, max_weight)
+                if res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = res["weights"]
+                else:
+                    st.error("Optimization failed: " + res["message"])
+            
+            if optimization_mode == "Compare All":
+                comp_df = portfolio_optimization.compare_portfolios(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                st.dataframe(comp_df, use_container_width=True)
+                
+                # Default to Max Sharpe for the detailed views if comparing all
+                ms_res = portfolio_optimization.maximum_sharpe_portfolio(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                if ms_res["success"]:
+                    summary_res = portfolio_optimization.calculate_portfolio_performance_summary(ms_res["weights"], expected_returns, covariance_matrix, risk_free_rate)
+                    opt_weights = ms_res["weights"]
+                    st.info("Showing detailed allocation for Maximum Sharpe portfolio below.")
+            
+            if summary_res:
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Expected Return", _fmt_pct(summary_res["expected_return"]))
+                c2.metric("Volatility", _fmt_pct(summary_res["volatility"]))
+                c3.metric("Sharpe Ratio", _fmt_num(summary_res["sharpe_ratio"]))
+                c4.metric("Number of Assets", summary_res["num_assets"])
+                
+                c5, c6, c7, c8 = st.columns(4)
+                c5.metric("Largest Holding", summary_res["largest_weight_asset"])
+                c6.metric("Largest Weight", _fmt_pct(summary_res["largest_weight"]))
+                c7.metric("Smallest Holding", summary_res["smallest_weight_asset"])
+                c8.metric("Smallest Weight", _fmt_pct(summary_res["smallest_weight"]))
+                
+                st.markdown("---")
+                st.subheader("Section 3: Optimized Allocation")
+                left, right = st.columns(2)
+                with left:
+                    if opt_weights is not None:
+                        st.plotly_chart(portfolio_plots.plot_portfolio_weights(opt_weights, "Portfolio Weights"), use_container_width=True)
+                with right:
+                    if opt_weights is not None:
+                        st.plotly_chart(portfolio_plots.plot_allocation_pie_chart(opt_weights, "Asset Allocation Breakdown"), use_container_width=True)
+                    
+            st.markdown("---")
+            st.subheader("Section 4: Efficient Frontier")
+            with st.spinner("Calculating efficient frontier..."):
+                frontier_df = portfolio_optimization.calculate_efficient_frontier(expected_returns, covariance_matrix, n_portfolios=30, max_weight=max_weight)
+                min_var = portfolio_optimization.minimum_variance_portfolio(expected_returns, covariance_matrix, max_weight)
+                max_sharpe = portfolio_optimization.maximum_sharpe_portfolio(expected_returns, covariance_matrix, risk_free_rate, max_weight)
+                
+                st.plotly_chart(portfolio_plots.plot_efficient_frontier(frontier_df, min_var, max_sharpe), use_container_width=True)
+                
+            st.markdown("---")
+            st.subheader("Section 5: Risk Contribution")
+            if opt_weights is not None:
+                rc_df = portfolio_optimization.calculate_risk_contribution(opt_weights.values, covariance_matrix)
+                st.plotly_chart(portfolio_plots.plot_risk_contribution(rc_df), use_container_width=True)
+                st.markdown("**Note:** An asset's *weight* (how much capital is allocated) is often different from its *risk contribution* (how much it adds to total portfolio volatility). This is due to volatility and correlation differences.")
+                
+            if optimization_mode == "Compare All":
+                st.markdown("---")
+                st.subheader("Section 6: Asset Allocation Comparison")
+                st.plotly_chart(portfolio_plots.plot_portfolio_comparison(comp_df), use_container_width=True)
+                
+    st.markdown("---")
+    st.subheader("Section 7: Educational Explanation")
+    st.markdown(
+        "**Markowitz Optimization**: Builds portfolios by balancing expected return and risk using the efficient frontier.\n\n"
+        "**Minimum Variance Portfolio**: The portfolio with the lowest possible volatility regardless of return.\n\n"
+        "**Maximum Sharpe Portfolio**: The portfolio with the best risk-adjusted return (steepest capital market line).\n\n"
+        "**Efficient Frontier**: The set of portfolios that offer the highest expected return for a given risk level.\n\n"
+        "**Risk Parity**: A portfolio where each asset contributes roughly equally to total risk (rather than equal capital).\n\n"
+        "**Covariance Matrix**: Shows how assets move together; essential for modeling portfolio risk and diversification."
+    )
+    
+    st.subheader("Section 8: Limitations")
+    st.markdown(
+        "- Expected returns are estimated from historical data, which is famously unreliable.\n"
+        "- Covariance and correlation can change dramatically over time (especially during crises).\n"
+        "- Optimization can 'overfit' to historical noise, resulting in extreme allocations.\n"
+        "- Real markets have transaction costs and liquidity constraints not modeled here.\n"
+        "- Past performance does not guarantee future results.\n"
+        "- Long-only constraints limit short-selling assumptions."
+    )
+
+
+def page_market_regime_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame | None, target_ticker: str) -> None:
+    st.header("Market Regime Lab")
+    st.markdown("<div class='finsight-subtitle'>Hidden-state market regime detection for equities and ETFs.</div>", unsafe_allow_html=True)
+    
+    if not tickers:
+        st.warning("Please load at least one ticker to begin.")
+        return
+        
+    if target_ticker not in tickers:
+        st.error(f"Selected ticker {target_ticker} has no loaded data. Please click 'Load / Refresh Data'.")
+        return
+        
+    ticker = target_ticker
+        
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Regime Controls")
+    
+    default_bench = config.get_default_benchmark(ticker)
+    available_benchmarks = list(benchmark_df["Ticker"].unique()) if benchmark_df is not None and not benchmark_df.empty else []
+    if default_bench not in available_benchmarks and available_benchmarks:
+        default_bench = available_benchmarks[0]
+        
+    benchmark_choice = st.sidebar.selectbox(
+        "Benchmark (for relative features)", 
+        options=["None"] + available_benchmarks,
+        index=(available_benchmarks.index(default_bench) + 1) if default_bench in available_benchmarks else 0
+    )
+    
+    model_type = st.sidebar.selectbox("Regime Model", ["HMM", "Gaussian Mixture", "KMeans"])
+    n_states = st.sidebar.selectbox("Number of States", [3, 4, 5], index=1)
+    
+    feature_set = st.sidebar.selectbox("Feature Set", ["Basic", "With Benchmark", "Full"])
+    
+    run_regime = st.button("Run Regime Detection", type="primary")
+    
+    if run_regime:
+        asset_df = df[df["Ticker"] == ticker].copy().sort_values("Date").reset_index(drop=True)
+        if asset_df.empty:
+            st.error(f"Data not found for {ticker}.")
+            return
+            
+        b_df = None
+        if benchmark_choice != "None" and benchmark_df is not None:
+            b_df = benchmark_df[benchmark_df["Ticker"] == benchmark_choice].copy()
+            
+        with st.spinner("Engineering regime features..."):
+            feat_df = regime.create_regime_features(asset_df, benchmark_df=b_df)
+            
+        if feat_df.empty:
+            st.error("Failed to generate features. Check data.")
+            return
+            
+        cols = regime.get_regime_feature_columns(feat_df, feature_set)
+            
+        if not cols:
+            st.error("No valid features selected.")
+            return
+            
+        with st.spinner(f"Fitting {model_type} model with {n_states} states..."):
+            if model_type == "HMM":
+                if not regime.is_hmmlearn_available():
+                    st.warning("hmmlearn not installed. Falling back to Gaussian Mixture.")
+                    res_df = regime.run_gmm_regime_detection(feat_df, cols, n_states=n_states)
+                    state_col, prob_col = "gmm_state", "gmm_state_probability"
+                else:
+                    res_df = regime.run_hmm_regime_detection(feat_df, cols, n_states=n_states)
+                    state_col, prob_col = "hmm_state", "hmm_state_probability"
+            elif model_type == "Gaussian Mixture":
+                res_df = regime.run_gmm_regime_detection(feat_df, cols, n_states=n_states)
+                state_col, prob_col = "gmm_state", "gmm_state_probability"
+            else:
+                res_df = regime.run_kmeans_regime_detection(feat_df, cols, n_states=n_states)
+                state_col, prob_col = "kmeans_state", "kmeans_state_probability"
+                
+            if state_col not in res_df.columns or res_df[state_col].isna().all():
+                st.error("Model failed to fit. Try a different model or fewer states.")
+                return
+                
+        with st.spinner("Labeling Regimes..."):
+            reg_summary = regime.summarize_regime_states(res_df, state_col)
+            labels = regime.label_regime_states(reg_summary)
+            res_df = regime.map_regime_labels_to_rows(res_df, state_col, labels)
+            
+            # Recalculate summary with labels
+            perf_summary = regime.calculate_regime_performance_summary(res_df)
+            current_summary = regime.calculate_current_regime_summary(res_df, probability_col=prob_col)
+            durations = regime.calculate_regime_duration(res_df)
+            
+            # Matrix
+            trans_matrix = regime.calculate_regime_transition_matrix(res_df["regime_label"])
+            
+        st.markdown("---")
+        
+        # Part A: Professional Header
+        from src.config import get_display_name
+        st.markdown("### Configuration Summary")
+        col_a1, col_a2, col_a3 = st.columns(3)
+        col_a1.markdown(f"**Selected Asset:** {ticker} — {get_display_name(ticker)}")
+        col_a1.markdown(f"**Benchmark:** {benchmark_choice}")
+        col_a2.markdown(f"**Model:** {model_type}")
+        col_a2.markdown(f"**States:** {n_states}")
+        min_dt = res_df['Date'].min() if 'Date' in res_df.columns else res_df.index.min()
+        max_dt = res_df['Date'].max() if 'Date' in res_df.columns else res_df.index.max()
+        col_a3.markdown(f"**Date Range:** {min_dt.strftime('%Y-%m-%d')} to {max_dt.strftime('%Y-%m-%d')}")
+        col_a3.markdown(f"**Feature Set:** {feature_set}")
+        
+        with st.expander(f"Features used by regime model ({len(cols)} total)"):
+            st.write(", ".join(cols))
+            
+        st.markdown("---")
+        
+        # Part E: Regime Interpretation Panel
+        st.subheader("Current Regime Summary")
+        from src.regime.regime_analysis import generate_regime_interpretation
+        interpretation_text = generate_regime_interpretation(current_summary, perf_summary, trans_matrix, asset_name=get_display_name(ticker))
+        st.info(interpretation_text)
+        
+        # Part C: Confidence Quality KPI
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Current Regime", current_summary.get("current_regime", "Unknown"))
+        
+        prob = current_summary.get("current_regime_probability", np.nan)
+        c2.metric("Regime Probability", _fmt_pct(prob) if pd.notna(prob) else "N/A")
+        c3.metric("Confidence Quality", current_summary.get("regime_confidence_quality", "Unknown"))
+        c4.metric("Regime Stability", current_summary.get("regime_stability", "Unknown"))
+        
+        c5, c6, c7, c8 = st.columns(4)
+        c5.metric("Current Duration", f"{current_summary.get('current_regime_duration', 0)} days")
+        c6.metric("Regime Risk Level", current_summary.get("current_regime_risk_level", "Unknown"))
+        
+        latest = res_df.iloc[-1]
+        c7.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
+        c8.metric("20D Volatility", _fmt_pct(latest.get("realized_vol_20", 0)))
+        
+        st.caption("Regime probability is model assignment confidence, not a guaranteed market truth.")
+        
+        st.markdown("---")
+        st.subheader("Price and Regime Timeline")
+        st.plotly_chart(regime_plots.plot_recent_regime_timeline(res_df, years=3), use_container_width=True)
+        with st.expander("View Full Historical Regime Timeline"):
+            st.plotly_chart(regime_plots.plot_price_with_regimes(res_df), use_container_width=True)
+        
+        left, right = st.columns(2)
+        with left:
+            st.plotly_chart(regime_plots.plot_regime_timeline(res_df), use_container_width=True)
+        with right:
+            st.plotly_chart(regime_plots.plot_regime_probability(res_df, prob_col=prob_col), use_container_width=True)
+            
+        st.markdown("---")
+        st.subheader("Regime State Diagnostics")
+        st.dataframe(perf_summary, use_container_width=True, hide_index=True)
+        st.plotly_chart(regime_plots.plot_regime_performance(perf_summary), use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("Transition Matrix")
+        st.markdown("Transition matrix shows the probability of moving from one regime to another.")
+        
+        t_c1, t_c2 = st.columns([2, 1])
+        with t_c1:
+            st.plotly_chart(regime_plots.plot_regime_transition_matrix(trans_matrix), use_container_width=True)
+        with t_c2:
+            from src.regime.regime_analysis import analyze_transition_matrix
+            trans_analysis = analyze_transition_matrix(trans_matrix, current_summary.get("current_regime", "Unknown"))
+            st.markdown("#### Matrix Analysis")
+            st.write(trans_analysis.get("interpretation", ""))
+            
+            st.metric("Most Stable Regime", trans_analysis.get("most_stable_regime", "N/A"), f"{trans_analysis.get('most_stable_probability', 0):.1%}")
+            st.metric("Most Unstable Regime", trans_analysis.get("least_stable_regime", "N/A"), f"{trans_analysis.get('least_stable_probability', 0):.1%}")
+            st.metric("Probability of Staying", current_summary.get("current_regime", "N/A"), f"{trans_analysis.get('current_regime_stay_probability', 0):.1%}")
+            
+        
+        st.markdown("---")
+        st.subheader("Regime Duration")
+        st.plotly_chart(regime_plots.plot_regime_duration_distribution(durations), use_container_width=True)
+        with st.expander("View all historical regime episodes"):
+            st.plotly_chart(regime_plots.plot_regime_duration(durations), use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("Feature Space")
+        st.markdown("How unsupervised models cluster market states based on engineered features.")
+        st.plotly_chart(regime_plots.plot_regime_feature_scatter(res_df), use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("Signal Integration")
+        st.info("This regime output can be added to ML Signal Research Lab as an additional feature. It can also adjust signal confidence. For example, bullish ML signals in a high-volatility selloff regime may be suppressed.")
+        
+        st.markdown("---")
+        st.subheader("Limitations")
+        st.markdown(
+            "- HMM/GMM states are statistical clusters, not guaranteed economic truths.\n"
+            "- Regime labels are assigned after the model using summary statistics.\n"
+            "- Regimes can shift suddenly.\n"
+            "- Model can overfit if too many states are used.\n"
+            "- Educational only."
+        )
+
+
+def page_signal_research_lab(df: pd.DataFrame, tickers: list[str], benchmark_df: pd.DataFrame, target_ticker: str) -> None:
+    from src.ml import signal_features, signal_targets, signal_modeling, signal_walk_forward, signal_engine, models, evaluation
+    from src.visualization import ml_plots
+    from src import config
+    import numpy as np
+    
+    # -------------------------------------------------------------------------
+    # SECTION 1: Header
+    # -------------------------------------------------------------------------
+    st.markdown("<h2 class='finsight-title'>Signal Research Lab</h2>", unsafe_allow_html=True)
+    st.markdown("<div class='finsight-subtitle'>Institutional-style ML diagnostics for equities and ETFs.</div>", unsafe_allow_html=True)
+    st.caption("Educational quantitative research dashboard. Not financial advice.")
+    
+    if not tickers:
+        st.warning("Please load at least one ticker to begin.")
+        return
+
+    # -------------------------------------------------------------------------
+    # SECTION 2: Ticker and Benchmark Controls
+    # -------------------------------------------------------------------------
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Signal Research Controls")
+    
+    if target_ticker not in tickers:
+        st.error(f"Selected ticker {target_ticker} has no loaded data. Please click 'Load / Refresh Data'.")
+        return
+        
+    ticker = target_ticker
+    display_name = config.get_display_name(ticker)
+    
+    default_bench = config.get_default_benchmark(ticker)
+    available_benchmarks = list(benchmark_df["Ticker"].unique()) if not benchmark_df.empty else []
+    if default_bench not in available_benchmarks and available_benchmarks:
+        default_bench = available_benchmarks[0]
+        
+    benchmark_choice = st.sidebar.selectbox(
+        "Select Benchmark (for relative features)", 
+        options=available_benchmarks if available_benchmarks else [default_bench],
+        index=available_benchmarks.index(default_bench) if default_bench in available_benchmarks else 0
+    )
+    
+    target_map = {
+        "Next-day Direction": ("target_direction", 1),
+        "Strong Up Move": ("target_strong_up", 1),
+        "Strong Down Move": ("target_strong_down", 1),
+        "Risk Event": ("target_risk_event", 1)
+    }
+    target_choice = st.sidebar.selectbox("Prediction Target", list(target_map.keys()))
+    horizon = st.sidebar.selectbox("Horizon (days)", [1, 3, 5])
+    
+    test_size = st.sidebar.slider("Test Size", 0.1, 0.4, 0.2)
+    use_wf = st.sidebar.checkbox("Run Walk-Forward Validation", value=True)
+    use_regime = st.sidebar.checkbox("Use Regime Features", value=False)
+    
+    bullish_threshold = st.sidebar.slider("Bullish Threshold", 0.50, 0.70, 0.57)
+    bearish_threshold = st.sidebar.slider("Bearish Threshold", 0.30, 0.50, 0.43)
+    
+    run_signal = st.button("Run Signal Research", type="primary")
+    
+    st.markdown(f"### {display_name} Signal Research Lab")
+    st.markdown(f"**Ticker**: `{ticker}` | **Benchmark**: `{benchmark_choice}`")
+    
+    if run_signal:
+        target_col_base, _ = target_map[target_choice]
+        
+        # Isolate Asset
+        asset_df = df[df["Ticker"] == ticker].copy().sort_values("Date").reset_index(drop=True)
+        if asset_df.empty:
+            st.error(f"Data not found for {ticker}.")
+            return
+            
+        # Isolate Benchmark
+        b_df = benchmark_df[benchmark_df["Ticker"] == benchmark_choice].copy() if not benchmark_df.empty else pd.DataFrame()
+        
+        with st.spinner("Generating institutional features..."):
+            feat_df = signal_features.create_signal_research_features(asset_df, benchmark_df=b_df, ticker=ticker)
+            
+        if feat_df.empty:
+            st.error("Failed to generate features. Check data quality.")
+            return
+
+        with st.spinner("Building Targets..."):
+            ml_df = signal_targets.create_signal_research_targets(feat_df, horizon=horizon)
+            
+        target_col = target_col_base
+        
+        
+        if use_regime:
+            from src import regime as regime_mod
+            with st.spinner("Generating regime features..."):
+                reg_feat = regime_mod.create_regime_features(asset_df, benchmark_df=b_df)
+                reg_cols = regime_mod.get_regime_feature_columns(reg_feat)
+                
+                if regime_mod.is_hmmlearn_available():
+                    reg_df = regime_mod.run_hmm_regime_detection(reg_feat, reg_cols, n_states=4)
+                    state_col, prob_col = "hmm_state", "hmm_state_probability"
+                else:
+                    reg_df = regime_mod.run_gmm_regime_detection(reg_feat, reg_cols, n_states=4)
+                    state_col, prob_col = "gmm_state", "gmm_state_probability"
+                    
+                reg_summary = regime_mod.summarize_regime_states(reg_df, state_col)
+                labels = regime_mod.label_regime_states(reg_summary)
+                reg_df = regime_mod.map_regime_labels_to_rows(reg_df, state_col, labels)
+                current_reg_summary = regime_mod.calculate_current_regime_summary(reg_df, probability_col=prob_col)
+                
+                ml_df = regime_mod.add_regime_features_to_ml_dataset(ml_df, reg_df)
+                
+        feature_cols = [c for c in ml_df.columns if pd.api.types.is_numeric_dtype(ml_df[c])]
+        exclude_cols = ["Date", "Ticker", "Open", "High", "Low", "Close", "Volume", "target_return_1d", "target_return_3d", "target_return_5d",
+                        "target_direction", "target_strong_up", "target_strong_down", "target_risk_event"]
+        feature_cols = [c for c in feature_cols if c not in exclude_cols]
+        
+        # Drop missing targets and features
+        ml_df = ml_df.dropna(subset=[target_col] + feature_cols).reset_index(drop=True)
+        
+        if ml_df.empty or len(ml_df) < 50:
+            st.error("Not enough data to train the model after dropping missing values.")
+            return
+        
+        with st.spinner("Training Ensemble..."):
+            suite_results = signal_modeling.train_signal_model_suite(
+                ml_df, feature_cols, target_col, test_size=test_size, ticker=ticker
+            )
+            
+        res_df = suite_results["model_results"]
+        best_model_name = suite_results["best_model_name"]
+        
+        signal_data = suite_results["institutional_signal"]
+        
+        # -------------------------------------------------------------------------
+        # SECTION 3: Market Context Strip
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Market Context Strip")
+        latest = feat_df.iloc[-1]
+        
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Latest Close", _fmt_num(latest.get("Close", 0)))
+        c2.metric("1D Return", _fmt_pct(latest.get("simple_return", 0)))
+        c3.metric("5D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-6].get("Close", 1)) - 1 if len(feat_df) > 5 else 0))
+        c4.metric("20D Return", _fmt_pct((latest.get("Close", 0) / feat_df.iloc[-21].get("Close", 1)) - 1 if len(feat_df) > 20 else 0))
+        c5.metric("20D Realized Vol", _fmt_pct(latest.get("realized_vol_20", 0)))
+        
+        c6, c7, c8, c9, c10 = st.columns(5)
+        c6.metric("Drawdown from 52W High", _fmt_pct(latest.get("drawdown_from_252_high", 0)))
+        c7.metric("Trend Regime", latest.get("trend_regime", "Unknown"))
+        c8.metric("Volatility Regime", latest.get("volatility_regime", "Unknown"))
+        
+        if "asset_minus_benchmark_return" in latest and pd.notna(latest["asset_minus_benchmark_return"]):
+            rel_ret = latest["asset_minus_benchmark_return"]
+            c9.metric("Rel Return vs Benchmark", _fmt_pct(rel_ret))
+        else:
+            c9.metric("Rel Return vs Benchmark", "N/A")
+            
+        if "rolling_beta_60" in latest and pd.notna(latest["rolling_beta_60"]):
+            c10.metric("Rolling Beta (60D)", _fmt_num(latest["rolling_beta_60"]))
+        else:
+            c10.metric("Rolling Beta (60D)", "N/A")
+        
+        # -------------------------------------------------------------------------
+        # SECTION 4: Executive Signal Summary
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Executive Signal Summary")
+        
+        sc1, sc2, sc3, sc4 = st.columns(4)
+        sig = signal_data["signal"]
+        color = "green" if sig == "Bullish" else "red" if sig == "Bearish" else "gray"
+        sc1.markdown(f"**Final Research Signal**: <span style='color:{color}; font-size:1.2em;'>{sig}</span>", unsafe_allow_html=True)
+        sc2.markdown(f"**Research Confidence**: {signal_data['research_confidence']}")
+        sc3.markdown(f"**Raw Probability (Up)**: {_fmt_pct(signal_data['raw_probability_up'])}")
+        sc4.markdown(f"**Validation-Adjusted Prob**: {_fmt_pct(signal_data['calibrated_probability_up'])}")
+        
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        mc1.metric("Best Model Used", best_model_name)
+        
+        roc = suite_results["best_model_metrics"]["roc_auc"]
+        mc2.metric("ROC-AUC", _fmt_pct(roc))
+        mc3.metric("F1 Score", _fmt_pct(suite_results["best_model_metrics"]["f1_score"]))
+        
+        edge = suite_results["model_edge"]
+        mc4.metric("Model Edge vs Baseline", f"{edge*100:+.1f}%")
+        
+        if not signal_data["is_signal_allowed"]:
+            st.error("⚠️ **Signal suppressed because validation edge is weak.**")
+            
+        st.info(signal_data["explanation"])
+
+        if use_regime:
+            adj_signal_data = regime_mod.adjust_signal_for_regime(signal_data, current_reg_summary)
+            st.markdown("---")
+            st.subheader("Regime Adjustment")
+            r1, r2, r3 = st.columns(3)
+            r1.metric("Current Regime", adj_signal_data["current_regime"])
+            r2.metric("Regime Risk Level", current_reg_summary.get("current_regime_risk_level", "Unknown"))
+            
+            sig2 = adj_signal_data["regime_adjusted_signal"]
+            color2 = "green" if sig2 == "Bullish" else "red" if sig2 == "Bearish" else "gray"
+            r3.markdown(f"**Adjusted Signal**: <span style='color:{color2}; font-size:1.2em;'>{sig2}</span>", unsafe_allow_html=True)
+            
+            st.info(adj_signal_data["regime_adjustment_reason"])
+            
+            # Use adjusted signal for interpreting
+            sig = sig2
+        
+            
+        # -------------------------------------------------------------------------
+        # SECTION 5: Confidence Diagnostics
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Confidence Diagnostics")
+        dc1, dc2, dc3, dc4 = st.columns(4)
+        dc1.metric("Raw Probability Up", _fmt_pct(signal_data['raw_probability_up']))
+        dc2.metric("Calibrated Probability", _fmt_pct(signal_data['calibrated_probability_up']))
+        dc3.metric("Brier Score", _fmt_num(suite_results["brier_score"]))
+        dc4.metric("Baseline Accuracy", _fmt_pct(suite_results["baseline_accuracy"]))
+        
+        # -------------------------------------------------------------------------
+        # SECTION 6: Model Performance Scorecard
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Model Performance Scorecard")
+        st.plotly_chart(ml_plots.plot_model_scorecard(res_df), use_container_width=True)
+        
+        # -------------------------------------------------------------------------
+        # SECTION 7: Walk-Forward Validation
+        # -------------------------------------------------------------------------
+        if use_wf:
+            st.markdown("---")
+            st.subheader("Walk-Forward Validation")
+            with st.spinner("Running walk-forward cross-validation..."):
+                wf_df = signal_walk_forward.run_signal_walk_forward_validation(
+                    ml_df, feature_cols, target_col, best_model_name,
+                    initial_train_size=1-test_size, step_size=20, ticker=ticker
+                )
+            
+            if not wf_df.empty:
+                wf_acc = (wf_df["y_true"] == wf_df["y_pred"]).mean()
+                wc1, wc2, wc3 = st.columns(3)
+                wc1.metric("WF Accuracy", _fmt_pct(wf_acc))
+                wc2.metric("Number of Folds", wf_df["fold"].nunique())
+                wc3.metric("Test Samples", len(wf_df))
+                
+                left, right = st.columns(2)
+                with left:
+                    st.plotly_chart(ml_plots.plot_walk_forward_fold_metrics(wf_df), use_container_width=True)
+                with right:
+                    hit_rate = evaluation.calculate_rolling_hit_rate(wf_df["y_true"], wf_df["y_pred"], window=30)
+                    st.plotly_chart(ml_plots.plot_rolling_hit_rate(wf_df["Date"], hit_rate), use_container_width=True)
+                    
+        # -------------------------------------------------------------------------
+        # SECTION 8: Feature Intelligence
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Feature Intelligence")
+        st.caption("Feature importance shows which signals the model used most, not guaranteed causal drivers.")
+        
+        fi = suite_results["feature_importance"]
+        f1, f2 = st.columns(2)
+        with f1:
+            st.plotly_chart(ml_plots.plot_feature_importance(fi.head(15)), use_container_width=True)
+        with f2:
+            st.plotly_chart(ml_plots.plot_feature_group_importance(fi), use_container_width=True)
+            
+        # -------------------------------------------------------------------------
+        # SECTION 9: Signal Timeline
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Signal Timeline")
+        
+        y_test_probs = pd.Series(suite_results["y_pred_proba"], index=suite_results["X_test"].index)
+        dates = ml_df.loc[suite_results["X_test"].index, "Date"] if "Date" in ml_df.columns else suite_results["X_test"].index
+        
+        t1, t2 = st.columns(2)
+        with t1:
+            st.plotly_chart(ml_plots.plot_signal_probability_timeline(dates, y_test_probs, bullish_threshold, bearish_threshold), use_container_width=True)
+        with t2:
+            # If signal is suppressed, pass neutral thresholds to hide markers
+            if not signal_data["is_signal_allowed"]:
+                b_thresh, br_thresh = 1.1, -0.1
+            else:
+                b_thresh, br_thresh = bullish_threshold, bearish_threshold
+            st.plotly_chart(ml_plots.plot_price_with_signal(ml_df.loc[suite_results["X_test"].index], y_test_probs, b_thresh, br_thresh), use_container_width=True)
+            
+        # -------------------------------------------------------------------------
+        # SECTION 10: Error Diagnostics
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Error Diagnostics")
+        
+        d1, d2 = st.columns(2)
+        with d1:
+            st.plotly_chart(ml_plots.plot_classification_confusion_matrix(suite_results["y_test"], suite_results["y_pred"]), use_container_width=True)
+        with d2:
+            st.plotly_chart(ml_plots.plot_confidence_distribution(y_test_probs), use_container_width=True)
+            
+        # -------------------------------------------------------------------------
+        # SECTION 11: Professional Interpretation
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Professional Interpretation")
+        
+        grouped = fi.copy()
+        def get_group(name):
+            name = name.lower()
+            if "return" in name: return "Momentum/Returns"
+            if "vol" in name: return "Volatility"
+            if "ma_" in name or "ema_" in name: return "Trend"
+            if "volume" in name: return "Volume"
+            if "rsi" in name or "macd" in name or "bollinger" in name: return "Technicals"
+            if "benchmark" in name or "relative" in name or "beta" in name: return "Relative Value"
+            return "Other"
+        grouped["group"] = grouped["feature"].apply(get_group)
+        top_groups = grouped.groupby("group")["importance"].sum().nlargest(2).index.tolist()
+        
+        interp_text = (
+            f"The current model shows **{sig}** for {ticker}. "
+        )
+        if not signal_data["is_signal_allowed"]:
+            interp_text += (
+                f"Although the latest raw probability is {signal_data['raw_probability_up']*100:.0f}%, "
+                f"out-of-sample ROC-AUC is only {roc*100:.1f}%, so the signal is suppressed. "
+            )
+        else:
+            interp_text += (
+                f"The model demonstrates a solid edge with a ROC-AUC of **{roc*100:.1f}%**, "
+                f"making this a robust quantitative signal. "
+            )
+            
+        if len(top_groups) >= 2:
+            interp_text += f"The strongest feature groups are {top_groups[0]} and {top_groups[1]}. "
+            
+        interp_text += "This should be treated as a research diagnostic, not a trading signal."
+            
+        st.info(interp_text)
+        
+        # -------------------------------------------------------------------------
+        # SECTION 12: Limitations
+        # -------------------------------------------------------------------------
+        st.markdown("---")
+        st.subheader("Limitations")
+        st.markdown(
+            "- **Edge vs Randomness:** Model performance close to random chance (ROC-AUC ~ 50%) means no reliable edge. Market noise often outweighs signal.\n"
+            "- **Missing Context:** Missing macro, news, options IV, and earnings data may limit signal quality.\n"
+            "- **Regime Shifts:** Financial markets experience structural breaks. Models trained during bull markets may perform poorly in bear regimes.\n"
+            "- **Execution Reality:** Transaction costs, slippage, bid-ask spread, and taxes are not included.\n"
+            "- **Educational Purpose:** This dashboard is strictly a quantitative research tool and does not constitute financial advice."
+        )
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -875,7 +1567,6 @@ def main() -> None:
                     # separate so it never appears as an analyzed asset.
                     benchmarks = sorted(
                         {config.get_default_benchmark_for_ticker(t) for t in tickers}
-                        - set(tickers)
                     )
                     benchmark_df = (
                         load_data(tuple(benchmarks), str(settings["start_date"]), str(settings["end_date"]))
@@ -942,6 +1633,12 @@ def main() -> None:
         page_option_pricing()
     elif page == "Monte Carlo Risk Lab":
         page_monte_carlo(df, present)
+    elif page == "Portfolio Optimization Lab":
+        page_portfolio_optimization(df, present)
+    elif page == "Signal Research Lab":
+        page_signal_research_lab(df, present, benchmark_df, str(settings["single_ticker"]))
+    elif page == "Market Regime Lab":
+        page_market_regime_lab(df, present, benchmark_df, str(settings["single_ticker"]))
 
 
 def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:

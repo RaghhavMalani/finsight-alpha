@@ -68,6 +68,26 @@ ALL_TICKERS: list[str] = INDIAN_TICKERS + US_TICKERS
 # The default selection shown when the dashboard first loads.
 DEFAULT_TICKERS: list[str] = ["AAPL", "MSFT", "NVDA", "RELIANCE.NS", "TCS.NS", "SPY"]
 
+# Example portfolios for Portfolio Optimization Engine (Phase 5)
+INDIAN_PORTFOLIO_TICKERS: list[str] = [
+    "RELIANCE.NS",
+    "TCS.NS",
+    "HDFCBANK.NS",
+    "INFY.NS",
+    "ICICIBANK.NS",
+    "NIFTYBEES.NS",
+]
+
+US_PORTFOLIO_TICKERS: list[str] = [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "JPM",
+    "BLK",
+    "SPY",
+    "QQQ",
+]
+
 # ---------------------------------------------------------------------------
 # Ticker -> sector mapping
 # ---------------------------------------------------------------------------
@@ -147,18 +167,22 @@ BENCHMARK_INDIA: str = "NIFTYBEES.NS"
 BENCHMARK_US: str = "SPY"
 
 
-def get_default_benchmark_for_ticker(ticker: str) -> str:
-    """Return the default market benchmark ticker for a given symbol.
+DEFAULT_BENCHMARKS = {
+    "INDIA": "NIFTYBEES.NS",
+    "US": "SPY"
+}
 
-    Logic
-    -----
-    * Indian tickers (Yahoo suffix ``.NS``) -> :data:`BENCHMARK_INDIA`
-      (``NIFTYBEES.NS``).
-    * Everything else -> :data:`BENCHMARK_US` (``SPY``).
-    """
+
+def get_default_benchmark(ticker: str) -> str:
+    """Return the default market benchmark ticker for a given symbol."""
     if str(ticker).upper().endswith(".NS"):
-        return BENCHMARK_INDIA
-    return BENCHMARK_US
+        return DEFAULT_BENCHMARKS["INDIA"]
+    return DEFAULT_BENCHMARKS["US"]
+
+
+def get_default_benchmark_for_ticker(ticker: str) -> str:
+    """Return the default market benchmark ticker for a given symbol."""
+    return get_default_benchmark(ticker)
 
 
 # ---------------------------------------------------------------------------
