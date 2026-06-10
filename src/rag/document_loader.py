@@ -14,7 +14,9 @@ except ImportError:
 
 def load_pdf_document(file_path: str) -> List[Dict[str, Any]]:
     """Load a PDF document into a list of page dictionaries."""
-    if PdfReader is None:
+    try:
+        from pypdf import PdfReader
+    except ImportError:
         raise ImportError("pypdf is required to read PDFs. Install with `pip install pypdf`.")
         
     pages = []
@@ -55,7 +57,9 @@ def load_txt_document(file_path: str) -> List[Dict[str, Any]]:
 
 def load_docx_document(file_path: str) -> List[Dict[str, Any]]:
     """Load a DOCX document. Treats the entire file as one 'page'."""
-    if docx is None:
+    try:
+        import docx
+    except ImportError:
         raise ImportError("python-docx is required to read DOCX files. Install with `pip install python-docx`.")
         
     file_name = Path(file_path).name
