@@ -1754,11 +1754,31 @@ def page_financial_document_intelligence() -> None:
                         max_downloads=max_downloads,
                         respect_robots=respect_robots
                     )
+                    from src.rag.source_health import record_source_status, summarize_source_health
+                    
+                    health_records = []
+                    success_count = 0
+                    
                     for r in results:
+                        source = r["candidate"].get("source_name", "Unknown")
+                        url = r["result"]["url"]
+                        
                         if r["result"]["success"]:
+                            success_count += 1
                             st.success(f"Downloaded: {r['result']['local_path']}")
+                            health_records.append(record_source_status(source, "Success", "Download successful", url))
                         else:
-                            st.error(f"Failed to download from {r['result']['url']}: {r['result']['message']}")
+                            msg = r['result']['message']
+                            status_label = "Blocked by robots.txt" if "robots.txt" in msg.lower() else "Failed"
+                            health_records.append(record_source_status(source, status_label, msg, url))
+                            
+                    if success_count < len(selected_candidates):
+                        st.warning(f"Successfully downloaded {success_count} out of {len(selected_candidates)} documents. Some sources restrict automated downloads.")
+                        
+                    if health_records:
+                        summary_df = summarize_source_health(health_records)
+                        st.markdown("##### Source Health Summary")
+                        st.dataframe(summary_df, hide_index=True, use_container_width=True)
                             
     st.markdown("---")
     
