@@ -252,7 +252,7 @@ finsight-alpha/
 
 ## Future phases
 
-- **Phase 8** - RAG financial assistant over filings/news.
+- **Phase 8**: Financial Document Intelligence (RAG engine, auto document discovery, factor extraction).
 - **Phase 9** - Optional cloud deployment (revisited later).
 
 > **Note:** Cloud deployment is **paused for now to avoid cost**. The project is

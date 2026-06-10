@@ -1673,13 +1673,97 @@ def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
 # RAG Page
 # -------------------------------------------------------------------------
 def page_financial_document_intelligence() -> None:
+    import pandas as pd
     st.markdown("<h2 class='finsight-title'>Financial Document Intelligence</h2>", unsafe_allow_html=True)
     st.markdown("<div class='finsight-subtitle'>RAG-based financial research assistant and factor extraction engine.</div>", unsafe_allow_html=True)
     
     st.markdown("---")
     
     # -------------------------------------------------------------------------
-    # SECTION 2: Document Upload
+    # SECTION 1: Auto Document Discovery
+    # -------------------------------------------------------------------------
+    st.subheader("Auto Document Discovery")
+    with st.expander("Search for Documents", expanded=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            disc_ticker = st.selectbox("Ticker", config.ALL_TICKERS, key="disc_ticker")
+            disc_company = st.text_input("Company Name (Optional)", placeholder="e.g. Reliance Industries")
+            
+        with col2:
+            disc_sources = st.multiselect("Sources", ["company_ir", "screener", "nse", "bse", "web_search"], default=["company_ir", "screener"])
+            disc_types = st.multiselect("Document Types", ["annual_report", "quarterly_result", "investor_presentation", "earnings_transcript"], default=["annual_report", "earnings_transcript"])
+            
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            max_candidates = st.number_input("Max Candidates", min_value=1, max_value=50, value=25)
+        with c2:
+            max_downloads = st.number_input("Max Downloads", min_value=1, max_value=10, value=3)
+        with c3:
+            respect_robots = st.checkbox("Respect robots.txt", value=True)
+            
+        if st.button("Discover Documents"):
+            from src.rag.document_discovery import discover_financial_documents
+            with st.spinner("Discovering documents..."):
+                candidates = discover_financial_documents(
+                    ticker=disc_ticker,
+                    company_name=disc_company,
+                    sources=disc_sources,
+                    document_types=disc_types,
+                    max_candidates=max_candidates,
+                    respect_robots=respect_robots
+                )
+                if candidates:
+                    st.session_state["disc_candidates"] = candidates
+                    st.success(f"Found {len(candidates)} candidate documents.")
+                else:
+                    st.warning("No candidate documents found.")
+                    
+    if "disc_candidates" in st.session_state and st.session_state["disc_candidates"]:
+        st.markdown("#### Discovered Candidates")
+        
+        candidates = st.session_state["disc_candidates"]
+        
+        df_c = pd.DataFrame(candidates)
+        df_c["Select"] = False
+        
+        cols = ["Select", "title", "source_name", "document_type", "confidence", "downloadable", "document_url"]
+        df_c = df_c[[c for c in cols if c in df_c.columns]]
+        
+        edited_df = st.data_editor(
+            df_c,
+            column_config={
+                "Select": st.column_config.CheckboxColumn("Download", default=False),
+                "document_url": st.column_config.LinkColumn("URL")
+            },
+            hide_index=True,
+            key="disc_editor"
+        )
+        
+        if st.button("Download Selected Documents", type="primary"):
+            selected_indices = edited_df[edited_df["Select"] == True].index.tolist()
+            selected_candidates = [candidates[i] for i in selected_indices]
+            
+            if not selected_candidates:
+                st.warning("Please select at least one document to download.")
+            else:
+                from src.rag.download_manager import download_documents_batch
+                with st.spinner(f"Downloading {len(selected_candidates)} documents..."):
+                    results = download_documents_batch(
+                        selected_candidates,
+                        output_dir=f"data/documents",
+                        max_downloads=max_downloads,
+                        respect_robots=respect_robots
+                    )
+                    for r in results:
+                        if r["result"]["success"]:
+                            st.success(f"Downloaded: {r['result']['local_path']}")
+                        else:
+                            st.error(f"Failed to download from {r['result']['url']}: {r['result']['message']}")
+                            
+    st.markdown("---")
+    
+    # -------------------------------------------------------------------------
+    # SECTION 2: Manual Document Upload
     # -------------------------------------------------------------------------
     st.subheader("Document Upload & Processing")
     
@@ -1751,6 +1835,54 @@ def page_financial_document_intelligence() -> None:
     # -------------------------------------------------------------------------
     # SECTION 3: Document Library
     # -------------------------------------------------------------------------
+    st.subheader("Document Library")
+    import glob, json
+    import pandas as pd
+    
+    st.markdown("#### Local Document Files")
+    doc_meta = []
+    for meta_file in glob.glob("data/documents/**/*.meta.json", recursive=True):
+        try:
+            with open(meta_file, 'r') as f:
+                meta = json.load(f)
+                doc_meta.append(meta)
+        except:
+            pass
+            
+    if doc_meta:
+        df_meta = pd.DataFrame(doc_meta)
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            tickers_meta = df_meta['ticker'].dropna().unique().tolist()
+            f_ticker = st.multiselect("Filter Ticker", tickers_meta)
+        with c2:
+            if 'content_type' in df_meta.columns:
+                types_meta = df_meta['content_type'].dropna().unique().tolist()
+                f_type = st.multiselect("Filter Type", types_meta)
+            else:
+                f_type = []
+        with c3:
+            if 'source_name' in df_meta.columns:
+                sources_meta = df_meta['source_name'].dropna().unique().tolist()
+                f_source = st.multiselect("Filter Source", sources_meta)
+            else:
+                f_source = []
+            
+        df_filtered = df_meta.copy()
+        if f_ticker:
+            df_filtered = df_filtered[df_filtered['ticker'].isin(f_ticker)]
+        if f_type:
+            df_filtered = df_filtered[df_filtered['content_type'].isin(f_type)]
+        if f_source:
+            df_filtered = df_filtered[df_filtered['source_name'].isin(f_source)]
+            
+        st.dataframe(df_filtered, use_container_width=True)
+    else:
+        st.info("No discovered documents in data/documents/ yet.")
+        
+    st.markdown("#### RAG Index Summary")
+    
     from src.rag.vector_store import LocalVectorStore
     
     if "rag_store" not in st.session_state:
@@ -1764,7 +1896,6 @@ def page_financial_document_intelligence() -> None:
         vs = st.session_state["rag_store"]
         chunks = st.session_state.get("rag_chunks", [])
         
-        st.subheader("Document Library")
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Chunks", len(chunks))
         
@@ -1777,7 +1908,7 @@ def page_financial_document_intelligence() -> None:
         types = list(set(c.get("document_type", "unknown") for c in chunks))
         col4.metric("Document Types", len(types))
         
-        with st.expander("View Source Files"):
+        with st.expander("View Source Files in Index"):
             st.write(sources)
             
         st.markdown("---")
