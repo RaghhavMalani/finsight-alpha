@@ -171,7 +171,7 @@ DEFAULT_BENCHMARKS = {
     "INDIA": "NIFTYBEES.NS",
     "US": "SPY"
 }
-
+    
 
 def get_default_benchmark(ticker: str) -> str:
     """Return the default market benchmark ticker for a given symbol."""

@@ -22,6 +22,28 @@ hmmlearn
 # --- Local storage (Parquet engine) ---
 pyarrow
 
+# --- RAG Financial Document Intelligence ---
+pypdf
+python-docx
+sentence-transformers
+faiss-cpu
+chromadb
+rank-bm25
+tqdm
+requests
+beautifulsoup4
+lxml
+urllib3
+tldextract
+# googlesearch-python
+# duckduckgo-search
+# Optional local/cloud LLMs (the RAG answer engine works without any of these
+# via local Ollama over HTTP; install only the one you want to use):
+# ollama                 # local models, free  (run `ollama serve`, then `ollama pull llama3.1`)
+# openai                 # set OPENAI_API_KEY
+# anthropic              # set ANTHROPIC_API_KEY
+# google-generativeai    # set GOOGLE_API_KEY
+
 # --- Config & environment ---
 python-dotenv
 

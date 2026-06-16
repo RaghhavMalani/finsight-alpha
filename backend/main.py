@@ -22,8 +22,12 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
-from backend.routes import analytics, assets, health, market_data
+from backend.routes import (
+    analytics, assets, graph, health, market_data,
+    news, portfolio, pricing, quote, research, risk,
+)
 from src import config
 from src.utils.logging_utils import get_logger
 
@@ -50,6 +54,23 @@ app.include_router(health.router)
 app.include_router(assets.router)
 app.include_router(market_data.router)
 app.include_router(analytics.router)
+app.include_router(graph.router)
+app.include_router(quote.router)
+app.include_router(research.router)
+app.include_router(pricing.router)
+app.include_router(risk.router)
+app.include_router(news.router)
+app.include_router(portfolio.router)
+
+
+# Serve the terminal front-end (single-page app) from FastAPI so it shares the
+# API's origin (no CORS friction). Open http://127.0.0.1:8000/terminal
+_FRONTEND = PROJECT_ROOT / "frontend" / "terminal.html"
+
+
+@app.get("/terminal", include_in_schema=False)
+def terminal() -> FileResponse:
+    return FileResponse(str(_FRONTEND))
 
 
 @app.get("/", tags=["system"])
