@@ -26,7 +26,7 @@ from fastapi.responses import FileResponse
 
 from backend.routes import (
     analytics, assets, graph, health, market_data,
-    pricing, quote, research, risk,
+    news, portfolio, pricing, quote, research, risk,
 )
 from src import config
 from src.utils.logging_utils import get_logger
@@ -59,6 +59,8 @@ app.include_router(quote.router)
 app.include_router(research.router)
 app.include_router(pricing.router)
 app.include_router(risk.router)
+app.include_router(news.router)
+app.include_router(portfolio.router)
 
 
 # Serve the terminal front-end (single-page app) from FastAPI so it shares the

@@ -109,6 +109,42 @@ def get_quote(
     ret_clean = rets.replace([np.inf, -np.inf], np.nan).dropna()
     counts, edges = np.histogram(ret_clean.to_numpy(), bins=40) if len(ret_clean) else ([], [0, 1])
 
+    ema12 = close.ewm(span=12, adjust=False).mean()
+    ema26 = close.ewm(span=26, adjust=False).mean()
+    macd = ema12 - ema26
+    macd_signal = macd.ewm(span=9, adjust=False).mean()
+    stats_extra = {
+        "avg_daily": _f(ret_clean.mean()),
+        "pct_up": _f((ret_clean > 0).mean()),
+        "best_day": _f(ret_clean.max()),
+        "worst_day": _f(ret_clean.min()),
+        "n_days": int(len(close)),
+        "sma20": _f(close.rolling(20).mean().iloc[-1]),
+        "sma50": _f(close.rolling(50).mean().iloc[-1]),
+        "sma200": _f(close.rolling(200).mean().iloc[-1]),
+        "macd": _f(macd.iloc[-1]),
+        "macd_signal": _f(macd_signal.iloc[-1]),
+        "macd_hist": _f((macd - macd_signal).iloc[-1]),
+    }
+
+    r = ret_clean.to_numpy()
+    if len(r) > 3:
+        mu_ = float(r.mean())
+        sd = float(r.std()) or 1e-9
+        p5 = float(np.percentile(r, 5))
+        tail = r[r <= p5]
+        dist = {
+            "mean": _f(mu_), "std": _f(sd),
+            "skew": _f(((r - mu_) ** 3).mean() / sd ** 3),
+            "kurtosis": _f(((r - mu_) ** 4).mean() / sd ** 4 - 3.0),
+            "var95": _f(-p5),
+            "cvar95": _f(-tail.mean()) if len(tail) else None,
+            "p1": _f(np.percentile(r, 1)),
+            "p99": _f(np.percentile(r, 99)),
+        }
+    else:
+        dist = {}
+
     return {
         "ticker": ticker.upper(),
         "name": config.get_display_name(ticker),
@@ -131,4 +167,6 @@ def get_quote(
             "centers": [float(0.5 * (edges[i] + edges[i + 1])) for i in range(len(counts))],
             "counts": [int(c) for c in counts],
         },
+        "stats": stats_extra,
+        "dist": dist,
     }
