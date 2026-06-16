@@ -19,18 +19,22 @@ import plotly.graph_objects as go
 # Color palette (dark finance terminal)
 # ---------------------------------------------------------------------------
 COLORS: dict[str, str] = {
-    "background": "#0e1117",      # app background (near-black navy)
-    "surface": "#161b26",         # card background
-    "surface_alt": "#1c2230",     # hover / alt rows
-    "border": "#2a3142",          # soft borders
-    "text": "#e6e9ef",            # primary text
-    "text_muted": "#9aa4b8",      # secondary text
+    "background": "#000000",      # pure black terminal background
+    "surface": "#0a0d12",         # card background (near-black)
+    "surface_alt": "#12161d",     # hover / alt rows
+    "border": "#222834",          # crisp, subtle borders
+    "text": "#e8ecf3",            # primary text
+    "text_muted": "#8b95a7",      # secondary text
     "accent": "#4c8bf5",          # primary accent (blue)
+    "accent_amber": "#f5a623",    # terminal amber accent
     "positive": "#26c281",        # gains (green)
     "negative": "#ef5350",        # losses (red)
-    "neutral": "#9aa4b8",         # neutral grey
-    "grid": "#222a39",            # chart gridlines
+    "neutral": "#8b95a7",         # neutral grey
+    "grid": "#141922",            # chart gridlines (very dark)
 }
+
+# Monospaced stack for figures/tickers - the terminal feel.
+MONO_FONT: str = '"JetBrains Mono", "SF Mono", "Consolas", "Roboto Mono", monospace'
 
 # Ordered categorical palette for multi-series charts (muted, professional).
 CATEGORICAL_PALETTE: list[str] = [
@@ -109,20 +113,25 @@ def apply_streamlit_theme() -> str:
     div[data-testid="stMetric"] {{
         background-color: {COLORS['surface']};
         border: 1px solid {COLORS['border']};
-        border-radius: 12px;
-        padding: 16px 18px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+        border-left: 2px solid {COLORS['accent_amber']};
+        border-radius: 8px;
+        padding: 14px 16px;
     }}
     div[data-testid="stMetric"] label {{
         color: {COLORS['text_muted']};
-        font-size: 0.8rem;
+        font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.8px;
     }}
     div[data-testid="stMetricValue"] {{
         color: {COLORS['text']};
-        font-weight: 700;
+        font-weight: 600;
+        font-family: {MONO_FONT};
+        font-size: 1.45rem;
+        letter-spacing: -0.3px;
     }}
+    /* Monospace numbers in tables too, for the terminal look */
+    .stDataFrame td {{ font-family: {MONO_FONT}; font-size: 0.82rem; }}
 
     /* Generic card wrapper (use with st.markdown) */
     .finsight-card {{
@@ -178,8 +187,8 @@ def plotly_layout(title: str | None = None, **overrides: Any) -> dict[str, Any]:
         A layout dict suitable for ``fig.update_layout(**plotly_layout(...))``.
     """
     layout: dict[str, Any] = {
-        "paper_bgcolor": COLORS["surface"],
-        "plot_bgcolor": COLORS["surface"],
+        "paper_bgcolor": COLORS["background"],
+        "plot_bgcolor": COLORS["background"],
         "font": {"family": FONT_FAMILY, "color": COLORS["text"], "size": 13},
         "title": {
             "text": title or "",

@@ -78,12 +78,43 @@ PAGES = [
     "Risk Summary",
     "Data Quality Report",
     "Option Pricing Lab",
+    "Volatility Surface",
     "Monte Carlo Risk Lab",
     "Portfolio Optimization Lab",
     "Signal Research Lab",
     "Market Regime Lab",
     "AI Equity Research Terminal",
 ]
+
+# Security-centric grouping: collapse the flat 14-item list into a few sections
+# so the terminal reads like a trader's workstation, not a settings menu. The
+# single-stock views come first (the default focus).
+PAGE_GROUPS: dict[str, list[str]] = {
+    "Stock Focus": [
+        "Single Asset Analysis",
+        "AI Equity Research Terminal",
+        "Option Pricing Lab",
+        "Volatility Surface",
+    ],
+    "Market": [
+        "Market Overview",
+        "Multi-Asset Comparison",
+        "Correlation Heatmap",
+        "Sector Comparison",
+    ],
+    "Risk & Simulation": [
+        "Risk Summary",
+        "Monte Carlo Risk Lab",
+        "Portfolio Optimization Lab",
+    ],
+    "Quant & AI": [
+        "Signal Research Lab",
+        "Market Regime Lab",
+    ],
+    "Data": [
+        "Data Quality Report",
+    ],
+}
 
 UNIVERSE_INDIAN = "Indian Market"
 UNIVERSE_US = "US Market"
@@ -192,17 +223,72 @@ def build_summary(
 
 
 # ---------------------------------------------------------------------------
+# Security header (Bloomberg-style strip for the focused stock)
+# ---------------------------------------------------------------------------
+def render_security_header(df: pd.DataFrame, ticker: str) -> None:
+    """A compact terminal header for the focus stock, shown on every page.
+
+    Renders ticker + name + last price + daily change, then a KPI strip. Fails
+    silently (renders nothing) if the focus ticker has no usable price series.
+    """
+    try:
+        prices = _price_series(df, ticker).dropna()
+        if len(prices) < 2:
+            return
+        last = float(prices.iloc[-1])
+        prev = float(prices.iloc[-2])
+        day_chg = last / prev - 1.0 if prev else 0.0
+        stats = calculate_summary_statistics(prices)
+    except Exception:
+        return
+
+    name = config.get_display_name(ticker)
+    pos = day_chg >= 0
+    chg_color = "#26c281" if pos else "#ef5350"
+    arrow = "▲" if pos else "▼"
+
+    st.markdown(
+        f"""
+        <div style="display:flex;align-items:baseline;gap:14px;background:#0a0d12;
+            border:1px solid #222834;border-left:3px solid #4c8bf5;border-radius:8px;
+            padding:10px 18px;margin-bottom:12px">
+          <span style="font-size:1.4rem;font-weight:700;font-family:monospace;
+              color:#e8ecf3;letter-spacing:0.5px">{ticker}</span>
+          <span style="color:#8b95a7;font-size:0.9rem">{name}</span>
+          <span style="margin-left:auto;font-family:monospace;font-size:1.3rem;
+              color:#e8ecf3">{last:,.2f}</span>
+          <span style="font-family:monospace;font-size:1.0rem;color:{chg_color}">
+              {arrow} {day_chg:+.2%}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    k = st.columns(5)
+    k[0].metric("Total Return", _fmt_pct(stats.get("total_return")))
+    k[1].metric("CAGR", _fmt_pct(stats.get("cagr")))
+    k[2].metric("Ann. Vol", _fmt_pct(stats.get("annualized_volatility")))
+    sharpe = stats.get("sharpe_ratio")
+    k[3].metric("Sharpe", f"{sharpe:.2f}" if sharpe == sharpe else "-")  # NaN-safe
+    k[4].metric("Max Drawdown", _fmt_pct(stats.get("max_drawdown")))
+
+
+# ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
 def render_sidebar() -> dict[str, object]:
     """Render sidebar controls and return the chosen settings."""
     st.sidebar.markdown(
-        "<div class='finsight-title'>FinSight Alpha</div>"
-        "<div class='finsight-subtitle'>AI-Ready Quant Market Analytics Platform</div>",
+        "<div style='font-size:1.35rem;font-weight:700;color:#e8ecf3;letter-spacing:0.3px'>"
+        "FinSight Alpha</div>"
+        "<div style='font-size:0.74rem;color:#8b95a7;text-transform:uppercase;"
+        "letter-spacing:1px;margin-bottom:6px'>Quant Terminal</div>",
         unsafe_allow_html=True,
     )
 
-    page = st.sidebar.radio("Navigation", PAGES, index=0)
+    # Two-level, grouped navigation (section -> page) instead of a flat list.
+    nav_group = st.sidebar.selectbox("Section", list(PAGE_GROUPS.keys()))
+    page = st.sidebar.radio(nav_group, PAGE_GROUPS[nav_group], label_visibility="collapsed")
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("Data Selection")
@@ -838,6 +924,20 @@ def page_monte_carlo(df: pd.DataFrame, tickers: list[str]) -> None:
                 ), use_container_width=True)
                 
             st.plotly_chart(simulation_plots.plot_simulated_return_distribution(sim_returns), use_container_width=True)
+
+            st.markdown("##### 3D Probability Cone")
+            st.caption(
+                "The full distribution of the simulated price as it fans out over "
+                "the horizon. Floor lines mark the 5th / 50th / 95th percentile paths."
+            )
+            from src.simulation.mc_distribution import build_probability_surface
+            from src.visualization import mc_surface_plots
+
+            mc_surface = build_probability_surface(paths, horizon_years=float(T))
+            st.plotly_chart(
+                mc_surface_plots.plot_mc_probability_cone(mc_surface),
+                use_container_width=True,
+            )
             
     st.markdown("---")
     st.subheader("Educational Explanation")
@@ -1629,6 +1729,9 @@ def main() -> None:
     present = [t for t in loaded_tickers if t in set(df["Ticker"].unique())]
     page = settings["page"]
 
+    # Security-centric header: the focus stock travels with you across every page.
+    render_security_header(df, str(settings["single_ticker"]))
+
     if page == "Market Overview":
         page_market_overview(df, present, benchmark_df)
     elif page == "Single Asset Analysis":
@@ -1645,6 +1748,8 @@ def main() -> None:
         page_data_quality(df, present)
     elif page == "Option Pricing Lab":
         page_option_pricing()
+    elif page == "Volatility Surface":
+        page_volatility_surface(present, str(settings["single_ticker"]))
     elif page == "Monte Carlo Risk Lab":
         page_monte_carlo(df, present)
     elif page == "Portfolio Optimization Lab":
@@ -1667,6 +1772,100 @@ def _save_processed(df: pd.DataFrame, tickers: list[str]) -> None:
         storage.save_combined_processed_data(df)
     except Exception:  # saving must never break the UI
         pass
+
+
+# -------------------------------------------------------------------------
+# Volatility Surface Page
+# -------------------------------------------------------------------------
+def page_volatility_surface(present: list[str], default_ticker: str) -> None:
+    """3D implied volatility surface built on the Black-Scholes IV solver.
+
+    Pulls a live option chain from Yahoo when available and falls back to a
+    realistic synthetic surface (so it always renders, including for tickers
+    without listed options). The surface, a smile slice, and the ATM term
+    structure are derived from the same solved IV points.
+    """
+    st.markdown("<h2 class='finsight-title'>Volatility Surface</h2>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='finsight-subtitle'>Implied volatility across strike and "
+        "maturity, solved from option prices via Black-Scholes (Brent's method). "
+        "Live chains from Yahoo Finance; realistic synthetic fallback otherwise."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    options = present or [default_ticker]
+    default_idx = options.index(default_ticker) if default_ticker in options else 0
+
+    c1, c2, c3, c4 = st.columns([2, 1, 1, 1])
+    with c1:
+        ticker = st.selectbox("Underlying", options, index=default_idx)
+    with c2:
+        r = st.number_input("Risk-free rate", value=0.05, min_value=0.0, max_value=0.25, step=0.005, format="%.3f")
+    with c3:
+        q = st.number_input("Dividend yield", value=0.0, min_value=0.0, max_value=0.25, step=0.005, format="%.3f")
+    with c4:
+        prefer_live = st.toggle("Use live chain", value=True, help="Off = synthetic demo surface.")
+
+    if st.button("Build Surface", type="primary"):
+        from src.pricing.vol_surface import build_surface_for_ticker
+
+        with st.spinner("Solving implied vols and interpolating the surface..."):
+            try:
+                surface = build_surface_for_ticker(
+                    ticker, r=float(r), q=float(q), prefer_live=prefer_live
+                )
+                st.session_state["vol_surface"] = surface
+            except Exception as exc:
+                st.error(f"Could not build a surface for {ticker}: {exc}")
+                return
+
+    surface = st.session_state.get("vol_surface")
+    if surface is None:
+        st.info("Pick an underlying and click **Build Surface**.")
+        return
+
+    from src.visualization import surface_plots
+
+    if surface.source == "synthetic":
+        st.caption(
+            "Showing a **synthetic** surface (no live option chain available for "
+            "this ticker). The skew, smile, and term structure are modeled."
+        )
+    else:
+        st.caption(f"Live option chain · spot ≈ {surface.spot:,.2f} · {len(surface.points)} solved quotes.")
+
+    # KPI strip.
+    atm = surface.atm_term_structure()
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Spot", f"{surface.spot:,.2f}")
+    k2.metric("Front ATM IV", _fmt_pct(atm["atm_iv"].iloc[0]))
+    k3.metric("Back ATM IV", _fmt_pct(atm["atm_iv"].iloc[-1]))
+    k4.metric("Maturities", f"{len(surface.maturities)} grid · {surface.points['T'].nunique()} listed")
+
+    axis_strike = st.radio("Horizontal axis", ["Strike", "Log-moneyness"], horizontal=True) == "Strike"
+    st.plotly_chart(
+        surface_plots.plot_vol_surface_3d(surface, use_strike_axis=axis_strike),
+        use_container_width=True,
+    )
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        mats = [float(m) for m in surface.points["T"].unique()]
+        mats.sort()
+        sel = st.select_slider(
+            "Smile maturity (years)", options=[round(m, 3) for m in mats],
+            value=round(mats[len(mats) // 2], 3),
+        )
+        st.plotly_chart(surface_plots.plot_vol_smile(surface, float(sel)), use_container_width=True)
+    with col_b:
+        st.plotly_chart(surface_plots.plot_atm_term_structure(surface), use_container_width=True)
+
+    st.markdown(
+        "**Reading it:** the downward tilt across strikes is the equity volatility "
+        "*skew* (downside puts price in more risk); the U-shape is the *smile*; the "
+        "slope across the maturity axis is the *term structure* of volatility."
+    )
 
 
 # -------------------------------------------------------------------------
@@ -1768,7 +1967,28 @@ def page_ai_equity_research_terminal() -> None:
                     st.session_state["rag_store"] = vs
                     st.session_state["rag_chunks"] = active_chunks
                     st.success(f"Indexed {len(active_chunks)} chunks into Workspace.")
-                    
+
+    # Fully automatic ingestion for US tickers via SEC EDGAR (no manual upload,
+    # no scraping). Downloads the latest 10-K/10-Q, extracts text, and indexes.
+    st.caption("US tickers: fetch real filings automatically from SEC EDGAR (no upload needed).")
+    if st.button("Auto-fetch SEC filings (US)"):
+        tkr = st.session_state.get("active_ticker") or selected_ticker
+        from src.rag.edgar import EdgarError, fetch_filings_for_ticker
+        from src.rag.ingest import ingest_documents
+        with st.spinner(f"Fetching SEC filings for {tkr} and indexing..."):
+            try:
+                paths, dest_dir = fetch_filings_for_ticker(tkr, forms=("10-K", "10-Q"), limit=1)
+                vs, chunks = ingest_documents(source=dest_dir, ticker=tkr, index_dir="data/rag_index")
+                st.session_state["rag_store"] = vs
+                st.session_state["rag_chunks"] = chunks
+                st.success(
+                    f"Auto-fetched {len(paths)} filing(s) and indexed {len(chunks)} chunks for {tkr}."
+                )
+            except EdgarError as exc:
+                st.warning(f"{exc}")
+            except Exception as exc:
+                st.error(f"Auto-fetch failed: {exc}")
+
     st.markdown("---")
     
     if not st.session_state.get("workspace_built"):
@@ -1825,7 +2045,7 @@ def page_ai_equity_research_terminal() -> None:
                 st.session_state["rag_chunks"] = vs.chunks
                 
         chunks = st.session_state.get("rag_chunks", [])
-        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker] or chunks
         
         col1, col2, col3 = st.columns(3)
         col1.metric("Indexed Chunks", len(active_chunks))
@@ -1945,27 +2165,69 @@ def page_ai_equity_research_terminal() -> None:
         custom_query = st.text_input("Or ask a custom question:")
         
     query = custom_query if custom_query else selected_preset
-    
+
+    # Choose the answer engine. Only providers that will actually work right now
+    # are offered (local Ollama if running, cloud providers if their API key is
+    # set). "none" = extractive evidence only (always available).
+    try:
+        from src.rag.llm_client import available_providers
+        provider_options = available_providers()
+    except Exception:
+        provider_options = ["none"]
+    _provider_help = {
+        "none": "none (extractive evidence, no LLM)",
+        "ollama": "ollama (local, free)",
+        "openai": "openai (API key)",
+        "anthropic": "anthropic (API key)",
+        "gemini": "gemini (API key)",
+    }
+    # Default to the first real LLM if available, else "none".
+    _default_idx = 1 if len(provider_options) > 1 else 0
+    llm_provider = st.selectbox(
+        "Answer engine",
+        provider_options,
+        index=_default_idx,
+        format_func=lambda p: _provider_help.get(p, p),
+        help="Local Ollama is free. Cloud providers appear only if their API key is set.",
+    )
+
     if st.button("Search & Answer") and query:
         chunks = st.session_state.get("rag_chunks", [])
-        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker] or chunks
         vs = st.session_state.get("rag_store")
-        
+
         if not active_chunks or not vs:
             st.warning("No indexed documents found. Discover, download, or upload documents first, then Process them.")
         else:
             from src.rag.retriever import hybrid_retrieve
             from src.rag.reranker import rerank_chunks
             from src.rag.rag_answer import generate_llm_answer
-            
+
             with st.spinner("Generating answer..."):
                 retrieved = hybrid_retrieve(query, active_chunks, vector_store=vs, top_k=10)
                 reranked = rerank_chunks(query, retrieved, top_k=5)
-                answer_data = generate_llm_answer(query, reranked, llm_provider="none")
-                
+                answer_data = generate_llm_answer(query, reranked, llm_provider=llm_provider)
+
+                # Grounding badge: honest signal of whether the answer was
+                # synthesized by an LLM and actually cited the sources.
+                if answer_data.get("grounded"):
+                    st.success(
+                        f"Grounded answer via {answer_data.get('provider', 'llm')}"
+                        f" · {len(answer_data.get('citations', []))} citation(s)"
+                    )
+                else:
+                    st.caption("Extractive evidence (no LLM synthesis).")
+
                 st.markdown("#### Summary Answer")
                 st.info(answer_data["answer"])
-                
+
+                # Inline citation map: [n] -> source document / page.
+                citations = answer_data.get("citations", [])
+                if citations:
+                    st.markdown("#### Citations")
+                    for c in citations:
+                        st.markdown(f"**[{c['n']}]** {c['label']}")
+
                 st.markdown("#### Supporting Evidence")
                 for i, chunk in enumerate(answer_data["retrieved_chunks"]):
                     with st.expander(f"Evidence {i+1} | Score: {chunk.get('rerank_score', 0.0):.2f} | {chunk.get('source_file')}"):
@@ -1980,7 +2242,7 @@ def page_ai_equity_research_terminal() -> None:
     
     if st.button("Generate Research Brief", type="primary"):
         chunks = st.session_state.get("rag_chunks", [])
-        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker] or chunks
         snap = st.session_state.get("company_snapshot")
         
         if not active_chunks:
@@ -2029,7 +2291,7 @@ def page_ai_equity_research_terminal() -> None:
     
     if st.button("Compute Factor Matrix"):
         chunks = st.session_state.get("rag_chunks", [])
-        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker] or chunks
         
         if not active_chunks:
             st.warning("No indexed documents found.")
@@ -2075,7 +2337,7 @@ def page_ai_equity_research_terminal() -> None:
     
     if st.button("Extract Segment Intelligence"):
         chunks = st.session_state.get("rag_chunks", [])
-        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker]
+        active_chunks = [c for c in chunks if c.get("ticker") == active_ticker] or chunks
         
         if not active_chunks:
             st.warning("No indexed documents found.")

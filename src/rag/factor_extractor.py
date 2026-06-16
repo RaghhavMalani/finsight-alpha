@@ -92,13 +92,76 @@ def extract_financial_factors_rule_based(
         "evidence": evidence[:3]
     }
 
+_LLM_SCORE_KEYS = [
+    "overall_sentiment_score", "risk_score", "growth_score", "debt_risk_score",
+    "capex_intensity_score", "margin_pressure_score", "cash_flow_quality_score",
+    "management_tone_score", "regulatory_risk_score",
+]
+_UNIPOLAR_KEYS = {
+    "risk_score", "debt_risk_score", "capex_intensity_score",
+    "margin_pressure_score", "regulatory_risk_score",
+}
+
+
 def extract_financial_factors_llm(
     chunks: List[Dict[str, Any]],
     ticker: Optional[str] = None,
-    llm_provider: str = "none"
+    llm_provider: str = "none",
+    as_of_date: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Extract factors using LLM, or fallback to rules."""
-    return extract_financial_factors_rule_based(chunks, ticker)
+    """Extract factor scores with an LLM, falling back to rules when needed.
+
+    The LLM is asked to return strict JSON (see
+    :data:`src.rag.prompt_templates.FACTOR_EXTRACTION_PROMPT`). We clamp every
+    score into its valid range and backfill any missing key from the rule-based
+    extractor, so the output schema is always complete and safe to feed into the
+    ML factor store. If no LLM is available, this transparently returns the
+    rule-based result.
+    """
+    if not as_of_date:
+        as_of_date = datetime.date.today().isoformat()
+
+    rule_based = extract_financial_factors_rule_based(chunks, ticker, as_of_date)
+
+    if llm_provider in (None, "none", "") or not chunks:
+        return rule_based
+
+    try:
+        from src.rag import llm_client, prompt_templates
+    except Exception:
+        return rule_based
+
+    context = "\n\n".join(
+        f"[{i}] {(c.get('text') or '')[:1000]}" for i, c in enumerate(chunks, start=1)
+    )
+    prompt = prompt_templates.FACTOR_EXTRACTION_PROMPT.format(context=context)
+
+    parsed, result = llm_client.generate_json(
+        prompt,
+        provider=llm_provider,
+        system=prompt_templates.FACTOR_EXTRACTION_SYSTEM,
+    )
+    if not parsed:
+        return rule_based  # parse failure or LLM unavailable -> safe fallback
+
+    # Merge: start from rule-based (complete schema), overlay valid LLM scores.
+    merged = dict(rule_based)
+    for key in _LLM_SCORE_KEYS:
+        if key in parsed:
+            try:
+                val = float(parsed[key])
+            except (TypeError, ValueError):
+                continue
+            lo = 0.0 if key in _UNIPOLAR_KEYS else -1.0
+            merged[key] = min(max(val, lo), 1.0)
+
+    for list_key in ("key_positive_factors", "key_negative_factors"):
+        val = parsed.get(list_key)
+        if isinstance(val, list):
+            merged[list_key] = [str(x) for x in val][:5]
+
+    merged["extraction_method"] = f"llm:{result.provider}"
+    return merged
 
 def create_factor_dataframe(factor_records: List[Dict[str, Any]]) -> pd.DataFrame:
     """Create ML-ready factor table."""

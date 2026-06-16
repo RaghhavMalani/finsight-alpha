@@ -24,6 +24,10 @@ data/exports/*.csv
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/exports/.gitkeep
+data/.cache/
+data/documents/
+data/graphs/
+data/rag_index/
 
 # IDEs
 .vscode/
