@@ -25,7 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from backend.routes import (
-    analytics, assets, graph, health, market_data,
+    analytics, assets, backtest, factors, graph, health, market_data,
     news, portfolio, pricing, quote, research, risk,
 )
 from src import config
@@ -61,6 +61,8 @@ app.include_router(pricing.router)
 app.include_router(risk.router)
 app.include_router(news.router)
 app.include_router(portfolio.router)
+app.include_router(backtest.router)
+app.include_router(factors.router)
 
 
 # Serve the terminal front-end (single-page app) from FastAPI so it shares the

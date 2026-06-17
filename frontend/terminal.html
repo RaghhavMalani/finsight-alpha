@@ -247,6 +247,37 @@
     </div>
   </div>
 
+  <!-- BACKTEST -->
+  <div id="view-backtest" class="hidden">
+    <div class="ws-bar">
+      <span class="muted mono" style="font-size:0.72rem">STRATEGY</span>
+      <select id="bt-strat"><option value="sma_cross">SMA Cross</option><option value="macd">MACD</option><option value="rsi">RSI Mean-Reversion</option></select>
+      <span class="muted mono" style="font-size:0.66rem">fast</span><input id="bt-fast" value="50" style="width:54px"/>
+      <span class="muted mono" style="font-size:0.66rem">slow</span><input id="bt-slow" value="200" style="width:54px"/>
+      <button class="btn" id="bt-go">Run Backtest</button>
+      <span class="spin" id="bt-status" style="margin-left:8px"></span>
+    </div>
+    <div class="panel"><div class="phead"><h3>Equity Curve · Strategy vs Buy &amp; Hold</h3><div class="accent"></div></div>
+      <div class="chart-wrap" style="height:380px"><canvas id="bt-chart"></canvas></div></div>
+    <div class="grid2" style="margin-top:14px">
+      <div class="panel"><div class="phead"><h3>Strategy</h3><div class="accent"></div></div><div class="pbody"><div class="kpis" id="bt-stats" style="grid-template-columns:repeat(3,1fr)"></div></div></div>
+      <div class="panel"><div class="phead"><h3>Buy &amp; Hold</h3><div class="accent"></div></div><div class="pbody"><div class="kpis" id="bt-bh" style="grid-template-columns:repeat(3,1fr)"></div></div></div>
+    </div>
+  </div>
+
+  <!-- FACTORS -->
+  <div id="view-factors" class="hidden">
+    <div class="ws-bar"><span class="muted mono" style="font-size:0.72rem">FACTOR EXPOSURES</span>
+      <button class="btn" id="fx-go">Analyze</button><span class="spin" id="fx-status" style="margin-left:8px"></span>
+      <span class="muted mono" style="margin-left:auto;font-size:0.66rem">OLS on factor ETFs · daily ~2y</span></div>
+    <div class="grid2">
+      <div class="panel"><div class="phead"><h3>Factor Betas</h3><div class="accent"></div></div>
+        <div class="chart-wrap" style="height:340px"><canvas id="fx-chart"></canvas></div></div>
+      <div class="panel"><div class="phead"><h3>Summary</h3><div class="accent"></div></div>
+        <div class="pbody" id="fx-detail"><div class="muted" style="font-size:0.85rem">Run to regress this stock on market / size / value / momentum / quality / low-vol factors.</div></div></div>
+    </div>
+  </div>
+
   <!-- OPTIONS -->
   <div id="view-options" class="hidden">
     <div class="ws-bar">
@@ -368,7 +399,7 @@ SPY, 0.10</textarea>
 <div class="cmdk" id="cmdk"><div class="cmdk-box"><input id="cmdk-in" spellcheck="false" placeholder="Search ticker or function…   Esc to close" /><div id="cmdk-list"></div></div></div>
 <script>
 const API="";
-const TABS=[["overview","OVERVIEW"],["workspace","WORKSPACE"],["compare","COMPARE"],["portfolio","PORTFOLIO"],["options","OPTIONS"],["vol","VOL SURFACE"],["mc","MONTE CARLO"],["graph","GRAPH"],["research","RESEARCH"]];
+const TABS=[["overview","OVERVIEW"],["workspace","WORKSPACE"],["compare","COMPARE"],["portfolio","PORTFOLIO"],["options","OPTIONS"],["backtest","BACKTEST"],["factors","FACTORS"],["vol","VOL SURFACE"],["mc","MONTE CARLO"],["graph","GRAPH"],["research","RESEARCH"]];
 const CATC={company:"#4c8bf5",supplier:"#f5a623",customer:"#26c281",competitor:"#e8638b",commodity:"#8b95a7",segment:"#bb6bd9",sector_index:"#38e1ff",regulator:"#ef5350",subsidiary:"#9b8cff",related:"#7e8aa6"};
 const PLOT_BG={paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:"#9aa4b8",family:"JetBrains Mono",size:10},margin:{l:40,r:10,t:10,b:36}};
 let chart=null,oChart=null,ddChart=null,volChart=null,retChart=null,modalChart=null,cy=null,state={ticker:"AAPL",quote:null,news:null},loaded={};
@@ -399,6 +430,37 @@ function lazyLoad(k){
   else if(k==="workspace")initWorkspace();
   else if(k==="compare")initCompare();
   else if(k==="portfolio")initPortfolio();
+  else if(k==="backtest")initBacktest();
+  else if(k==="factors")initFactors();
+}
+let btChart=null,fxChart=null;
+function initBacktest(){$("bt-go").onclick=runBacktest;runBacktest();}
+async function runBacktest(){
+  const s=$("bt-status");s.textContent="running…";s.className="spin";
+  const url=`/backtest/${encodeURIComponent(state.ticker)}?strategy=${$("bt-strat").value}&fast=${$("bt-fast").value}&slow=${$("bt-slow").value}`;
+  try{
+    const d=await api(url);
+    const ctx=$("bt-chart").getContext("2d");if(btChart)btChart.destroy();
+    btChart=new Chart(ctx,{type:"line",data:{labels:d.dates,datasets:[
+      {label:"Strategy",data:d.equity,borderColor:"#38e1ff",borderWidth:1.6,pointRadius:0,tension:0.05},
+      {label:"Buy & Hold",data:d.benchmark,borderColor:"#7e8aa6",borderWidth:1.2,pointRadius:0,tension:0.05,borderDash:[4,3]}]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:"index"},plugins:{legend:{labels:{color:"#9aa4b8",font:{size:10}}}},scales:{x:{ticks:{color:"#5f6b80",maxTicksLimit:8,font:{size:9}},grid:{color:"rgba(120,150,200,0.06)"}},y:{ticks:{color:"#5f6b80",font:{size:9}},grid:{color:"rgba(120,150,200,0.06)"}}}}});
+    const kp=o=>[["Total",fmtPct(o.total_return)],["CAGR",fmtPct(o.cagr)],["Vol",fmtPct(o.vol)],["Sharpe",o.sharpe==null?"–":o.sharpe.toFixed(2)],["Max DD",fmtPct(o.max_drawdown)],["Win Rate",fmtPct(o.win_rate)]].map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+    $("bt-stats").innerHTML=kp(d.stats.strategy);$("bt-bh").innerHTML=kp(d.stats.buy_hold);
+    s.textContent=`${d.n_trades} trades`;s.className="spin pos";
+  }catch(e){s.textContent=e.message;s.className="spin neg";}
+}
+function initFactors(){$("fx-go").onclick=runFactors;runFactors();}
+async function runFactors(){
+  const s=$("fx-status");s.textContent="regressing…";s.className="spin";
+  try{
+    const d=await api(`/factors/${encodeURIComponent(state.ticker)}`);
+    const ctx=$("fx-chart").getContext("2d");if(fxChart)fxChart.destroy();
+    fxChart=new Chart(ctx,{type:"bar",data:{labels:d.exposures.map(x=>x.factor),datasets:[{data:d.exposures.map(x=>x.beta),backgroundColor:d.exposures.map(x=>x.beta>=0?"#26c281":"#ef5350")}]},
+      options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#5f6b80",font:{size:9}},grid:{color:"rgba(120,150,200,0.06)"}},y:{ticks:{color:"#9aa4b8",font:{size:10}},grid:{display:false}}}}});
+    $("fx-detail").innerHTML=`<div class="dgrid">${dcard("Alpha (ann.)",fmtPct(d.alpha_annual),(d.alpha_annual||0)>=0?"pos":"neg")}${dcard("R²",d.r2==null?"–":d.r2.toFixed(2))}${dcard("Days",d.n_days)}</div><div class="interp">Each beta is the stock's exposure to that factor ETF (multivariate OLS). High Market beta amplifies index moves; positive Size/Value tilts indicate style exposure; <b>alpha</b> is the annualized return left unexplained by these factors; <b>R²</b> is how much of the stock's variance the factors capture.</div>`;
+    s.textContent="";
+  }catch(e){s.textContent=e.message;s.className="spin neg";}
 }
 
 /* core ticker load */
