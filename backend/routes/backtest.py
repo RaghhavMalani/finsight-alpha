@@ -58,6 +58,23 @@ def _rsi(close: pd.Series, period: int) -> pd.Series:
     return 100 - 100 / (1 + rs)
 
 
+def _pivots(high: pd.Series, low: pd.Series, close: pd.Series, window: int = 10, n: int = 3):
+    """Swing-pivot support/resistance: the nearest pivot lows below / highs above spot."""
+    spot = float(close.iloc[-1])
+    hv, lv = high.to_numpy(), low.to_numpy()
+    res, sup = [], []
+    for i in range(window, len(close) - window):
+        seg_h = hv[i - window:i + window + 1]
+        seg_l = lv[i - window:i + window + 1]
+        if hv[i] == seg_h.max():
+            res.append(float(hv[i]))
+        if lv[i] == seg_l.min():
+            sup.append(float(lv[i]))
+    resistance = sorted({round(x, 2) for x in res if x > spot})[:n]
+    support = sorted({round(x, 2) for x in sup if x < spot}, reverse=True)[:n]
+    return support, resistance
+
+
 @router.get("/{ticker}")
 def backtest(
     ticker: str,
@@ -115,6 +132,21 @@ def backtest(
     eq = (1 + strat_ret.fillna(0.0)).cumprod()
     bh = (1 + ret.fillna(0.0)).cumprod()
 
+    # OHLCV + overlays + pivot levels for the candlestick chart.
+    o = df["Open"].astype(float); h = df["High"].astype(float)
+    lo = df["Low"].astype(float); vv = df["Volume"].astype(float)
+    o.index = h.index = lo.index = vv.index = close.index
+    smaf = close.rolling(fast).mean(); smas = close.rolling(slow).mean()
+    ohlc = [{"time": str(dt)[:10], "open": _f(o.loc[dt]), "high": _f(h.loc[dt]),
+             "low": _f(lo.loc[dt]), "close": _f(close.loc[dt])} for dt in close.index]
+    volume = [{"time": str(dt)[:10], "value": _f(vv.loc[dt]),
+               "color": ("rgba(38,194,129,0.45)" if close.loc[dt] >= o.loc[dt] else "rgba(239,83,80,0.45)")}
+              for dt in close.index]
+    sma_fast = [{"time": str(dt)[:10], "value": _f(smaf.loc[dt])} for dt in close.index]
+    sma_slow = [{"time": str(dt)[:10], "value": _f(smas.loc[dt])} for dt in close.index]
+    markers = [{"time": t["date"], "side": t["type"], "price": t["price"]} for t in trades]
+    support, resistance = _pivots(h, lo, close)
+
     dates = [str(d)[:10] for d in close.index]
     eq_l, bh_l, px_l = eq.tolist(), bh.tolist(), close.tolist()
     if len(dates) > 500:
@@ -138,5 +170,12 @@ def backtest(
         "benchmark": [_f(x) for x in bh_l],
         "n_trades": len(trades),
         "trades": trades[-40:],
+        "ohlc": ohlc,
+        "volume": volume,
+        "sma_fast": sma_fast,
+        "sma_slow": sma_slow,
+        "markers": markers,
+        "support": support,
+        "resistance": resistance,
         "stats": {"strategy": _stats(strat_ret), "buy_hold": _stats(ret)},
     }
