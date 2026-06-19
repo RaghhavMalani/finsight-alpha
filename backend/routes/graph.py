@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from src import config
 from src.graph.dependency_graph import build_dependency_graph
@@ -129,11 +130,11 @@ def graph_sensitivity(
     HSMM/TFT forecasting layer is a separate, future effort).
     """
     import datetime
-
-    import pandas as pd
+    import re
 
     from src.data.market_data import MarketDataService
     from src.data.providers import ProviderError
+    from src.graph import market_link as ml
 
     company_name = config.get_display_name(ticker)
     context = _ground_context(ticker) if ground else None
@@ -142,18 +143,28 @@ def graph_sensitivity(
     start = (datetime.date.today() - datetime.timedelta(days=430)).isoformat()
     svc = MarketDataService("yfinance")
 
-    def returns(tk: str):
+    def closes(tk: str):
         try:
             df = svc.get_data(tk, start)
         except (ProviderError, Exception):
             return None
         if df is None or df.empty:
             return None
-        s = df.sort_values("Date").set_index("Date")["Close"].astype(float)
-        return s.pct_change().dropna()
+        return df.sort_values("Date").set_index("Date")["Close"].astype(float)
 
-    focal_ret = returns(ticker)
+    focal_close = closes(ticker)
+    focal_ret = focal_close.pct_change().dropna() if focal_close is not None else None
     company_id = graph.nodes[0]["id"]
+
+    # The focal company's own news, scanned later for cross-mentions of each
+    # dependency (a proxy for contract / relationship headlines).
+    focal_news = []
+    if with_news:
+        try:
+            from src.news.news_feed import fetch_news as _fn
+            focal_news = _fn(ticker, 25)
+        except Exception:
+            focal_news = []
 
     def relation_for(nid: str) -> str:
         for e in graph.edges:
@@ -170,27 +181,33 @@ def graph_sensitivity(
         item: Dict[str, Any] = {
             "id": n["id"], "ticker": ntk, "label": n["label"],
             "category": n["category"], "relation": relation_for(n["id"]),
-            "beta": None, "corr": None, "r2": None, "ret_1m": None, "headlines": [],
+            "beta": None, "corr": None, "r2": None, "ret_1m": None, "ret_3m": None,
+            "last": None, "change_pct": None, "trend": "n/a",
+            "lead_lag": None, "rolling_corr": [], "headlines": [],
         }
-        dep = returns(ntk)
-        if dep is not None and focal_ret is not None:
-            j = pd.concat([focal_ret.rename("f"), dep.rename("d")], axis=1).dropna()
-            if len(j) >= 30 and float(j["d"].var()) > 0:
-                beta = float(j["f"].cov(j["d"]) / j["d"].var())
-                corr = float(j["f"].corr(j["d"]))
-                item["beta"] = _num(beta)
-                item["corr"] = _num(corr)
-                item["r2"] = _num(corr * corr)
-            if len(dep) >= 21:
-                item["ret_1m"] = _num(float((1 + dep.tail(21)).prod() - 1))
+        try:
+            dep_close = closes(ntk)
+            if dep_close is not None:
+                item.update(ml.perf(dep_close))
+                dep_ret = dep_close.pct_change().dropna()
+                if focal_ret is not None:
+                    lk = ml.link(focal_ret, dep_ret)
+                    item["beta"], item["corr"], item["r2"] = lk["beta"], lk["corr"], lk["r2"]
+                    item["lead_lag"] = ml.lead_lag(focal_ret, dep_ret)
+                    item["rolling_corr"] = ml.rolling_corr(focal_ret, dep_ret)
+        except Exception:
+            pass  # one bad dependency must never break the whole analysis
         if with_news:
             try:
                 from src.news.news_feed import fetch_news
                 from src.news.sentiment import score_text
-                item["headlines"] = [
-                    {"title": h["title"], "url": h["url"], **score_text(h["title"])}
-                    for h in fetch_news(ntk, 2)
-                ]
+                own = [{"title": h["title"], "url": h["url"], "kind": "company", **score_text(h["title"])}
+                       for h in fetch_news(ntk, 2)]
+                toks = [w for w in re.split(r"[^a-z]+", item["label"].lower()) if len(w) > 3][:3]
+                rel = [{"title": h["title"], "url": h["url"], "kind": "relation", **score_text(h["title"])}
+                       for h in focal_news
+                       if toks and any(t in h["title"].lower() for t in toks)]
+                item["headlines"] = (rel + own)[:4]
             except Exception:
                 item["headlines"] = []
         sens.append(item)
@@ -207,3 +224,49 @@ def graph_sensitivity(
     payload["sensitivities"] = sens
     payload["focal"] = ticker.upper()
     return payload
+
+
+class GraphMCRequest(BaseModel):
+    ticker: str
+    dep: str
+    shock: float = 0.05
+    horizon: int = 21
+    n: int = 4000
+
+
+@router.post("/montecarlo")
+def graph_montecarlo(req: GraphMCRequest) -> Dict[str, Any]:
+    """Shock-propagation Monte Carlo: how the focal stock's horizon-return
+    distribution shifts if a dependency takes a given shock (via regression beta)."""
+    import datetime
+
+    from src.data.market_data import MarketDataService
+    from src.data.providers import ProviderError
+    from src.graph import market_link as ml
+
+    start = (datetime.date.today() - datetime.timedelta(days=430)).isoformat()
+    svc = MarketDataService("yfinance")
+
+    def returns(tk: str):
+        try:
+            df = svc.get_data(tk, start)
+        except (ProviderError, Exception):
+            return None
+        if df is None or df.empty:
+            return None
+        return df.sort_values("Date").set_index("Date")["Close"].astype(float).pct_change().dropna()
+
+    focal_ret = returns(req.ticker)
+    dep_ret = returns(_norm_ticker(req.dep))
+    if focal_ret is None:
+        raise HTTPException(status_code=404, detail=f"No data for '{req.ticker}'.")
+    if dep_ret is None:
+        raise HTTPException(status_code=404, detail=f"No data for dependency '{req.dep}'.")
+
+    res = ml.shock_montecarlo(focal_ret, dep_ret, req.shock, req.horizon, req.n)
+    if res is None:
+        raise HTTPException(status_code=422, detail="Insufficient overlapping history.")
+    res["ticker"] = req.ticker.upper()
+    res["dep"] = _norm_ticker(req.dep)
+    res["shock"] = req.shock
+    return res

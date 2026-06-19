@@ -368,6 +368,14 @@
       <div class="panel"><div class="phead"><h3>Sensitivity · Performance · News</h3><div class="accent"></div></div>
         <div class="pbody" id="g-detail" style="max-height:540px;overflow:auto"><div class="muted" style="font-size:0.85rem">Run analysis to rank dependencies by how much they move this stock, with their recent performance and news.</div></div></div>
     </div>
+    <div class="ws-bar" style="margin-top:14px"><span class="muted mono" style="font-size:0.72rem">SHOCK</span>
+      <span class="muted mono" style="font-size:0.66rem">if</span><select id="g-dep"></select>
+      <span class="muted mono" style="font-size:0.66rem">moves</span><input id="g-shock" value="5" style="width:46px"/><span class="muted mono" style="font-size:0.66rem">%</span>
+      <button class="btn" id="g-sim">Simulate Monte Carlo</button><span class="spin" id="g-sim-status" style="margin-left:8px"></span></div>
+    <div class="grid2">
+      <div class="panel"><div class="phead"><h3>Distribution Shift · Baseline vs Shocked</h3><div class="accent"></div></div><div class="pbody"><div class="chart-wrap" style="height:280px"><canvas id="g-mc"></canvas></div></div></div>
+      <div class="panel"><div class="phead"><h3>Scenario Summary</h3><div class="accent"></div></div><div class="pbody" id="g-mc-detail"><div class="muted" style="font-size:0.85rem">Pick a dependency + shock to see how this stock's return distribution shifts.</div></div></div>
+    </div>
   </div>
 
   <!-- RESEARCH -->
@@ -814,21 +822,31 @@ async function loadMC(){
 }
 
 /* GRAPH */
+function shortLabel(s){s=s||"";return s.length>16?s.slice(0,15)+"…":s;}
 async function loadGraph(){
-  if(!cy){cy=cytoscape({container:$("cy"),style:[
-    {selector:"node",style:{"background-color":"data(color)","label":"data(label)","color":"#aeb8c8","font-size":"8px","font-family":"Inter",
-      "text-valign":"bottom","text-margin-y":4,"width":"data(size)","height":"data(size)","text-max-width":"90px","text-wrap":"ellipsis"}},
-    {selector:"node.company",style:{"font-size":"11px","color":"#fff","font-weight":"700"}},
-    {selector:"edge",style:{"width":1.2,"line-color":"rgba(120,150,200,0.35)","target-arrow-color":"rgba(120,150,200,0.5)","target-arrow-shape":"triangle",
-      "curve-style":"bezier","label":"data(relation)","font-size":"6px","color":"#5f6b80","text-rotation":"autorotate"}}],layout:{name:"cose",animate:false}});}
+  $("g-analyze").onclick=loadSensitivity; $("g-sim").onclick=runGraphMC;
   try{
     $("legend").innerHTML='<span class="spin">building graph via LLM…</span>';
     const g=await api(`/graph/${encodeURIComponent(state.ticker)}?provider=ollama&enrich=false`);
-    $("g-analyze").onclick=loadSensitivity;
-    const els=[];(g.cytoscape.nodes||[]).forEach(n=>{const d=n.data;els.push({data:{...d,color:CATC[d.category]||CATC.related,size:d.category==="company"?42:22},classes:d.category==="company"?"company":""});});
-    (g.cytoscape.edges||[]).forEach(e=>els.push({data:e.data}));
-    cy.elements().remove();cy.add(els);cy.layout({name:"cose",animate:false,padding:20}).run();cy.fit(undefined,30);
-    const cats=[...new Set((g.cytoscape.nodes||[]).map(n=>n.data.category))];
+    const nodes=(g.cytoscape.nodes||[]),edges=(g.cytoscape.edges||[]);
+    const comp=(nodes.find(n=>n.data.category==="company")||{data:{}}).data.id;
+    const others=nodes.filter(n=>n.data.id!==comp);
+    const R=270;
+    const els=[];
+    nodes.forEach(n=>{const d=n.data;let pos;
+      if(d.id===comp)pos={x:0,y:0};
+      else{const i=others.findIndex(o=>o.data.id===d.id),a=-Math.PI/2+i*2*Math.PI/Math.max(1,others.length);pos={x:R*Math.cos(a),y:R*Math.sin(a)};}
+      els.push({data:{...d,color:CATC[d.category]||CATC.related,size:d.category==="company"?58:30,short:d.category==="company"?d.label:shortLabel(d.label)},position:pos,classes:d.category==="company"?"company":""});});
+    edges.forEach(e=>els.push({data:e.data}));
+    if(cy){cy.destroy();}
+    cy=cytoscape({container:$("cy"),elements:els,layout:{name:"preset"},minZoom:0.3,maxZoom:2.5,style:[
+      {selector:"node",style:{"background-color":"data(color)","label":"data(short)","color":"#dbe4f0","font-size":"10px","font-family":"Inter","font-weight":"500",
+        "text-valign":"bottom","text-margin-y":6,"width":"data(size)","height":"data(size)","text-max-width":"110px","text-wrap":"ellipsis","border-width":3,"border-color":"data(color)","border-opacity":0.35}},
+      {selector:"node.company",style:{"font-size":"14px","color":"#fff","font-weight":"700","text-valign":"center","text-margin-y":0,"text-outline-color":"#062a55","text-outline-width":3,"border-width":6,"border-color":"#4c8bf5","border-opacity":0.6}},
+      {selector:"node:selected",style:{"border-opacity":1,"border-color":"#38e1ff","border-width":4}},
+      {selector:"edge",style:{"width":1.4,"line-color":"rgba(120,150,200,0.22)","target-arrow-color":"rgba(120,150,200,0.4)","target-arrow-shape":"triangle","arrow-scale":0.8,"curve-style":"bezier","opacity":0.8}}]});
+    cy.fit(undefined,55);
+    const cats=[...new Set(nodes.map(n=>n.data.category))];
     $("legend").innerHTML=cats.map(c=>`<span><span class="swatch" style="background:${CATC[c]||CATC.related}"></span>${c}</span>`).join("");
   }catch(e){$("legend").innerHTML='<span class="spin neg">graph: '+e.message+'</span>';}
 }
@@ -841,15 +859,51 @@ async function loadSensitivity(){
     s.textContent=`${d.sensitivities.filter(x=>x.beta!=null).length} priced dependencies`; s.className="spin pos";
   }catch(e){ s.textContent=e.message; s.className="spin neg"; }
 }
+function sparkline(rc){
+  if(!rc||rc.length<2)return "";
+  const w=180,h=24,vals=rc.map(x=>x.corr).filter(v=>v!=null);
+  if(vals.length<2)return "";
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${((1-(v+1)/2)*h).toFixed(1)}`).join(" ");
+  const last=vals[vals.length-1];
+  return `<div style="margin-top:5px"><svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="rgba(120,150,200,0.2)" stroke-dasharray="2 2"/><polyline points="${pts}" fill="none" stroke="#38e1ff" stroke-width="1.2"/></svg> <span class="muted mono" style="font-size:0.62rem">corr ${last.toFixed(2)} · 60d roll</span></div>`;
+}
 function renderSens(d){
   const focal=d.focal,items=d.sensitivities||[];
+  const withBeta=items.filter(x=>x.beta!=null);
+  $("g-dep").innerHTML=withBeta.length?withBeta.map(x=>`<option value="${x.ticker}">${x.label} (${x.ticker})</option>`).join(""):'<option value="">—</option>';
   if(!items.length){$("g-detail").innerHTML='<div class="muted">No tradable dependencies found in the graph.</div>';return;}
   $("g-detail").innerHTML=items.map(it=>{const b=it.beta;
-    const impact=b==null?"":`If <b>${it.ticker}</b> moves +1%, ${focal} historically moves <b class="${b>=0?'pos':'neg'}">${b>=0?'+':''}${b.toFixed(2)}%</b>`;
-    const news=(it.headlines||[]).map(h=>`<div class="news-meta" style="margin-top:3px">${schip(h.label,h.score)} <a href="${h.url||'#'}" target="_blank" rel="noopener" style="color:#9aa4b8;text-decoration:none">${(h.title||'').replace(/</g,'&lt;')}</a></div>`).join("");
+    const trendC=it.trend==="bullish"?"pos":(it.trend==="bearish"?"neg":"muted");
+    const chg=it.change_pct==null?"":` <span class="${it.change_pct>=0?'pos':'neg'}">${(it.change_pct*100).toFixed(2)}%</span>`;
+    const ll=(it.lead_lag&&it.lead_lag.best_lag)?(it.lead_lag.best_lag>0?`${it.ticker} leads ${it.lead_lag.best_lag}d`:`${focal} leads ${-it.lead_lag.best_lag}d`)+` (r ${(it.lead_lag.best_corr||0).toFixed(2)})`:"contemporaneous";
+    const impact=b==null?"":`If <b>${it.ticker}</b> +1% → ${focal} <b class="${b>=0?'pos':'neg'}">${b>=0?'+':''}${b.toFixed(2)}%</b>`;
+    const news=(it.headlines||[]).map(h=>`<div class="news-meta" style="margin-top:3px">${h.kind==='relation'?'<span class="schip" style="background:rgba(76,139,245,0.2);color:#9ec5ff">↔ rel</span> ':''}${schip(h.label,h.score)} <a href="${h.url||'#'}" target="_blank" rel="noopener" style="color:#9aa4b8;text-decoration:none">${(h.title||'').replace(/</g,'&lt;')}</a></div>`).join("");
     return `<div class="news-item"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>${it.label}</b><span class="mono ${b==null?'muted':(b>=0?'pos':'neg')}">${b==null?'n/a':'β '+b.toFixed(2)}</span></div>
-      <div class="news-meta">${it.relation} · ${it.ticker}${it.ret_1m!=null?' · 1M '+fmtPct(it.ret_1m):''}${it.r2!=null?' · r² '+it.r2.toFixed(2):''}</div>
-      ${impact?`<div class="muted" style="font-size:0.8rem;margin-top:3px">${impact}</div>`:''}${news}</div>`;}).join("");
+      <div class="news-meta">${it.relation} · ${it.ticker} · ${it.last!=null?fmtNum(it.last):'–'}${chg} · <span class="${trendC}">${it.trend}</span></div>
+      <div class="news-meta">1M ${fmtPct(it.ret_1m)} · 3M ${fmtPct(it.ret_3m)} · corr ${it.corr==null?'–':it.corr.toFixed(2)} · ${ll}</div>
+      ${impact?`<div class="muted" style="font-size:0.8rem;margin-top:3px">${impact}</div>`:''}${sparkline(it.rolling_corr)}${news}</div>`;}).join("");
+}
+let gMcChart=null;
+async function runGraphMC(){
+  const dep=$("g-dep").value; if(!dep){return;}
+  const shock=(parseFloat($("g-shock").value)||0)/100;
+  const s=$("g-sim-status");s.textContent="simulating 4,000 paths…";s.className="spin";
+  try{
+    const d=await api("/graph/montecarlo",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ticker:state.ticker,dep,shock})});
+    const ctx=$("g-mc").getContext("2d");if(gMcChart)gMcChart.destroy();
+    const bh=d.baseline_hist,sh=d.shocked_hist;
+    gMcChart=new Chart(ctx,{type:"bar",data:{labels:bh.centers.map(c=>(c*100).toFixed(0)+"%"),datasets:[
+      {label:"Baseline",data:bh.counts,backgroundColor:"rgba(126,138,166,0.5)"},
+      {label:"After shock",data:sh.counts,backgroundColor:"rgba(56,225,255,0.55)"}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#9aa4b8",font:{size:10}}}},scales:{x:{ticks:{color:"#5f6b80",maxTicksLimit:9,font:{size:8}},grid:{display:false}},y:{ticks:{color:"#5f6b80",font:{size:8}},grid:{color:"rgba(120,150,200,0.05)"}}}}});
+    const fm=v=>fmtPct(v);
+    $("g-mc-detail").innerHTML=`<div class="dgrid">${dcard("Expected move",fm(d.expected_move),(d.expected_move||0)>=0?"pos":"neg")}${dcard("β",d.beta==null?"–":d.beta.toFixed(2))}${dcard("Horizon",d.horizon_days+"d")}</div>
+      <div class="metrics-list" style="margin-top:8px"><div class="row"><span class="muted">Baseline median / P(loss)</span><b>${fm(d.baseline.median)} / ${fm(d.baseline.prob_loss)}</b></div>
+      <div class="row"><span class="muted">Shocked median / P(loss)</span><b class="${(d.shocked.median||0)>=0?'pos':'neg'}">${fm(d.shocked.median)} / ${fm(d.shocked.prob_loss)}</b></div>
+      <div class="row"><span class="muted">Shocked 5–95% band</span><b>${fm(d.shocked.p5)} … ${fm(d.shocked.p95)}</b></div></div>
+      <div class="interp">If <b>${d.dep}</b> moves ${(d.shock*100).toFixed(0)}% over ~${d.horizon_days} trading days, ${d.ticker}'s expected move is <b class="${(d.expected_move||0)>=0?'pos':'neg'}">${fm(d.expected_move)}</b> (β=${d.beta==null?'–':d.beta.toFixed(2)}). Cyan = shocked scenario, grey = baseline.</div>`;
+    s.textContent="";
+  }catch(e){s.textContent=e.message;s.className="spin neg";}
 }
 
 /* RESEARCH */
