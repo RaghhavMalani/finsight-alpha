@@ -140,7 +140,7 @@ def graph_sensitivity(
     context = _ground_context(ticker) if ground else None
     graph = build_dependency_graph(company_name, ticker, context_chunks=context, provider=provider)
 
-    start = (datetime.date.today() - datetime.timedelta(days=430)).isoformat()
+    start = (datetime.date.today() - datetime.timedelta(days=300)).isoformat()
     svc = MarketDataService("yfinance")
 
     def closes(tk: str):
@@ -244,7 +244,7 @@ def graph_montecarlo(req: GraphMCRequest) -> Dict[str, Any]:
     from src.data.providers import ProviderError
     from src.graph import market_link as ml
 
-    start = (datetime.date.today() - datetime.timedelta(days=430)).isoformat()
+    start = (datetime.date.today() - datetime.timedelta(days=300)).isoformat()
     svc = MarketDataService("yfinance")
 
     def returns(tk: str):

@@ -54,10 +54,25 @@ def get_quote(
     """Price series + overlays (SMA), drawdown, rolling vol, periods, RSI, 52w range."""
     start = start or config.DEFAULT_START_DATE
     end = end or config.DEFAULT_END_DATE
-    try:
-        df = MarketDataService("yfinance").get_data(ticker, start, end)
-    except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
+
+    # Cache the raw price frame on disk (6h) so repeat loads are instant and we
+    # stop hammering yfinance (also helps avoid rate-limit collisions).
+    from src.data import cache
+    cache_key = f"quote_df:{ticker.upper()}:{start}:{end}"
+    cached = cache.get_json(cache_key, ttl=21600)
+    if cached is not None:
+        df = pd.DataFrame(cached)
+    else:
+        try:
+            df = MarketDataService("yfinance").get_data(ticker, start, end)
+        except ProviderError as exc:
+            raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
+        try:
+            _store = df.copy()
+            _store["Date"] = _store["Date"].astype(str)
+            cache.put_json(cache_key, _store.to_dict(orient="records"))
+        except Exception:
+            pass
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail=f"No data for '{ticker}'.")
 

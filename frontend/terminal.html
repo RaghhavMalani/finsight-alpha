@@ -316,6 +316,18 @@
     </div>
   </div>
 
+  <!-- FUNDAMENTALS -->
+  <div id="view-fundamentals" class="hidden">
+    <div class="ws-bar"><span class="muted mono" style="font-size:0.72rem">FINANCIALS</span>
+      <span class="muted mono" id="fu-ctx" style="font-size:0.72rem">—</span>
+      <button class="btn" id="fu-go" style="margin-left:auto">Refresh</button><span class="spin" id="fu-status" style="margin-left:8px"></span></div>
+    <div class="kpis" id="fu-kpis"><div class="spin">—</div></div>
+    <div class="grid2">
+      <div class="panel"><div class="phead"><h3>Revenue &amp; Net Income · Annual</h3><div class="accent"></div></div><div class="chart-wrap" style="height:300px"><canvas id="fu-chart"></canvas></div></div>
+      <div class="panel"><div class="phead"><h3>Latest Statement &amp; Ratios</h3><div class="accent"></div></div><div class="pbody" id="fu-detail"></div></div>
+    </div>
+  </div>
+
   <!-- OPTIONS -->
   <div id="view-options" class="hidden">
     <div class="ws-bar">
@@ -445,7 +457,7 @@ SPY, 0.10</textarea>
 <div class="cmdk" id="cmdk"><div class="cmdk-box"><input id="cmdk-in" spellcheck="false" placeholder="Search ticker or function…   Esc to close" /><div id="cmdk-list"></div></div></div>
 <script>
 const API="";
-const TABS=[["overview","OVERVIEW"],["workspace","WORKSPACE"],["strategy","STRATEGY LAB"],["compare","COMPARE"],["portfolio","PORTFOLIO"],["options","OPTIONS"],["backtest","BACKTEST"],["factors","FACTORS"],["vol","VOL SURFACE"],["mc","MONTE CARLO"],["graph","GRAPH"],["research","RESEARCH"]];
+const TABS=[["overview","OVERVIEW"],["workspace","WORKSPACE"],["strategy","STRATEGY LAB"],["compare","COMPARE"],["portfolio","PORTFOLIO"],["options","OPTIONS"],["backtest","BACKTEST"],["fundamentals","FUNDAMENTALS"],["factors","FACTORS"],["vol","VOL SURFACE"],["mc","MONTE CARLO"],["graph","GRAPH"],["research","RESEARCH"]];
 const CATC={company:"#4c8bf5",supplier:"#f5a623",customer:"#26c281",competitor:"#e8638b",commodity:"#8b95a7",segment:"#bb6bd9",sector_index:"#38e1ff",regulator:"#ef5350",subsidiary:"#9b8cff",related:"#7e8aa6"};
 const PLOT_BG={paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(0,0,0,0)",font:{color:"#9aa4b8",family:"JetBrains Mono",size:10},margin:{l:40,r:10,t:10,b:36}};
 let chart=null,oChart=null,ddChart=null,volChart=null,retChart=null,modalChart=null,cy=null,state={ticker:"AAPL",quote:null,news:null},loaded={};
@@ -479,6 +491,32 @@ function lazyLoad(k){
   else if(k==="backtest")initBacktest();
   else if(k==="factors")initFactors();
   else if(k==="strategy")initStrategy();
+  else if(k==="fundamentals")initFundamentals();
+}
+let fuChart=null,fuInit=false;
+function initFundamentals(){if(!fuInit){fuInit=true;$("fu-go").onclick=runFundamentals;}runFundamentals();}
+function _B(v){if(v==null)return "–";const a=Math.abs(v);return a>=1e9?(v/1e9).toFixed(1)+"B":a>=1e6?(v/1e6).toFixed(1)+"M":Number(v).toLocaleString();}
+async function runFundamentals(){
+  const s=$("fu-status");s.textContent="loading EDGAR financials…";s.className="spin";
+  $("fu-detail").innerHTML="";$("fu-kpis").innerHTML='<div class="spin">loading…</div>';
+  try{
+    const d=await api(`/fundamentals/${encodeURIComponent(state.ticker)}`);
+    $("fu-ctx").textContent=`${d.name||d.ticker} · FY${d.latest_year||'?'}`;
+    const L=d.latest||{},R=d.ratios||{};
+    const k=[["Revenue",_B(L.revenue)],["Net Income",_B(L.net_income)],["Rev Growth",fmtPct(d.revenue_growth)],["Net Margin",fmtPct(R.net_margin)],["ROE",fmtPct(R.roe)],["ROA",fmtPct(R.roa)],["Current Ratio",R.current_ratio==null?"–":R.current_ratio.toFixed(2)],["Debt/Equity",R.debt_to_equity==null?"–":R.debt_to_equity.toFixed(2)]];
+    $("fu-kpis").innerHTML=k.map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+    const rev=(d.history&&d.history.revenue)||[],ni=(d.history&&d.history.net_income)||[],years=rev.map(x=>x.year);
+    const ctx=$("fu-chart").getContext("2d");if(fuChart)fuChart.destroy();
+    fuChart=new Chart(ctx,{type:"bar",data:{labels:years,datasets:[
+      {label:"Revenue",data:rev.map(x=>x.val/1e9),backgroundColor:"#4c8bf5"},
+      {label:"Net Income",data:years.map(y=>{const m=ni.find(z=>z.year===y);return m?m.val/1e9:null;}),backgroundColor:"#26c281"}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#9aa4b8",font:{size:10}}},tooltip:{callbacks:{label:c=>c.dataset.label+': $'+(c.parsed.y||0).toFixed(1)+'B'}}},scales:{x:{ticks:{color:"#5f6b80",font:{size:9}},grid:{display:false}},y:{ticks:{color:"#5f6b80",font:{size:9},callback:v=>'$'+v+'B'},grid:{color:"rgba(120,150,200,0.06)"}}}}});
+    const rows=[["Revenue",L.revenue],["Gross Profit",L.gross_profit],["Operating Income",L.operating_income],["Net Income",L.net_income],["Total Assets",L.assets],["Total Liabilities",L.liabilities],["Equity",L.equity],["Cash",L.cash],["Operating Cash Flow",L.operating_cash_flow]];
+    let html='<div class="metrics-list">'+rows.map(([l,v])=>`<div class="row"><span class="muted">${l}</span><b>${_B(v)}</b></div>`).join("");
+    html+=`<div class="row"><span class="muted">EPS (diluted)</span><b>${L.eps_diluted==null?"–":"$"+L.eps_diluted.toFixed(2)}</b></div></div><div class="interp">From SEC EDGAR XBRL (10-K annual filings) — real audited financials, not estimates.</div>`;
+    $("fu-detail").innerHTML=html;
+    s.textContent="";
+  }catch(e){$("fu-kpis").innerHTML="";$("fu-detail").innerHTML='<div class="spin neg">'+e.message+'</div>';s.textContent="";}
 }
 /* STRATEGY LAB */
 const ST_CONDS={
