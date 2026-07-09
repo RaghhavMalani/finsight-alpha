@@ -16,7 +16,7 @@ the current feature set, and the roadmap for future phases.
 - Unit tests for the metrics.
 
 ### Phase 1B - Dashboard + cloud-ready architecture
-- Multi-page Streamlit dashboard (overview, single asset, comparison,
+- Multi-page analytics UI foundation (overview, single asset, comparison,
   correlation, sector, data quality).
 - Pluggable **provider architecture** (`MarketDataProvider` ABC + registry) with
   a yfinance provider and Alpha Vantage / Polygon placeholders.
@@ -36,7 +36,7 @@ the current feature set, and the roadmap for future phases.
 - SQL DDL (`sql/001_create_tables.sql`) and BigQuery schema docs.
 
 ### Phase 1D - Google Cloud deployment
-- Finalized `Dockerfile.api` and `Dockerfile.streamlit` (bind to `$PORT`).
+- Finalized the API container path with `$PORT` binding.
 - Deployment automation: `infra/gcp_commands.sh` and
   `infra/gcp_commands_windows.ps1`; full `infra/gcp_deployment.md` guide.
 - Cloud clients return **structured status dictionaries** and add
@@ -54,7 +54,7 @@ the current feature set, and the roadmap for future phases.
 - **Data**: multi-market (US + India) OHLCV via a pluggable provider layer.
 - **Analytics**: returns, cumulative returns, volatility (rolling + annualized),
   drawdown/max drawdown, correlation matrix, sector aggregation, summary stats.
-- **Interfaces**: Streamlit dashboard (6 pages) + FastAPI REST API.
+- **Interfaces**: browser terminal + FastAPI REST API.
 - **Persistence**: local CSV/Parquet; optional BigQuery + Cloud Storage; optional
   Cloud SQL metadata.
 - **Deployment**: containerized; one-command Cloud Run deployment.
@@ -68,7 +68,7 @@ the current feature set, and the roadmap for future phases.
 Provider (yfinance) -> MarketDataService -> analytics enrichment
    -> local files (always)
    -> BigQuery / Cloud Storage (optional)
-Dashboard (Streamlit) --(Local or API)--> FastAPI --> the above
+Browser terminal --(same-origin HTTP)--> FastAPI --> the above
 ```
 
 ---

@@ -1,48 +1,23 @@
 # Cloud Deployment Notes (Google Cloud)
 
-This document explains how FinSight Alpha is designed to run on Google Cloud, and
-how the placeholder integrations (BigQuery, Cloud Storage, Cloud SQL, Vertex AI)
-will be activated in later phases. Nothing here is required to run the project
-locally.
+FinSight Alpha currently deploys as one FastAPI Cloud Run service. That service
+also serves the browser terminal, risk page, and login page, so no separate UI
+container is required.
 
 ## Overview
 
 ```mermaid
 flowchart LR
-  user[User Browser] --> st[Cloud Run: Streamlit]
-  user --> reactFuture[Future React Frontend]
-  reactFuture --> api[Cloud Run: FastAPI]
-  st --> api
+  user[User Browser] --> api[Cloud Run: FastAPI + Terminal]
   api --> bq[BigQuery]
   api --> sql[Cloud SQL Postgres]
   api --> gcs[Cloud Storage]
   api --> vertex[Vertex AI / RAG Engine]
 ```
 
-## 1. Deploying the Streamlit dashboard to Cloud Run
+## 1. Deploying The FastAPI App
 
-Cloud Run runs stateless containers and injects a `$PORT` env var, which our
-`Dockerfile.streamlit` already honours.
-
-```bash
-# Build and push with Cloud Build, then deploy.
-gcloud builds submit --tag gcr.io/$GCP_PROJECT_ID/finsight-streamlit \
-  --file infra/Dockerfile.streamlit .
-
-gcloud run deploy finsight-streamlit \
-  --image gcr.io/$GCP_PROJECT_ID/finsight-streamlit \
-  --region asia-south1 \
-  --allow-unauthenticated \
-  --memory 1Gi
-```
-
-Notes:
-- Streamlit binds to `0.0.0.0:$PORT` and runs `--server.headless=true`.
-- Set secrets (API keys) via `--set-env-vars` or Secret Manager, not in the image.
-
-## 2. Deploying the FastAPI backend to Cloud Run
-
-`Dockerfile.api` runs `uvicorn backend.main:app` on `$PORT`.
+`infra/Dockerfile.api` runs `uvicorn backend.main:app` on `$PORT`.
 
 ```bash
 gcloud builds submit --tag gcr.io/$GCP_PROJECT_ID/finsight-api \
@@ -52,36 +27,37 @@ gcloud run deploy finsight-api \
   --image gcr.io/$GCP_PROJECT_ID/finsight-api \
   --region asia-south1 \
   --allow-unauthenticated \
-  --memory 512Mi
+  --memory 1Gi
 ```
 
-The Streamlit service (or a future React frontend) calls this API over HTTPS.
+Open the terminal at `/terminal` on the deployed service URL.
 
-## 3. Future data integrations
+## 2. Future Data Integrations
 
-### BigQuery (analytics warehouse)
-- Activated in `src/data/storage.py::upload_to_bigquery`.
-- Store processed daily bars + computed metrics in partitioned tables for fast
-  historical queries and as the retrieval corpus backing analytics.
-- Auth via `GOOGLE_APPLICATION_CREDENTIALS` (service account) and
-  `GCP_PROJECT_ID` / `BIGQUERY_DATASET` from the environment.
+### BigQuery
 
-### Cloud Storage (object store)
-- Activated in `src/data/storage.py::upload_to_cloud_storage`.
-- Store raw CSV/Parquet exports and generated artifacts (charts, reports) in
+- Store processed daily bars and computed metrics in partitioned tables.
+- Auth via `GOOGLE_APPLICATION_CREDENTIALS` locally or the Cloud Run service
+  account in production.
+- Configure `GCP_PROJECT_ID` and `BIGQUERY_DATASET`.
+
+### Cloud Storage
+
+- Store raw CSV/Parquet exports and generated artifacts in
   `gs://$GCS_BUCKET_NAME/...`.
 
-### Cloud SQL (Postgres)
-- Use `DATABASE_URL` (SQLAlchemy) for transactional/app state: watchlists, user
-  settings, cached summaries.
-- `psycopg2-binary` + `sqlalchemy` are already in `requirements.txt`.
+### Cloud SQL
 
-### Vertex AI + RAG Engine (Phase 1D+)
-- Vertex AI for model training/serving (forecasting, volatility models).
-- Vertex AI RAG Engine to answer natural-language questions over the stored
-  datasets and generated reports: index BigQuery/GCS content, retrieve relevant
-  context, and ground LLM answers in the project's own market data.
+- Use `DATABASE_URL` for transactional app state: watchlists, user settings, and
+  cached summaries.
 
-## 4. CI/CD (later)
-- Cloud Build triggers on push to `main`: run `pytest`, build both images, deploy
-  to Cloud Run. Promote via tags/revisions with traffic splitting.
+### Vertex AI And RAG
+
+- Vertex AI can be explored later for model serving.
+- RAG can remain local with FAISS/Chroma until the document corpus needs managed
+  infrastructure.
+
+## 3. CI/CD Later
+
+A future Cloud Build or GitHub Actions flow should run `pytest`, build the API
+image, and deploy to Cloud Run with revision-based promotion.

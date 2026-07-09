@@ -11,7 +11,7 @@ features purely through environment variables.
 
 | Component | Service | Role |
 | --- | --- | --- |
-| Streamlit dashboard | Cloud Run | Interactive UI (Local or API mode) |
+| FastAPI + terminal | Cloud Run | Interactive UI and REST API |
 | FastAPI backend | Cloud Run | REST API: fetch, analytics, persistence |
 | Market data | yfinance (pluggable) | Source of OHLCV prices |
 | BigQuery | `finsight_alpha` dataset | Analytical warehouse (prices + analytics) |
@@ -25,8 +25,8 @@ features purely through environment variables.
 
 ```
                           +---------------------------+
-        Browser  ───────▶ |  Cloud Run: Streamlit     |
-                          |  app/streamlit_app.py     |
+        Browser  ───────▶ |  Cloud Run: FastAPI       |
+                          |  /terminal + API routes   |
                           +-------------+-------------+
                                         │  (API Mode, HTTP)
                                         ▼

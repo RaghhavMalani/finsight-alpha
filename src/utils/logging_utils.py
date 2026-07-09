@@ -22,8 +22,8 @@ _DEFAULT_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 def _configure_root_once() -> None:
     """Attach a single stream handler to the root logger if none exists.
 
-    Using ``logging.basicConfig`` is not always idempotent across reimports
-    (e.g. Streamlit's hot-reload), so we guard on existing handlers explicitly.
+    Using ``logging.basicConfig`` is not always idempotent across reimports,
+    so we guard on existing handlers explicitly.
     """
     root = logging.getLogger()
     if root.handlers:

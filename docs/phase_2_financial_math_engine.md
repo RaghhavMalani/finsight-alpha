@@ -6,8 +6,8 @@ reusable **financial math and risk-adjusted performance engine**.
 
 Everything here is **local-first**: no cloud, no API keys, no database. The new
 math lives in `src/analytics/metrics.py`, benchmarks are configured in
-`src/config.py`, charts are in `src/visualization/plots.py`, and the dashboard
-surfaces it all in `app/streamlit_app.py`.
+`src/config.py`, charts are in `src/visualization/plots.py`, and the API/UI
+surface it through the browser terminal.
 
 ---
 
@@ -200,8 +200,8 @@ New chart builders in `src/visualization/plots.py`:
 ## Running & testing
 
 ```bash
-# Dashboard
-streamlit run app/streamlit_app.py
+# App
+uvicorn backend.main:app --reload
 
 # Tests (offline, no internet)
 pytest -q

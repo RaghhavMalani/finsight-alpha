@@ -2,7 +2,7 @@
 
 Assembles the API: configures the app, adds CORS, and includes the routers from
 ``backend/routes``. The same :class:`MarketDataService` and analytics modules
-that power the Streamlit dashboard back these endpoints, so logic is never
+that power the browser terminal back these endpoints, so logic is never
 duplicated.
 
 Run locally from the project root:
@@ -41,7 +41,7 @@ app = FastAPI(
     version=config.APP_VERSION,
 )
 
-# CORS: allow the Streamlit dashboard (and future React app) to call the API.
+# CORS: allow browser frontends to call the API.
 # In production, replace "*" with the specific dashboard origin(s).
 app.add_middleware(
     CORSMiddleware,

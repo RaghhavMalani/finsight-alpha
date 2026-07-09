@@ -25,14 +25,12 @@ from .plots import (
 from .theme import (
     COLORS,
     apply_plotly_theme,
-    apply_streamlit_theme,
     plotly_layout,
 )
 
 __all__ = [
     # theme
     "COLORS",
-    "apply_streamlit_theme",
     "apply_plotly_theme",
     "plotly_layout",
     # single-asset

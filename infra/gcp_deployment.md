@@ -1,43 +1,52 @@
-# FinSight Alpha - Google Cloud Deployment Guide (Phase 1D)
+# FinSight Alpha - Google Cloud Deployment Guide
 
-This guide walks you through deploying FinSight Alpha to Google Cloud:
+This guide deploys the current FinSight Alpha product to Google Cloud:
 
-- **FastAPI backend** -> Cloud Run
-- **Streamlit dashboard** -> Cloud Run
-- **BigQuery** -> market prices + analytics warehouse
-- **Cloud Storage** -> raw CSV files (and future financial PDFs)
-- **Artifact Registry** -> Docker image storage
-- **Cloud SQL (PostgreSQL)** -> optional app metadata
+- FastAPI backend -> Cloud Run
+- Browser terminal -> served by the FastAPI service at `/terminal`
+- BigQuery -> optional market prices and analytics warehouse
+- Cloud Storage -> optional raw files and document storage
+- Artifact Registry -> Docker image storage
+- Cloud SQL (PostgreSQL) -> optional app metadata
 
-> Everything here is **optional for local development**. The app runs fully
-> locally without any of these resources. Deploy only when you want it live.
+Everything here is optional for local development. The app runs locally without
+cloud resources.
 
 ---
 
-## 0. Project configuration
+## 0. Project Configuration
 
-| Setting | Value |
+Set these values in your shell before running the scripts:
+
+| Setting | Example |
 | --- | --- |
-| Project ID | `finsight-alpha-498208` |
-| Project number | `771358783484` |
-| Region | `asia-south1` (Mumbai) |
-| Artifact Registry repo | `finsight-alpha-repo` |
-| BigQuery dataset | `finsight_alpha` |
-| Cloud Storage bucket | `finsight-alpha-498208-finsight-alpha-data` |
-| API service | `finsight-alpha-api` |
-| Dashboard service | `finsight-alpha-dashboard` |
-| Runtime service account | `771358783484-compute@developer.gserviceaccount.com` |
+| `PROJECT_ID` | `your-gcp-project-id` |
+| `PROJECT_NUMBER` | `123456789012` |
+| `REGION` | `asia-south1` |
+| `REPO_NAME` | `finsight-alpha-repo` |
+| `API_SERVICE_NAME` | `finsight-alpha-api` |
+| `BQ_DATASET` | `finsight_alpha` |
+| `GCS_BUCKET_NAME` | `your-project-finsight-alpha-data` |
 
-> The fastest path is to run the script (`infra/gcp_commands.sh` on macOS/Linux,
-> or `infra/gcp_commands_windows.ps1` on Windows), which performs every step
-> below. The manual steps are documented here for understanding/debugging.
+The fastest path is to run one of the scripts:
+
+```bash
+PROJECT_ID=your-project PROJECT_NUMBER=123456789012 REGION=asia-south1 bash infra/gcp_commands.sh
+```
+
+```powershell
+$env:PROJECT_ID="your-project"
+$env:PROJECT_NUMBER="123456789012"
+$env:REGION="asia-south1"
+./infra/gcp_commands_windows.ps1
+```
 
 ---
 
 ## 1. Prerequisites
 
-1. Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) (`gcloud`).
-2. Install [Docker](https://docs.docker.com/get-docker/).
+1. Install the Google Cloud CLI.
+2. Install Docker.
 3. Authenticate:
 
 ```bash
@@ -47,201 +56,160 @@ gcloud auth application-default login
 
 ---
 
-## 2. Set the active project
+## 2. Enable Required APIs
 
 ```bash
-gcloud config set project finsight-alpha-498208
+gcloud config set project "$PROJECT_ID"
+
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  artifactregistry.googleapis.com \
+  bigquery.googleapis.com \
+  storage.googleapis.com \
+  sqladmin.googleapis.com \
+  secretmanager.googleapis.com
 ```
 
 ---
 
-## 3. Enable required APIs
+## 3. Create Artifact Registry
 
 ```bash
-  gcloud services enable \
-    run.googleapis.com \
-    cloudbuild.googleapis.com \
-    artifactregistry.googleapis.com \
-    bigquery.googleapis.com \
-    storage.googleapis.com \
-    sqladmin.googleapis.com \
-    secretmanager.googleapis.com
-```
-
----
-
-## 4. Create the Artifact Registry repository
-
-```bash
-gcloud artifacts repositories create finsight-alpha-repo \
+gcloud artifacts repositories create "$REPO_NAME" \
   --repository-format=docker \
-  --location=asia-south1 \
+  --location="$REGION" \
   --description="FinSight Alpha container images"
 
-# Let Docker authenticate to Artifact Registry:
-gcloud auth configure-docker asia-south1-docker.pkg.dev
+gcloud auth configure-docker "$REGION-docker.pkg.dev"
 ```
 
 ---
 
-## 5. Create the BigQuery dataset
+## 4. Create Optional Data Stores
+
+BigQuery:
 
 ```bash
-bq --location=asia-south1 mk --dataset finsight-alpha-498208:finsight_alpha
+bq --location="$REGION" mk --dataset "$PROJECT_ID:$BQ_DATASET"
 ```
 
-Tables (`market_prices_daily`, `market_analytics_daily`) are auto-created on
-first upload via the `BigQueryClient` (it uses `autodetect` schema). See
-`sql/bigquery_schema.md` for the intended column layout.
-
----
-
-## 6. Create the Cloud Storage bucket
+Cloud Storage:
 
 ```bash
-gcloud storage buckets create gs://finsight-alpha-498208-finsight-alpha-data \
-  --location=asia-south1
+gcloud storage buckets create "gs://$GCS_BUCKET_NAME" --location="$REGION"
 ```
 
-Raw exports are written under the `raw/` prefix (e.g. `raw/AAPL.csv`).
-
----
-
-## 7. Grant IAM permissions to the Cloud Run service account
-
-The Cloud Run services run as the default compute service account. Grant it
-access to BigQuery and Cloud Storage:
+Grant the Cloud Run runtime service account access:
 
 ```bash
-SA=771358783484-compute@developer.gserviceaccount.com
+SA="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
 
-gcloud projects add-iam-policy-binding finsight-alpha-498208 \
-  --member="serviceAccount:${SA}" --role="roles/bigquery.dataEditor"
-
-gcloud projects add-iam-policy-binding finsight-alpha-498208 \
-  --member="serviceAccount:${SA}" --role="roles/bigquery.jobUser"
-
-gcloud projects add-iam-policy-binding finsight-alpha-498208 \
-  --member="serviceAccount:${SA}" --role="roles/storage.objectAdmin"
+for ROLE in roles/bigquery.dataEditor roles/bigquery.jobUser roles/storage.objectAdmin; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${SA}" \
+    --role="$ROLE"
+done
 ```
 
 ---
 
-## 8. Build & push the Docker images
+## 5. Build And Push The API Image
 
 ```bash
-API_IMAGE=asia-south1-docker.pkg.dev/finsight-alpha-498208/finsight-alpha-repo/finsight-alpha-api:latest
-DASH_IMAGE=asia-south1-docker.pkg.dev/finsight-alpha-498208/finsight-alpha-repo/finsight-alpha-dashboard:latest
+API_IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$API_SERVICE_NAME:latest"
 
-docker build -t "$API_IMAGE"  -f infra/Dockerfile.api .
-docker build -t "$DASH_IMAGE" -f infra/Dockerfile.streamlit .
-
+docker build -t "$API_IMAGE" -f infra/Dockerfile.api .
 docker push "$API_IMAGE"
-docker push "$DASH_IMAGE"
 ```
-
-> Both Dockerfiles bind to the `$PORT` environment variable that Cloud Run
-> injects (defaulting to `8080`), via a `sh -c` CMD.
 
 ---
 
-## 9. Deploy the FastAPI backend to Cloud Run
+## 6. Deploy FastAPI To Cloud Run
 
 ```bash
-gcloud run deploy finsight-alpha-api \
+gcloud run deploy "$API_SERVICE_NAME" \
   --image="$API_IMAGE" \
-  --region=asia-south1 \
+  --region="$REGION" \
   --platform=managed \
   --allow-unauthenticated \
-  --set-env-vars="GCP_PROJECT_ID=finsight-alpha-498208,BIGQUERY_DATASET=finsight_alpha,GCS_BUCKET_NAME=finsight-alpha-498208-finsight-alpha-data,MARKET_DATA_PROVIDER=yfinance"
+  --set-env-vars="GCP_PROJECT_ID=$PROJECT_ID,BIGQUERY_DATASET=$BQ_DATASET,GCS_BUCKET_NAME=$GCS_BUCKET_NAME,MARKET_DATA_PROVIDER=yfinance"
 
-# Capture the deployed URL:
-API_URL=$(gcloud run services describe finsight-alpha-api \
-  --region=asia-south1 --format="value(status.url)")
+API_URL=$(gcloud run services describe "$API_SERVICE_NAME" \
+  --region="$REGION" --format="value(status.url)")
+
 echo "$API_URL"
+echo "$API_URL/terminal"
 ```
 
 ---
 
-## 10. Deploy the Streamlit dashboard to Cloud Run
-
-The dashboard needs `API_BASE_URL` set to the deployed API URL so "API Mode"
-works:
+## 7. Test The Deployment
 
 ```bash
-gcloud run deploy finsight-alpha-dashboard \
-  --image="$DASH_IMAGE" \
-  --region=asia-south1 \
-  --platform=managed \
-  --allow-unauthenticated \
-  --set-env-vars="API_BASE_URL=${API_URL},GCP_PROJECT_ID=finsight-alpha-498208,BIGQUERY_DATASET=finsight_alpha,GCS_BUCKET_NAME=finsight-alpha-498208-finsight-alpha-data"
-```
-
----
-
-## 11. (Optional) Cloud SQL for PostgreSQL
-
-Only needed once app metadata (watchlists, ingestion jobs) moves off local SQL.
-
-```bash
-gcloud sql instances create finsight-sql \
-  --database-version=POSTGRES_15 \
-  --tier=db-f1-micro \
-  --region=asia-south1
-
-gcloud sql databases create finsight_alpha --instance=finsight-sql
-gcloud sql users set-password postgres --instance=finsight-sql --password=CHANGE_ME
-```
-
-Then connect Cloud Run with `--add-cloudsql-instances` and set `DATABASE_URL`
-to the Unix-socket form shown in `.env.cloud.example`.
-
----
-
-## 12. Testing the deployment
-
-```bash
-# Health check
 curl "$API_URL/health"
+```
 
-# Trigger a fetch with cloud uploads
+Open the terminal at:
+
+```text
+$API_URL/terminal
+```
+
+Trigger a sample market-data fetch:
+
+```bash
 curl -X POST "$API_URL/market-data/fetch" \
   -H "Content-Type: application/json" \
   -d '{"tickers":["AAPL"],"upload_bigquery":true,"upload_cloud_storage":true}'
 ```
 
-Open the dashboard URL in a browser, choose **API Mode**, point it at `$API_URL`,
-and optionally tick the cloud-upload checkboxes.
-
-Verify the data landed:
+Verify cloud writes if enabled:
 
 ```bash
 bq query --use_legacy_sql=false \
-  'SELECT COUNT(*) FROM `finsight-alpha-498208.finsight_alpha.market_prices_daily`'
+  "SELECT COUNT(*) FROM \`$PROJECT_ID.$BQ_DATASET.market_prices_daily\`"
 
-gcloud storage ls gs://finsight-alpha-498208-finsight-alpha-data/raw/
+gcloud storage ls "gs://$GCS_BUCKET_NAME/raw/"
 ```
 
 ---
 
-## 13. Troubleshooting
+## 8. Optional Cloud SQL
 
-| Symptom | Likely cause / fix |
-| --- | --- |
-| `PERMISSION_DENIED` on BigQuery/Storage | Service account missing IAM roles (step 7). |
-| Container fails to start on Cloud Run | App must listen on `$PORT`. The provided Dockerfiles already do this. |
-| `403` pushing to Artifact Registry | Run `gcloud auth configure-docker asia-south1-docker.pkg.dev`. |
-| Dashboard "API offline" | `API_BASE_URL` not set / wrong, or API not `--allow-unauthenticated`. |
-| BigQuery upload silently skipped | No credentials locally - expected. Set `GOOGLE_APPLICATION_CREDENTIALS` or run on Cloud Run. |
-| `bq mk` says dataset exists | Safe to ignore - the script tolerates this. |
+Only needed once app metadata moves off local SQLite.
+
+```bash
+gcloud sql instances create finsight-sql \
+  --database-version=POSTGRES_15 \
+  --tier=db-f1-micro \
+  --region="$REGION"
+
+gcloud sql databases create finsight_alpha --instance=finsight-sql
+gcloud sql users set-password postgres --instance=finsight-sql --password=CHANGE_ME
+```
+
+Then connect Cloud Run with `--add-cloudsql-instances` and set `DATABASE_URL`.
 
 ---
 
-## 14. Cost notes
+## 9. Troubleshooting
 
-- **Cloud Run** scales to zero - you pay only per request/CPU-second.
-- **BigQuery** has a generous free tier (storage + 1 TB queries/month).
-- **Cloud Storage** standard storage is a few cents/GB/month.
-- **Cloud SQL** (if enabled) bills hourly even when idle - stop/delete when unused.
+| Symptom | Likely cause / fix |
+| --- | --- |
+| `PERMISSION_DENIED` on BigQuery/Storage | Service account missing IAM roles. |
+| Container fails to start on Cloud Run | App must listen on `$PORT`; `infra/Dockerfile.api` does. |
+| `403` pushing to Artifact Registry | Run `gcloud auth configure-docker $REGION-docker.pkg.dev`. |
+| Terminal loads but API calls fail | Check auth, cookies, CORS, and same-origin URL. |
+| BigQuery upload skipped locally | Expected without credentials. Use ADC or run on Cloud Run. |
 
-To avoid charges entirely, simply do not deploy: local mode is free.
+---
+
+## 10. Cost Notes
+
+- Cloud Run scales to zero.
+- BigQuery has a free tier, but large queries can cost money.
+- Cloud Storage is low cost for small data volumes.
+- Cloud SQL bills while running, even when idle.
+
+Do not deploy if you want zero cloud cost.

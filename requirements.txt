@@ -1,7 +1,7 @@
 # FinSight Alpha - local-first dependencies
 # Install with:  pip install -r requirements.txt
 #
-# This is everything the local Streamlit dashboard needs. No cloud accounts,
+# Everything the API backend + analytics engine needs. No cloud accounts,
 # API keys, or databases required.
 
 # --- Core data & analytics ---
@@ -10,7 +10,7 @@ numpy
 yfinance
 scipy
 
-# --- Visualization & dashboard ---
+# --- Visualization (Plotly charts) ---
 plotly
 
 # --- ML Forecasting ---

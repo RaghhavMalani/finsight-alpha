@@ -1,6 +1,6 @@
 """Regime route: HMM / GMM / KMeans market regime detection over price history.
 
-Exposes the existing ``src.regime`` engine (previously Streamlit-only) as JSON:
+Exposes the existing ``src.regime`` engine as JSON:
 state timeline, labeled regimes, transition matrix, durations, and the current
 regime summary — everything the terminal needs to render a regime card.
 """

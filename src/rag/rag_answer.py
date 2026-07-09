@@ -223,7 +223,7 @@ def generate_llm_answer(
     llm_provider: str = "none",
     model: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Compatibility wrapper kept for ``app/streamlit_app.py``.
+    """Compatibility wrapper for legacy callers.
 
     Historically this accepted ``llm_provider="none"`` and silently returned an
     extractive answer. It now routes to the real grounded generator while

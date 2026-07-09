@@ -1,6 +1,6 @@
 """ML route: the institutional signal engine (Phase 6) as an API.
 
-Runs the full pipeline the Streamlit ML lab uses — feature engineering,
+Runs the full signal research pipeline: feature engineering,
 target construction, model-suite training, and the institutional signal with
 its suppression rules — and returns a JSON payload the terminal can render.
 
