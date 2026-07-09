@@ -23,6 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.routes import (
     agent, analytics, assets, auth, backtest, factors, fundamentals, graph, health,
@@ -59,7 +60,7 @@ from src.auth.db import init_db  # noqa: E402
 
 # Paths reachable WITHOUT a session (login flow, health probes, login page).
 _PUBLIC_PATHS = {"/login", "/health", "/health/llm", "/favicon.ico"}
-_PUBLIC_PREFIXES = ("/auth/",)
+_PUBLIC_PREFIXES = ("/auth/", "/frontend-assets/")
 
 
 @app.on_event("startup")
@@ -113,6 +114,12 @@ app.include_router(agent.router)
 app.include_router(regime.router)
 app.include_router(tape.router)
 app.include_router(ml.router)
+_FRONTEND_ASSETS = PROJECT_ROOT / "frontend" / "assets"
+app.mount(
+    "/frontend-assets",
+    StaticFiles(directory=str(_FRONTEND_ASSETS)),
+    name="frontend-assets",
+)
 
 
 # Serve the terminal front-end (single-page app) from FastAPI so it shares the
