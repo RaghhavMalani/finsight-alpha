@@ -11,6 +11,9 @@ compatibility with Phase 1A code and tests.
 
 from __future__ import annotations
 
+import threading
+import time
+
 import pandas as pd
 
 from src import config
@@ -23,6 +26,25 @@ logger = get_logger(__name__)
 
 # Re-exported alias so existing imports of DataDownloadError keep working.
 DataDownloadError = ProviderError
+
+# ---------------------------------------------------------------------------
+# In-process TTL cache for downloaded price frames.
+#
+# Every API route (quote, tape, backtest, montecarlo, factors, regime, chain,
+# analytics, agent tools) funnels through MarketDataService.get_data, so this
+# one cache makes repeat requests near-instant and stops hammering yfinance.
+# EOD data doesn't change intraday; 15 minutes is a safe freshness window.
+# ---------------------------------------------------------------------------
+_CACHE_TTL_SECONDS = 900
+_cache: dict[tuple, tuple[float, pd.DataFrame]] = {}
+_cache_lock = threading.Lock()
+_MAX_CACHE_ENTRIES = 256
+
+
+def clear_price_cache() -> None:
+    """Drop all cached frames (mainly for tests)."""
+    with _cache_lock:
+        _cache.clear()
 
 
 class MarketDataService:
@@ -41,7 +63,7 @@ class MarketDataService:
             self.provider = provider
         else:
             self.provider = get_provider(provider)
-        logger.info("MarketDataService using provider '%s'", self.provider.name)
+        logger.debug("MarketDataService using provider '%s'", self.provider.name)
 
     def get_data(
         self,
@@ -53,10 +75,26 @@ class MarketDataService:
 
         The returned frame includes a ``Provider`` column recording which source
         produced the data (useful for auditing once multiple providers are live).
+
+        Results are cached in-process for 15 minutes per (provider, ticker,
+        window), so repeated calls from the terminal are served from memory.
         """
+        key = (self.provider.name, ticker.upper(), str(start_date), str(end_date))
+        now = time.time()
+        with _cache_lock:
+            hit = _cache.get(key)
+            if hit is not None and now - hit[0] < _CACHE_TTL_SECONDS:
+                return hit[1].copy()
+
         df = self.provider.get_historical_data(ticker, start_date, end_date)
         df = df.copy()
         df["Provider"] = self.provider.name
+
+        with _cache_lock:
+            if len(_cache) >= _MAX_CACHE_ENTRIES:  # drop oldest entries
+                for old_key, _ in sorted(_cache.items(), key=lambda kv: kv[1][0])[:32]:
+                    _cache.pop(old_key, None)
+            _cache[key] = (now, df.copy())
         return df
 
     def get_multiple(

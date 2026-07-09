@@ -38,7 +38,7 @@ def fetch_filings(ticker: str) -> Dict[str, Any]:
 def ask(
     q: str = Query(..., description="The question."),
     ticker: Optional[str] = Query(None, description="Scope to a ticker."),
-    provider: str = Query("ollama", description="LLM provider."),
+    provider: str = Query("auto", description="LLM provider."),
 ) -> Dict[str, Any]:
     """Answer a question against the current document index (grounded + cited)."""
     from src.rag.ingest import answer_question, load_index

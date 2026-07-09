@@ -20,6 +20,47 @@ def _f(v: Any) -> Optional[float]:
         return None
 
 
+def _binomial_price(S: float, K: float, T: float, r: float, sigma: float,
+                    q: float, kind: str, steps: int = 400,
+                    american: bool = False) -> float:
+    """Cox-Ross-Rubinstein binomial tree price (European or American)."""
+    steps = max(2, min(int(steps), 2000))
+    dt = T / steps
+    u = math.exp(sigma * math.sqrt(dt))
+    d = 1.0 / u
+    disc = math.exp(-r * dt)
+    p = (math.exp((r - q) * dt) - d) / (u - d)
+    p = min(1.0, max(0.0, p))
+
+    j = np.arange(steps + 1)
+    prices = S * (u ** (steps - j)) * (d ** j)
+    if kind == "call":
+        values = np.maximum(prices - K, 0.0)
+    else:
+        values = np.maximum(K - prices, 0.0)
+
+    for i in range(steps - 1, -1, -1):
+        values = disc * (p * values[:-1] + (1 - p) * values[1:])
+        if american:
+            prices = S * (u ** (i - np.arange(i + 1))) * (d ** np.arange(i + 1))
+            exercise = np.maximum(prices - K, 0.0) if kind == "call" else np.maximum(K - prices, 0.0)
+            values = np.maximum(values, exercise)
+    return float(values[0])
+
+
+def _mc_price(S: float, K: float, T: float, r: float, sigma: float, q: float,
+              kind: str, n_paths: int = 100_000, seed: int = 7) -> Dict[str, float]:
+    """Monte Carlo (GBM terminal-price) option price with a standard error."""
+    n_paths = max(1000, min(int(n_paths), 500_000))
+    rng = np.random.default_rng(seed)
+    z = rng.standard_normal(n_paths)
+    st = S * np.exp((r - q - 0.5 * sigma**2) * T + sigma * math.sqrt(T) * z)
+    payoff = np.maximum(st - K, 0.0) if kind == "call" else np.maximum(K - st, 0.0)
+    disc = math.exp(-r * T) * payoff
+    return {"price": float(disc.mean()),
+            "stderr": float(disc.std(ddof=1) / math.sqrt(n_paths))}
+
+
 @router.get("/options/price")
 def option_price(
     S: float = Query(..., description="Spot price"),
@@ -51,9 +92,25 @@ def option_price(
         for k in ["delta", "gamma", "vega", "vega_per_1pct", "theta",
                   "theta_per_day", "rho", "rho_per_1pct"]
     }
+    # Cross-model comparison: Black-Scholes vs CRR binomial (Euro + American)
+    # vs GBM Monte Carlo. Keeps the endpoint backward compatible ("price" is
+    # still the Black-Scholes value) while powering the model-comparison card.
+    try:
+        mc = _mc_price(S, K, T, r, sigma, q, type)
+        models = {
+            "black_scholes": _f(summ.get("option_price")),
+            "binomial": _f(_binomial_price(S, K, T, r, sigma, q, type)),
+            "binomial_american": _f(_binomial_price(S, K, T, r, sigma, q, type, american=True)),
+            "monte_carlo": _f(mc["price"]),
+            "monte_carlo_stderr": _f(mc["stderr"]),
+        }
+    except Exception:  # never let the comparison break the core price
+        models = {"black_scholes": _f(summ.get("option_price"))}
+
     return {
         "option_type": type,
         "price": _f(summ.get("option_price")),
+        "models": models,
         "greeks": greeks,
         "inputs": {"S": S, "K": K, "T": T, "r": r, "sigma": sigma, "q": q},
         "sensitivity": {

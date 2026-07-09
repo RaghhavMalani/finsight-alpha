@@ -20,15 +20,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from backend.routes import (
-    analytics, assets, backtest, factors, fundamentals, graph, health, market_data,
-    news, portfolio, pricing, quote, research, risk, strategy,
+    agent, analytics, assets, auth, backtest, factors, fundamentals, graph, health,
+    market_data, ml, news, portfolio, pricing, quote, regime, research, risk,
+    strategy, tape,
 )
 from src import config
+from src.auth.security import verify_session
 from src.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -43,13 +45,55 @@ app = FastAPI(
 # In production, replace "*" with the specific dashboard origin(s).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # Echo the request origin (required for credentialed/cookie requests from
+    # the React dev server, e.g. http://localhost:8080). "*" is rejected by
+    # browsers when credentials are included.
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# --- Authentication: create tables on startup and gate the whole app ---------
+from src.auth.db import init_db  # noqa: E402
+
+# Paths reachable WITHOUT a session (login flow, health probes, login page).
+_PUBLIC_PATHS = {"/login", "/health", "/health/llm", "/favicon.ico"}
+_PUBLIC_PREFIXES = ("/auth/",)
+
+
+@app.on_event("startup")
+def _startup() -> None:
+    try:
+        init_db()
+        logger.info("Auth database initialized.")
+    except Exception as exc:  # don't hard-fail boot; auth routes will surface it
+        logger.error("Auth DB init failed: %s", exc)
+
+
+@app.middleware("http")
+async def _auth_gate(request: Request, call_next):
+    """Require a valid session for everything except the public paths above."""
+    path = request.url.path
+    if (
+        request.method == "OPTIONS"
+        or path in _PUBLIC_PATHS
+        or any(path.startswith(p) for p in _PUBLIC_PREFIXES)
+    ):
+        return await call_next(request)
+
+    if verify_session(request.cookies.get("fs_session")):
+        return await call_next(request)
+
+    # Not authenticated: send browsers to the login page, APIs a 401.
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        return RedirectResponse(url="/login", status_code=303)
+    return JSONResponse({"detail": "Authentication required."}, status_code=401)
+
+
 # Register routers.
+app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(assets.router)
 app.include_router(market_data.router)
@@ -65,6 +109,10 @@ app.include_router(backtest.router)
 app.include_router(factors.router)
 app.include_router(strategy.router)
 app.include_router(fundamentals.router)
+app.include_router(agent.router)
+app.include_router(regime.router)
+app.include_router(tape.router)
+app.include_router(ml.router)
 
 
 # Serve the terminal front-end (single-page app) from FastAPI so it shares the
@@ -75,6 +123,22 @@ _FRONTEND = PROJECT_ROOT / "frontend" / "terminal.html"
 @app.get("/terminal", include_in_schema=False)
 def terminal() -> FileResponse:
     return FileResponse(str(_FRONTEND))
+
+
+_RISK_PAGE = PROJECT_ROOT / "frontend" / "risk.html"
+
+
+@app.get("/risk", include_in_schema=False)
+def risk_page() -> FileResponse:
+    return FileResponse(str(_RISK_PAGE))
+
+
+_LOGIN_PAGE = PROJECT_ROOT / "frontend" / "login.html"
+
+
+@app.get("/login", include_in_schema=False)
+def login_page() -> FileResponse:
+    return FileResponse(str(_LOGIN_PAGE))
 
 
 @app.get("/", tags=["system"])

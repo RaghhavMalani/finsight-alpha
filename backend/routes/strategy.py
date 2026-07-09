@@ -256,7 +256,7 @@ class CritiqueRequest(BaseModel):
     in_sample: Dict[str, Any] = {}
     out_of_sample: Dict[str, Any] = {}
     n_trades: int = 0
-    provider: str = "ollama"
+    provider: str = "auto"
 
 
 @router.post("/critique")

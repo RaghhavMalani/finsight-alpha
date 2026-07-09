@@ -12,7 +12,6 @@ scipy
 
 # --- Visualization & dashboard ---
 plotly
-streamlit
 
 # --- ML Forecasting ---
 scikit-learn
@@ -40,9 +39,15 @@ tldextract
 # Optional local/cloud LLMs (the RAG answer engine works without any of these
 # via local Ollama over HTTP; install only the one you want to use):
 # ollama                 # local models, free  (run `ollama serve`, then `ollama pull llama3.1`)
-# openai                 # set OPENAI_API_KEY
+openai                   # set OPENAI_API_KEY, or used for Azure OpenAI (gpt-5-mini)
 # anthropic              # set ANTHROPIC_API_KEY
 # google-generativeai    # set GOOGLE_API_KEY
+
+# --- Agentic AI: Microsoft Agent Framework (MAF) ---
+# Powers the AI AGENT tab with native tool-calling on Azure gpt-5-mini.
+# Install with:  pip install agent-framework
+# The /agent endpoint falls back to a built-in loop if this isn't installed.
+agent-framework
 
 # --- Config & environment ---
 python-dotenv
@@ -51,15 +56,15 @@ python-dotenv
 pytest
 
 # ---------------------------------------------------------------------------
-# OPTIONAL / PAUSED: cloud + API stack (Phase 1C/1D, not required locally).
-# Cloud deployment is paused to avoid cost - the dashboard runs fully without
-# these. Uncomment only if you revisit the FastAPI backend or cloud uploads.
+# Server / API stack (FastAPI backend + auth + Postgres). Required to run the
+# terminal backend and to build the deployment container.
 # ---------------------------------------------------------------------------
-# fastapi
-# uvicorn
-# requests
-# pydantic
-# sqlalchemy
-# psycopg2-binary
+fastapi
+uvicorn[standard]
+pydantic
+sqlalchemy
+psycopg2-binary          # PostgreSQL driver (Azure Database for PostgreSQL)
+
+# Optional cloud upload stack (not needed for the terminal; uncomment if used):
 # google-cloud-bigquery
 # google-cloud-storage

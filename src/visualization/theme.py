@@ -3,10 +3,9 @@
 A single source of truth for the FinSight Alpha look-and-feel: a dark,
 finance-terminal aesthetic with clean cards, soft borders, and modern typography.
 
-Two pieces:
-  * :func:`apply_streamlit_theme` - injects custom CSS into the Streamlit app.
-  * :func:`plotly_layout` / :func:`apply_plotly_theme` - a matching dark Plotly
-    layout so every chart is styled consistently.
+Provides :func:`plotly_layout` / :func:`apply_plotly_theme` - a matching dark
+Plotly layout so every chart is styled consistently, plus the shared color
+palette and font stacks.
 """
 
 from __future__ import annotations
@@ -53,122 +52,6 @@ CATEGORICAL_PALETTE: list[str] = [
 FONT_FAMILY: str = (
     '"Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif'
 )
-
-
-def apply_streamlit_theme() -> str:
-    """Return custom CSS for the dashboard (inject via ``st.markdown``).
-
-    The caller does::
-
-        import streamlit as st
-        st.markdown(apply_streamlit_theme(), unsafe_allow_html=True)
-
-    Keeping this as a returned string (rather than calling Streamlit here) avoids
-    importing Streamlit in the visualization layer and keeps it easy to test.
-    """
-    return f"""
-    <style>
-    /* Base app background + typography */
-    .stApp {{
-        background-color: {COLORS['background']};
-        color: {COLORS['text']};
-        font-family: {FONT_FAMILY};
-    }}
-
-    /* Tighten the top padding for a denser, terminal-like layout */
-    .block-container {{
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-        max-width: 1400px;
-    }}
-
-    /* Sidebar */
-    section[data-testid="stSidebar"] {{
-        background-color: {COLORS['surface']};
-        border-right: 1px solid {COLORS['border']};
-    }}
-
-    /* Headings */
-    h1, h2, h3, h4 {{
-        color: {COLORS['text']};
-        font-family: {FONT_FAMILY};
-        font-weight: 600;
-        letter-spacing: 0.2px;
-    }}
-
-    /* App title block */
-    .finsight-title {{
-        font-size: 2.0rem;
-        font-weight: 700;
-        color: {COLORS['text']};
-        margin-bottom: 0.1rem;
-    }}
-    .finsight-subtitle {{
-        font-size: 0.95rem;
-        color: {COLORS['text_muted']};
-        margin-bottom: 1.2rem;
-    }}
-
-    /* KPI metric cards */
-    div[data-testid="stMetric"] {{
-        background-color: {COLORS['surface']};
-        border: 1px solid {COLORS['border']};
-        border-left: 2px solid {COLORS['accent_amber']};
-        border-radius: 8px;
-        padding: 14px 16px;
-    }}
-    div[data-testid="stMetric"] label {{
-        color: {COLORS['text_muted']};
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-    }}
-    div[data-testid="stMetricValue"] {{
-        color: {COLORS['text']};
-        font-weight: 600;
-        font-family: {MONO_FONT};
-        font-size: 1.45rem;
-        letter-spacing: -0.3px;
-    }}
-    /* Monospace numbers in tables too, for the terminal look */
-    .stDataFrame td {{ font-family: {MONO_FONT}; font-size: 0.82rem; }}
-
-    /* Generic card wrapper (use with st.markdown) */
-    .finsight-card {{
-        background-color: {COLORS['surface']};
-        border: 1px solid {COLORS['border']};
-        border-radius: 12px;
-        padding: 18px 20px;
-        margin-bottom: 16px;
-    }}
-
-    /* Tabs */
-    button[data-baseweb="tab"] {{
-        font-weight: 600;
-        color: {COLORS['text_muted']};
-    }}
-    button[data-baseweb="tab"][aria-selected="true"] {{
-        color: {COLORS['accent']};
-    }}
-
-    /* Buttons */
-    .stButton > button {{
-        border-radius: 8px;
-        border: 1px solid {COLORS['border']};
-        font-weight: 600;
-    }}
-
-    /* Dataframes */
-    .stDataFrame {{
-        border: 1px solid {COLORS['border']};
-        border-radius: 10px;
-    }}
-
-    /* Hide the default Streamlit menu/footer for a cleaner look */
-    #MainMenu {{visibility: hidden;}}
-    footer {{visibility: hidden;}}
-    </style>
-    """
 
 
 def plotly_layout(title: str | None = None, **overrides: Any) -> dict[str, Any]:

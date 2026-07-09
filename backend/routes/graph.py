@@ -78,7 +78,7 @@ def _num(value: Any) -> Optional[float]:
 @router.get("/{ticker}")
 def get_dependency_graph(
     ticker: str,
-    provider: str = Query("ollama", description="LLM: ollama|groq|gemini|openai|anthropic|auto|none"),
+    provider: str = Query("auto", description="LLM: auto|azure|ollama|groq|gemini|openai|anthropic|none"),
     model: Optional[str] = Query(None, description="Model override."),
     ground: bool = Query(False, description="Ground the graph in the local RAG index."),
     enrich: bool = Query(True, description="Attach recent market metrics to ticker nodes."),
@@ -116,7 +116,7 @@ def _norm_ticker(t: str) -> str:
 @router.get("/sensitivity/{ticker}")
 def graph_sensitivity(
     ticker: str,
-    provider: str = Query("ollama"),
+    provider: str = Query("auto"),
     ground: bool = Query(False),
     with_news: bool = Query(True),
 ) -> Dict[str, Any]:

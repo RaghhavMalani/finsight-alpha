@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>FinSight — Risk Workstation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<style>
+:root{
+  --bg:#04060b; --bg2:#070b14; --panel:#0a101c; --panel2:#0d1526;
+  --line:#182240; --line2:#243459;
+  --txt:#e9effc; --dim:#94a4c4; --faint:#5b6a88;
+  --pri:#5d8dff; --cyan:#39d0d8; --green:#3ddc97; --red:#ff5d73; --violet:#8b7cf7;
+  --mono:'JetBrains Mono',Consolas,monospace; --sans:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:
+  radial-gradient(1100px 480px at 75% -10%, rgba(57,208,216,.05), transparent 60%),
+  radial-gradient(900px 420px at 8% 108%, rgba(93,141,255,.05), transparent 60%),
+  var(--bg); color:var(--txt); font-family:var(--sans); font-size:13.5px; min-height:100vh;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+::selection{background:rgba(93,141,255,.25)}
+
+/* header */
+#hdr{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;height:50px;padding:0 16px;
+  border-bottom:1px solid var(--line);background:rgba(7,11,20,.92);backdrop-filter:blur(8px);}
+#brand{font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.1em;color:var(--pri);white-space:nowrap}
+#brand span{color:var(--txt)}
+#brand small{display:block;font-size:8.5px;letter-spacing:.24em;color:var(--faint);font-weight:400;margin-top:-1px}
+.hctl{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px}
+.hctl label{color:var(--faint);font-size:9px;letter-spacing:.14em}
+.hctl input,.hctl select{background:var(--bg2);border:1px solid var(--line2);color:var(--txt);
+  font-family:var(--mono);font-size:12px;padding:6px 9px;border-radius:7px;outline:none;width:110px}
+.hctl input:focus{border-color:var(--pri)}
+#load{background:var(--pri);color:#02060f;border:none;font-family:var(--mono);font-weight:700;
+  font-size:11px;letter-spacing:.08em;padding:8px 18px;border-radius:8px;cursor:pointer}
+#load:hover{filter:brightness(1.12)}
+#hdr .right{margin-left:auto;display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+.hbtn{background:none;border:1px solid var(--line);color:var(--dim);font-family:var(--mono);font-size:10px;
+  padding:5px 11px;border-radius:6px;cursor:pointer;letter-spacing:.06em;text-decoration:none}
+.hbtn:hover{color:var(--pri);border-color:var(--pri)}
+
+#wrap{max-width:1560px;margin:0 auto;padding:14px 16px 40px}
+
+/* KPI strip */
+#kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:9px;padding:9px 11px;animation:rise .3s ease}
+.kpi label{display:block;font-size:9.75px;letter-spacing:.09em;color:var(--faint);font-family:var(--sans);
+  font-weight:600;text-transform:uppercase;margin-bottom:4px}
+.kpi b{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--txt);font-variant-numeric:tabular-nums}
+.kpi b.up{color:var(--green)}.kpi b.down{color:var(--red)}.kpi b.pri{color:var(--pri)}.kpi b.cy{color:var(--cyan)}
+
+/* grid + panels */
+#grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:11px;overflow:hidden;animation:rise .35s ease}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;border-bottom:1px solid var(--line)}
+.ph h3{font-family:var(--sans);font-size:11px;letter-spacing:.12em;color:var(--dim);font-weight:600}
+.ph .tag{font-family:var(--mono);font-size:9px;color:var(--faint)}
+.pb{padding:8px}
+.s12{grid-column:span 12}.s8{grid-column:span 8}.s6{grid-column:span 6}.s4{grid-column:span 4}
+@media(max-width:1100px){.s8,.s6,.s4{grid-column:span 12}}
+
+table.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.75px}
+.tbl th{color:var(--faint);font-weight:600;text-align:right;padding:9px 12px;border-bottom:1px solid var(--line);
+  font-size:10.25px;letter-spacing:.08em;text-transform:uppercase;font-family:var(--sans)}
+.tbl td{padding:9px 12px;text-align:right;border-bottom:1px solid rgba(24,34,64,.5);color:var(--txt);font-variant-numeric:tabular-nums}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.neg{color:var(--red)}.pos{color:var(--green)}
+
+/* AI panel */
+#ai-answer{font-size:13px;line-height:1.7;color:var(--txt);white-space:pre-wrap;padding:12px 14px;display:none}
+#ai-answer strong{color:var(--pri)}
+#ai-answer code{font-family:var(--mono);background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:11.5px}
+.ai-btn{background:rgba(139,124,247,.12);color:var(--violet);border:1px solid rgba(139,124,247,.45);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:6px 14px;border-radius:7px;cursor:pointer}
+.ai-btn:hover{background:rgba(139,124,247,.22)}
+.thinking i{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--violet);margin:0 2px;animation:blink 1.2s infinite}
+.thinking i:nth-child(2){animation-delay:.2s}.thinking i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+
+#status{font-family:var(--mono);font-size:11px;color:var(--faint);text-align:center;padding:60px 0}
+#status.err{color:var(--red)}
+.skl{height:200px;border-radius:8px;background:linear-gradient(100deg,var(--panel) 40%,var(--panel2) 50%,var(--panel) 60%);
+  background-size:200% 100%;animation:sk 1.2s infinite linear}
+@keyframes sk{from{background-position:130% 0}to{background-position:-30% 0}}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div id="brand">RISK<span>·WORKSTATION</span><small>FINSIGHT TERMINAL</small></div>
+  <div class="hctl"><label>TICKER</label><input id="in-t" value="NVDA" spellcheck="false"/></div>
+  <div class="hctl"><label>BENCH</label>
+    <select id="in-b"><option>SPY</option><option>QQQ</option><option value="NIFTYBEES.NS">NIFTY</option></select>
+  </div>
+  <div class="hctl"><label>NOTIONAL $</label><input id="in-n" value="100000"/></div>
+  <button id="load" onclick="loadAll()">ANALYZE</button>
+  <div class="right">
+    <span id="asof"></span>
+    <a class="hbtn" href="/terminal">← TERMINAL</a>
+  </div>
+</div>
+
+<div id="wrap">
+  <div id="status">Enter a ticker and hit ANALYZE — or press Enter.</div>
+  <div id="dash" style="display:none">
+    <div id="kpis"></div>
+    <div id="grid">
+      <div class="panel s8"><div class="ph"><h3 id="px-title">PRICE + DRAWDOWN REGIME</h3><span class="tag">full history</span></div><div class="pb"><div id="p-price" style="height:300px"></div></div></div>
+      <div class="panel s4"><div class="ph"><h3>VALUE AT RISK — METHOD COMPARISON</h3><span class="tag">1-day</span></div><div class="pb"><div id="p-var" style="height:300px"></div></div></div>
+
+      <div class="panel s4"><div class="ph"><h3>RETURN DISTRIBUTION + VaR MARKERS</h3><span class="tag">daily</span></div><div class="pb"><div id="p-hist" style="height:230px"></div></div></div>
+      <div class="panel s4"><div class="ph"><h3>ROLLING VOLATILITY</h3><span class="tag">20d · 60d · EWMA(.94)</span></div><div class="pb"><div id="p-vol" style="height:230px"></div></div></div>
+      <div class="panel s4"><div class="ph"><h3>ROLLING 95% VaR</h3><span class="tag">252d window</span></div><div class="pb"><div id="p-rvar" style="height:230px"></div></div></div>
+
+      <div class="panel s4"><div class="ph"><h3>ROLLING BETA</h3><span class="tag" id="beta-tag">vs benchmark · 120d</span></div><div class="pb"><div id="p-beta" style="height:230px"></div></div></div>
+      <div class="panel s8"><div class="ph"><h3>MONTE CARLO — 1Y PRICE FAN + TAIL</h3><span class="tag">GBM · 4000 paths</span></div><div class="pb"><div id="p-fan" style="height:230px"><div class="skl"></div></div></div></div>
+
+      <div class="panel s6"><div class="ph"><h3>DEEPEST DRAWDOWN EPISODES</h3><span class="tag">peak → trough → recovery</span></div><table class="tbl" id="t-dd"></table></div>
+      <div class="panel s6">
+        <div class="ph"><h3>STRESS TESTS + WORST HISTORICAL WINDOWS</h3><span class="tag" id="stress-tag"></span></div>
+        <table class="tbl" id="t-stress"></table>
+      </div>
+
+      <div class="panel s12">
+        <div class="ph"><h3>AI RISK READ</h3><button class="ai-btn" id="ai-go" onclick="aiRead()">INTERPRET THIS RISK PROFILE</button></div>
+        <div id="ai-answer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const fN=(v,d=2)=>v==null||!isFinite(v)?'—':Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fP=(v,d=2)=>v==null||!isFinite(v)?'—':(v>=0?'+':'')+(100*v).toFixed(d)+'%';
+const fPn=(v,d=2)=>v==null||!isFinite(v)?'—':(100*v).toFixed(d)+'%';
+const fD=v=>v==null?'—':'$'+Math.round(Math.abs(v)).toLocaleString('en-US');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let cur=null; // last dashboard payload
+
+async function api(path,opts={}){
+  const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'},credentials:'same-origin'},opts));
+  if(r.status===401){location.href='/login';throw new Error('auth');}
+  const d=await r.json().catch(()=>({detail:'bad response'}));
+  if(!r.ok)throw new Error(typeof d.detail==='string'?d.detail:JSON.stringify(d.detail));
+  return d;
+}
+
+const PLC={displayModeBar:false,responsive:true};
+function lay(extra={}){
+  return Object.assign({
+    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',
+    font:{family:'JetBrains Mono, monospace',size:10,color:'#7d8aa5'},
+    margin:{l:46,r:12,t:8,b:28},
+    xaxis:{gridcolor:'#141c33',zeroline:false,linecolor:'#182240'},
+    yaxis:{gridcolor:'#141c33',zeroline:false,linecolor:'#182240'},
+    showlegend:false,hovermode:'x unified',
+    hoverlabel:{bgcolor:'#0d1526',bordercolor:'#243459',font:{family:'JetBrains Mono',size:11,color:'#d7e1f5'}},
+  },extra);
+}
+
+/* ---------------- renderers ---------------- */
+function kpi(label,val,cls=''){return `<div class="kpi"><label>${label}</label><b class="${cls}">${val}</b></div>`;}
+
+function renderKpis(d){
+  const h=d.headline, v95=d.var_table[0], v99=d.var_table[1];
+  $('#kpis').innerHTML=[
+    kpi('Last',fN(h.last),'pri'),
+    kpi('Ann Vol',fPn(h.ann_vol)),
+    kpi('EWMA Vol',fPn(h.ewma_vol),h.ewma_vol>h.ann_vol?'down':'up'),
+    kpi('VaR 95 · 1d',fPn(v95.historical.var),'down'),
+    kpi('CVaR 95 · 1d',fPn(v95.historical.cvar),'down'),
+    kpi('VaR 99 · 1d',fPn(v99.historical.var),'down'),
+    kpi('$ VaR 95',fD(v95.dollar_var_1d),'down'),
+    kpi('Max DD',fPn(h.max_drawdown),'down'),
+    kpi('Beta',fN(h.beta),'cy'),
+    kpi('Sharpe',fN(h.sharpe),h.sharpe>1?'up':''),
+    kpi('Sortino',fN(h.sortino),h.sortino>1?'up':''),
+    kpi('Calmar',fN(h.calmar)),
+    kpi('Skew',fN(h.skew),h.skew<0?'down':''),
+    kpi('Kurtosis',fN(h.kurtosis),h.kurtosis>3?'down':''),
+    kpi('Hit Rate',fPn(h.hit_rate,1)),
+    kpi('Worst Day',fPn(h.worst_day),'down'),
+  ].join('');
+}
+
+function renderPrice(d){
+  const p=d.price, dd=d.drawdown;
+  Plotly.newPlot('p-price',[
+    {x:p.dates,y:p.values,type:'scatter',mode:'lines',name:'Close',line:{color:'#5d8dff',width:1.6},
+     fill:'tozeroy',fillcolor:'rgba(93,141,255,.04)',yaxis:'y'},
+    {x:dd.dates,y:dd.values.map(v=>v!=null?100*v:null),type:'scatter',mode:'lines',name:'DD %',
+     line:{color:'#ff5d73',width:1},fill:'tozeroy',fillcolor:'rgba(255,93,115,.10)',yaxis:'y2'},
+  ],lay({
+    grid:{rows:2,columns:1,pattern:'independent'},
+    yaxis:{domain:[0.42,1],gridcolor:'#141c33'},
+    yaxis2:{domain:[0,0.34],ticksuffix:'%',gridcolor:'#141c33'},
+    xaxis:{gridcolor:'#141c33',anchor:'y2'},
+    margin:{l:50,r:10,t:6,b:26},
+  }),PLC);
+}
+
+function renderVar(d){
+  const methods=['historical','parametric','cornish_fisher','monte_carlo'];
+  const names={historical:'HIST',parametric:'PARAM',cornish_fisher:'C-FISHER',monte_carlo:'MONTE C.'};
+  const v95=d.var_table[0],v99=d.var_table[1];
+  Plotly.newPlot('p-var',[
+    {x:methods.map(m=>names[m]),y:methods.map(m=>100*(v95[m].var??0)),name:'VaR 95',type:'bar',marker:{color:'#5d8dff',opacity:.85}},
+    {x:methods.map(m=>names[m]),y:methods.map(m=>100*(v99[m].var??0)),name:'VaR 99',type:'bar',marker:{color:'#ff5d73',opacity:.8}},
+  ],lay({barmode:'group',bargap:.3,showlegend:true,legend:{orientation:'h',y:1.12,font:{size:9.5}},
+    yaxis:{ticksuffix:'%',gridcolor:'#141c33'},
+    annotations:[{text:`10-day VaR95 ≈ ${fPn(v95.var_10d)}`,showarrow:false,xref:'paper',yref:'paper',x:.98,y:.98,
+      font:{size:9.5,color:'#48546f'},xanchor:'right'}]}),PLC);
+}
+
+function renderHist(d){
+  const h=d.return_hist,v95=d.var_table[0],v99=d.var_table[1];
+  const shapes=[
+    {type:'line',x0:-100*(v95.historical.var??0),x1:-100*(v95.historical.var??0),y0:0,y1:1,yref:'paper',
+     line:{color:'#5d8dff',width:1.4,dash:'dash'}},
+    {type:'line',x0:-100*(v99.historical.var??0),x1:-100*(v99.historical.var??0),y0:0,y1:1,yref:'paper',
+     line:{color:'#ff5d73',width:1.4,dash:'dash'}},
+  ];
+  Plotly.newPlot('p-hist',[
+    {x:h.centers.map(c=>100*c),y:h.counts,type:'bar',marker:{color:h.centers.map(c=>c<0?'#ff5d73':'#3ddc97'),opacity:.65}},
+  ],lay({bargap:.05,shapes,xaxis:{ticksuffix:'%',gridcolor:'#141c33'},
+    annotations:[
+      {text:'VaR95',x:-100*(v95.historical.var??0),y:1,yref:'paper',showarrow:false,font:{size:8.5,color:'#5d8dff'},yanchor:'bottom'},
+      {text:'VaR99',x:-100*(v99.historical.var??0),y:.86,yref:'paper',showarrow:false,font:{size:8.5,color:'#ff5d73'}},
+    ]}),PLC);
+}
+
+function renderVol(d){
+  const v=d.rolling_vol;
+  Plotly.newPlot('p-vol',[
+    {x:v.dates,y:v.v20.map(x=>x!=null?100*x:null),name:'20d',type:'scatter',mode:'lines',line:{color:'#39d0d8',width:1.1}},
+    {x:v.dates,y:v.v60.map(x=>x!=null?100*x:null),name:'60d',type:'scatter',mode:'lines',line:{color:'#5d8dff',width:1.3}},
+    {x:v.dates,y:v.ewma.map(x=>x!=null?100*x:null),name:'EWMA',type:'scatter',mode:'lines',line:{color:'#8b7cf7',width:1.1,dash:'dot'}},
+  ],lay({showlegend:true,legend:{orientation:'h',y:1.14,font:{size:9.5}},yaxis:{ticksuffix:'%',gridcolor:'#141c33'}}),PLC);
+}
+
+function renderRvar(d){
+  const s=d.rolling_var95;
+  Plotly.newPlot('p-rvar',[
+    {x:s.dates,y:s.values.map(v=>v!=null?100*v:null),type:'scatter',mode:'lines',
+     line:{color:'#ff5d73',width:1.4},fill:'tozeroy',fillcolor:'rgba(255,93,115,.09)'},
+  ],lay({yaxis:{ticksuffix:'%',gridcolor:'#141c33'}}),PLC);
+}
+
+function renderBeta(d){
+  if(!d.rolling_beta){
+    $('#p-beta').innerHTML='<div style="padding:40px;text-align:center;color:var(--faint);font-family:var(--mono);font-size:11px">benchmark unavailable</div>';
+    return;
+  }
+  const b=d.rolling_beta;
+  Plotly.newPlot('p-beta',[
+    {x:b.dates,y:b.beta,type:'scatter',mode:'lines',line:{color:'#39d0d8',width:1.4}},
+  ],lay({shapes:[{type:'line',x0:0,x1:1,xref:'paper',y0:1,y1:1,line:{color:'#48546f',width:1,dash:'dot'}}]}),PLC);
+  $('#beta-tag').textContent=`vs ${d.benchmark} · 120d · corr ${fN(d.headline.corr_benchmark)}`;
+}
+
+function renderTables(d){
+  $('#t-dd').innerHTML=`<tr><th>#</th><th>Peak</th><th>Trough</th><th>Depth</th><th>Fall (d)</th><th>Recovery (d)</th></tr>`+
+    d.drawdown_episodes.map((e,i)=>`<tr>
+      <td>${i+1}</td><td>${esc(e.peak)}</td><td>${esc(e.trough)}</td>
+      <td class="neg">${fPn(e.depth)}</td><td>${e.length_days}</td>
+      <td>${e.recovered?e.recovery_days:'<span class="neg">ongoing</span>'}</td></tr>`).join('');
+
+  $('#stress-tag').textContent=`notional $${Number(d.notional).toLocaleString()}`;
+  const stressRows=d.stress_tests.map(s=>`<tr>
+      <td>${esc(s.scenario)}</td><td style="text-align:left;color:var(--faint)">${esc(s.shock)} · ${esc(s.window)}</td>
+      <td class="neg">${fPn(s.est_return)}</td><td class="neg">-${fD(s.est_dollar).slice(1)}</td></tr>`).join('');
+  const worstRows=d.worst_windows.map(w=>`<tr>
+      <td>Own worst ${esc(w.window)}</td><td style="text-align:left;color:var(--faint)">historical</td>
+      <td class="neg">${fPn(w.worst_return)}</td><td class="neg">-${fD(w.dollar).slice(1)}</td></tr>`).join('');
+  $('#t-stress').innerHTML=`<tr><th>Scenario</th><th style="text-align:left">Shock</th><th>Est. Return</th><th>Est. P&L</th></tr>`
+    +stressRows+worstRows;
+}
+
+async function renderFan(t){
+  const el=$('#p-fan'); el.innerHTML='<div class="skl"></div>';
+  try{
+    const d=await api(`/risk/montecarlo/${encodeURIComponent(t)}?horizon=1&n=4000`);
+    const f=d.fan,x=f.times;
+    const band=(lo,hi,color)=>[
+      {x,y:f[hi],type:'scatter',mode:'lines',line:{width:0},hoverinfo:'skip',showlegend:false},
+      {x,y:f[lo],type:'scatter',mode:'lines',line:{width:0},fill:'tonexty',fillcolor:color,hoverinfo:'skip',showlegend:false}];
+    el.innerHTML='';
+    Plotly.newPlot('p-fan',[
+      ...band('p5','p95','rgba(255,93,115,.10)'),
+      ...band('p25','p75','rgba(93,141,255,.13)'),
+      {x,y:f.p50,type:'scatter',mode:'lines',name:'Median',line:{color:'#5d8dff',width:1.8}},
+    ],lay({xaxis:{title:{text:'years',font:{size:9}},gridcolor:'#141c33'},
+      annotations:[{text:`E[ret] ${fP(d.summary.expected_return)} · P(loss) ${fPn(d.summary.probability_of_loss,1)} · MC CVaR95 ${fPn(d.risk.monte_carlo_cvar)}`,
+        showarrow:false,xref:'paper',yref:'paper',x:.02,y:.98,font:{size:9.5,color:'#7d8aa5'},xanchor:'left'}]}),PLC);
+  }catch(e){ el.innerHTML=`<div style="padding:30px;text-align:center;color:var(--red);font-family:var(--mono);font-size:11px">${esc(e.message)}</div>`; }
+}
+
+/* ---------------- AI read ---------------- */
+async function aiRead(){
+  if(!cur)return;
+  const h=cur.headline,v=cur.var_table[0];
+  const box=$('#ai-answer'); box.style.display='block';
+  box.innerHTML='<span class="thinking">analyzing <i></i><i></i><i></i></span>';
+  $('#ai-go').disabled=true;
+  const q=`Interpret this risk profile of ${cur.ticker} for a portfolio manager in under 200 words. `+
+    `Annualized vol ${(100*h.ann_vol).toFixed(1)}% (EWMA ${(100*h.ewma_vol).toFixed(1)}%), `+
+    `1-day historical VaR95 ${(100*(v.historical.var||0)).toFixed(2)}%, CVaR95 ${(100*(v.historical.cvar||0)).toFixed(2)}%, `+
+    `max drawdown ${(100*h.max_drawdown).toFixed(1)}%, beta ${h.beta?.toFixed(2)} vs ${cur.benchmark}, `+
+    `skew ${h.skew?.toFixed(2)}, excess kurtosis ${h.kurtosis?.toFixed(2)}, Sharpe ${h.sharpe?.toFixed(2)}. `+
+    `Focus on tail risk, what the skew/kurtosis imply, and one hedging idea.`;
+  try{
+    const d=await api('/agent',{method:'POST',body:JSON.stringify({question:q,ticker:cur.ticker,provider:'auto',max_steps:3})});
+    const a=(d.answer||'No answer produced — check the LLM provider in .env.')
+      .replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>');
+    box.innerHTML=a;
+  }catch(e){ box.innerHTML=`<span style="color:var(--red)">✕ ${esc(e.message)}</span>`; }
+  $('#ai-go').disabled=false;
+}
+
+/* ---------------- load ---------------- */
+async function loadAll(){
+  const t=$('#in-t').value.trim().toUpperCase(); if(!t)return;
+  const b=$('#in-b').value, n=parseFloat($('#in-n').value)||100000;
+  $('#status').className=''; $('#status').style.display='block';
+  $('#status').textContent='Crunching full risk profile for '+t+' …';
+  $('#dash').style.display='none';
+  try{
+    const d=await api(`/risk/dashboard/${encodeURIComponent(t)}?benchmark=${encodeURIComponent(b)}&notional=${n}`);
+    cur=d;
+    document.title=`RISK · ${d.ticker} — FinSight`;
+    $('#asof').textContent=`${d.ticker} · as of ${d.as_of} · ${d.n_days} obs`;
+    $('#px-title').textContent=`${d.ticker} — PRICE + DRAWDOWN REGIME`;
+    $('#status').style.display='none';
+    $('#dash').style.display='block';
+    $('#ai-answer').style.display='none';
+    renderKpis(d); renderPrice(d); renderVar(d); renderHist(d);
+    renderVol(d); renderRvar(d); renderBeta(d); renderTables(d);
+    renderFan(d.ticker);
+    // Finnhub real-time overlay on the Last KPI
+    api(`/quote/live/${encodeURIComponent(d.ticker)}`).then(lq=>{
+      if(!lq||lq.available===false||lq.price==null)return;
+      const first=$('#kpis .kpi b');
+      if(first){first.innerHTML=fN(lq.price)+` <span style="font-size:10px;color:${(lq.change_pct||0)>=0?'var(--green)':'var(--red)'}">${fP(lq.change_pct)} ● LIVE</span>`;}
+    }).catch(()=>{});
+  }catch(e){
+    $('#status').className='err';
+    $('#status').textContent='✕ '+e.message;
+  }
+}
+
+document.querySelectorAll('#in-t,#in-n').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')loadAll();}));
+
+/* deep link: /risk?t=NVDA */
+const qp=new URLSearchParams(location.search);
+if(qp.get('t')){ $('#in-t').value=qp.get('t').toUpperCase(); }
+fetch('/auth/me',{credentials:'same-origin'}).then(r=>{ if(r.status===401) location.href='/login'; else loadAll(); });
+</script>
+</body>
+</html>

@@ -45,6 +45,28 @@ def _rsi(close: pd.Series, period: int = 14) -> Optional[float]:
     return _f(rsi.iloc[-1]) if len(rsi) else None
 
 
+@router.get("/live/{ticker}")
+def get_live_quote(ticker: str) -> Dict[str, Any]:
+    """Real-time snapshot via Finnhub (free tier). Degrades gracefully.
+
+    Returns ``{"available": false, "reason": ...}`` (HTTP 200) when Finnhub
+    isn't configured or rate-limited, so the frontend can quietly fall back to
+    the end-of-day price instead of erroring.
+    """
+    from src.data.providers.finnhub_provider import (
+        FinnhubError, finnhub_available, get_live_quote as _live,
+    )
+
+    if not finnhub_available():
+        return {"available": False, "reason": "Finnhub not configured (set FINNHUB_API_KEY)."}
+    try:
+        q = _live(ticker)
+        q["available"] = True
+        return q
+    except FinnhubError as exc:
+        return {"available": False, "reason": str(exc)}
+
+
 @router.get("/{ticker}")
 def get_quote(
     ticker: str,
@@ -58,7 +80,9 @@ def get_quote(
     # Cache the raw price frame on disk (6h) so repeat loads are instant and we
     # stop hammering yfinance (also helps avoid rate-limit collisions).
     from src.data import cache
-    cache_key = f"quote_df:{ticker.upper()}:{start}:{end}"
+    # ``v2`` busts any frames cached before the duplicate-column dedup fix
+    # (those could store a wrong "Close", surfacing as a bogus header price).
+    cache_key = f"quote_df:v2:{ticker.upper()}:{start}:{end}"
     cached = cache.get_json(cache_key, ttl=21600)
     if cached is not None:
         df = pd.DataFrame(cached)
@@ -69,6 +93,9 @@ def get_quote(
             raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
         try:
             _store = df.copy()
+            if isinstance(_store.columns, pd.MultiIndex):
+                _store.columns = [c[0] if isinstance(c, tuple) else c for c in _store.columns]
+            _store = _store.loc[:, ~pd.Index(_store.columns).duplicated()]
             _store["Date"] = _store["Date"].astype(str)
             cache.put_json(cache_key, _store.to_dict(orient="records"))
         except Exception:
@@ -76,8 +103,18 @@ def get_quote(
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail=f"No data for '{ticker}'.")
 
+    # yfinance occasionally returns duplicate/multi-level columns (e.g. a second
+    # "Close"), which makes df["Close"] a DataFrame and breaks downstream Series
+    # math. Flatten and de-duplicate so every column access yields one Series.
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
+    df = df.loc[:, ~pd.Index(df.columns).duplicated()]
+
     df = df.sort_values("Date").reset_index(drop=True)
-    close = df["Close"].astype(float).reset_index(drop=True)
+    close_col = df["Close"]
+    if isinstance(close_col, pd.DataFrame):  # belt-and-suspenders
+        close_col = close_col.iloc[:, 0]
+    close = pd.to_numeric(close_col, errors="coerce").astype(float).reset_index(drop=True)
     dates = pd.to_datetime(df["Date"])
     stats = calculate_summary_statistics(close)
     rets = calculate_simple_returns(close)

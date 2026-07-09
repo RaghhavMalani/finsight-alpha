@@ -120,6 +120,8 @@ def available_providers(check_ollama: bool = True) -> list[str]:
         providers.append("gemini")
     if os.getenv("GROQ_API_KEY"):
         providers.append("groq")
+    if os.getenv("AZURE_OPENAI_API_KEY") and os.getenv("AZURE_OPENAI_ENDPOINT"):
+        providers.append("azure")
     return providers
 
 
@@ -275,12 +277,84 @@ def _gen_gemini(
         return LLMResult(False, provider="gemini", model=model, error=str(exc))
 
 
+def _gen_azure(
+    prompt: str, system: Optional[str], model: Optional[str],
+    temperature: float, timeout: float,
+) -> LLMResult:
+    """Azure OpenAI — the hosted path for a cloud deployment (no local Ollama).
+
+    Works with both Azure resource flavours by targeting the OpenAI-compatible
+    ``/openai/v1/`` surface (GA across Azure):
+
+    * classic       ``https://<resource>.openai.azure.com``
+    * new Foundry   ``https://<resource>.services.ai.azure.com``
+
+    Set AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT (paste whatever the Foundry
+    deployment page shows — any trailing ``/openai/v1/...`` path is stripped),
+    and AZURE_OPENAI_DEPLOYMENT (your deployment name, used as the model).
+    """
+    key = os.getenv("AZURE_OPENAI_API_KEY")
+    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    deployment = model or os.getenv("AZURE_OPENAI_DEPLOYMENT")
+    if not key or not endpoint:
+        return LLMResult(False, provider="azure",
+                         error="AZURE_OPENAI_API_KEY / AZURE_OPENAI_ENDPOINT not set.")
+    if not deployment:
+        return LLMResult(False, provider="azure",
+                         error="AZURE_OPENAI_DEPLOYMENT not set (your deployment name).")
+    try:
+        from openai import OpenAI  # lazy import; part of the openai package
+    except Exception:
+        return LLMResult(False, provider="azure", error="`openai` package not installed (pip install openai).")
+
+    # Reduce whatever endpoint form was pasted to the host, then build the
+    # OpenAI v1 base URL. This handles classic + new Foundry resources and
+    # ignores any path the portal appended (e.g. /openai/v1/responses).
+    from urllib.parse import urlparse
+
+    parsed = urlparse(endpoint if "://" in endpoint else f"https://{endpoint}")
+    base_url = f"{parsed.scheme or 'https'}://{parsed.netloc}/openai/v1/"
+
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+    try:
+        # Send the key both as Bearer (OpenAI SDK default) and the Azure
+        # ``api-key`` header so either auth scheme is accepted.
+        client = OpenAI(base_url=base_url, api_key=key,
+                        default_headers={"api-key": key}, timeout=timeout)
+        # Skip the temperature arg entirely for deployments we've already seen
+        # reject it (gpt-5 family), avoiding a wasted 400 on every call.
+        send_temp = deployment not in _AZURE_NO_TEMPERATURE
+        try:
+            kwargs = {"temperature": temperature} if send_temp else {}
+            resp = client.chat.completions.create(
+                model=deployment, messages=messages, **kwargs,
+            )
+        except Exception as exc_temp:
+            if send_temp and "temperature" in str(exc_temp).lower():
+                _AZURE_NO_TEMPERATURE.add(deployment)  # remember for next time
+                resp = client.chat.completions.create(model=deployment, messages=messages)
+            else:
+                raise
+        return LLMResult(True, text=(resp.choices[0].message.content or "").strip(),
+                         provider="azure", model=deployment)
+    except Exception as exc:
+        return LLMResult(False, provider="azure", model=deployment, error=str(exc))
+
+
+# Deployments observed to reject a non-default ``temperature`` (gpt-5 family).
+_AZURE_NO_TEMPERATURE: set[str] = set()
+
+
 _DISPATCH = {
     "ollama": _gen_ollama,
     "openai": _gen_openai,
     "anthropic": _gen_anthropic,
     "gemini": _gen_gemini,
     "groq": _gen_groq,
+    "azure": _gen_azure,
 }
 
 
@@ -338,12 +412,17 @@ def generate(
 
 
 def _resolve_auto_provider() -> str:
-    """Pick the best available provider for ``provider="auto"``."""
-    configured = DEFAULT_PROVIDER
+    """Pick the best available provider for ``provider="auto"``.
+
+    Preference order is **hosted Azure first** (the deployed/cloud default),
+    then the other cloud providers, then local Ollama. An explicit
+    ``FINSIGHT_LLM_PROVIDER`` always wins when that provider is actually usable.
+    """
     avail = available_providers()
-    if configured in avail and configured != "none":
+    configured = os.getenv("FINSIGHT_LLM_PROVIDER")
+    if configured and configured in avail and configured != "none":
         return configured
-    for candidate in ("ollama", "groq", "anthropic", "openai", "gemini"):
+    for candidate in ("azure", "groq", "anthropic", "openai", "gemini", "ollama"):
         if candidate in avail:
             return candidate
     return "none"
@@ -397,3 +476,4 @@ def _extract_json(text: str) -> Optional[dict]:
                 except Exception:
                     return None
     return None
+# end of module
