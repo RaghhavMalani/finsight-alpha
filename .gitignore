@@ -38,3 +38,9 @@ data/rag_index/
 # OS
 .DS_Store
 Thumbs.db
+
+# frontend-v2 (Lovable terminal app)
+frontend-v2/node_modules/
+frontend-v2/dist/
+frontend-v2/.output/
+frontend-v2/routeTree.gen.ts

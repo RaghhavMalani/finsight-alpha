@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>FinSight — Agent Terminal</title>
+<title>FinSight — Market Workstation</title>
+<link rel="icon" href="data:,"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -201,11 +202,20 @@ table.tbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-si
 .skeleton{height:120px; border-radius:8px; background:linear-gradient(100deg, var(--panel) 40%, var(--panel2) 50%, var(--panel) 60%); background-size:200% 100%; animation:sk 1.2s infinite linear;}
 @keyframes sk{from{background-position:130% 0}to{background-position:-30% 0}}
 </style>
+<<<<<<< Updated upstream
+=======
+<link rel="stylesheet" href="/frontend-assets/finsight-ui.css"/>
+<link rel="stylesheet" href="/frontend-assets/terminal-workstation.css"/>
+<link rel="stylesheet" href="/frontend-assets/terminal-motion.css"/>
+<script type="module" src="/frontend-assets/finsight-scene.js"></script>
+<script defer src="/frontend-assets/terminal-motion.js"></script>
+>>>>>>> Stashed changes
 </head>
-<body>
+<body class="terminal-page">
+<div id="boot-sequence" aria-hidden="true"><div class="boot-core"><div class="boot-mark">FINSIGHT</div><div class="boot-line"></div><div class="boot-code">MARKET SYSTEM / INITIALIZING</div></div></div>
 
 <div id="topbar">
-  <div id="brand">FIN<span>SIGHT</span><small>AGENT TERMINAL</small></div>
+  <div id="brand">FIN<span>SIGHT</span><small>INSTITUTIONAL WORKSTATION</small></div>
   <div id="tape"><div id="tape-track"></div></div>
   <div id="top-right">
     <span id="conn"><i></i><span id="conn-txt">BOOT</span></span>
@@ -216,24 +226,86 @@ table.tbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-si
   </div>
 </div>
 
-<div id="stream-wrap"><div id="stream"></div></div>
+<nav id="function-rail" aria-label="Terminal functions">
+  <button class="fn-key active" data-fn="home" onclick="openMarketOverview()"><span>MK</span> MARKET</button>
+  <button class="fn-key" data-fn="quote" onclick="runInput(state.lastTicker||state.defaults[0])"><span>F1</span> SECURITY</button>
+  <button class="fn-key" onclick="runInput('PORT')" data-fn="port"><span>F2</span> PORTFOLIO</button>
+  <button class="fn-key" onclick="runInput('RISK '+(state.lastTicker||state.defaults[0]))" data-fn="risk"><span>F3</span> RISK</button>
+  <button class="fn-key" onclick="runInput('FAC '+(state.lastTicker||state.defaults[0]))" data-fn="fac"><span>F4</span> FACTORS</button>
+  <button class="fn-key" onclick="runInput('REG '+(state.lastTicker||state.defaults[0]))" data-fn="reg"><span>F5</span> REGIME</button>
+  <button class="fn-key" onclick="runInput('NEWS '+(state.lastTicker||state.defaults[0]))" data-fn="news"><span>F6</span> NEWS</button>
+  <button class="fn-key analyst-key" onclick="focusAnalyst()" data-fn="agent"><span>F9</span> ANALYST</button>
+</nav>
+
+<div id="workspace">
+  <aside id="market-rail" class="desk-rail">
+    <section class="desk-panel market-monitor">
+      <header class="desk-head"><span>MARKET MONITOR</span><b id="market-mode">EOD</b></header>
+      <div class="rail-columns"><span>INSTRUMENT</span><span>LAST</span><span>CHG%</span></div>
+      <div id="watchlist"><div class="rail-empty">LOADING MARKET DATA</div></div>
+    </section>
+    <section class="desk-panel module-monitor">
+      <header class="desk-head"><span>ACTIVE MODULES</span><b>14</b></header>
+      <button onclick="runInput('BT '+(state.lastTicker||state.defaults[0]))"><span>BT</span> Strategy backtest</button>
+      <button onclick="runInput('MC '+(state.lastTicker||state.defaults[0]))"><span>MC</span> Monte Carlo VaR</button>
+      <button onclick="runInput('CHAIN '+(state.lastTicker||state.defaults[0]))"><span>OC</span> Option chain</button>
+      <button onclick="runInput('SURF '+(state.lastTicker||state.defaults[0]))"><span>VS</span> Volatility surface</button>
+      <button onclick="runInput('ML '+(state.lastTicker||state.defaults[0]))"><span>ML</span> Signal engine</button>
+      <button onclick="runInput('CORR')"><span>CX</span> Cross-asset correlation</button>
+    </section>
+  </aside>
+
+  <main id="primary-workspace">
+    <div id="security-strip">
+      <div class="security-id"><b id="desk-ticker">FINSIGHT</b><span id="desk-name">MARKET WORKSTATION</span></div>
+      <div class="security-quote"><strong id="desk-last">--</strong><span id="desk-change">SELECT A SECURITY</span></div>
+      <div class="security-meta"><span id="desk-asof">SESSION READY</span><span id="active-function">HOME</span></div>
+    </div>
+    <div id="stream-wrap"><div id="stream"></div></div>
+  </main>
+
+  <aside id="intel-rail" class="desk-rail">
+    <section class="desk-panel topology-panel">
+      <header class="desk-head"><span>3D MARKET TOPOLOGY</span><button class="topology-max" title="Expand topology" aria-label="Expand topology" onclick="toggleTopology(true)">+</button></header>
+      <div id="market-depth" data-3d-market aria-label="Animated three-dimensional market topology"></div>
+      <div class="topology-legend"><span><i class="pos-dot"></i>ADVANCING</span><span><i class="neg-dot"></i>DECLINING</span></div>
+    </section>
+    <section class="desk-panel analyst-panel">
+      <header class="desk-head"><span>AI ANALYST</span><b>ON DEMAND</b></header>
+      <div id="assistant-output">
+        <p>Secondary research channel. Structured terminal functions remain in the main workspace.</p>
+        <button onclick="askDeskAnalyst('Summarize the key risks and catalysts for '+(state.lastTicker||state.defaults[0]))">RISKS + CATALYSTS</button>
+        <button onclick="askDeskAnalyst('Give me the institutional bull and bear case for '+(state.lastTicker||state.defaults[0]))">BULL / BEAR CASE</button>
+      </div>
+    </section>
+    <section class="desk-panel session-panel">
+      <header class="desk-head"><span>SESSION LOG</span><b id="command-count">0 CMD</b></header>
+      <div id="session-log"><span>Terminal initialized</span></div>
+    </section>
+  </aside>
+</div>
+
+<div id="topology-overlay" aria-hidden="true">
+  <div class="topology-overlay-head"><span>FINSIGHT / EXPANDED MARKET TOPOLOGY</span><button aria-label="Close topology" title="Close topology" onclick="toggleTopology(false)">X</button></div>
+  <div id="topology-expanded-scene"></div>
+  <div class="topology-overlay-stats"><span id="topology-breadth">BREADTH --</span><span id="topology-dispersion">DISPERSION --</span><span id="topology-regime">REGIME --</span></div>
+</div>
 
 <div id="composer">
   <div id="composer-inner">
     <div id="suggest"></div>
     <div id="input-row">
-      <span id="prompt-sym">›</span>
+      <span id="prompt-sym">CMD</span>
       <input id="cmd" autocomplete="off" spellcheck="false"
-        placeholder="Type a ticker (AAPL), a command (AAPL BT), or ask anything…"/>
-      <button id="send" onclick="submitInput()">RUN</button>
+        placeholder="Enter security or function: AAPL DES, NVDA RISK, PORT, HELP"/>
+      <button id="send" onclick="submitInput()">GO</button>
     </div>
     <div id="hint">
-      <span><b>↑↓</b> history · <b>Tab</b> complete · <b>Ctrl K</b> modules</span>
+      <span><b>UP/DN</b> HISTORY&nbsp;&nbsp; <b>TAB</b> COMPLETE&nbsp;&nbsp; <b>CTRL K</b> FUNCTIONS&nbsp;&nbsp; <b>F9</b> ANALYST</span>
       <span id="ctx-chip"></span>
     </div>
   </div>
 </div>
-
 <div id="palette-ov" onclick="if(event.target===this)closePalette()">
   <div id="palette">
     <input id="pal-in" placeholder="Search modules…"/>
@@ -252,6 +324,7 @@ table.tbl{width:100%; border-collapse:collapse; font-family:var(--mono); font-si
 /* ---------------- utils ---------------- */
 const $=s=>document.querySelector(s);
 const stream=$('#stream'), streamWrap=$('#stream-wrap'), cmdIn=$('#cmd');
+const assistantOutput=$('#assistant-output'), sessionLog=$('#session-log');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fN=(v,d=2)=>v==null||!isFinite(v)?'—':Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fP=(v,d=2)=>v==null||!isFinite(v)?'—':(v>=0?'+':'')+(100*v).toFixed(d)+'%';
@@ -286,28 +359,45 @@ async function api(path,opts={}){
 }
 
 /* ---------------- stream primitives ---------------- */
-function addUserMsg(t){const d=document.createElement('div'); d.className='msg-user'; d.textContent=t; stream.appendChild(d); scrollEnd();}
-function addNote(t){const d=document.createElement('div'); d.className='msg-note'; d.textContent=t; stream.appendChild(d); scrollEnd();}
+function logCommand(t){
+  const line=document.createElement('span');
+  line.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false})+'  '+t;
+  sessionLog.prepend(line);
+  $('#command-count').textContent=state.history.length+' CMD';
+}
+function addUserMsg(t){logCommand('> '+t);}
+function addNote(t){logCommand(t);}
 
-function addCard({title,badge,badgeCls='pri',sub=''}){
+function addCard({title,badge,badgeCls='pri',sub=''},target=stream,replace=true){
+  if(target===stream){
+    document.body.classList.remove('market-overview');
+    window.returnMarketTopology?.();
+    window.beginTerminalTransition?.(target);
+  }
+  if(replace) target.replaceChildren();
   const card=document.createElement('div'); card.className='card';
   card.innerHTML=`<div class="card-head"><span class="tk">${esc(title)}</span>
     <span class="badge ${badgeCls}">${esc(badge)}</span><span class="sub">${esc(sub)}</span></div>
     <div class="card-body"><div class="skeleton"></div></div>`;
-  stream.appendChild(card); scrollEnd();
+  target.appendChild(card);
+  window.animateTerminalView?.(card);
+  if(target===stream){
+    $('#active-function').textContent=(sub||badge||title).toUpperCase();
+    streamWrap.scrollTop=0;
+  }
   return {
     el:card,
-    body(html){card.querySelector('.card-body').innerHTML=html; scrollEnd(); return card.querySelector('.card-body');},
-    fail(err){card.querySelector('.card-body').innerHTML=`<div class="card-err">✕ ${esc(err)}</div>`; scrollEnd();},
+    body(html){const body=card.querySelector('.card-body'); body.innerHTML=html; requestAnimationFrame(()=>window.animateTerminalView?.(card)); return body;},
+    fail(err){card.querySelector('.card-body').innerHTML=`<div class="card-err">X ${esc(err)}</div>`;},
     chips(list){ if(!list||!list.length) return;
       const c=document.createElement('div'); c.className='chips';
       list.forEach(({label,cmd,warm})=>{const b=document.createElement('button'); b.className='chip'+(warm?' warm':'');
         b.textContent=label; b.onclick=()=>runInput(cmd); c.appendChild(b);});
-      card.appendChild(c); scrollEnd();},
+      card.appendChild(c);},
   };
 }
 function kpi(label,val,valCls=''){return `<div class="kpi"><label>${esc(label)}</label><b class="${valCls}">${val}</b></div>`;}
-function plot(div,traces,layout,cfg=PLC){Plotly.newPlot(div,traces,layout,cfg); scrollEnd();}
+function plot(div,traces,layout,cfg=PLC){return Plotly.newPlot(div,traces,layout,cfg).then(()=>window.animatePlot?.(div));}
 
 /* =================================================================
    COMMAND REGISTRY — every module is a command; the palette, the
@@ -357,17 +447,40 @@ function routeInput(raw){
 
 async function runInput(raw){
   const r=routeInput(raw); if(!r) return;
-  addUserMsg(raw.trim());
   state.history.unshift(raw.trim()); state.hIdx=-1;
+  addUserMsg(raw.trim());
   if(!state.authed){showLogin(); return;}
-  if(r.agent){ await runAgent(r.agent); return; }
-  if(!r.ok){ addNote('No security in context — try e.g. "'+r.cmd.kw[0].toUpperCase()+' AAPL"'); return; }
+  if(r.agent){ window.setActiveFunction?.('agent'); await runAgent(r.agent); return; }
+  if(!r.ok){ addNote('No security in context: use '+r.cmd.kw[0].toUpperCase()+' AAPL'); return; }
   if(r.ticker){ state.lastTicker=r.ticker; updateCtx(); }
-  try{ await r.cmd.run(r.ticker); }catch(e){ addNote('✕ '+e.message); }
+  window.setActiveFunction?.(r.cmd.id);
+  try{ await r.cmd.run(r.ticker); }catch(e){ addNote('X '+e.message); }
 }
 function submitInput(){const v=cmdIn.value; cmdIn.value=''; closeSuggest(); if(v.trim()) runInput(v);}
-function updateCtx(){$('#ctx-chip').textContent=state.lastTicker?('CONTEXT: '+state.lastTicker):'';}
-
+function updateCtx(){
+  $('#ctx-chip').textContent=state.lastTicker?('ACTIVE SECURITY  '+state.lastTicker):'';
+  document.querySelectorAll('.watch-row').forEach(row=>row.classList.toggle('active',row.dataset.ticker===state.lastTicker));
+}
+function focusAnalyst(){
+  document.querySelector('.analyst-panel')?.scrollIntoView({block:'nearest'});
+  cmdIn.placeholder='Ask the analyst a research question';
+  cmdIn.focus();
+}
+function askDeskAnalyst(question){
+  cmdIn.value='';
+  runInput(question);
+}
+function updateSecurityStrip(t,d){
+  $('#desk-ticker').textContent=t;
+  $('#desk-name').textContent=d.name||'SECURITY OVERVIEW';
+  $('#desk-last').textContent=fN(d.last);
+  const ch=d.change_pct;
+  const change=$('#desk-change');
+  change.textContent=fP(ch)+'  SESSION';
+  change.className=cls(ch);
+  $('#desk-asof').textContent='AS OF '+(d.as_of||d.date||new Date().toLocaleDateString('en-CA'));
+  document.title=t+' | FinSight Workstation';
+}
 /* =================================================================
    CARD RENDERERS
    ================================================================= */
@@ -376,6 +489,7 @@ function updateCtx(){$('#ctx-chip').textContent=state.lastTicker?('CONTEXT: '+st
 async function cardQuote(t){
   const c=addCard({title:t,badge:'OVERVIEW',badgeCls:'pri',sub:'DES'});
   let d; try{d=await api('/quote/'+encodeURIComponent(t));}catch(e){return c.fail(e.message);}
+  updateSecurityStrip(t,d);
   const m=d.metrics||{}, ch=d.change_pct, per=d.periods||{}, r52=d.range52||{}, st=d.stats||{}, dist=d.dist||{};
   const body=c.body(`
     <div class="px-head">
@@ -872,14 +986,15 @@ function cardHelp(){
    AGENT — natural language → /agent/stream (SSE) with tool trace
    ================================================================= */
 async function runAgent(question){
-  const c=addCard({title:'AI ANALYST',badge:'AGENT',badgeCls:'violet',sub:state.lastTicker||''});
+  focusAnalyst();
+  const c=addCard({title:'AI ANALYST',badge:'RESEARCH',badgeCls:'violet',sub:state.lastTicker||''},assistantOutput,true);
   const body=c.body(`<div class="trace" id="ag-trace"></div>
     <div class="agent-md" id="ag-ans"></div>
     <div class="thinking" id="ag-think">analyzing <i></i><i></i><i></i></div>`);
   const trace=body.querySelector('#ag-trace'), ans=body.querySelector('#ag-ans'), think=body.querySelector('#ag-think');
   const addStep=(tool,note)=>{const s=document.createElement('div'); s.className='trace-step';
     s.innerHTML=`<span class="tool">› ${esc(tool)}</span><span>${esc(note||'')}</span><span class="ok">✓</span>`;
-    trace.appendChild(s); scrollEnd();};
+    trace.appendChild(s); assistantOutput.scrollTop=assistantOutput.scrollHeight;};
   let text='';
   const mdLite=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>');
   try{
@@ -898,7 +1013,7 @@ async function runAgent(question){
         const line=chunk.split('\n').find(l=>l.startsWith('data: ')); if(!line)continue;
         let ev; try{ev=JSON.parse(line.slice(6));}catch{continue;}
         if(ev.type==='tool')addStep(ev.tool||ev.name||'tool', ev.input?JSON.stringify(ev.input).slice(0,80):(ev.note||''));
-        else if(ev.type==='token'){text+=ev.text||''; ans.innerHTML=mdLite(text); scrollEnd();}
+        else if(ev.type==='token'){text+=ev.text||''; ans.innerHTML=mdLite(text); assistantOutput.scrollTop=assistantOutput.scrollHeight;}
         else if(ev.type==='done'){if(!text&&ev.answer){text=ev.answer; ans.innerHTML=mdLite(text);}
           (ev.steps||[]).forEach(st=>{if(!trace.childElementCount)addStep(st.tool||'tool',st.note||'');});}
       }
@@ -954,42 +1069,102 @@ async function doLogout(){try{await api('/auth/logout',{method:'POST'});}catch{}
 /* =================================================================
    WELCOME + BOOT
    ================================================================= */
-function welcome(){
-  const d=document.createElement('div'); d.className='card'; d.style.border='none'; d.style.background='none'; d.style.boxShadow='none';
-  d.innerHTML=`<div class="hero">
-    <h1>WHAT ARE WE <em>ANALYZING</em>?</h1>
-    <p>One line drives everything. Type a ticker, a command, or plain English —<br/>the terminal routes it to the right engine. Press <kbd>Ctrl K</kbd> to browse modules.</p>
-    <div class="starters">
-      <button class="starter" onclick="runInput('AAPL')"><b>AAPL ↵</b><span>Full security overview — price, Sharpe, drawdown, RSI, distribution.</span></button>
-      <button class="starter" onclick="runInput('OPT NVDA')"><b>OPT NVDA ↵</b><span>Price options 3 ways: Black-Scholes, binomial tree, Monte Carlo + Greeks.</span></button>
-      <button class="starter" onclick="runInput('REG SPY')"><b>REG SPY ↵</b><span>Hidden Markov regime detection — bull, bear, stress states.</span></button>
-      <button class="starter" onclick="runInput('Compare the risk profiles of NVDA and MSFT and tell me which suits a conservative investor')"><b>ASK THE ANALYST ↵</b><span>Plain English → the AI agent calls the platform's tools itself.</span></button>
-    </div></div>`;
-  stream.appendChild(d);
+function renderStageTape(items=[]){
+  const stage=$('#market-stage'); if(!stage||!items.length)return;
+  const moves=items.map(i=>Number(i.change_pct)||0);
+  const advancing=moves.filter(v=>v>=0).length;
+  const breadth=advancing/items.length;
+  const average=moves.reduce((a,b)=>a+b,0)/moves.length;
+  const dispersion=Math.sqrt(moves.reduce((sum,v)=>sum+(v-average)**2,0)/moves.length);
+  const regime=average>.003?'RISK ON':average<-.003?'RISK OFF':'MIXED FLOW';
+  $('#stage-instruments').innerHTML=items.map(i=>`<button class="stage-instrument" onclick="runInput('${esc(i.ticker)}')"><b>${esc(i.ticker)}</b><strong>${fN(i.last)}</strong><small>${i.live?'LIVE':'EOD'}</small><em class="${cls(i.change_pct)}">${fP(i.change_pct)}</em></button>`).join('');
+  $('#stage-breadth').textContent=Math.round(breadth*100)+'%';
+  $('#stage-average').textContent=fP(average);
+  $('#stage-dispersion').textContent=fPn(dispersion);
+  $('#stage-regime-value').textContent=regime;
+  $('#stage-state').textContent=regime+' / '+advancing+' OF '+items.length+' ADVANCING';
+  $('#topology-breadth').textContent='BREADTH '+Math.round(breadth*100)+'%';
+  $('#topology-dispersion').textContent='DISPERSION '+fPn(dispersion);
+  $('#topology-regime').textContent='REGIME '+regime;
+  $('#desk-ticker').textContent='GLOBAL';
+  $('#desk-name').textContent='CROSS-ASSET MARKET FIELD';
+  $('#desk-last').textContent=Math.round(breadth*100)+'%';
+  const change=$('#desk-change'); change.textContent='ADVANCING BREADTH'; change.className=breadth>=.5?'up':'down';
+  $('#desk-asof').textContent='LIVE MARKET TOPOLOGY';
+  window.pulseMarketRows?.();
 }
 
+function openMarketOverview(){
+  if(!state.authed){showLogin();return;}
+  document.body.classList.add('market-overview');
+  window.setActiveFunction?.('home');
+  $('#active-function').textContent='MARKET MAP';
+  stream.innerHTML=`<section class="market-stage" id="market-stage">
+    <div class="market-stage-scene" id="market-stage-scene" data-topology-stage></div>
+    <div class="stage-grid-overlay"></div><div class="stage-scan"></div>
+    <div class="stage-hud"><span class="stage-code">GLOBAL / CROSS-ASSET / LIVE FIELD</span><h2>CROSS-ASSET<br>TOPOLOGY</h2><div class="stage-state"><i></i><span id="stage-state">AWAITING MARKET TAPE</span></div></div>
+    <button class="stage-expand" onclick="toggleTopology(true)">EXPAND FIELD</button>
+    <div class="stage-instruments" id="stage-instruments"></div>
+    <div class="stage-stats">
+      <div class="stage-stat"><span>MARKET BREADTH</span><b id="stage-breadth">--</b></div>
+      <div class="stage-stat"><span>AVERAGE MOVE</span><b id="stage-average">--</b></div>
+      <div class="stage-stat"><span>DISPERSION</span><b id="stage-dispersion">--</b></div>
+      <div class="stage-stat"><span>FLOW REGIME</span><b id="stage-regime-value">--</b></div>
+    </div></section>`;
+  requestAnimationFrame(()=>{
+    const slot=$('#market-stage-scene');
+    window.mountMarketTopology?.(slot);
+    window.animateMarketStage?.($('#market-stage'));
+    renderStageTape(window.marketTopologyItems||[]);
+  });
+}
+
+function toggleTopology(force){
+  const open=typeof force==='boolean'?force:!document.body.classList.contains('topology-open');
+  document.body.classList.toggle('topology-open',open);
+  $('#topology-overlay').setAttribute('aria-hidden',String(!open));
+  const target=open?$('#topology-expanded-scene'):($('#market-stage-scene')||$('#market-depth'));
+  window.mountMarketTopology?.(target);
+  setTimeout(()=>window.resizeMarketTopology?.(),50);
+}
+
+function welcome(){
+  if(!state.authed){showLogin();return;}
+  openMarketOverview();
+}
 async function loadTape(){
   try{
     const d=await api('/tape?symbols='+encodeURIComponent(state.defaults.slice(0,8).join(',')));
     const items=(d.items||[]);
     if(!items.length)return;
     const html=items.map(i=>`<span class="tape-item" onclick="runInput('${esc(i.ticker)}')"><b>${esc(i.ticker)}</b><span class="${cls(i.change_pct)}">${fN(i.last)} ${fP(i.change_pct)}</span></span>`).join('');
-    $('#tape-track').innerHTML=html+html; /* duplicated for seamless loop */
-  }catch{/* tape is decorative — never block */}
+    $('#tape-track').innerHTML=html+html;
+    $('#market-mode').textContent=d.live?'LIVE':'EOD';
+    $('#watchlist').innerHTML=items.map(i=>`
+      <button class="watch-row ${i.ticker===state.lastTicker?'active':''}" data-ticker="${esc(i.ticker)}" onclick="runInput('${esc(i.ticker)}')">
+        <span>${esc(i.ticker)}</span><span>${fN(i.last)}</span><span class="${cls(i.change_pct)}">${fP(i.change_pct)}</span>
+      </button>`).join('');
+    window.marketTopologyItems=items;
+    window.updateMarketTopology?.(items);
+    renderStageTape(items);
+  }catch{ logCommand('Market monitor unavailable'); }
 }
-
 async function boot(after){
   try{
     await api('/auth/me');
     state.authed=true; $('#logout-btn').style.display='';
-  }catch(e){ if(!after){welcome();} setConn(true); return; }
+  }catch(e){ setConn(false); if(!after)welcome(); return; }
   setConn(true);
   try{
     const a=await api('/assets');
     state.tickers=a.all||[]; state.defaults=a.default&&a.default.length?a.default:state.defaults; state.sectors=a.sectors||{};
   }catch{}
-  if(!after) welcome();
-  loadTape(); setInterval(loadTape,90000);
+  const initial=state.lastTicker||state.defaults[0]||'AAPL';
+  state.lastTicker=initial;
+  updateCtx();
+  welcome();
+  await loadTape();
+  setInterval(loadTape,90000);
 }
 function setConn(ok){const c=$('#conn'); c.className=ok?'ok':'bad'; $('#conn-txt').textContent=ok?'LIVE':'OFFLINE';}
 
@@ -1052,6 +1227,8 @@ $('#pal-in').addEventListener('input',e=>palRender(e.target.value.trim().toLower
 document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault(); openPalette();}
   if(e.key==='Escape'&&$('#palette-ov').classList.contains('open'))closePalette();
+  if(e.key==='Escape'&&document.body.classList.contains('topology-open'))toggleTopology(false);
+  if(e.key==='F9'){e.preventDefault(); focusAnalyst();}
   if(e.key==='/'&&document.activeElement!==cmdIn&&document.activeElement!==$('#pal-in')){e.preventDefault(); cmdIn.focus();}
 });
 
