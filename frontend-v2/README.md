@@ -14,7 +14,10 @@ PULLED (buildable core scaffolding + engine):
   src/server.ts, src/start.ts, src/router.tsx, src/styles.css
   src/routes/__root.tsx
   src/hooks/use-mobile.tsx
-  src/lib/{utils,error-capture,error-page,lovable-error-reporting,ripple,market}.ts
+  src/lib/ — ALL 20 files: the complete quant engine (market, book/VaR/stress, backtest,
+            strategies, vol-surface, greeks-surface, elasticity, dependencies, regimes,
+            forecast, recommender, altdata, analyst, commands, demoBook + support).
+            Verified: strict tsc, zero errors.
 
 PENDING (fastest: one-click export, below):
   src/routes/{index,login,terminal,risk}.tsx

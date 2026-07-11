@@ -117,7 +117,7 @@ app.include_router(ml.router)
 
 # Serve the terminal front-end (single-page app) from FastAPI so it shares the
 # API's origin (no CORS friction). Open http://127.0.0.1:8000/terminal
-_FRONTEND = PROJECT_ROOT / "frontend" / "terminal.html"
+_FRONTEND = PROJECT_ROOT / "legacy-frontend" / "v1" / "terminal.html"
 
 
 @app.get("/terminal", include_in_schema=False)
@@ -125,7 +125,7 @@ def terminal() -> FileResponse:
     return FileResponse(str(_FRONTEND))
 
 
-_RISK_PAGE = PROJECT_ROOT / "frontend" / "risk.html"
+_RISK_PAGE = PROJECT_ROOT / "legacy-frontend" / "v1" / "risk.html"
 
 
 @app.get("/risk", include_in_schema=False)
@@ -133,7 +133,7 @@ def risk_page() -> FileResponse:
     return FileResponse(str(_RISK_PAGE))
 
 
-_LOGIN_PAGE = PROJECT_ROOT / "frontend" / "login.html"
+_LOGIN_PAGE = PROJECT_ROOT / "legacy-frontend" / "v1" / "login.html"
 
 
 @app.get("/login", include_in_schema=False)
