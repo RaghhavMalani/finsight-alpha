@@ -24,9 +24,9 @@ pyarrow
 # --- RAG Financial Document Intelligence ---
 pypdf
 python-docx
-sentence-transformers
-faiss-cpu
-chromadb
+# sentence-transformers  -> moved to requirements-rag.txt (too heavy for Vercel)
+# faiss-cpu              -> moved to requirements-rag.txt
+# chromadb               -> moved to requirements-rag.txt
 rank-bm25
 tqdm
 requests

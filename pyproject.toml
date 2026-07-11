@@ -3,6 +3,34 @@ name = "finsight-alpha"
 version = "0.1.0"
 description = "FinSight Alpha — financial research terminal (FastAPI backend + quant engine)"
 requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "pydantic",
+    "pandas",
+    "numpy",
+    "yfinance",
+    "scipy",
+    "plotly",
+    "scikit-learn",
+    "joblib",
+    "hmmlearn",
+    "pyarrow",
+    "pypdf",
+    "python-docx",
+    "rank-bm25",
+    "tqdm",
+    "requests",
+    "beautifulsoup4",
+    "lxml",
+    "urllib3",
+    "tldextract",
+    "openai",
+    "agent-framework",
+    "python-dotenv",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "uvicorn",
+]
 
 [tool.vercel]
 entrypoint = "backend.main:app"

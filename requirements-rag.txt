@@ -1,0 +1,5 @@
+# Heavy RAG/embeddings deps — install locally only (not on Vercel):
+#   pip install -r requirements-rag.txt
+sentence-transformers
+faiss-cpu
+chromadb
