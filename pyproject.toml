@@ -1,0 +1,8 @@
+[project]
+name = "finsight-alpha"
+version = "0.1.0"
+description = "FinSight Alpha — financial research terminal (FastAPI backend + quant engine)"
+requires-python = ">=3.10"
+
+[tool.vercel]
+entrypoint = "backend.main:app"
