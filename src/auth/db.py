@@ -9,12 +9,12 @@ providers emit) are normalised to the SQLAlchemy ``postgresql://`` form.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Optional
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+from src import config
 from src.auth.models import Base, User
 from src.auth.security import hash_password, verify_password
 
@@ -22,8 +22,9 @@ from src.auth.security import hash_password, verify_password
 def _database_url() -> str:
     url = os.getenv("DATABASE_URL", "").strip()
     if not url:
-        # Local dev fallback: a SQLite file next to the project data dir.
-        data_dir = Path(os.getenv("FINSIGHT_DATA_DIR", "data"))
+        # Local/dev fallback. On serverless platforms config.DATA_DIR resolves
+        # to /tmp, since the deployed source tree is read-only.
+        data_dir = config.DATA_DIR
         data_dir.mkdir(parents=True, exist_ok=True)
         return f"sqlite:///{(data_dir / 'finsight_users.db').as_posix()}"
     # Normalise common variants to a psycopg2-compatible URL.

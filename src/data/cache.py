@@ -19,7 +19,9 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-_DB_PATH = Path(os.getenv("FINSIGHT_CACHE_DB", "data/cache.db"))
+from src import config
+
+_DB_PATH = Path(os.getenv("FINSIGHT_CACHE_DB", str(config.DATA_DIR / "cache.db")))
 _LOCK = threading.Lock()
 
 

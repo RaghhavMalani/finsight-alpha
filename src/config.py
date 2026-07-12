@@ -205,7 +205,16 @@ RISK_FREE_RATE: float = 0.0
 # so the code works regardless of the current working directory.
 PROJECT_ROOT: Path = Path(__file__).resolve().parent.parent
 
-DATA_DIR: Path = PROJECT_ROOT / "data"
+# Vercel Functions ship application files on a read-only filesystem. Keep the
+# zero-config SQLite/cache fallback usable there by moving runtime data under
+# /tmp; production deployments should still set DATABASE_URL for durable auth.
+_DEFAULT_DATA_DIR = Path("/tmp/finsight-alpha") if os.getenv("VERCEL") else PROJECT_ROOT / "data"
+_CONFIGURED_DATA_DIR = Path(os.getenv("FINSIGHT_DATA_DIR", str(_DEFAULT_DATA_DIR))).expanduser()
+DATA_DIR: Path = (
+    _CONFIGURED_DATA_DIR
+    if _CONFIGURED_DATA_DIR.is_absolute()
+    else PROJECT_ROOT / _CONFIGURED_DATA_DIR
+)
 RAW_DATA_DIR: Path = DATA_DIR / "raw"
 PROCESSED_DATA_DIR: Path = DATA_DIR / "processed"
 EXPORTS_DIR: Path = DATA_DIR / "exports"
