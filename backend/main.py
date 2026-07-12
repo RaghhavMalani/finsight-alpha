@@ -25,7 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from backend.routes import (
-    agent, analytics, assets, auth, backtest, factors, fundamentals, graph, health,
+    agent, analytics, assets, auth, backtest, context, factors, fundamentals, graph, health,
     market_data, ml, news, portfolio, pricing, quote, regime, research, risk,
     strategy, tape,
 )
@@ -106,6 +106,7 @@ app.include_router(risk.router)
 app.include_router(news.router)
 app.include_router(portfolio.router)
 app.include_router(backtest.router)
+app.include_router(context.router)
 app.include_router(factors.router)
 app.include_router(strategy.router)
 app.include_router(fundamentals.router)
