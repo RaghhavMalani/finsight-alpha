@@ -1,109 +1,130 @@
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { fmt } from "@/lib/market";
+import { fmt, fmtPct, type Instrument } from "@/lib/market";
+import { api, type TapeItem } from "@/lib/api";
 
-function seededRand(seed: number): () => number {
-  let s = Math.abs(Math.floor(seed)) || 1;
-  return () => {
-    s = (s * 9301 + 49297) % 233280;
-    return s / 233280;
-  };
-}
-
-export function DepthLadder({ mid, seed = 0 }: { mid: number; seed?: number }) {
-  const { bids, asks, maxSize } = useMemo(() => {
-    const rand = seededRand(Math.round(mid * 100) + seed * 7919 + 1);
-    const bids = Array.from({ length: 10 }, (_, i) => ({
-      price: mid - (i + 1) * mid * 0.0006,
-      size: Math.round(rand() * 4000 + 500 + i * 200),
-    }));
-    const asks = Array.from({ length: 10 }, (_, i) => ({
-      price: mid + (i + 1) * mid * 0.0006,
-      size: Math.round(rand() * 4000 + 500 + i * 200),
-    }));
-    const maxSize = Math.max(...bids.map((b) => b.size), ...asks.map((a) => a.size));
-    return { bids, asks, maxSize };
-  }, [mid, seed]);
+export function DepthLadder({ instrument }: { instrument: Instrument }) {
+  const dayRange = Math.max(instrument.sessionHigh - instrument.sessionLow, 0);
+  const rangePosition =
+    dayRange > 0
+      ? Math.max(0, Math.min(100, ((instrument.price - instrument.sessionLow) / dayRange) * 100))
+      : 50;
+  const volume = instrument.volume > 0 ? instrument.volume.toLocaleString() : "UNAVAILABLE";
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mono-caps grid grid-cols-3 border-b border-divider px-3 py-2 text-[10px] text-faint">
-        <span>BID</span>
-        <span className="text-center">PRICE</span>
-        <span className="text-right">ASK</span>
+    <div className="flex h-full flex-col p-4">
+      <div className="mono-caps flex items-center justify-between text-[10px]">
+        <span className="text-primary">PROVIDER QUOTE SNAPSHOT</span>
+        <span className="text-faint">{instrument.dataSource}</span>
       </div>
-      <div className="flex-1 overflow-hidden font-mono text-[11px]">
-        {asks
-          .slice()
-          .reverse()
-          .map((a, i) => (
-            <div key={`a${i}`} className="relative grid grid-cols-3 px-3 py-1">
-              <div
-                className="absolute inset-y-0.5 right-0 bg-down/15"
-                style={{ width: `${(a.size / maxSize) * 40}%` }}
-              />
-              <span />
-              <span className="relative text-center text-down">{fmt(a.price)}</span>
-              <span className="relative text-right text-foreground">{a.size.toLocaleString()}</span>
-            </div>
-          ))}
-        <div className="border-y border-primary/40 bg-primary/5 px-3 py-1.5 text-center">
-          <span className="mono-caps text-[10px] text-primary">MID </span>
-          <span className="text-foreground">{fmt(mid)}</span>
+      <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4 font-mono text-[12px]">
+        <QuoteMetric label="LAST" value={fmt(instrument.price)} />
+        <QuoteMetric label="CHANGE" value={fmtPct(instrument.changePct)} tone={instrument.changePct >= 0 ? "up" : "down"} />
+        <QuoteMetric label="OPEN" value={fmt(instrument.open)} />
+        <QuoteMetric label="PREV CLOSE" value={fmt(instrument.prevClose)} />
+        <QuoteMetric label="DAY HIGH" value={fmt(instrument.sessionHigh)} />
+        <QuoteMetric label="DAY LOW" value={fmt(instrument.sessionLow)} />
+        <QuoteMetric label="VOLUME" value={volume} />
+        <QuoteMetric label="LEVEL 2" value="NOT SUPPLIED" />
+      </div>
+      <div className="mt-5">
+        <div className="mono-caps mb-1 flex justify-between text-[9px] text-faint">
+          <span>{fmt(instrument.sessionLow)}</span>
+          <span>SESSION RANGE</span>
+          <span>{fmt(instrument.sessionHigh)}</span>
         </div>
-        {bids.map((b, i) => (
-          <div key={`b${i}`} className="relative grid grid-cols-3 px-3 py-1">
-            <div
-              className="absolute inset-y-0.5 left-0 bg-up/15"
-              style={{ width: `${(b.size / maxSize) * 40}%` }}
-            />
-            <span className="relative text-foreground">{b.size.toLocaleString()}</span>
-            <span className="relative text-center text-up">{fmt(b.price)}</span>
-            <span />
-          </div>
-        ))}
+        <div className="relative h-2 bg-divider">
+          <div className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-primary" style={{ left: `${rangePosition}%` }} />
+        </div>
+      </div>
+      <div className="mono-caps mt-auto border border-info/30 bg-info/5 p-3 text-[9px] leading-relaxed text-info">
+        TRUE BID/ASK DEPTH REQUIRES A LEVEL 2 PROVIDER. NO ORDER-BOOK LEVELS ARE SYNTHESIZED.
       </div>
     </div>
   );
 }
 
-export function SectorHeatmap({ seed = 0 }: { seed?: number }) {
-  const sectors = [
-    "Tech",
-    "Semis",
-    "Financials",
-    "Energy",
-    "Health",
-    "Consumer",
-    "Industrials",
-    "Utilities",
-    "Materials",
-    "REITs",
-    "Comms",
-    "Staples",
-  ];
-  const cells = useMemo(() => {
-    const rand = seededRand(seed + 101);
-    return sectors.map((s) => ({ s, v: (rand() - 0.45) * 4 }));
-     
-  }, [seed]);
+function QuoteMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "up" | "down";
+}) {
+  return (
+    <div>
+      <div className="mono-caps text-[9px] text-faint">{label}</div>
+      <div className={tone === "up" ? "text-up" : tone === "down" ? "text-down" : "text-foreground"}>{value}</div>
+    </div>
+  );
+}
+
+const SECTOR_ETFS = [
+  { label: "Tech", symbol: "XLK" },
+  { label: "Semis", symbol: "SOXX" },
+  { label: "Financials", symbol: "XLF" },
+  { label: "Energy", symbol: "XLE" },
+  { label: "Health", symbol: "XLV" },
+  { label: "Consumer", symbol: "XLY" },
+  { label: "Industrials", symbol: "XLI" },
+  { label: "Utilities", symbol: "XLU" },
+  { label: "Materials", symbol: "XLB" },
+  { label: "REITs", symbol: "XLRE" },
+  { label: "Comms", symbol: "XLC" },
+  { label: "Staples", symbol: "XLP" },
+] as const;
+
+type SectorTapePayload = { items: TapeItem[]; live: boolean };
+
+export function SectorHeatmap() {
+  const symbols = SECTOR_ETFS.map((sector) => sector.symbol);
+  const tape = useQuery({
+    queryKey: ["sector-heatmap", symbols],
+    queryFn: () => api<SectorTapePayload>(`/tape?symbols=${encodeURIComponent(symbols.join(","))}`),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    retry: 1,
+  });
+  const cells = useMemo(
+    () =>
+      SECTOR_ETFS.flatMap((sector) => {
+        const quote = tape.data?.items.find((item) => item.ticker === sector.symbol);
+        return quote
+          ? [{ ...sector, value: quote.change_pct * 100, source: quote.source ?? (quote.live ? "FINNHUB" : "YFINANCE_EOD") }]
+          : [];
+      }),
+    [tape.data],
+  );
+
+  if (tape.isPending) {
+    return <div className="mono-caps grid h-full place-items-center text-[10px] text-faint">LOADING REAL SECTOR ETF QUOTES…</div>;
+  }
+  if (tape.isError || !cells.length) {
+    return <div className="mono-caps grid h-full place-items-center text-[10px] text-down">SECTOR ETF DATA UNAVAILABLE</div>;
+  }
+
   return (
     <div className="grid h-full grid-cols-4 gap-[2px] p-1">
-      {cells.map((c) => {
-        const t = Math.max(-2.5, Math.min(2.5, c.v));
+      {cells.map((cell) => {
+        const t = Math.max(-3, Math.min(3, cell.value));
         const bg =
           t >= 0
-            ? `rgba(66,201,139,${0.15 + (t / 2.5) * 0.55})`
-            : `rgba(240,100,100,${0.15 + (-t / 2.5) * 0.55})`;
+            ? `rgba(66,201,139,${0.15 + (t / 3) * 0.55})`
+            : `rgba(240,100,100,${0.15 + (-t / 3) * 0.55})`;
         return (
           <div
-            key={c.s}
+            key={cell.symbol}
             className="flex flex-col items-center justify-center p-1"
             style={{ background: bg }}
+            title={`${cell.symbol} · ${cell.source}`}
           >
-            <div className="mono-caps text-[9px] text-foreground">{c.s}</div>
+            <div className="mono-caps text-[9px] text-foreground">{cell.label}</div>
             <div className={`font-mono text-xs ${t >= 0 ? "text-up" : "text-down"}`}>
-              {t >= 0 ? "▲" : "▼"} {Math.abs(t).toFixed(2)}%
+              {fmtPct(cell.value)}
             </div>
+            <div className="mono-caps mt-0.5 text-[7px] text-faint">{cell.symbol}</div>
           </div>
         );
       })}

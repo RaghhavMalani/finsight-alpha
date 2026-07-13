@@ -27,8 +27,8 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from backend.routes import (
     agent, analytics, assets, auth, backtest, context, factors, fundamentals, graph, health,
-    market_data, ml, news, portfolio, pricing, quote, regime, research, risk,
-    strategy, tape,
+    market_data, ml, news, paper, portfolio, pricing, quote, regime, research,
+    risk, strategy, tape,
 )
 from src import config
 from src.auth.security import verify_session
@@ -115,6 +115,7 @@ app.include_router(agent.router)
 app.include_router(regime.router)
 app.include_router(tape.router)
 app.include_router(ml.router)
+app.include_router(paper.router)
 
 
 # The NEW front-end (frontend-v2 / FinSight Terminal) is the primary UI.

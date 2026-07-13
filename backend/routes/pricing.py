@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import math
+import threading
+import time
+from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -10,6 +13,10 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 router = APIRouter(tags=["pricing"])
+_market_chain_cache: dict[tuple[str, int, float], tuple[float, Dict[str, Any]]] = {}
+_market_chain_lock = threading.Lock()
+_MARKET_CHAIN_TTL = 180.0
+
 
 
 def _f(v: Any) -> Optional[float]:
@@ -163,6 +170,153 @@ def _spot_and_vol(ticker: str) -> tuple[float, float]:
     close = df.sort_values("Date")["Close"].astype(float)
     sigma = _f(calculate_summary_statistics(close).get("annualized_volatility")) or 0.25
     return float(close.iloc[-1]), float(sigma)
+
+
+def _yahoo_spot(ticker_obj: Any) -> Optional[float]:
+    """Best-effort current Yahoo spot without inventing a fallback value."""
+    try:
+        info = getattr(ticker_obj, "fast_info", None)
+        value = info.get("last_price") if hasattr(info, "get") else None
+        spot = _f(value)
+        if spot and spot > 0:
+            return spot
+    except Exception:
+        pass
+    try:
+        history = ticker_obj.history(period="5d", interval="1d")
+        if history is not None and not history.empty:
+            spot = _f(history["Close"].iloc[-1])
+            if spot and spot > 0:
+                return spot
+    except Exception:
+        pass
+    return None
+
+
+def _market_option_leg(row: Any, spot: float, strike: float, T: float,
+                       r: float, q: float, kind: str) -> Dict[str, Any]:
+    """Normalize one Yahoo contract and derive delta from reported IV."""
+    from src.pricing import black_scholes
+
+    iv = _f(row.get("impliedVolatility"))
+    delta = None
+    if iv and iv > 0:
+        try:
+            delta = _f(black_scholes.calculate_delta(spot, strike, T, r, iv, q, kind))
+        except Exception:
+            delta = None
+
+    last_trade = row.get("lastTradeDate")
+    try:
+        last_trade = last_trade.isoformat() if last_trade is not None else None
+    except Exception:
+        last_trade = str(last_trade) if last_trade is not None else None
+
+    return {
+        "contract_symbol": str(row.get("contractSymbol") or ""),
+        "last": _f(row.get("lastPrice")),
+        "bid": _f(row.get("bid")),
+        "ask": _f(row.get("ask")),
+        "iv": iv,
+        "delta": delta,
+        "volume": int(_f(row.get("volume")) or 0),
+        "open_interest": int(_f(row.get("openInterest")) or 0),
+        "in_the_money": bool(row.get("inTheMoney") or False),
+        "last_trade": last_trade,
+    }
+
+
+@router.get("/options/market-chain/{ticker}")
+def market_option_chain(
+    ticker: str,
+    target_days: int = Query(30, ge=1, le=730),
+    moneyness_band: float = Query(0.30, ge=0.05, le=1.0),
+    r: float = Query(0.05),
+    q: float = Query(0.0),
+) -> Dict[str, Any]:
+    """Return real Yahoo quotes for the expiry nearest target_days.
+
+    This endpoint never returns a theoretical or synthetic fallback. Provider
+    failure is surfaced so the UI can label the chain honestly.
+    """
+    symbol = ticker.strip().upper()
+    cache_key = (symbol, target_days, round(moneyness_band, 2))
+    now = time.time()
+    with _market_chain_lock:
+        hit = _market_chain_cache.get(cache_key)
+        if hit and now - hit[0] < _MARKET_CHAIN_TTL:
+            return hit[1]
+
+    try:
+        import yfinance as yf
+
+        ticker_obj = yf.Ticker(symbol)
+        spot = _yahoo_spot(ticker_obj)
+        if not spot:
+            raise HTTPException(status_code=502, detail="Yahoo did not return a spot price.")
+
+        today = date.today()
+        candidates: list[tuple[str, date, int]] = []
+        for raw in list(getattr(ticker_obj, "options", []) or []):
+            try:
+                expiry_date = datetime.strptime(raw, "%Y-%m-%d").date()
+            except (TypeError, ValueError):
+                continue
+            days = (expiry_date - today).days
+            if days > 0:
+                candidates.append((raw, expiry_date, days))
+        if not candidates:
+            raise HTTPException(status_code=404, detail=f"No listed Yahoo options for '{symbol}'.")
+
+        expiry, _expiry_date, days = min(candidates, key=lambda item: abs(item[2] - target_days))
+        chain = ticker_obj.option_chain(expiry)
+        calls, puts = chain.calls, chain.puts
+        if calls is None or calls.empty or puts is None or puts.empty:
+            raise HTTPException(status_code=404, detail="Yahoo returned an empty option chain.")
+
+        call_rows = {
+            float(row["strike"]): row
+            for _, row in calls.iterrows()
+            if _f(row.get("strike")) is not None
+        }
+        put_rows = {
+            float(row["strike"]): row
+            for _, row in puts.iterrows()
+            if _f(row.get("strike")) is not None
+        }
+        strikes = sorted(set(call_rows).intersection(put_rows))
+        low, high = spot * (1 - moneyness_band), spot * (1 + moneyness_band)
+        strikes = [strike for strike in strikes if low <= strike <= high]
+        if not strikes:
+            raise HTTPException(status_code=404, detail="Yahoo returned no paired call/put strikes in range.")
+
+        T = max(days, 1) / 365.0
+        rows = [
+            {
+                "strike": strike,
+                "call": _market_option_leg(call_rows[strike], spot, strike, T, r, q, "call"),
+                "put": _market_option_leg(put_rows[strike], spot, strike, T, r, q, "put"),
+            }
+            for strike in strikes
+        ]
+        payload: Dict[str, Any] = {
+            "ticker": symbol,
+            "source": "YFINANCE_MARKET",
+            "quote_status": "DELAYED_OR_REALTIME_PER_EXCHANGE",
+            "as_of": datetime.now(timezone.utc).isoformat(),
+            "spot": spot,
+            "expiry": expiry,
+            "days": days,
+            "target_days": target_days,
+            "rows": rows,
+        }
+        with _market_chain_lock:
+            _market_chain_cache[cache_key] = (now, payload)
+        return payload
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Yahoo option chain failed: {exc}") from exc
 
 
 @router.get("/options/chain/{ticker}")
