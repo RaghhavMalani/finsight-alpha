@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Instrument, fmt, fmtPct, dailyHistory, bucketCandles, type Tick } from "@/lib/market";
+import { Instrument, fmt, fmtPct, bucketCandles, type Tick } from "@/lib/market";
+import { api, type Quote } from "@/lib/api";
 
 type Series = "LINE" | "AREA" | "CANDLES";
 type TF = "1D" | "1W" | "1M" | "1Y";
@@ -7,6 +9,23 @@ type DrawKind = "trend" | "fib" | null;
 type Draw = { kind: "trend" | "fib"; x1: number; y1: number; x2: number; y2: number };
 
 const drawStore: Map<string, Draw[]> = new Map();
+
+function snapshotTicks(instrument: Instrument): Tick[] {
+  const now = Date.now();
+  return [
+    { t: now - 6.5 * 60 * 60 * 1000, p: instrument.open },
+    { t: now, p: instrument.price },
+  ];
+}
+
+function quoteTicks(quote: Quote | undefined, days: number): Tick[] {
+  if (!quote) return [];
+  return quote.series
+    .filter((row): row is typeof row & { close: number } => Number.isFinite(row.close))
+    .map((row) => ({ t: new Date(`${row.date}T16:00:00Z`).getTime(), p: row.close }))
+    .filter((row) => Number.isFinite(row.t))
+    .slice(-days);
+}
 
 export function PriceChart({
   instrument,
@@ -41,13 +60,29 @@ export function PriceChart({
   const drawings = drawStore.get(key) ?? [];
 
   useEffect(() => { setMounted(true); }, []);
+  const quote = useQuery({
+    queryKey: ["quote-history", instrument.symbol],
+    queryFn: () => api<Quote>(`/quote/${encodeURIComponent(instrument.symbol)}`),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+  const compareQuote = useQuery({
+    queryKey: ["quote-history", compareTo?.symbol],
+    queryFn: () => api<Quote>(`/quote/${encodeURIComponent(compareTo!.symbol)}`),
+    enabled: Boolean(compareTo),
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+  const historicalSource = quote.data ? "YFINANCE" : quote.isError ? "UNAVAILABLE" : "LOADING";
 
-  // Base ticks depending on timeframe
+
+  // The API currently provides session snapshots plus real daily history.
   const baseTicks: Tick[] = useMemo(() => {
-    if (tf === "1D") return instrument.history;
+    if (tf === "1D") return snapshotTicks(instrument);
     const days = tf === "1W" ? 7 : tf === "1M" ? 30 : 252;
-    return dailyHistory(instrument.symbol, days);
-  }, [tf, instrument.symbol, instrument.history]);
+    const real = quoteTicks(quote.data, days);
+    return real.length >= 2 ? real : snapshotTicks(instrument);
+  }, [tf, instrument, quote.data]);
 
   const history = useMemo(() => {
     if (tf !== "1D" || replayFrac == null) return baseTicks;
@@ -57,12 +92,11 @@ export function PriceChart({
 
   const cmpHistory = useMemo(() => {
     if (!compareTo) return null;
-    if (tf !== "1D") return dailyHistory(compareTo.symbol, tf === "1W" ? 7 : tf === "1M" ? 30 : 252);
-    const h = compareTo.history;
-    if (replayFrac == null) return h;
-    const n = Math.max(2, Math.min(h.length, Math.round(h.length * replayFrac)));
-    return h.slice(0, n);
-  }, [compareTo, replayFrac, tf]);
+    if (tf === "1D") return snapshotTicks(compareTo);
+    const days = tf === "1W" ? 7 : tf === "1M" ? 30 : 252;
+    const real = quoteTicks(compareQuote.data, days);
+    return real.length >= 2 ? real : snapshotTicks(compareTo);
+  }, [compareTo, compareQuote.data, tf]);
 
   const isCompare = !!(compareTo && cmpHistory);
 
@@ -130,7 +164,7 @@ export function PriceChart({
 
   const hiY = view.mode === "price" ? yPrice(instrument.sessionHigh) : null;
   const loY = view.mode === "price" ? yPrice(instrument.sessionLow) : null;
-  const vwapY = view.mode === "price" && tf === "1D" ? yPrice(instrument.vwap) : null;
+  const vwapY = view.mode === "price" && tf === "1D" && instrument.vwapSource !== "UNAVAILABLE" ? yPrice(instrument.vwap) : null;
 
   const hoverStats = useMemo(() => {
     if (hover == null || !priceCoords[hover]) return null;
@@ -196,6 +230,7 @@ export function PriceChart({
         <div>
           <div className="mono-caps text-[10px] text-muted-foreground">
             {instrument.name}
+            <span className="ml-2 text-primary">· {tf === "1D" ? instrument.dataSource : historicalSource} · {tf === "1D" ? "SESSION SNAPSHOT" : "DAILY CLOSES"}</span>
             {compareTo && <span className="ml-2 text-info">· vs {compareTo.symbol}</span>}
           </div>
           <div className="mt-1 flex items-baseline gap-4 font-mono text-4xl tabular-nums text-foreground">
@@ -209,8 +244,8 @@ export function PriceChart({
           <div className="tabular-nums text-right"><div className="text-faint">OPEN</div><div className="font-mono text-foreground">{fmt(instrument.open)}</div></div>
           <div className="tabular-nums text-right"><div className="text-faint">HIGH</div><div className="font-mono text-foreground">{fmt(instrument.sessionHigh)}</div></div>
           <div className="tabular-nums text-right"><div className="text-faint">LOW</div><div className="font-mono text-foreground">{fmt(instrument.sessionLow)}</div></div>
-          <div className="tabular-nums text-right"><div className="text-faint">VWAP</div><div className="font-mono text-foreground">{fmt(instrument.vwap)}</div></div>
-          <div className="tabular-nums text-right"><div className="text-faint">VOL</div><div className="font-mono text-foreground">{(instrument.volume / 1_000_000).toFixed(1)}M</div></div>
+          <div className="tabular-nums text-right"><div className="text-faint">VWAP</div><div className="font-mono text-foreground">{instrument.vwapSource === "UNAVAILABLE" ? "—" : fmt(instrument.vwap)}</div></div>
+          <div className="tabular-nums text-right"><div className="text-faint">VOL</div><div className="font-mono text-foreground">{instrument.volume > 0 ? `${(instrument.volume / 1_000_000).toFixed(1)}M` : "—"}</div></div>
           {compareTo && relPerf !== null && (
             <div className="border-l border-divider pl-3 tabular-nums text-right">
               <div className="text-faint">RELATIVE</div>
@@ -223,7 +258,7 @@ export function PriceChart({
       {/* Toolbar */}
       <div className="mono-caps flex flex-wrap items-center gap-1 border-y border-divider bg-panel/60 px-3 py-1.5 text-[9px]">
         <div className="flex items-center gap-1 pr-2">
-          {(["LINE", "AREA", "CANDLES"] as Series[]).map((s) => (
+          {(["LINE", "AREA"] as Series[]).map((s) => (
             <button key={s} onClick={() => setSeries(s)} className={`border px-1.5 py-0.5 transition ${series === s ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>{s}</button>
           ))}
         </div>
@@ -233,7 +268,7 @@ export function PriceChart({
           ))}
         </div>
         <button onClick={() => setLogScale((v) => !v)} className={`border px-1.5 py-0.5 transition ${logScale ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`} title="Logarithmic scale">LOG</button>
-        <button onClick={() => setShowVwap((v) => !v)} className={`border px-1.5 py-0.5 transition ${showVwap ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>VWAP</button>
+        <button disabled={instrument.vwapSource === "UNAVAILABLE"} onClick={() => setShowVwap((v) => !v)} className={`border px-1.5 py-0.5 transition ${instrument.vwapSource === "UNAVAILABLE" ? "cursor-not-allowed border-border text-faint/40" : showVwap ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`} title={instrument.vwapSource === "UNAVAILABLE" ? "VWAP is not supplied by the current quote feed" : undefined}>VWAP</button>
         <div className="flex items-center gap-1 border-l border-divider pl-2">
           <button onClick={() => { setDrawMode(drawMode === "trend" ? null : "trend"); setPending(null); }} className={`border px-1.5 py-0.5 transition ${drawMode === "trend" ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>TREND</button>
           <button onClick={() => { setDrawMode(drawMode === "fib" ? null : "fib"); setPending(null); }} className={`border px-1.5 py-0.5 transition ${drawMode === "fib" ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>FIB</button>

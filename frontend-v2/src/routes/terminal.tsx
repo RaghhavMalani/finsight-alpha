@@ -33,7 +33,7 @@ import { ContextMenu, type ContextState } from "@/components/terminal/ContextMen
 import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/AlertsPanel";
 import { BookDrawer } from "@/components/terminal/BookDrawer";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
-import { TICKERS, seedInstrument, nextTick, Instrument } from "@/lib/market";
+import { TICKERS, seedInstrument, Instrument } from "@/lib/market";
 import { useLiveMarket } from "@/lib/live-market";
 import { toast } from "sonner";
 
@@ -106,7 +106,6 @@ function Terminal() {
   const market = useLiveMarket(setInstruments);
   const [active, setActive] = useState<string>("NVDA");
   const [watch, setWatch] = useState<string[]>(["NVDA", "AAPL", "SPY", "MSFT", "META"]);
-  const [latency, setLatency] = useState(12);
   const [cmdCount, setCmdCount] = useState(24);
   const [panelKey, setPanelKey] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -139,20 +138,6 @@ function Terminal() {
     }
   }, [active]);
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setInstruments((prev) => {
-        const upd = { ...prev };
-        TICKERS.forEach((s) => (upd[s] = nextTick(upd[s])));
-        return upd;
-      });
-    }, 1400);
-    const l = setInterval(() => setLatency(8 + Math.round(Math.random() * 12)), 3000);
-    return () => {
-      clearInterval(id);
-      clearInterval(l);
-    };
-  }, []);
 
   // Alert engine — fire on price crossing.
   useEffect(() => {
@@ -294,10 +279,7 @@ function Terminal() {
         : inst.price,
     changePct: inst.changePct,
     marketSource: market.source,
-    priceProvenance:
-      market.source === "SIM"
-        ? "SIMULATED_SESSION"
-        : `${market.source}_ANCHOR_WITH_CLIENT_MICROTICKS`,
+    priceProvenance: market.source === "SIM" ? "SIMULATED_FALLBACK" : `${market.source}_PROVIDER_QUOTE`,
     replay: replayT !== null,
     watchlist: watch,
     paperBook: demoPositions.map((position) => position.symbol),
@@ -458,7 +440,7 @@ function Terminal() {
 
       {/* Status bar */}
       <footer className="mono-caps flex h-7 shrink-0 items-center justify-between gap-4 border-t border-divider bg-panel px-4 text-[10px] text-muted-foreground">
-        <span className="whitespace-nowrap">CMD {cmdCount} · LATENCY {latency}ms · ALERTS {alerts.length} · {market.source} {market.count ? `· ${market.count} SYMBOLS` : "· RETRYING"}</span>
+        <span className="whitespace-nowrap">CMD {cmdCount} · REFRESH 30S · ALERTS {alerts.length} · {market.source} {market.count ? `· ${market.count} SYMBOLS` : "· RETRYING"}</span>
         <div className="hidden min-w-0 flex-1 justify-center overflow-hidden md:flex">
           <HintTicker />
         </div>

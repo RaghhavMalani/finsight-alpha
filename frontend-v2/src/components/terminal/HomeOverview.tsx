@@ -1,32 +1,31 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { TICKERS, type Instrument, fmt, fmtPct, seedHeadlines, type Headline } from "@/lib/market";
+import { TICKERS, type Instrument, fmt, fmtPct } from "@/lib/market";
 import { MiniSparkline } from "./MiniSparkline";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
+import { api, type NewsPayload, type TapeItem } from "@/lib/api";
 
 const GICS = [
-  "Info Tech", "Comms", "Cons Discr", "Cons Staples", "Health Care",
-  "Financials", "Industrials", "Energy", "Utilities", "Real Estate", "Materials",
-];
-
-function seededPct(seed: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = (h * 16777619) >>> 0; }
-  const rnd = (h % 1000) / 1000;
-  return (rnd - 0.5) * 4;
-}
+  { name: "Info Tech", symbol: "XLK" },
+  { name: "Comms", symbol: "XLC" },
+  { name: "Cons Discr", symbol: "XLY" },
+  { name: "Cons Staples", symbol: "XLP" },
+  { name: "Health Care", symbol: "XLV" },
+  { name: "Financials", symbol: "XLF" },
+  { name: "Industrials", symbol: "XLI" },
+  { name: "Energy", symbol: "XLE" },
+  { name: "Utilities", symbol: "XLU" },
+  { name: "Real Estate", symbol: "XLRE" },
+  { name: "Materials", symbol: "XLB" },
+] as const;
+const SECTOR_SYMBOLS = GICS.map((sector) => sector.symbol);
+type TapePayload = { items: TapeItem[]; live: boolean };
 
 function nowLine(): string {
-  const d = new Date();
-  const day = d.toLocaleDateString("en-US", { weekday: "long" });
-  const md  = d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-  // ~2:41 to close (16:00 ET)
   const now = new Date();
-  const close = new Date(now); close.setHours(16, 0, 0, 0);
-  let m = Math.round((close.getTime() - now.getTime()) / 60_000);
-  if (m < 0) m += 24 * 60;
-  const hh = Math.floor(m / 60), mm = m % 60;
-  const dur = hh > 0 ? `${hh}:${String(mm).padStart(2,"0")}` : `${mm}m`;
-  return `${day}, ${md} — markets open · ${dur} to the close.`;
+  const date = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric" }).format(now);
+  const time = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false }).format(now);
+  return `${date} · ${time} ET · New York market time`;
 }
 
 type SetupChip = { label: string; code: string; sym?: string };
@@ -42,7 +41,21 @@ export function HomeOverview({
 }) {
   const list = TICKERS.map((s) => instruments[s]).filter(Boolean);
   const spy = instruments["SPY"];
-  const qqq = instruments["QQQ"];
+  const sectorTape = useQuery({
+    queryKey: ["sector-tape", SECTOR_SYMBOLS],
+    queryFn: () => api<TapePayload>(`/tape?symbols=${encodeURIComponent(SECTOR_SYMBOLS.join(","))}`),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const vixTape = useQuery({
+    queryKey: ["vix-tape"],
+    queryFn: () => api<TapePayload>("/tape?symbols=%5EVIX"),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const vix = vixTape.data?.items[0];
 
   const [positions, setPositions] = useState<DemoPosition[]>([]);
   useEffect(() => subscribeDemoBook(setPositions), []);
@@ -60,34 +73,61 @@ export function HomeOverview({
     return { notional, pnl, pct };
   }, [positions, instruments]);
 
-  const headlines: Headline[] = useMemo(() => seedHeadlines(), []);
-  const movers = useMemo(() => {
-    const sorted = [...list].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
-    return sorted.slice(0, 3).map((inst) => {
-      const h = headlines.find((h) => h.sym === inst.symbol);
-      return { inst, headline: h?.text ?? "flow leadership — no fresh catalyst on tape" };
-    });
-  }, [list, headlines]);
+  const topMovers = useMemo(
+    () => [...list].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct)).slice(0, 3),
+    [list],
+  );
+  const moverSymbols = topMovers.map((inst) => inst.symbol);
+  const moverNews = useQuery({
+    queryKey: ["home-mover-news", moverSymbols],
+    queryFn: () => Promise.all(moverSymbols.map((symbol) => api<NewsPayload>(`/news/${symbol}`))),
+    enabled: moverSymbols.length > 0,
+    staleTime: 5 * 60_000,
+    retry: 1,
+  });
+  const movers = useMemo(
+    () =>
+      topMovers.map((inst, index) => {
+        const payload = moverNews.data?.[index];
+        const first = (payload?.items?.[0] ?? payload?.headlines?.[0]) as
+          | { title?: unknown }
+          | undefined;
+        const headline =
+          typeof first?.title === "string"
+            ? first.title
+            : `Real ${inst.dataSource} quote · no recent provider catalyst`;
+        return { inst, headline };
+      }),
+    [moverNews.data, topMovers],
+  );
 
-  const sectorReturns = useMemo(() =>
-    GICS.map((s) => ({ name: s, ret: seededPct(s) })).sort((a, b) => b.ret - a.ret)
-  , []);
+  const sectorReturns = useMemo(
+    () =>
+      GICS.flatMap((sector) => {
+        const item = sectorTape.data?.items.find((quote) => quote.ticker === sector.symbol);
+        if (!item || !Number.isFinite(item.change_pct)) return [];
+        return [{ name: sector.name, symbol: sector.symbol, ret: item.change_pct * 100 }];
+      })
+        .sort((a, b) => b.ret - a.ret),
+    [sectorTape.data],
+  );
+
 
   const [dateLine, setDateLine] = useState("");
   useEffect(() => { setDateLine(nowLine()); }, []);
 
-  // AI DESK BRIEF — 3 sentences derived from state
+  // A deterministic summary derived only from provider quotes, news, and the local demo book.
   const briefFull = useMemo(() => {
     const spyPct = spy?.changePct ?? 0;
-    const dir = spyPct >= 0.1 ? "opens firm" : spyPct <= -0.1 ? "opens heavy" : "opens two-way";
+    const dir = spyPct >= 0.1 ? "is firm" : spyPct <= -0.1 ? "is heavy" : "is two-way";
     const outlier = movers[0]?.inst;
     const outlierTxt = outlier ? ` ${outlier.symbol} ${fmtPct(outlier.changePct)} is the outlier — ${movers[0].headline.toLowerCase()}` : "";
     const bookTxt = positions.length
-      ? ` Your book is ${bookAgg.pct >= 0 ? "up" : "down"} ${Math.abs(bookAgg.pct).toFixed(2)}% on ${positions.length} positions.`
-      : " Your book is empty — pin a few names below to bring risk & recommendations to life.";
-    const volTxt = qqq && Math.abs(qqq.changePct) < 0.4 ? " Realized vol is compressing; regime reads grinding." : " Realized vol is elevated; expect wider ranges into the bell.";
-    return `SPY ${fmtPct(spyPct)} — the tape ${dir}.${outlierTxt}.${bookTxt}${volTxt}`;
-  }, [spy, qqq, movers, positions.length, bookAgg.pct]);
+      ? ` Your demo book is ${bookAgg.pct >= 0 ? "up" : "down"} ${Math.abs(bookAgg.pct).toFixed(2)}% on ${positions.length} positions.`
+      : " The demo book is empty.";
+    const sectorTxt = sectorReturns[0] ? ` ${sectorReturns[0].name} leads sectors at ${fmtPct(sectorReturns[0].ret)}.` : "";
+    return `SPY ${fmtPct(spyPct)} — the tape ${dir}.${outlierTxt}.${bookTxt}${sectorTxt}`;
+  }, [spy, movers, positions.length, bookAgg.pct, sectorReturns]);
 
   const [brief, setBrief] = useState("");
   useEffect(() => {
@@ -100,16 +140,15 @@ export function HomeOverview({
     return () => clearInterval(id);
   }, [briefFull]);
 
-  // TODAY'S SETUP chips derived from live state
+  // Navigation chips derived only from live quote values.
   const setups: SetupChip[] = useMemo(() => {
     const out: SetupChip[] = [];
-    if (movers[0]) out.push({ label: `${movers[0].inst.symbol} regime is aging → ML REGIMES`, code: "ML", sym: movers[0].inst.symbol });
-    const rich = list.find((i) => i.annualVol > 0.45) ?? movers[1]?.inst;
-    if (rich) out.push({ label: `IV rich on ${rich.symbol} → OC strategy builder`, code: "OC", sym: rich.symbol });
-    out.push({ label: `CL backwardation steepening → RISK exposure`, code: "RISK" });
+    if (movers[0]) out.push({ label: `${movers[0].inst.symbol} ${fmtPct(movers[0].inst.changePct)} → inspect real quote`, code: "MK", sym: movers[0].inst.symbol });
+    if (sectorReturns[0]) out.push({ label: `${sectorReturns[0].name} leads via ${sectorReturns[0].symbol} → cross-asset`, code: "CX", sym: sectorReturns[0].symbol });
+    if (vix) out.push({ label: `VIX ${fmt(vix.last)} · ${fmtPct(vix.change_pct * 100)} → risk`, code: "RISK" });
     if (positions.length === 0) out.push({ label: `Empty book — inspect the demo → click P&L ribbon`, code: "" });
     return out.slice(0, 3);
-  }, [movers, list, positions.length]);
+  }, [movers, sectorReturns, vix, positions.length]);
 
   return (
     <div className="mx-auto flex h-full max-w-[980px] flex-col gap-5 overflow-y-auto px-8 py-6">
@@ -120,7 +159,7 @@ export function HomeOverview({
       <div className="border-l-2 border-primary/50 pl-4">
         <div className="mono-caps mb-1 flex items-center gap-2 text-[10px] text-primary">
           <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse-live" />
-          AI DESK BRIEF
+          MARKET BRIEF · DATA-DERIVED
         </div>
         <div className="font-serif text-[22px] leading-[1.4] text-foreground">
           {brief}
@@ -131,7 +170,7 @@ export function HomeOverview({
       {/* Three instruments */}
       <div className="grid grid-cols-3 gap-6 border-y border-divider py-5">
         <InstrumentCell label="SPY" sublabel="S&P 500" inst={spy} onOpen={() => spy && onOpenSymbol("SPY")} />
-        <VixCell />
+        <VixCell quote={vix} />
         <BookCell notional={bookAgg.notional} pnl={bookAgg.pnl} pct={bookAgg.pct} count={positions.length} />
       </div>
 
@@ -177,7 +216,7 @@ export function HomeOverview({
       <div className="mt-auto border-t border-divider pt-3">
         <div className="mono-caps mb-2 flex items-center justify-between text-[9px] text-faint">
           <span>SECTOR PULSE</span>
-          <span>{sectorReturns[0].name} +{sectorReturns[0].ret.toFixed(2)}% · {sectorReturns[sectorReturns.length-1].name} {sectorReturns[sectorReturns.length-1].ret.toFixed(2)}%</span>
+          <span>{sectorReturns.length ? `${sectorReturns[0].name} ${fmtPct(sectorReturns[0].ret)} · ${sectorReturns[sectorReturns.length - 1].name} ${fmtPct(sectorReturns[sectorReturns.length - 1].ret)}` : sectorTape.isPending ? "LOADING ETF QUOTES…" : "SECTOR DATA UNAVAILABLE"}</span>
         </div>
         <div className="flex items-stretch gap-0.5">
           {sectorReturns.map((s) => {
@@ -216,23 +255,20 @@ function InstrumentCell({ label, sublabel, inst, onOpen }: { label: string; subl
   );
 }
 
-function VixCell() {
-  const [tick, setTick] = useState(0);
-  useEffect(() => { setTick(Date.now()); const id = setInterval(() => setTick(Date.now()), 1400); return () => clearInterval(id); }, []);
-  const value = 14.8 + (Math.sin((tick || 0) / 1e7) * 1.4);
-  const chg = -0.35 + (Math.cos((tick || 0) / 1.2e7) * 0.6);
-  const up = chg >= 0;
+function VixCell({ quote }: { quote?: TapeItem }) {
+  const changePct = (quote?.change_pct ?? 0) * 100;
+  const up = changePct >= 0;
   return (
     <div className="text-left">
-      <div className="mono-caps text-[10px] text-primary">VIX <span className="text-faint">· volatility</span></div>
-      <div className="mt-1 font-mono text-[28px] tabular-nums text-foreground">{value.toFixed(2)}</div>
+      <div className="mono-caps text-[10px] text-primary">VIX <span className="text-faint">· {quote?.source ?? "UNAVAILABLE"}</span></div>
+      <div className="mt-1 font-mono text-[28px] tabular-nums text-foreground">{quote ? fmt(quote.last) : "—"}</div>
       <div className="mono-caps mt-1 text-[11px] tabular-nums">
-        <span className={up ? "text-down" : "text-up"}>{up ? "▲" : "▼"} {Math.abs(chg).toFixed(2)}</span>
-        <span className="ml-2 text-faint">{up ? "fear bid" : "complacent"}</span>
+        <span className={up ? "text-down" : "text-up"}>{quote ? `${up ? "▲" : "▼"} ${fmtPct(changePct)}` : "QUOTE UNAVAILABLE"}</span>
       </div>
     </div>
   );
 }
+
 
 function BookCell({ notional, pnl, pct, count }: { notional: number; pnl: number; pct: number; count: number }) {
   const up = pnl >= 0;

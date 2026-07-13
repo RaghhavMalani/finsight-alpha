@@ -2,7 +2,7 @@ export const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)
     ? "http://127.0.0.1:8000"
-    : "");
+    : "/api");
 
 export class ApiError extends Error {
   status: number;
@@ -127,6 +127,13 @@ export type TapeItem = {
   ticker: string;
   last: number;
   change_pct: number;
+  open?: number | null;
+  high?: number | null;
+  low?: number | null;
+  prev_close?: number | null;
+  volume?: number | null;
+  quote_ts?: number | string | null;
+  source?: "FINNHUB" | "YFINANCE_EOD" | string;
   live: boolean;
 };
 
