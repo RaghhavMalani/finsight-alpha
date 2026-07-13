@@ -14,6 +14,13 @@ export class ApiError extends Error {
   }
 }
 
+async function apiError(response: Response): Promise<ApiError> {
+  const payload = await response.json().catch(() => null);
+  const detail =
+    payload && typeof payload.detail === "string" ? payload.detail : response.statusText;
+  return new ApiError(detail || "API request failed", response.status);
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -24,12 +31,94 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   });
-  const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    const detail = payload && typeof payload.detail === "string" ? payload.detail : response.statusText;
-    throw new ApiError(detail || "API request failed", response.status);
+    throw await apiError(response);
   }
+  const payload = await response.json().catch(() => null);
   return payload as T;
+}
+
+export type AgentRequest = {
+  question: string;
+  ticker?: string;
+  context?: Record<string, unknown>;
+  provider?: string;
+  max_steps?: number;
+};
+
+export type AgentToolStep = {
+  step?: number;
+  tool?: string;
+  args?: Record<string, unknown>;
+  result?: unknown;
+};
+
+export type AgentStreamEvent =
+  | ({ type: "tool" } & AgentToolStep)
+  | { type: "token"; text: string }
+  | {
+      type: "done";
+      answer?: string;
+      citations?: string[];
+      steps?: AgentToolStep[];
+      provider?: string;
+      model?: string;
+      engine?: string;
+    }
+  | { type: "error"; message?: string };
+
+function parseAgentEvent(frame: string): AgentStreamEvent | null {
+  const data = frame
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trimStart())
+    .join("\n");
+  if (!data) return null;
+  try {
+    return JSON.parse(data) as AgentStreamEvent;
+  } catch {
+    throw new Error("The agent stream returned an invalid event.");
+  }
+}
+
+/** Consume the backend's authenticated SSE endpoint over POST. */
+export async function streamAgent(
+  request: AgentRequest,
+  onEvent: (event: AgentStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/agent/stream`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    },
+    body: JSON.stringify(request),
+    signal,
+  });
+
+  if (!response.ok) throw await apiError(response);
+  if (!response.body) throw new Error("The agent stream is unavailable in this browser.");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const frames = buffer.split(/\r?\n\r?\n/);
+    buffer = frames.pop() ?? "";
+    for (const frame of frames) {
+      const event = parseAgentEvent(frame);
+      if (event) onEvent(event);
+    }
+    if (done) break;
+  }
+
+  const trailing = parseAgentEvent(buffer);
+  if (trailing) onEvent(trailing);
 }
 
 export type User = { id: number; email: string };

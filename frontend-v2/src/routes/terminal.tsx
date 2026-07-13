@@ -10,7 +10,7 @@ import { MonteCarloPanel } from "@/components/terminal/MonteCarloPanel";
 import { MLPanel } from "@/components/terminal/MLPanel";
 import { ALTPanel } from "@/components/terminal/ALTPanel";
 import { CorrelationPanel } from "@/components/terminal/CorrelationPanel";
-import { SightPanel } from "@/components/terminal/SightPanel";
+import { SightPanel, type SightDeskContext } from "@/components/terminal/SightPanel";
 import { IntelFeed } from "@/components/terminal/IntelFeed";
 import { Watchlist } from "@/components/terminal/Watchlist";
 import { SectorsStrip } from "@/components/terminal/SectorsStrip";
@@ -284,6 +284,48 @@ function Terminal() {
 
   const inst = instruments[active];
   const cmpInst = compareTo ? instruments[compareTo] : null;
+  const sightContext: SightDeskContext = {
+    activePanel: fn,
+    ticker: active,
+    displayedPrice:
+      replayT !== null
+        ? inst.history[Math.max(1, Math.round(inst.history.length * replayT) - 1)]?.p ??
+          inst.price
+        : inst.price,
+    changePct: inst.changePct,
+    marketSource: market.source,
+    priceProvenance:
+      market.source === "SIM"
+        ? "SIMULATED_SESSION"
+        : `${market.source}_ANCHOR_WITH_CLIENT_MICROTICKS`,
+    replay: replayT !== null,
+    watchlist: watch,
+    paperBook: demoPositions.map((position) => position.symbol),
+    panelData: {
+      quote_display: {
+        price: Number(inst.price.toFixed(4)),
+        bid: Number(inst.bid.toFixed(4)),
+        ask: Number(inst.ask.toFixed(4)),
+        change_pct: Number(inst.changePct.toFixed(4)),
+      },
+      session_model: {
+        source: "SIM",
+        open: Number(inst.open.toFixed(4)),
+        high: Number(inst.sessionHigh.toFixed(4)),
+        low: Number(inst.sessionLow.toFixed(4)),
+        vwap: Number(inst.vwap.toFixed(4)),
+        annualized_vol: Number(inst.annualVol.toFixed(4)),
+        beta: Number(inst.beta.toFixed(4)),
+        recent_price_path: inst.history.slice(-24).map((point) => ({
+          timestamp: new Date(point.t).toISOString(),
+          price: Number(point.p.toFixed(4)),
+          volume: point.v == null ? null : Math.round(point.v),
+        })),
+      },
+    },
+    comparedWith: compareTo,
+    expectedMovePct: emCone?.symbol === active ? emCone.pct : null,
+  };
 
   const centerContent = renderCenter(fn, preset, {
     active,
@@ -309,6 +351,7 @@ function Terminal() {
     demoBookSyms: demoPositions.map((p) => p.symbol),
     onRun: runCmd,
     emCone,
+    sightContext,
     setEmCone,
   });
 
@@ -364,7 +407,7 @@ function Terminal() {
           </div>
           {maximized && (
             <div className="absolute inset-2 z-40 flex flex-col bg-background animate-fade-in" style={{ animationDuration: "300ms" }}>
-              {renderMaximized(maximized, { active, inst, cmpInst, replayT, setFocusSym, setCompareTo, onRestore: () => setMaximized(null) })}
+              {renderMaximized(maximized, { active, inst, cmpInst, replayT, setFocusSym, setCompareTo, sightContext, onRestore: () => setMaximized(null) })}
             </div>
           )}
         </main>
@@ -482,10 +525,11 @@ type CenterProps = {
   onRun: (code: string, symbol?: string) => void;
   emCone: { symbol: string; pct: number } | null;
   setEmCone: (v: { symbol: string; pct: number } | null) => void;
+  sightContext: SightDeskContext;
 };
 
 function renderCenter(fn: string, preset: Preset, p: CenterProps) {
-  const { active, inst, cmpInst, instruments, replayT, setReplayT, setFocusSym, setActive, onAddCompare, onMaximize, groupASeed, groupBSeed, setFn, emCone, setEmCone } = p;
+  const { active, inst, cmpInst, instruments, replayT, setReplayT, setFocusSym, setActive, onAddCompare, onMaximize, groupASeed, groupBSeed, setFn, emCone, setEmCone, sightContext } = p;
   const midPrice = replayT !== null
     ? inst.history[Math.max(1, Math.round(inst.history.length * replayT) - 1)]?.p ?? inst.price
     : inst.price;
@@ -498,6 +542,15 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
     onToggleEmOnChart: (on: boolean, pct: number) => setEmCone(on ? { symbol: active, pct } : null),
   };
   // Helper: jump chip shortcut
+  const sightPanel = (
+    <SightPanel
+      context={sightContext}
+      onCite={(symbol) => {
+        setActive(symbol);
+        setFn("MK");
+      }}
+    />
+  );
   const jumpTo = (code: string, sym?: string) => () => {
     if (sym) setActive(sym);
     setFn(code);
@@ -539,7 +592,7 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
       return (
         <div className="grid h-full grid-cols-[2fr_1fr] grid-rows-2 gap-2">
           <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} className="row-span-2" onMaximize={() => onMaximize("SIGHT")}>
-            <SightPanel />
+            {sightPanel}
           </Panel>
           <Panel code="INTEL" title="Market intel">
             <IntelFeed />
@@ -576,7 +629,7 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
   if (fn === "ML") return <Panel code="ML" title={`${active} · ML model zoo`} subtitle={SUBTITLES.ML(active)} source="HSMM · TFT" explainer={EXPLAINERS.ML} onMaximize={() => onMaximize("ML")} {...A}><MLPanel symbol={active} book={p.demoBookSyms.length ? p.demoBookSyms : p.watch} /></Panel>;
   if (fn === "ALT") return <Panel code="ALT" title="Alternative data" subtitle={SUBTITLES.ALT(active)} source="OPEN-METEO · KAGGLE" explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><ALTPanel onOpenSymbol={setActive} /></Panel>;
   if (fn === "CX") return <Panel code="CX" title="Correlation" subtitle={SUBTITLES.CX(active)} source="SIM" explainer={EXPLAINERS.CX} onMaximize={() => onMaximize("CX")}><CorrelationPanel symbols={TICKERS.slice(0, 8)} activeSymbol={active} onFocus={setFocusSym} /><AiInsight lines={INSIGHTS.CX} jumps={[{ label: `RISK exposure`, onClick: () => setFn("RISK") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
-  if (fn === "SIGHT") return <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} onMaximize={() => onMaximize("SIGHT")}><SightPanel /></Panel>;
+  if (fn === "SIGHT") return <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} onMaximize={() => onMaximize("SIGHT")}>{sightPanel}</Panel>;
   if (fn === "BT") return <Panel code="BT" title={`${active} · Backtest`} subtitle={SUBTITLES.BT(active)} source="API + LOCAL · WALK-FWD" onMaximize={() => onMaximize("BT")} {...A}><BTPanel activeSymbol={active} /><AiInsight lines={INSIGHTS.BT} jumps={[{ label: `STRAT tune params`, onClick: jumpTo("STRAT") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
   if (fn === "STRAT") return <Panel code="STRAT" title="Strategy builder" subtitle={SUBTITLES.STRAT(active)} onMaximize={() => onMaximize("STRAT")}><STRATPanel activeSymbol={active} onSendToBT={() => setFn("BT")} /><AiInsight lines={INSIGHTS.STRAT} jumps={[{ label: `Run in BT`, onClick: jumpTo("BT") }]} /></Panel>;
   if (fn === "RISK") return (
@@ -589,9 +642,9 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
 
 function renderMaximized(code: string, p: {
   active: string; inst: Instrument; cmpInst: Instrument | null; replayT: number | null;
-  setFocusSym: (s: string | null) => void; setCompareTo: (s: string | null) => void; onRestore: () => void;
+  setFocusSym: (s: string | null) => void; setCompareTo: (s: string | null) => void; sightContext: SightDeskContext; onRestore: () => void;
 }) {
-  const { active, inst, cmpInst, replayT, setFocusSym, onRestore } = p;
+  const { active, inst, cmpInst, replayT, setFocusSym, sightContext, onRestore } = p;
   const wrap = (node: React.ReactNode, title: string, codeLabel: string, explainer?: { what: string; why: string; how: string }) => (
     <Panel code={codeLabel} title={title} explainer={explainer} isMaximized onMaximize={onRestore} className="h-full">
       {node}
@@ -605,7 +658,7 @@ function renderMaximized(code: string, p: {
     case "OC": return wrap(<OptionsChain spot={inst.price} symbol={active} />, `${active} · Options`, "OC", EXPLAINERS.OC);
     case "ML": return wrap(<MLPanel symbol={active} book={["NVDA", "AAPL", "SPY"]} />, `${active} · ML model zoo`, "ML", EXPLAINERS.ML);
     case "ALT": return wrap(<ALTPanel />, "Alternative data", "ALT", EXPLAINERS.ALT);
-    case "SIGHT": return wrap(<SightPanel />, "AI research", "SIGHT", EXPLAINERS.SIGHT);
+    case "SIGHT": return wrap(<SightPanel context={{ ...sightContext, activePanel: "SIGHT" }} />, "AI research", "SIGHT", EXPLAINERS.SIGHT);
     default: return null;
   }
 }
