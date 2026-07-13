@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { altSignals, type AltSignal } from "@/lib/altdata";
+import { ExternalContextStrip } from "@/components/terminal/ExternalContextStrip";
 
 const KIND_COLOR: Record<AltSignal["kind"], string> = {
   SHIPPING: "#45B9D3",
@@ -19,6 +20,7 @@ export function ALTPanel({ onOpenSymbol }: { onOpenSymbol?: (sym: string) => voi
   }, [signals]);
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      <ExternalContextStrip />
       <div className="grid flex-1 grid-cols-1 gap-2 overflow-y-auto p-2 lg:grid-cols-3">
         {hero && (
           <div className="lg:col-span-2 lg:row-span-2">

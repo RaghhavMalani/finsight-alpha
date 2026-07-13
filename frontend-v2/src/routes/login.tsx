@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
+import { api, type User } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -27,6 +28,7 @@ function Login() {
   const [pass, setPass] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState<"login" | "register">("login");
   const cardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -38,19 +40,31 @@ function Login() {
     return () => clearTimeout(t);
   }, [step]);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !pass) {
-      setError("That combination didn't match. Check the email, or reset your password.");
+      setError("Enter both an email and password.");
       cardRef.current?.classList.remove("animate-shake");
-      // reflow to restart
       void cardRef.current?.offsetWidth;
       cardRef.current?.classList.add("animate-shake");
       return;
     }
     setError(null);
     setSubmitting(true);
-    setTimeout(() => navigate({ to: "/terminal" }), 500);
+    try {
+      await api<User>(`/auth/${mode}`, {
+        method: "POST",
+        body: JSON.stringify({ email, password: pass }),
+      });
+      await navigate({ to: "/terminal" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed.");
+      cardRef.current?.classList.remove("animate-shake");
+      void cardRef.current?.offsetWidth;
+      cardRef.current?.classList.add("animate-shake");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -122,11 +136,18 @@ function Login() {
               disabled={submitting}
               className="mono-caps flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
             >
-              {submitting ? "Opening desk…" : "Enter the desk →"}
+              {submitting ? "Opening desk…" : mode === "login" ? "Enter the desk →" : "Create account →"}
             </button>
             <div className="mono-caps flex items-center justify-between text-[10px] text-faint">
               <Link to="/" className="hover:text-foreground">← Landing</Link>
-              <span>Any credentials work · demo</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode((value) => value === "login" ? "register" : "login");
+                  setError(null);
+                }}
+                className="hover:text-primary"
+              >{mode === "login" ? "Create account" : "Use existing account"}</button>
             </div>
           </form>
         )}

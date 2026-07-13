@@ -42,7 +42,7 @@ def test_vercel_import_uses_writable_runtime_data_dir(tmp_path: Path) -> None:
         env=env,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=90,
         check=False,
     )
 

@@ -34,6 +34,7 @@ import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/Ale
 import { BookDrawer } from "@/components/terminal/BookDrawer";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
 import { TICKERS, seedInstrument, nextTick, Instrument } from "@/lib/market";
+import { useLiveMarket } from "@/lib/live-market";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/terminal")({
@@ -58,7 +59,7 @@ const EXPLAINERS: Record<string, { what: string; why: string; how: string }> = {
   VS: { what: "A rotating 3D implied-volatility surface — every strike, every expiry, one shape.", why: "Smile, skew, and term structure are the entire language of options positioning.", how: "Bright yellow ridges are elevated IV — usually short-dated downside. Drag · scroll · hover." },
   RISK: { what: "VaR, contribution to risk, portfolio optimizer, and stress paths.", why: "Knowing your worst plausible loss beats hoping the market cooperates.", how: "The 99% VaR is the loss you should expect once in a hundred days. Contribution bars show which names drive that risk." },
   SIGHT: { what: "Ask the desk — an AI research assistant grounded in your current book.", why: "Fast, structured answers beat digging through five tabs.", how: "Ask in plain English. Ticker chips are clickable — jump straight to the panels." },
-  ALT: { what: "Alternative data — signals from outside the market that move it (shipping, weather, EV deliveries, card spend, satellite, web traffic).", why: "These datasets lead earnings and market prints by weeks. Kaggle/GitHub-style — simulated here.", how: "Each card shows the signal, correlated ticker, lead time, and hit rate. Click the ticker chip to load it." },
+  ALT: { what: "Alternative data — live weather context, Kaggle inventory, and research signals outside the tape.", why: "External context can lead earnings and operational risk by weeks.", how: "The source strip is API-backed. Signal charts remain research demos until matching datasets are loaded; click a ticker chip to open it." },
   ALERTS: { what: "Price-level alerts on your watchlist tickers.", why: "You can't stare at every ticker all day. Alerts do it for you.", how: "Click the bell on any row to arm a level. When price crosses, the row flashes and a toast fires." },
 };
 
@@ -102,6 +103,7 @@ function Terminal() {
     TICKERS.forEach((s) => (m[s] = seedInstrument(s)));
     return m;
   });
+  const market = useLiveMarket(setInstruments);
   const [active, setActive] = useState<string>("NVDA");
   const [watch, setWatch] = useState<string[]>(["NVDA", "AAPL", "SPY", "MSFT", "META"]);
   const [latency, setLatency] = useState(12);
@@ -318,7 +320,7 @@ function Terminal() {
           <Link to="/" className="mono-caps text-sm text-primary">FinSight</Link>
           <div className="mono-caps flex items-center gap-2 text-[10px] text-muted-foreground">
             <span className={`h-1.5 w-1.5 rounded-full ${replayT !== null ? "bg-info" : "bg-up"} animate-pulse-live`} />
-            {replayT !== null ? "REPLAY · SIM FEED" : "LIVE · SIM FEED"}
+            {replayT !== null ? "REPLAY · LOCAL" : `${market.connected ? "CONNECTED" : "FALLBACK"} · ${market.source}`}
           </div>
           <MarketClock />
         </div>
@@ -413,7 +415,7 @@ function Terminal() {
 
       {/* Status bar */}
       <footer className="mono-caps flex h-7 shrink-0 items-center justify-between gap-4 border-t border-divider bg-panel px-4 text-[10px] text-muted-foreground">
-        <span className="whitespace-nowrap">CMD {cmdCount} · LATENCY {latency}ms · ALERTS {alerts.length} · SIM FEED</span>
+        <span className="whitespace-nowrap">CMD {cmdCount} · LATENCY {latency}ms · ALERTS {alerts.length} · {market.source} {market.count ? `· ${market.count} SYMBOLS` : "· RETRYING"}</span>
         <div className="hidden min-w-0 flex-1 justify-center overflow-hidden md:flex">
           <HintTicker />
         </div>
@@ -572,10 +574,10 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
   if (fn === "MC") return <Panel code="MC" title={`${active} · Monte Carlo`} subtitle={SUBTITLES.MC(active)} source="SIM" explainer={EXPLAINERS.MC} onMaximize={() => onMaximize("MC")} {...A}><MonteCarloPanel spot={inst.price} symbol={active} /><AiInsight lines={INSIGHTS.MC} jumps={[{ label: `OC hedge`, onClick: jumpTo("OC") }, { label: `RISK exposure`, onClick: () => setFn("RISK") }]} /></Panel>;
   if (fn === "GR") return <Panel code="GR" title={`${active} · Greeks surfaces`} subtitle={SUBTITLES.GR(active)} source="SIM" explainer={EXPLAINERS.GR} onMaximize={() => onMaximize("GR")} {...A}><GreeksSurface symbol={active} spot={inst.price} /><AiInsight lines={INSIGHTS.GR} jumps={[{ label: `OC unusual flow`, onClick: jumpTo("OC") }, { label: `VS surface`, onClick: jumpTo("VS") }]} /></Panel>;
   if (fn === "ML") return <Panel code="ML" title={`${active} · ML model zoo`} subtitle={SUBTITLES.ML(active)} source="HSMM · TFT" explainer={EXPLAINERS.ML} onMaximize={() => onMaximize("ML")} {...A}><MLPanel symbol={active} book={p.demoBookSyms.length ? p.demoBookSyms : p.watch} /></Panel>;
-  if (fn === "ALT") return <Panel code="ALT" title="Alternative data" subtitle={SUBTITLES.ALT(active)} source="SIM" explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><ALTPanel onOpenSymbol={setActive} /></Panel>;
+  if (fn === "ALT") return <Panel code="ALT" title="Alternative data" subtitle={SUBTITLES.ALT(active)} source="OPEN-METEO · KAGGLE" explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><ALTPanel onOpenSymbol={setActive} /></Panel>;
   if (fn === "CX") return <Panel code="CX" title="Correlation" subtitle={SUBTITLES.CX(active)} source="SIM" explainer={EXPLAINERS.CX} onMaximize={() => onMaximize("CX")}><CorrelationPanel symbols={TICKERS.slice(0, 8)} activeSymbol={active} onFocus={setFocusSym} /><AiInsight lines={INSIGHTS.CX} jumps={[{ label: `RISK exposure`, onClick: () => setFn("RISK") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
   if (fn === "SIGHT") return <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} onMaximize={() => onMaximize("SIGHT")}><SightPanel /></Panel>;
-  if (fn === "BT") return <Panel code="BT" title={`${active} · Backtest`} subtitle={SUBTITLES.BT(active)} source="SIM · WALK-FWD" onMaximize={() => onMaximize("BT")} {...A}><BTPanel activeSymbol={active} /><AiInsight lines={INSIGHTS.BT} jumps={[{ label: `STRAT tune params`, onClick: jumpTo("STRAT") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
+  if (fn === "BT") return <Panel code="BT" title={`${active} · Backtest`} subtitle={SUBTITLES.BT(active)} source="API + LOCAL · WALK-FWD" onMaximize={() => onMaximize("BT")} {...A}><BTPanel activeSymbol={active} /><AiInsight lines={INSIGHTS.BT} jumps={[{ label: `STRAT tune params`, onClick: jumpTo("STRAT") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
   if (fn === "STRAT") return <Panel code="STRAT" title="Strategy builder" subtitle={SUBTITLES.STRAT(active)} onMaximize={() => onMaximize("STRAT")}><STRATPanel activeSymbol={active} onSendToBT={() => setFn("BT")} /><AiInsight lines={INSIGHTS.STRAT} jumps={[{ label: `Run in BT`, onClick: jumpTo("BT") }]} /></Panel>;
   if (fn === "RISK") return (
     <div className="flex h-full items-center justify-center">

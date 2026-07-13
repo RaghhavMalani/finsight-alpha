@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { runBacktest, type BacktestResult } from "@/lib/backtest";
 import { TEMPLATES, listStrategies, type Strategy } from "@/lib/strategies";
 import { TICKERS, fmt, viridis } from "@/lib/market";
+import { runApiBacktest } from "@/lib/api-backtest";
+import type { Backtest as ApiBacktest } from "@/lib/api";
 import { toast } from "sonner";
 
 function useCountUp(target: number, duration = 700) {
@@ -33,30 +35,35 @@ export function BTPanel({ activeSymbol, preloadStrategy }: { activeSymbol: strin
   const [running, setRunning] = useState(false);
   const [_phase, setPhase] = useState<"idle" | "loading" | "exec" | "compute" | "done">("done");
   const [lines, setLines] = useState<string[]>([]);
+  const [remoteResult, setRemoteResult] = useState<ApiBacktest | null>(null);
   void _phase;
   const strat = allStrats.find((s) => s.id === stratId) ?? TEMPLATES[0];
 
   const result = useMemo(() => runBacktest(strat, ticker, years), [strat, ticker, years, runId]);
 
-  function run() {
+  async function run() {
     setRunning(true);
     setPhase("loading");
-    setLines([`Loading ${years * 252} sessions of ${ticker}…`]);
-    setTimeout(() => {
+    setLines([`Requesting market history for ${ticker}…`]);
+    try {
       setPhase("exec");
-      setLines((L) => [...L, `Executing ${result.trades.length} trades…`]);
-    }, 380);
-    setTimeout(() => {
+      setLines((current) => [...current, `Executing ${strat.name} on the API…`]);
+      const remote = await runApiBacktest(strat, ticker);
+      setRemoteResult(remote);
       setPhase("compute");
-      setLines((L) => [...L, "Computing risk-adjusted stats…"]);
-    }, 760);
-    setTimeout(() => {
+      setLines((current) => [...current, "Computing risk-adjusted and walk-forward stats…"]);
       setRunId((n) => n + 1);
+      const sharpe = Number(remote.stats.sharpe ?? 0);
+      setLines((current) => [...current, `Done · ${remote.n_trades} server-computed trades.`]);
+      toast.success(`API backtest complete · Sharpe ${sharpe.toFixed(2)}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Backtest API failed.";
+      setLines((current) => [...current, `Failed · ${message}`]);
+      toast.error(message);
+    } finally {
       setPhase("done");
       setRunning(false);
-      setLines((L) => [...L, `Done · ${result.trades.length} trades.`]);
-      toast.success(`Backtest complete · Sharpe ${result.stats.sharpe.toFixed(2)}`);
-    }, 1160);
+    }
   }
 
   return (
@@ -75,6 +82,14 @@ export function BTPanel({ activeSymbol, preloadStrategy }: { activeSymbol: strin
               <span className="text-faint">›</span> {l}
             </div>
           ))}
+        </div>
+      )}
+      {remoteResult && !running && (
+        <div className="mono-caps flex items-center gap-4 border-b border-up/40 bg-up/5 px-3 py-2 text-[9px] text-up">
+          <span>API VERIFIED</span>
+          <span className="text-foreground">{remoteResult.n_trades} TRADES</span>
+          <span className="text-foreground">SHARPE {Number(remoteResult.stats.sharpe ?? 0).toFixed(2)}</span>
+          <span className="text-foreground">OOS {Number(remoteResult.out_of_sample.sharpe ?? 0).toFixed(2)}</span>
         </div>
       )}
       <div className="flex-1 overflow-y-auto p-3">
