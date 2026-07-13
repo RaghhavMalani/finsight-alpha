@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { altSignals, type AltSignal } from "@/lib/altdata";
+import { useEffect, useMemo, useState } from "react";
+import { altSignals, altSignalsLive, type AltSignal } from "@/lib/altdata";
 import { ExternalContextStrip } from "@/components/terminal/ExternalContextStrip";
 
 const KIND_COLOR: Record<AltSignal["kind"], string> = {
@@ -9,10 +9,22 @@ const KIND_COLOR: Record<AltSignal["kind"], string> = {
   CARD: "#42C98B",
   SATELLITE: "#F06464",
   WEB: "#E7EAEC",
+  TRADE: "#8AB4F8",
+};
+
+const SOURCE_STYLE: Record<string, string> = {
+  LIVE: "border-up/60 text-up",
+  KAGGLE: "border-info/60 text-info",
+  SIM: "border-border text-faint",
 };
 
 export function ALTPanel({ onOpenSymbol }: { onOpenSymbol?: (sym: string) => void }) {
-  const signals = useMemo(() => altSignals(), []);
+  const [signals, setSignals] = useState<AltSignal[]>(() => altSignals());
+  useEffect(() => {
+    let alive = true;
+    altSignalsLive().then((live) => { if (alive) setSignals(live); });
+    return () => { alive = false; };
+  }, []);
   // Signature moment: hero card is the highest-|corr| signal.
   const [hero, ...rest] = useMemo(() => {
     const sorted = [...signals].sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
@@ -43,6 +55,7 @@ function AltCard({ s, onOpen, hero }: { s: AltSignal; onOpen?: (sym: string) => 
           <span className="inline-block h-2 w-2" style={{ background: color }} />
           <span style={{ color }}>{s.kind}</span>
           <span className="text-foreground">{s.title}</span>
+          <span className={`mono-caps border px-1 py-0 text-[8px] ${SOURCE_STYLE[s.source ?? "SIM"]}`}>{s.source ?? "SIM"}</span>
           {hero && <span className="mono-caps ml-2 border border-primary/50 bg-primary/10 px-1.5 py-0 text-[8px] text-primary">TOP SIGNAL</span>}
         </span>
         <button onClick={() => setShowBT((v) => !v)} className={`interactive border px-1.5 py-0.5 text-[8px] ${showBT ? "border-primary text-primary" : "border-border text-faint"}`}>

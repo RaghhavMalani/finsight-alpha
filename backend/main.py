@@ -12,6 +12,7 @@ Run locally from the project root:
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -116,35 +117,49 @@ app.include_router(tape.router)
 app.include_router(ml.router)
 
 
-# Serve the terminal front-end (single-page app) from FastAPI so it shares the
-# API's origin (no CORS friction). Open http://127.0.0.1:8000/terminal
-_FRONTEND = PROJECT_ROOT / "legacy-frontend" / "v1" / "terminal.html"
+# The NEW front-end (frontend-v2 / FinSight Terminal) is the primary UI.
+# Set FRONTEND_URL to wherever it is deployed (Lovable preview by default;
+# point it at your Vercel/custom domain when you deploy frontend-v2 there).
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "https://id-preview--4a94ca0a-cd78-49bb-a9b4-bf9bdc777edc.lovable.app",
+).rstrip("/")
+
+# Legacy v1 pages remain reachable under /legacy/* for reference.
+_LEGACY = PROJECT_ROOT / "legacy-frontend" / "v1"
 
 
 @app.get("/terminal", include_in_schema=False)
-def terminal() -> FileResponse:
-    return FileResponse(str(_FRONTEND))
-
-
-_RISK_PAGE = PROJECT_ROOT / "legacy-frontend" / "v1" / "risk.html"
+def terminal() -> RedirectResponse:
+    return RedirectResponse(url=f"{FRONTEND_URL}/terminal", status_code=307)
 
 
 @app.get("/risk", include_in_schema=False)
-def risk_page() -> FileResponse:
-    return FileResponse(str(_RISK_PAGE))
-
-
-_LOGIN_PAGE = PROJECT_ROOT / "legacy-frontend" / "v1" / "login.html"
+def risk_page() -> RedirectResponse:
+    return RedirectResponse(url=f"{FRONTEND_URL}/risk", status_code=307)
 
 
 @app.get("/login", include_in_schema=False)
-def login_page() -> FileResponse:
-    return FileResponse(str(_LOGIN_PAGE))
+def login_page() -> RedirectResponse:
+    return RedirectResponse(url=f"{FRONTEND_URL}/login", status_code=307)
+
+
+@app.get("/legacy/terminal", include_in_schema=False)
+def legacy_terminal() -> FileResponse:
+    return FileResponse(str(_LEGACY / "terminal.html"))
+
+
+@app.get("/legacy/risk", include_in_schema=False)
+def legacy_risk() -> FileResponse:
+    return FileResponse(str(_LEGACY / "risk.html"))
+
+
+@app.get("/legacy/login", include_in_schema=False)
+def legacy_login() -> FileResponse:
+    return FileResponse(str(_LEGACY / "login.html"))
 
 
 @app.get("/", tags=["system"])
-def root() -> dict[str, str]:
-    """Friendly root pointing to the interactive docs."""
-    return {
-        "message": f"{config.APP_NAME} v{config.APP_VERSION}. See /docs for the API.",
-    }
+def root() -> RedirectResponse:
+    """Hand browsers to the FinSight Terminal front-end."""
+    return RedirectResponse(url=FRONTEND_URL, status_code=307)
