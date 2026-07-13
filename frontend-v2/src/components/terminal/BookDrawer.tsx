@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Instrument } from "@/lib/market";
-import { fmt, fmtPct, TICKERS } from "@/lib/market";
+import { fmt, TICKERS } from "@/lib/market";
 import {
   addDemoPosition, removeDemoPosition, updateDemoPosition,
-  clearDemoBook, resetDemoBook, type DemoPosition,
+  clearDemoBook, subscribeDemoBookStatus,
+  type DemoBookSync, type DemoPosition,
 } from "@/lib/demoBook";
 import { toast } from "sonner";
 
@@ -20,6 +21,8 @@ export function BookDrawer({
   const [adding, setAdding] = useState(false);
   const [q, setQ] = useState("");
   const [qty, setQty] = useState("100");
+  const [sync, setSync] = useState<DemoBookSync>({ state: "loading" });
+  useEffect(() => subscribeDemoBookStatus(setSync), []);
 
   const rows = useMemo(() => {
     return positions.map((p) => {
@@ -56,15 +59,14 @@ export function BookDrawer({
   if (positions.length === 0) {
     return (
       <div className="border border-primary/40 bg-panel p-4 amber-glow">
-        <div className="mono-caps mb-2 text-[10px] text-primary">DEMO BOOK · EMPTY</div>
+        <div className="mono-caps mb-2 flex items-center gap-2 text-[10px]">
+          <span className="text-primary">PAPER BOOK · EMPTY</span>
+          <span className={`border px-1.5 py-0.5 text-[8px] ${sync.state === "offline" ? "border-down/50 text-down" : "border-border text-faint"}`}>{sync.state === "synced" ? "SERVER SYNCED" : sync.state === "saving" ? "SAVING" : sync.state === "offline" ? "OFFLINE CACHE" : "LOADING"}</span>
+        </div>
         <div className="font-serif text-[13px] text-foreground leading-snug">
-          No positions. Add some — P&amp;L, RISK, and DISCOVER all read this book.
+          No fabricated positions are loaded. Add a paper position to start tracking P&amp;L and risk.
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => resetDemoBook()}
-            className="mono-caps interactive border border-primary bg-primary/10 px-2 py-1 text-[10px] text-primary hover:brightness-110"
-          >RESET DEMO</button>
           <button
             onClick={() => { setAdding(true); setEdit(true); }}
             className="mono-caps interactive border border-border px-2 py-1 text-[10px] text-foreground hover:border-primary hover:text-primary"
@@ -90,8 +92,9 @@ export function BookDrawer({
   return (
     <div className="border border-primary/40 bg-panel amber-glow">
       <div className="mono-caps flex items-center gap-2 border-b border-divider px-3 py-1.5 text-[10px]">
-        <span className="text-primary">DEMO BOOK · {positions.length} POSITIONS</span>
-        <span className="text-faint">click to inspect · edit to change</span>
+        <span className="text-primary">PAPER BOOK · {positions.length} POSITIONS</span>
+        <span className="text-faint">edit to change · scoped to your account</span>
+        <span className={`border px-1.5 py-0.5 text-[8px] ${sync.state === "offline" ? "border-down/50 text-down" : "border-border text-faint"}`}>{sync.state === "synced" ? "SERVER SYNCED" : sync.state === "saving" ? "SAVING" : sync.state === "offline" ? "OFFLINE CACHE" : "LOADING"}</span>
         <div className="ml-auto flex items-center gap-1">
           <button
             onClick={() => setEdit((v) => !v)}
@@ -107,10 +110,6 @@ export function BookDrawer({
                 onClick={() => { if (confirm("Clear all positions?")) clearDemoBook(); }}
                 className="interactive border border-border px-2 py-0.5 text-[9px] text-down hover:border-down"
               >CLEAR</button>
-              <button
-                onClick={() => resetDemoBook()}
-                className="interactive border border-border px-2 py-0.5 text-[9px] text-faint hover:text-primary"
-              >RESET DEMO</button>
             </>
           )}
           <button
@@ -162,7 +161,12 @@ export function BookDrawer({
                 <input
                   type="number"
                   value={p.qty}
-                  onChange={(e) => updateDemoPosition(p.symbol, { qty: parseInt(e.target.value || "0", 10) })}
+                  onChange={(e) => {
+                    const next = Number(e.target.value);
+                    if (Number.isFinite(next) && next !== 0) {
+                      updateDemoPosition(p.symbol, { qty: next });
+                    }
+                  }}
                   className="w-full border border-border bg-background px-1 py-0.5 text-right text-[10px] text-foreground outline-none focus:border-primary"
                 />
               ) : (
@@ -196,7 +200,7 @@ export function BookDrawer({
 
       <div className="mono-caps flex items-center justify-between border-t border-divider bg-panel/70 px-3 py-1 text-[9px] text-faint tabular-nums">
         <span>NOTIONAL <span className="text-foreground">${fmt(totalMV, 0)}</span></span>
-        <span className="text-primary/70">read by P&amp;L · RISK · ML DISCOVER</span>
+        <span className="text-primary/70">{sync.state === "synced" ? "server-persisted" : "offline cache"} · read by P&amp;L and RISK</span>
       </div>
     </div>
   );
@@ -246,8 +250,6 @@ function AddRow({
           ))}
         </div>
       )}
-      {/* Unused indirect ref for pct helper if needed later */}
-      <span className="sr-only">{fmtPct(0)}</span>
     </div>
   );
 }

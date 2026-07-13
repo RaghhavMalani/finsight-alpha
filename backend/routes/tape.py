@@ -46,8 +46,19 @@ def _live_one(sym: str) -> Optional[Dict[str, Any]]:
             return hit[1]
     try:
         q = get_live_quote(sym)
-        item = {"ticker": sym, "last": _f(q.get("price")),
-                "change_pct": _f(q.get("change_pct")), "live": True}
+        item = {
+            "ticker": sym,
+            "last": _f(q.get("price")),
+            "change_pct": _f(q.get("change_pct")),
+            "open": _f(q.get("open")),
+            "high": _f(q.get("high")),
+            "low": _f(q.get("low")),
+            "prev_close": _f(q.get("prev_close")),
+            "volume": None,
+            "quote_ts": q.get("ts"),
+            "source": "FINNHUB",
+            "live": True,
+        }
         if item["last"] is None:
             return None
         with _live_lock:
@@ -63,11 +74,25 @@ def _eod_one(sym: str) -> Optional[Dict[str, Any]]:
         df = MarketDataService("yfinance").get_data(sym, start)
         if df is None or df.empty:
             return None
-        c = df.sort_values("Date")["Close"].astype(float)
+        ordered = df.sort_values("Date")
+        c = ordered["Close"].astype(float)
         last = float(c.iloc[-1])
         prev = float(c.iloc[-2]) if len(c) > 1 else last
-        return {"ticker": sym, "last": _f(last),
-                "change_pct": _f(last / prev - 1 if prev else 0.0), "live": False}
+        latest = ordered.iloc[-1]
+        quote_date = latest.get("Date")
+        return {
+            "ticker": sym,
+            "last": _f(last),
+            "change_pct": _f(last / prev - 1 if prev else 0.0),
+            "open": _f(latest.get("Open")),
+            "high": _f(latest.get("High")),
+            "low": _f(latest.get("Low")),
+            "prev_close": _f(prev),
+            "volume": _f(latest.get("Volume")),
+            "quote_ts": quote_date.isoformat() if hasattr(quote_date, "isoformat") else str(quote_date),
+            "source": "YFINANCE_EOD",
+            "live": False,
+        }
     except (ProviderError, Exception):
         return None
 

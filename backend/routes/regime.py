@@ -14,6 +14,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from src import regime
+from src import config
 from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
 from src.utils.logging_utils import get_logger
@@ -41,7 +42,11 @@ def detect_regimes(
 ) -> Dict[str, Any]:
     """Run regime detection and return a JSON payload for charting."""
     try:
-        df = MarketDataService("yfinance").get_data(ticker, start, end)
+        df = MarketDataService("yfinance").get_data(
+            ticker,
+            start or config.DEFAULT_START_DATE,
+            end or config.DEFAULT_END_DATE,
+        )
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
     if df is None or df.empty:

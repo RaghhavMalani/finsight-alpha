@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { fmt, annualVolOf } from "@/lib/market";
 import { StrategyBuilder, type Leg } from "./StrategyBuilder";
+import { api } from "@/lib/api";
 
 type Row = {
   k: number;
@@ -10,6 +12,74 @@ type Row = {
   cbid: number; cask: number; civ: number; cdelta: number; cvol: number; coi: number; cunusual: number;
   pbid: number; pask: number; piv: number; pdelta: number; pvol: number; poi: number; punusual: number;
 };
+
+type MarketLeg = {
+  last: number | null;
+  bid: number | null;
+  ask: number | null;
+  iv: number | null;
+  delta: number | null;
+  volume: number;
+  open_interest: number;
+  in_the_money: boolean;
+};
+
+type MarketChainPayload = {
+  ticker: string;
+  source: "YFINANCE_MARKET";
+  quote_status: string;
+  as_of: string;
+  spot: number;
+  expiry: string;
+  days: number;
+  target_days: number;
+  rows: Array<{ strike: number; call: MarketLeg; put: MarketLeg }>;
+};
+
+function quotedBid(leg: MarketLeg): number {
+  return leg.bid && leg.bid > 0 ? leg.bid : leg.last ?? 0;
+}
+
+function quotedAsk(leg: MarketLeg): number {
+  return leg.ask && leg.ask > 0 ? leg.ask : leg.last ?? quotedBid(leg);
+}
+
+function marketRows(
+  payload: MarketChainPayload | undefined,
+  range: "±5" | "±10" | "±20",
+): Row[] {
+  if (!payload?.rows.length) return [];
+  const half = range === "±5" ? 5 : range === "±10" ? 10 : 20;
+  const center = payload.rows.reduce(
+    (best, row, index) =>
+      Math.abs(row.strike - payload.spot) <
+      Math.abs(payload.rows[best].strike - payload.spot)
+        ? index
+        : best,
+    0,
+  );
+  const start = Math.max(0, Math.min(center - half, payload.rows.length - (half * 2 + 1)));
+  return payload.rows.slice(start, start + half * 2 + 1).map(({ strike: k, call, put }) => ({
+    k,
+    atm: Math.abs(k - payload.spot) === Math.min(...payload.rows.map((row) => Math.abs(row.strike - payload.spot))),
+    itmC: call.in_the_money,
+    itmP: put.in_the_money,
+    cbid: quotedBid(call),
+    cask: quotedAsk(call),
+    civ: (call.iv ?? 0) * 100,
+    cdelta: call.delta ?? 0,
+    cvol: call.volume,
+    coi: call.open_interest,
+    cunusual: 1,
+    pbid: quotedBid(put),
+    pask: quotedAsk(put),
+    piv: (put.iv ?? 0) * 100,
+    pdelta: put.delta ?? 0,
+    pvol: put.volume,
+    poi: put.open_interest,
+    punusual: 1,
+  }));
+}
 
 function buildRows(spot: number, symbol: string, expiry: "7D" | "30D" | "60D" | "90D", range: "±5" | "±10" | "±20"): Row[] {
   const annualVol = annualVolOf(symbol);
@@ -63,6 +133,7 @@ function findWalls(rows: Row[]): { callWall: Row | null; putWall: Row | null } {
 }
 
 function computeMaxPain(rows: Row[]): number {
+  if (!rows.length) return 0;
   let bestK = rows[0].k, bestPain = Infinity;
   for (const t of rows) {
     let pain = 0;
@@ -92,23 +163,38 @@ export function OptionsChain({
   const [showBuilder, setShowBuilder] = useState(true);
   const [showSmile, setShowSmile] = useState(false);
 
-  const rows = useMemo(() => buildRows(spot, symbol, expiry, range), [spot, symbol, expiry, range]);
+  const targetDays = expiry === "7D" ? 7 : expiry === "30D" ? 30 : expiry === "60D" ? 60 : 90;
+  const chain = useQuery({
+    queryKey: ["market-options", symbol, targetDays],
+    queryFn: () =>
+      api<MarketChainPayload>(
+        `/options/market-chain/${encodeURIComponent(symbol)}?target_days=${targetDays}&moneyness_band=0.35`,
+      ),
+    staleTime: 2 * 60_000,
+    refetchInterval: 3 * 60_000,
+    retry: 1,
+  });
+  const marketSpot = chain.data?.spot ?? spot;
+  const rows = useMemo(() => marketRows(chain.data, range), [chain.data, range]);
   const { callWall, putWall } = useMemo(() => findWalls(rows), [rows]);
   const maxPain = useMemo(() => computeMaxPain(rows), [rows]);
-  const maxVol = useMemo(() => Math.max(...rows.map((r) => Math.max(r.cvol, r.pvol))), [rows]);
-  const maxOI = useMemo(() => Math.max(...rows.map((r) => Math.max(r.coi, r.poi))), [rows]);
-  const annualVol = annualVolOf(symbol);
-  const atmIvPct = annualVol * 100;
-  const ivMul = expiry === "7D" ? 0.85 : expiry === "30D" ? 1 : expiry === "60D" ? 1.08 : 1.15;
-  const days = expiry === "7D" ? 7 : expiry === "30D" ? 30 : expiry === "60D" ? 60 : 90;
-  // Expected move = spot * atmIV * sqrt(T)
-  const emPct = ((atmIvPct * ivMul) / 100) * Math.sqrt(days / 365) * 100;
-  const emDollar = spot * (emPct / 100);
+  const maxVol = useMemo(() => Math.max(1, ...rows.map((row) => Math.max(row.cvol, row.pvol))), [rows]);
+  const maxOI = useMemo(() => Math.max(1, ...rows.map((row) => Math.max(row.coi, row.poi))), [rows]);
+  const atmRow = rows.reduce<Row | null>(
+    (best, row) => !best || Math.abs(row.k - marketSpot) < Math.abs(best.k - marketSpot) ? row : best,
+    null,
+  );
+  const atmIvs = [atmRow?.civ, atmRow?.piv].filter(
+    (value): value is number => typeof value === "number" && value > 0,
+  );
+  const atmIvPct = atmIvs.length ? atmIvs.reduce((sum, value) => sum + value, 0) / atmIvs.length : 0;
+  const days = chain.data?.days ?? targetDays;
+  const emPct = (atmIvPct / 100) * Math.sqrt(days / 365) * 100;
+  const emDollar = marketSpot * (emPct / 100);
 
-  const totalCV = rows.reduce((s, r) => s + r.cvol, 0);
-  const totalPV = rows.reduce((s, r) => s + r.pvol, 0);
+  const totalCV = rows.reduce((sum, row) => sum + row.cvol, 0);
+  const totalPV = rows.reduce((sum, row) => sum + row.pvol, 0);
   const pcr = totalPV / (totalCV || 1);
-  const ivRank = Math.min(100, Math.max(0, ((annualVol * 100) - 15) * 2.2));
 
   function addLeg(k: number, kind: "call" | "put", side: "buy" | "sell") {
     const row = rows.find((r) => r.k === k);
@@ -121,12 +207,32 @@ export function OptionsChain({
     onToggleEmOnChart?.(!emOnChart, emPct);
   }
 
+  if (chain.isPending) {
+    return <div className="mono-caps grid h-full place-items-center text-[11px] text-faint">LOADING YAHOO MARKET CHAIN…</div>;
+  }
+  if (chain.isError) {
+    const message = chain.error instanceof Error ? chain.error.message : "Provider request failed";
+    return (
+      <div className="grid h-full place-items-center p-8 text-center">
+        <div>
+          <div className="mono-caps text-[11px] text-down">REAL OPTION CHAIN UNAVAILABLE</div>
+          <div className="mt-2 max-w-lg font-mono text-[11px] text-muted-foreground">{message}</div>
+          <div className="mono-caps mt-3 text-[9px] text-faint">NO SYNTHETIC FALLBACK IS BEING SHOWN</div>
+        </div>
+      </div>
+    );
+  }
+  if (!rows.length) {
+    return <div className="mono-caps grid h-full place-items-center text-[11px] text-faint">NO PAIRED CALL/PUT QUOTES IN RANGE</div>;
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header strip */}
       <div className="mono-caps flex flex-wrap items-center justify-between gap-2 border-b border-divider bg-panel px-3 py-1.5 text-[10px]">
         <div className="flex items-center gap-3">
           <span className="text-muted-foreground">{symbol}</span>
+          <span className="text-primary">YAHOO MARKET · EXP {chain.data?.expiry} · {chain.data?.days}D</span>
           <div className="flex gap-0.5">
             {(["7D", "30D", "60D", "90D"] as const).map((e) => (
               <button key={e} onClick={() => setExpiry(e)} className={`interactive border px-1.5 py-0.5 text-[9px] ${expiry === e ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>{e}</button>
@@ -156,14 +262,13 @@ export function OptionsChain({
           >IV SMILE {showSmile ? "◉" : "○"}</button>
           <span title="Max pain — strike minimizing option-writer P&L"><span className="text-faint">MAX PAIN </span><span className="text-primary">{fmt(maxPain)}</span></span>
           <span title="Put/Call volume ratio"><span className="text-faint">P/C </span><span className={pcr > 1 ? "text-down" : "text-up"}>{pcr.toFixed(2)}</span></span>
-          <span title="IV rank vs 52-week"><span className="text-faint">IV RANK </span><span className="text-foreground">{ivRank.toFixed(0)}</span></span>
-          <span title="ATM IV"><span className="text-faint">ATM IV </span><span className="text-primary">{(atmIvPct * ivMul).toFixed(1)}%</span></span>
+          <span title="Average reported call/put IV nearest spot"><span className="text-faint">ATM IV </span><span className="text-primary">{atmIvPct.toFixed(1)}%</span></span>
           <button onClick={() => setShowBuilder((s) => !s)} className={`interactive border px-1.5 py-0.5 text-[9px] ${showBuilder ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>STRATEGY {showBuilder ? "◀" : "▶"}</button>
         </div>
       </div>
 
       {showSmile && (
-        <IVSmileStrip spot={spot} rows={rows} expiry={expiry} />
+        <IVSmileStrip spot={marketSpot} rows={rows} expiry={expiry} />
       )}
 
       <div className="grid flex-1 overflow-hidden" style={{ gridTemplateColumns: showBuilder ? "1fr 340px" : "1fr 0px" }}>
@@ -219,8 +324,8 @@ export function OptionsChain({
                     </div>
                     <span className="text-foreground">{r.cdelta.toFixed(2)}</span>
                     <span className="text-muted-foreground">{r.civ.toFixed(1)}</span>
-                    <button title="Add BUY CALL" onClick={() => addLeg(r.k, "call", "buy")} className="text-up hover:underline">{fmt(r.cbid)}</button>
-                    <button title="Add SELL CALL" onClick={() => addLeg(r.k, "call", "sell")} className="text-down hover:underline">{fmt(r.cask)}</button>
+                    <button title="Add SELL CALL at bid" onClick={() => addLeg(r.k, "call", "sell")} className="text-up hover:underline">{fmt(r.cbid)}</button>
+                    <button title="Add BUY CALL at ask" onClick={() => addLeg(r.k, "call", "buy")} className="text-down hover:underline">{fmt(r.cask)}</button>
                   </div>
 
                   {/* Strike */}
@@ -257,7 +362,7 @@ export function OptionsChain({
         {/* Strategy builder drawer */}
         {showBuilder && (
           <StrategyBuilder
-            spot={spot}
+            spot={marketSpot}
             symbol={symbol}
             legs={legs}
             setLegs={setLegs}

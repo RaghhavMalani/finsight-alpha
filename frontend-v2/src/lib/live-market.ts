@@ -17,9 +17,9 @@ export type LiveMarketStatus = {
 };
 
 /**
- * Anchor Lovable's rich terminal model to the real market-data API. The UI's
- * micro-ticks can continue between refreshes, but every refresh resets price,
- * change, spread, high/low and history to an actual live or EOD observation.
+ * Anchor the terminal model to the real market-data API. Each refresh replaces
+ * the displayed snapshot with provider price, change, session range, and
+ * volume fields when available; unsupported fields remain unavailable.
  */
 export function useLiveMarket(
   setInstruments: Dispatch<SetStateAction<Record<string, Instrument>>>,
@@ -44,24 +44,27 @@ export function useLiveMarket(
         const current = next[item.ticker] ?? seedInstrument(item.ticker);
         const price = item.last;
         const prevClose =
-          item.change_pct > -0.99 ? price / (1 + item.change_pct) : current.prevClose;
+          item.prev_close ??
+          (item.change_pct > -0.99 ? price / (1 + item.change_pct) : current.prevClose);
         const spreadBps = Math.max(1, current.annualVol * 30);
         const spread = Math.max(0.01, (price * spreadBps) / 10_000);
-        const lastTick = current.history[current.history.length - 1];
 
         next[item.ticker] = {
           ...current,
           prevClose,
-          open: prevClose,
+          open: item.open ?? price,
           price,
           bid: price - spread / 2,
           ask: price + spread / 2,
           change: price - prevClose,
           changePct: item.change_pct * 100,
-          sessionHigh: Math.max(prevClose, price),
-          sessionLow: Math.min(prevClose, price),
+          sessionHigh: item.high ?? price,
+          sessionLow: item.low ?? price,
           vwap: price,
-          history: [...current.history.slice(1), { t: Date.now(), p: price, v: lastTick?.v }],
+          vwapSource: "UNAVAILABLE",
+          dataSource: item.source === "FINNHUB" ? "FINNHUB" : "YFINANCE_EOD",
+          volume: item.volume ?? 0,
+          history: [{ t: Date.now(), p: price }],
         };
       }
 

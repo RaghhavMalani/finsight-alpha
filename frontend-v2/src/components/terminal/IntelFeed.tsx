@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
-import { generateHeadline, seedHeadlines, type Headline } from "@/lib/market";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { api, type NewsPayload } from "@/lib/api";
+import { type Headline } from "@/lib/market";
 
 const CHIP: Record<Headline["sentiment"], { symbol: string; color: string }> = {
   pos: { symbol: "▲", color: "text-up" },
@@ -7,18 +9,66 @@ const CHIP: Record<Headline["sentiment"], { symbol: string; color: string }> = {
   neu: { symbol: "◆", color: "text-faint" },
 };
 
+type NewsRecord = {
+  title?: unknown;
+  published?: unknown;
+  score?: unknown;
+  label?: unknown;
+  url?: unknown;
+};
+const NEWS_SYMBOLS = ["SPY", "NVDA", "AAPL"];
+
+function sentimentOf(item: NewsRecord): Headline["sentiment"] {
+  const label = String(item.label ?? "").toLowerCase();
+  if (label.includes("positive")) return "pos";
+  if (label.includes("negative")) return "neg";
+  const score = typeof item.score === "number" ? item.score : Number(item.score);
+  return score > 0.08 ? "pos" : score < -0.08 ? "neg" : "neu";
+}
+
+function publishedTime(value: unknown): string {
+  if (value == null) return "LATEST";
+  const raw = typeof value === "number" && value < 10_000_000_000 ? value * 1000 : value;
+  const date = new Date(raw as string | number);
+  if (Number.isNaN(date.getTime())) return "LATEST";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 export function IntelFeed({
   onSymbolClick,
 }: {
   onSymbolClick?: (sym: string) => void;
 }) {
-  const [items, setItems] = useState<Headline[]>(() => seedHeadlines());
-  useEffect(() => {
-    const id = setInterval(() => {
-      setItems((prev) => [generateHeadline(), ...prev].slice(0, 20));
-    }, 8000);
-    return () => clearInterval(id);
-  }, []);
+  const news = useQuery({
+    queryKey: ["terminal-news", NEWS_SYMBOLS],
+    queryFn: () => Promise.all(NEWS_SYMBOLS.map((symbol) => api<NewsPayload>(`/news/${symbol}`))),
+    refetchInterval: 5 * 60_000,
+    staleTime: 2 * 60_000,
+    retry: 1,
+  });
+
+  const items = useMemo<Headline[]>(() => {
+    return (news.data ?? [])
+      .flatMap((payload, payloadIndex) => {
+        const sym = NEWS_SYMBOLS[payloadIndex];
+        const records = (payload.items ?? payload.headlines ?? []) as NewsRecord[];
+        return records.map((item, itemIndex) => {
+          const text = typeof item.title === "string" ? item.title : "";
+          return {
+            id: String(item.url ?? `${sym}-${itemIndex}-${text}`),
+            time: publishedTime(item.published),
+            text,
+            sym,
+            sentiment: sentimentOf(item),
+          };
+        });
+      })
+      .filter((item) => item.text.length > 0)
+      .slice(0, 20);
+  }, [news.data]);
+
+  if (news.isPending) return <div className="mono-caps p-3 text-[10px] text-faint">LOADING REAL NEWS…</div>;
+  if (news.isError) return <div className="mono-caps p-3 text-[10px] text-down">NEWS FEED UNAVAILABLE</div>;
+  if (!items.length) return <div className="mono-caps p-3 text-[10px] text-faint">NO RECENT PROVIDER HEADLINES</div>;
   return (
     <div className="h-full overflow-y-auto">
       {items.map((h, i) => {

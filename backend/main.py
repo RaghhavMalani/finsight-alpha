@@ -27,8 +27,8 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from backend.routes import (
     agent, analytics, assets, auth, backtest, context, factors, fundamentals, graph, health,
-    market_data, ml, news, portfolio, pricing, quote, regime, research, risk,
-    strategy, tape,
+    market_data, ml, news, paper, portfolio, pricing, quote, regime, research,
+    risk, strategy, tape,
 )
 from src import config
 from src.auth.security import verify_session
@@ -115,14 +115,14 @@ app.include_router(agent.router)
 app.include_router(regime.router)
 app.include_router(tape.router)
 app.include_router(ml.router)
+app.include_router(paper.router)
 
 
 # The NEW front-end (frontend-v2 / FinSight Terminal) is the primary UI.
-# Set FRONTEND_URL to wherever it is deployed (Lovable preview by default;
-# point it at your Vercel/custom domain when you deploy frontend-v2 there).
+# FRONTEND_URL can override the production web project for custom domains.
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
-    "https://id-preview--4a94ca0a-cd78-49bb-a9b4-bf9bdc777edc.lovable.app",
+    "https://finsight-alpha-web.vercel.app",
 ).rstrip("/")
 
 # Legacy v1 pages remain reachable under /legacy/* for reference.

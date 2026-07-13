@@ -44,3 +44,7 @@ frontend-v2/node_modules/
 frontend-v2/dist/
 frontend-v2/.output/
 frontend-v2/routeTree.gen.ts
+.vercel/
+frontend-v2/.vercel/
+.env.local
+frontend-v2/.env.local

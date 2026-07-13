@@ -10,7 +10,7 @@ import { MonteCarloPanel } from "@/components/terminal/MonteCarloPanel";
 import { MLPanel } from "@/components/terminal/MLPanel";
 import { ALTPanel } from "@/components/terminal/ALTPanel";
 import { CorrelationPanel } from "@/components/terminal/CorrelationPanel";
-import { SightPanel } from "@/components/terminal/SightPanel";
+import { SightPanel, type SightDeskContext } from "@/components/terminal/SightPanel";
 import { IntelFeed } from "@/components/terminal/IntelFeed";
 import { Watchlist } from "@/components/terminal/Watchlist";
 import { SectorsStrip } from "@/components/terminal/SectorsStrip";
@@ -33,7 +33,7 @@ import { ContextMenu, type ContextState } from "@/components/terminal/ContextMen
 import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/AlertsPanel";
 import { BookDrawer } from "@/components/terminal/BookDrawer";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
-import { TICKERS, seedInstrument, nextTick, Instrument } from "@/lib/market";
+import { TICKERS, seedInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
 import { useLiveMarket } from "@/lib/live-market";
 import { toast } from "sonner";
 
@@ -50,11 +50,11 @@ export const Route = createFileRoute("/terminal")({
 
 const EXPLAINERS: Record<string, { what: string; why: string; how: string }> = {
   HOME: { what: "Market overview — indices, sector treemap, top movers, breadth, and an AI desk brief.", why: "One glance tells you the session's tone, leadership, and the story worth caring about.", how: "Green treemap tiles are sectors gaining today. Breadth gauges show how broad the move is. Click any mover to load it in MK." },
-  MK: { what: "Live price with volume bars, VWAP, hi/lo ghost lines, indicators, and market depth ladder.", why: "Price without depth and indicators is meaningless. This is the working chart.", how: "Toggle CANDLES, timeframes, or INDICATORS on the toolbar. Amber dots on the axis mark intel headlines." },
-  OC: { what: "Options chain with volume/OI heat bars, unusual-volume flags, walls, max pain, and a strategy builder.", why: "Chains are noise until you can see where flow, OI, and pain concentrate — and turn a bias into a payoff.", how: "Bright rows = heavy flow. Pulsing amber dots flag unusual volume. Click bids/asks to add legs, or pick a BIAS chip." },
+  MK: { what: "Provider quote snapshot, real daily history, session range, volume when supplied, and explicit Level 2 availability.", why: "Price is useful only when its source and limits are visible.", how: "Switch timeframes for Yahoo daily closes. The liquidity panel shows only fields supplied by the active provider." },
+  OC: { what: "Yahoo option quotes with bid/ask, reported IV, volume, open interest, OI walls, max pain, and a strategy builder.", why: "Real chain positioning turns an options idea into something testable.", how: "Choose a target expiry and strike range. Click the bid to sell or the ask to buy; provider failures never fall back to a synthetic chain." },
   MC: { what: "Monte Carlo probability landscape — a 3D density surface of terminal prices vs time.", why: "A single fan hides the density. The ridges show where paths cluster; the tails show risk you'd otherwise miss.", how: "Amber ridge = spot. Height + color = path density. Right-side flanks give P(>spot), EV, p5/p50/p95, and expected shortfall." },
   GR: { what: "3D greek surfaces — delta, gamma, vega, theta as strike × time-to-expiry ridges.", why: "Greek shapes are the language of dealer positioning. Seeing them beats reading tables.", how: "Switch greeks via the toolbar. Drag to orbit, scroll to zoom, hover for exact values. Read the insight strip below." },
-  ML: { what: "Ensemble model signals with arc gauges, confidence trends, and BECAUSE feature contributions.", why: "Signals aggregated across regimes are more robust than any single indicator.", how: "The needle is model conviction. Click BECAUSE to see which features drove the call." },
+  ML: { what: "Backend-trained classification signals and hidden-state market regimes fit from Yahoo price history.", why: "A model is useful only when its inputs, validation quality, probability, and failure state are visible.", how: "SIGNALS reports the gated out-of-sample result, scorecard, and feature importance. REGIMES shows the fitted HMM state, transition matrix, and observed performance." },
   CX: { what: "Cross-asset intelligence — correlation matrix, force-directed web, and per-ticker dependency network.", why: "Correlations tell you diversification is real. Dependencies tell you who feeds whom.", how: "Switch tabs on the toolbar. In DEPENDENCIES, node color is relationship type — cyan supplier, green customer, red competitor." },
   VS: { what: "A rotating 3D implied-volatility surface — every strike, every expiry, one shape.", why: "Smile, skew, and term structure are the entire language of options positioning.", how: "Bright yellow ridges are elevated IV — usually short-dated downside. Drag · scroll · hover." },
   RISK: { what: "VaR, contribution to risk, portfolio optimizer, and stress paths.", why: "Knowing your worst plausible loss beats hoping the market cooperates.", how: "The 99% VaR is the loss you should expect once in a hundred days. Contribution bars show which names drive that risk." },
@@ -65,11 +65,9 @@ const EXPLAINERS: Record<string, { what: string; why: string; how: string }> = {
 
 const INSIGHTS: Record<string, string[]> = {
   HOME: ["Tape prints skew to buyers — up 1.4× on the last 5-minute average.", "Realized vol dropping into the close — grinding regime intact."],
-  MK: ["Depth thickest 20bp below spot — support building.", "Sector rotation into semis; utilities heavy."],
   MC: ["Paths cluster above spot — drift dominates at this horizon.", "Fan widening past day 30 — hedge farther-dated exposure."],
   VS: ["Skew steepening: downside protection bid.", "Short-dated IV rising while backend flat — event risk pricing in."],
   CX: ["Cross-asset correlations climbing — diversification thinning.", "Tech basket 60D ρ = 0.71, above 6-mo mean."],
-  ML: ["Momentum and OFI both firing long — highest joint conviction in 3 weeks.", "Vol regime model flipped to state 3 (elevated)."],
   OC: ["25-delta risk reversal widening negative — put demand outpacing calls.", "Front-week gamma stacked at the money — pinning likely."],
   GR: ["Dealer gamma flips negative below spot — moves accelerate on the downside.", "Vanna positive across the belly — vol-up plus spot-up feeds itself."],
   BT: ["Strategy beats buy-hold on total return but bleeds Sharpe out-of-sample.", "Drawdowns cluster around regime transitions — tune stops or add filter."],
@@ -80,11 +78,11 @@ const INSIGHTS: Record<string, string[]> = {
 // SUBTITLE: one-line plain-English narrative for every function screen.
 const SUBTITLES: Record<string, (sym: string) => string> = {
   HOME: () => "The desk brief — what moved, what's next, what your book is doing right now.",
-  MK: (s) => `${s} live price with depth, indicators and expected-move cone. Where's it trading, and where do buyers sit?`,
-  OC: (s) => `${s} options chain — where the flow is, where the walls sit, and how to trade a bias.`,
+  MK: (s) => `${s} provider quote, session range and real daily history — with unsupported liquidity fields clearly marked.`,
+  OC: (s) => `${s} Yahoo option market — reported quotes, volume, open interest, IV and derived positioning levels.`,
   MC: (s) => `${s} probability landscape — a Monte Carlo of terminal prices. Where do paths cluster? How wide is the tail?`,
   GR: (s) => `${s} greeks — how this option's price breathes with the market. Which risks is it carrying?`,
-  ML: (s) => `${s} model zoo — signals, regime state, forecast, and what to look at next based on your book.`,
+  ML: (s) => `${s} research models — real trained signal validation and fitted market regimes from backend history.`,
   CX: (s) => `Cross-asset dependencies — how ${s} moves with, or breaks from, everything else on the desk.`,
   VS: (s) => `${s} implied-volatility surface — smile, skew, and term structure in one shape.`,
   ALT: () => "Alternative data — signals from outside the market that move it. Which datasets lead the tape?",
@@ -106,7 +104,6 @@ function Terminal() {
   const market = useLiveMarket(setInstruments);
   const [active, setActive] = useState<string>("NVDA");
   const [watch, setWatch] = useState<string[]>(["NVDA", "AAPL", "SPY", "MSFT", "META"]);
-  const [latency, setLatency] = useState(12);
   const [cmdCount, setCmdCount] = useState(24);
   const [panelKey, setPanelKey] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -139,20 +136,6 @@ function Terminal() {
     }
   }, [active]);
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setInstruments((prev) => {
-        const upd = { ...prev };
-        TICKERS.forEach((s) => (upd[s] = nextTick(upd[s])));
-        return upd;
-      });
-    }, 1400);
-    const l = setInterval(() => setLatency(8 + Math.round(Math.random() * 12)), 3000);
-    return () => {
-      clearInterval(id);
-      clearInterval(l);
-    };
-  }, []);
 
   // Alert engine — fire on price crossing.
   useEffect(() => {
@@ -284,6 +267,45 @@ function Terminal() {
 
   const inst = instruments[active];
   const cmpInst = compareTo ? instruments[compareTo] : null;
+  const sightContext: SightDeskContext = {
+    activePanel: fn,
+    ticker: active,
+    displayedPrice:
+      replayT !== null
+        ? inst.history[Math.max(1, Math.round(inst.history.length * replayT) - 1)]?.p ??
+          inst.price
+        : inst.price,
+    changePct: inst.changePct,
+    marketSource: market.source,
+    priceProvenance: market.source === "SIM" ? "SIMULATED_FALLBACK" : `${market.source}_PROVIDER_QUOTE`,
+    replay: replayT !== null,
+    watchlist: watch,
+    paperBook: demoPositions.map((position) => position.symbol),
+    panelData: {
+      quote_display: {
+        price: Number(inst.price.toFixed(4)),
+        bid: Number(inst.bid.toFixed(4)),
+        ask: Number(inst.ask.toFixed(4)),
+        change_pct: Number(inst.changePct.toFixed(4)),
+      },
+      session_model: {
+        source: "SIM",
+        open: Number(inst.open.toFixed(4)),
+        high: Number(inst.sessionHigh.toFixed(4)),
+        low: Number(inst.sessionLow.toFixed(4)),
+        vwap: Number(inst.vwap.toFixed(4)),
+        annualized_vol: Number(inst.annualVol.toFixed(4)),
+        beta: Number(inst.beta.toFixed(4)),
+        recent_price_path: inst.history.slice(-24).map((point) => ({
+          timestamp: new Date(point.t).toISOString(),
+          price: Number(point.p.toFixed(4)),
+          volume: point.v == null ? null : Math.round(point.v),
+        })),
+      },
+    },
+    comparedWith: compareTo,
+    expectedMovePct: emCone?.symbol === active ? emCone.pct : null,
+  };
 
   const centerContent = renderCenter(fn, preset, {
     active,
@@ -309,6 +331,7 @@ function Terminal() {
     demoBookSyms: demoPositions.map((p) => p.symbol),
     onRun: runCmd,
     emCone,
+    sightContext,
     setEmCone,
   });
 
@@ -364,7 +387,7 @@ function Terminal() {
           </div>
           {maximized && (
             <div className="absolute inset-2 z-40 flex flex-col bg-background animate-fade-in" style={{ animationDuration: "300ms" }}>
-              {renderMaximized(maximized, { active, inst, cmpInst, replayT, setFocusSym, setCompareTo, onRestore: () => setMaximized(null) })}
+              {renderMaximized(maximized, { active, inst, cmpInst, replayT, setFocusSym, setCompareTo, sightContext, onRestore: () => setMaximized(null) })}
             </div>
           )}
         </main>
@@ -415,7 +438,7 @@ function Terminal() {
 
       {/* Status bar */}
       <footer className="mono-caps flex h-7 shrink-0 items-center justify-between gap-4 border-t border-divider bg-panel px-4 text-[10px] text-muted-foreground">
-        <span className="whitespace-nowrap">CMD {cmdCount} · LATENCY {latency}ms · ALERTS {alerts.length} · {market.source} {market.count ? `· ${market.count} SYMBOLS` : "· RETRYING"}</span>
+        <span className="whitespace-nowrap">CMD {cmdCount} · REFRESH 30S · ALERTS {alerts.length} · {market.source} {market.count ? `· ${market.count} SYMBOLS` : "· RETRYING"}</span>
         <div className="hidden min-w-0 flex-1 justify-center overflow-hidden md:flex">
           <HintTicker />
         </div>
@@ -482,13 +505,11 @@ type CenterProps = {
   onRun: (code: string, symbol?: string) => void;
   emCone: { symbol: string; pct: number } | null;
   setEmCone: (v: { symbol: string; pct: number } | null) => void;
+  sightContext: SightDeskContext;
 };
 
 function renderCenter(fn: string, preset: Preset, p: CenterProps) {
-  const { active, inst, cmpInst, instruments, replayT, setReplayT, setFocusSym, setActive, onAddCompare, onMaximize, groupASeed, groupBSeed, setFn, emCone, setEmCone } = p;
-  const midPrice = replayT !== null
-    ? inst.history[Math.max(1, Math.round(inst.history.length * replayT) - 1)]?.p ?? inst.price
-    : inst.price;
+  const { active, inst, cmpInst, instruments, replayT, setReplayT, setFocusSym, setActive, onAddCompare, onMaximize, groupASeed, groupBSeed, setFn, emCone, setEmCone, sightContext } = p;
   const A = { group: "A" as const, flashSeed: groupASeed };
   const B = { group: "B" as const, flashSeed: groupBSeed.length };
   void B;
@@ -498,6 +519,15 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
     onToggleEmOnChart: (on: boolean, pct: number) => setEmCone(on ? { symbol: active, pct } : null),
   };
   // Helper: jump chip shortcut
+  const sightPanel = (
+    <SightPanel
+      context={sightContext}
+      onCite={(symbol) => {
+        setActive(symbol);
+        setFn("MK");
+      }}
+    />
+  );
   const jumpTo = (code: string, sym?: string) => () => {
     if (sym) setActive(sym);
     setFn(code);
@@ -518,7 +548,7 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
           initial={{ colFrac: 0.6, rowFrac: 0.55 }}
           slots={[
             <div key="a" data-tour="panel-toolbar" className="h-full">
-              <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source="SIM" explainer={EXPLAINERS[fn]} onMaximize={() => onMaximize("PRICE")} className="h-full" {...A}>
+              <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source={inst.dataSource} explainer={EXPLAINERS[fn]} onMaximize={() => onMaximize("PRICE")} className="h-full" {...A}>
                 <PriceChart instrument={inst} compareTo={cmpInst} replayFrac={replayT} onAddCompare={onAddCompare} expectedMovePct={emPctForActive} />
               </Panel>
             </div>,
@@ -539,12 +569,12 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
       return (
         <div className="grid h-full grid-cols-[2fr_1fr] grid-rows-2 gap-2">
           <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} className="row-span-2" onMaximize={() => onMaximize("SIGHT")}>
-            <SightPanel />
+            {sightPanel}
           </Panel>
           <Panel code="INTEL" title="Market intel">
             <IntelFeed />
           </Panel>
-          <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source="SIM" explainer={EXPLAINERS[fn]} onMaximize={() => onMaximize("PRICE")} {...A}>
+          <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source={inst.dataSource} explainer={EXPLAINERS[fn]} onMaximize={() => onMaximize("PRICE")} {...A}>
             <PriceChart instrument={inst} compareTo={cmpInst} replayFrac={replayT} onAddCompare={onAddCompare} expectedMovePct={emPctForActive} />
           </Panel>
         </div>
@@ -553,30 +583,43 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
     return (
       <div className="grid h-full grid-rows-[1.4fr_auto_1fr] gap-2">
         <div className="grid grid-cols-[1fr_320px] gap-2">
-          <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source="SIM" explainer={EXPLAINERS[fn]} replayChip={replayT !== null} onMaximize={() => onMaximize("PRICE")} {...A}>
+          <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source={inst.dataSource} explainer={EXPLAINERS[fn]} replayChip={replayT !== null} onMaximize={() => onMaximize("PRICE")} {...A}>
             <PriceChart instrument={inst} compareTo={cmpInst} replayFrac={replayT} onAddCompare={onAddCompare} expectedMovePct={emPctForActive} />
-            <AiInsight lines={INSIGHTS[fn]} jumps={[{ label: `OC ${active}`, onClick: jumpTo("OC") }, { label: `MC ${active}`, onClick: jumpTo("MC") }]} />
+            <AiInsight
+              source="DATA"
+              lines={[`${active} ${fmtPct(inst.changePct)} from the previous close at ${fmt(inst.price)}; session range ${fmt(inst.sessionLow)}–${fmt(inst.sessionHigh)}.`, `${inst.dataSource} quote · ${inst.volume > 0 ? `${fmt(inst.volume, 0)} shares reported` : "volume unavailable"} · Level 2 depth not supplied.`]}
+              jumps={[{ label: `OC ${active}`, onClick: jumpTo("OC") }, { label: `MC ${active}`, onClick: jumpTo("MC") }]}
+            />
           </Panel>
-          <Panel code="DEPTH" title="Market depth" subtitle={`${active} order book — where buyers and sellers are sitting right now.`} explainer={EXPLAINERS.MK} replayChip={replayT !== null}>
-            <DepthLadder mid={midPrice} seed={replayT !== null ? Math.round(replayT * 1000) : 0} />
+          <Panel code="LIQ" title="Quote & liquidity" subtitle={`${active} provider snapshot and explicit market-depth availability.`} source={inst.dataSource} explainer={EXPLAINERS.MK}>
+            <DepthLadder instrument={inst} />
           </Panel>
         </div>
         <ReplayScrubber onReplay={setReplayT} />
-        <Panel code="HEAT" title="Sector performance" subtitle="Today's sector map — which parts of the market are leading and lagging." explainer={EXPLAINERS.MK} replayChip={replayT !== null}>
-          <SectorHeatmap seed={replayT !== null ? Math.round(replayT * 1000) : 0} />
+        <Panel code="HEAT" title="Sector ETF performance" subtitle="Provider returns for liquid US sector and industry ETFs." source="FINNHUB · YFINANCE" explainer={EXPLAINERS.MK}>
+          <SectorHeatmap />
         </Panel>
       </div>
     );
   }
 
-  if (fn === "OC") return <Panel code="OC" title={`${active} · Options chain`} subtitle={SUBTITLES.OC(active)} source="SIM" explainer={EXPLAINERS.OC} onMaximize={() => onMaximize("OC")} {...A}><OptionsChain spot={inst.price} symbol={active} {...ocProps} /><AiInsight lines={INSIGHTS.OC} jumps={[{ label: `GEX profile (GR)`, onClick: jumpTo("GR") }, { label: `VS surface`, onClick: jumpTo("VS") }]} /></Panel>;
+  if (fn === "OC") return (
+    <Panel code="OC" title={`${active} · Options chain`} subtitle={SUBTITLES.OC(active)} source="YFINANCE · MARKET" explainer={EXPLAINERS.OC} onMaximize={() => onMaximize("OC")} {...A}>
+      <OptionsChain spot={inst.price} symbol={active} {...ocProps} />
+      <AiInsight
+        source="DATA"
+        lines={[`${active} quotes, IV, volume and open interest come from Yahoo; max pain and OI walls are computed from that chain.`]}
+        jumps={[{ label: "VS surface", onClick: jumpTo("VS") }]}
+      />
+    </Panel>
+  );
   if (fn === "VS") return <Panel code="VS" title={`Volatility surface · ${active}`} subtitle={SUBTITLES.VS(active)} source="SIM" explainer={EXPLAINERS.VS} onMaximize={() => onMaximize("VS")} {...A}><VolatilitySurface symbol={active} spot={inst.price} /><AiInsight lines={INSIGHTS.VS} jumps={[{ label: `OC strategy builder`, onClick: jumpTo("OC") }, { label: `MC with this vol`, onClick: jumpTo("MC") }]} /></Panel>;
   if (fn === "MC") return <Panel code="MC" title={`${active} · Monte Carlo`} subtitle={SUBTITLES.MC(active)} source="SIM" explainer={EXPLAINERS.MC} onMaximize={() => onMaximize("MC")} {...A}><MonteCarloPanel spot={inst.price} symbol={active} /><AiInsight lines={INSIGHTS.MC} jumps={[{ label: `OC hedge`, onClick: jumpTo("OC") }, { label: `RISK exposure`, onClick: () => setFn("RISK") }]} /></Panel>;
   if (fn === "GR") return <Panel code="GR" title={`${active} · Greeks surfaces`} subtitle={SUBTITLES.GR(active)} source="SIM" explainer={EXPLAINERS.GR} onMaximize={() => onMaximize("GR")} {...A}><GreeksSurface symbol={active} spot={inst.price} /><AiInsight lines={INSIGHTS.GR} jumps={[{ label: `OC unusual flow`, onClick: jumpTo("OC") }, { label: `VS surface`, onClick: jumpTo("VS") }]} /></Panel>;
-  if (fn === "ML") return <Panel code="ML" title={`${active} · ML model zoo`} subtitle={SUBTITLES.ML(active)} source="HSMM · TFT" explainer={EXPLAINERS.ML} onMaximize={() => onMaximize("ML")} {...A}><MLPanel symbol={active} book={p.demoBookSyms.length ? p.demoBookSyms : p.watch} /></Panel>;
+  if (fn === "ML") return <Panel code="ML" title={`${active} · ML research lab`} subtitle={SUBTITLES.ML(active)} source="API · YFINANCE" explainer={EXPLAINERS.ML} onMaximize={() => onMaximize("ML")} {...A}><MLPanel symbol={active} book={p.demoBookSyms.length ? p.demoBookSyms : p.watch} /></Panel>;
   if (fn === "ALT") return <Panel code="ALT" title="Alternative data" subtitle={SUBTITLES.ALT(active)} source="OPEN-METEO · KAGGLE" explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><ALTPanel onOpenSymbol={setActive} /></Panel>;
   if (fn === "CX") return <Panel code="CX" title="Correlation" subtitle={SUBTITLES.CX(active)} source="SIM" explainer={EXPLAINERS.CX} onMaximize={() => onMaximize("CX")}><CorrelationPanel symbols={TICKERS.slice(0, 8)} activeSymbol={active} onFocus={setFocusSym} /><AiInsight lines={INSIGHTS.CX} jumps={[{ label: `RISK exposure`, onClick: () => setFn("RISK") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
-  if (fn === "SIGHT") return <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} onMaximize={() => onMaximize("SIGHT")}><SightPanel /></Panel>;
+  if (fn === "SIGHT") return <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} onMaximize={() => onMaximize("SIGHT")}>{sightPanel}</Panel>;
   if (fn === "BT") return <Panel code="BT" title={`${active} · Backtest`} subtitle={SUBTITLES.BT(active)} source="API + LOCAL · WALK-FWD" onMaximize={() => onMaximize("BT")} {...A}><BTPanel activeSymbol={active} /><AiInsight lines={INSIGHTS.BT} jumps={[{ label: `STRAT tune params`, onClick: jumpTo("STRAT") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
   if (fn === "STRAT") return <Panel code="STRAT" title="Strategy builder" subtitle={SUBTITLES.STRAT(active)} onMaximize={() => onMaximize("STRAT")}><STRATPanel activeSymbol={active} onSendToBT={() => setFn("BT")} /><AiInsight lines={INSIGHTS.STRAT} jumps={[{ label: `Run in BT`, onClick: jumpTo("BT") }]} /></Panel>;
   if (fn === "RISK") return (
@@ -589,9 +632,9 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
 
 function renderMaximized(code: string, p: {
   active: string; inst: Instrument; cmpInst: Instrument | null; replayT: number | null;
-  setFocusSym: (s: string | null) => void; setCompareTo: (s: string | null) => void; onRestore: () => void;
+  setFocusSym: (s: string | null) => void; setCompareTo: (s: string | null) => void; sightContext: SightDeskContext; onRestore: () => void;
 }) {
-  const { active, inst, cmpInst, replayT, setFocusSym, onRestore } = p;
+  const { active, inst, cmpInst, replayT, setFocusSym, sightContext, onRestore } = p;
   const wrap = (node: React.ReactNode, title: string, codeLabel: string, explainer?: { what: string; why: string; how: string }) => (
     <Panel code={codeLabel} title={title} explainer={explainer} isMaximized onMaximize={onRestore} className="h-full">
       {node}
@@ -603,9 +646,9 @@ function renderMaximized(code: string, p: {
     case "VS": return wrap(<VolatilitySurface symbol={active} spot={inst.price} />, `${active} · Vol surface`, "VS", EXPLAINERS.VS);
     case "CX": return wrap(<CorrelationPanel symbols={TICKERS.slice(0, 8)} onFocus={setFocusSym} />, "Correlation", "CX", EXPLAINERS.CX);
     case "OC": return wrap(<OptionsChain spot={inst.price} symbol={active} />, `${active} · Options`, "OC", EXPLAINERS.OC);
-    case "ML": return wrap(<MLPanel symbol={active} book={["NVDA", "AAPL", "SPY"]} />, `${active} · ML model zoo`, "ML", EXPLAINERS.ML);
+    case "ML": return wrap(<MLPanel symbol={active} book={["NVDA", "AAPL", "SPY"]} />, `${active} · ML research lab`, "ML", EXPLAINERS.ML);
     case "ALT": return wrap(<ALTPanel />, "Alternative data", "ALT", EXPLAINERS.ALT);
-    case "SIGHT": return wrap(<SightPanel />, "AI research", "SIGHT", EXPLAINERS.SIGHT);
+    case "SIGHT": return wrap(<SightPanel context={{ ...sightContext, activePanel: "SIGHT" }} />, "AI research", "SIGHT", EXPLAINERS.SIGHT);
     default: return null;
   }
 }

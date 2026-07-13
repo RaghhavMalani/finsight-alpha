@@ -16,6 +16,8 @@ export type Instrument = {
   change: number; // vs prevClose
   changePct: number; // vs prevClose
   sessionHigh: number;
+  vwapSource: "SIM" | "UNAVAILABLE";
+  dataSource: "FINNHUB" | "YFINANCE_EOD" | "SIM";
   sessionLow: number;
   vwap: number;
   volume: number; // cumulative shares
@@ -146,6 +148,8 @@ function generateSession(
     sessionHigh,
     sessionLow,
     vwap,
+    vwapSource: "SIM",
+    dataSource: "SIM",
     volume: totalShares,
     annualVol: cfg.annualVol,
     beta: cfg.beta,
