@@ -12,6 +12,9 @@ type Metadata = {
   source_url: string | null;
   license: { name: string; url: string | null };
   customer_license_status?: string;
+  customer_license_permitted_uses?: string[];
+  customer_license_valid_from?: string | null;
+  customer_license_valid_through?: string | null;
   version: string;
   as_of: string | null;
   available_from: string | null;
@@ -388,6 +391,21 @@ function EvidenceFooter({ metadata }: { metadata: Metadata }) {
         <span>CUSTOMER LICENSE</span>
         <span className={metadata.customer_license_status === "ACTIVE" ? "text-up" : "text-down"}>
           {metadata.customer_license_status ?? "UNVERIFIED"}
+        </span>
+        <span>LICENSE SCOPE</span>
+        <span
+          className="truncate text-foreground"
+          title={metadata.customer_license_permitted_uses?.join(", ")}
+        >
+          {metadata.customer_license_permitted_uses?.length
+            ? metadata.customer_license_permitted_uses.join(", ")
+            : "UNAVAILABLE"}
+        </span>
+        <span>LICENSE VALID THROUGH</span>
+        <span className="text-foreground">
+          {metadata.customer_license_status === "ACTIVE"
+            ? (metadata.customer_license_valid_through ?? "NO FIXED END")
+            : "UNAVAILABLE"}
         </span>
       </div>
       <div className="mt-1 truncate" title={metadata.evidence_type}>

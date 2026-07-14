@@ -28,12 +28,18 @@ def readiness() -> dict:
             session.execute(text("SELECT 1"))
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Metadata database unavailable: {exc}") from exc
+    if config.SENTRY_DSN:
+        error_reporting = "sentry"
+    elif os.getenv("VERCEL") == "1":
+        error_reporting = "vercel-structured-logs"
+    else:
+        error_reporting = "unconfigured"
     return {
         "status": "ready",
         "environment": config.APP_ENV,
         "database": "postgresql" if config.DATABASE_URL else "sqlite-development-only",
         "durable_production_storage": bool(config.DATABASE_URL),
-        "error_reporting": "configured" if config.SENTRY_DSN else "unconfigured",
+        "error_reporting": error_reporting,
     }
 
 

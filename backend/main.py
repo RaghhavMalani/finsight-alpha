@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
 from pathlib import Path
 
 # Make the project root importable when launched via uvicorn from anywhere.
@@ -56,6 +57,17 @@ app = FastAPI(
     description="Backend-driven market data and analytics platform.",
     version=config.APP_VERSION,
 )
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+    """Emit a correlation id to structured platform logs without leaking internals."""
+    error_id = uuid.uuid4().hex
+    logger.exception(
+        "Unhandled request error id=%s method=%s path=%s",
+        error_id, request.method, request.url.path,
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error", "error_id": error_id})
 
 # CORS: allow browser frontends to call the API.
 # In production, replace "*" with the specific dashboard origin(s).

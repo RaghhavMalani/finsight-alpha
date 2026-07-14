@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from src.data.intelligence import agriculture_intelligence, satellite_image, trade_intelligence
+from src.data.license_policy import dataset_license_status, enforce_evidence_licenses
 from src.data.pipeline_health import record_run
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
@@ -27,15 +28,25 @@ def agriculture(request: Request, country: str = Query("IND", min_length=3, max_
         metrics={"country": country.upper(), "available_products": len(products) - len(errors)},
         error="; ".join(error for error in errors if error) or None,
     )
-    return result
+    return enforce_evidence_licenses(result, request.state.organization_id)
 
 
 @router.get("/agriculture/satellite")
 def agriculture_satellite(
+    request: Request,
     country: str = Query("IND", min_length=3, max_length=3),
     as_of: str = Query(..., min_length=10, max_length=10),
 ) -> Response:
     """Proxy validated NASA imagery so the browser never calls upstream."""
+    license_status = dataset_license_status(
+        request.state.organization_id,
+        "nasa-gibs:MODIS_Terra_CorrectedReflectance_TrueColor",
+    )
+    if license_status["status"] != "ACTIVE":
+        raise HTTPException(
+            status_code=403,
+            detail=f"Satellite evidence license status is {license_status['status']}.",
+        )
     try:
         image, metadata = satellite_image(country, as_of)
     except ValueError as exc:
@@ -69,7 +80,7 @@ def trade(request: Request, country: str = Query("IND", min_length=3, max_length
         metrics={"country": country.upper(), "available_series": len(result["series"]) - len(errors)},
         error="; ".join(error for error in errors if error) or None,
     )
-    return result
+    return enforce_evidence_licenses(result, request.state.organization_id)
 
 
 @router.get("/company-demand")

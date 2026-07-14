@@ -161,6 +161,17 @@ def resolve_principal(user_id: int, requested_organization: str | None = None) -
             if selected is None:
                 return None
             membership = selected
+        elif config.DEFAULT_ORGANIZATION_SLUG:
+            preferred = session.scalar(
+                select(OrganizationMembership)
+                .join(Organization, Organization.id == OrganizationMembership.organization_id)
+                .where(
+                    OrganizationMembership.user_id == user_id,
+                    Organization.slug == config.DEFAULT_ORGANIZATION_SLUG,
+                )
+            )
+            if preferred is not None:
+                membership = preferred
         session.commit()
         return Principal(
             user_id=user_id,

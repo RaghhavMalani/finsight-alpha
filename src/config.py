@@ -262,6 +262,7 @@ CORS_ORIGINS: list[str] = [
     if origin.strip()
 ]
 SENTRY_DSN: str | None = os.getenv("SENTRY_DSN") or None
+DEFAULT_ORGANIZATION_SLUG: str | None = os.getenv("DEFAULT_ORGANIZATION_SLUG") or None
 
 # Application metadata.
 APP_NAME: str = "FinSight Alpha API"
@@ -282,6 +283,8 @@ def validate_runtime_config() -> None:
         errors.append("FINSIGHT_SECRET_KEY must be at least 32 characters")
     if not CORS_ORIGINS or any(origin == "*" for origin in CORS_ORIGINS):
         errors.append("CORS_ORIGINS must contain explicit trusted origins")
+    if not DEFAULT_ORGANIZATION_SLUG:
+        errors.append("DEFAULT_ORGANIZATION_SLUG is required until the frontend provides tenant selection")
     if errors:
         raise RuntimeError("Invalid production configuration: " + "; ".join(errors))
 
