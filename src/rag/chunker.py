@@ -9,11 +9,9 @@ def clean_financial_text(text: str) -> str:
         return ""
     
     # Replace multiple spaces with a single space
-    cleaned = re.sub(r' +', ' ', text)
+    cleaned = re.sub(r'[ \t]+', ' ', text)
     # Replace multiple newlines with a single newline
     cleaned = re.sub(r'\n{2,}', '\n', cleaned)
-    # Remove excessive tabs
-    cleaned = re.sub(r'\t+', ' ', cleaned)
     
     return cleaned.strip()
 

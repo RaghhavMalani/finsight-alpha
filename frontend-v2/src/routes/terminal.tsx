@@ -33,7 +33,7 @@ import { ContextMenu, type ContextState } from "@/components/terminal/ContextMen
 import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/AlertsPanel";
 import { BookDrawer } from "@/components/terminal/BookDrawer";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
-import { TICKERS, seedInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
+import { TICKERS, unavailableInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
 import { useLiveMarket } from "@/lib/live-market";
 import { toast } from "sonner";
 
@@ -59,7 +59,7 @@ const EXPLAINERS: Record<string, { what: string; why: string; how: string }> = {
   VS: { what: "A rotating 3D implied-volatility surface — every strike, every expiry, one shape.", why: "Smile, skew, and term structure are the entire language of options positioning.", how: "Bright yellow ridges are elevated IV — usually short-dated downside. Drag · scroll · hover." },
   RISK: { what: "VaR, contribution to risk, portfolio optimizer, and stress paths.", why: "Knowing your worst plausible loss beats hoping the market cooperates.", how: "The 99% VaR is the loss you should expect once in a hundred days. Contribution bars show which names drive that risk." },
   SIGHT: { what: "Ask the desk — an AI research assistant grounded in your current book.", why: "Fast, structured answers beat digging through five tabs.", how: "Ask in plain English. Ticker chips are clickable — jump straight to the panels." },
-  ALT: { what: "Alternative data — live weather context, Kaggle inventory, and research signals outside the tape.", why: "External context can lead earnings and operational risk by weeks.", how: "The source strip is API-backed. Signal charts remain research demos until matching datasets are loaded; click a ticker chip to open it." },
+  ALT: { what: "Evidence-backed agriculture and country intelligence, ingested only through the backend.", why: "Operational evidence is useful only when dataset, version, licence, geography, availability date, and quality checks travel with it.", how: "Start with Agriculture Intelligence, then inspect Trade & Country Growth Pulse. Company Demand Radar remains unavailable until an industry and licensed target are selected." },
   ALERTS: { what: "Price-level alerts on your watchlist tickers.", why: "You can't stare at every ticker all day. Alerts do it for you.", how: "Click the bell on any row to arm a level. When price crosses, the row flashes and a toast fires." },
 };
 
@@ -72,7 +72,7 @@ const INSIGHTS: Record<string, string[]> = {
   GR: ["Dealer gamma flips negative below spot — moves accelerate on the downside.", "Vanna positive across the belly — vol-up plus spot-up feeds itself."],
   BT: ["Strategy beats buy-hold on total return but bleeds Sharpe out-of-sample.", "Drawdowns cluster around regime transitions — tune stops or add filter."],
   STRAT: ["Rule count within safe band — over-fit risk stays LOW.", "Preview signals fire ~1× per month — sample size is acceptable."],
-  ALT: ["Shipping index leads earnings by 6-8 weeks with r = 0.61.", "EV registrations diverging from TSLA price — mean-reversion setup building."],
+  ALT: ["Agriculture evidence is descriptive until a registered out-of-sample validation exists.", "Unavailable sources remain unavailable; no simulation fills evidence gaps."],
 };
 
 // SUBTITLE: one-line plain-English narrative for every function screen.
@@ -85,7 +85,7 @@ const SUBTITLES: Record<string, (sym: string) => string> = {
   ML: (s) => `${s} research models — real trained signal validation and fitted market regimes from backend history.`,
   CX: (s) => `Cross-asset dependencies — how ${s} moves with, or breaks from, everything else on the desk.`,
   VS: (s) => `${s} implied-volatility surface — smile, skew, and term structure in one shape.`,
-  ALT: () => "Alternative data — signals from outside the market that move it. Which datasets lead the tape?",
+  ALT: () => "Agriculture Intelligence first — satellite context, weather, rainfall, yield and production with explicit provenance.",
   BT: (s) => `Backtest lab — run the picked strategy on ${s} and see if the edge survives out-of-sample.`,
   STRAT: () => "Strategy creator — wire indicators into entry/exit rules and preview signals before sending to BT.",
   RISK: () => "Risk desk — the whole book's VaR, concentration and stress. Open /RISK for the full manager.",
@@ -98,7 +98,7 @@ function Terminal() {
   const [fn, setFn] = useState<string>("HOME");
   const [instruments, setInstruments] = useState<Record<string, Instrument>>(() => {
     const m: Record<string, Instrument> = {};
-    TICKERS.forEach((s) => (m[s] = seedInstrument(s)));
+    TICKERS.forEach((s) => (m[s] = unavailableInstrument(s)));
     return m;
   });
   const market = useLiveMarket(setInstruments);
@@ -277,7 +277,7 @@ function Terminal() {
         : inst.price,
     changePct: inst.changePct,
     marketSource: market.source,
-    priceProvenance: market.source === "SIM" ? "SIMULATED_FALLBACK" : `${market.source}_PROVIDER_QUOTE`,
+    priceProvenance: market.source === "UNAVAILABLE" ? "UNAVAILABLE" : `${market.source}_PROVIDER_QUOTE`,
     replay: replayT !== null,
     watchlist: watch,
     paperBook: demoPositions.map((position) => position.symbol),
@@ -343,7 +343,7 @@ function Terminal() {
           <Link to="/" className="mono-caps text-sm text-primary">FinSight</Link>
           <div className="mono-caps flex items-center gap-2 text-[10px] text-muted-foreground">
             <span className={`h-1.5 w-1.5 rounded-full ${replayT !== null ? "bg-info" : "bg-up"} animate-pulse-live`} />
-            {replayT !== null ? "REPLAY · LOCAL" : `${market.connected ? "CONNECTED" : "FALLBACK"} · ${market.source}`}
+            {replayT !== null ? "REPLAY · LOCAL" : `${market.connected ? "CONNECTED" : "UNAVAILABLE"} · ${market.source}`}
           </div>
           <MarketClock />
         </div>
@@ -617,7 +617,7 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
   if (fn === "MC") return <Panel code="MC" title={`${active} · Monte Carlo`} subtitle={SUBTITLES.MC(active)} source="SIM" explainer={EXPLAINERS.MC} onMaximize={() => onMaximize("MC")} {...A}><MonteCarloPanel spot={inst.price} symbol={active} /><AiInsight lines={INSIGHTS.MC} jumps={[{ label: `OC hedge`, onClick: jumpTo("OC") }, { label: `RISK exposure`, onClick: () => setFn("RISK") }]} /></Panel>;
   if (fn === "GR") return <Panel code="GR" title={`${active} · Greeks surfaces`} subtitle={SUBTITLES.GR(active)} source="SIM" explainer={EXPLAINERS.GR} onMaximize={() => onMaximize("GR")} {...A}><GreeksSurface symbol={active} spot={inst.price} /><AiInsight lines={INSIGHTS.GR} jumps={[{ label: `OC unusual flow`, onClick: jumpTo("OC") }, { label: `VS surface`, onClick: jumpTo("VS") }]} /></Panel>;
   if (fn === "ML") return <Panel code="ML" title={`${active} · ML research lab`} subtitle={SUBTITLES.ML(active)} source="API · YFINANCE" explainer={EXPLAINERS.ML} onMaximize={() => onMaximize("ML")} {...A}><MLPanel symbol={active} book={p.demoBookSyms.length ? p.demoBookSyms : p.watch} /></Panel>;
-  if (fn === "ALT") return <Panel code="ALT" title="Alternative data" subtitle={SUBTITLES.ALT(active)} source="OPEN-METEO · KAGGLE" explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><ALTPanel onOpenSymbol={setActive} /></Panel>;
+  if (fn === "ALT") return <Panel code="ALT" title="Agriculture & country intelligence" subtitle={SUBTITLES.ALT(active)} source="BACKEND INGESTION" live={false} explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><ALTPanel /></Panel>;
   if (fn === "CX") return <Panel code="CX" title="Correlation" subtitle={SUBTITLES.CX(active)} source="SIM" explainer={EXPLAINERS.CX} onMaximize={() => onMaximize("CX")}><CorrelationPanel symbols={TICKERS.slice(0, 8)} activeSymbol={active} onFocus={setFocusSym} /><AiInsight lines={INSIGHTS.CX} jumps={[{ label: `RISK exposure`, onClick: () => setFn("RISK") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
   if (fn === "SIGHT") return <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} onMaximize={() => onMaximize("SIGHT")}>{sightPanel}</Panel>;
   if (fn === "BT") return <Panel code="BT" title={`${active} · Backtest`} subtitle={SUBTITLES.BT(active)} source="API + LOCAL · WALK-FWD" onMaximize={() => onMaximize("BT")} {...A}><BTPanel activeSymbol={active} /><AiInsight lines={INSIGHTS.BT} jumps={[{ label: `STRAT tune params`, onClick: jumpTo("STRAT") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;

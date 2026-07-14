@@ -224,6 +224,16 @@ export function PriceChart({
 
   const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 1.0];
 
+  if (instrument.dataSource === "UNAVAILABLE") {
+    return (
+      <div className="mono-caps flex h-full min-h-64 flex-col items-center justify-center border border-down/30 bg-down/5 px-6 text-center text-[10px]">
+        <div className="text-down">MARKET DATA · UNAVAILABLE</div>
+        <div className="mt-2 max-w-lg text-faint">The quote provider returned no validated snapshot. No simulated or static price chart is being shown.</div>
+        <div className="mt-2 text-faint">SOURCE · UNAVAILABLE · AS OF · UNAVAILABLE</div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex h-full flex-col">
       <div className="flex items-end justify-between p-4">

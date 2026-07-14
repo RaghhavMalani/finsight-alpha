@@ -31,16 +31,15 @@ _SESSION_TTL_SECONDS = 60 * 60 * 24 * 7  # 7 days
 
 
 def _secret_key() -> bytes:
-    """Signing key for session tokens. MUST be set in production.
-
-    Falls back to a process-local random key for local dev (sessions then don't
-    survive a restart, which is fine locally). In the container set
-    ``FINSIGHT_SECRET_KEY`` to a long random string so tokens stay valid.
-    """
-    key = os.getenv("FINSIGHT_SECRET_KEY")
+    """Return the configured session signing key, failing closed in production."""
+    key = os.getenv("FINSIGHT_SECRET_KEY", "")
+    production = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower() == "production"
     if key:
+        if production and len(key) < 32:
+            raise RuntimeError("FINSIGHT_SECRET_KEY must be at least 32 characters in production")
         return key.encode("utf-8")
-    # Dev fallback: stable for the life of the process only.
+    if production:
+        raise RuntimeError("FINSIGHT_SECRET_KEY is required in production")
     global _DEV_KEY
     try:
         return _DEV_KEY
