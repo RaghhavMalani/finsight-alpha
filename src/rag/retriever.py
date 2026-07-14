@@ -5,7 +5,7 @@ try:
 except ImportError:
     BM25Okapi = None
 
-from src.rag.embeddings import embed_query
+from src.rag import embeddings
 
 def retrieve_relevant_chunks(
     query: str,
@@ -17,7 +17,7 @@ def retrieve_relevant_chunks(
     if not vector_store or len(vector_store.chunks) == 0:
         return []
         
-    query_emb = embed_query(query)
+    query_emb = embeddings.embed_query(query)
     results = vector_store.search(query_emb, top_k=top_k * 3) # retrieve more for filtering
     
     filtered_results = []
@@ -48,7 +48,7 @@ def hybrid_retrieve(
     semantic_scores = {chunk["chunk_id"]: 0.0 for chunk in chunks}
     if vector_store and vector_store.chunks:
         # Assumes vector_store.chunks is the same as the chunks list
-        q_emb = embed_query(query)
+        q_emb = embeddings.embed_query(query)
         # Search all to get relative scores
         s_results = vector_store.search(q_emb, top_k=len(chunks))
         if s_results:
