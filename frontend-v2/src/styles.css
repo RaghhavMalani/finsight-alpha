@@ -197,10 +197,20 @@
 /* Splitters */
 .splitter-col { cursor: col-resize; }
 .splitter-row { cursor: row-resize; }
-.splitter { background: var(--divider); transition: background 120ms; position: relative; }
-.splitter:hover, .splitter.active { background: var(--primary); }
-.splitter-col { width: 4px; }
-.splitter-row { height: 4px; }
+.splitter {
+  background: var(--divider); position: relative; z-index: 10;
+  touch-action: none; user-select: none;
+  transition: background 120ms, box-shadow 120ms;
+}
+.splitter:hover, .splitter.active {
+  background: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary), 0 0 10px var(--primary-glow);
+}
+.splitter::after { content: ""; position: absolute; }
+.splitter-col { width: 100%; }
+.splitter-col::after { inset: 0 -4px; }
+.splitter-row { height: 100%; }
+.splitter-row::after { inset: -4px 0; }
 
 /* Idle shimmer */
 @keyframes idle-shimmer {

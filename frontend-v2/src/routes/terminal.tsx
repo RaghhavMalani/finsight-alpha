@@ -210,6 +210,13 @@ function Terminal() {
     } catch { /* ignore */ }
   }, [preset]);
 
+  function openWorkspace(nextPreset: Preset) {
+    setPreset(nextPreset);
+    setFn("MK");
+    setMaximized(null);
+    setPanelKey((key) => key + 1);
+  }
+
   function runCmd(code: string, symbol?: string, action?: "GO" | "COMPARE", symbol2?: string) {
     if (code === "TOUR") {
       window.dispatchEvent(new Event("finsight:tour-replay"));
@@ -443,13 +450,18 @@ function Terminal() {
           <HintTicker />
         </div>
         <div data-tour="preset" className="flex items-center gap-2">
-          <span className="text-faint">LAYOUT</span>
+          <span className="text-faint">WORKSPACE</span>
           {(["DESK", "QUANT", "RESEARCH"] as Preset[]).map((p) => (
             <button
               key={p}
-              onClick={() => { setPreset(p); setPanelKey((k) => k + 1); }}
+              type="button"
+              onClick={() => openWorkspace(p)}
+              aria-pressed={fn === "MK" && preset === p}
+              title={`Open ${p.toLowerCase()} market workspace`}
               className={`interactive border px-1.5 py-0.5 transition ${
-                preset === p ? "border-primary text-primary" : "border-border hover:text-foreground"
+                fn === "MK" && preset === p
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:border-primary hover:text-foreground"
               }`}
             >{p}</button>
           ))}
@@ -546,6 +558,7 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
       return (
         <GridStage2x2
           initial={{ colFrac: 0.6, rowFrac: 0.55 }}
+          storageKey="finsight.quant.grid"
           slots={[
             <div key="a" data-tour="panel-toolbar" className="h-full">
               <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source={inst.dataSource} explainer={EXPLAINERS[fn]} onMaximize={() => onMaximize("PRICE")} className="h-full" {...A}>
