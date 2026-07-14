@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 20
     env:
       APP_ENV: test
-      FINSIGHT_DATA_DIR: ${{ runner.temp }}/finsight-data
+      FINSIGHT_DATA_DIR: /tmp/finsight-data
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
