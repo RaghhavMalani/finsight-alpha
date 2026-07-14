@@ -18,6 +18,17 @@ from src import config
 
 client = TestClient(app)
 
+# API tests exercise endpoint behavior through the authenticated browser contract.
+from src.auth import db as auth_db
+
+auth_db.init_db()
+_TEST_EMAIL = "api-tests@finsight.local"
+_TEST_PASSWORD = "test-password-1234"
+_auth = client.post("/auth/register", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD})
+if _auth.status_code == 400:
+    _auth = client.post("/auth/login", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD})
+assert _auth.status_code == 200, _auth.text
+
 
 def test_health() -> None:
     resp = client.get("/health")
@@ -29,9 +40,9 @@ def test_health() -> None:
 
 
 def test_root() -> None:
-    resp = client.get("/")
-    assert resp.status_code == 200
-    assert "message" in resp.json()
+    resp = client.get("/", follow_redirects=False)
+    assert resp.status_code == 307
+    assert resp.headers["location"]
 
 
 def test_assets() -> None:

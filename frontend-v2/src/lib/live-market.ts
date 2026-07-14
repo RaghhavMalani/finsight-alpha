@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 
 import { api, type TapeItem } from "@/lib/api";
-import { TICKERS, type Instrument, seedInstrument } from "@/lib/market";
+import { TICKERS, type Instrument, unavailableInstrument } from "@/lib/market";
 
 type TapePayload = {
   items: TapeItem[];
@@ -11,7 +11,7 @@ type TapePayload = {
 
 export type LiveMarketStatus = {
   connected: boolean;
-  source: "FINNHUB" | "EOD" | "SIM";
+  source: "FINNHUB" | "EOD" | "UNAVAILABLE";
   count: number;
   error: string | null;
 };
@@ -41,7 +41,7 @@ export function useLiveMarket(
       for (const item of tape.data.items) {
         if (!Number.isFinite(item.last) || !Number.isFinite(item.change_pct)) continue;
 
-        const current = next[item.ticker] ?? seedInstrument(item.ticker);
+        const current = next[item.ticker] ?? unavailableInstrument(item.ticker);
         const price = item.last;
         const prevClose =
           item.prev_close ??
@@ -74,7 +74,7 @@ export function useLiveMarket(
 
   return {
     connected: Boolean(tape.data?.items.length),
-    source: tape.data?.live ? "FINNHUB" : tape.data?.items.length ? "EOD" : "SIM",
+    source: tape.data?.live ? "FINNHUB" : tape.data?.items.length ? "EOD" : "UNAVAILABLE",
     count: tape.data?.items.length ?? 0,
     error: tape.error instanceof Error ? tape.error.message : null,
   };

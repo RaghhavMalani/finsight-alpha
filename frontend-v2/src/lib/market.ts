@@ -17,7 +17,7 @@ export type Instrument = {
   changePct: number; // vs prevClose
   sessionHigh: number;
   vwapSource: "SIM" | "UNAVAILABLE";
-  dataSource: "FINNHUB" | "YFINANCE_EOD" | "SIM";
+  dataSource: "FINNHUB" | "YFINANCE_EOD" | "SIM" | "UNAVAILABLE";
   sessionLow: number;
   vwap: number;
   volume: number; // cumulative shares
@@ -298,6 +298,30 @@ const SESSION = (() => {
     Date.now = realNow;
   }
 })();
+
+export function unavailableInstrument(symbol: string): Instrument {
+  const cfg = CFG[symbol] ?? { name: symbol, prevClose: 1, annualVol: 0.25, beta: 1, avgVolMM: 0 };
+  return {
+    symbol,
+    name: cfg.name,
+    prevClose: cfg.prevClose,
+    open: cfg.prevClose,
+    price: cfg.prevClose,
+    bid: cfg.prevClose,
+    ask: cfg.prevClose,
+    change: 0,
+    changePct: 0,
+    sessionHigh: cfg.prevClose,
+    sessionLow: cfg.prevClose,
+    vwap: cfg.prevClose,
+    vwapSource: "UNAVAILABLE",
+    dataSource: "UNAVAILABLE",
+    volume: 0,
+    annualVol: cfg.annualVol,
+    beta: cfg.beta,
+    history: [],
+  };
+}
 
 export function seedInstrument(symbol: string): Instrument {
   return SESSION.instruments[symbol] ?? generateSession(symbol, SESSION.spyRet, null);

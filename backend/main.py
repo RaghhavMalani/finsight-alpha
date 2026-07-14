@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
 from pathlib import Path
 
 # Make the project root importable when launched via uvicorn from anywhere.
@@ -27,7 +28,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from backend.routes import (
     agent, analytics, assets, auth, backtest, context, factors, fundamentals, graph, health,
-    market_data, ml, news, paper, portfolio, pricing, quote, regime, research,
+    intelligence, market_data, ml, news, paper, portfolio, pricing, quote, regime, research,
     risk, strategy, tape,
 )
 from src import config
@@ -36,40 +37,62 @@ from src.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
+if config.SENTRY_DSN:
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(
+            dsn=config.SENTRY_DSN,
+            environment=config.APP_ENV,
+            release=f"finsight-alpha@{config.APP_VERSION}",
+            traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+            send_default_pii=False,
+        )
+        logger.info("Sentry error reporting configured.")
+    except ImportError:
+        logger.error("SENTRY_DSN is set but sentry-sdk is not installed.")
+
 app = FastAPI(
     title=config.APP_NAME,
     description="Backend-driven market data and analytics platform.",
     version=config.APP_VERSION,
 )
 
+
+@app.exception_handler(Exception)
+async def _unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+    """Emit a correlation id to structured platform logs without leaking internals."""
+    error_id = uuid.uuid4().hex
+    logger.exception(
+        "Unhandled request error id=%s method=%s path=%s",
+        error_id, request.method, request.url.path,
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error", "error_id": error_id})
+
 # CORS: allow browser frontends to call the API.
 # In production, replace "*" with the specific dashboard origin(s).
 app.add_middleware(
     CORSMiddleware,
-    # Echo the request origin (required for credentialed/cookie requests from
-    # the React dev server, e.g. http://localhost:8080). "*" is rejected by
-    # browsers when credentials are included.
-    allow_origin_regex=".*",
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "X-FinSight-Organization"],
 )
 
 # --- Authentication: create tables on startup and gate the whole app ---------
+from src.auth import db  # noqa: E402
 from src.auth.db import init_db  # noqa: E402
 
 # Paths reachable WITHOUT a session (login flow, health probes, login page).
-_PUBLIC_PATHS = {"/login", "/health", "/health/llm", "/favicon.ico"}
+_PUBLIC_PATHS = {"/login", "/health", "/health/ready", "/health/llm", "/favicon.ico"}
 _PUBLIC_PREFIXES = ("/auth/",)
 
 
 @app.on_event("startup")
 def _startup() -> None:
-    try:
-        init_db()
-        logger.info("Auth database initialized.")
-    except Exception as exc:  # don't hard-fail boot; auth routes will surface it
-        logger.error("Auth DB init failed: %s", exc)
+    config.validate_runtime_config()
+    init_db()
+    logger.info("Metadata database initialized and production configuration validated.")
 
 
 @app.middleware("http")
@@ -83,7 +106,14 @@ async def _auth_gate(request: Request, call_next):
     ):
         return await call_next(request)
 
-    if verify_session(request.cookies.get("fs_session")):
+    user_id = verify_session(request.cookies.get("fs_session"))
+    if user_id:
+        principal = db.resolve_principal(user_id, request.headers.get("x-finsight-organization"))
+        if principal is None:
+            return JSONResponse({"detail": "Organization access denied."}, status_code=403)
+        request.state.user_id = principal.user_id
+        request.state.organization_id = principal.organization_id
+        request.state.role = principal.role
         return await call_next(request)
 
     # Not authenticated: send browsers to the login page, APIs a 401.
@@ -108,6 +138,7 @@ app.include_router(news.router)
 app.include_router(portfolio.router)
 app.include_router(backtest.router)
 app.include_router(context.router)
+app.include_router(intelligence.router)
 app.include_router(factors.router)
 app.include_router(strategy.router)
 app.include_router(fundamentals.router)

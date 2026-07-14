@@ -12,6 +12,10 @@ import os
 from datetime import date
 from pathlib import Path
 
+APP_ENV: str = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).strip().lower()
+if APP_ENV not in {"development", "test", "production"}:
+    raise RuntimeError("APP_ENV must be development, test, or production")
+
 # Load variables from a local ``.env`` file (if present) into ``os.environ``.
 # python-dotenv is optional at runtime - we degrade gracefully if it is missing.
 try:
@@ -252,11 +256,37 @@ BIGQUERY_ANALYTICS_TABLE: str = os.getenv(
 
 # Database: Cloud SQL / PostgreSQL (app metadata).
 DATABASE_URL: str | None = os.getenv("DATABASE_URL") or None
+CORS_ORIGINS: list[str] = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8080").split(",")
+    if origin.strip()
+]
+SENTRY_DSN: str | None = os.getenv("SENTRY_DSN") or None
+DEFAULT_ORGANIZATION_SLUG: str | None = os.getenv("DEFAULT_ORGANIZATION_SLUG") or None
 
 # Application metadata.
 APP_NAME: str = "FinSight Alpha API"
 APP_VERSION: str = "0.1.0"
 
+
+def validate_runtime_config() -> None:
+    """Fail closed when production durability or security is not configured."""
+    if APP_ENV != "production":
+        return
+    errors: list[str] = []
+    if not DATABASE_URL:
+        errors.append("DATABASE_URL is required")
+    elif not DATABASE_URL.startswith(("postgresql://", "postgresql+", "postgres://")):
+        errors.append("DATABASE_URL must use PostgreSQL")
+    secret = os.getenv("FINSIGHT_SECRET_KEY", "")
+    if len(secret) < 32:
+        errors.append("FINSIGHT_SECRET_KEY must be at least 32 characters")
+    if not CORS_ORIGINS or any(origin == "*" for origin in CORS_ORIGINS):
+        errors.append("CORS_ORIGINS must contain explicit trusted origins")
+    if not DEFAULT_ORGANIZATION_SLUG:
+        errors.append("DEFAULT_ORGANIZATION_SLUG is required until the frontend provides tenant selection")
+    if errors:
+        raise RuntimeError("Invalid production configuration: " + "; ".join(errors))
 
 def ensure_data_dirs() -> None:
     """Create the raw, processed, and exports directories if they do not exist.

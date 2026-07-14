@@ -8,12 +8,13 @@ export function Panel({
   title,
   subtitle,
   source,
+  asOf,
   right,
   loading = false,
   className = "",
   children,
   explainer,
-  live = true,
+  live = false,
   replayChip,
   onMaximize,
   isMaximized,
@@ -27,6 +28,8 @@ export function Panel({
   subtitle?: string;
   /** Short data-source badge shown next to the code (e.g. "SIM", "TFT", "HSMM"). */
   source?: string;
+  /** Observation or calculation cutoff. Missing values render as UNAVAILABLE. */
+  asOf?: string;
   right?: React.ReactNode;
   loading?: boolean;
   className?: string;
@@ -76,9 +79,7 @@ export function Panel({
         <div className="mono-caps flex items-center gap-2 text-[10px] text-muted-foreground">
           {code && <span className="text-primary">{code}</span>}
           <span>{title}</span>
-          {source && (
-            <span className="ml-1 border border-border bg-raised px-1 py-0 text-[8px] text-faint" title={`Data source · ${source}`}>{source}</span>
-          )}
+          <span className="ml-1 border border-border bg-raised px-1 py-0 text-[8px] text-faint" title={`Data source · ${source ?? "UNAVAILABLE"}`}>{source ?? "UNAVAILABLE"}</span>
           {onGroupChange !== undefined && (
             <button
               onClick={() => onGroupChange(cycle[String(group)] ?? "A")}
@@ -102,6 +103,7 @@ export function Panel({
         </div>
         <div className="mono-caps flex items-center gap-3 text-[10px] text-muted-foreground">
           {right}
+          <span className={asOf ? "text-foreground" : "text-down"}>AS OF · {asOf ?? "UNAVAILABLE"}</span>
           {replayChip ? (
             <span className="flex items-center gap-1.5 text-info">
               <span className="h-1.5 w-1.5 rounded-full bg-info animate-pulse-live" />

@@ -5,7 +5,12 @@ try:
 except ImportError:
     BM25Okapi = None
 
-from src.rag.embeddings import embed_query
+from src.rag import embeddings
+
+def embed_query(query: str):
+    """Patchable retrieval seam that delegates to the configured embedder."""
+    return embeddings.embed_query(query)
+
 
 def retrieve_relevant_chunks(
     query: str,
