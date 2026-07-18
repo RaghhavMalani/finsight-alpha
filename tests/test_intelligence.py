@@ -1,4 +1,4 @@
-"""Offline tests for the first agriculture and country intelligence products."""
+"""Offline tests for the agriculture, country, and ticker intelligence products."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from src.intelligence.services import (
     OPEN_METEO_URL,
     WTO_DATA_URL,
     AgricultureIntelligenceService,
+    CompanyIntelligenceService,
     CountryIntelligenceService,
 )
 from src.intelligence.snapshots import SnapshotStore, SourceLineage
@@ -162,3 +163,32 @@ def test_country_pulse_is_vintage_aware_and_uses_separate_reporter_codes(monkeyp
     assert all(call["params"]["realtime_start"] == "2025-02-15" for call in fred_calls)
     assert all(call["params"]["realtime_end"] == "2025-02-15" for call in fred_calls)
     assert all(call["params"]["observation_end"] == "2025-02-15" for call in fred_calls)
+
+
+def test_nvda_profile_selects_semiconductor_evidence_from_ticker(monkeypatch) -> None:
+    monkeypatch.setenv("FRED_API_KEY", "fred-test")
+    monkeypatch.setenv("UN_COMTRADE_API_KEY", "comtrade-test")
+    client = StubClient()
+
+    result = CompanyIntelligenceService(client=client).overview(
+        "nvda",
+        as_of=date(2025, 2, 15),
+        trade_year=2024,
+    )
+
+    assert result["ticker"] == "NVDA"
+    assert result["country"] == {"code": "USA", "name": "United States"}
+    assert result["industry"] == "Semiconductors"
+    assert result["trade_product"]["hs_code"] == "8542"
+    assert {
+        indicator["series_id"] for indicator in result["indicators"]
+    } == {"IPG3344S", "PCU33443344", "A34SNO"}
+
+    comtrade_calls = [
+        call for call in client.calls if call["url"] == COMTRADE_DATA_URL
+    ]
+    assert len(comtrade_calls) == 2
+    assert {
+        call["params"]["flowCode"] for call in comtrade_calls
+    } == {"X", "M"}
+    assert all(call["params"]["cmdCode"] == "8542" for call in comtrade_calls)

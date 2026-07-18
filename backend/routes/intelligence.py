@@ -9,11 +9,11 @@ from fastapi import APIRouter, HTTPException, Query
 
 from src.intelligence import (
     AgricultureIntelligenceService,
+    CompanyIntelligenceService,
     CountryIntelligenceService,
     SnapshotStore,
 )
 from src.intelligence.services import COUNTRIES
-
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
@@ -38,6 +38,24 @@ def agriculture_overview(
         latitude=latitude,
         longitude=longitude,
         limit=limit,
+    )
+
+
+@router.get("/company/{ticker}")
+def company_intelligence(
+    ticker: str,
+    as_of: date | None = Query(
+        None,
+        description="Historical information date for ALFRED-style vintage retrieval.",
+    ),
+    trade_year: int | None = Query(None, ge=2000, le=2100),
+) -> dict[str, Any]:
+    """Return evidence selected from the active ticker's registered profile."""
+
+    return CompanyIntelligenceService().overview(
+        ticker,
+        as_of=as_of,
+        trade_year=trade_year,
     )
 
 

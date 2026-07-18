@@ -163,3 +163,60 @@ export async function fetchCountryPulse(input: {
   });
   return api<CountryPulse>(`/intelligence/country/${input.country}/pulse?${params}`);
 }
+
+export type StockIntelligence = {
+  product: "stock-intelligence";
+  status: "healthy" | "degraded" | "unavailable";
+  generated_at: string;
+  ticker: string;
+  company: string;
+  country: { code: string; name: string };
+  industry: string;
+  focus: string;
+  as_of: string;
+  vintage_mode: true;
+  vintage_scope: string;
+  indicators: CountryIndicator[];
+  trade_product: null | {
+    hs_code: string;
+    label: string;
+    year: number;
+    flows: Array<{
+      period: number;
+      reporter_code: number;
+      partner_code: number;
+      commodity_code: string;
+      flow: "exports" | "imports";
+      record_count: number;
+      primary_value_usd?: number | null;
+      records: Array<Record<string, unknown>>;
+    }>;
+  };
+  confidence: {
+    score: number;
+    coverage: string;
+    cached_sources: number;
+    freshness: number;
+    method: string;
+  };
+  feature_definitions: Array<{
+    id: string;
+    definition: string;
+  }>;
+  lineage: SourceLineage[];
+  issues: IntelligenceIssue[];
+};
+
+export async function fetchStockIntelligence(input: {
+  ticker: string;
+  asOf: string;
+  tradeYear: number;
+}): Promise<StockIntelligence> {
+  const params = new URLSearchParams({
+    as_of: input.asOf,
+    trade_year: String(input.tradeYear),
+  });
+  return api<StockIntelligence>(
+    `/intelligence/company/${encodeURIComponent(input.ticker)}?${params}`,
+  );
+}

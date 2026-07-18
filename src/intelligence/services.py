@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+from .profiles import STOCK_PROFILES
 from .snapshots import ExternalJsonClient, ProviderUnavailable, SourceLineage
 
 
@@ -613,6 +614,7 @@ class CountryIntelligenceService:
         period: int,
         partner_code: int,
         commodity_code: str,
+        flow_code: str = "X",
     ) -> tuple[dict[str, Any], SourceLineage]:
         key = os.getenv("UN_COMTRADE_API_KEY") or os.getenv("COMTRADE_API_KEY")
         if not key:
@@ -621,7 +623,7 @@ class CountryIntelligenceService:
             "reporterCode": reporter_code,
             "period": period,
             "cmdCode": commodity_code,
-            "flowCode": "X",
+            "flowCode": flow_code,
             "partnerCode": partner_code,
             "partner2Code": 0,
             "customsCode": "C00",
@@ -659,7 +661,7 @@ class CountryIntelligenceService:
             "reporter_code": reporter_code,
             "partner_code": partner_code,
             "commodity_code": commodity_code,
-            "flow": "exports",
+            "flow": "exports" if flow_code == "X" else "imports",
             "record_count": len(records),
             "primary_value_usd": round(sum(values), 2) if values else None,
             "records": records,
@@ -701,3 +703,187 @@ class CountryIntelligenceService:
         if values.get("consumer_inflation") is not None and values["consumer_inflation"] >= 6:
             alerts.append({"type": "high-inflation", "severity": "medium", "value": values["consumer_inflation"]})
         return alerts
+
+
+class CompanyIntelligenceService:
+    """Ticker-first industry and supply-chain evidence with immutable lineage."""
+
+    def __init__(self, client: ExternalJsonClient | None = None) -> None:
+        self.client = client or ExternalJsonClient()
+        self.country_service = CountryIntelligenceService(client=self.client)
+
+    def overview(
+        self,
+        ticker: str,
+        *,
+        as_of: date | None = None,
+        trade_year: int | None = None,
+    ) -> dict[str, Any]:
+        symbol = ticker.strip().upper()
+        profile = self._profile(symbol)
+        country_code = profile["country_code"]
+        country = COUNTRIES[country_code]
+        vintage = as_of or date.today()
+        selected_trade_year = trade_year or max(2000, vintage.year - 2)
+        indicators: list[dict[str, Any]] = []
+        trade_flows: list[dict[str, Any]] = []
+        lineage: list[SourceLineage] = []
+        issues: list[dict[str, str]] = []
+
+        hs_code = profile.get("hs_code")
+        jobs: dict[Any, str] = {}
+        expected_sources = len(profile["fred"]) + (2 if hs_code else 0)
+        with ThreadPoolExecutor(max_workers=max(1, len(profile["fred"]))) as executor:
+            for definition in profile["fred"]:
+                jobs[
+                    executor.submit(
+                        self.country_service._fred_indicator,
+                        definition,
+                        vintage,
+                    )
+                ] = definition["id"]
+
+            for future in as_completed(jobs):
+                item_id = jobs[future]
+                try:
+                    value, source_lineage = future.result()
+                    lineage.append(source_lineage)
+                    indicators.append(value)
+                except ProviderUnavailable as exc:
+                    issues.append(_issue(f"fred:{item_id}", exc))
+
+        # The free Comtrade tier can reject simultaneous requests, so flows are
+        # deliberately serialized while FRED series remain parallel.
+        if hs_code:
+            for flow_code, flow_id in (("X", "exports"), ("M", "imports")):
+                try:
+                    value, source_lineage = self.country_service._comtrade(
+                        country["comtrade_reporter_code"],
+                        selected_trade_year,
+                        0,
+                        hs_code,
+                        flow_code,
+                    )
+                    lineage.append(source_lineage)
+                    trade_flows.append(value)
+                except ProviderUnavailable as exc:
+                    issues.append(_issue(f"comtrade:{flow_id}", exc))
+
+        order = {
+            definition["id"]: index
+            for index, definition in enumerate(profile["fred"])
+        }
+        indicators.sort(key=lambda item: order.get(item["id"], 999))
+        trade_order = {"exports": 0, "imports": 1}
+        trade_flows.sort(key=lambda item: trade_order.get(item["flow"], 999))
+
+        cached = sum(item.cached for item in lineage)
+        coverage = len(lineage) / expected_sources if expected_sources else 0.0
+        live = len(lineage) - cached
+        freshness_values = self.country_service._freshness_values(
+            indicators,
+            [],
+            None,
+            vintage,
+        )
+        for flow in trade_flows:
+            observed = _parse_date(f"{flow.get('period')}-12-31")
+            freshness_values.append(_freshness_score(observed, vintage, 1095))
+        freshness = statistics.fmean(freshness_values) if freshness_values else 0.0
+        confidence = round(
+            100
+            * (
+                0.6 * coverage
+                + 0.2 * live / expected_sources
+                + 0.2 * freshness
+            )
+        ) if expected_sources else 0
+
+        return {
+            "product": "stock-intelligence",
+            "status": (
+                "healthy"
+                if not issues
+                else "degraded"
+                if lineage
+                else "unavailable"
+            ),
+            "generated_at": _utc_now(),
+            "ticker": symbol,
+            "company": profile["company"],
+            "country": {
+                "code": country_code,
+                "name": country["name"],
+            },
+            "industry": profile["industry"],
+            "focus": profile["focus"],
+            "as_of": vintage.isoformat(),
+            "vintage_mode": True,
+            "vintage_scope": (
+                "FRED/ALFRED indicators are reconstructed as known on the selected "
+                "date. UN Comtrade is the current release for the selected annual period."
+            ),
+            "indicators": indicators,
+            "trade_product": (
+                {
+                    "hs_code": hs_code,
+                    "label": profile.get("hs_label"),
+                    "year": selected_trade_year,
+                    "flows": trade_flows,
+                }
+                if hs_code
+                else None
+            ),
+            "confidence": {
+                "score": confidence,
+                "coverage": f"{len(lineage)}/{expected_sources} source series",
+                "cached_sources": cached,
+                "freshness": round(freshness, 3),
+                "method": (
+                    "60% source-series coverage + 20% live availability + "
+                    "20% observation freshness"
+                ),
+            },
+            "feature_definitions": [
+                {
+                    "id": "ticker_evidence_profile",
+                    "definition": (
+                        "A registered ticker determines domicile, industry, relevant "
+                        "economic series, and goods-trade proxy; the client cannot "
+                        "override the country."
+                    ),
+                },
+                {
+                    "id": "known_as_of",
+                    "definition": (
+                        "FRED observations use realtime_start=realtime_end and "
+                        "observation_end equal to the selected historical date."
+                    ),
+                },
+                {
+                    "id": "product_trade_value",
+                    "definition": (
+                        "UN Comtrade annual import and export primary values for the "
+                        "profile's HS code and the stock's inferred domicile."
+                    ),
+                },
+            ],
+            "lineage": _lineage(lineage),
+            "issues": issues,
+        }
+
+    @staticmethod
+    def _profile(ticker: str) -> dict[str, Any]:
+        if ticker in STOCK_PROFILES:
+            return STOCK_PROFILES[ticker]
+        country_code = "IND" if ticker.endswith((".NS", ".BO")) else "USA"
+        return {
+            "company": ticker,
+            "country_code": country_code,
+            "industry": "Unclassified",
+            "focus": (
+                "No dedicated supply-chain profile is registered; showing the "
+                "ticker domicile's broad growth, production, and inflation evidence."
+            ),
+            "fred": COUNTRIES[country_code]["fred"],
+        }
