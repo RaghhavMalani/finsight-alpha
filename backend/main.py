@@ -27,7 +27,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 
 from backend.routes import (
     agent, analytics, assets, auth, backtest, context, factors, fundamentals, graph, health,
-    market_data, ml, news, paper, portfolio, pricing, quote, regime, research,
+    intelligence, market_data, ml, news, paper, portfolio, pricing, quote, regime, research,
     risk, strategy, tape,
 )
 from src import config
@@ -108,6 +108,7 @@ app.include_router(news.router)
 app.include_router(portfolio.router)
 app.include_router(backtest.router)
 app.include_router(context.router)
+app.include_router(intelligence.router)
 app.include_router(factors.router)
 app.include_router(strategy.router)
 app.include_router(fundamentals.router)

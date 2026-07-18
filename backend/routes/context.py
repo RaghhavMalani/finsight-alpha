@@ -114,6 +114,12 @@ def providers() -> dict[str, Any]:
         "finnhub": {"configured": bool(os.getenv("FINNHUB_API_KEY")), "purpose": "live quotes"},
         "polygon": {"configured": bool(os.getenv("POLYGON_API_KEY")), "purpose": "market data"},
         "alpha_vantage": {"configured": bool(os.getenv("ALPHA_VANTAGE_API_KEY")), "purpose": "market data"},
+        "copernicus": {"configured": bool(os.getenv("COPERNICUS_CLIENT_ID") and os.getenv("COPERNICUS_CLIENT_SECRET")), "purpose": "earth observation"},
+        "fred": {"configured": bool(os.getenv("FRED_API_KEY")), "purpose": "vintage-aware macro"},
+        "wto": {"configured": bool(os.getenv("WTO_API_KEY")), "purpose": "monthly and quarterly trade"},
+        "un_comtrade": {"configured": bool(os.getenv("UN_COMTRADE_API_KEY")), "purpose": "bilateral product trade"},
+        "data_gov_in": {"configured": bool(os.getenv("DATA_GOV_IN_API_KEY")), "purpose": "India mandi prices"},
+        "nasa_earthdata": {"configured": bool(os.getenv("NASA_EARTHDATA_TOKEN")), "purpose": "earth observation archives"},
         "weather": {"configured": True, "provider": "Open-Meteo"},
         "kaggle": {"configured": _dataset_root().exists(), "purpose": "offline research datasets"},
     }

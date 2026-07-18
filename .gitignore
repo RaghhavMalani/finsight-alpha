@@ -28,6 +28,7 @@ data/.cache/
 data/documents/
 data/graphs/
 data/rag_index/
+data/intelligence/snapshots/
 
 # IDEs
 .vscode/

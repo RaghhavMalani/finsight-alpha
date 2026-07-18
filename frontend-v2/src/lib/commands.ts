@@ -17,7 +17,7 @@ export const COMMANDS: CommandDef[] = [
   { code: "ML", label: "ML + analyst", description: "Signals · consensus · peers", keywords: ["machine", "learning", "signal", "analyst", "consensus", "peers", "bull", "bear"] },
   { code: "CX", label: "Correlation", description: "Matrix · Web · Dependencies", keywords: ["correlate", "correlation", "cross", "matrix", "web", "graph", "dependency"] },
   { code: "VS", label: "Vol surface", description: "3D implied volatility surface", keywords: ["surface", "vol", "volatility", "iv", "3d", "smile", "skew"] },
-  { code: "ALT", label: "Alternative data", description: "Shipping · weather · EV · card · satellite · web", keywords: ["alt", "alternative", "shipping", "weather", "tesla", "deliveries", "card", "spend", "satellite", "parking", "web", "traffic", "kaggle"] },
+  { code: "ALT", label: "Intelligence", description: "Agriculture · trade · country · vintages", keywords: ["agriculture", "mandi", "crop", "rainfall", "weather", "trade", "country", "growth", "fred", "alfred", "wto", "comtrade", "vintage", "lineage"] },
   { code: "BT", label: "Backtest", description: "Strategy backtesting", keywords: ["backtest", "sharpe", "walk-forward", "equity", "drawdown"] },
   { code: "STRAT", label: "Strategy builder", description: "Rules · sizing · save", keywords: ["strategy", "rules", "creator", "builder", "signal", "trade"] },
   { code: "RISK", label: "Risk manager", description: "VaR · exposure · stress · hedge", keywords: ["risk", "var", "exposure", "stress", "hedge", "portfolio", "commodities"] },
@@ -45,7 +45,7 @@ const NL_HINTS: Array<{ match: RegExp; code: string }> = [
   { match: /\b(regime|hsmm|forecast|tft|recommend|discover|pairs?|stat.?arb)\b/i, code: "ML" },
   { match: /\b(analyst|consensus|peers?|bull\s*case|bear\s*case)\b/i, code: "ML" },
   { match: /\b(momentum|signal|ml|model)\b/i, code: "ML" },
-  { match: /\b(alt|alternative|shipping|port|weather|hdd|cdd|drought|tesla\s*deliver|card\s*spend|satellite|parking|web\s*traffic|kaggle|dataset)\b/i, code: "ALT" },
+  { match: /\b(agriculture|mandi|crop|rainfall|drought|trade|country|growth|wto|comtrade|fred|alfred|vintage|lineage|dataset)\b/i, code: "ALT" },
   { match: /\b(brief|ask|research|explain)\b/i, code: "SIGHT" },
   { match: /\b(market|price|quote|tape|depth|chart)\b/i, code: "MK" },
 ];
