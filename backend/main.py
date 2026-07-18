@@ -23,7 +23,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from backend.routes import (
     agent, analytics, assets, auth, backtest, context, factors, fundamentals, graph, health,
@@ -126,10 +126,6 @@ FRONTEND_URL = os.getenv(
     "https://finsight-alpha-web.vercel.app",
 ).rstrip("/")
 
-# Legacy v1 pages remain reachable under /legacy/* for reference.
-_LEGACY = PROJECT_ROOT / "legacy-frontend" / "v1"
-
-
 @app.get("/terminal", include_in_schema=False)
 def terminal() -> RedirectResponse:
     return RedirectResponse(url=f"{FRONTEND_URL}/terminal", status_code=307)
@@ -143,21 +139,6 @@ def risk_page() -> RedirectResponse:
 @app.get("/login", include_in_schema=False)
 def login_page() -> RedirectResponse:
     return RedirectResponse(url=f"{FRONTEND_URL}/login", status_code=307)
-
-
-@app.get("/legacy/terminal", include_in_schema=False)
-def legacy_terminal() -> FileResponse:
-    return FileResponse(str(_LEGACY / "terminal.html"))
-
-
-@app.get("/legacy/risk", include_in_schema=False)
-def legacy_risk() -> FileResponse:
-    return FileResponse(str(_LEGACY / "risk.html"))
-
-
-@app.get("/legacy/login", include_in_schema=False)
-def legacy_login() -> FileResponse:
-    return FileResponse(str(_LEGACY / "login.html"))
 
 
 @app.get("/", tags=["system"])

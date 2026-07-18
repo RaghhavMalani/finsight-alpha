@@ -1,15 +1,14 @@
 # FinSight Alpha
 
 FinSight Alpha is a local-first financial research terminal: a FastAPI backend,
-a browser-based HTML terminal, and a Python quant/AI engine for market analytics,
+a React/TanStack frontend, and a Python quant/AI engine for market analytics,
 risk, options, ML signals, regime detection, RAG research, news, and dependency
 graphs.
 
 The current product direction is:
 
-- `backend/` serves the API and the browser pages.
-- `frontend/terminal.html` is the primary UI.
-- `frontend/risk.html` and `frontend/login.html` are supporting pages.
+- `backend/` serves the API and redirects browser entrypoints to the web app.
+- `frontend-v2/` is the only frontend and contains the terminal, risk, and login routes.
 - `src/` is the reusable engine for data, analytics, pricing, risk, ML, RAG,
   graph, news, and visualization helpers.
 
@@ -34,10 +33,17 @@ pip install -r requirements.txt
 uvicorn backend.main:app --reload
 ```
 
+In a second terminal:
+
+```bash
+cd frontend-v2
+npm ci
+npm run dev
+```
+
 Open:
 
-- Terminal UI: `http://127.0.0.1:8000/terminal`
-- Risk page: `http://127.0.0.1:8000/risk`
+- Web app: use the local URL printed by `npm run dev`.
 - API docs: `http://127.0.0.1:8000/docs`
 - Health check: `http://127.0.0.1:8000/health`
 
@@ -203,20 +209,18 @@ What to improve before production:
 
 Files:
 
-- `frontend/terminal.html`
-- `frontend/risk.html`
-- `frontend/login.html`
+- `frontend-v2/src/routes/`
+- `frontend-v2/src/components/terminal/`
+- `frontend-v2/src/lib/`
 
 Role:
 
-- Main user-facing product. The terminal is the strongest product direction.
+- Main React/TanStack web product, including terminal, risk, login, and stock-intelligence views.
 
 What to improve:
 
-- Split the large HTML file into maintainable JS/CSS modules or move to a small
-  frontend build stack.
 - Add loading, empty, and error states everywhere.
-- Keep design tokens shared across terminal, risk, and login pages.
+- Keep design tokens shared across all routes.
 - Add live updates for quote/tape widgets when the backend supports it.
 
 ### 9. Infra And Deployment
@@ -237,7 +241,7 @@ Role:
 What to improve:
 
 - Use one production Dockerfile strategy.
-- Keep deployment scripts API-only unless a separate frontend service is added.
+- Keep API and frontend deployment scripts scoped to their separate services.
 - Move project-specific cloud IDs into environment variables.
 
 ---
@@ -249,7 +253,7 @@ What to improve:
 3. Harden data providers and caching.
 4. Audit ML/regime for leakage and validation quality.
 5. Make the API production-safe: CORS, cookies, errors, logging.
-6. Refactor the terminal frontend into maintainable modules.
+6. Continue polishing the active React terminal and its stock-specific intelligence.
 7. Deepen one differentiator: backtesting, portfolio factor risk, or grounded
    research.
 
