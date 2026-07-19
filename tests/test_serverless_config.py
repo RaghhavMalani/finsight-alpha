@@ -15,7 +15,6 @@ def test_vercelignore_only_excludes_root_data_directory() -> None:
     rules = (PROJECT_ROOT / ".vercelignore").read_text(encoding="utf-8").splitlines()
     assert "/data/" in rules
     assert "data/" not in rules
-    assert "/legacy-frontend/" not in rules
 
 
 def test_vercel_import_uses_writable_runtime_data_dir(tmp_path: Path) -> None:

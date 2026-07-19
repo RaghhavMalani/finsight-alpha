@@ -8,7 +8,7 @@ import { DepthLadder, SectorHeatmap } from "@/components/terminal/MarketPanels";
 import { OptionsChain } from "@/components/terminal/OptionsChain";
 import { MonteCarloPanel } from "@/components/terminal/MonteCarloPanel";
 import { MLPanel } from "@/components/terminal/MLPanel";
-import { ALTPanel } from "@/components/terminal/ALTPanel";
+import { StockIntelligencePanel } from "@/components/terminal/StockIntelligencePanel";
 import { CorrelationPanel } from "@/components/terminal/CorrelationPanel";
 import { SightPanel, type SightDeskContext } from "@/components/terminal/SightPanel";
 import { IntelFeed } from "@/components/terminal/IntelFeed";
@@ -59,7 +59,7 @@ const EXPLAINERS: Record<string, { what: string; why: string; how: string }> = {
   VS: { what: "A rotating 3D implied-volatility surface — every strike, every expiry, one shape.", why: "Smile, skew, and term structure are the entire language of options positioning.", how: "Bright yellow ridges are elevated IV — usually short-dated downside. Drag · scroll · hover." },
   RISK: { what: "VaR, contribution to risk, portfolio optimizer, and stress paths.", why: "Knowing your worst plausible loss beats hoping the market cooperates.", how: "The 99% VaR is the loss you should expect once in a hundred days. Contribution bars show which names drive that risk." },
   SIGHT: { what: "Ask the desk — an AI research assistant grounded in your current book.", why: "Fast, structured answers beat digging through five tabs.", how: "Ask in plain English. Ticker chips are clickable — jump straight to the panels." },
-  ALT: { what: "Evidence-backed agriculture and country intelligence, ingested only through the backend.", why: "Operational evidence is useful only when dataset, version, licence, geography, availability date, and quality checks travel with it.", how: "Start with Agriculture Intelligence, then inspect Trade & Country Growth Pulse. Company Demand Radar remains unavailable until an industry and licensed target are selected." },
+  ALT: { what: "Industry and supply-chain intelligence selected automatically from the active stock.", why: "A semiconductor, retailer, automaker, and software company need different evidence.", how: "Choose a stock anywhere in the terminal. Its domicile, industry series, and trade proxy are registered automatically; every source card opens its immutable raw snapshot." },
   ALERTS: { what: "Price-level alerts on your watchlist tickers.", why: "You can't stare at every ticker all day. Alerts do it for you.", how: "Click the bell on any row to arm a level. When price crosses, the row flashes and a toast fires." },
 };
 
@@ -72,7 +72,7 @@ const INSIGHTS: Record<string, string[]> = {
   GR: ["Dealer gamma flips negative below spot — moves accelerate on the downside.", "Vanna positive across the belly — vol-up plus spot-up feeds itself."],
   BT: ["Strategy beats buy-hold on total return but bleeds Sharpe out-of-sample.", "Drawdowns cluster around regime transitions — tune stops or add filter."],
   STRAT: ["Rule count within safe band — over-fit risk stays LOW.", "Preview signals fire ~1× per month — sample size is acceptable."],
-  ALT: ["Agriculture evidence is descriptive until a registered out-of-sample validation exists.", "Unavailable sources remain unavailable; no simulation fills evidence gaps."],
+  ALT: ["Evidence is selected from the active ticker's registered industry profile.", "Economic observations are reconstructed against the selected historical information date."],
 };
 
 // SUBTITLE: one-line plain-English narrative for every function screen.
@@ -85,7 +85,7 @@ const SUBTITLES: Record<string, (sym: string) => string> = {
   ML: (s) => `${s} research models — real trained signal validation and fitted market regimes from backend history.`,
   CX: (s) => `Cross-asset dependencies — how ${s} moves with, or breaks from, everything else on the desk.`,
   VS: (s) => `${s} implied-volatility surface — smile, skew, and term structure in one shape.`,
-  ALT: () => "Agriculture Intelligence first — satellite context, weather, rainfall, yield and production with explicit provenance.",
+  ALT: (s) => `${s} industry and supply-chain evidence — ticker-derived domicile, vintages, and immutable source lineage.`,
   BT: (s) => `Backtest lab — run the picked strategy on ${s} and see if the edge survives out-of-sample.`,
   STRAT: () => "Strategy creator — wire indicators into entry/exit rules and preview signals before sending to BT.",
   RISK: () => "Risk desk — the whole book's VaR, concentration and stress. Open /RISK for the full manager.",
@@ -630,7 +630,7 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
   if (fn === "MC") return <Panel code="MC" title={`${active} · Monte Carlo`} subtitle={SUBTITLES.MC(active)} source="SIM" explainer={EXPLAINERS.MC} onMaximize={() => onMaximize("MC")} {...A}><MonteCarloPanel spot={inst.price} symbol={active} /><AiInsight lines={INSIGHTS.MC} jumps={[{ label: `OC hedge`, onClick: jumpTo("OC") }, { label: `RISK exposure`, onClick: () => setFn("RISK") }]} /></Panel>;
   if (fn === "GR") return <Panel code="GR" title={`${active} · Greeks surfaces`} subtitle={SUBTITLES.GR(active)} source="SIM" explainer={EXPLAINERS.GR} onMaximize={() => onMaximize("GR")} {...A}><GreeksSurface symbol={active} spot={inst.price} /><AiInsight lines={INSIGHTS.GR} jumps={[{ label: `OC unusual flow`, onClick: jumpTo("OC") }, { label: `VS surface`, onClick: jumpTo("VS") }]} /></Panel>;
   if (fn === "ML") return <Panel code="ML" title={`${active} · ML research lab`} subtitle={SUBTITLES.ML(active)} source="API · YFINANCE" explainer={EXPLAINERS.ML} onMaximize={() => onMaximize("ML")} {...A}><MLPanel symbol={active} book={p.demoBookSyms.length ? p.demoBookSyms : p.watch} /></Panel>;
-  if (fn === "ALT") return <Panel code="ALT" title="Agriculture & country intelligence" subtitle={SUBTITLES.ALT(active)} source="BACKEND INGESTION" live={false} explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><ALTPanel /></Panel>;
+  if (fn === "ALT") return <Panel code="ALT" title={`${active} · Stock Intelligence`} subtitle={SUBTITLES.ALT(active)} source="FRED/ALFRED · UN COMTRADE" explainer={EXPLAINERS.ALT} onMaximize={() => onMaximize("ALT")}><StockIntelligencePanel activeSymbol={active} /></Panel>;
   if (fn === "CX") return <Panel code="CX" title="Correlation" subtitle={SUBTITLES.CX(active)} source="SIM" explainer={EXPLAINERS.CX} onMaximize={() => onMaximize("CX")}><CorrelationPanel symbols={TICKERS.slice(0, 8)} activeSymbol={active} onFocus={setFocusSym} /><AiInsight lines={INSIGHTS.CX} jumps={[{ label: `RISK exposure`, onClick: () => setFn("RISK") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
   if (fn === "SIGHT") return <Panel code="SIGHT" title="AI research" subtitle={SUBTITLES.SIGHT(active)} explainer={EXPLAINERS.SIGHT} onMaximize={() => onMaximize("SIGHT")}>{sightPanel}</Panel>;
   if (fn === "BT") return <Panel code="BT" title={`${active} · Backtest`} subtitle={SUBTITLES.BT(active)} source="API + LOCAL · WALK-FWD" onMaximize={() => onMaximize("BT")} {...A}><BTPanel activeSymbol={active} /><AiInsight lines={INSIGHTS.BT} jumps={[{ label: `STRAT tune params`, onClick: jumpTo("STRAT") }, { label: `ML regimes`, onClick: jumpTo("ML") }]} /></Panel>;
@@ -660,7 +660,7 @@ function renderMaximized(code: string, p: {
     case "CX": return wrap(<CorrelationPanel symbols={TICKERS.slice(0, 8)} onFocus={setFocusSym} />, "Correlation", "CX", EXPLAINERS.CX);
     case "OC": return wrap(<OptionsChain spot={inst.price} symbol={active} />, `${active} · Options`, "OC", EXPLAINERS.OC);
     case "ML": return wrap(<MLPanel symbol={active} book={["NVDA", "AAPL", "SPY"]} />, `${active} · ML research lab`, "ML", EXPLAINERS.ML);
-    case "ALT": return wrap(<ALTPanel />, "Alternative data", "ALT", EXPLAINERS.ALT);
+    case "ALT": return wrap(<StockIntelligencePanel activeSymbol={active} />, `${active} · Stock Intelligence`, "ALT", EXPLAINERS.ALT);
     case "SIGHT": return wrap(<SightPanel context={{ ...sightContext, activePanel: "SIGHT" }} />, "AI research", "SIGHT", EXPLAINERS.SIGHT);
     default: return null;
   }

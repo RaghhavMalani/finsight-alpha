@@ -1,7 +1,7 @@
 # FinSight Terminal (frontend-v2)
 
-The exact FinSight Terminal UI from Lovable, built with React 19, TanStack Start, Tailwind v4, R3F, and Recharts.
-It replaces the legacy static `frontend/` and is connected to the FastAPI backend.
+The active FinSight Terminal UI, built with React 19, TanStack Start, Tailwind v4, and R3F.
+It is the repository's only frontend and is connected to the FastAPI backend.
 
 - Lovable project: https://lovable.dev/projects/4a94ca0a-cd78-49bb-a9b4-bf9bdc777edc
 - Imported Lovable commit: `1846e1fa02fa72f55525b2754819ff890b0893ae`
@@ -14,9 +14,9 @@ SYNCED and API-connected:
 
 - Market tape anchors the terminal to Finnhub when configured, with yfinance EOD fallback.
 - Authentication uses the FastAPI register/login/session-cookie routes.
-- Alternative data shows Open-Meteo weather, provider readiness, and `KAGGLE_DATA_DIR` inventory.
+- Stock intelligence maps the active ticker to registered industry, vintage, and trade evidence.
 - Strategy runs are executed by `/strategy/run`; supported Lovable RSI, SMA, price/SMA, and momentum rules are translated automatically.
-- Rich options, 3D, ML, and alternative-signal visualizations remain local analytical demos and are labeled accordingly.
+- Rich options, 3D, and selected ML visualizations remain local analytical demos and are labeled accordingly.
 
 ## API configuration
 
