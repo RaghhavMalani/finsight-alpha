@@ -39,7 +39,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend-v2/package-lock.json
       - run: npm ci
-      - run: npx eslint src/components/terminal/ALTPanel.tsx
+      - run: npx eslint src/components/terminal/StockIntelligencePanel.tsx
       - run: npx tsc --noEmit
       - run: npm run build
 
