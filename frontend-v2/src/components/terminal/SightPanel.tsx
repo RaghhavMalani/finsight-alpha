@@ -15,7 +15,7 @@ export type SightDeskContext = {
   ticker: string;
   displayedPrice: number;
   changePct: number;
-  marketSource: "FINNHUB" | "EOD" | "SIM";
+  marketSource: "FINNHUB" | "EOD" | "UNAVAILABLE";
   priceProvenance: string;
   replay: boolean;
   watchlist: string[];

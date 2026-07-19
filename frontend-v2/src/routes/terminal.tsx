@@ -33,7 +33,7 @@ import { ContextMenu, type ContextState } from "@/components/terminal/ContextMen
 import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/AlertsPanel";
 import { BookDrawer } from "@/components/terminal/BookDrawer";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
-import { TICKERS, seedInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
+import { TICKERS, unavailableInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
 import { useLiveMarket } from "@/lib/live-market";
 import { toast } from "sonner";
 
@@ -98,7 +98,7 @@ function Terminal() {
   const [fn, setFn] = useState<string>("HOME");
   const [instruments, setInstruments] = useState<Record<string, Instrument>>(() => {
     const m: Record<string, Instrument> = {};
-    TICKERS.forEach((s) => (m[s] = seedInstrument(s)));
+    TICKERS.forEach((s) => (m[s] = unavailableInstrument(s)));
     return m;
   });
   const market = useLiveMarket(setInstruments);
@@ -210,6 +210,13 @@ function Terminal() {
     } catch { /* ignore */ }
   }, [preset]);
 
+  function openWorkspace(nextPreset: Preset) {
+    setPreset(nextPreset);
+    setFn("MK");
+    setMaximized(null);
+    setPanelKey((key) => key + 1);
+  }
+
   function runCmd(code: string, symbol?: string, action?: "GO" | "COMPARE", symbol2?: string) {
     if (code === "TOUR") {
       window.dispatchEvent(new Event("finsight:tour-replay"));
@@ -277,7 +284,7 @@ function Terminal() {
         : inst.price,
     changePct: inst.changePct,
     marketSource: market.source,
-    priceProvenance: market.source === "SIM" ? "SIMULATED_FALLBACK" : `${market.source}_PROVIDER_QUOTE`,
+    priceProvenance: market.source === "UNAVAILABLE" ? "UNAVAILABLE" : `${market.source}_PROVIDER_QUOTE`,
     replay: replayT !== null,
     watchlist: watch,
     paperBook: demoPositions.map((position) => position.symbol),
@@ -343,7 +350,7 @@ function Terminal() {
           <Link to="/" className="mono-caps text-sm text-primary">FinSight</Link>
           <div className="mono-caps flex items-center gap-2 text-[10px] text-muted-foreground">
             <span className={`h-1.5 w-1.5 rounded-full ${replayT !== null ? "bg-info" : "bg-up"} animate-pulse-live`} />
-            {replayT !== null ? "REPLAY · LOCAL" : `${market.connected ? "CONNECTED" : "FALLBACK"} · ${market.source}`}
+            {replayT !== null ? "REPLAY · LOCAL" : `${market.connected ? "CONNECTED" : "UNAVAILABLE"} · ${market.source}`}
           </div>
           <MarketClock />
         </div>
@@ -443,13 +450,18 @@ function Terminal() {
           <HintTicker />
         </div>
         <div data-tour="preset" className="flex items-center gap-2">
-          <span className="text-faint">LAYOUT</span>
+          <span className="text-faint">WORKSPACE</span>
           {(["DESK", "QUANT", "RESEARCH"] as Preset[]).map((p) => (
             <button
               key={p}
-              onClick={() => { setPreset(p); setPanelKey((k) => k + 1); }}
+              type="button"
+              onClick={() => openWorkspace(p)}
+              aria-pressed={fn === "MK" && preset === p}
+              title={`Open ${p.toLowerCase()} market workspace`}
               className={`interactive border px-1.5 py-0.5 transition ${
-                preset === p ? "border-primary text-primary" : "border-border hover:text-foreground"
+                fn === "MK" && preset === p
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border hover:border-primary hover:text-foreground"
               }`}
             >{p}</button>
           ))}
@@ -546,6 +558,7 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
       return (
         <GridStage2x2
           initial={{ colFrac: 0.6, rowFrac: 0.55 }}
+          storageKey="finsight.quant.grid"
           slots={[
             <div key="a" data-tour="panel-toolbar" className="h-full">
               <Panel code={fn} title={`${active} · Price`} subtitle={SUBTITLES.MK(active)} source={inst.dataSource} explainer={EXPLAINERS[fn]} onMaximize={() => onMaximize("PRICE")} className="h-full" {...A}>

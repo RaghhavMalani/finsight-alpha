@@ -64,6 +64,7 @@ uvicorn[standard]
 pydantic
 sqlalchemy
 psycopg2-binary          # PostgreSQL driver (Azure Database for PostgreSQL)
+sentry-sdk[fastapi]      # optional at runtime; enabled when SENTRY_DSN is set
 
 # Optional cloud upload stack (not needed for the terminal; uncomment if used):
 # google-cloud-bigquery
