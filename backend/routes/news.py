@@ -19,3 +19,14 @@ def get_news(ticker: str, limit: int = Query(12, ge=1, le=30)) -> Dict[str, Any]
     payload = score_headlines(items)
     payload["ticker"] = ticker.upper()
     return payload
+
+
+@router.get("/{ticker}/impact")
+def get_news_impact(ticker: str, limit: int = Query(12, ge=1, le=30)) -> Dict[str, Any]:
+    """Return an evidence-labelled catalyst-to-company impact graph."""
+    from src.news.impact import analyze_news_impact
+    from src.news.news_feed import fetch_news
+    from src.news.sentiment import score_headlines
+
+    scored = score_headlines(fetch_news(ticker, limit=limit))
+    return analyze_news_impact(ticker, scored["items"])

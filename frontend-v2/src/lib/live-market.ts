@@ -63,10 +63,16 @@ function formatAsOf(items: TapeItem[], live: boolean): string | null {
  */
 export function useLiveMarket(
   setInstruments: Dispatch<SetStateAction<Record<string, Instrument>>>,
+  symbols: string[] = TICKERS,
 ): LiveMarketStatus {
+  const symbolKey = Array.from(
+    new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean)),
+  )
+    .slice(0, 30)
+    .join(",");
   const tape = useQuery({
-    queryKey: ["market-tape", TICKERS.join(",")],
-    queryFn: () => api<TapePayload>(`/tape?symbols=${encodeURIComponent(TICKERS.join(","))}`),
+    queryKey: ["market-tape", symbolKey],
+    queryFn: () => api<TapePayload>(`/tape?symbols=${encodeURIComponent(symbolKey)}`),
     refetchInterval: 30_000,
     staleTime: 15_000,
     retry: 1,

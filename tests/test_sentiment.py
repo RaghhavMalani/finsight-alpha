@@ -36,17 +36,36 @@ def test_aggregate():
 
 
 def test_parse_new_shape():
-    item = {"content": {"title": "Big news", "provider": {"displayName": "Reuters"},
-                        "canonicalUrl": {"url": "http://x"}, "pubDate": "2026-05-01T10:00:00Z",
-                        "summary": "details"}}
+    item = {
+        "content": {
+            "title": "Big news",
+            "provider": {"displayName": "Reuters"},
+            "canonicalUrl": {"url": "http://x"},
+            "pubDate": "2026-05-01T10:00:00Z",
+            "summary": "details",
+        },
+        "relatedTickers": ["AAPL", "MSFT"],
+    }
     p = _parse_item(item)
-    assert p["title"] == "Big news" and p["publisher"] == "Reuters" and p["url"] == "http://x"
+    assert (
+        p["title"] == "Big news"
+        and p["publisher"] == "Reuters"
+        and p["url"] == "http://x"
+    )
+    assert p["related_tickers"] == ["AAPL", "MSFT"]
 
 
 def test_parse_old_shape():
-    item = {"title": "Old news", "publisher": "WSJ", "link": "http://y", "providerPublishTime": 1714557600}
+    item = {
+        "title": "Old news",
+        "publisher": "WSJ",
+        "link": "http://y",
+        "providerPublishTime": 1714557600,
+    }
     p = _parse_item(item)
-    assert p["title"] == "Old news" and p["publisher"] == "WSJ" and p["url"] == "http://y"
+    assert (
+        p["title"] == "Old news" and p["publisher"] == "WSJ" and p["url"] == "http://y"
+    )
 
 
 def test_parse_drops_titleless():

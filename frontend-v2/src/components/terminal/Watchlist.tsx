@@ -1,9 +1,24 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Instrument } from "@/lib/market";
 import { fmt, fmtPct } from "@/lib/market";
 import { MiniSparkline } from "./MiniSparkline";
 import { TICKERS } from "@/lib/market";
+import { api } from "@/lib/api";
 import { Bell } from "lucide-react";
+
+type SymbolSearchItem = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  market: "US" | "INDIA";
+  type: string;
+};
+
+type SymbolSearchPayload = {
+  items: SymbolSearchItem[];
+  coverage: string;
+};
 
 function formatVol(v: number) {
   if (!Number.isFinite(v) || v <= 0) return "--";
@@ -60,15 +75,53 @@ export function Watchlist({
     const maxAbs = items.reduce((m, i) => Math.max(m, Math.abs(i.changePct)), 0);
     return Math.max(1, Math.ceil(maxAbs * 1.2 * 2) / 2);
   }, [items]);
-
   const [adding, setAdding] = useState(false);
   const [query, setQuery] = useState("");
-  const suggestions = useMemo(() => {
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query.trim()), 220);
+    return () => clearTimeout(id);
+  }, [query]);
+  const search = useQuery({
+    queryKey: ["symbol-search", debouncedQuery],
+    queryFn: () =>
+      api<SymbolSearchPayload>(`/assets/search?q=${encodeURIComponent(debouncedQuery)}`),
+    enabled: adding && debouncedQuery.length > 0,
+    staleTime: 10 * 60_000,
+    retry: 1,
+  });
+
+  const suggestions = useMemo<SymbolSearchItem[]>(() => {
     const q = query.trim().toUpperCase();
     if (!q) return [];
     const owned = new Set(items.map((i) => i.symbol));
-    return TICKERS.filter((t) => t.startsWith(q) && !owned.has(t)).slice(0, 5);
-  }, [query, items]);
+    const remote = search.data?.items ?? [];
+    const local = TICKERS.filter((ticker) => ticker.startsWith(q)).map((symbol) => ({
+      symbol,
+      name: symbol,
+      exchange: "US",
+      market: "US" as const,
+      type: "EQUITY",
+    }));
+    const direct = /^[A-Z0-9][A-Z0-9.\-^=]{0,24}$/.test(q)
+      ? [
+          {
+            symbol: q,
+            name: "Direct symbol lookup",
+            exchange: q.endsWith(".NS") ? "NSE" : q.endsWith(".BO") ? "BSE" : "US",
+            market: q.endsWith(".NS") || q.endsWith(".BO") ? ("INDIA" as const) : ("US" as const),
+            type: "EQUITY",
+          },
+        ]
+      : [];
+    return [...remote, ...local, ...direct]
+      .filter(
+        (item, index, all) =>
+          !owned.has(item.symbol) &&
+          all.findIndex((candidate) => candidate.symbol === item.symbol) === index,
+      )
+      .slice(0, 8);
+  }, [query, items, search.data?.items]);
 
   return (
     <div className="flex h-full flex-col">
@@ -166,7 +219,7 @@ export function Watchlist({
                 onBlur={() => setTimeout(() => setAdding(false), 150)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && suggestions[0]) {
-                    onAdd(suggestions[0]);
+                    onAdd(suggestions[0].symbol);
                     setQuery("");
                     setAdding(false);
                   } else if (e.key === "Escape") {
@@ -177,20 +230,31 @@ export function Watchlist({
                 placeholder="Symbol…"
                 className="w-full border border-border bg-background px-2 py-1 font-mono text-[11px] text-foreground outline-none focus:border-primary"
               />
+              <div className="mono-caps mt-1 text-[8px] text-faint">
+                SEARCH ALL YAHOO-LISTED US · NSE (.NS) · BSE (.BO)
+              </div>
               {suggestions.length > 0 && (
                 <div className="absolute left-3 right-3 top-full z-20 border border-border bg-raised">
-                  {suggestions.map((s) => (
+                  {suggestions.map((result) => (
                     <button
-                      key={s}
+                      key={result.symbol}
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        onAdd(s);
+                        onAdd(result.symbol);
                         setQuery("");
                         setAdding(false);
                       }}
                       className="mono-caps block w-full px-2 py-1 text-left text-[10px] text-foreground hover:bg-primary/10 hover:text-primary"
                     >
-                      {s}
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-primary">{result.symbol}</span>
+                        <span className="text-[8px] text-faint">
+                          {result.exchange} · {result.market}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-[9px] normal-case text-muted-foreground">
+                        {result.name}
+                      </span>
                     </button>
                   ))}
                 </div>

@@ -24,9 +24,13 @@ from src.auth import db as auth_db
 auth_db.init_db()
 _TEST_EMAIL = "api-tests@finsight.local"
 _TEST_PASSWORD = "test-password-1234"
-_auth = client.post("/auth/register", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD})
+_auth = client.post(
+    "/auth/register", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD}
+)
 if _auth.status_code == 400:
-    _auth = client.post("/auth/login", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD})
+    _auth = client.post(
+        "/auth/login", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD}
+    )
 assert _auth.status_code == 200, _auth.text
 
 
@@ -54,6 +58,46 @@ def test_assets() -> None:
     assert "RELIANCE.NS" in body["indian"]
     # Sector map should cover the known tickers.
     assert body["sectors"]["AAPL"] == "Information Technology"
+
+
+def test_asset_search_covers_us_nse_and_bse(monkeypatch) -> None:
+    import yfinance as yf
+
+    class _Search:
+        def __init__(self, *args, **kwargs) -> None:
+            self.quotes = [
+                {
+                    "symbol": "AAPL",
+                    "shortname": "Apple Inc.",
+                    "exchange": "NMS",
+                    "quoteType": "EQUITY",
+                },
+                {
+                    "symbol": "RELIANCE.NS",
+                    "shortname": "Reliance Industries",
+                    "exchange": "NSI",
+                    "quoteType": "EQUITY",
+                },
+                {
+                    "symbol": "RELIANCE.BO",
+                    "shortname": "Reliance Industries",
+                    "exchange": "BSE",
+                    "quoteType": "EQUITY",
+                },
+                {
+                    "symbol": "AIR.PA",
+                    "shortname": "Airbus",
+                    "exchange": "PAR",
+                    "quoteType": "EQUITY",
+                },
+            ]
+
+    monkeypatch.setattr(yf, "Search", _Search)
+    response = client.get("/assets/search", params={"q": "reliance"})
+    assert response.status_code == 200
+    symbols = {item["symbol"] for item in response.json()["items"]}
+    assert {"AAPL", "RELIANCE.NS", "RELIANCE.BO"}.issubset(symbols)
+    assert "AIR.PA" not in symbols
 
 
 def test_market_data_routes_exist() -> None:
@@ -86,7 +130,11 @@ def test_summary_missing_returns_404() -> None:
 def test_correlation_requires_two_tickers() -> None:
     resp = client.post(
         "/analytics/correlation",
-        json={"tickers": ["AAPL"], "start_date": "2023-01-01", "end_date": "2024-01-01"},
+        json={
+            "tickers": ["AAPL"],
+            "start_date": "2023-01-01",
+            "end_date": "2024-01-01",
+        },
     )
     assert resp.status_code == 400
 
