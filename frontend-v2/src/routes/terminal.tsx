@@ -34,7 +34,7 @@ import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/Ale
 import { BookDrawer } from "@/components/terminal/BookDrawer";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
 import { TICKERS, unavailableInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
-import { useLiveMarket } from "@/lib/live-market";
+import { useLiveMarket, type LiveMarketStatus } from "@/lib/live-market";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/terminal")({
@@ -337,6 +337,7 @@ function Terminal() {
     watch,
     demoBookSyms: demoPositions.map((p) => p.symbol),
     onRun: runCmd,
+    marketStatus: market,
     emCone,
     sightContext,
     setEmCone,
@@ -349,8 +350,12 @@ function Terminal() {
         <div className="flex items-center gap-6">
           <Link to="/" className="mono-caps text-sm text-primary">FinSight</Link>
           <div className="mono-caps flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span className={`h-1.5 w-1.5 rounded-full ${replayT !== null ? "bg-info" : "bg-up"} animate-pulse-live`} />
-            {replayT !== null ? "REPLAY · LOCAL" : `${market.connected ? "CONNECTED" : "UNAVAILABLE"} · ${market.source}`}
+            <span className={`h-1.5 w-1.5 rounded-full ${replayT !== null ? "bg-info" : market.source === "FINNHUB" ? "bg-up animate-pulse-live" : market.connected ? "bg-primary" : "bg-faint"}`} />
+            {replayT !== null
+              ? "REPLAY · LOCAL"
+              : market.connected
+                ? market.source === "FINNHUB" ? "LIVE · FINNHUB" : `EOD SNAPSHOT · ${market.asOf ?? "TIMESTAMP PENDING"}`
+                : "CONNECTING · MARKET DATA"}
           </div>
           <MarketClock />
         </div>
@@ -361,6 +366,9 @@ function Terminal() {
           <Link to="/risk" className="hover:text-primary">/RISK</Link>
         </div>
       </header>
+      <div className="h-7 shrink-0 overflow-hidden border-b border-divider bg-panel">
+        <TapePin instruments={instruments} onPin={togglePin} onOpen={setFocusSym} onContext={openContextForSym} paused={replayT !== null} />
+      </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left rail */}
@@ -437,9 +445,6 @@ function Terminal() {
               }}
             />
           </Panel>
-          <Panel code="TAPE" title="Pin from tape">
-            <TapePin instruments={instruments} onPin={togglePin} onOpen={setFocusSym} onContext={openContextForSym} paused={replayT !== null} />
-          </Panel>
         </aside>
       </div>
 
@@ -515,6 +520,7 @@ type CenterProps = {
   watch: string[];
   demoBookSyms: string[];
   onRun: (code: string, symbol?: string) => void;
+  marketStatus: LiveMarketStatus;
   emCone: { symbol: string; pct: number } | null;
   setEmCone: (v: { symbol: string; pct: number } | null) => void;
   sightContext: SightDeskContext;
@@ -547,8 +553,17 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
 
   if (fn === "HOME") {
     return (
-      <Panel code="HOME" title="Market overview" subtitle={SUBTITLES.HOME(active)} explainer={EXPLAINERS.HOME} onMaximize={() => onMaximize("HOME")} className="h-full">
-        <HomeOverview instruments={instruments} onOpenSymbol={(s) => setActive(s)} onRun={p.onRun} />
+      <Panel
+        code="HOME"
+        title="Market overview"
+        subtitle={SUBTITLES.HOME(active)}
+        source={p.marketStatus.connected ? p.marketStatus.source : "CONNECTING"}
+        asOf={p.marketStatus.asOf ?? undefined}
+        explainer={EXPLAINERS.HOME}
+        onMaximize={() => onMaximize("HOME")}
+        className="h-full"
+      >
+        <HomeOverview instruments={instruments} onOpenSymbol={(s) => setActive(s)} onRun={p.onRun} marketStatus={p.marketStatus} />
       </Panel>
     );
   }

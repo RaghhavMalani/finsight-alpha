@@ -6,6 +6,7 @@ import { TICKERS } from "@/lib/market";
 import { Bell } from "lucide-react";
 
 function formatVol(v: number) {
+  if (!Number.isFinite(v) || v <= 0) return "--";
   if (v >= 1e9) return (v / 1e9).toFixed(2) + "B";
   if (v >= 1e6) return (v / 1e6).toFixed(1) + "M";
   if (v >= 1e3) return (v / 1e3).toFixed(0) + "k";
@@ -23,9 +24,12 @@ function DeltaCell({ up, changePct }: { up: boolean; changePct: number }) {
       return () => clearTimeout(id);
     }
   }, [changePct]);
-  const cls = flash === "up" ? "animate-flash-cell-up" : flash === "down" ? "animate-flash-cell-down" : "";
+  const cls =
+    flash === "up" ? "animate-flash-cell-up" : flash === "down" ? "animate-flash-cell-down" : "";
   return (
-    <span className={`inline-block text-right font-mono text-[10px] tabular-nums px-1 ${up ? "text-up" : "text-down"} ${cls}`}>
+    <span
+      className={`inline-block text-right font-mono text-[10px] tabular-nums px-1 ${up ? "text-up" : "text-down"} ${cls}`}
+    >
       {up ? "▲" : "▼"} {fmtPct(changePct)}
     </span>
   );
@@ -68,7 +72,7 @@ export function Watchlist({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mono-caps grid grid-cols-[46px_1fr_52px_60px_58px_18px] items-center gap-1.5 border-b border-divider bg-panel px-2 py-1 text-[9px] text-faint tabular-nums">
+      <div className="mono-caps grid grid-cols-[44px_1fr_48px_54px_54px_40px] items-center gap-1 border-b border-divider bg-panel px-2 py-1 text-[9px] text-faint tabular-nums">
         <span>SYM</span>
         <span className="text-right">LAST</span>
         <span></span>
@@ -98,22 +102,37 @@ export function Watchlist({
               }}
               tabIndex={0}
               role="button"
-              className={`group grid w-full cursor-pointer grid-cols-[46px_1fr_52px_60px_58px_auto] items-center gap-1.5 px-2 py-1.5 text-left outline-none tabular-nums transition hover:bg-raised focus:bg-raised ${
+              className={`group relative grid w-full cursor-pointer grid-cols-[44px_1fr_48px_54px_54px_40px] items-center gap-1 px-2 py-1.5 text-left outline-none tabular-nums transition hover:bg-raised focus:bg-raised ${
                 active === i.symbol ? "border-l-2 border-primary bg-primary/5 -ml-[2px]" : ""
               } ${flash ? "animate-flash-alert" : ""}`}
               style={{ minHeight: 26 }}
             >
               <span className="mono-caps text-[11px] text-foreground">{i.symbol}</span>
-              <span className="text-right font-mono text-[11px] text-foreground">{fmt(i.price)}</span>
-              <MiniSparkline history={i.history} up={up} prevClose={i.prevClose} pctRange={pctRange} />
-              <span className={`text-right font-mono text-[10px] tabular-nums ${up ? "text-up" : "text-down"}`}>
-                {up ? "+" : ""}{change.toFixed(2)}
+              <span className="text-right font-mono text-[11px] text-foreground">
+                {fmt(i.price)}
+              </span>
+              <MiniSparkline
+                history={i.history}
+                up={up}
+                prevClose={i.prevClose}
+                pctRange={pctRange}
+              />
+              <span
+                className={`text-right font-mono text-[10px] tabular-nums ${up ? "text-up" : "text-down"}`}
+              >
+                {up ? "+" : ""}
+                {change.toFixed(2)}
               </span>
               <DeltaCell up={up} changePct={i.changePct} />
-              <span className="text-right font-mono text-[9.5px] text-muted-foreground">{formatVol(vol)}</span>
-              <div className="col-start-6 row-start-1 justify-self-end flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+              <span className="text-right font-mono text-[9.5px] text-muted-foreground">
+                {formatVol(vol)}
+              </span>
+              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 bg-raised pl-1 opacity-0 transition group-hover:opacity-100 group-focus:opacity-100">
                 <button
-                  onClick={(e) => { e.stopPropagation(); onAlert?.(i.symbol); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAlert?.(i.symbol);
+                  }}
                   title="Set alert"
                   className="text-faint hover:text-primary"
                 >
@@ -121,10 +140,15 @@ export function Watchlist({
                 </button>
                 {onRemove && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); onRemove(i.symbol); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemove(i.symbol);
+                    }}
                     title="Remove"
                     className="text-faint hover:text-down px-0.5"
-                  >✕</button>
+                  >
+                    ✕
+                  </button>
                 )}
               </div>
             </div>
@@ -142,8 +166,13 @@ export function Watchlist({
                 onBlur={() => setTimeout(() => setAdding(false), 150)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && suggestions[0]) {
-                    onAdd(suggestions[0]); setQuery(""); setAdding(false);
-                  } else if (e.key === "Escape") { setAdding(false); setQuery(""); }
+                    onAdd(suggestions[0]);
+                    setQuery("");
+                    setAdding(false);
+                  } else if (e.key === "Escape") {
+                    setAdding(false);
+                    setQuery("");
+                  }
                 }}
                 placeholder="Symbol…"
                 className="w-full border border-border bg-background px-2 py-1 font-mono text-[11px] text-foreground outline-none focus:border-primary"
@@ -153,9 +182,16 @@ export function Watchlist({
                   {suggestions.map((s) => (
                     <button
                       key={s}
-                      onMouseDown={(e) => { e.preventDefault(); onAdd(s); setQuery(""); setAdding(false); }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onAdd(s);
+                        setQuery("");
+                        setAdding(false);
+                      }}
                       className="mono-caps block w-full px-2 py-1 text-left text-[10px] text-foreground hover:bg-primary/10 hover:text-primary"
-                    >{s}</button>
+                    >
+                      {s}
+                    </button>
                   ))}
                 </div>
               )}
@@ -164,11 +200,12 @@ export function Watchlist({
             <button
               onClick={() => setAdding(true)}
               className="mono-caps interactive flex w-full items-center justify-center gap-1 py-1.5 text-[10px] text-faint hover:bg-raised hover:text-primary"
-            >+ ADD</button>
+            >
+              + ADD
+            </button>
           )}
         </div>
       )}
     </div>
   );
 }
-

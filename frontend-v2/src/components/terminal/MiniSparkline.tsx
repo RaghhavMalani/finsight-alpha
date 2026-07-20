@@ -22,6 +22,12 @@ export function MiniSparkline({
 }) {
   const { pts, centerY } = useMemo(() => {
     if (!history.length) return { pts: "", centerY: height / 2 };
+    if (history.length === 1) {
+      return {
+        pts: `0,${(height / 2).toFixed(1)} ${width},${(height / 2).toFixed(1)}`,
+        centerY: height / 2,
+      };
+    }
     if (prevClose && pctRange) {
       const range = (prevClose * pctRange) / 100; // full-scale dollars
       const cy = height / 2;
@@ -74,4 +80,3 @@ export function MiniSparkline({
     </svg>
   );
 }
-
