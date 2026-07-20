@@ -164,6 +164,18 @@ def test_fetch_response_schema_has_status_dicts() -> None:
         assert name in fields
 
 
+def test_index_symbols_are_valid_provider_symbols() -> None:
+    from backend.routes.assets import _SYMBOL_RE as asset_symbol_re
+    from backend.routes.tape import _SYMBOL_RE as tape_symbol_re
+
+    for symbol in ("^VIX", "^TNX", "^NSEI", "^BSESN", "^INDIAVIX"):
+        assert tape_symbol_re.fullmatch(symbol)
+        assert asset_symbol_re.fullmatch(symbol)
+
+    assert not tape_symbol_re.fullmatch("../etc/passwd")
+    assert not asset_symbol_re.fullmatch("AAPL,MSFT")
+
+
 def test_fetch_returns_structured_statuses(monkeypatch) -> None:
     """The fetch route returns all three status dicts without real network/GCP.
 
@@ -214,3 +226,28 @@ def test_fetch_returns_structured_statuses(monkeypatch) -> None:
     assert "not requested" in body["bigquery_upload_status"]["message"]
     assert "not requested" in body["cloud_storage_upload_status"]["message"]
     assert body["local_save_status"]["success"] is False
+
+
+def test_tape_live_flag_reflects_returned_items(monkeypatch) -> None:
+    import backend.routes.tape as tape_route
+    import src.data.providers.finnhub_provider as finnhub_provider
+
+    monkeypatch.setattr(finnhub_provider, "finnhub_available", lambda: True)
+    monkeypatch.setattr(tape_route, "_live_one", lambda symbol: None)
+    monkeypatch.setattr(
+        tape_route,
+        "_eod_one",
+        lambda symbol: {
+            "ticker": symbol,
+            "last": 100.0,
+            "change_pct": 0.01,
+            "quote_ts": "2026-07-17",
+            "source": "YFINANCE_EOD",
+            "live": False,
+        },
+    )
+
+    payload = tape_route.tape("AAPL,^VIX")
+
+    assert len(payload["items"]) == 2
+    assert payload["live"] is False

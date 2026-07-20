@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { TICKERS, type Instrument, fmt, fmtPct } from "@/lib/market";
 import { MiniSparkline } from "./MiniSparkline";
+import { AiInsight } from "./AiInsight";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
 import { api, type NewsPayload, type TapeItem } from "@/lib/api";
 
@@ -27,7 +28,12 @@ const CROSS_ASSETS = [
   { label: "WTI", symbol: "CL=F", yield: false },
   { label: "GOLD", symbol: "GC=F", yield: false },
   { label: "BTC", symbol: "BTC-USD", yield: false },
+  { label: "NIFTY", symbol: "^NSEI", yield: false },
+  { label: "SENSEX", symbol: "^BSESN", yield: false },
+  { label: "USD/INR", symbol: "INR=X", yield: false },
+  { label: "INDIA VIX", symbol: "^INDIAVIX", yield: false },
 ] as const;
+const INDIA_CROSS_SYMBOLS = new Set(["^NSEI", "^BSESN", "INR=X", "^INDIAVIX"]);
 const COMPANY_ALIASES: Record<string, string[]> = {
   AAPL: ["AAPL", "APPLE", "IPHONE"],
   MSFT: ["MSFT", "MICROSOFT", "AZURE"],
@@ -48,6 +54,33 @@ const CROSS_SYMBOLS = CROSS_ASSETS.map((asset) => asset.symbol);
 type TapePayload = { items: TapeItem[]; live: boolean };
 type DriverLabel = "LIKELY DRIVER" | "CO-MENTIONED" | "NO VERIFIED DRIVER";
 type Driver = { headline: string; label: DriverLabel; score: number };
+type HomeImpactPayload = {
+  ticker: string;
+  signal: {
+    label: string;
+    bullish_probability: number;
+    bearish_probability: number;
+    confidence: number;
+  };
+  evidence: { headlines: number; provider_tagged: number; coverage_pct: number };
+  analyses: Array<{
+    headline: string;
+    causality_label: string;
+    relevance_label: string;
+    sentiment_label: "BULLISH" | "BEARISH" | "MIXED";
+    materiality: number;
+    confidence: number;
+    horizon: string;
+    flow: Array<{ stage: string; title: string; detail: string }>;
+    scenarios: { base: string; upside: string; downside: string };
+    affected_companies: Array<{
+      ticker: string;
+      role: string;
+      scenario_sensitivity: string;
+    }>;
+  }>;
+};
+type HomeMover = { inst: Instrument; driver: Driver; impact?: HomeImpactPayload };
 type RegimePayload = {
   current: {
     current_regime?: string | number | null;
@@ -60,17 +93,28 @@ type RegimePayload = {
 
 function pickDriver(payload: NewsPayload | undefined, symbol: string): Driver {
   const aliases = COMPANY_ALIASES[symbol] ?? [symbol];
-  const candidates = [...(payload?.items ?? []), ...(payload?.headlines ?? [])]
-    .map((item) => (typeof item.title === "string" ? item.title.trim() : ""))
-    .filter(Boolean);
+  const candidates = [...(payload?.items ?? []), ...(payload?.headlines ?? [])].flatMap((item) => {
+    const headline = typeof item.title === "string" ? item.title.trim() : "";
+    if (!headline) return [];
+    const related = Array.isArray(item.related_tickers)
+      ? item.related_tickers.map((value) => String(value).toUpperCase())
+      : [];
+    return [{ headline, related }];
+  });
   let best: Driver | null = null;
-  for (const headline of candidates) {
+  for (const { headline, related } of candidates) {
     const upper = headline.toUpperCase();
     const mention = aliases.some((alias) => upper.includes(alias.toUpperCase()));
+    const providerTagged = related.includes(symbol) || related.includes(symbol.split(".", 1)[0]);
     const score =
-      (upper.includes(symbol) ? 4 : mention ? 3 : 0) + (CATALYST_WORDS.test(headline) ? 2 : 0);
+      (providerTagged ? 6 : upper.includes(symbol) ? 4 : mention ? 3 : 0) +
+      (CATALYST_WORDS.test(headline) ? 2 : 0);
     const label: DriverLabel =
-      score >= 5 ? "LIKELY DRIVER" : mention ? "CO-MENTIONED" : "NO VERIFIED DRIVER";
+      providerTagged && score >= 8
+        ? "LIKELY DRIVER"
+        : providerTagged || mention
+          ? "CO-MENTIONED"
+          : "NO VERIFIED DRIVER";
     if (!best || score > best.score) best = { headline, label, score };
   }
   return best && best.label !== "NO VERIFIED DRIVER"
@@ -197,7 +241,7 @@ export function HomeOverview({
       [...list]
         .filter((inst) => inst.dataSource !== "UNAVAILABLE")
         .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct))
-        .slice(0, 3),
+        .slice(0, 5),
     [list],
   );
   const moverSymbols = topMovers.map((inst) => inst.symbol);
@@ -208,13 +252,26 @@ export function HomeOverview({
     staleTime: 5 * 60_000,
     retry: 1,
   });
+  const moverImpact = useQuery({
+    queryKey: ["home-mover-impact", moverSymbols.join(",")],
+    queryFn: () =>
+      Promise.all(
+        moverSymbols.map((symbol) =>
+          api<HomeImpactPayload>(`/news/${encodeURIComponent(symbol)}/impact?limit=8`),
+        ),
+      ),
+    enabled: moverSymbols.length > 0,
+    staleTime: 5 * 60_000,
+    retry: 0,
+  });
   const movers = useMemo(
     () =>
       topMovers.map((inst, index) => ({
         inst,
         driver: pickDriver(moverNews.data?.[index], inst.symbol),
+        impact: moverImpact.data?.[index],
       })),
-    [moverNews.data, topMovers],
+    [moverImpact.data, moverNews.data, topMovers],
   );
 
   const sectorReturns = useMemo(
@@ -249,6 +306,7 @@ export function HomeOverview({
   const curveBps = twoYear && tenYear ? (tenYear.last - twoYear.last) * 100 : null;
 
   const [dateLine, setDateLine] = useState("");
+  const nifty = crossQuotes.find((item) => item.ticker === "^NSEI");
   useEffect(() => {
     setDateLine(nowLine());
   }, []);
@@ -265,7 +323,7 @@ export function HomeOverview({
       : "";
     const bookTxt = positions.length
       ? ` Your demo book is ${bookAgg.pct >= 0 ? "up" : "down"} ${Math.abs(bookAgg.pct).toFixed(2)}% on ${positions.length} positions.`
-      : " The demo book is empty.";
+      : "";
     const sectorTxt = sectorReturns[0]
       ? ` ${sectorReturns[0].name} leads sectors at ${fmtPct(sectorReturns[0].ret)}.`
       : "";
@@ -289,8 +347,8 @@ export function HomeOverview({
     const out: SetupChip[] = [];
     if (movers[0])
       out.push({
-        label: `${movers[0].inst.symbol} ${fmtPct(movers[0].inst.changePct)} → inspect real quote`,
-        code: "MK",
+        label: `${movers[0].inst.symbol} ${fmtPct(movers[0].inst.changePct)} → news impact`,
+        code: "NEWS",
         sym: movers[0].inst.symbol,
       });
     if (sectorReturns[0])
@@ -309,20 +367,68 @@ export function HomeOverview({
     return out.slice(0, 3);
   }, [movers, sectorReturns, vix, positions.length]);
 
+  const aiLines = useMemo(() => {
+    const lines: string[] = [];
+    const spyMove = spy?.changePct ?? 0;
+    const vixMove = (vix?.change_pct ?? 0) * 100;
+    if (vix && Math.abs(vixMove) > Math.max(1, Math.abs(spyMove) * 4)) {
+      lines.push(
+        `VOL DISLOCATION · VIX ${fmtPct(vixMove)} is outrunning SPY ${fmtPct(spyMove)} → hedging demand is the first transmission risk.`,
+      );
+    } else {
+      lines.push(
+        `INDEX / VOL CHECK · SPY ${fmtPct(spyMove)} with VIX ${vix ? fmtPct(vixMove) : "pending"} → require breadth confirmation before adding directional risk.`,
+      );
+    }
+    lines.push(
+      `BREADTH MAP · ${sectorInternals.up}/${sectorReturns.length || 11} sectors positive · dispersion ${sectorInternals.dispersion.toFixed(2)}% → ${sectorInternals.positivePct >= 60 ? "participation supports the move" : "leadership is narrow; crowding risk is elevated"}.`,
+    );
+    if (curveBps !== null) {
+      lines.push(
+        `RATES TRANSMISSION · 2s10s ${curveBps >= 0 ? "+" : ""}${curveBps.toFixed(0)} bp → validate equity duration exposure against the dollar and long-end yield.`,
+      );
+    }
+    const leader = movers[0];
+    if (leader?.impact) {
+      lines.push(
+        `${leader.inst.symbol} NEWS GRAPH · ${leader.impact.signal.label} · ${leader.impact.signal.confidence}% confidence · ${leader.impact.evidence.provider_tagged}/${leader.impact.evidence.headlines} headlines provider-tagged.`,
+      );
+    } else if (leader) {
+      lines.push(
+        `${leader.inst.symbol} ATTRIBUTION · ${leader.driver.label} → open the evidence graph before treating the headline as a price driver.`,
+      );
+    }
+    return lines;
+  }, [curveBps, movers, sectorInternals, sectorReturns.length, spy, vix]);
+
   return (
     <div className="mx-auto flex h-full w-full max-w-[1480px] flex-col gap-3 overflow-y-auto px-4 py-3">
       {/* Date line */}
-      <div className="flex items-center justify-between gap-4 border border-divider bg-panel px-3 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border border-divider bg-panel px-3 py-2">
         <div className="font-serif text-[14px] italic text-muted-foreground">{dateLine}</div>
-        <div className="mono-caps flex items-center gap-2 text-[9px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <SessionBadge
+            label="NSE CASH"
+            timeZone="Asia/Kolkata"
+            openMinutes={9 * 60 + 15}
+            closeMinutes={15 * 60 + 30}
+          />
+          <SessionBadge
+            label="US CASH"
+            timeZone="America/New_York"
+            openMinutes={9 * 60 + 30}
+            closeMinutes={16 * 60}
+          />
+        </div>
+        <div className="mono-caps flex items-center gap-2 border border-border px-2 py-1 text-[8px]">
           <span
             className={`h-1.5 w-1.5 rounded-full ${marketStatus?.source === "FINNHUB" ? "bg-up animate-pulse-live" : "bg-primary"}`}
           />
           <span className="text-foreground">
             {marketStatus?.connected
               ? marketStatus.source === "FINNHUB"
-                ? "US CASH · LIVE"
-                : "US CASH · CLOSED / EOD"
+                ? "DATA · FINNHUB"
+                : "DATA · EOD SNAPSHOT"
               : "PROVIDER HANDSHAKE"}
           </span>
           {marketStatus?.asOf && <span className="text-faint">LAST PRINT {marketStatus.asOf}</span>}
@@ -334,6 +440,27 @@ export function HomeOverview({
         />
       </div>
       <CrossAssetStrip quotes={crossQuotes} curveBps={curveBps} />
+
+      <AiInsight
+        source="FINSIGHT AI"
+        lines={aiLines}
+        jumps={[
+          { label: "OPEN NEWS GRAPH", onClick: () => onRun?.("NEWS", movers[0]?.inst.symbol) },
+          { label: "AI RESEARCH", onClick: () => onRun?.("SIGHT", movers[0]?.inst.symbol) },
+          { label: "RISK DESK", onClick: () => onRun?.("RISK") },
+        ]}
+      />
+      <DecisionGraph
+        spyPct={spy?.changePct ?? 0}
+        vix={vix}
+        breadth={sectorInternals.positivePct}
+        dispersion={sectorInternals.dispersion}
+        curveBps={curveBps}
+        regime={regime.data}
+        leader={movers[0]}
+        onOpenNews={() => onRun?.("NEWS", movers[0]?.inst.symbol)}
+        onOpenRisk={() => onRun?.("RISK")}
+      />
 
       {/* Brief */}
       <div className="border-l-2 border-primary/50 pl-4">
@@ -355,8 +482,8 @@ export function HomeOverview({
         </div>
       </div>
 
-      {/* Three instruments */}
-      <div className="grid grid-cols-3 gap-6 border-y border-divider py-5">
+      {/* Decision quotes */}
+      <div className="grid grid-cols-2 gap-4 border-y border-divider py-4 lg:grid-cols-4">
         <InstrumentCell
           label="SPY"
           sublabel="S&P 500"
@@ -364,22 +491,39 @@ export function HomeOverview({
           onOpen={() => spy && onOpenSymbol("SPY")}
         />
         <VixCell quote={vix} />
-        <BookCell
-          notional={bookAgg.notional}
-          pnl={bookAgg.pnl}
-          pct={bookAgg.pct}
-          count={positions.length}
-        />
+        <TapeQuoteCell label="NIFTY" sublabel="NSE 50" quote={nifty} />
+        {positions.length ? (
+          <BookCell
+            notional={bookAgg.notional}
+            pnl={bookAgg.pnl}
+            pct={bookAgg.pct}
+            count={positions.length}
+          />
+        ) : (
+          <MarketRiskCell
+            spyPct={spy?.changePct ?? 0}
+            vix={vix}
+            breadth={sectorInternals.positivePct}
+            ready={sectorReturns.length > 0}
+          />
+        )}
       </div>
 
       {/* What moved */}
       <div>
         <div className="mono-caps mb-1 flex items-center justify-between text-[9px]">
-          <span className="text-primary">WHAT MOVED</span>
-          <span className="text-faint">ATTRIBUTION CONFIDENCE IS EXPLICIT</span>
+          <span className="text-primary">NEWS MOVERS · DECISION MATRIX</span>
+          <span className="text-faint">PRICE → ATTRIBUTION → MODEL BIAS → EVIDENCE</span>
         </div>
         <div className="divide-y divide-divider/60">
-          {movers.map(({ inst, driver }) => {
+          {movers.map(({ inst, driver, impact }) => {
+            const analysis = impact?.analyses[0];
+            const signal = impact?.signal;
+            const modelTone = signal?.label.includes("BULL")
+              ? "border-up/40 text-up"
+              : signal?.label.includes("BEAR")
+                ? "border-down/40 text-down"
+                : "border-info/40 text-info";
             const up = inst.changePct >= 0;
             const driverTone =
               driver.label === "LIKELY DRIVER"
@@ -390,8 +534,12 @@ export function HomeOverview({
             return (
               <button
                 key={inst.symbol}
-                onClick={() => onOpenSymbol(inst.symbol)}
-                className="group grid w-full grid-cols-[58px_70px_118px_1fr] items-center gap-3 px-1 py-2 text-left transition hover:bg-raised"
+                onClick={() => {
+                  if (onRun) onRun("NEWS", inst.symbol);
+                  else onOpenSymbol(inst.symbol);
+                }}
+                title={`Open evidence-labelled news impact for ${inst.symbol}`}
+                className="group grid w-full grid-cols-[58px_64px_104px_minmax(0,1fr)] items-center gap-3 px-1 py-2 text-left transition hover:bg-raised xl:grid-cols-[58px_64px_104px_108px_minmax(0,1fr)]"
               >
                 <span className="mono-caps w-16 shrink-0 border border-border bg-panel px-2 py-1 text-center text-[10px] text-primary group-hover:border-primary">
                   {inst.symbol}
@@ -406,8 +554,13 @@ export function HomeOverview({
                 >
                   {driver.label}
                 </span>
+                <span
+                  className={`mono-caps hidden border px-1.5 py-1 text-center text-[7px] xl:block ${modelTone}`}
+                >
+                  {signal ? `${signal.label} · ${signal.confidence}%` : "MODEL PENDING"}
+                </span>
                 <span className="truncate font-serif text-[13px] leading-snug text-foreground">
-                  {driver.headline}
+                  {analysis?.headline ?? driver.headline}
                 </span>
               </button>
             );
@@ -479,6 +632,279 @@ export function HomeOverview({
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DecisionGraph({
+  spyPct,
+  vix,
+  breadth,
+  dispersion,
+  curveBps,
+  regime,
+  leader,
+  onOpenNews,
+  onOpenRisk,
+}: {
+  spyPct: number;
+  vix?: TapeItem;
+  breadth: number;
+  dispersion: number;
+  curveBps: number | null;
+  regime?: RegimePayload;
+  leader?: HomeMover;
+  onOpenNews: () => void;
+  onOpenRisk: () => void;
+}) {
+  const current = regime?.current;
+  const regimeName = String(current?.current_regime ?? "MODEL CALIBRATING").replaceAll("_", " ");
+  const regimeConfidenceRaw = Number(current?.current_regime_probability);
+  const regimeConfidence = Number.isFinite(regimeConfidenceRaw)
+    ? regimeConfidenceRaw <= 1
+      ? regimeConfidenceRaw * 100
+      : regimeConfidenceRaw
+    : null;
+  const analysis = leader?.impact?.analyses[0];
+  const signal = leader?.impact?.signal;
+  const transmission =
+    analysis?.flow.find((node) => /transmission|mechanism|kpi/i.test(node.stage)) ??
+    analysis?.flow[2];
+  const companies = analysis?.affected_companies
+    .slice(0, 4)
+    .map((company) => company.ticker)
+    .join(" · ");
+  const vixMove = (vix?.change_pct ?? 0) * 100;
+  const nodes = [
+    {
+      stage: "01 · CATALYST",
+      title: leader ? `${leader.inst.symbol} ${fmtPct(leader.inst.changePct)}` : "WAITING FOR TAPE",
+      detail: leader?.driver.label ?? "No ranked mover yet",
+      tone: "text-primary",
+    },
+    {
+      stage: "02 · MARKET STATE",
+      title: regimeName,
+      detail:
+        regimeConfidence === null
+          ? "HMM confidence pending"
+          : `${regimeConfidence.toFixed(0)}% model confidence`,
+      tone: "text-info",
+    },
+    {
+      stage: "03 · TRANSMISSION",
+      title:
+        transmission?.title ??
+        (Math.abs(vixMove) > 2 ? "VOL / HEDGING CHANNEL" : "BREADTH / RATES CHANNEL"),
+      detail:
+        transmission?.detail ??
+        `VIX ${fmtPct(vixMove)} · breadth ${breadth.toFixed(0)}% · dispersion ${dispersion.toFixed(2)}%`,
+      tone: "text-foreground",
+    },
+    {
+      stage: "04 · POTENTIAL EXPOSURE",
+      title: companies || leader?.inst.symbol || "NO NAMES MAPPED",
+      detail: analysis
+        ? "Direct and second-order names from provider relationships"
+        : "Open the news graph to qualify company sensitivity",
+      tone: "text-up",
+    },
+    {
+      stage: "05 · RISK / INVALIDATION",
+      title: analysis?.scenarios.downside ?? "CONFIRM WITH PRICE + BREADTH",
+      detail:
+        curveBps === null
+          ? "Curve input pending"
+          : `2s10s ${curveBps >= 0 ? "+" : ""}${curveBps.toFixed(0)} bp · SPY ${fmtPct(spyPct)}`,
+      tone: "text-down",
+    },
+  ];
+
+  return (
+    <section className="border border-info/35 bg-info/[0.025]">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-info/20 px-3 py-2">
+        <div>
+          <div className="mono-caps text-[9px] text-info">AI DECISION FLOW · EVIDENCE-BOUND</div>
+          <div className="mono-caps mt-0.5 text-[7px] text-faint">
+            SCENARIO TRANSMISSION · NOT A PRICE FORECAST
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {signal && (
+            <span
+              className={`mono-caps border px-2 py-1 text-[8px] ${
+                signal.label.includes("BULL")
+                  ? "border-up/40 text-up"
+                  : signal.label.includes("BEAR")
+                    ? "border-down/40 text-down"
+                    : "border-primary/40 text-primary"
+              }`}
+            >
+              {signal.label} · {signal.confidence}% CONF
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onOpenNews}
+            className="mono-caps border border-info/40 px-2 py-1 text-[8px] text-info hover:bg-info/10"
+          >
+            FULL NEWS GRAPH →
+          </button>
+          <button
+            type="button"
+            onClick={onOpenRisk}
+            className="mono-caps border border-border px-2 py-1 text-[8px] text-muted-foreground hover:border-primary hover:text-primary"
+          >
+            STRESS IT →
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-5">
+        {nodes.map((node, index) => (
+          <div
+            key={node.stage}
+            className="relative min-w-0 border-b border-divider p-2.5 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0"
+          >
+            <div className="mono-caps text-[7px] text-faint">{node.stage}</div>
+            <div className={`mono-caps mt-1 truncate text-[9px] ${node.tone}`} title={node.title}>
+              {node.title}
+            </div>
+            <div className="mt-1 line-clamp-2 text-[9px] leading-snug text-muted-foreground">
+              {node.detail}
+            </div>
+            {index < nodes.length - 1 && (
+              <span className="absolute -right-2.5 top-1/2 z-[1] hidden -translate-y-1/2 bg-background px-1 text-info md:block">
+                →
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+type SessionState = "OPEN" | "PRE-OPEN" | "CLOSED" | "SCHEDULE";
+
+function SessionBadge({
+  label,
+  timeZone,
+  openMinutes,
+  closeMinutes,
+}: {
+  label: string;
+  timeZone: string;
+  openMinutes: number;
+  closeMinutes: number;
+}) {
+  const [session, setSession] = useState<{ state: SessionState; time: string }>({
+    state: "SCHEDULE",
+    time: "—",
+  });
+  useEffect(() => {
+    const update = () => {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).formatToParts(new Date());
+      const value = (type: Intl.DateTimeFormatPartTypes) =>
+        parts.find((part) => part.type === type)?.value ?? "";
+      const weekday = value("weekday");
+      const hour = Number(value("hour"));
+      const minute = Number(value("minute"));
+      const minutes = hour * 60 + minute;
+      const weekend = weekday === "Sat" || weekday === "Sun";
+      const state: SessionState = weekend
+        ? "CLOSED"
+        : minutes >= openMinutes && minutes < closeMinutes
+          ? "OPEN"
+          : minutes >= openMinutes - 30 && minutes < openMinutes
+            ? "PRE-OPEN"
+            : "CLOSED";
+      setSession({ state, time: `${value("hour")}:${value("minute")}` });
+    };
+    update();
+    const id = window.setInterval(update, 60_000);
+    return () => window.clearInterval(id);
+  }, [closeMinutes, openMinutes, timeZone]);
+  const tone =
+    session.state === "OPEN"
+      ? "border-up/40 text-up"
+      : session.state === "PRE-OPEN"
+        ? "border-primary/40 text-primary"
+        : "border-border text-faint";
+  return (
+    <span
+      className={`mono-caps flex items-center gap-1.5 border px-2 py-1 text-[8px] ${tone}`}
+      title="Scheduled regular-hours state; exchange holidays may override."
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${session.state === "OPEN" ? "bg-up animate-pulse-live" : session.state === "PRE-OPEN" ? "bg-primary" : "bg-faint"}`}
+      />
+      {label} · {session.state} · {session.time}
+    </span>
+  );
+}
+
+function TapeQuoteCell({
+  label,
+  sublabel,
+  quote,
+}: {
+  label: string;
+  sublabel: string;
+  quote?: TapeItem;
+}) {
+  const change = (quote?.change_pct ?? 0) * 100;
+  const up = change >= 0;
+  return (
+    <div className="border-l border-divider pl-4 text-left first:border-l-0">
+      <div className="mono-caps text-[10px] text-primary">
+        {label} <span className="text-faint">· {sublabel}</span>
+      </div>
+      <div className="mt-1 font-mono text-[28px] tabular-nums text-foreground">
+        {quote ? fmt(quote.last, quote.last >= 10_000 ? 0 : 2) : "—"}
+      </div>
+      <div className="mono-caps mt-1 flex items-center gap-2 text-[10px] tabular-nums">
+        <span className={quote ? (up ? "text-up" : "text-down") : "text-faint"}>
+          {quote ? `${up ? "▲" : "▼"} ${fmtPct(change)}` : "QUOTE PENDING"}
+        </span>
+        {quote && <span className="text-faint">{quote.source}</span>}
+      </div>
+    </div>
+  );
+}
+
+function MarketRiskCell({
+  spyPct,
+  vix,
+  breadth,
+  ready,
+}: {
+  spyPct: number;
+  vix?: TapeItem;
+  breadth: number;
+  ready: boolean;
+}) {
+  const vixChange = (vix?.change_pct ?? 0) * 100;
+  const defensiveVotes =
+    Number(spyPct < -0.5) + Number(vixChange > 5) + Number(ready && breadth < 45);
+  const state = defensiveVotes >= 2 ? "DEFENSIVE" : defensiveVotes === 0 ? "CONSTRUCTIVE" : "MIXED";
+  const tone =
+    state === "DEFENSIVE" ? "text-down" : state === "CONSTRUCTIVE" ? "text-up" : "text-primary";
+  return (
+    <div className="border-l border-divider pl-4 text-left">
+      <div className="mono-caps text-[10px] text-primary">
+        MARKET RISK <span className="text-faint">· rule-based</span>
+      </div>
+      <div className={`mt-1 font-mono text-[24px] tabular-nums ${tone}`}>{state}</div>
+      <div className="mono-caps mt-1 text-[8px] leading-relaxed text-faint">
+        SPY {fmtPct(spyPct)} · VIX {vix ? fmtPct(vixChange) : "PENDING"} · BREADTH{" "}
+        {ready ? breadth.toFixed(0) + "%" : "PENDING"}
       </div>
     </div>
   );
@@ -587,9 +1013,10 @@ function BookCell({
 
 function CrossAssetStrip({ quotes, curveBps }: { quotes: TapeItem[]; curveBps: number | null }) {
   return (
-    <div className="grid grid-cols-3 border border-divider bg-panel lg:grid-cols-9">
+    <div className="grid grid-cols-4 border border-divider bg-panel md:grid-cols-7 xl:grid-cols-[repeat(13,minmax(0,1fr))]">
       {CROSS_ASSETS.map((asset) => {
         const quote = quotes.find((item) => item.ticker === asset.symbol);
+        const india = INDIA_CROSS_SYMBOLS.has(asset.symbol);
         const change = (quote?.change_pct ?? 0) * 100;
         const up = change >= 0;
         const value = quote
@@ -600,7 +1027,10 @@ function CrossAssetStrip({ quotes, curveBps }: { quotes: TapeItem[]; curveBps: n
               : fmt(quote.last)
           : "PENDING";
         return (
-          <div key={asset.symbol} className="border-l border-divider px-2.5 py-2 first:border-l-0">
+          <div
+            key={asset.symbol}
+            className={`border-l border-divider px-2.5 py-2 first:border-l-0 ${india ? "bg-info/5" : ""}`}
+          >
             <div className="mono-caps flex items-center justify-between text-[8px] text-faint">
               <span>{asset.label}</span>
               {quote && <span className={up ? "text-up" : "text-down"}>{up ? "▲" : "▼"}</span>}

@@ -35,7 +35,7 @@ def _f(v: Any) -> Optional[float]:
 _live_cache: dict[str, tuple[float, Dict[str, Any]]] = {}
 _live_lock = threading.Lock()
 _LIVE_TTL = 20.0
-_SYMBOL_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-^=]{0,24}$")
+_SYMBOL_RE = re.compile(r"^[A-Z0-9^][A-Z0-9.\-^=]{0,24}$")
 
 
 def _live_one(sym: str) -> Optional[Dict[str, Any]]:
@@ -136,4 +136,4 @@ def tape(symbols: str = Query("AAPL,MSFT,NVDA,SPY,JPM,BLK")) -> Dict[str, Any]:
             res = _eod_one(s)
             if res:
                 items.append(res)
-    return {"items": items, "live": use_live}
+    return {"items": items, "live": any(bool(item.get("live")) for item in items)}

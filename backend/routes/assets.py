@@ -11,7 +11,7 @@ from src import config
 from src.data.providers import AVAILABLE_PROVIDERS
 
 router = APIRouter(tags=["reference"])
-_SYMBOL_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-^=]{0,24}$")
+_SYMBOL_RE = re.compile(r"^[A-Z0-9^][A-Z0-9.\-^=]{0,24}$")
 _US_EXCHANGES = {"ASE", "BTS", "NCM", "NGM", "NMS", "NYQ", "PCX", "PNK"}
 _INDIA_EXCHANGES = {"BSE", "BOM", "NSI", "NSE"}
 

@@ -510,7 +510,7 @@ function Terminal() {
               ? "REPLAY · LOCAL"
               : market.connected
                 ? market.source === "FINNHUB"
-                  ? "LIVE · FINNHUB"
+                  ? "CONNECTED · FINNHUB"
                   : `EOD SNAPSHOT · ${market.asOf ?? "TIMESTAMP PENDING"}`
                 : "CONNECTING · MARKET DATA"}
           </div>
@@ -614,6 +614,22 @@ function Terminal() {
               onClose={() => setBookOpen(false)}
             />
           )}
+          {fn === "HOME" && (
+            <Panel code="INTEL" title="News movers · evidence">
+              <div className="max-h-[34vh] overflow-y-auto">
+                <IntelFeed
+                  onSymbolClick={(s) => {
+                    ensureSymbol(s);
+                    setActive(s);
+                    setFn("NEWS");
+                    setTriggeredSyms(new Set([s]));
+                    setTimeout(() => setTriggeredSyms(new Set()), 900);
+                  }}
+                  symbols={[active, ...watch]}
+                />
+              </div>
+            </Panel>
+          )}
           <div data-tour="watchlist" className="flex flex-col">
             <Panel code="WL" title="Watchlist">
               <Watchlist
@@ -644,18 +660,20 @@ function Terminal() {
               />
             </div>
           </Panel>
-          <Panel code="INTEL" title="Market intel">
-            <IntelFeed
-              onSymbolClick={(s) => {
-                ensureSymbol(s);
-                setActive(s);
-                setFn("NEWS");
-                setTriggeredSyms(new Set([s]));
-                setTimeout(() => setTriggeredSyms(new Set()), 900);
-              }}
-              symbols={[active, ...watch]}
-            />
-          </Panel>
+          {fn !== "HOME" && (
+            <Panel code="INTEL" title="Market intel">
+              <IntelFeed
+                onSymbolClick={(s) => {
+                  ensureSymbol(s);
+                  setActive(s);
+                  setFn("NEWS");
+                  setTriggeredSyms(new Set([s]));
+                  setTimeout(() => setTriggeredSyms(new Set()), 900);
+                }}
+                symbols={[active, ...watch]}
+              />
+            </Panel>
+          )}
         </aside>
       </div>
 
