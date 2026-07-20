@@ -15,8 +15,10 @@ type NewsRecord = {
   score?: unknown;
   label?: unknown;
   url?: unknown;
+  related_tickers?: unknown;
 };
-const NEWS_SYMBOLS = ["SPY", "NVDA", "AAPL"];
+const DEFAULT_NEWS_SYMBOLS = ["SPY", "NVDA", "AAPL", "RELIANCE.NS"];
+type IntelHeadline = Headline & { verified: boolean };
 
 function sentimentOf(item: NewsRecord): Headline["sentiment"] {
   const label = String(item.label ?? "").toLowerCase();
@@ -35,21 +37,27 @@ function publishedTime(value: unknown): string {
 }
 export function IntelFeed({
   onSymbolClick,
+  symbols = DEFAULT_NEWS_SYMBOLS,
 }: {
   onSymbolClick?: (sym: string) => void;
+  symbols?: string[];
 }) {
+  const symbolKey = Array.from(new Set(symbols.map((value) => value.toUpperCase())))
+    .slice(0, 4)
+    .join(",");
+  const newsSymbols = symbolKey.split(",").filter(Boolean);
   const news = useQuery({
-    queryKey: ["terminal-news", NEWS_SYMBOLS],
-    queryFn: () => Promise.all(NEWS_SYMBOLS.map((symbol) => api<NewsPayload>(`/news/${symbol}`))),
+    queryKey: ["terminal-news", symbolKey],
+    queryFn: () => Promise.all(newsSymbols.map((symbol) => api<NewsPayload>(`/news/${symbol}`))),
     refetchInterval: 5 * 60_000,
     staleTime: 2 * 60_000,
     retry: 1,
   });
 
-  const items = useMemo<Headline[]>(() => {
+  const items = useMemo<IntelHeadline[]>(() => {
     return (news.data ?? [])
       .flatMap((payload, payloadIndex) => {
-        const sym = NEWS_SYMBOLS[payloadIndex];
+        const sym = payload.ticker || symbolKey.split(",")[payloadIndex];
         const records = (payload.items ?? payload.headlines ?? []) as NewsRecord[];
         return records.map((item, itemIndex) => {
           const text = typeof item.title === "string" ? item.title : "";
@@ -58,17 +66,26 @@ export function IntelFeed({
             time: publishedTime(item.published),
             text,
             sym,
+            verified:
+              Array.isArray(item.related_tickers) &&
+              item.related_tickers
+                .map(String)
+                .map((value) => value.toUpperCase())
+                .includes(sym),
             sentiment: sentimentOf(item),
           };
         });
       })
       .filter((item) => item.text.length > 0)
       .slice(0, 20);
-  }, [news.data]);
+  }, [news.data, symbolKey]);
 
-  if (news.isPending) return <div className="mono-caps p-3 text-[10px] text-faint">LOADING REAL NEWS…</div>;
-  if (news.isError) return <div className="mono-caps p-3 text-[10px] text-down">NEWS FEED UNAVAILABLE</div>;
-  if (!items.length) return <div className="mono-caps p-3 text-[10px] text-faint">NO RECENT PROVIDER HEADLINES</div>;
+  if (news.isPending)
+    return <div className="mono-caps p-3 text-[10px] text-faint">LOADING REAL NEWS…</div>;
+  if (news.isError)
+    return <div className="mono-caps p-3 text-[10px] text-down">NEWS FEED UNAVAILABLE</div>;
+  if (!items.length)
+    return <div className="mono-caps p-3 text-[10px] text-faint">NO RECENT PROVIDER HEADLINES</div>;
   return (
     <div className="h-full overflow-y-auto">
       {items.map((h, i) => {
@@ -86,6 +103,9 @@ export function IntelFeed({
               <span>{h.time}</span>
               <span className="text-primary">{h.sym}</span>
             </div>
+            <span className={h.verified ? "text-up" : "text-primary"}>
+              {h.verified ? "TAGGED" : "UNVERIFIED"}
+            </span>
             <div className="mt-1 text-[11px] leading-snug text-foreground">{h.text}</div>
           </button>
         );
@@ -93,4 +113,3 @@ export function IntelFeed({
     </div>
   );
 }
-

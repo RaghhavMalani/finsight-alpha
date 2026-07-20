@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime
 import math
+import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -34,6 +35,7 @@ def _f(v: Any) -> Optional[float]:
 _live_cache: dict[str, tuple[float, Dict[str, Any]]] = {}
 _live_lock = threading.Lock()
 _LIVE_TTL = 20.0
+_SYMBOL_RE = re.compile(r"^[A-Z0-9^][A-Z0-9.\-^=]{0,24}$")
 
 
 def _live_one(sym: str) -> Optional[Dict[str, Any]]:
@@ -89,7 +91,11 @@ def _eod_one(sym: str) -> Optional[Dict[str, Any]]:
             "low": _f(latest.get("Low")),
             "prev_close": _f(prev),
             "volume": _f(latest.get("Volume")),
-            "quote_ts": quote_date.isoformat() if hasattr(quote_date, "isoformat") else str(quote_date),
+            "quote_ts": (
+                quote_date.isoformat()
+                if hasattr(quote_date, "isoformat")
+                else str(quote_date)
+            ),
             "source": "YFINANCE_EOD",
             "live": False,
         }
@@ -101,7 +107,13 @@ def _eod_one(sym: str) -> Optional[Dict[str, Any]]:
 def tape(symbols: str = Query("AAPL,MSFT,NVDA,SPY,JPM,BLK")) -> Dict[str, Any]:
     from src.data.providers.finnhub_provider import finnhub_available
 
-    syms = [s.strip().upper() for s in symbols.split(",") if s.strip()][:12]
+    syms = list(
+        dict.fromkeys(
+            symbol
+            for raw in symbols.split(",")
+            if (symbol := raw.strip().upper()) and _SYMBOL_RE.fullmatch(symbol)
+        )
+    )[:30]
     use_live = finnhub_available()
 
     items: List[Dict[str, Any]] = []
@@ -124,4 +136,4 @@ def tape(symbols: str = Query("AAPL,MSFT,NVDA,SPY,JPM,BLK")) -> Dict[str, Any]:
             res = _eod_one(s)
             if res:
                 items.append(res)
-    return {"items": items, "live": use_live}
+    return {"items": items, "live": any(bool(item.get("live")) for item in items)}

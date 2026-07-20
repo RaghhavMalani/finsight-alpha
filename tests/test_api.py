@@ -24,9 +24,13 @@ from src.auth import db as auth_db
 auth_db.init_db()
 _TEST_EMAIL = "api-tests@finsight.local"
 _TEST_PASSWORD = "test-password-1234"
-_auth = client.post("/auth/register", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD})
+_auth = client.post(
+    "/auth/register", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD}
+)
 if _auth.status_code == 400:
-    _auth = client.post("/auth/login", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD})
+    _auth = client.post(
+        "/auth/login", json={"email": _TEST_EMAIL, "password": _TEST_PASSWORD}
+    )
 assert _auth.status_code == 200, _auth.text
 
 
@@ -54,6 +58,46 @@ def test_assets() -> None:
     assert "RELIANCE.NS" in body["indian"]
     # Sector map should cover the known tickers.
     assert body["sectors"]["AAPL"] == "Information Technology"
+
+
+def test_asset_search_covers_us_nse_and_bse(monkeypatch) -> None:
+    import yfinance as yf
+
+    class _Search:
+        def __init__(self, *args, **kwargs) -> None:
+            self.quotes = [
+                {
+                    "symbol": "AAPL",
+                    "shortname": "Apple Inc.",
+                    "exchange": "NMS",
+                    "quoteType": "EQUITY",
+                },
+                {
+                    "symbol": "RELIANCE.NS",
+                    "shortname": "Reliance Industries",
+                    "exchange": "NSI",
+                    "quoteType": "EQUITY",
+                },
+                {
+                    "symbol": "RELIANCE.BO",
+                    "shortname": "Reliance Industries",
+                    "exchange": "BSE",
+                    "quoteType": "EQUITY",
+                },
+                {
+                    "symbol": "AIR.PA",
+                    "shortname": "Airbus",
+                    "exchange": "PAR",
+                    "quoteType": "EQUITY",
+                },
+            ]
+
+    monkeypatch.setattr(yf, "Search", _Search)
+    response = client.get("/assets/search", params={"q": "reliance"})
+    assert response.status_code == 200
+    symbols = {item["symbol"] for item in response.json()["items"]}
+    assert {"AAPL", "RELIANCE.NS", "RELIANCE.BO"}.issubset(symbols)
+    assert "AIR.PA" not in symbols
 
 
 def test_market_data_routes_exist() -> None:
@@ -86,7 +130,11 @@ def test_summary_missing_returns_404() -> None:
 def test_correlation_requires_two_tickers() -> None:
     resp = client.post(
         "/analytics/correlation",
-        json={"tickers": ["AAPL"], "start_date": "2023-01-01", "end_date": "2024-01-01"},
+        json={
+            "tickers": ["AAPL"],
+            "start_date": "2023-01-01",
+            "end_date": "2024-01-01",
+        },
     )
     assert resp.status_code == 400
 
@@ -114,6 +162,18 @@ def test_fetch_response_schema_has_status_dicts() -> None:
         "cloud_storage_upload_status",
     ):
         assert name in fields
+
+
+def test_index_symbols_are_valid_provider_symbols() -> None:
+    from backend.routes.assets import _SYMBOL_RE as asset_symbol_re
+    from backend.routes.tape import _SYMBOL_RE as tape_symbol_re
+
+    for symbol in ("^VIX", "^TNX", "^NSEI", "^BSESN", "^INDIAVIX"):
+        assert tape_symbol_re.fullmatch(symbol)
+        assert asset_symbol_re.fullmatch(symbol)
+
+    assert not tape_symbol_re.fullmatch("../etc/passwd")
+    assert not asset_symbol_re.fullmatch("AAPL,MSFT")
 
 
 def test_fetch_returns_structured_statuses(monkeypatch) -> None:
@@ -166,3 +226,28 @@ def test_fetch_returns_structured_statuses(monkeypatch) -> None:
     assert "not requested" in body["bigquery_upload_status"]["message"]
     assert "not requested" in body["cloud_storage_upload_status"]["message"]
     assert body["local_save_status"]["success"] is False
+
+
+def test_tape_live_flag_reflects_returned_items(monkeypatch) -> None:
+    import backend.routes.tape as tape_route
+    import src.data.providers.finnhub_provider as finnhub_provider
+
+    monkeypatch.setattr(finnhub_provider, "finnhub_available", lambda: True)
+    monkeypatch.setattr(tape_route, "_live_one", lambda symbol: None)
+    monkeypatch.setattr(
+        tape_route,
+        "_eod_one",
+        lambda symbol: {
+            "ticker": symbol,
+            "last": 100.0,
+            "change_pct": 0.01,
+            "quote_ts": "2026-07-17",
+            "source": "YFINANCE_EOD",
+            "live": False,
+        },
+    )
+
+    payload = tape_route.tape("AAPL,^VIX")
+
+    assert len(payload["items"]) == 2
+    assert payload["live"] is False

@@ -14,7 +14,47 @@ export type LiveMarketStatus = {
   source: "FINNHUB" | "EOD" | "UNAVAILABLE";
   count: number;
   error: string | null;
+  asOf: string | null;
 };
+
+function quoteTime(value: TapeItem["quote_ts"], live: boolean): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value < 10_000_000_000 ? value * 1000 : value;
+  }
+  if (typeof value !== "string" || !value.trim()) return null;
+  const day = value.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (day && !live) {
+    const parsed = Date.parse(`${day[1]}T16:00:00-04:00`);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatAsOf(items: TapeItem[], live: boolean): string | null {
+  const latest = items.reduce<number | null>((max, item) => {
+    const value = quoteTime(item.quote_ts, item.live ?? live);
+    return value == null ? max : max == null ? value : Math.max(max, value);
+  }, null);
+  if (latest == null) return null;
+  const date = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    weekday: "short",
+    month: "short",
+    day: "2-digit",
+  })
+    .format(new Date(latest))
+    .toUpperCase();
+  const time = live
+    ? new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(new Date(latest))
+    : "16:00";
+  return `${date} / ${time} ET`;
+}
 
 /**
  * Anchor the terminal model to the real market-data API. Each refresh replaces
@@ -23,10 +63,16 @@ export type LiveMarketStatus = {
  */
 export function useLiveMarket(
   setInstruments: Dispatch<SetStateAction<Record<string, Instrument>>>,
+  symbols: string[] = TICKERS,
 ): LiveMarketStatus {
+  const symbolKey = Array.from(
+    new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean)),
+  )
+    .slice(0, 30)
+    .join(",");
   const tape = useQuery({
-    queryKey: ["market-tape", TICKERS.join(",")],
-    queryFn: () => api<TapePayload>(`/tape?symbols=${encodeURIComponent(TICKERS.join(","))}`),
+    queryKey: ["market-tape", symbolKey],
+    queryFn: () => api<TapePayload>(`/tape?symbols=${encodeURIComponent(symbolKey)}`),
     refetchInterval: 30_000,
     staleTime: 15_000,
     retry: 1,
@@ -64,7 +110,10 @@ export function useLiveMarket(
           vwapSource: "UNAVAILABLE",
           dataSource: item.source === "FINNHUB" ? "FINNHUB" : "YFINANCE_EOD",
           volume: item.volume ?? 0,
-          history: [{ t: Date.now(), p: price }],
+          history: [
+            ...current.history.filter((point) => Number.isFinite(point.p)).slice(-119),
+            { t: Date.now(), p: price, v: item.volume ?? undefined },
+          ],
         };
       }
 
@@ -77,5 +126,6 @@ export function useLiveMarket(
     source: tape.data?.live ? "FINNHUB" : tape.data?.items.length ? "EOD" : "UNAVAILABLE",
     count: tape.data?.items.length ?? 0,
     error: tape.error instanceof Error ? tape.error.message : null,
+    asOf: tape.data?.items.length ? formatAsOf(tape.data.items, Boolean(tape.data.live)) : null,
   };
 }

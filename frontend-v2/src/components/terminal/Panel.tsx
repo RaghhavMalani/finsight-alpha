@@ -50,7 +50,10 @@ export function Panel({
   const firstMount = useRef(true);
 
   useEffect(() => {
-    if (firstMount.current) { firstMount.current = false; return; }
+    if (firstMount.current) {
+      firstMount.current = false;
+      return;
+    }
     if (!group) return;
     const el = headerRef.current;
     if (!el) return;
@@ -59,8 +62,13 @@ export function Panel({
     el.classList.add("animate-flash-group");
   }, [flashSeed, group]);
 
-  const groupColor = group === "A" ? "bg-primary" : group === "B" ? "bg-info" : "bg-transparent border border-border";
-  const cycle: Record<string, LinkGroup> = { "null": "A", "A": "B", "B": null };
+  const groupColor =
+    group === "A"
+      ? "bg-primary"
+      : group === "B"
+        ? "bg-info"
+        : "bg-transparent border border-border";
+  const cycle: Record<string, LinkGroup> = { null: "A", A: "B", B: null };
 
   return (
     <section
@@ -79,11 +87,22 @@ export function Panel({
         <div className="mono-caps flex items-center gap-2 text-[10px] text-muted-foreground">
           {code && <span className="text-primary">{code}</span>}
           <span>{title}</span>
-          <span className="ml-1 border border-border bg-raised px-1 py-0 text-[8px] text-faint" title={`Data source · ${source ?? "UNAVAILABLE"}`}>{source ?? "UNAVAILABLE"}</span>
+          {source && (
+            <span
+              className="ml-1 border border-border bg-raised px-1 py-0 text-[8px] text-faint"
+              title={`Data source: ${source}`}
+            >
+              {source}
+            </span>
+          )}
           {onGroupChange !== undefined && (
             <button
               onClick={() => onGroupChange(cycle[String(group)] ?? "A")}
-              title={group ? `Linked · group ${group} · click to cycle` : "Unlinked · click to join group A"}
+              title={
+                group
+                  ? `Linked · group ${group} · click to cycle`
+                  : "Unlinked · click to join group A"
+              }
               className="ml-1 flex items-center gap-1 border border-border px-1 py-0 text-[8px] text-faint hover:border-primary"
             >
               <span className={`inline-block h-1.5 w-1.5 rounded-full ${groupColor}`} />
@@ -103,7 +122,7 @@ export function Panel({
         </div>
         <div className="mono-caps flex items-center gap-3 text-[10px] text-muted-foreground">
           {right}
-          <span className={asOf ? "text-foreground" : "text-down"}>AS OF · {asOf ?? "UNAVAILABLE"}</span>
+          {asOf && <span className="text-foreground">AS OF · {asOf}</span>}
           {replayChip ? (
             <span className="flex items-center gap-1.5 text-info">
               <span className="h-1.5 w-1.5 rounded-full bg-info animate-pulse-live" />
@@ -131,7 +150,10 @@ export function Panel({
           {subtitle}
         </div>
       )}
-      <div className="relative flex min-h-0 w-full flex-col overflow-hidden" style={{ flex: "1 1 auto" }}>
+      <div
+        className="relative flex min-h-0 w-full flex-col overflow-hidden"
+        style={{ flex: "1 1 auto" }}
+      >
         <div
           className="relative flex w-full flex-col"
           style={{
@@ -179,4 +201,3 @@ function ExplainerBlock({ label, body }: { label: string; body: string }) {
     </div>
   );
 }
-
