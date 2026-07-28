@@ -33,6 +33,7 @@ import { MarketClock } from "@/components/terminal/MarketClock";
 import { ContextMenu, type ContextState } from "@/components/terminal/ContextMenu";
 import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/AlertsPanel";
 import { BookDrawer } from "@/components/terminal/BookDrawer";
+import { RiskCommandPanel } from "@/components/terminal/RiskCommandPanel";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
 import { TICKERS, unavailableInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
 import { useLiveMarket, type LiveMarketStatus } from "@/lib/live-market";
@@ -1195,14 +1196,17 @@ function renderCenter(fn: string, preset: Preset, p: CenterProps) {
     );
   if (fn === "RISK")
     return (
-      <div className="flex h-full items-center justify-center">
-        <Link
-          to="/risk"
-          className="mono-caps bg-primary px-6 py-3 text-xs text-primary-foreground hover:brightness-110"
-        >
-          Open /RISK desk →
-        </Link>
-      </div>
+      <Panel
+        code="RISK"
+        title="Portfolio risk command"
+        subtitle="Live mandate state, scenario losses, concentration, and the next required control."
+        source="PAPER BOOK · MODEL"
+        explainer={EXPLAINERS.RISK}
+        onMaximize={() => onMaximize("RISK")}
+        className="h-full"
+      >
+        <RiskCommandPanel />
+      </Panel>
     );
   return null;
 }
@@ -1295,6 +1299,8 @@ function renderMaximized(
         "SIGHT",
         EXPLAINERS.SIGHT,
       );
+    case "RISK":
+      return wrap(<RiskCommandPanel />, "Portfolio risk command", "RISK", EXPLAINERS.RISK);
     default:
       return null;
   }
