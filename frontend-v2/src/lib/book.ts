@@ -1,5 +1,6 @@
 // FinSight book — multi-asset simulated portfolio.
-// Equities + commodities futures + option positions. All consistent, all mock.
+// The authenticated paper book is authoritative; market marks can be refreshed
+// from the live tape without fabricating any holdings.
 
 import { seedInstrument, TICKERS } from "./market";
 import { getDemoBook, subscribeDemoBook } from "./demoBook";
@@ -107,6 +108,14 @@ export const COMMODITIES: Record<string, CommodityCfg> = {
     slope: 0.65,
   },
 };
+export const COMMODITY_QUOTES: Record<string, string> = {
+  GC: "GC=F",
+  CL: "CL=F",
+  NG: "NG=F",
+  HG: "HG=F",
+  SI: "SI=F",
+  W: "ZW=F",
+};
 
 export function futuresCurve(sym: string): { month: number; label: string; price: number }[] {
   const c = COMMODITIES[sym];
@@ -139,40 +148,6 @@ export function futuresCurve(sym: string): { month: number; label: string; price
 }
 
 // ─── Build book ──────────────────────────────────────────────────────
-function bs(spot: number, K: number, T: number, sigma: number, r: number, type: "C" | "P") {
-  // Black-Scholes with rough greeks
-  const s = spot,
-    k = K,
-    t = Math.max(0.001, T);
-  const sqT = Math.sqrt(t);
-  const d1 = (Math.log(s / k) + (r + 0.5 * sigma * sigma) * t) / (sigma * sqT);
-  const d2 = d1 - sigma * sqT;
-  const N = (x: number) => 0.5 * (1 + erf(x / Math.SQRT2));
-  const n = (x: number) => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
-  const price =
-    type === "C"
-      ? s * N(d1) - k * Math.exp(-r * t) * N(d2)
-      : k * Math.exp(-r * t) * N(-d2) - s * N(-d1);
-  const delta = type === "C" ? N(d1) : N(d1) - 1;
-  const gamma = n(d1) / (s * sigma * sqT);
-  const vega = s * n(d1) * sqT * 0.01; // per 1 vol pt
-  const theta =
-    (-(s * n(d1) * sigma) / (2 * sqT) -
-      (type === "C" ? 1 : -1) * r * k * Math.exp(-r * t) * (type === "C" ? N(d2) : N(-d2))) /
-    365;
-  return { price, delta, gamma, vega, theta };
-}
-function erf(x: number) {
-  const s = Math.sign(x);
-  x = Math.abs(x);
-  const t = 1 / (1 + 0.3275911 * x);
-  const y =
-    1 -
-    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
-      t *
-      Math.exp(-x * x);
-  return s * y;
-}
 
 const EQUITY_SECTORS: Record<string, string> = {
   NVDA: "Technology",
@@ -205,128 +180,55 @@ export type Book = {
   pnlDay: number;
   updatedAt: number;
 };
-
-const NAV_BASE = 10_000_000;
-
-// Positions template — realistic sizing on a $10M book
-const TEMPLATE = {
-  equities: [
-    { sym: "NVDA", qty: 8000, entryOffset: -0.062 },
-    { sym: "AAPL", qty: 4200, entryOffset: 0.018 },
-    { sym: "MSFT", qty: 1800, entryOffset: -0.024 },
-    { sym: "META", qty: 1400, entryOffset: 0.041 },
-    { sym: "GOOGL", qty: 3400, entryOffset: -0.011 },
-    { sym: "AMZN", qty: -2200, entryOffset: 0.032 }, // short
-    { sym: "TSLA", qty: -1800, entryOffset: 0.058 }, // short
-    { sym: "SPY", qty: 1200, entryOffset: 0.007 },
-  ],
-  commodities: [
-    { sym: "GC", qty: 8 },
-    { sym: "CL", qty: 20 },
-    { sym: "NG", qty: -15 }, // short
-    { sym: "HG", qty: 10 },
-    { sym: "SI", qty: 6 },
-  ],
-  options: [
-    { under: "SPY", type: "P" as const, strikeOffset: -0.03, dte: 30, qty: -15 }, // short put — collect premium
-    { under: "NVDA", type: "C" as const, strikeOffset: 0.05, dte: 45, qty: 25 }, // long call
-  ],
-};
+let marketMarks = new Map<string, number>();
 
 function buildPositions(): Position[] {
   const out: Position[] = [];
   const insts: Record<string, ReturnType<typeof seedInstrument>> = {};
   for (const s of TICKERS) insts[s] = seedInstrument(s);
 
-  // Equities — pull from the shared demo book so RISK reads user edits.
-  let equityPositions: Array<{ symbol: string; qty: number; entry: number }> = getDemoBook();
-  if (!equityPositions.length) {
-    equityPositions = TEMPLATE.equities.map((e) => {
-      const inst = insts[e.sym];
-      const entry = (inst?.prevClose ?? 100) * (1 + e.entryOffset);
-      return { symbol: e.sym, qty: e.qty, entry };
-    });
-  }
-  for (const e of equityPositions) {
-    const inst = insts[e.symbol];
-    if (!inst) continue;
-    const mv = e.qty * inst.price;
+  // The authenticated paper book is authoritative. Empty means empty: never
+  // inject sample equities, futures, or options into a user's risk totals.
+  for (const position of getDemoBook()) {
+    const commodity = COMMODITIES[position.symbol];
+    if (commodity) {
+      const mark = marketMarks.get(position.symbol) ?? commodity.spot;
+      const mv = position.qty * mark * commodity.multiplier;
+      out.push({
+        id: `CM-${position.symbol}`,
+        cls: "COMMODITY",
+        symbol: position.symbol,
+        name: commodity.name,
+        qty: position.qty,
+        entry: position.entry,
+        mark,
+        pnl: (mark - position.entry) * position.qty * commodity.multiplier,
+        mv,
+        gross: Math.abs(mv),
+        sector: COMMODITY_SECTOR[position.symbol] ?? "Commodities",
+        beta: 0.15,
+        vol: commodity.vol,
+      });
+      continue;
+    }
+
+    const inst = insts[position.symbol] ?? seedInstrument(position.symbol);
+    const mark = marketMarks.get(position.symbol) ?? inst.price;
+    const mv = position.qty * mark;
     out.push({
-      id: `EQ-${e.symbol}`,
+      id: `EQ-${position.symbol}`,
       cls: "EQUITY",
-      symbol: e.symbol,
+      symbol: position.symbol,
       name: inst.name,
-      qty: e.qty,
-      entry: e.entry,
-      mark: inst.price,
-      pnl: (inst.price - e.entry) * e.qty,
-      mv,
-      gross: Math.abs(mv),
-      sector: EQUITY_SECTORS[e.symbol] ?? "Other",
-      beta: inst.beta,
-      vol: inst.annualVol,
-    });
-  }
-
-  // Commodities futures
-  for (const c of TEMPLATE.commodities) {
-    const cfg = COMMODITIES[c.sym];
-    if (!cfg) continue;
-    // small mark drift so P&L isn't 0
-    const drift = Math.sin((cfg.spot * 13) % 6.28) * 0.008;
-    const mark = cfg.spot * (1 + drift);
-    const entry = cfg.spot * (1 - drift * 0.7);
-    const mv = c.qty * mark * cfg.multiplier;
-    out.push({
-      id: `CM-${c.sym}`,
-      cls: "COMMODITY",
-      symbol: c.sym,
-      name: cfg.name,
-      qty: c.qty,
-      entry,
+      qty: position.qty,
+      entry: position.entry,
       mark,
-      pnl: (mark - entry) * c.qty * cfg.multiplier,
+      pnl: (mark - position.entry) * position.qty,
       mv,
       gross: Math.abs(mv),
-      sector: COMMODITY_SECTOR[c.sym] ?? "Commodities",
-      beta: 0.15,
-      vol: cfg.vol,
-    });
-  }
-
-  // Options
-  for (const o of TEMPLATE.options) {
-    const inst = insts[o.under];
-    if (!inst) continue;
-    const strike = Math.round(inst.price * (1 + o.strikeOffset));
-    const T = o.dte / 365;
-    const g = bs(inst.price, strike, T, inst.annualVol, 0.045, o.type);
-    const entryPrice = g.price * (o.qty > 0 ? 0.86 : 1.12); // pretend we entered richer
-    const mv = o.qty * g.price * 100;
-    out.push({
-      id: `OP-${o.under}-${o.type}${strike}`,
-      cls: "OPTION",
-      symbol: `${o.under} ${o.type}${strike} ${o.dte}D`,
-      name: `${o.under} ${o.type === "C" ? "Call" : "Put"} $${strike} ${o.dte}D`,
-      qty: o.qty,
-      entry: entryPrice,
-      mark: g.price,
-      pnl: (g.price - entryPrice) * o.qty * 100,
-      mv,
-      gross: Math.abs(mv),
-      sector: "Options",
+      sector: EQUITY_SECTORS[position.symbol] ?? "Other",
       beta: inst.beta,
       vol: inst.annualVol,
-      riskNotional: g.delta * o.qty * 100 * inst.price,
-      underlier: o.under,
-      underlyingMark: inst.price,
-      optType: o.type,
-      strike,
-      daysToExpiry: o.dte,
-      delta: g.delta * o.qty * 100,
-      gamma: g.gamma * o.qty * 100,
-      vega: g.vega * o.qty * 100,
-      theta: g.theta * o.qty * 100,
     });
   }
 
@@ -336,17 +238,28 @@ function buildPositions(): Position[] {
 function summarize(positions: Position[]): Book {
   let long = 0,
     short = 0,
-    pnlDay = 0;
+    pnlDay = 0,
+    investedCapital = 0;
   for (const p of positions) {
     if (p.mv >= 0) long += p.mv;
     else short += p.mv;
     pnlDay += p.pnl;
+    if (p.cls === "COMMODITY") {
+      const multiplier = COMMODITIES[p.symbol]?.multiplier ?? 1;
+      investedCapital += Math.abs(p.entry * p.qty * multiplier);
+    } else if (p.cls === "OPTION") {
+      investedCapital += Math.abs(p.entry * p.qty * 100);
+    } else {
+      investedCapital += Math.abs(p.entry * p.qty);
+    }
   }
   const gross = long + Math.abs(short);
   const net = long + short;
   return {
     positions,
-    nav: NAV_BASE + pnlDay,
+    // Cost-basis capital is the only defensible NAV proxy until broker cash is
+    // connected. Empty books report zero instead of a fabricated $10M NAV.
+    nav: positions.length ? Math.max(0, investedCapital + pnlDay) : 0,
     gross,
     net,
     long,
@@ -401,6 +314,21 @@ export function resetBook() {
   emit();
 }
 
+/** Refresh marks for existing paper-book symbols without changing positions. */
+export function updateBookMarks(next: Record<string, number>) {
+  let changed = false;
+  const updated = new Map(marketMarks);
+  for (const [symbol, mark] of Object.entries(next)) {
+    if (!Number.isFinite(mark) || mark <= 0) continue;
+    if (updated.get(symbol) === mark) continue;
+    updated.set(symbol, mark);
+    changed = true;
+  }
+  if (!changed) return;
+  marketMarks = updated;
+  baseBook = summarize(buildPositions());
+  emit();
+}
 // Rebuild base book whenever the shared demo book changes so RISK follows edits.
 subscribeDemoBook(() => {
   baseBook = summarize(buildPositions());

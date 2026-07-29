@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/terminal/Panel";
 import { RiskIntelligenceLab } from "@/components/risk/RiskIntelligenceLab";
+import { RiskLiveCommandCenter } from "@/components/risk/RiskLiveCommandCenter";
 import { fmt } from "@/lib/market";
+import { subscribeDemoBookStatus, type DemoBookSync } from "@/lib/demoBook";
 import {
   getBook,
   subscribe,
@@ -35,7 +37,7 @@ export const Route = createFileRoute("/risk")({
 });
 
 // Decision-first Risk Desk built around limits, drivers, stress losses, and executable actions.
-type ProTab = "OVERVIEW" | "EXPOSURES" | "STRESS" | "INTELLIGENCE" | "HEDGES";
+type ProTab = "COMMAND" | "OVERVIEW" | "EXPOSURES" | "STRESS" | "INTELLIGENCE" | "HEDGES";
 type LimitTone = "CLEAR" | "WATCH" | "BREACH";
 type LimitRow = {
   label: string;
@@ -210,12 +212,16 @@ function riskSnapshot(book: Book) {
 type RiskSnapshot = ReturnType<typeof riskSnapshot>;
 
 function RiskDeskPro() {
-  const [tab, setTab] = useState<ProTab>("OVERVIEW");
+  const [tab, setTab] = useState<ProTab>("COMMAND");
   const [book, setBook] = useState<Book>(getBook);
+  const [sync, setSync] = useState<DemoBookSync>({ state: "loading" });
   useEffect(() => subscribe(setBook), []);
+  useEffect(() => subscribeDemoBookStatus(setSync), []);
   const snapshot = useMemo(() => riskSnapshot(book), [book]);
   const activeCount = activeHedges().length;
+  const hasPositions = book.positions.length > 0;
   const tabs: Array<{ key: ProTab; label: string; meta?: string }> = [
+    { key: "COMMAND", label: "Live OS", meta: "LIVE" },
     { key: "OVERVIEW", label: "Overview", meta: snapshot.status },
     { key: "EXPOSURES", label: "Exposures", meta: String(book.positions.length) },
     { key: "STRESS", label: "Stress", meta: String(snapshot.scenarios.length) },
@@ -236,25 +242,31 @@ function RiskDeskPro() {
               <div>
                 <div className="mono-caps text-[11px] text-foreground">Portfolio Risk</div>
                 <div className="mono-caps mt-0.5 text-[8px] text-faint">
-                  Paper book · modeled estimates
+                  Authenticated paper book · explainable estimates
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <HeaderStat label="NAV" value={money(book.nav)} />
               <HeaderStat
-                label="DAY P&L"
+                label="OPEN P&L"
                 value={signedMoney(book.pnlDay)}
                 tone={book.pnlDay >= 0 ? "text-up" : "text-down"}
               />
               <div
-                className={`mono-caps border px-2.5 py-1 text-[9px] ${toneBorder(snapshot.status)} ${toneText(snapshot.status)}`}
+                className={`mono-caps border px-2.5 py-1 text-[9px] ${
+                  hasPositions
+                    ? `${toneBorder(snapshot.status)} ${toneText(snapshot.status)}`
+                    : "border-info/45 bg-info/5 text-info"
+                }`}
               >
-                {snapshot.status === "CLEAR"
-                  ? "WITHIN LIMITS"
-                  : snapshot.status === "WATCH"
-                    ? "LIMIT WATCH"
-                    : "LIMIT BREACH"}
+                {!hasPositions
+                  ? "BOOK EMPTY"
+                  : snapshot.status === "CLEAR"
+                    ? "WITHIN LIMITS"
+                    : snapshot.status === "WATCH"
+                      ? "LIMIT WATCH"
+                      : "LIMIT BREACH"}
               </div>
               <Link
                 to="/terminal"
@@ -287,8 +299,17 @@ function RiskDeskPro() {
       <main className="mx-auto max-w-[1680px] p-3 lg:p-5">
         <div className="mono-caps mb-3 flex flex-wrap items-center justify-between gap-2 border border-info/25 bg-info/5 px-3 py-2 text-[8px] text-muted-foreground">
           <span>
-            <span className="text-info">MODELLED VIEW</span> · deterministic paper book · signed
-            exposure correlation proxy · not broker margin
+            <span className="text-info">
+              {sync.state === "synced"
+                ? "SERVER SYNCED"
+                : sync.state === "saving"
+                  ? "SAVING BOOK"
+                  : sync.state === "offline"
+                    ? "OFFLINE CACHE"
+                    : "HYDRATING BOOK"}
+            </span>{" "}
+            · {book.positions.length} authenticated positions · {money(book.gross)} real gross
+            exposure · signed correlation proxy · not broker margin
           </span>
           <span>
             AS OF{" "}
@@ -298,9 +319,15 @@ function RiskDeskPro() {
             })}
           </span>
         </div>
-        {tab === "OVERVIEW" && <RiskOverview book={book} snapshot={snapshot} onNavigate={setTab} />}
-        {tab === "EXPOSURES" && <RiskExposures book={book} snapshot={snapshot} />}
-        {tab === "STRESS" && (
+        {tab === "COMMAND" && <RiskLiveCommandCenter book={book} />}
+        {!hasPositions && tab !== "COMMAND" && tab !== "INTELLIGENCE" && (
+          <EmptyPortfolioGate section={tab} onCommand={() => setTab("COMMAND")} />
+        )}
+        {hasPositions && tab === "OVERVIEW" && (
+          <RiskOverview book={book} snapshot={snapshot} onNavigate={setTab} />
+        )}
+        {hasPositions && tab === "EXPOSURES" && <RiskExposures book={book} snapshot={snapshot} />}
+        {hasPositions && tab === "STRESS" && (
           <RiskStress book={book} snapshot={snapshot} onHedge={() => setTab("HEDGES")} />
         )}
         {tab === "INTELLIGENCE" && (
@@ -308,9 +335,44 @@ function RiskDeskPro() {
             ticker={snapshot.topDriver?.pos.underlier ?? snapshot.topDriver?.pos.symbol ?? "SPY"}
           />
         )}
-        {tab === "HEDGES" && <RiskHedges book={book} snapshot={snapshot} />}
+        {hasPositions && tab === "HEDGES" && <RiskHedges book={book} snapshot={snapshot} />}
       </main>
     </div>
+  );
+}
+
+function EmptyPortfolioGate({ section, onCommand }: { section: ProTab; onCommand: () => void }) {
+  return (
+    <section className="relative overflow-hidden border border-info/40 bg-panel p-6">
+      <div className="absolute inset-y-0 left-0 w-1 bg-info" />
+      <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto]">
+        <div>
+          <div className="mono-caps text-[8px] text-info">ZERO-POSITION GUARD · {section}</div>
+          <h2 className="mt-3 font-serif text-3xl text-foreground">
+            There is no portfolio risk to calculate yet.
+          </h2>
+          <p className="mt-3 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
+            VaR, exposure, stress, and hedge outputs stay locked until your authenticated paper book
+            contains a position. This prevents sample holdings or placeholder NAV from being
+            presented as your money.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onCommand}
+            className="mono-caps interactive border border-primary bg-primary px-4 py-2.5 text-[8px] text-background"
+          >
+            OPEN LIVE RISK OS
+          </button>
+          <Link
+            to="/terminal"
+            className="mono-caps interactive border border-info/55 px-4 py-2.5 text-[8px] text-info"
+          >
+            ADD A POSITION →
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 
