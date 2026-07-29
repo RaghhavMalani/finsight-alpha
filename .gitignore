@@ -49,3 +49,4 @@ frontend-v2/routeTree.gen.ts
 frontend-v2/.vercel/
 .env.local
 frontend-v2/.env.local
+.env*
