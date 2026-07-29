@@ -26,9 +26,20 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/ml", tags=["ml"])
 
 _EXCLUDE_COLS = [
-    "Date", "Ticker", "Open", "High", "Low", "Close", "Volume",
-    "target_return_1d", "target_return_3d", "target_return_5d",
-    "target_direction", "target_strong_up", "target_strong_down", "target_risk_event",
+    "Date",
+    "Ticker",
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Volume",
+    "target_return_1d",
+    "target_return_3d",
+    "target_return_5d",
+    "target_direction",
+    "target_strong_up",
+    "target_strong_down",
+    "target_risk_event",
 ]
 
 _cache: dict[tuple, tuple[float, Dict[str, Any]]] = {}
@@ -79,7 +90,9 @@ def ml_signal(
     try:
         asset_df = svc.get_data(ticker)
     except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Data fetch failed: {exc}"
+        ) from exc
     if asset_df is None or asset_df.empty:
         raise HTTPException(status_code=404, detail=f"No data for '{ticker}'.")
     asset_df = asset_df.sort_values("Date").reset_index(drop=True)
@@ -96,20 +109,27 @@ def ml_signal(
         asset_df, benchmark_df=b_df if not b_df.empty else None, ticker=ticker
     )
     if feat_df is None or feat_df.empty:
-        raise HTTPException(status_code=422, detail="Feature engineering produced no rows.")
+        raise HTTPException(
+            status_code=422, detail="Feature engineering produced no rows."
+        )
 
     ml_df = signal_targets.create_signal_research_targets(feat_df, horizon=horizon)
     target_col = "target_direction"
     if target_col not in ml_df.columns:
-        raise HTTPException(status_code=500, detail=f"Missing target column '{target_col}'.")
+        raise HTTPException(
+            status_code=500, detail=f"Missing target column '{target_col}'."
+        )
 
     feature_cols = [
-        c for c in ml_df.columns
+        c
+        for c in ml_df.columns
         if pd.api.types.is_numeric_dtype(ml_df[c]) and c not in _EXCLUDE_COLS
     ]
     ml_df = ml_df.dropna(subset=[target_col] + feature_cols).reset_index(drop=True)
     if len(ml_df) < 200:
-        raise HTTPException(status_code=422, detail="Not enough clean rows to train (need 200+).")
+        raise HTTPException(
+            status_code=422, detail="Not enough clean rows to train (need 200+)."
+        )
 
     try:
         suite = signal_modeling.train_signal_model_suite(
@@ -117,9 +137,13 @@ def ml_signal(
         )
     except Exception as exc:
         logger.exception("Signal suite training failed")
-        raise HTTPException(status_code=500, detail=f"Model training failed: {exc}") from exc
+        raise HTTPException(
+            status_code=500, detail=f"Model training failed: {exc}"
+        ) from exc
 
-    sig = suite.get("institutional_signal") or signal_engine.generate_institutional_signal(
+    sig = suite.get(
+        "institutional_signal"
+    ) or signal_engine.generate_institutional_signal(
         None, suite.get("roc_auc"), suite.get("model_edge")
     )
 
@@ -129,7 +153,9 @@ def ml_signal(
         proba = np.asarray(suite["y_pred_proba"], dtype=float)
         x_test = suite["X_test"]
         d = ml_df.loc[x_test.index, "Date"] if "Date" in ml_df.columns else None
-        dts = [str(v)[:10] for v in (d.tolist() if d is not None else range(len(proba)))]
+        dts = [
+            str(v)[:10] for v in (d.tolist() if d is not None else range(len(proba)))
+        ]
         step = max(1, len(proba) // 400)
         timeline = {"dates": dts[::step], "prob_up": [_f(p) for p in proba[::step]]}
     except Exception:
@@ -161,6 +187,7 @@ def ml_signal(
             "baseline_accuracy": _f(suite.get("baseline_accuracy")),
         },
         "model_scorecard": _records(suite.get("model_results"), 8),
+        "model_stress": suite.get("model_stress"),
         "top_features": _records(fi, 12),
         "market_context": {
             "trend_regime": str(latest.get("trend_regime", "Unknown")),

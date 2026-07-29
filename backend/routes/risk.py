@@ -27,12 +27,12 @@ _Z = {0.95: 1.6448536269514722, 0.99: 2.3263478740408408}
 
 _STRESS_SCENARIOS = [
     # (name, market shock, window description)
-    ("Black Monday 1987",   -0.205, "1 day"),
-    ("GFC 2008 drawdown",   -0.568, "17 months"),
-    ("COVID crash 2020",    -0.339, "23 days"),
-    ("2022 rate shock",     -0.254, "9 months"),
-    ("Flash correction",    -0.10,  "5 days"),
-    ("Vol spike +3 sigma",  None,   "1 day"),  # computed from the asset's own sigma
+    ("Black Monday 1987", -0.205, "1 day"),
+    ("GFC 2008 drawdown", -0.568, "17 months"),
+    ("COVID crash 2020", -0.339, "23 days"),
+    ("2022 rate shock", -0.254, "9 months"),
+    ("Flash correction", -0.10, "5 days"),
+    ("Vol spike +3 sigma", None, "1 day"),  # computed from the asset's own sigma
 ]
 
 
@@ -65,8 +65,12 @@ def _drawdown_episodes(dates, close, top_n: int = 5):
         else:
             dd = c.iloc[i] / running_peak - 1.0
             if cur is None or dd < cur["depth"]:
-                cur = {"peak_i": peak_idx, "trough_i": i, "depth": float(dd),
-                       **({"recovery_i": None} if cur is None else {})}
+                cur = {
+                    "peak_i": peak_idx,
+                    "trough_i": i,
+                    "depth": float(dd),
+                    **({"recovery_i": None} if cur is None else {}),
+                }
                 cur.setdefault("recovery_i", None)
     if cur is not None:
         episodes.append(cur)
@@ -75,14 +79,16 @@ def _drawdown_episodes(dates, close, top_n: int = 5):
     out = []
     for e in episodes[:top_n]:
         rec = e.get("recovery_i")
-        out.append({
-            "peak": str(dates.iloc[e["peak_i"]])[:10],
-            "trough": str(dates.iloc[e["trough_i"]])[:10],
-            "depth": _f(e["depth"]),
-            "length_days": int(e["trough_i"] - e["peak_i"]),
-            "recovery_days": int(rec - e["trough_i"]) if rec is not None else None,
-            "recovered": rec is not None,
-        })
+        out.append(
+            {
+                "peak": str(dates.iloc[e["peak_i"]])[:10],
+                "trough": str(dates.iloc[e["trough_i"]])[:10],
+                "depth": _f(e["depth"]),
+                "length_days": int(e["trough_i"] - e["peak_i"]),
+                "recovery_days": int(rec - e["trough_i"]) if rec is not None else None,
+                "recovered": rec is not None,
+            }
+        )
     return out
 
 
@@ -102,7 +108,9 @@ def risk_dashboard(
     try:
         df = svc.get_data(ticker)
     except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Data fetch failed: {exc}"
+        ) from exc
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail=f"No data for '{ticker}'.")
 
@@ -111,7 +119,9 @@ def risk_dashboard(
     close = pd.to_numeric(df["Close"], errors="coerce").astype(float)
     r = close.pct_change().replace([np.inf, -np.inf], np.nan).dropna()
     if len(r) < 100:
-        raise HTTPException(status_code=422, detail="Not enough history for risk analysis.")
+        raise HTTPException(
+            status_code=422, detail="Not enough history for risk analysis."
+        )
 
     arr = r.to_numpy()
     mu_d, sd_d = float(arr.mean()), float(arr.std(ddof=1))
@@ -134,10 +144,16 @@ def risk_dashboard(
         mc_tail = sim[sim <= mc_q]
         row = {
             "confidence": conf,
-            "historical": {"var": _f(-q), "cvar": _f(-float(tail.mean())) if len(tail) else None},
+            "historical": {
+                "var": _f(-q),
+                "cvar": _f(-float(tail.mean())) if len(tail) else None,
+            },
             "parametric": {"var": _f(-(mu_d - z * sd_d)), "cvar": None},
             "cornish_fisher": {"var": _f(-(mu_d - zcf * sd_d)), "cvar": None},
-            "monte_carlo": {"var": _f(-mc_q), "cvar": _f(-float(mc_tail.mean())) if len(mc_tail) else None},
+            "monte_carlo": {
+                "var": _f(-mc_q),
+                "cvar": _f(-float(mc_tail.mean())) if len(mc_tail) else None,
+            },
         }
         row["var_10d"] = _f(-(mu_d * 10 - z * sd_d * math.sqrt(10)))
         row["dollar_var_1d"] = _f(notional * (row["historical"]["var"] or 0))
@@ -146,7 +162,9 @@ def risk_dashboard(
     # ---------------- rolling series (downsampled) -----------------------------
     roll20 = r.rolling(20).std() * math.sqrt(252)
     roll60 = r.rolling(60).std() * math.sqrt(252)
-    ewma = r.ewm(alpha=0.06, adjust=False).std() * math.sqrt(252)  # RiskMetrics lambda=.94
+    ewma = r.ewm(alpha=0.06, adjust=False).std() * math.sqrt(
+        252
+    )  # RiskMetrics lambda=.94
     rvar95 = -r.rolling(252).quantile(0.05)
 
     dd = close / close.cummax() - 1.0
@@ -158,18 +176,27 @@ def risk_dashboard(
     try:
         bdf = svc.get_data(benchmark)
         bdf = bdf.sort_values("Date").reset_index(drop=True)
-        b = pd.DataFrame({
-            "Date": pd.to_datetime(bdf["Date"]).dt.strftime("%Y-%m-%d"),
-            "bret": pd.to_numeric(bdf["Close"], errors="coerce").astype(float).pct_change(),
-        })
+        b = pd.DataFrame(
+            {
+                "Date": pd.to_datetime(bdf["Date"]).dt.strftime("%Y-%m-%d"),
+                "bret": pd.to_numeric(bdf["Close"], errors="coerce")
+                .astype(float)
+                .pct_change(),
+            }
+        )
         a = pd.DataFrame({"Date": dates, "aret": close.pct_change()})
         m = a.merge(b, on="Date").dropna()
         if len(m) > 130:
             cov = m["aret"].rolling(120).cov(m["bret"])
             var = m["bret"].rolling(120).var()
             beta_roll = (cov / var).replace([np.inf, -np.inf], np.nan)
-            beta_series = {"dates": m["Date"].tolist(), "beta": [_f(x) for x in beta_roll]}
-            beta_now = _f(beta_roll.dropna().iloc[-1]) if beta_roll.notna().any() else None
+            beta_series = {
+                "dates": m["Date"].tolist(),
+                "beta": [_f(x) for x in beta_roll],
+            }
+            beta_now = (
+                _f(beta_roll.dropna().iloc[-1]) if beta_roll.notna().any() else None
+            )
             corr_now = _f(m["aret"].corr(m["bret"]))
             bench_ok = True
     except Exception:
@@ -182,7 +209,10 @@ def risk_dashboard(
         else:
             step = n // cap + 1
             idx = list(range(0, n, step)) + [n - 1]
-        return {"dates": [s_dates[i] for i in idx], "values": [_f(s_vals[i]) for i in idx]}
+        return {
+            "dates": [s_dates[i] for i in idx],
+            "values": [_f(s_vals[i]) for i in idx],
+        }
 
     d_list = dates.tolist()
     rd_list = dates.iloc[1:].tolist()  # dates aligned to returns
@@ -197,8 +227,9 @@ def risk_dashboard(
     for k, label in [(1, "1 day"), (5, "1 week"), (21, "1 month"), (63, "3 months")]:
         if len(logc) > k:
             w = float(np.exp(np.min(logc[k:] - logc[:-k])) - 1.0)
-            worst_windows.append({"window": label, "worst_return": _f(w),
-                                  "dollar": _f(notional * w)})
+            worst_windows.append(
+                {"window": label, "worst_return": _f(w), "dollar": _f(notional * w)}
+            )
 
     beta_for_stress = beta_now if beta_now is not None else _f(stats.get("beta")) or 1.0
     stress = []
@@ -209,10 +240,15 @@ def risk_dashboard(
         else:
             est = beta_for_stress * shock
             label = f"market {shock:+.1%}"
-        stress.append({
-            "scenario": name, "window": window, "shock": label,
-            "est_return": _f(est), "est_dollar": _f(notional * est),
-        })
+        stress.append(
+            {
+                "scenario": name,
+                "window": window,
+                "shock": label,
+                "est_return": _f(est),
+                "est_dollar": _f(notional * est),
+            }
+        )
 
     hist_counts, hist_edges = np.histogram(arr, bins=60)
 
@@ -230,8 +266,11 @@ def risk_dashboard(
             "sharpe": _f(stats.get("sharpe_ratio")),
             "sortino": _f(stats.get("sortino_ratio")),
             "max_drawdown": _f(stats.get("max_drawdown")),
-            "calmar": _f((stats.get("cagr") or 0) / abs(stats.get("max_drawdown") or 1))
-                      if stats.get("max_drawdown") else None,
+            "calmar": (
+                _f((stats.get("cagr") or 0) / abs(stats.get("max_drawdown") or 1))
+                if stats.get("max_drawdown")
+                else None
+            ),
             "beta": beta_now if beta_now is not None else _f(stats.get("beta")),
             "corr_benchmark": corr_now,
             "skew": _f(skew),
@@ -239,7 +278,11 @@ def risk_dashboard(
             "hit_rate": _f(float((arr > 0).mean())),
             "worst_day": _f(float(arr.min())),
             "best_day": _f(float(arr.max())),
-            "downside_dev": _f(float(arr[arr < 0].std(ddof=1) * math.sqrt(252))) if (arr < 0).any() else None,
+            "downside_dev": (
+                _f(float(arr[arr < 0].std(ddof=1) * math.sqrt(252)))
+                if (arr < 0).any()
+                else None
+            ),
         },
         "var_table": var_table,
         "price": _ds(d_list, close.tolist()),
@@ -253,12 +296,41 @@ def risk_dashboard(
         "rolling_var95": _ds(rd_list, rvar95.tolist()),
         "rolling_beta": beta_series,
         "return_hist": {
-            "centers": [_f(0.5 * (hist_edges[i] + hist_edges[i + 1])) for i in range(len(hist_counts))],
+            "centers": [
+                _f(0.5 * (hist_edges[i] + hist_edges[i + 1]))
+                for i in range(len(hist_counts))
+            ],
             "counts": [int(c) for c in hist_counts],
         },
         "drawdown_episodes": _drawdown_episodes(dates, close),
         "worst_windows": worst_windows,
         "stress_tests": stress,
+    }
+
+
+@router.get("/structure/{ticker}")
+def market_structure(ticker: str) -> Dict[str, Any]:
+    """Historic analogs, support/resistance, patterns and major moves."""
+    from src.analytics.market_structure import analyze_market_structure
+    from src.data.market_data import MarketDataService
+    from src.data.providers import ProviderError
+
+    try:
+        frame = MarketDataService("yfinance").get_data(ticker)
+    except ProviderError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Data fetch failed: {exc}"
+        ) from exc
+    if frame is None or frame.empty:
+        raise HTTPException(status_code=404, detail=f"No data for '{ticker}'.")
+    try:
+        payload = analyze_market_structure(frame)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {
+        "ticker": ticker.upper(),
+        "source": str(frame["Provider"].iloc[0]) if "Provider" in frame else "unknown",
+        **payload,
     }
 
 
@@ -279,7 +351,9 @@ def montecarlo(
     try:
         df = MarketDataService("yfinance").get_data(ticker)
     except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Data fetch failed: {exc}"
+        ) from exc
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail=f"No data for '{ticker}'.")
 
@@ -303,7 +377,10 @@ def montecarlo(
     n_steps = arr.shape[0] - 1
     t_idx = np.unique(np.linspace(0, n_steps, 40).astype(int))
     times = [float(i / n_steps * horizon) for i in t_idx]
-    fan = {f"p{p}": [float(np.percentile(arr[i, :], p)) for i in t_idx] for p in (5, 25, 50, 75, 95)}
+    fan = {
+        f"p{p}": [float(np.percentile(arr[i, :], p)) for i in t_idx]
+        for p in (5, 25, 50, 75, 95)
+    }
 
     # Histogram of simulated returns.
     counts, edges = np.histogram(sim_ret.to_numpy(), bins=40)
@@ -314,7 +391,10 @@ def montecarlo(
 
     return {
         "ticker": ticker.upper(),
-        "S0": S0, "mu": mu, "sigma": sigma, "horizon": horizon,
+        "S0": S0,
+        "mu": mu,
+        "sigma": sigma,
+        "horizon": horizon,
         "summary": {k: _f(v) for k, v in summary.items()},
         "risk": {k: _f(v) for k, v in risk.items()},
         "fan": {"times": times, **fan},

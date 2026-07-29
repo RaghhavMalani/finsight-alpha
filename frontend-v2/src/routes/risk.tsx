@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/terminal/Panel";
+import { RiskIntelligenceLab } from "@/components/risk/RiskIntelligenceLab";
 import { fmt } from "@/lib/market";
 import {
   getBook,
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/risk")({
 });
 
 // Decision-first Risk Desk built around limits, drivers, stress losses, and executable actions.
-type ProTab = "OVERVIEW" | "EXPOSURES" | "STRESS" | "HEDGES";
+type ProTab = "OVERVIEW" | "EXPOSURES" | "STRESS" | "INTELLIGENCE" | "HEDGES";
 type LimitTone = "CLEAR" | "WATCH" | "BREACH";
 type LimitRow = {
   label: string;
@@ -53,14 +54,6 @@ const RISK_LIMITS = {
   grossLeverage: 1.5,
   sectorGross: 0.35,
   positionRisk: 0.25,
-};
-
-const SCENARIO_NOTES: Record<string, string> = {
-  CRISIS08: "Deep equity and oil selloff with a volatility shock.",
-  COVID: "Fast cross-asset liquidation and volatility expansion.",
-  RATES100: "Parallel 100bp rate shock with growth-duration pressure.",
-  OIL20: "Energy supply shock with mild inflation spillover.",
-  TECH15: "Concentrated technology de-rating with higher implied vol.",
 };
 
 function money(value: number, digits = 0) {
@@ -226,6 +219,7 @@ function RiskDeskPro() {
     { key: "OVERVIEW", label: "Overview", meta: snapshot.status },
     { key: "EXPOSURES", label: "Exposures", meta: String(book.positions.length) },
     { key: "STRESS", label: "Stress", meta: String(snapshot.scenarios.length) },
+    { key: "INTELLIGENCE", label: "Intelligence", meta: "LIVE" },
     { key: "HEDGES", label: "Hedges", meta: String(activeCount) },
   ];
 
@@ -308,6 +302,11 @@ function RiskDeskPro() {
         {tab === "EXPOSURES" && <RiskExposures book={book} snapshot={snapshot} />}
         {tab === "STRESS" && (
           <RiskStress book={book} snapshot={snapshot} onHedge={() => setTab("HEDGES")} />
+        )}
+        {tab === "INTELLIGENCE" && (
+          <RiskIntelligenceLab
+            ticker={snapshot.topDriver?.pos.underlier ?? snapshot.topDriver?.pos.symbol ?? "SPY"}
+          />
         )}
         {tab === "HEDGES" && <RiskHedges book={book} snapshot={snapshot} />}
       </main>
@@ -512,7 +511,7 @@ function RiskOverview({
                 {((scenario.result.total / book.nav) * 100).toFixed(2)}% NAV
               </div>
               <div className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-                {SCENARIO_NOTES[scenario.key]}
+                {scenario.description}
               </div>
             </button>
           ))}
@@ -993,7 +992,7 @@ function RiskStress({
                   </span>
                 </div>
                 <div className="mt-1 text-[9px] leading-relaxed text-muted-foreground">
-                  {SCENARIO_NOTES[key]}
+                  {scenario.description}
                 </div>
               </button>
             );

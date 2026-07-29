@@ -603,35 +603,155 @@ export function netGreeks(book: Book): {
 
 // ─── Stress scenarios ────────────────────────────────────────────────
 export type ScenarioShock = {
-  equityPct?: number; // e.g. -0.15 = -15%
+  equityPct?: number;
   ratesBp?: number;
   oilPct?: number;
   goldPct?: number;
-  volMult?: number; // multiplier on option vega P&L
+  volMult?: number;
+  techPct?: number;
+  smallCapPct?: number;
+  cryptoPct?: number;
+  indiaPct?: number;
+  usdPct?: number;
+  commodityPct?: number;
 };
-export const SCENARIOS: Record<string, { label: string; shock: ScenarioShock }> = {
+export const SCENARIOS: Record<
+  string,
+  { label: string; description: string; shock: ScenarioShock }
+> = {
   CRISIS08: {
     label: "2008 CRISIS",
+    description: "Deep equity and oil liquidation with a severe volatility shock.",
     shock: { equityPct: -0.28, ratesBp: -150, oilPct: -0.35, goldPct: 0.08, volMult: 2.5 },
   },
   COVID: {
     label: "COVID CRASH",
+    description: "Fast cross-asset deleveraging, oil collapse, and volatility expansion.",
     shock: { equityPct: -0.2, ratesBp: -100, oilPct: -0.45, goldPct: 0.05, volMult: 3.0 },
   },
   RATES100: {
     label: "RATES +100BP",
+    description: "Parallel rate shock with additional growth-duration pressure.",
     shock: { equityPct: -0.06, ratesBp: 100, oilPct: -0.02, goldPct: -0.04, volMult: 1.3 },
   },
   OIL20: {
     label: "OIL +20%",
+    description: "Energy supply shock with a mild inflation and risk-asset spillover.",
     shock: { equityPct: -0.02, ratesBp: 20, oilPct: 0.2, goldPct: 0.02, volMult: 1.1 },
   },
   TECH15: {
     label: "TECH -15%",
-    shock: { equityPct: -0.15, ratesBp: 0, oilPct: 0.0, goldPct: 0.03, volMult: 1.4 },
+    description: "Concentrated technology de-rating with higher implied volatility.",
+    shock: { equityPct: -0.04, techPct: -0.15, ratesBp: 35, goldPct: 0.03, volMult: 1.4 },
+  },
+  AI_BUST: {
+    label: "AI BUBBLE BURST",
+    description: "A sharp semiconductor and mega-cap unwind with correlation convergence.",
+    shock: {
+      equityPct: -0.08,
+      techPct: -0.32,
+      ratesBp: -45,
+      oilPct: -0.08,
+      goldPct: 0.06,
+      volMult: 2.2,
+    },
+  },
+  INFLATION: {
+    label: "INFLATION RETURNS",
+    description: "Rates and commodities rise together while long-duration equities compress.",
+    shock: {
+      equityPct: -0.12,
+      techPct: -0.08,
+      ratesBp: 150,
+      oilPct: 0.18,
+      goldPct: 0.08,
+      usdPct: 0.06,
+      volMult: 1.8,
+    },
+  },
+  HARD_LANDING: {
+    label: "HARD LANDING",
+    description: "Growth breaks, credit conditions tighten, and defensive assets outperform.",
+    shock: {
+      equityPct: -0.22,
+      ratesBp: -120,
+      oilPct: -0.28,
+      goldPct: 0.1,
+      commodityPct: -0.12,
+      volMult: 2.4,
+    },
+  },
+  STAGFLATION: {
+    label: "STAGFLATION",
+    description: "Equity contraction with higher rates, energy, gold, and volatility.",
+    shock: {
+      equityPct: -0.16,
+      techPct: -0.08,
+      ratesBp: 125,
+      oilPct: 0.3,
+      goldPct: 0.12,
+      volMult: 2.0,
+    },
+  },
+  USD_SQUEEZE: {
+    label: "USD FUNDING SQUEEZE",
+    description:
+      "A dollar surge drains global liquidity and pressures commodities and risk assets.",
+    shock: {
+      equityPct: -0.07,
+      ratesBp: 65,
+      oilPct: -0.12,
+      goldPct: -0.08,
+      commodityPct: -0.1,
+      usdPct: 0.12,
+      volMult: 1.6,
+    },
+  },
+  MIDEAST: {
+    label: "MIDEAST ESCALATION",
+    description: "A geopolitical energy shock lifts oil, gold, and implied volatility.",
+    shock: { equityPct: -0.08, ratesBp: 35, oilPct: 0.45, goldPct: 0.15, volMult: 1.9 },
+  },
+  INDIA_RISK: {
+    label: "INDIA RISK-OFF",
+    description: "Foreign outflows pressure Indian equities and the rupee while volatility jumps.",
+    shock: { equityPct: -0.05, indiaPct: -0.18, usdPct: 0.04, oilPct: -0.05, volMult: 1.7 },
+  },
+  SMALLCAP: {
+    label: "SMALL-CAP CREDIT CRUNCH",
+    description: "Financing stress hits smaller companies harder than the broad market.",
+    shock: { equityPct: -0.07, smallCapPct: -0.2, ratesBp: 75, oilPct: -0.08, volMult: 1.8 },
+  },
+  CRYPTO: {
+    label: "CRYPTO -45%",
+    description: "Digital assets gap lower and speculative equity beta unwinds.",
+    shock: { equityPct: -0.03, techPct: -0.03, cryptoPct: -0.45, volMult: 2.0 },
+  },
+  CHINA: {
+    label: "CHINA HARD LANDING",
+    description: "Global demand and industrial commodities retrench on a China growth shock.",
+    shock: {
+      equityPct: -0.1,
+      techPct: -0.04,
+      oilPct: -0.18,
+      commodityPct: -0.22,
+      goldPct: 0.05,
+      volMult: 1.7,
+    },
+  },
+  MELT_UP: {
+    label: "LIQUIDITY MELT-UP",
+    description: "Falling volatility and broad risk appetite drive an upside squeeze.",
+    shock: {
+      equityPct: 0.15,
+      techPct: 0.12,
+      smallCapPct: 0.18,
+      cryptoPct: 0.25,
+      oilPct: 0.08,
+      volMult: 0.75,
+    },
   },
 };
-
 export function stress(
   book: Book,
   shock: ScenarioShock,
@@ -640,22 +760,45 @@ export function stress(
     let pnl = 0;
     if (p.cls === "EQUITY") {
       const b = p.beta ?? 1;
-      const duration =
-        p.sector === "Technology" || p.sector === "Comm Svcs"
-          ? 4
-          : p.sector === "Cons Disc."
-            ? 3
-            : 2;
+      const isTech = p.sector === "Technology" || p.sector === "Comm Svcs";
+      const isSmallCap = p.symbol === "IWM" || p.sector === "Small Cap";
+      const isCrypto = p.sector === "Crypto" || p.symbol.includes("BTC");
+      const isIndia = p.symbol.endsWith(".NS") || p.symbol.endsWith(".BO");
+      const duration = isTech ? 4 : p.sector === "Cons Disc." ? 3 : 2;
       const rateImpact = (-(shock.ratesBp ?? 0) / 10_000) * duration;
-      pnl = ((shock.equityPct ?? 0) * b + rateImpact) * p.mv;
+      const thematic =
+        (isTech ? (shock.techPct ?? 0) : 0) +
+        (isSmallCap ? (shock.smallCapPct ?? 0) : 0) +
+        (isCrypto ? (shock.cryptoPct ?? 0) : 0) +
+        (isIndia ? (shock.indiaPct ?? 0) : 0);
+      const dollarDrag = -0.15 * (shock.usdPct ?? 0);
+      pnl = ((shock.equityPct ?? 0) * b + thematic + rateImpact + dollarDrag) * p.mv;
     } else if (p.cls === "COMMODITY") {
       const rateImpact = -(shock.ratesBp ?? 0) / 10_000;
-      if (p.symbol === "CL" || p.symbol === "NG") pnl = ((shock.oilPct ?? 0) + rateImpact) * p.mv;
+      const dollarImpact = -0.65 * (shock.usdPct ?? 0);
+      if (p.symbol === "CL" || p.symbol === "NG")
+        pnl = ((shock.oilPct ?? 0) + (shock.commodityPct ?? 0) + rateImpact + dollarImpact) * p.mv;
       else if (p.symbol === "GC" || p.symbol === "SI")
-        pnl = ((shock.goldPct ?? 0) - rateImpact * 4) * p.mv;
-      else pnl = (shock.equityPct ?? 0) * 0.4 * p.mv;
+        pnl =
+          ((shock.goldPct ?? 0) +
+            0.35 * (shock.commodityPct ?? 0) -
+            rateImpact * 4 +
+            dollarImpact) *
+          p.mv;
+      else pnl = ((shock.commodityPct ?? 0) + (shock.equityPct ?? 0) * 0.4 + dollarImpact) * p.mv;
     } else if (p.cls === "OPTION") {
-      const underlierMove = (p.underlyingMark ?? p.mark) * (shock.equityPct ?? 0) * (p.beta ?? 1);
+      const underlier = p.underlier ?? "";
+      const isTech = ["NVDA", "QQQ", "AAPL", "MSFT", "META", "GOOGL", "AMZN"].includes(underlier);
+      const isSmallCap = underlier === "IWM";
+      const isCrypto = underlier.includes("BTC");
+      const isIndia = underlier.endsWith(".NS") || underlier.endsWith(".BO");
+      const underlierShock =
+        (shock.equityPct ?? 0) * (p.beta ?? 1) +
+        (isTech ? (shock.techPct ?? 0) : 0) +
+        (isSmallCap ? (shock.smallCapPct ?? 0) : 0) +
+        (isCrypto ? (shock.cryptoPct ?? 0) : 0) +
+        (isIndia ? (shock.indiaPct ?? 0) : 0);
+      const underlierMove = (p.underlyingMark ?? p.mark) * underlierShock;
       const dP =
         (p.delta ?? 0) * underlierMove + 0.5 * (p.gamma ?? 0) * underlierMove * underlierMove;
       const volPointMove = ((shock.volMult ?? 1) - 1) * p.vol * 100;
