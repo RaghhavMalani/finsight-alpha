@@ -33,7 +33,7 @@ import { MarketClock } from "@/components/terminal/MarketClock";
 import { ContextMenu, type ContextState } from "@/components/terminal/ContextMenu";
 import { AlertsPanel, AlertPopover, type Alert } from "@/components/terminal/AlertsPanel";
 import { BookDrawer } from "@/components/terminal/BookDrawer";
-import { RiskCommandPanel } from "@/components/terminal/RiskCommandPanel";
+import { RiskCommandPanel } from "@/components/terminal/RiskCommandPanelPro";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
 import { TICKERS, unavailableInstrument, Instrument, fmt, fmtPct } from "@/lib/market";
 import { useLiveMarket, type LiveMarketStatus } from "@/lib/live-market";
