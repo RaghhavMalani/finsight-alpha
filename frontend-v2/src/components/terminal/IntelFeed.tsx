@@ -83,10 +83,12 @@ export function IntelFeed({
     queryFn: () =>
       Promise.all(
         newsSymbols.map((symbol) =>
-          api<NewsPayload>(`/news/${encodeURIComponent(symbol)}?limit=10`).catch(() => ({
-            ticker: symbol,
-            items: [],
-          })),
+          api<NewsPayload>(`/news/${encodeURIComponent(symbol)}?limit=10`).catch(
+            (): NewsPayload => ({
+              ticker: symbol,
+              items: [],
+            }),
+          ),
         ),
       ),
     refetchInterval: 5 * 60_000,
