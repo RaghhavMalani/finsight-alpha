@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_002_historical_valuation",
+    "question": "Reproduce enterprise value as of 2019-06-30 using market capitalization plus debt minus cash.",
+    "as_of": "2019-06-30T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "fundamentals", "observed_at": "observed_at", "available_from": "available_from", "records": [
+      {"ticker": "TEST", "observed_at": "2019-06-28T20:00:00Z", "available_from": "2019-06-28T20:01:00Z", "market_cap": 500.0, "debt": 80.0, "cash": 30.0}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "enterprise_value", "metric": "enterprise_value", "expected": 550.0, "unit": "usd_millions", "absolute_tolerance": 1e-12, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "fundamentals", "minimum_count": 1}], "minimum_replays": 2
+}

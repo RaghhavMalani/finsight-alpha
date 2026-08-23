@@ -1,4 +1,4 @@
-# FinSight
+# FinSight Forge
 
 > **An RL environment and evaluation harness for coding agents, instantiated in finance.**
 
@@ -16,6 +16,13 @@ This is one repository with two readings:
 
 The terminal remains a useful observer and demo surface. It is no longer the
 definition of the project.
+
+The first Forge vertical slice is now executable: framework-independent
+research tasks and findings, a strict `MarketWorld`, deterministic temporal /
+evidence / numerical / reproducibility gates, shaped verified rewards, and
+versioned frozen benchmark fixtures. See
+[`docs/FINSIGHT_FORGE.md`](docs/FINSIGHT_FORGE.md) for the contracts and the
+honest implementation boundary.
 
 ## The numbers this repository publishes
 
@@ -52,15 +59,18 @@ and the exact formulas and anti-gaming rules are documented in
 | Layer | Current repository evidence |
 | --- | --- |
 | Evaluation | Six-metric deterministic scorecard, strict provenance schema, stable JSON/Markdown reports, explicit completeness state |
+| Forge environment | Machine-actionable task/finding contracts, availability-dated `MarketWorld`, deterministic counterfactual forks, four-stage verifier suite, bounded reward model |
+| Frozen tasks | FinBench/Forge v0.1 harness with two point-in-time cases and future-data/replay sabotage tests |
 | Negative controls | Sabotage tests for replay mutation, missing counterfactuals, denominator stuffing, unrecovered faults, judge drift, seed failure, and incomplete task/seed grids |
 | Truth foundation | Mandatory `as_of` boundaries, content-addressed computation contracts, epistemic states, tenant-licensed immutable snapshots, run and forecast ledgers |
 | ML timing | Expanding lagged regime thresholds, horizon purge, independent embargo, purged validation, untouched outer holdout |
 | Quant verifier | Published-reference Black-Scholes checks, finite-difference Greeks, Monte Carlo convergence, VaR coverage, Markowitz oracle, shuffled-label control, RAG retrieval set |
 | Product surface | FastAPI backend and React/TanStack terminal displaying server-owned computation truth |
 
-The complete MCP tool surface, isolated coding sandbox, multi-agent workflow,
-outcome resolution, cost-aware router, and RLVR training loop remain roadmap
-work. They are not claimed as shipped. See
+The complete MCP tool surface, isolated generated-code sandbox, multi-agent
+workflow, statistical/robustness verifier stages, 30-task benchmark, outcome
+resolution, cost-aware router, and RLVR training loop remain roadmap work. They
+are not claimed as shipped. See
 [`docs/V2_TRUTH_FOUNDATION.md`](docs/V2_TRUTH_FOUNDATION.md) for the boundary.
 
 ## Why finance
@@ -91,6 +101,21 @@ Run the fast negative controls and metric-contract tests:
 
 ```bash
 pytest -q tests/test_agent_eval_metrics.py tests/sabotage
+```
+
+Run the Forge environment and frozen-task checks:
+
+```bash
+pytest -q tests/test_forge_world.py tests/test_forge_benchmark.py tests/sabotage/test_forge_guards.py
+```
+
+Grade a directory of machine-actionable finding submissions:
+
+```bash
+python scripts/run_forge_benchmark.py \
+  --tasks eval/tasks/forge_v0_1 \
+  --submissions path/to/findings \
+  --output data/exports/forge-v0.1/report.json
 ```
 
 Run the full repository suite:
@@ -143,7 +168,13 @@ server prints its local URL.
 
 ```text
 src/eval/          strict evidence model, six metrics, stable report renderer
+src/findings/      framework-independent research task/finding/artifact schema
+src/world/         strict point-in-time worlds and counterfactual forks
+src/verifiers/     temporal, evidence, numerical, and replay gates
+src/rewards/       cost-aware verified reward shaping
+src/benchmark/     frozen-task loader and deterministic episode runner
 eval/schema/       machine-readable attempt contract
+eval/tasks/        versioned Forge benchmark fixtures
 tests/sabotage/    negative controls for evaluator protections
 src/truth/         epistemic states and content-addressed computation contracts
 src/data/          as-of boundary, snapshots, lineage, licensing, providers

@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.2.1",
+  "train": [
+    "task_001_future_filing_contamination",
+    "task_002_historical_valuation",
+    "task_003_black_scholes",
+    "task_004_valuation_sensitivity",
+    "task_005_point_in_time_momentum",
+    "task_006_leaked_alpha"
+  ],
+  "dev": [
+    "task_007_covariance_instability",
+    "task_008_var_coverage"
+  ],
+  "holdout": [
+    "task_009_regime_leakage",
+    "task_010_filing_evidence"
+  ]
+}

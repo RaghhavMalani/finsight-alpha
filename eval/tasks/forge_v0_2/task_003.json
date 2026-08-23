@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_003_black_scholes",
+    "question": "Verify the Black-Scholes European call price, delta, gamma, and vega for the frozen option inputs.",
+    "as_of": "2020-01-02T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "option_inputs", "observed_at": "observed_at", "available_from": "available_from", "records": [
+      {"observed_at": "2020-01-02T16:00:00Z", "available_from": "2020-01-02T16:00:01Z", "spot": 100.0, "strike": 100.0, "rate": 0.05, "volatility": 0.2, "years": 1.0}
+    ]
+  }]},
+  "numeric_expectations": [
+    {"claim_id": "call_price", "metric": "black_scholes_call", "expected": 10.450583572185565, "unit": "usd", "absolute_tolerance": 1e-10, "relative_tolerance": 0},
+    {"claim_id": "delta", "metric": "call_delta", "expected": 0.6368306511756191, "unit": "decimal", "absolute_tolerance": 1e-10, "relative_tolerance": 0},
+    {"claim_id": "gamma", "metric": "call_gamma", "expected": 0.018762017345846895, "unit": "per_usd", "absolute_tolerance": 1e-10, "relative_tolerance": 0},
+    {"claim_id": "vega", "metric": "call_vega", "expected": 37.52403469169379, "unit": "usd_per_vol_unit", "absolute_tolerance": 1e-10, "relative_tolerance": 0}
+  ],
+  "evidence_requirements": [{"dataset": "option_inputs", "minimum_count": 1}], "minimum_replays": 2
+}

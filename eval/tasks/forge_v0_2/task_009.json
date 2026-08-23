@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_009_regime_leakage",
+    "question": "Determine whether the regime classifier leaks future volatility. Return 1 if a feature becomes available after classification time.",
+    "as_of": "2020-12-31T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "regime_features", "observed_at": "decision_time", "available_from": "row_available_from", "records": [
+      {"decision_time": "2020-03-31T20:00:00Z", "row_available_from": "2020-04-30T20:00:00Z", "feature_name": "next_month_volatility", "feature_value": 0.35, "feature_available_from": "2020-04-30T20:00:00Z"}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "future_volatility_leak", "metric": "future_volatility_leak", "expected": 1, "unit": "boolean_code", "absolute_tolerance": 0, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "regime_features", "minimum_count": 1}], "minimum_replays": 2
+}

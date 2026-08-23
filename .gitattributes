@@ -1,0 +1,4 @@
+# Content-addressed Forge experiment records must retain their exact bytes.
+data/exports/forge_v0_2_baseline/** -text
+data/exports/forge_v0_2_reward_calibration/** -text
+

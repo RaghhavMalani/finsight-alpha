@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_010_filing_evidence",
+    "question": "Produce an evidence-backed filing answer by counting passages matching the query risk factor.",
+    "as_of": "2020-12-31T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "filings", "observed_at": "period_end", "available_from": "filed_at", "records": [
+      {"ticker": "TEST", "period_end": "2020-09-30T23:59:59Z", "filed_at": "2020-11-01T16:00:00Z", "section": "Risk Factors", "text": "Supply concentration is a material risk factor."},
+      {"ticker": "TEST", "period_end": "2020-09-30T23:59:59Z", "filed_at": "2020-11-01T16:00:00Z", "section": "Risk Factors", "text": "Foreign exchange volatility presents another risk."},
+      {"ticker": "TEST", "period_end": "2020-09-30T23:59:59Z", "filed_at": "2020-11-01T16:00:00Z", "section": "Liquidity", "text": "Cash and equivalents remain sufficient."}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "risk_passage_count", "metric": "risk_passage_count", "expected": 2, "unit": "count", "absolute_tolerance": 0, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "filings", "minimum_count": 2}], "minimum_replays": 2
+}

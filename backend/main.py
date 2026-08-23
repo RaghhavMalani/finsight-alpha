@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import sys
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 # Make the project root importable when launched via uvicorn from anywhere.
@@ -54,6 +55,8 @@ from backend.routes import (
     universe,
 )
 from src import config
+from src.auth import db
+from src.auth.db import init_db
 from src.auth.security import verify_session
 from src.utils.logging_utils import get_logger
 
@@ -74,12 +77,22 @@ if config.SENTRY_DSN:
     except ImportError:
         logger.error("SENTRY_DSN is set but sentry-sdk is not installed.")
 
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    config.validate_runtime_config()
+    init_db()
+    logger.info("Metadata database initialized and production configuration validated.")
+    yield
+
+
 app = FastAPI(
     title=config.APP_NAME,
     description=(
         "Point-in-time finance environment and evaluation substrate for coding agents."
     ),
     version=config.APP_VERSION,
+    lifespan=_lifespan,
 )
 
 
@@ -109,20 +122,9 @@ app.add_middleware(
     allow_headers=["Content-Type", "Accept", "X-FinSight-Organization"],
 )
 
-# --- Authentication: create tables on startup and gate the whole app ---------
-from src.auth import db  # noqa: E402
-from src.auth.db import init_db  # noqa: E402
-
 # Paths reachable WITHOUT a session (login flow, health probes, login page).
 _PUBLIC_PATHS = {"/login", "/health", "/health/ready", "/favicon.ico"}
 _PUBLIC_PREFIXES = ("/auth/",)
-
-
-@app.on_event("startup")
-def _startup() -> None:
-    config.validate_runtime_config()
-    init_db()
-    logger.info("Metadata database initialized and production configuration validated.")
 
 
 @app.middleware("http")
