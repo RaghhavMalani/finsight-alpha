@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_008_l2_l3_fill_difference",
+  "objective": "Measure the change in fills and edge when replay moves from L2 price levels to L3 order queues.",
+  "engines": ["hftbacktest"],
+  "capabilities": ["l2", "l3", "queue", "partial_fills"],
+  "reality_levels": ["L3_MICROSTRUCTURE"],
+  "primary_metric": "fill_rate",
+  "required_verifiers": ["fill_plausibility", "cross_engine_consistency"],
+  "budget": {"max_engine_runs": 4, "max_compute_seconds": 360.0}
+}

@@ -10,6 +10,12 @@ from typing import Any, Mapping
 import pandas as pd
 
 from src.eval.canonical import canonical_json_bytes
+from src.execution import (
+    SimulationOutcome,
+    SimulationRequest,
+    SimulationToolPlane,
+)
+from src.execution.tool_plane import SIMULATION_TOOL_DEFINITIONS
 from src.findings import ResearchFinding, ResearchTask
 from src.sandbox import (
     ExecutionResult,
@@ -34,6 +40,7 @@ TOOL_DEFINITIONS: dict[str, dict[str, Any]] = {
     "filings.search": {"required": ["query"], "optional": ["ticker"]},
     "experiment.execute_python": {"required": ["code", "input"], "optional": []},
     "finding.submit": {"required": ["finding"], "optional": []},
+    **SIMULATION_TOOL_DEFINITIONS,
 }
 
 
@@ -52,6 +59,7 @@ class ForgeToolPlane:
         task: ResearchTask,
         world: MarketWorld,
         sandbox_root: str | Path,
+        simulation_plane: SimulationToolPlane | None = None,
     ) -> None:
         if task.as_of.cutoff != world.as_of.cutoff or task.seed != world.seed:
             raise ValueError("tool plane task and world boundaries must match")
@@ -61,6 +69,7 @@ class ForgeToolPlane:
         self.actions: list[ToolAction] = []
         self.executions: list[ExecutionResult] = []
         self.submitted_finding: ResearchFinding | None = None
+        self.simulation_plane = simulation_plane
 
     def definitions(self) -> dict[str, dict[str, Any]]:
         return json.loads(json.dumps(TOOL_DEFINITIONS))
@@ -137,6 +146,9 @@ class ForgeToolPlane:
         finding = values.get("finding")
         if isinstance(finding, ResearchFinding):
             values["finding"] = finding.to_dict()
+        request = values.get("request")
+        if isinstance(request, SimulationRequest):
+            values["request"] = request.to_dict()
         return values
 
     def _invoke(self, tool: str, args: dict[str, Any]) -> ToolResult:
@@ -172,6 +184,40 @@ class ForgeToolPlane:
             return self._filings_search(str(args["query"]), args.get("ticker"))
         if tool == "experiment.execute_python":
             return self._execute_python(str(args["code"]), args["input"])
+        if tool in SIMULATION_TOOL_DEFINITIONS:
+            if self.simulation_plane is None:
+                raise ToolInvocationError("simulation federation is not configured")
+            if tool == "simulation.run":
+                request = args["request"]
+                if not isinstance(request, SimulationRequest):
+                    request = SimulationRequest.from_dict(request)
+                if request.world_hash != self.world.world_id:
+                    raise ToolInvocationError("simulation request is bound to a different MarketWorld")
+                if request.seed != self.world.seed:
+                    raise ToolInvocationError("simulation request seed differs from the frozen MarketWorld")
+                if request.end > self.world.as_of.cutoff:
+                    raise ToolInvocationError("simulation request extends beyond the MarketWorld as-of boundary")
+            value = self.simulation_plane.call(tool, args)
+            if isinstance(value, SimulationOutcome):
+                snapshot_hash = (
+                    value.result.result_hash
+                    if value.result is not None
+                    else value.request_hash
+                )
+                return ToolResult(
+                    value=value.to_dict(),
+                    provenance=self._provenance(
+                        f"simulation:{value.engine_id}",
+                        snapshot_hash,
+                        epistemic_state=value.state.value.lower(),
+                    ),
+                    success=value.result is not None,
+                )
+            descriptions = list(value)
+            return ToolResult(
+                value=descriptions,
+                provenance=self._provenance("simulation-registry", self.world.world_id),
+            )
         if tool == "finding.submit":
             finding = args["finding"]
             if not isinstance(finding, ResearchFinding):

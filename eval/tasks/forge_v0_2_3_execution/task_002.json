@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_002_walk_forward_selection",
+  "objective": "Select candidates with walk-forward evidence while rejecting full-sample parameter leakage.",
+  "engines": ["vectorbt"],
+  "capabilities": ["vectorized", "walk_forward", "portfolio_screening"],
+  "reality_levels": ["L1_VECTORIZED", "L4_COUNTERFACTUAL_STRESS"],
+  "primary_metric": "sharpe",
+  "required_verifiers": ["execution_integrity", "microstructure_robustness"],
+  "budget": {"max_engine_runs": 9, "max_compute_seconds": 90.0}
+}

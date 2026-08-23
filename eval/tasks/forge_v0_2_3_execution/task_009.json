@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_009_legacy_disagreement",
+  "objective": "Explain disagreement caused by delay, timestamp, cancellation, queue, or fill semantics in the legacy reference.",
+  "engines": ["legacy-hft", "hftbacktest"],
+  "capabilities": ["differential_reference", "execution_delay", "tick_data"],
+  "reality_levels": ["L2_EVENT_REPLAY", "L3_MICROSTRUCTURE"],
+  "primary_metric": "pnl",
+  "required_verifiers": ["execution_integrity", "fill_plausibility", "cross_engine_consistency"],
+  "budget": {"max_engine_runs": 6, "max_compute_seconds": 240.0}
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_004_vectorbt_nautilus_equivalence",
+  "objective": "Measure whether vectorized and event-driven engines converge under deliberately simplified assumptions.",
+  "engines": ["vectorbt", "nautilus"],
+  "capabilities": ["portfolio_screening", "event_driven"],
+  "reality_levels": ["L1_VECTORIZED", "L2_EVENT_REPLAY"],
+  "primary_metric": "pnl",
+  "required_verifiers": ["execution_integrity", "cross_engine_consistency"],
+  "budget": {"max_engine_runs": 4, "max_compute_seconds": 150.0}
+}

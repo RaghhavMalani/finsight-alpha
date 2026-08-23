@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_010_event_band_probability",
+  "objective": "Price an S&P terminal-value band under independently implemented Gaussian, Student-t, and Cauchy distributions.",
+  "engines": ["prediction-pack"],
+  "capabilities": ["event_contract", "distribution_comparison"],
+  "reality_levels": ["L0_MATHEMATICAL", "L4_COUNTERFACTUAL_STRESS"],
+  "primary_metric": "calibration_error",
+  "required_verifiers": ["cross_engine_consistency"],
+  "budget": {"max_engine_runs": 3, "max_compute_seconds": 30.0}
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_001_massive_moving_average_sweep",
+  "objective": "Screen a large moving-average parameter grid and return only point-in-time candidates that clear the fast research gate.",
+  "engines": ["vectorbt"],
+  "capabilities": ["vectorized", "parameter_sweep"],
+  "reality_levels": ["L1_VECTORIZED"],
+  "primary_metric": "sharpe",
+  "required_verifiers": ["execution_integrity"],
+  "budget": {"max_engine_runs": 1, "max_compute_seconds": 30.0}
+}

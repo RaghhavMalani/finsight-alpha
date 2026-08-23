@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_007_queue_position_sensitivity",
+  "objective": "Stress queue-ahead assumptions and reject fills that exceed observable executable volume.",
+  "engines": ["hftbacktest"],
+  "capabilities": ["queue", "partial_fills", "l2"],
+  "reality_levels": ["L3_MICROSTRUCTURE", "L4_COUNTERFACTUAL_STRESS"],
+  "primary_metric": "fill_rate",
+  "required_verifiers": ["fill_plausibility", "microstructure_robustness"],
+  "budget": {"max_engine_runs": 9, "max_compute_seconds": 300.0}
+}
