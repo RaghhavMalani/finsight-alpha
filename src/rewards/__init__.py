@@ -1,5 +1,10 @@
 """Verifiable reward shaping for Forge benchmark episodes."""
 
+from .calibrated import (
+    CalibratedRewardModel,
+    CalibrationConfig,
+    EvaluationResult,
+)
 from .reward_model import (
     ResourceUsage,
     RewardBreakdown,
@@ -8,6 +13,9 @@ from .reward_model import (
 )
 
 __all__ = [
+    "CalibratedRewardModel",
+    "CalibrationConfig",
+    "EvaluationResult",
     "ResourceUsage",
     "RewardBreakdown",
     "RewardConfig",

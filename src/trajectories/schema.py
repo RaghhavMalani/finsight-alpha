@@ -26,7 +26,7 @@ class Trajectory:
     compute_cost_usd: float
     latency_seconds: float
     outcome: str
-    schema_version: str = "0.2.1"
+    schema_version: str = "0.2.2"
 
     @classmethod
     def from_episode(

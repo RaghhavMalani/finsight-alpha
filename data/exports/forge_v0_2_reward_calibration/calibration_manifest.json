@@ -1,0 +1,62 @@
+{
+  "artifacts": {
+    "discrimination.json": "e9b9da04b08c70c7181a5da819a4731e5d4adde3e8d75ae1f6ece534b9a6ed54",
+    "distributions.json": "352bc4dc906192a3d25172da13354c0bf67bc9f8cc4d8576cb02332f12b01226",
+    "failure_analysis.md": "cdbbeb500f33cb560d90a0e6e412a91e823a02cc2a94585d66781563dd330b88",
+    "old_vs_new_scores.csv": "8d331a5fec7f36239faea49f99b6629cbe0535b1fff388944cec4fc087c7453a"
+  },
+  "calibration_id": "2539fc405cd5ff30fd318bd049cc071b35f7de56a8dcf2a63279564141c6a136",
+  "created_at": "2026-08-23T11:36:27.731693Z",
+  "method": {
+    "critical_verifiers": [
+      "temporal",
+      "evidence",
+      "numerical",
+      "reproducibility"
+    ],
+    "quality_aggregation": "weighted geometric mean",
+    "selected_config": {
+      "cost_efficiency_rate": 0.2,
+      "critical_failure_multiplier": 0.4,
+      "critical_verifiers": [
+        "temporal",
+        "evidence",
+        "numerical",
+        "reproducibility"
+      ],
+      "epsilon": 0.05,
+      "evidence_weight": 0.2,
+      "latency_efficiency_rate": 0.1,
+      "numerical_weight": 0.25,
+      "quality_failure_multiplier": 0.65,
+      "reproducibility_weight": 0.2,
+      "robustness_weight": 0.1,
+      "temporal_weight": 0.25,
+      "tool_efficiency_rate": 0.06
+    },
+    "selection_rule": "largest candidate alpha satisfying every frozen acceptance criterion",
+    "trajectory_policy": "same trajectories, findings, and verifier outputs; scoring only"
+  },
+  "results": {
+    "accepted": true,
+    "new_median_separation": 0.6128339342242815,
+    "new_reward_discrimination_auc": 1.0,
+    "old_median_separation": 0.14818906818181843,
+    "old_reward_discrimination_auc": 1.0,
+    "selected_critical_failure_multiplier": 0.4
+  },
+  "schema_version": "0.2.2",
+  "source": {
+    "artifact_hashes": {
+      "README.md": "e06b57e2ecdeb63c43068c228f1efdd379f5689fdceb651adcda0235190d1cac",
+      "episodes.jsonl": "0986e12c637343c5e95a9092f1128a99c6e1aa36de0b85384fc804a10c060546",
+      "failures.jsonl": "e855e5775ee6dd2ed910cfcea8192fdcf2f6aac878c04bb4e2695f3a75d812ab",
+      "model_summary.csv": "1b0a78bd540afae1e58f9cad965e5a7c5e4796186b1c6c9e4a81f18458372a49",
+      "task_summary.csv": "6daa82e4df37c66df6d27abb00ef3511fd15690feb9de766b4ded08ef543935e"
+    },
+    "baseline_id": "980fd548426b1cb9cc7d00697b2efc74021235685a97e1b07f66f5db9e4a6b15",
+    "baseline_tag": "FORGE_BASELINE_V0_2",
+    "episodes": 150
+  },
+  "tag": "FORGE_REWARD_CALIBRATION_V0_2_2"
+}

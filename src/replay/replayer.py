@@ -11,7 +11,8 @@ from src.agent.research_agent import ResearchAgent
 from src.baseline import profile_by_name
 from src.benchmark import BenchmarkRunner, load_benchmark_case
 from src.eval.canonical import canonical_sha256
-from src.rewards import ResourceUsage
+from src.replay.diff import build_causal_diff
+from src.rewards import ResourceUsage, VerifiedRewardModel
 from src.sandbox.cleanup import remove_runner_tree
 from src.trajectories import Trajectory
 
@@ -75,6 +76,7 @@ class ReplayResult:
     checks: dict[str, bool]
     expected: dict[str, Any]
     actual: dict[str, Any]
+    causal_diff: dict[str, Any]
 
     @property
     def fidelity(self) -> float:
@@ -93,6 +95,7 @@ class ReplayResult:
             "checks": self.checks,
             "expected": self.expected,
             "actual": self.actual,
+            "causal_diff": self.causal_diff,
             "fidelity": self.fidelity,
             "matched": self.matched,
         }
@@ -125,7 +128,12 @@ class TrajectoryReplayer:
                 finding_transform=profile.transform,
             ).run(case.task, case.world, sandbox_root=str(target / "sandbox"))
             recorded_usage = ResourceUsage.from_dict(trajectory.usage)
-            episode = BenchmarkRunner().evaluate(
+            reward_model = (
+                VerifiedRewardModel()
+                if "training_reward" not in trajectory.reward_components
+                else None
+            )
+            episode = BenchmarkRunner(reward_model=reward_model).evaluate(
                 case,
                 research.finding,
                 usage=recorded_usage,
@@ -164,6 +172,27 @@ class TrajectoryReplayer:
                 "verifier_output": list(trajectory.verifier_outputs) == actual_verifiers,
                 "reward": trajectory.reward_components == actual_reward,
             }
+            causal_diff = build_causal_diff(
+                checks=checks,
+                supplied_trajectory_id=supplied_id,
+                calculated_trajectory_id=trajectory.trajectory_id,
+                expected_task=trajectory.task,
+                actual_task=case.task.to_dict(),
+                expected_world=trajectory.world_hash,
+                actual_world=case.world.world_id,
+                expected_actions=trajectory.actions,
+                actual_actions=actual_actions,
+                expected_replays=expected_replays,
+                actual_replays=actual_replays,
+                expected_artifacts=expected_artifacts,
+                actual_artifacts=actual_artifacts,
+                expected_finding_hash=expected_finding_hash,
+                actual_finding_hash=actual_finding_hash,
+                expected_verifiers=list(trajectory.verifier_outputs),
+                actual_verifiers=actual_verifiers,
+                expected_reward=trajectory.reward_components,
+                actual_reward=actual_reward,
+            )
             return ReplayResult(
                 trajectory_id=supplied_id or trajectory.trajectory_id,
                 task_id=task_id,
@@ -182,6 +211,7 @@ class TrajectoryReplayer:
                     "finding_hash": actual_finding_hash,
                     "reward": actual_reward,
                 },
+                causal_diff=causal_diff,
             )
         finally:
             if target.exists():

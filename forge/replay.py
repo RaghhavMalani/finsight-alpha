@@ -50,6 +50,24 @@ def main() -> None:
     for key, matched in result.checks.items():
         print(f"{LABELS[key]:<20}{'MATCH' if matched else 'MISMATCH'}")
     print()
+    divergence = result.causal_diff["first_divergence"]
+    if divergence is None:
+        print("CAUSAL DIFF        NONE")
+    else:
+        print(f"FIRST DIVERGENCE   {divergence['component']}")
+        print(f"FIELD              {divergence['field']}")
+        if divergence.get("step") is not None:
+            print(f"STEP               {divergence['step']}")
+            print(f"TOOL               {divergence.get('tool')}")
+        affected = result.causal_diff["affected_downstream"]
+        unaffected = result.causal_diff["unaffected"]
+        print(
+            "AFFECTED           " + (", ".join(affected) if affected else "none")
+        )
+        print(
+            "UNAFFECTED         " + (", ".join(unaffected) if unaffected else "none")
+        )
+    print()
     print(f"REPLAY FIDELITY     {result.fidelity:.3%}")
     if not result.matched:
         raise SystemExit(2)

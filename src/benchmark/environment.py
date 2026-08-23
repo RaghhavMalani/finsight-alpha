@@ -11,7 +11,9 @@ import pandas as pd
 
 from src.eval.canonical import canonical_sha256
 from src.findings.schema import ResearchFinding, ResearchTask
-from src.rewards.reward_model import (
+from src.rewards import (
+    CalibratedRewardModel,
+    EvaluationResult,
     ResourceUsage,
     RewardBreakdown,
     VerifiedRewardModel,
@@ -81,7 +83,7 @@ class EpisodeResult:
     finding_hash: str
     passed: bool
     verifier_results: tuple[VerificationResult, ...]
-    reward: RewardBreakdown
+    reward: RewardBreakdown | EvaluationResult
     usage: ResourceUsage
     executions: tuple[ExecutionResult, ...] = ()
 
@@ -110,10 +112,10 @@ class BenchmarkRunner:
         self,
         *,
         verifier_suite: VerifierSuite | None = None,
-        reward_model: VerifiedRewardModel | None = None,
+        reward_model: VerifiedRewardModel | CalibratedRewardModel | None = None,
     ) -> None:
         self.verifier_suite = verifier_suite or VerifierSuite()
-        self.reward_model = reward_model or VerifiedRewardModel()
+        self.reward_model = reward_model or CalibratedRewardModel()
 
     def run(self, case: BenchmarkCase, policy: Policy) -> EpisodeResult:
         output = policy(case.task, case.world)

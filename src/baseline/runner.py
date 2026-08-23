@@ -15,6 +15,7 @@ from src.agent.research_agent import ResearchAgent
 from src.baseline.profiles import BaselineProfile, PROFILES
 from src.benchmark import BenchmarkRunner, load_benchmark_case
 from src.eval.canonical import canonical_sha256
+from src.rewards import VerifiedRewardModel
 from src.trajectories import Trajectory
 from src.sandbox.cleanup import remove_runner_tree
 
@@ -175,7 +176,9 @@ class BaselineFreezeRunner:
                                 work / profile.name / f"seed-{seed}" / case.task.task_id
                             ),
                         )
-                        episode = BenchmarkRunner().evaluate(
+                        episode = BenchmarkRunner(
+                            reward_model=VerifiedRewardModel()
+                        ).evaluate(
                             case,
                             research.finding,
                             usage=research.usage,

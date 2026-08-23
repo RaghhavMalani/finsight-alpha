@@ -48,7 +48,8 @@ def test_future_availability_sabotage_cannot_keep_a_verified_reward():
     assert not episode.passed
     assert results["temporal"].status.value == "fail"
     assert results["evidence"].status.value == "fail"
-    assert episode.reward.penalties["temporal_leak"] > 0
+    assert not episode.reward.critical_gate_passed
+    assert episode.reward.failure_multiplier == 0.40
 
 
 def test_replay_mutation_fails_reproducibility_gate():
