@@ -11,13 +11,14 @@ training the suite takes a few seconds and the signal doesn't change intraday.
 from __future__ import annotations
 
 import math
+from datetime import date, timedelta
 import threading
 import time
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from src.utils.logging_utils import get_logger
 
@@ -70,12 +71,23 @@ def _records(df: pd.DataFrame, limit: int = 20) -> List[Dict[str, Any]]:
 
 @router.get("/signal/{ticker}")
 def ml_signal(
+    request: Request,
     ticker: str,
     benchmark: str = Query("SPY"),
     horizon: int = Query(1, ge=1, le=5),
+    as_of: date = Query(..., description="Point-in-time data cutoff (YYYY-MM-DD)."),
 ) -> Dict[str, Any]:
     """Train the signal model suite and return the institutional signal."""
-    key = (ticker.upper(), benchmark.upper(), horizon)
+    from src.data.as_of import AsOfContext
+
+    as_of_context = AsOfContext.bind(as_of)
+    key = (
+        request.state.organization_id,
+        ticker.upper(),
+        benchmark.upper(),
+        horizon,
+        as_of_context.iso,
+    )
     now = time.time()
     with _cache_lock:
         hit = _cache.get(key)
@@ -84,11 +96,16 @@ def ml_signal(
 
     from src.data.market_data import MarketDataService
     from src.data.providers import ProviderError
-    from src.ml import signal_engine, signal_features, signal_modeling, signal_targets
+    from src.ml import signal_engine, signal_features, signal_targets
+    from src.ml.point_in_time_modeling import train_point_in_time_signal_suite
+    from src.truth.contracts import dataframe_hash
 
     svc = MarketDataService("yfinance")
+    end_date = (as_of_context.date + timedelta(days=1)).isoformat()
     try:
-        asset_df = svc.get_data(ticker)
+        asset_df = as_of_context.filter_frame(
+            svc.get_data(ticker, end_date=end_date), observed_at="Date"
+        )
     except ProviderError as exc:
         raise HTTPException(
             status_code=502, detail=f"Data fetch failed: {exc}"
@@ -100,7 +117,13 @@ def ml_signal(
 
     b_df = pd.DataFrame()
     try:
-        b_df = svc.get_data(benchmark).sort_values("Date").reset_index(drop=True)
+        b_df = (
+            as_of_context.filter_frame(
+                svc.get_data(benchmark, end_date=end_date), observed_at="Date"
+            )
+            .sort_values("Date")
+            .reset_index(drop=True)
+        )
         b_df["Ticker"] = benchmark.upper()
     except Exception:
         pass
@@ -126,14 +149,36 @@ def ml_signal(
         if pd.api.types.is_numeric_dtype(ml_df[c]) and c not in _EXCLUDE_COLS
     ]
     ml_df = ml_df.dropna(subset=[target_col] + feature_cols).reset_index(drop=True)
+    inference_frame = feat_df.dropna(subset=feature_cols)
+    if inference_frame.empty:
+        raise HTTPException(
+            status_code=422, detail="No complete current feature row is available."
+        )
+    inference_row = inference_frame.iloc[[-1]]
+    signal_date = str(inference_row.iloc[0].get("Date", inference_row.index[-1]))[:10]
+    version_columns = [
+        column
+        for column in ("Date", "Open", "High", "Low", "Close", "Volume", "Provider")
+        if column in asset_df.columns
+    ]
+    data_version = dataframe_hash(asset_df, version_columns)
+
     if len(ml_df) < 200:
         raise HTTPException(
             status_code=422, detail="Not enough clean rows to train (need 200+)."
         )
 
     try:
-        suite = signal_modeling.train_signal_model_suite(
-            ml_df, feature_cols, target_col, test_size=0.2, ticker=ticker
+        suite = train_point_in_time_signal_suite(
+            ml_df,
+            feature_cols,
+            target_col,
+            inference_row=inference_row,
+            horizon=horizon,
+            signal_date=signal_date,
+            data_version=data_version,
+            test_size=0.2,
+            ticker=ticker,
         )
     except Exception as exc:
         logger.exception("Signal suite training failed")
@@ -162,7 +207,11 @@ def ml_signal(
         pass
 
     fi = suite.get("feature_importance")
-    latest = feat_df.iloc[-1]
+    latest = inference_row.iloc[-1]
+    timing = suite["timing"]
+    executable_from = (
+        (pd.Timestamp(signal_date) + pd.offsets.BusinessDay(1)).date().isoformat()
+    )
 
     payload = {
         "ticker": ticker.upper(),
@@ -170,6 +219,25 @@ def ml_signal(
         "horizon_days": horizon,
         "n_rows": int(len(ml_df)),
         "n_features": len(feature_cols),
+        "truth": {
+            "state": "MODELLED",
+            "as_of": as_of_context.iso,
+            "signal_date": timing["signal_date"],
+            "feature_cutoff": f"{timing['signal_date']}T23:59:59Z",
+            "executable_from": f"{executable_from}T00:00:00Z",
+            "training_span": {
+                "start": timing["training_start"],
+                "end": timing["training_end"],
+            },
+            "data_version": timing["data_version"],
+            "model_version": timing["model_version"],
+            "validation_protocol": {
+                "model_selection": "purged chronological validation",
+                "final_evaluation": "untouched chronological holdout",
+                "purged_rows": timing["purged_rows"],
+                "embargo_rows": timing["embargo_rows"],
+            },
+        },
         "signal": {
             "label": sig.get("signal"),
             "allowed": bool(sig.get("is_signal_allowed")),
@@ -198,6 +266,17 @@ def ml_signal(
         },
         "prob_timeline": timeline,
     }
+    from src.truth.ledger import record_forecast_signal
+
+    payload["truth"]["forecast_ledger"] = record_forecast_signal(
+        organization_id=request.state.organization_id,
+        user_id=request.state.user_id,
+        ticker=ticker.upper(),
+        horizon_days=horizon,
+        truth=payload["truth"],
+        probability_up=payload["signal"]["prob_up"],
+        signal_label=payload["signal"]["label"],
+    )
 
     with _cache_lock:
         _cache[key] = (now, payload)

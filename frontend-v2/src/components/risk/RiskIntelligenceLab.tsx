@@ -194,7 +194,9 @@ export function RiskIntelligenceLab({ ticker }: { ticker: string }) {
   const models = useQuery({
     queryKey: ["model-stress", ticker],
     queryFn: () =>
-      api<MLSignal>(`/ml/signal/${encodeURIComponent(ticker)}?benchmark=SPY&horizon=1`),
+      api<MLSignal>(
+        `/ml/signal/${encodeURIComponent(ticker)}?benchmark=SPY&horizon=1&as_of=${new Date().toISOString().slice(0, 10)}`,
+      ),
     staleTime: 30 * 60 * 1000,
     retry: 0,
   });

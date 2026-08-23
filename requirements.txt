@@ -68,4 +68,4 @@ sentry-sdk[fastapi]      # optional at runtime; enabled when SENTRY_DSN is set
 
 # Optional cloud upload stack (not needed for the terminal; uncomment if used):
 # google-cloud-bigquery
-# google-cloud-storage
+google-cloud-storage

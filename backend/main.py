@@ -1,4 +1,4 @@
-"""FinSight Alpha - FastAPI backend application (Phase 1C).
+"""FinSight coding-agent research environment and observer API.
 
 Assembles the API: configures the app, adds CORS, and includes the routers from
 ``backend/routes``. The same :class:`MarketDataService` and analytics modules
@@ -76,7 +76,9 @@ if config.SENTRY_DSN:
 
 app = FastAPI(
     title=config.APP_NAME,
-    description="Backend-driven market data and analytics platform.",
+    description=(
+        "Point-in-time finance environment and evaluation substrate for coding agents."
+    ),
     version=config.APP_VERSION,
 )
 
@@ -112,7 +114,7 @@ from src.auth import db  # noqa: E402
 from src.auth.db import init_db  # noqa: E402
 
 # Paths reachable WITHOUT a session (login flow, health probes, login page).
-_PUBLIC_PATHS = {"/login", "/health", "/health/ready", "/health/llm", "/favicon.ico"}
+_PUBLIC_PATHS = {"/login", "/health", "/health/ready", "/favicon.ico"}
 _PUBLIC_PREFIXES = ("/auth/",)
 
 

@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from "react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "FinSight — See beyond the price." },
+      { title: "FinSight — RL evaluation for coding agents" },
       {
         name: "description",
         content:
-          "A focused market research desk for live analytics, options, risk, models, and evidence-backed AI research.",
+          "An RL environment and evaluation harness for coding agents, instantiated in finance.",
       },
     ],
   }),
@@ -39,7 +39,7 @@ function Landing() {
       <section
         className="relative h-screen w-full overflow-hidden bg-black"
         style={{ height: "100dvh" }}
-        aria-label="FinSight market intelligence"
+        aria-label="FinSight coding-agent evaluation environment"
       >
         <div className="finsight-hero-zoom absolute inset-0 z-0">
           <MarketBackdrop mode="market" />
@@ -68,20 +68,20 @@ function Landing() {
             style={{ animationDelay: "0.12s" }}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-[#42C98B] shadow-[0_0_10px_rgba(66,201,139,0.8)]" />
-            Live market intelligence · Session ready
+            Deterministic research · Verifier ready
           </div>
           <h1 className="leading-[0.91] text-white">
             <span
               className="finsight-hero-anim finsight-hero-reveal block font-serif text-5xl font-normal italic sm:text-7xl md:text-8xl lg:text-[7.25rem]"
               style={{ animationDelay: "0.25s", letterSpacing: "-0.055em" }}
             >
-              Markets hold
+              An RL environment
             </span>
             <span
               className="finsight-hero-anim finsight-hero-reveal -mt-1 block text-5xl font-light sm:text-7xl md:text-8xl lg:text-[7.25rem]"
               style={{ animationDelay: "0.42s", letterSpacing: "-0.075em" }}
             >
-              more than price.
+              for coding agents.
             </span>
           </h1>
         </div>
@@ -91,8 +91,7 @@ function Landing() {
           style={{ animationDelay: "0.72s" }}
         >
           <p className="text-sm font-light leading-relaxed text-white/68">
-            Every move leaves evidence across price, volatility, positioning, news, and cross-asset
-            flows.
+            One repository, read as agent infrastructure or as point-in-time quantitative finance.
           </p>
         </div>
 
@@ -101,14 +100,14 @@ function Landing() {
           style={{ animationDelay: "0.88s" }}
         >
           <p className="text-xs font-light leading-relaxed text-white/68 sm:text-sm">
-            FinSight brings live analytics, options, risk models, and cited AI research into one
-            focused desk.
+            Coding agents act on frozen financial evidence; deterministic verifiers turn their
+            findings into auditable rewards.
           </p>
           <Link
             to="/terminal"
             className="group inline-flex items-center gap-2.5 rounded-full bg-[#F0A929] px-7 py-3 text-sm font-semibold tracking-[-0.01em] text-[#080705] shadow-[0_12px_40px_rgba(240,169,41,0.16)] transition duration-300 hover:scale-[1.03] hover:bg-[#ffb83b] hover:shadow-[0_16px_44px_rgba(240,169,41,0.28)] active:scale-95"
           >
-            Open the terminal
+            Inspect the environment
             <ArrowUpRight className="size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
         </div>
@@ -119,7 +118,7 @@ function Landing() {
           aria-hidden="true"
         >
           <ScanSearch className="size-3.5" />
-          Move to reveal the signal
+          Move to inspect the evidence
         </div>
 
         {menuOpen && (

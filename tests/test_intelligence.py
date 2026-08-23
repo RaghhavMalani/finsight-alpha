@@ -115,7 +115,7 @@ class StubClient:
 
 
 def test_snapshot_store_is_immutable_and_strips_secrets(tmp_path: Path) -> None:
-    store = SnapshotStore(tmp_path)
+    store = SnapshotStore(tmp_path, register_metadata=False)
     snapshot = store.record(
         "Example Provider",
         "https://example.test/data",

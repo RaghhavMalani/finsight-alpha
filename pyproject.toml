@@ -1,7 +1,7 @@
 [project]
 name = "finsight-alpha"
 version = "0.1.0"
-description = "FinSight Alpha — financial research terminal (FastAPI backend + quant engine)"
+description = "RL environment and evaluation harness for coding agents, instantiated in finance"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi",
@@ -26,6 +26,7 @@ dependencies = [
     "python-dotenv",
     "sqlalchemy",
     "psycopg2-binary",
+    "google-cloud-storage",
     "uvicorn",
 ]
 

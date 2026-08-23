@@ -11,15 +11,19 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
 
+from src.data.as_of import AsOfContext
 from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
+from src.truth import EpistemicState, build_computation_contract
+from src.truth.contracts import dataframe_hash
 
 router = APIRouter(prefix="/strategy", tags=["strategy"])
 
@@ -33,8 +37,12 @@ def _f(v: Any) -> Optional[float]:
 
 
 # --- indicators -------------------------------------------------------------
-def _sma(c, p): return c.rolling(int(p)).mean()
-def _ema(c, p): return c.ewm(span=int(p), adjust=False).mean()
+def _sma(c, p):
+    return c.rolling(int(p)).mean()
+
+
+def _ema(c, p):
+    return c.ewm(span=int(p), adjust=False).mean()
 
 
 def _rsi(c, p=14):
@@ -60,18 +68,28 @@ def _cond(cond: Dict[str, Any], close: pd.Series) -> pd.Series:
         v = cond.get(key)
         return float(v) if v is not None else default
 
-    if t == "rsi_below":   return _rsi(close, gi("period", 14)) < gf("value", 30)
-    if t == "rsi_above":   return _rsi(close, gi("period", 14)) > gf("value", 70)
-    if t == "price_above_sma": return close > _sma(close, gi("period", 50))
-    if t == "price_below_sma": return close < _sma(close, gi("period", 50))
-    if t == "sma_fast_above_slow": return _sma(close, gi("fast", 50)) > _sma(close, gi("slow", 200))
-    if t == "sma_fast_below_slow": return _sma(close, gi("fast", 50)) < _sma(close, gi("slow", 200))
+    if t == "rsi_below":
+        return _rsi(close, gi("period", 14)) < gf("value", 30)
+    if t == "rsi_above":
+        return _rsi(close, gi("period", 14)) > gf("value", 70)
+    if t == "price_above_sma":
+        return close > _sma(close, gi("period", 50))
+    if t == "price_below_sma":
+        return close < _sma(close, gi("period", 50))
+    if t == "sma_fast_above_slow":
+        return _sma(close, gi("fast", 50)) > _sma(close, gi("slow", 200))
+    if t == "sma_fast_below_slow":
+        return _sma(close, gi("fast", 50)) < _sma(close, gi("slow", 200))
     if t == "macd_above_signal":
-        m, s = _macd(close); return m > s
+        m, s = _macd(close)
+        return m > s
     if t == "macd_below_signal":
-        m, s = _macd(close); return m < s
-    if t == "momentum_above": return (close / close.shift(gi("period", 20)) - 1) > gf("value", 0)
-    if t == "momentum_below": return (close / close.shift(gi("period", 20)) - 1) < gf("value", 0)
+        m, s = _macd(close)
+        return m < s
+    if t == "momentum_above":
+        return (close / close.shift(gi("period", 20)) - 1) > gf("value", 0)
+    if t == "momentum_below":
+        return (close / close.shift(gi("period", 20)) - 1) < gf("value", 0)
     return pd.Series(False, index=close.index)
 
 
@@ -88,7 +106,8 @@ def _combine(conds: List[Dict[str, Any]], close: pd.Series, mode: str) -> pd.Ser
 def _positions(entry: pd.Series, exit_: pd.Series, close: pd.Series) -> pd.Series:
     e = entry.shift(1).fillna(False).to_numpy()
     x = exit_.shift(1).fillna(False).to_numpy()
-    pos = np.zeros(len(close)); cur = 0.0
+    pos = np.zeros(len(close))
+    cur = 0.0
     for i in range(len(close)):
         if cur == 0 and e[i]:
             cur = 1.0
@@ -113,12 +132,21 @@ def _stats(rets: pd.Series, ann: int = 252) -> Dict[str, Any]:
     maxdd = float((curve / curve.cummax() - 1).min())
     active = rets[rets != 0]
     win = float((active > 0).mean()) if len(active) else None
-    gains = active[active > 0].sum(); losses = -active[active < 0].sum()
+    gains = active[active > 0].sum()
+    losses = -active[active < 0].sum()
     pf = float(gains / losses) if losses > 0 else None
     exposure = float((rets != 0).mean())
-    return {"total_return": _f(cum), "cagr": _f(cagr), "vol": _f(sd * math.sqrt(ann)),
-            "sharpe": _f(sharpe), "sortino": _f(sortino), "max_drawdown": _f(maxdd),
-            "win_rate": _f(win), "profit_factor": _f(pf), "exposure": _f(exposure)}
+    return {
+        "total_return": _f(cum),
+        "cagr": _f(cagr),
+        "vol": _f(sd * math.sqrt(ann)),
+        "sharpe": _f(sharpe),
+        "sortino": _f(sortino),
+        "max_drawdown": _f(maxdd),
+        "win_rate": _f(win),
+        "profit_factor": _f(pf),
+        "exposure": _f(exposure),
+    }
 
 
 class Condition(BaseModel):
@@ -137,23 +165,41 @@ class StrategyRequest(BaseModel):
     exit_mode: str = "any"
     cost_bps: float = 5.0
     oos_split: float = 0.7
+    years: int = Field(default=3, ge=1, le=10)
+    as_of: date
 
 
-def _load_close(ticker: str):
+def _load_close(ticker: str, as_of: AsOfContext, years: int):
+    start_date = as_of.date - timedelta(days=round(years * 365.25))
+    # Historical providers generally treat end_date as exclusive. Request one
+    # extra day and enforce the actual point-in-time boundary locally.
+    end_date = as_of.date + timedelta(days=1)
     try:
-        df = MarketDataService("yfinance").get_data(ticker)
+        df = MarketDataService("yfinance").get_data(
+            ticker, start_date.isoformat(), end_date.isoformat()
+        )
     except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Data fetch failed: {exc}"
+        ) from exc
     if df is None or df.empty:
         raise HTTPException(status_code=404, detail=f"No data for '{ticker}'.")
+    df = as_of.filter_frame(df, observed_at="Date")
+    if df.empty:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No data for '{ticker}' at or before {as_of.date.isoformat()}.",
+        )
     df = df.sort_values("Date").reset_index(drop=True)
-    close = df["Close"].astype(float); close.index = pd.to_datetime(df["Date"])
+    close = df["Close"].astype(float)
+    close.index = pd.to_datetime(df["Date"])
     return df, close
 
 
 @router.post("/run")
-def run_strategy(req: StrategyRequest) -> Dict[str, Any]:
-    df, close = _load_close(req.ticker)
+def run_strategy(request: Request, req: StrategyRequest) -> Dict[str, Any]:
+    as_of = AsOfContext.bind(req.as_of)
+    df, close = _load_close(req.ticker, as_of, req.years)
     ret = close.pct_change()
     entry = _combine([c.dict() for c in req.entry], close, req.entry_mode)
     exit_ = _combine([c.dict() for c in req.exit], close, req.exit_mode)
@@ -169,9 +215,15 @@ def run_strategy(req: StrategyRequest) -> Dict[str, Any]:
             open_px, open_dt = float(close.loc[dt]), str(dt)[:10]
         elif ch < 0 and open_px is not None:
             xp = float(close.loc[dt])
-            trades.append({"entry_date": open_dt, "exit_date": str(dt)[:10],
-                           "entry": round(open_px, 2), "exit": round(xp, 2),
-                           "return": _f(xp / open_px - 1)})
+            trades.append(
+                {
+                    "entry_date": open_dt,
+                    "exit_date": str(dt)[:10],
+                    "entry": round(open_px, 2),
+                    "exit": round(xp, 2),
+                    "return": _f(xp / open_px - 1),
+                }
+            )
             open_px = None
 
     # Monthly returns table.
@@ -179,48 +231,132 @@ def run_strategy(req: StrategyRequest) -> Dict[str, Any]:
     months = [{"month": str(idx)[:7], "ret": _f(val)} for idx, val in monthly.items()]
 
     # Out-of-sample split.
-    n = len(strat_ret); cut = int(n * req.oos_split)
-    is_stats = _stats(strat_ret.iloc[:cut]); oos_stats = _stats(strat_ret.iloc[cut:])
+    n = len(strat_ret)
+    cut = int(n * req.oos_split)
+    is_stats = _stats(strat_ret.iloc[:cut])
+    oos_stats = _stats(strat_ret.iloc[cut:])
     split_date = str(strat_ret.index[cut])[:10] if 0 < cut < n else None
+    is_stats["trades"] = (
+        sum(trade["entry_date"] < split_date for trade in trades)
+        if split_date
+        else len(trades)
+    )
+    oos_stats["trades"] = (
+        sum(trade["entry_date"] >= split_date for trade in trades) if split_date else 0
+    )
 
     eq = (1 + strat_ret.fillna(0.0)).cumprod()
     bh = (1 + ret.fillna(0.0)).cumprod()
-    o = df["Open"].astype(float); h = df["High"].astype(float); lo = df["Low"].astype(float); vv = df["Volume"].astype(float)
+    o = df["Open"].astype(float)
+    h = df["High"].astype(float)
+    lo = df["Low"].astype(float)
+    vv = df["Volume"].astype(float)
     o.index = h.index = lo.index = vv.index = close.index
-    ohlc = [{"time": str(dt)[:10], "open": _f(o.loc[dt]), "high": _f(h.loc[dt]), "low": _f(lo.loc[dt]), "close": _f(close.loc[dt])} for dt in close.index]
-    volume = [{"time": str(dt)[:10], "value": _f(vv.loc[dt]), "color": ("rgba(38,194,129,0.45)" if close.loc[dt] >= o.loc[dt] else "rgba(239,83,80,0.45)")} for dt in close.index]
+    ohlc = [
+        {
+            "time": str(dt)[:10],
+            "open": _f(o.loc[dt]),
+            "high": _f(h.loc[dt]),
+            "low": _f(lo.loc[dt]),
+            "close": _f(close.loc[dt]),
+        }
+        for dt in close.index
+    ]
+    volume = [
+        {
+            "time": str(dt)[:10],
+            "value": _f(vv.loc[dt]),
+            "color": (
+                "rgba(38,194,129,0.45)"
+                if close.loc[dt] >= o.loc[dt]
+                else "rgba(239,83,80,0.45)"
+            ),
+        }
+        for dt in close.index
+    ]
     markers = []
     for dt, ch in changes.items():
-        if ch > 0: markers.append({"time": str(dt)[:10], "side": "buy", "price": _f(close.loc[dt])})
-        elif ch < 0: markers.append({"time": str(dt)[:10], "side": "sell", "price": _f(close.loc[dt])})
+        if ch > 0:
+            markers.append(
+                {"time": str(dt)[:10], "side": "buy", "price": _f(close.loc[dt])}
+            )
+        elif ch < 0:
+            markers.append(
+                {"time": str(dt)[:10], "side": "sell", "price": _f(close.loc[dt])}
+            )
 
     dates = [str(d)[:10] for d in close.index]
     eq_l, bh_l = eq.tolist(), bh.tolist()
     if len(dates) > 600:
-        step = len(dates) // 600 + 1; idx = list(range(0, len(dates), step))
-        dates = [dates[i] for i in idx]; eq_l = [eq_l[i] for i in idx]; bh_l = [bh_l[i] for i in idx]
+        step = len(dates) // 600 + 1
+        idx = list(range(0, len(dates), step))
+        dates = [dates[i] for i in idx]
+        eq_l = [eq_l[i] for i in idx]
+        bh_l = [bh_l[i] for i in idx]
 
-    return {
+    overall_stats = _stats(strat_ret)
+    overall_stats["trades"] = len(trades)
+    data_version = dataframe_hash(
+        df, ["Date", "Open", "High", "Low", "Close", "Volume", "Provider"]
+    )
+    contract = build_computation_contract(
+        calculation="strategy-backtest",
+        calculation_version="2.0.0",
+        as_of=as_of,
+        inputs=req.model_dump(mode="json"),
+        data_version=data_version,
+        state=EpistemicState.DERIVED,
+    )
+
+    payload = {
         "ticker": req.ticker.upper(),
-        "dates": dates, "equity": [_f(x) for x in eq_l], "benchmark": [_f(x) for x in bh_l],
-        "ohlc": ohlc, "volume": volume, "markers": markers,
-        "stats": _stats(strat_ret), "buy_hold": _stats(ret),
-        "in_sample": is_stats, "out_of_sample": oos_stats, "split_date": split_date,
-        "n_trades": len(trades), "trades": trades[-60:], "monthly": months,
+        "dates": dates,
+        "equity": [_f(x) for x in eq_l],
+        "benchmark": [_f(x) for x in bh_l],
+        "ohlc": ohlc,
+        "volume": volume,
+        "markers": markers,
+        "stats": overall_stats,
+        "buy_hold": _stats(ret),
+        "in_sample": is_stats,
+        "out_of_sample": oos_stats,
+        "split_date": split_date,
+        "n_trades": len(trades),
+        "trades": trades[-60:],
+        "monthly": months,
+        "truth": {
+            **contract,
+            "source": "yfinance",
+            "observed_from": str(close.index.min())[:10],
+            "observed_through": str(close.index.max())[:10],
+            "cost_bps": req.cost_bps,
+            "oos_split": req.oos_split,
+        },
     }
+    from src.truth.ledger import record_analysis_run
+
+    payload["truth"]["ledger"] = record_analysis_run(
+        organization_id=request.state.organization_id,
+        user_id=request.state.user_id,
+        truth=contract,
+        result=payload,
+    )
+    return payload
 
 
 class OptimizeRequest(BaseModel):
     ticker: str
-    family: str = "sma_cross"           # sma_cross | rsi
-    p1: List[float] = [10, 20, 50]      # fast / rsi_low
-    p2: List[float] = [100, 150, 200]   # slow / rsi_high
+    family: str = "sma_cross"  # sma_cross | rsi
+    p1: List[float] = [10, 20, 50]  # fast / rsi_low
+    p2: List[float] = [100, 150, 200]  # slow / rsi_high
     cost_bps: float = 5.0
+    years: int = Field(default=3, ge=1, le=10)
+    as_of: date
 
 
 @router.post("/optimize")
 def optimize(req: OptimizeRequest) -> Dict[str, Any]:
-    _, close = _load_close(req.ticker)
+    _, close = _load_close(req.ticker, AsOfContext.bind(req.as_of), req.years)
     ret = close.pct_change()
     grid, best = [], None
     for a in req.p1:
@@ -228,25 +364,37 @@ def optimize(req: OptimizeRequest) -> Dict[str, Any]:
         for b in req.p2:
             if req.family == "sma_cross":
                 if a >= b:
-                    row.append(None); continue
+                    row.append(None)
+                    continue
                 pos = (_sma(close, a) > _sma(close, b)).astype(float)
             else:  # rsi
-                rsi = _rsi(close, 14); vals, cur = [], 0
+                rsi = _rsi(close, 14)
+                vals, cur = [], 0
                 for v in rsi:
                     if not np.isnan(v):
-                        if cur == 0 and v < a: cur = 1
-                        elif cur == 1 and v > b: cur = 0
+                        if cur == 0 and v < a:
+                            cur = 1
+                        elif cur == 1 and v > b:
+                            cur = 0
                     vals.append(cur)
                 pos = pd.Series(vals, index=close.index, dtype=float)
             ch = pos.diff().fillna(0.0)
-            sr = pos.shift(1).fillna(0.0) * ret - (ch != 0).astype(float) * (req.cost_bps / 10000.0)
+            sr = pos.shift(1).fillna(0.0) * ret - (ch != 0).astype(float) * (
+                req.cost_bps / 10000.0
+            )
             sh = _stats(sr).get("sharpe")
             row.append(sh)
             if sh is not None and (best is None or sh > best["sharpe"]):
                 best = {"p1": a, "p2": b, "sharpe": sh, "stats": _stats(sr)}
         grid.append(row)
-    return {"ticker": req.ticker.upper(), "family": req.family,
-            "p1": req.p1, "p2": req.p2, "sharpe_grid": grid, "best": best}
+    return {
+        "ticker": req.ticker.upper(),
+        "family": req.family,
+        "p1": req.p1,
+        "p2": req.p2,
+        "sharpe_grid": grid,
+        "best": best,
+    }
 
 
 class CritiqueRequest(BaseModel):
@@ -280,10 +428,14 @@ def critique(req: CritiqueRequest) -> Dict[str, Any]:
         "volatility). Be direct and quantitative. Do not give investment advice."
     )
     res = llm_client.generate(
-        prompt, provider=req.provider,
+        prompt,
+        provider=req.provider,
         system="You are a precise quant strategy reviewer. No fluff, no boilerplate disclaimers.",
         temperature=0.3,
     )
     if not res.ok:
-        return {"ok": False, "text": f"LLM unavailable ({res.error}). Start Ollama or set an API key."}
+        return {
+            "ok": False,
+            "text": f"LLM unavailable ({res.error}). Start Ollama or set an API key.",
+        }
     return {"ok": True, "text": res.text, "provider": res.provider}

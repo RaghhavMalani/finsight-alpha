@@ -31,14 +31,13 @@ def simulate_gbm_paths(
     if n_simulations <= 0:
         raise ValueError(f"Number of simulations must be strictly positive, got {n_simulations}")
 
-    if random_seed is not None:
-        np.random.seed(random_seed)
+    rng = np.random.default_rng(random_seed)
 
     dt = T / steps
     
     # Generate random shocks Z ~ N(0, 1)
     # Shape: (steps, n_simulations)
-    Z = np.random.standard_normal((steps, n_simulations))
+    Z = rng.standard_normal((steps, n_simulations))
     
     # Pre-calculate the drift part
     drift = (mu - 0.5 * sigma**2) * dt

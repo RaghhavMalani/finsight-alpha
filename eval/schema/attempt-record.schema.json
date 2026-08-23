@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://finsight.local/schemas/agent-eval-attempt-1.0.json",
+  "title": "FinSight coding-agent evaluation attempt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "task_id",
+    "commit_sha",
+    "seed",
+    "world",
+    "pair_id",
+    "passed",
+    "cost_usd",
+    "sharpe",
+    "recorded_at_utc",
+    "prompt_sha256",
+    "snapshot_sha256",
+    "plan_sha256",
+    "findings",
+    "replays",
+    "faults",
+    "judgments"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"$ref": "#/$defs/sha256"},
+    "task_id": {"type": "string", "minLength": 1},
+    "commit_sha": {"type": "string", "pattern": "^[0-9a-f]{7,64}$"},
+    "seed": {"type": "integer", "minimum": 0},
+    "world": {"enum": ["real", "counterfactual"]},
+    "pair_id": {"type": ["string", "null"], "minLength": 1},
+    "passed": {"type": "boolean"},
+    "cost_usd": {
+      "description": "Non-negative decimal as a JSON number or decimal string.",
+      "oneOf": [
+        {"type": "number", "minimum": 0},
+        {"type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$"}
+      ]
+    },
+    "sharpe": {"type": ["number", "null"]},
+    "recorded_at_utc": {"type": "string", "format": "date-time"},
+    "prompt_sha256": {"$ref": "#/$defs/sha256"},
+    "snapshot_sha256": {"$ref": "#/$defs/sha256"},
+    "plan_sha256": {"$ref": "#/$defs/sha256"},
+    "findings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/finding"}
+    },
+    "replays": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/replay"}
+    },
+    "faults": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/fault"}
+    },
+    "judgments": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/judgment"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["finding_id", "verifier_passed"],
+      "properties": {
+        "finding_id": {"type": "string", "minLength": 1},
+        "verifier_passed": {"type": "boolean"}
+      }
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["replay_index", "artifact_sha256", "byte_count"],
+      "properties": {
+        "replay_index": {"type": "integer", "minimum": 0},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "byte_count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fault_id", "fault_type", "recovered"],
+      "properties": {
+        "fault_id": {"type": "string", "minLength": 1},
+        "fault_type": {"type": "string", "minLength": 1},
+        "recovered": {"type": "boolean"}
+      }
+    },
+    "judgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["judgment_id", "judge_label", "human_label"],
+      "properties": {
+        "judgment_id": {"type": "string", "minLength": 1},
+        "judge_label": {"type": "string", "minLength": 1},
+        "human_label": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

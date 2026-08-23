@@ -43,6 +43,45 @@ def test_health() -> None:
     assert body["version"] == config.APP_VERSION
 
 
+
+def test_health_llm_requires_authentication() -> None:
+    with TestClient(app) as anonymous_client:
+        resp = anonymous_client.get("/health/llm")
+    assert resp.status_code == 401
+
+
+def test_health_llm_is_passive_by_default(monkeypatch) -> None:
+    from src.rag import llm_client
+
+    monkeypatch.setattr(
+        llm_client, "available_providers", lambda: ["openai"]
+    )
+    monkeypatch.setattr(llm_client, "_resolve_auto_provider", lambda: "openai")
+
+    def _unexpected_generate(*args, **kwargs):
+        raise AssertionError("Passive health checks must not call an LLM provider")
+
+    monkeypatch.setattr(llm_client, "generate", _unexpected_generate)
+    resp = client.get("/health/llm")
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "ok"
+    assert "probe" not in resp.json()
+
+
+def test_health_llm_active_probe_requires_admin() -> None:
+    import pytest
+    from fastapi import HTTPException
+    from starlette.requests import Request
+
+    import backend.routes.health as health_route
+
+    request = Request({"type": "http"})
+    request.state.role = "member"
+    with pytest.raises(HTTPException) as exc_info:
+        health_route.health_llm(request, probe=True)
+    assert exc_info.value.status_code == 403
+
 def test_root() -> None:
     resp = client.get("/", follow_redirects=False)
     assert resp.status_code == 307

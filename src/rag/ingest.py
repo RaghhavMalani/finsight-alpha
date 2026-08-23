@@ -40,6 +40,10 @@ DEFAULT_DOC_DIR = "data/documents"
 DEFAULT_INDEX_DIR = "data/rag_index"
 
 
+class NoEvidenceError(LookupError):
+    """Raised when the authorized scope contains no supporting document."""
+
+
 def _default_embed_fn(texts: List[str]) -> np.ndarray:
     """Embed with the project's local MiniLM model (lazy import)."""
     from src.rag.embeddings import embed_texts
@@ -67,7 +71,9 @@ def _gather_pages(source: Union[PathLike, Iterable[PathLike]]) -> List[Dict[str,
     return pages
 
 
-def _apply_ticker(chunks: List[Dict[str, Any]], ticker: Optional[str], overwrite: bool) -> None:
+def _apply_ticker(
+    chunks: List[Dict[str, Any]], ticker: Optional[str], overwrite: bool
+) -> None:
     """Tag chunks with ``ticker`` so the dashboard's ticker filter matches them.
 
     When ``overwrite`` is True, every chunk is associated with ``ticker`` (the
@@ -82,12 +88,25 @@ def _apply_ticker(chunks: List[Dict[str, Any]], ticker: Optional[str], overwrite
             c["ticker"] = ticker
 
 
+def _apply_acl(
+    chunks: List[Dict[str, Any]], organization_id: int | None, user_id: int | None
+) -> None:
+    """Attach ownership metadata; partial ACLs are rejected."""
+    if (organization_id is None) != (user_id is None):
+        raise ValueError("organization_id and user_id must be supplied together.")
+    for chunk in chunks:
+        chunk["organization_id"] = organization_id
+        chunk["user_id"] = user_id
+
+
 def ingest_documents(
     source: Union[PathLike, Iterable[PathLike]] = DEFAULT_DOC_DIR,
     ticker: Optional[str] = None,
     index_dir: Optional[PathLike] = DEFAULT_INDEX_DIR,
     embed_fn: Optional[EmbedFn] = None,
     overwrite_ticker: bool = True,
+    organization_id: int | None = None,
+    user_id: int | None = None,
     chunk_size: int = 800,
     chunk_overlap: int = 150,
 ) -> Tuple[LocalVectorStore, List[Dict[str, Any]]]:
@@ -127,6 +146,7 @@ def ingest_documents(
         raise ValueError("Documents loaded but no text chunks were produced.")
 
     _apply_ticker(chunks, ticker, overwrite_ticker)
+    _apply_acl(chunks, organization_id, user_id)
 
     embeddings = embed_fn([c["text"] for c in chunks])
     embeddings = np.asarray(embeddings)
@@ -145,7 +165,9 @@ def ingest_documents(
     return vs, chunks
 
 
-def load_index(index_dir: PathLike = DEFAULT_INDEX_DIR) -> Tuple[Optional[LocalVectorStore], List[Dict[str, Any]]]:
+def load_index(
+    index_dir: PathLike = DEFAULT_INDEX_DIR,
+) -> Tuple[Optional[LocalVectorStore], List[Dict[str, Any]]]:
     """Load a previously-saved index. Returns ``(None, [])`` if absent."""
     vs = LocalVectorStore()
     if vs.load(str(index_dir)):
@@ -159,6 +181,8 @@ def answer_question(
     chunks: Optional[List[Dict[str, Any]]] = None,
     *,
     ticker: Optional[str] = None,
+    organization_id: int | None = None,
+    user_id: int | None = None,
     provider: str = "ollama",
     model: Optional[str] = None,
     top_k_retrieve: int = 10,
@@ -166,18 +190,35 @@ def answer_question(
 ) -> Dict[str, Any]:
     """Retrieve, rerank, and produce a grounded, cited answer.
 
-    If ``ticker`` is given, the search is scoped to that company's chunks - but
-    only if any exist, so a mismatch never silently empties the results.
+    Ticker and ACL filters fail closed. Evidence from another company or owner
+    is never used as a fallback.
     """
     from src.rag.rag_answer import generate_grounded_answer
     from src.rag.reranker import rerank_chunks
     from src.rag.retriever import hybrid_retrieve
 
-    pool = chunks if chunks is not None else list(getattr(vector_store, "chunks", []))
-    if ticker:
-        scoped = [c for c in pool if c.get("ticker") == ticker]
-        pool = scoped or pool  # fall back to everything rather than returning nothing
+    if not ticker:
+        raise NoEvidenceError("A ticker scope is required for research queries.")
+    if (organization_id is None) != (user_id is None):
+        raise ValueError("organization_id and user_id must be supplied together.")
 
-    retrieved = hybrid_retrieve(query, pool, vector_store=vector_store, top_k=top_k_retrieve)
+    pool = chunks if chunks is not None else list(getattr(vector_store, "chunks", []))
+    normalized_ticker = ticker.strip().upper()
+    pool = [c for c in pool if str(c.get("ticker") or "").upper() == normalized_ticker]
+    if organization_id is not None:
+        pool = [
+            c
+            for c in pool
+            if c.get("organization_id") == organization_id
+            and c.get("user_id") == user_id
+        ]
+    if not pool:
+        raise NoEvidenceError(
+            f"No authorized evidence is indexed for {normalized_ticker}."
+        )
+
+    retrieved = hybrid_retrieve(
+        query, pool, vector_store=vector_store, top_k=top_k_retrieve
+    )
     reranked = rerank_chunks(query, retrieved, top_k=top_k_rerank)
     return generate_grounded_answer(query, reranked, provider=provider, model=model)

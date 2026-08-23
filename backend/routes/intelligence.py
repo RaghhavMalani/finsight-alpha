@@ -12,7 +12,12 @@ from src.data.intelligence import (
     satellite_image,
     trade_intelligence,
 )
-from src.data.license_policy import dataset_license_status, enforce_evidence_licenses
+from src.data.license_policy import (
+    LicenseAccessDenied,
+    dataset_license_status,
+    enforce_evidence_licenses,
+    require_lineage_licenses,
+)
 from src.data.pipeline_health import record_run
 from src.intelligence import (
     AgricultureIntelligenceService,
@@ -21,12 +26,21 @@ from src.intelligence import (
     SnapshotStore,
 )
 from src.intelligence.services import COUNTRIES
+from src.intelligence.snapshots import SnapshotAccessDenied
 
 router = APIRouter(prefix="/intelligence", tags=["intelligence"])
 
 
+def _licensed(payload: dict[str, Any], request: Request) -> dict[str, Any]:
+    try:
+        return require_lineage_licenses(payload, request.state.organization_id)
+    except LicenseAccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
 @router.get("/agriculture/overview")
 def agriculture_overview(
+    request: Request,
     state: str = Query("Maharashtra", min_length=2, max_length=80),
     district: str | None = Query(None, max_length=80),
     commodity: str = Query("Onion", min_length=2, max_length=80),
@@ -37,7 +51,7 @@ def agriculture_overview(
 ) -> dict[str, Any]:
     """Return live-or-snapshotted mandi prices and seven-day weather alerts."""
 
-    return AgricultureIntelligenceService().overview(
+    result = AgricultureIntelligenceService().overview(
         state=state,
         district=district,
         commodity=commodity,
@@ -46,10 +60,12 @@ def agriculture_overview(
         longitude=longitude,
         limit=limit,
     )
+    return _licensed(result, request)
 
 
 @router.get("/company/{ticker}")
 def company_intelligence(
+    request: Request,
     ticker: str,
     as_of: date | None = Query(
         None,
@@ -59,15 +75,17 @@ def company_intelligence(
 ) -> dict[str, Any]:
     """Return evidence selected from the active ticker's registered profile."""
 
-    return CompanyIntelligenceService().overview(
+    result = CompanyIntelligenceService().overview(
         ticker,
         as_of=as_of,
         trade_year=trade_year,
     )
+    return _licensed(result, request)
 
 
 @router.get("/country/{country_code}/pulse")
 def country_pulse(
+    request: Request,
     country_code: str,
     as_of: date | None = Query(
         None,
@@ -80,13 +98,14 @@ def country_pulse(
     """Return a vintage-aware macro pulse with WTO and Comtrade context."""
 
     try:
-        return CountryIntelligenceService().pulse(
+        result = CountryIntelligenceService().pulse(
             country_code,
             as_of=as_of,
             trade_year=trade_year,
             partner_code=partner_code,
             commodity_code=commodity_code,
         )
+        return _licensed(result, request)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -102,10 +121,19 @@ def supported_countries() -> dict[str, Any]:
 
 
 @router.get("/snapshots/{provider}/{snapshot_id}")
-def reproduce_snapshot(provider: str, snapshot_id: str) -> dict[str, Any]:
+def reproduce_snapshot(
+    request: Request, provider: str, snapshot_id: str
+) -> dict[str, Any]:
     """Return the immutable raw source version referenced by a displayed signal."""
 
-    snapshot = SnapshotStore().get(provider, snapshot_id)
+    try:
+        snapshot = SnapshotStore().get(
+            provider,
+            snapshot_id,
+            organization_id=request.state.organization_id,
+        )
+    except SnapshotAccessDenied as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     if snapshot is None:
         raise HTTPException(status_code=404, detail="Snapshot not found.")
     return {
@@ -162,7 +190,9 @@ def agriculture_satellite(
         request.state.organization_id,
         "nasa-gibs:MODIS_Terra_CorrectedReflectance_TrueColor",
     )
-    if license_status["status"] != "ACTIVE":
+    if license_status["status"] != "ACTIVE" or "display" not in (
+        license_status.get("permitted_uses") or []
+    ):
         raise HTTPException(
             status_code=403,
             detail=f"Satellite evidence license status is {license_status['status']}.",
