@@ -1,0 +1,1624 @@
+{
+  "schema_version": "1.0",
+  "generated_at_utc": "2026-08-17T08:28:17.905815+00:00",
+  "overall_status": "pass",
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "sections": {
+    "black_scholes": {
+      "status": "pass",
+      "summary": {
+        "max_reference_absolute_error": 3.92871531751382e-07,
+        "max_put_call_parity_absolute_error": 1.4210854715202004e-14,
+        "reference_tolerance": 1e-06,
+        "parity_tolerance": 1e-10,
+        "parity_grid_points": 30
+      },
+      "reference_cases": [
+        {
+          "reference": "Hull, Options, Futures, and Other Derivatives, example 15.6",
+          "source_url": "https://search.r-project.org/CRAN/refmans/QFRM/html/BS_Simple.html",
+          "S": 42.0,
+          "K": 40.0,
+          "T": 0.5,
+          "r": 0.1,
+          "sigma": 0.2,
+          "q": 0.0,
+          "option_type": "call",
+          "expected": 4.759422,
+          "actual": 4.759422392871532,
+          "absolute_error": 3.92871531751382e-07
+        },
+        {
+          "reference": "Hull, Options, Futures, and Other Derivatives, example 15.6",
+          "source_url": "https://search.r-project.org/CRAN/refmans/QFRM/html/BS_Simple.html",
+          "S": 42.0,
+          "K": 40.0,
+          "T": 0.5,
+          "r": 0.1,
+          "sigma": 0.2,
+          "q": 0.0,
+          "option_type": "put",
+          "expected": 0.8085994,
+          "actual": 0.8085993729000922,
+          "absolute_error": 2.709990776228466e-08
+        }
+      ],
+      "put_call_parity_grid": [
+        {
+          "strike": 60.0,
+          "maturity": 0.05,
+          "call_minus_put": 40.02995053013789,
+          "discounted_spot_minus_strike": 40.02995053013789,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 60.0,
+          "maturity": 0.25,
+          "call_minus_put": 40.148766261188975,
+          "discounted_spot_minus_strike": 40.14876626118899,
+          "absolute_error": 1.4210854715202004e-14
+        },
+        {
+          "strike": 60.0,
+          "maturity": 0.5,
+          "call_minus_put": 40.295080029209764,
+          "discounted_spot_minus_strike": 40.295080029209764,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 60.0,
+          "maturity": 1.0,
+          "call_minus_put": 40.580439273282565,
+          "discounted_spot_minus_strike": 40.580439273282565,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 60.0,
+          "maturity": 2.0,
+          "call_minus_put": 41.12269896073601,
+          "discounted_spot_minus_strike": 41.12269896073601,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 60.0,
+          "maturity": 5.0,
+          "call_minus_put": 42.53397477292139,
+          "discounted_spot_minus_strike": 42.5339747729214,
+          "absolute_error": 7.105427357601002e-15
+        },
+        {
+          "strike": 80.0,
+          "maturity": 0.05,
+          "call_minus_put": 20.059928041383685,
+          "discounted_spot_minus_strike": 20.05992804138367,
+          "absolute_error": 1.4210854715202004e-14
+        },
+        {
+          "strike": 80.0,
+          "maturity": 0.25,
+          "call_minus_put": 20.298205164806216,
+          "discounted_spot_minus_strike": 20.29820516480622,
+          "absolute_error": 3.552713678800501e-15
+        },
+        {
+          "strike": 80.0,
+          "maturity": 0.5,
+          "call_minus_put": 20.592841237148516,
+          "discounted_spot_minus_strike": 20.59284123714852,
+          "absolute_error": 3.552713678800501e-15
+        },
+        {
+          "strike": 80.0,
+          "maturity": 1.0,
+          "call_minus_put": 21.171528602312407,
+          "discounted_spot_minus_strike": 21.171528602312407,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 80.0,
+          "maturity": 2.0,
+          "call_minus_put": 22.287408289051047,
+          "discounted_spot_minus_strike": 22.287408289051044,
+          "absolute_error": 3.552713678800501e-15
+        },
+        {
+          "strike": 80.0,
+          "maturity": 5.0,
+          "call_minus_put": 25.319815244420244,
+          "discounted_spot_minus_strike": 25.31981524442024,
+          "absolute_error": 3.552713678800501e-15
+        },
+        {
+          "strike": 100.0,
+          "maturity": 0.05,
+          "call_minus_put": 0.08990555262946032,
+          "discounted_spot_minus_strike": 0.08990555262946032,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 100.0,
+          "maturity": 0.25,
+          "call_minus_put": 0.4476440684234504,
+          "discounted_spot_minus_strike": 0.4476440684234575,
+          "absolute_error": 7.105427357601002e-15
+        },
+        {
+          "strike": 100.0,
+          "maturity": 0.5,
+          "call_minus_put": 0.8906024450872678,
+          "discounted_spot_minus_strike": 0.8906024450872678,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 100.0,
+          "maturity": 1.0,
+          "call_minus_put": 1.762617931342234,
+          "discounted_spot_minus_strike": 1.762617931342234,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 100.0,
+          "maturity": 2.0,
+          "call_minus_put": 3.4521176173660706,
+          "discounted_spot_minus_strike": 3.4521176173660706,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 100.0,
+          "maturity": 5.0,
+          "call_minus_put": 8.105655715919085,
+          "discounted_spot_minus_strike": 8.105655715919085,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 120.0,
+          "maturity": 0.05,
+          "call_minus_put": -19.880116936124757,
+          "discounted_spot_minus_strike": -19.880116936124764,
+          "absolute_error": 7.105427357601002e-15
+        },
+        {
+          "strike": 120.0,
+          "maturity": 0.25,
+          "call_minus_put": -19.40291702795932,
+          "discounted_spot_minus_strike": -19.40291702795932,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 120.0,
+          "maturity": 0.5,
+          "call_minus_put": -18.811636346973998,
+          "discounted_spot_minus_strike": -18.811636346973998,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 120.0,
+          "maturity": 1.0,
+          "call_minus_put": -17.646292739627913,
+          "discounted_spot_minus_strike": -17.646292739627924,
+          "absolute_error": 1.0658141036401503e-14
+        },
+        {
+          "strike": 120.0,
+          "maturity": 2.0,
+          "call_minus_put": -15.38317305431891,
+          "discounted_spot_minus_strike": -15.383173054318917,
+          "absolute_error": 7.105427357601002e-15
+        },
+        {
+          "strike": 120.0,
+          "maturity": 5.0,
+          "call_minus_put": -9.108503812582072,
+          "discounted_spot_minus_strike": -9.108503812582072,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 140.0,
+          "maturity": 0.05,
+          "call_minus_put": -39.850139424878996,
+          "discounted_spot_minus_strike": -39.85013942487899,
+          "absolute_error": 7.105427357601002e-15
+        },
+        {
+          "strike": 140.0,
+          "maturity": 0.25,
+          "call_minus_put": -39.253478124342095,
+          "discounted_spot_minus_strike": -39.253478124342095,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 140.0,
+          "maturity": 0.5,
+          "call_minus_put": -38.51387513903522,
+          "discounted_spot_minus_strike": -38.513875139035235,
+          "absolute_error": 1.4210854715202004e-14
+        },
+        {
+          "strike": 140.0,
+          "maturity": 1.0,
+          "call_minus_put": -37.05520341059808,
+          "discounted_spot_minus_strike": -37.05520341059808,
+          "absolute_error": 0.0
+        },
+        {
+          "strike": 140.0,
+          "maturity": 2.0,
+          "call_minus_put": -34.218463726003876,
+          "discounted_spot_minus_strike": -34.21846372600389,
+          "absolute_error": 1.4210854715202004e-14
+        },
+        {
+          "strike": 140.0,
+          "maturity": 5.0,
+          "call_minus_put": -26.322663341083214,
+          "discounted_spot_minus_strike": -26.322663341083228,
+          "absolute_error": 1.4210854715202004e-14
+        }
+      ]
+    },
+    "monte_carlo": {
+      "status": "pass",
+      "summary": {
+        "path_counts": [
+          10000,
+          100000,
+          1000000,
+          10000000
+        ],
+        "random_seed": 20260817,
+        "max_absolute_error": 0.12968694803001046,
+        "max_absolute_z_score": 1.5135509624086314
+      },
+      "prices": [
+        {
+          "option_type": "call",
+          "paths": 10000,
+          "monte_carlo_price": 10.354928290198725,
+          "black_scholes_price": 10.450583572185565,
+          "absolute_error": 0.09565528198683992,
+          "standard_error": 0.1461667800939509,
+          "absolute_z_score": 0.6544255946895461,
+          "standard_error_times_sqrt_n": 14.61667800939509
+        },
+        {
+          "option_type": "put",
+          "paths": 10000,
+          "monte_carlo_price": 5.44383907422696,
+          "black_scholes_price": 5.573526022256971,
+          "absolute_error": 0.12968694803001046,
+          "standard_error": 0.08568389915568454,
+          "absolute_z_score": 1.5135509624086314,
+          "standard_error_times_sqrt_n": 8.568389915568455
+        },
+        {
+          "option_type": "call",
+          "paths": 100000,
+          "monte_carlo_price": 10.41203379991353,
+          "black_scholes_price": 10.450583572185565,
+          "absolute_error": 0.03854977227203449,
+          "standard_error": 0.046241258884987695,
+          "absolute_z_score": 0.8336661501348039,
+          "standard_error_times_sqrt_n": 14.622769995005918
+        },
+        {
+          "option_type": "put",
+          "paths": 100000,
+          "monte_carlo_price": 5.539014632847276,
+          "black_scholes_price": 5.573526022256971,
+          "absolute_error": 0.03451138940969489,
+          "standard_error": 0.027260416168165463,
+          "absolute_z_score": 1.2659890882369238,
+          "standard_error_times_sqrt_n": 8.620500505548254
+        },
+        {
+          "option_type": "call",
+          "paths": 1000000,
+          "monte_carlo_price": 10.457574074800254,
+          "black_scholes_price": 10.450583572185565,
+          "absolute_error": 0.0069905026146894755,
+          "standard_error": 0.014713310951977488,
+          "absolute_z_score": 0.4751141763744171,
+          "standard_error_times_sqrt_n": 14.713310951977489
+        },
+        {
+          "option_type": "put",
+          "paths": 1000000,
+          "monte_carlo_price": 5.566813129319789,
+          "black_scholes_price": 5.573526022256971,
+          "absolute_error": 0.006712892937181358,
+          "standard_error": 0.008649420022635638,
+          "absolute_z_score": 0.7761090246066945,
+          "standard_error_times_sqrt_n": 8.649420022635638
+        },
+        {
+          "option_type": "call",
+          "paths": 10000000,
+          "monte_carlo_price": 10.456825565907906,
+          "black_scholes_price": 10.450583572185565,
+          "absolute_error": 0.006241993722341022,
+          "standard_error": 0.004656859234373298,
+          "absolute_z_score": 1.340387030869969,
+          "standard_error_times_sqrt_n": 14.726281923407504
+        },
+        {
+          "option_type": "put",
+          "paths": 10000000,
+          "monte_carlo_price": 5.571628214842868,
+          "black_scholes_price": 5.573526022256971,
+          "absolute_error": 0.0018978074141022816,
+          "standard_error": 0.002737776023978705,
+          "absolute_z_score": 0.6931930871920892,
+          "standard_error_times_sqrt_n": 8.657607959172468
+        }
+      ],
+      "convergence": [
+        {
+          "option_type": "call",
+          "log_standard_error_vs_log_n_slope": -0.49875859440882114,
+          "expected_slope": -0.5,
+          "slope_tolerance": 0.05,
+          "max_absolute_z_score": 1.340387030869969,
+          "max_z_score_tolerance": 4.0,
+          "status": "pass"
+        },
+        {
+          "option_type": "put",
+          "log_standard_error_vs_log_n_slope": -0.4985049411017234,
+          "expected_slope": -0.5,
+          "slope_tolerance": 0.05,
+          "max_absolute_z_score": 1.5135509624086314,
+          "max_z_score_tolerance": 4.0,
+          "status": "pass"
+        }
+      ]
+    },
+    "greeks": {
+      "status": "pass",
+      "summary": [
+        {
+          "greek": "delta",
+          "max_relative_error": 4.925352054328575e-07,
+          "tolerance": 2e-06,
+          "status": "pass"
+        },
+        {
+          "greek": "gamma",
+          "max_relative_error": 4.460625694956685e-06,
+          "tolerance": 2e-05,
+          "status": "pass"
+        },
+        {
+          "greek": "vega",
+          "max_relative_error": 5.805090182949064e-10,
+          "tolerance": 2e-06,
+          "status": "pass"
+        },
+        {
+          "greek": "theta",
+          "max_relative_error": 1.2896463292177239e-09,
+          "tolerance": 2e-06,
+          "status": "pass"
+        },
+        {
+          "greek": "rho",
+          "max_relative_error": 9.182363813601519e-10,
+          "tolerance": 2e-06,
+          "status": "pass"
+        }
+      ],
+      "grid_points_per_greek": 18,
+      "comparisons": [
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": 0.9674938803874147,
+          "finite_difference": 0.9674938662207921,
+          "relative_error": 1.4642596536165956e-08
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": 0.005253021088393844,
+          "finite_difference": 0.005253044520259208,
+          "relative_error": 4.460625694956685e-06
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": 3.2831381802461523,
+          "finite_difference": 3.2831381808762212,
+          "relative_error": 1.919105597272803e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": -3.2376430712593582,
+          "finite_difference": -3.237643070974627,
+          "relative_error": 8.794402080223545e-11
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": 19.045717510733777,
+          "finite_difference": 19.045717510834947,
+          "relative_error": 5.311988239542393e-12
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": -0.028763142081756395,
+          "finite_difference": -0.028763156248623467,
+          "relative_error": 4.925352054328575e-07
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": 0.005253021088393844,
+          "finite_difference": 0.0052530445094234315,
+          "relative_error": 4.458562942896131e-06
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": 3.2831381802461523,
+          "finite_difference": 3.2831381814757417,
+          "relative_error": 3.745164690871633e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": -1.563869136965777,
+          "finite_difference": -1.563869136389506,
+          "relative_error": 3.6849042878855035e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 0.25,
+          "analytic": -0.7552791642495867,
+          "finite_difference": -0.7552791644771516,
+          "relative_error": 3.0129899850422354e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": 0.8552008489938224,
+          "finite_difference": 0.8552008413190038,
+          "relative_error": 8.974287944765652e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": 0.008418695342327014,
+          "finite_difference": 0.00841869874079748,
+          "relative_error": 4.036812065318141e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": 21.046738355817535,
+          "finite_difference": 21.046738343599714,
+          "relative_error": 5.805090182949064e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": -3.829756341323138,
+          "finite_difference": -3.8297563424549703,
+          "relative_error": 2.955364008486575e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": 62.042883008416986,
+          "finite_difference": 62.042883001822695,
+          "relative_error": 1.0628602372185072e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": -0.12991109060924022,
+          "finite_difference": -0.1299110982849072,
+          "relative_error": 5.9083997381488304e-08
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": 0.008418695342327014,
+          "finite_difference": 0.008418698742218565,
+          "relative_error": 4.0385000754743044e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": 21.046738355817535,
+          "finite_difference": 21.04673834422144,
+          "relative_error": 5.509688167074126e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": -2.2328980454402974,
+          "finite_difference": -2.2328980455732506,
+          "relative_error": 5.95428905790538e-11
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 1.0,
+          "analytic": -14.820272123768873,
+          "finite_difference": -14.820272131643717,
+          "relative_error": 5.313562273445208e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": 0.8042829256987196,
+          "finite_difference": 0.804282921412991,
+          "relative_error": 5.328633151230238e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": 0.006977850768060309,
+          "finite_difference": 0.00697785210945767,
+          "relative_error": 1.9223642751398366e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": 34.889253840301556,
+          "finite_difference": 34.88925382555408,
+          "relative_error": 4.2269398976067747e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": -3.1138408229319348,
+          "finite_difference": -3.113840823942837,
+          "relative_error": 3.2464794634972586e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": 106.98434232305834,
+          "finite_difference": 106.98434229645669,
+          "relative_error": 2.486499765771898e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": -0.16616260784978854,
+          "finite_difference": -0.1661626121356008,
+          "relative_error": 2.5792879671046956e-08
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": 0.006977850768060309,
+          "finite_difference": 0.006977852120826354,
+          "relative_error": 1.9386567980965142e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": 34.889253840301556,
+          "finite_difference": 34.889253826086986,
+          "relative_error": 4.0741974359137426e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": -1.615536814817462,
+          "finite_difference": -1.6155368149028957,
+          "relative_error": 5.288252137509181e-11
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 80.0,
+          "maturity": 2.0,
+          "analytic": -40.71427309880337,
+          "finite_difference": -40.714273136188694,
+          "relative_error": 9.182363813601519e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": 0.5427473914430314,
+          "finite_difference": 0.5427473814386019,
+          "relative_error": 1.8432938904505152e-08
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": 0.031595350587767655,
+          "finite_difference": 0.03159531209178112,
+          "relative_error": 1.218406690264201e-06
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": 19.747094117354784,
+          "finite_difference": 19.74709411705078,
+          "relative_error": 1.539495926277997e-11
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": -11.0197775163672,
+          "finite_difference": -11.01977751893912,
+          "relative_error": 2.333914036054119e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": 12.252197155339719,
+          "finite_difference": 12.252197155504517,
+          "relative_error": 1.3450481654030604e-11
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": -0.45350963102613967,
+          "finite_difference": -0.45350964103150204,
+          "relative_error": 2.206207204148584e-08
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": 0.031595350587767655,
+          "finite_difference": 0.031595312083254605,
+          "relative_error": 1.2186765563258368e-06
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": 19.747094117354784,
+          "finite_difference": 19.74709411705078,
+          "relative_error": 1.539495926277997e-11
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": -8.553963715074284,
+          "finite_difference": -8.553963716551038,
+          "relative_error": 1.7263981558079286e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 0.25,
+          "analytic": -12.499048688389482,
+          "finite_difference": -12.499048688496826,
+          "relative_error": 8.588130994873915e-12
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": 0.580241141011918,
+          "finite_difference": 0.5802411361582216,
+          "relative_error": 8.364964325517181e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": 0.015327190698072559,
+          "finite_difference": 0.015327187350067103,
+          "relative_error": 2.1843568871536217e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": 38.3179767451814,
+          "finite_difference": 38.31797674465065,
+          "relative_error": 1.3851122814570513e-11
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": -5.802638299279488,
+          "finite_difference": -5.802638299456929,
+          "relative_error": 3.057939573499136e-11
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": 47.08132294124225,
+          "finite_difference": 47.081322936648455,
+          "relative_error": 9.757146789485763e-11
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": -0.4048707985911446,
+          "finite_difference": -0.40487080344497883,
+          "relative_error": 1.1988600269861301e-08
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": 0.015327190698072559,
+          "finite_difference": 0.01532718734154059,
+          "relative_error": 2.1899198849639076e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": 38.3179767451814,
+          "finite_difference": 38.31797674500592,
+          "relative_error": 4.579459797427351e-12
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": -3.437148452074789,
+          "finite_difference": -3.4371484517237145,
+          "relative_error": 1.0214114567726508e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 1.0,
+          "analytic": -48.99762097399007,
+          "finite_difference": -48.9976209799181,
+          "relative_error": 1.209862154449106e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": 0.6063660492304566,
+          "finite_difference": 0.6063660459336262,
+          "relative_error": 5.437029939996385e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": 0.010409744416842674,
+          "finite_difference": 0.010409743879336018,
+          "relative_error": 5.163495221212595e-08
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": 52.04872208421338,
+          "finite_difference": 52.048722082886904,
+          "relative_error": 2.5485288651420505e-11
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": -4.137658334716464,
+          "finite_difference": -4.137658335423566,
+          "relative_error": 1.708942293539558e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": 89.70811391494064,
+          "finite_difference": 89.7081138941047,
+          "relative_error": 2.322637280316769e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": -0.36407948431805154,
+          "finite_difference": -0.3640794876151432,
+          "relative_error": 9.055966533158304e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": 0.010409744416842674,
+          "finite_difference": 0.010409743879336018,
+          "relative_error": 5.163495221212595e-08
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": 52.04872208421338,
+          "finite_difference": 52.048722083242176,
+          "relative_error": 1.8659542434150637e-11
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": -1.9008612494926829,
+          "finite_difference": -1.9008612497373176,
+          "relative_error": 1.286967983223897e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 100.0,
+          "maturity": 2.0,
+          "analytic": -94.91515536238651,
+          "finite_difference": -94.91515539572502,
+          "relative_error": 3.5124536965108943e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": 0.08880592813552311,
+          "finite_difference": 0.08880594905722461,
+          "relative_error": 2.3558896355891162e-07
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": 0.012850498126358918,
+          "finite_difference": 0.012850503928518718,
+          "relative_error": 4.515122388792652e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": 8.031561328974323,
+          "finite_difference": 8.031561324628456,
+          "relative_error": 5.410987338234945e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": -4.218249808324662,
+          "finite_difference": -4.218249806697827,
+          "relative_error": 3.856657952709335e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": 2.0979877252549013,
+          "finite_difference": 2.0979877257687463,
+          "relative_error": 2.449227706459472e-10
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": -0.9074510943336479,
+          "finite_difference": -0.9074510734137675,
+          "relative_error": 2.30534521520564e-08
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": 0.012850498126358918,
+          "finite_difference": 0.01285050391857112,
+          "relative_error": 4.507381374220606e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": 8.031561328974323,
+          "finite_difference": 8.031561324628456,
+          "relative_error": 5.410987338234945e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": -0.960396140032411,
+          "finite_difference": -0.9603961387938397,
+          "relative_error": 1.2896463292177239e-09
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 0.25,
+          "analytic": -27.603507287220143,
+          "finite_difference": -27.60350728649996,
+          "relative_error": 2.6090336752887758e-11
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": 0.30245904414900393,
+          "finite_difference": 0.3024590464958621,
+          "relative_error": 7.759259243350116e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": 0.013843123642685126,
+          "finite_difference": 0.013843119036494041,
+          "relative_error": 3.3274217609397323e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": 34.607809106712814,
+          "finite_difference": 34.607809096520725,
+          "relative_error": 2.945025765474462e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": -4.911502111692523,
+          "finite_difference": -4.911502111859534,
+          "relative_error": 3.400393641323733e-11
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": 25.980363489423194,
+          "finite_difference": 25.98036349183985,
+          "relative_error": 9.301853382698639e-11
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": -0.6826528954540587,
+          "finite_difference": -0.6826528931078713,
+          "relative_error": 3.4368673774805636e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": 0.013843123642685126,
+          "finite_difference": 0.013843119012335588,
+          "relative_error": 3.344873351808538e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": 34.607809106712814,
+          "finite_difference": 34.60780909634309,
+          "relative_error": 2.996353973912126e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": -1.7773807131659665,
+          "finite_difference": -1.777380711587284,
+          "relative_error": 8.88207296472868e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 1.0,
+          "analytic": -89.3143692088556,
+          "finite_difference": -89.31436920960321,
+          "relative_error": 8.37064474986716e-12
+        },
+        {
+          "greek": "delta",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": 0.40926011091113484,
+          "finite_difference": 0.40926011012132335,
+          "relative_error": 1.9298521232030285e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": 0.010738840597703027,
+          "finite_difference": 0.010738838952306649,
+          "relative_error": 1.5321918257421442e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": 53.69420298851513,
+          "finite_difference": 53.69420298215743,
+          "relative_error": 1.1840574152555073e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": -4.030536261031563,
+          "finite_difference": -4.0305362606574135,
+          "relative_error": 9.282873939335744e-11
+        },
+        {
+          "greek": "rho",
+          "option_type": "call",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": 64.42693703080351,
+          "finite_difference": 64.4269370287276,
+          "relative_error": 3.22213308977296e-11
+        },
+        {
+          "greek": "delta",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": -0.5611854226373733,
+          "finite_difference": -0.5611854234278013,
+          "relative_error": 1.4084971265162909e-09
+        },
+        {
+          "greek": "gamma",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": 0.010738840597703027,
+          "finite_difference": 0.01073883895514882,
+          "relative_error": 1.529545198373778e-07
+        },
+        {
+          "greek": "vega",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": 53.69420298851513,
+          "finite_difference": 53.69420298215743,
+          "relative_error": 1.1840574152555073e-10
+        },
+        {
+          "greek": "theta",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": -1.0552460986984735,
+          "finite_difference": -1.055246098857765,
+          "relative_error": 1.5095196189454402e-10
+        },
+        {
+          "greek": "rho",
+          "option_type": "put",
+          "strike": 120.0,
+          "maturity": 2.0,
+          "analytic": -157.12098610198908,
+          "finite_difference": -157.1209861182865,
+          "relative_error": 1.0372538332190583e-10
+        }
+      ]
+    },
+    "var_cvar": {
+      "status": "pass",
+      "summary": [
+        {
+          "confidence_level": 0.95,
+          "observations": 529,
+          "date_start": "2024-06-13T00:00:00",
+          "date_end": "2026-07-24T00:00:00",
+          "observed_breach_rate": 0.06994328922495274,
+          "expected_breach_rate": 0.050000000000000044,
+          "observed_breaches": 37,
+          "expected_breaches": 26.450000000000024,
+          "kupiec_pof": {
+            "statistic": 3.962011578368106,
+            "p_value": 0.04653805879526519,
+            "observations": 529,
+            "breaches": 37,
+            "expected_breaches": 26.450000000000024,
+            "observed_breach_rate": 0.06994328922495274,
+            "expected_breach_rate": 0.050000000000000044
+          },
+          "christoffersen_independence": {
+            "statistic": 3.9774548454126943,
+            "p_value": 0.04611319101240036,
+            "transitions": {
+              "n00": 460,
+              "n01": 31,
+              "n10": 31,
+              "n11": 6
+            },
+            "p_breach_after_no_breach": 0.06313645621181263,
+            "p_breach_after_breach": 0.16216216216216217
+          },
+          "mean_realized_breach_loss": 0.0357745313318729,
+          "mean_cvar_forecast_on_breaches": 0.03490795243071451,
+          "status": "pass"
+        },
+        {
+          "confidence_level": 0.99,
+          "observations": 529,
+          "date_start": "2024-06-13T00:00:00",
+          "date_end": "2026-07-24T00:00:00",
+          "observed_breach_rate": 0.017013232514177693,
+          "expected_breach_rate": 0.010000000000000009,
+          "observed_breaches": 9,
+          "expected_breaches": 5.2900000000000045,
+          "kupiec_pof": {
+            "statistic": 2.1716581598902565,
+            "p_value": 0.14057458688104882,
+            "observations": 529,
+            "breaches": 9,
+            "expected_breaches": 5.2900000000000045,
+            "observed_breach_rate": 0.017013232514177693,
+            "expected_breach_rate": 0.010000000000000009
+          },
+          "christoffersen_independence": {
+            "statistic": 2.224979879264083,
+            "p_value": 0.13579442623582794,
+            "transitions": {
+              "n00": 511,
+              "n01": 8,
+              "n10": 8,
+              "n11": 1
+            },
+            "p_breach_after_no_breach": 0.015414258188824663,
+            "p_breach_after_breach": 0.1111111111111111
+          },
+          "mean_realized_breach_loss": 0.05553492392970615,
+          "mean_cvar_forecast_on_breaches": 0.05064589775771804,
+          "status": "pass"
+        }
+      ],
+      "configuration": {
+        "rolling_window": 252,
+        "rejection_threshold": 0.01,
+        "return_rows": 781
+      },
+      "data_source": {
+        "kind": "repository historical out-of-sample return labels",
+        "ticker": "AAPL",
+        "upstream_provider": "yfinance",
+        "source_files": [
+          "data\\exports\\ml_benchmark\\regression_validation_predictions.csv",
+          "data\\exports\\ml_benchmark\\regression_test_predictions.csv"
+        ]
+      }
+    },
+    "markowitz": {
+      "status": "pass",
+      "summary": {
+        "max_weight_sum_absolute_error": 2.220446049250313e-16,
+        "weight_sum_tolerance": 1e-08,
+        "max_weight_difference_vs_scipy_reference": 0.00041822963038895544,
+        "reference_tolerance": 0.0005,
+        "frontier_convexity_violation": 0.0,
+        "convexity_tolerance": 2e-06,
+        "frontier_points": 41
+      },
+      "weight_sum_errors": {
+        "minimum_variance": 1.1102230246251565e-16,
+        "maximum_sharpe": 0.0,
+        "frontier_max": 2.220446049250313e-16
+      },
+      "minimum_variance_weights": {
+        "ALPHA": 0.4731831171513276,
+        "BETA": 0.2542675991886775,
+        "GAMMA": 0.15362692706888664,
+        "DELTA": 0.11892235659110825
+      },
+      "scipy_reference_weights": {
+        "ALPHA": 0.47276488752093865,
+        "BETA": 0.2543087196631945,
+        "GAMMA": 0.15400335771024304,
+        "DELTA": 0.11892303510562373
+      },
+      "frontier_minimum_slope_change": 0.048921760242161605
+    },
+    "ml_signal": {
+      "status": "pass",
+      "summary": {
+        "model": "gradient_boosting",
+        "folds": 4,
+        "evaluable_folds": 4,
+        "mean_walk_forward_roc_auc": 0.5291631908133996,
+        "max_shuffled_auc_deviation_from_half": 0.006111607142857189,
+        "shuffle_tolerance": 0.03,
+        "shuffle_repeats_per_fold": 200
+      },
+      "folds": [
+        {
+          "fold": 1,
+          "samples": 1008,
+          "date_start": "2023-06-13",
+          "date_end": "2023-12-11",
+          "roc_auc": 0.5100786004056794,
+          "shuffled_label_auc_mean": 0.4996837957974138,
+          "shuffled_label_auc_std": 0.01751888103764026,
+          "shuffled_auc_absolute_deviation_from_half": 0.0003162042025862122,
+          "status": "pass"
+        },
+        {
+          "fold": 2,
+          "samples": 1008,
+          "date_start": "2023-12-12",
+          "date_end": "2024-06-12",
+          "roc_auc": 0.507745034113138,
+          "shuffled_label_auc_mean": 0.500893283131093,
+          "shuffled_label_auc_std": 0.01959086686978443,
+          "shuffled_auc_absolute_deviation_from_half": 0.0008932831310930478,
+          "status": "pass"
+        },
+        {
+          "fold": 3,
+          "samples": 1008,
+          "date_start": "2024-06-13",
+          "date_end": "2024-12-11",
+          "roc_auc": 0.5184719858776381,
+          "shuffled_label_auc_mean": 0.5001428338555002,
+          "shuffled_label_auc_std": 0.017370308196739407,
+          "shuffled_auc_absolute_deviation_from_half": 0.00014283385550017957,
+          "status": "pass"
+        },
+        {
+          "fold": 4,
+          "samples": 96,
+          "date_start": "2024-12-12",
+          "date_end": "2024-12-30",
+          "roc_auc": 0.5803571428571428,
+          "shuffled_label_auc_mean": 0.4938883928571428,
+          "shuffled_label_auc_std": 0.058139185709611275,
+          "shuffled_auc_absolute_deviation_from_half": 0.006111607142857189,
+          "status": "pass"
+        }
+      ],
+      "data_source": "D:\\Personal_Projects\\Finance\\finsight-alpha\\data\\exports\\ml_benchmark\\classification_validation_predictions.csv",
+      "negative_control": "Validation labels are independently permuted within each walk-forward fold while predictions remain fixed; mean AUC must collapse to 0.5."
+    },
+    "rag": {
+      "status": "pass",
+      "summary": {
+        "questions": 10,
+        "hit_rate_at_k": {
+          "1": 1.0,
+          "3": 1.0,
+          "5": 1.0
+        },
+        "threshold_at_k": {
+          "1": 0.75,
+          "3": 0.9,
+          "5": 1.0
+        }
+      },
+      "questions": [
+        {
+          "question_id": "q-bs",
+          "query": "Which inputs are used to price a European option with Black Scholes?",
+          "relevant_chunk_ids": [
+            "pricing-bs"
+          ],
+          "retrieved_chunk_ids": [
+            "pricing-bs",
+            "options-greeks",
+            "rag-retrieval",
+            "market-liquidity",
+            "signals-walk-forward"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-var",
+          "query": "How does CVaR expected shortfall differ from the VaR loss quantile?",
+          "relevant_chunk_ids": [
+            "risk-var"
+          ],
+          "retrieved_chunk_ids": [
+            "risk-var",
+            "portfolio-markowitz",
+            "signals-walk-forward",
+            "pricing-bs",
+            "rag-retrieval"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-markowitz",
+          "query": "What data defines the Markowitz efficient frontier portfolio weights?",
+          "relevant_chunk_ids": [
+            "portfolio-markowitz"
+          ],
+          "retrieved_chunk_ids": [
+            "portfolio-markowitz",
+            "risk-var",
+            "signals-walk-forward",
+            "pricing-bs",
+            "rag-retrieval"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-signal",
+          "query": "How is ROC AUC measured in chronological walk forward validation?",
+          "relevant_chunk_ids": [
+            "signals-walk-forward"
+          ],
+          "retrieved_chunk_ids": [
+            "signals-walk-forward",
+            "pricing-bs",
+            "risk-var",
+            "portfolio-markowitz",
+            "rag-retrieval"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-retrieval",
+          "query": "What combines BM25 keyword ranking with semantic vector similarity?",
+          "relevant_chunk_ids": [
+            "rag-retrieval"
+          ],
+          "retrieved_chunk_ids": [
+            "rag-retrieval",
+            "signals-walk-forward",
+            "pricing-bs",
+            "risk-var",
+            "portfolio-markowitz"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-fcf",
+          "query": "How do operating cash flow and capital expenditures determine free cash flow?",
+          "relevant_chunk_ids": [
+            "fundamentals-cash-flow"
+          ],
+          "retrieved_chunk_ids": [
+            "fundamentals-cash-flow",
+            "pricing-bs",
+            "market-liquidity",
+            "options-greeks",
+            "credit-leverage"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-rates",
+          "query": "How might central bank rate cuts change discount rates?",
+          "relevant_chunk_ids": [
+            "macro-rates"
+          ],
+          "retrieved_chunk_ids": [
+            "macro-rates",
+            "pricing-bs",
+            "risk-var",
+            "portfolio-markowitz",
+            "signals-walk-forward"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-greeks",
+          "query": "Which option Greeks measure volatility and time decay sensitivity?",
+          "relevant_chunk_ids": [
+            "options-greeks"
+          ],
+          "retrieved_chunk_ids": [
+            "options-greeks",
+            "fundamentals-cash-flow",
+            "market-liquidity",
+            "pricing-bs",
+            "credit-leverage"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-liquidity",
+          "query": "Which market liquidity indicators capture transaction cost and depth?",
+          "relevant_chunk_ids": [
+            "market-liquidity"
+          ],
+          "retrieved_chunk_ids": [
+            "market-liquidity",
+            "fundamentals-cash-flow",
+            "options-greeks",
+            "pricing-bs",
+            "credit-leverage"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        },
+        {
+          "question_id": "q-credit",
+          "query": "Which leverage and interest coverage measures inform corporate default risk?",
+          "relevant_chunk_ids": [
+            "credit-leverage"
+          ],
+          "retrieved_chunk_ids": [
+            "credit-leverage",
+            "signals-walk-forward",
+            "options-greeks",
+            "macro-rates",
+            "fundamentals-cash-flow"
+          ],
+          "first_relevant_rank": 1,
+          "hit_at_k": {
+            "1": 1,
+            "3": 1,
+            "5": 1
+          }
+        }
+      ],
+      "data_source": "D:\\Personal_Projects\\Finance\\finsight-alpha\\data\\validation\\rag_questions.json",
+      "retrieval_mode": "BM25 keyword component of hybrid_retrieve"
+    }
+  }
+}

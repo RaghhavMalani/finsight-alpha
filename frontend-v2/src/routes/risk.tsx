@@ -1,12 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/terminal/Panel";
-import { ArcGauge } from "@/components/terminal/ArcGauge";
-import { fmt, viridis } from "@/lib/market";
+import { RiskIntelligenceLab } from "@/components/risk/RiskIntelligenceLab";
+import { RiskLiveCommandCenter } from "@/components/risk/RiskLiveCommandCenter";
+import { fmt } from "@/lib/market";
+import { subscribeDemoBookStatus, type DemoBookSync } from "@/lib/demoBook";
 import {
-  getBook, subscribe, applyHedge, removeHedge, activeHedges, resetBook,
-  var1d, riskContributions, netGreeks, stress, tradeVolumes, largestTrades,
-  futuresCurve, COMMODITIES, type Book, type VaRMethod, SCENARIOS,
+  getBook,
+  subscribe,
+  applyHedge,
+  removeHedge,
+  activeHedges,
+  resetBook,
+  var1d,
+  riskContributions,
+  netGreeks,
+  stress,
+  type Book,
+  SCENARIOS,
   type Position,
 } from "@/lib/book";
 import { toast } from "sonner";
@@ -15,676 +26,1867 @@ export const Route = createFileRoute("/risk")({
   head: () => ({
     meta: [
       { title: "Risk desk — FinSight" },
-      { name: "description", content: "Multi-asset VaR, exposure, stress lab and hedge suggestions." },
+      {
+        name: "description",
+        content: "Multi-asset VaR, exposure, stress lab and hedge suggestions.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: RiskDesk,
+  component: RiskDeskPro,
 });
 
-function useCountUp(target: number, duration = 700) {
-  const [v, setV] = useState(0);
-  useEffect(() => {
-    let start: number | null = null; let raf = 0;
-    function step(ts: number) {
-      if (start === null) start = ts;
-      const t = Math.min(1, (ts - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setV(target * eased);
-      if (t < 1) raf = requestAnimationFrame(step);
-    }
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
-  return v;
+// Decision-first Risk Desk built around limits, drivers, stress losses, and executable actions.
+type ProTab = "COMMAND" | "OVERVIEW" | "EXPOSURES" | "STRESS" | "INTELLIGENCE" | "HEDGES";
+type LimitTone = "CLEAR" | "WATCH" | "BREACH";
+type LimitRow = {
+  label: string;
+  value: number;
+  limit: number;
+  displayValue: string;
+  displayLimit: string;
+  utilization: number;
+  tone: LimitTone;
+};
+
+const RISK_LIMITS = {
+  var99Nav: 0.025,
+  es99Nav: 0.04,
+  stressNav: 0.12,
+  grossLeverage: 1.5,
+  sectorGross: 0.35,
+  positionRisk: 0.25,
+};
+
+function money(value: number, digits = 0) {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `$${(abs / 1_000_000).toFixed(abs >= 10_000_000 ? 1 : 2)}M`;
+  if (abs >= 1_000) return `$${(abs / 1_000).toFixed(abs >= 100_000 ? 0 : 1)}K`;
+  return `$${abs.toFixed(digits)}`;
 }
 
-type Tab = "OVERVIEW" | "EXPOSURE" | "STRESS" | "HEDGE";
+function signedMoney(value: number) {
+  return `${value < 0 ? "−" : "+"}${money(value)}`;
+}
 
-function RiskDesk() {
-  const [tab, setTab] = useState<Tab>("OVERVIEW");
+function toneFor(utilization: number): LimitTone {
+  if (utilization > 1) return "BREACH";
+  if (utilization >= 0.8) return "WATCH";
+  return "CLEAR";
+}
+
+function toneText(tone: LimitTone) {
+  return tone === "BREACH" ? "text-down" : tone === "WATCH" ? "text-primary" : "text-up";
+}
+
+function toneBorder(tone: LimitTone) {
+  return tone === "BREACH"
+    ? "border-down/60 bg-down/5"
+    : tone === "WATCH"
+      ? "border-primary/50 bg-primary/5"
+      : "border-up/30 bg-up/[0.03]";
+}
+
+function bookWith(book: Book, extra: Position[]): Book {
+  const positions = [...book.positions, ...extra];
+  let long = 0;
+  let short = 0;
+  let pnlDay = 0;
+  for (const p of positions) {
+    if (p.mv >= 0) long += p.mv;
+    else short += p.mv;
+    pnlDay += p.pnl;
+  }
+  return {
+    positions,
+    nav: book.nav,
+    gross: long + Math.abs(short),
+    net: long + short,
+    long,
+    short,
+    pnlDay,
+    updatedAt: Date.now(),
+  };
+}
+
+function riskSnapshot(book: Book) {
+  const tail99 = var1d(book, "HISTORICAL", 0.99);
+  const tail95 = var1d(book, "HISTORICAL", 0.95);
+  const contributions = riskContributions(book).sort(
+    (a, b) => Math.abs(b.contribPct) - Math.abs(a.contribPct),
+  );
+  const scenarios = Object.entries(SCENARIOS)
+    .map(([key, scenario]) => ({ key, ...scenario, result: stress(book, scenario.shock) }))
+    .sort((a, b) => a.result.total - b.result.total);
+  const worstScenario = scenarios[0];
+
+  const sectors = new Map<string, number>();
+  for (const p of book.positions) {
+    const sector = p.sector ?? "Other";
+    sectors.set(sector, (sectors.get(sector) ?? 0) + p.gross);
+  }
+  const topSector = [...sectors.entries()].sort((a, b) => b[1] - a[1])[0] ?? ["—", 0];
+  const topSectorPct = book.gross > 0 ? topSector[1] / book.gross : 0;
+  const topDriver = contributions.find((item) => item.contribPct > 0) ?? contributions[0];
+  const topDriverPct = Math.max(0, topDriver?.contribPct ?? 0);
+  const grossLeverage = book.nav > 0 ? book.gross / book.nav : 0;
+  const worstLoss = Math.abs(Math.min(0, worstScenario?.result.total ?? 0));
+
+  const limits: LimitRow[] = [
+    {
+      label: "1D 99% VaR",
+      value: tail99.var,
+      limit: book.nav * RISK_LIMITS.var99Nav,
+      displayValue: money(tail99.var),
+      displayLimit: money(book.nav * RISK_LIMITS.var99Nav),
+      utilization: tail99.var / (book.nav * RISK_LIMITS.var99Nav || 1),
+      tone: toneFor(tail99.var / (book.nav * RISK_LIMITS.var99Nav || 1)),
+    },
+    {
+      label: "99% expected shortfall",
+      value: tail99.es,
+      limit: book.nav * RISK_LIMITS.es99Nav,
+      displayValue: money(tail99.es),
+      displayLimit: money(book.nav * RISK_LIMITS.es99Nav),
+      utilization: tail99.es / (book.nav * RISK_LIMITS.es99Nav || 1),
+      tone: toneFor(tail99.es / (book.nav * RISK_LIMITS.es99Nav || 1)),
+    },
+    {
+      label: "Worst preset stress",
+      value: worstLoss,
+      limit: book.nav * RISK_LIMITS.stressNav,
+      displayValue: money(worstLoss),
+      displayLimit: money(book.nav * RISK_LIMITS.stressNav),
+      utilization: worstLoss / (book.nav * RISK_LIMITS.stressNav || 1),
+      tone: toneFor(worstLoss / (book.nav * RISK_LIMITS.stressNav || 1)),
+    },
+    {
+      label: "Gross leverage",
+      value: grossLeverage,
+      limit: RISK_LIMITS.grossLeverage,
+      displayValue: `${grossLeverage.toFixed(2)}×`,
+      displayLimit: `${RISK_LIMITS.grossLeverage.toFixed(2)}×`,
+      utilization: grossLeverage / RISK_LIMITS.grossLeverage,
+      tone: toneFor(grossLeverage / RISK_LIMITS.grossLeverage),
+    },
+    {
+      label: `${topSector[0]} sector gross`,
+      value: topSectorPct,
+      limit: RISK_LIMITS.sectorGross,
+      displayValue: `${(topSectorPct * 100).toFixed(1)}%`,
+      displayLimit: `${(RISK_LIMITS.sectorGross * 100).toFixed(0)}%`,
+      utilization: topSectorPct / RISK_LIMITS.sectorGross,
+      tone: toneFor(topSectorPct / RISK_LIMITS.sectorGross),
+    },
+    {
+      label: `${topDriver?.pos.symbol ?? "Top position"} risk share`,
+      value: topDriverPct,
+      limit: RISK_LIMITS.positionRisk,
+      displayValue: `${(topDriverPct * 100).toFixed(1)}%`,
+      displayLimit: `${(RISK_LIMITS.positionRisk * 100).toFixed(0)}%`,
+      utilization: topDriverPct / RISK_LIMITS.positionRisk,
+      tone: toneFor(topDriverPct / RISK_LIMITS.positionRisk),
+    },
+  ];
+  const status: LimitTone = limits.some((row) => row.tone === "BREACH")
+    ? "BREACH"
+    : limits.some((row) => row.tone === "WATCH")
+      ? "WATCH"
+      : "CLEAR";
+
+  return {
+    tail99,
+    tail95,
+    contributions,
+    scenarios,
+    worstScenario,
+    topSector,
+    topSectorPct,
+    topDriver,
+    grossLeverage,
+    limits,
+    status,
+  };
+}
+
+type RiskSnapshot = ReturnType<typeof riskSnapshot>;
+
+function RiskDeskPro() {
+  const [tab, setTab] = useState<ProTab>("COMMAND");
   const [book, setBook] = useState<Book>(getBook);
+  const [sync, setSync] = useState<DemoBookSync>({ state: "loading" });
   useEffect(() => subscribe(setBook), []);
+  useEffect(() => subscribeDemoBookStatus(setSync), []);
+  const snapshot = useMemo(() => riskSnapshot(book), [book]);
+  const activeCount = activeHedges().length;
+  const hasPositions = book.positions.length > 0;
+  const tabs: Array<{ key: ProTab; label: string; meta?: string }> = [
+    { key: "COMMAND", label: "Live OS", meta: "LIVE" },
+    { key: "OVERVIEW", label: "Overview", meta: snapshot.status },
+    { key: "EXPOSURES", label: "Exposures", meta: String(book.positions.length) },
+    { key: "STRESS", label: "Stress", meta: String(snapshot.scenarios.length) },
+    { key: "INTELLIGENCE", label: "Intelligence", meta: "LIVE" },
+    { key: "HEDGES", label: "Hedges", meta: String(activeCount) },
+  ];
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-divider bg-panel px-4">
-        <div className="flex items-center gap-6">
-          <Link to="/" className="mono-caps text-sm text-primary">FinSight</Link>
-          <span className="mono-caps text-[10px] text-muted-foreground">RISK MANAGER</span>
-          <div className="mono-caps flex items-center gap-3 text-[10px]">
-            <span className="text-faint">NAV</span>
-            <span className="font-mono text-foreground">${(book.nav/1e6).toFixed(2)}M</span>
-            <span className="text-faint">DAY P&L</span>
-            <span className={`font-mono ${book.pnlDay >= 0 ? "text-up" : "text-down"}`}>{book.pnlDay >= 0 ? "+" : "-"}${fmt(Math.abs(book.pnlDay))}</span>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-30 border-b border-divider bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1680px] flex-col gap-3 px-3 py-3 lg:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <Link to="/" className="mono-caps text-sm text-primary">
+                FinSight
+              </Link>
+              <div className="h-5 w-px bg-divider" />
+              <div>
+                <div className="mono-caps text-[11px] text-foreground">Portfolio Risk</div>
+                <div className="mono-caps mt-0.5 text-[8px] text-faint">
+                  Authenticated paper book · explainable estimates
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <HeaderStat label="NAV" value={money(book.nav)} />
+              <HeaderStat
+                label="OPEN P&L"
+                value={signedMoney(book.pnlDay)}
+                tone={book.pnlDay >= 0 ? "text-up" : "text-down"}
+              />
+              <div
+                className={`mono-caps border px-2.5 py-1 text-[9px] ${
+                  hasPositions
+                    ? `${toneBorder(snapshot.status)} ${toneText(snapshot.status)}`
+                    : "border-info/45 bg-info/5 text-info"
+                }`}
+              >
+                {!hasPositions
+                  ? "BOOK EMPTY"
+                  : snapshot.status === "CLEAR"
+                    ? "WITHIN LIMITS"
+                    : snapshot.status === "WATCH"
+                      ? "LIMIT WATCH"
+                      : "LIMIT BREACH"}
+              </div>
+              <Link
+                to="/terminal"
+                className="mono-caps hidden text-[9px] text-muted-foreground hover:text-primary sm:block"
+              >
+                ← Terminal
+              </Link>
+            </div>
           </div>
+          <nav className="flex gap-1 overflow-x-auto" aria-label="Risk desk sections">
+            {tabs.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setTab(item.key)}
+                aria-current={tab === item.key ? "page" : undefined}
+                className={`mono-caps interactive flex min-w-fit items-center gap-2 border px-3 py-1.5 text-[9px] ${
+                  tab === item.key
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {item.label}
+                {item.meta && <span className="text-[8px] opacity-70">{item.meta}</span>}
+              </button>
+            ))}
+          </nav>
         </div>
-        <div className="flex items-center gap-1">
-          {(["OVERVIEW","EXPOSURE","STRESS","HEDGE"] as Tab[]).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`mono-caps interactive border px-3 py-1 text-[10px] ${tab === t ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>{t}</button>
-          ))}
-        </div>
-        <Link to="/terminal" className="mono-caps text-[10px] text-muted-foreground hover:text-primary">← TERMINAL</Link>
       </header>
 
-      <main className="flex-1 overflow-hidden p-2">
-        {tab === "OVERVIEW" && <OverviewTab book={book} />}
-        {tab === "EXPOSURE" && <ExposureTab book={book} />}
-        {tab === "STRESS" && <StressTab book={book} />}
-        {tab === "HEDGE" && <HedgeTab book={book} />}
+      <main className="mx-auto max-w-[1680px] p-3 lg:p-5">
+        <div className="mono-caps mb-3 flex flex-wrap items-center justify-between gap-2 border border-info/25 bg-info/5 px-3 py-2 text-[8px] text-muted-foreground">
+          <span>
+            <span className="text-info">
+              {sync.state === "synced"
+                ? "SERVER SYNCED"
+                : sync.state === "saving"
+                  ? "SAVING BOOK"
+                  : sync.state === "offline"
+                    ? "OFFLINE CACHE"
+                    : "HYDRATING BOOK"}
+            </span>{" "}
+            · {book.positions.length} authenticated positions · {money(book.gross)} real gross
+            exposure · signed correlation proxy · not broker margin
+          </span>
+          <span>
+            AS OF{" "}
+            {new Date(book.updatedAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </div>
+        {tab === "COMMAND" && <RiskLiveCommandCenter book={book} />}
+        {!hasPositions && tab !== "COMMAND" && tab !== "INTELLIGENCE" && (
+          <EmptyPortfolioGate section={tab} onCommand={() => setTab("COMMAND")} />
+        )}
+        {hasPositions && tab === "OVERVIEW" && (
+          <RiskOverview book={book} snapshot={snapshot} onNavigate={setTab} />
+        )}
+        {hasPositions && tab === "EXPOSURES" && <RiskExposures book={book} snapshot={snapshot} />}
+        {hasPositions && tab === "STRESS" && (
+          <RiskStress book={book} snapshot={snapshot} onHedge={() => setTab("HEDGES")} />
+        )}
+        {tab === "INTELLIGENCE" && (
+          <RiskIntelligenceLab
+            ticker={snapshot.topDriver?.pos.underlier ?? snapshot.topDriver?.pos.symbol ?? "SPY"}
+          />
+        )}
+        {hasPositions && tab === "HEDGES" && <RiskHedges book={book} snapshot={snapshot} />}
       </main>
     </div>
   );
 }
 
-// ══════ OVERVIEW ══════════════════════════════════════════════════════
-function OverviewTab({ book }: { book: Book }) {
-  const [method, setMethod] = useState<VaRMethod>("HISTORICAL");
-  const [conf, setConf] = useState<0.95 | 0.99>(0.95);
-  const { var: varDollar, es } = useMemo(() => var1d(book, method, conf), [book, method, conf]);
-  const varAnimated = useCountUp(varDollar);
-  const esAnimated = useCountUp(es);
-  const contribs = useMemo(() => riskContributions(book).sort((a,b) => b.contribPct - a.contribPct), [book]);
-  const g = netGreeks(book);
-
-  // Concentration alerts
-  const bySector = new Map<string, number>();
-  for (const p of book.positions) {
-    bySector.set(p.sector ?? "Other", (bySector.get(p.sector ?? "Other") ?? 0) + p.gross);
-  }
-  const topSector = [...bySector.entries()].sort((a,b) => b[1] - a[1])[0];
-  const topPct = topSector ? topSector[1] / book.gross : 0;
-
-  const VAR_LIMIT = 500_000;
-
+function EmptyPortfolioGate({ section, onCommand }: { section: ProTab; onCommand: () => void }) {
   return (
-    <div className="grid h-full grid-cols-12 grid-rows-6 gap-2">
-      {/* VaR suite */}
-      <Panel code="VAR" title="Value-at-Risk · 1-day" className="col-span-6 row-span-3">
-        <div className="p-3">
-          <div className="mono-caps mb-3 flex items-center gap-1 text-[9px]">
-            {(["PARAMETRIC","HISTORICAL","MONTE_CARLO"] as VaRMethod[]).map((m) => (
-              <button key={m} onClick={() => setMethod(m)} className={`interactive border px-2 py-1 ${method === m ? "border-primary text-primary bg-primary/10" : "border-border text-faint hover:text-foreground"}`}>{m.replace("_"," ")}</button>
-            ))}
-            <div className="ml-auto flex gap-1">
-              {([0.95, 0.99] as const).map((c) => (
-                <button key={c} onClick={() => setConf(c)} className={`interactive border px-2 py-1 ${conf === c ? "border-primary text-primary bg-primary/10" : "border-border text-faint hover:text-foreground"}`}>{(c*100).toFixed(0)}%</button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="mono-caps text-[9px] text-faint">1D VaR {(conf*100).toFixed(0)}%</div>
-              <div className="mt-1 font-mono text-4xl text-down">−${fmt(varAnimated, 0)}</div>
-              <div className="mono-caps mt-1 text-[9px] text-faint">{((varAnimated/book.nav)*100).toFixed(2)}% OF NAV</div>
-            </div>
-            <div>
-              <div className="mono-caps text-[9px] text-faint">EXPECTED SHORTFALL</div>
-              <div className="mt-1 font-mono text-4xl text-down">−${fmt(esAnimated, 0)}</div>
-              <div className="mono-caps mt-1 text-[9px] text-faint">AVG LOSS IN TAIL</div>
-            </div>
-          </div>
-          <div className="mt-6">
-            <div className="mono-caps mb-2 flex justify-between text-[9px] text-faint"><span>VAR CAPACITY</span><span>{((varDollar / VAR_LIMIT)*100).toFixed(0)}% OF ${(VAR_LIMIT/1000).toFixed(0)}K LIMIT</span></div>
-            <div className="h-3 border border-divider bg-background">
-              <div className={`h-full ${varDollar > VAR_LIMIT ? "bg-down" : varDollar > VAR_LIMIT*0.8 ? "bg-primary" : "bg-up"}`} style={{ width: `${Math.min(100, (varDollar/VAR_LIMIT)*100)}%`, transition: "width 700ms cubic-bezier(0.16,1,0.3,1)" }} />
-            </div>
-          </div>
+    <section className="relative overflow-hidden border border-info/40 bg-panel p-6">
+      <div className="absolute inset-y-0 left-0 w-1 bg-info" />
+      <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto]">
+        <div>
+          <div className="mono-caps text-[8px] text-info">ZERO-POSITION GUARD · {section}</div>
+          <h2 className="mt-3 font-serif text-3xl text-foreground">
+            There is no portfolio risk to calculate yet.
+          </h2>
+          <p className="mt-3 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
+            VaR, exposure, stress, and hedge outputs stay locked until your authenticated paper book
+            contains a position. This prevents sample holdings or placeholder NAV from being
+            presented as your money.
+          </p>
         </div>
-      </Panel>
-
-      {/* Net greeks */}
-      <Panel code="GRK" title="Portfolio greeks" className="col-span-6 row-span-3">
-        <div className="grid grid-cols-4 gap-2 p-3">
-          {[
-            { l: "DELTA", v: g.delta / 1000, u: "k" },
-            { l: "GAMMA", v: g.gamma, u: "" },
-            { l: "VEGA",  v: g.vega, u: "" },
-            { l: "THETA", v: g.theta, u: "" },
-          ].map((x) => {
-            const dir: "up" | "down" = x.v >= 0 ? "up" : "down";
-            const norm = Math.min(1, Math.abs(x.v) / (x.l === "DELTA" ? 5 : 500));
-            return (
-              <div key={x.l} className="flex flex-col items-center border border-divider bg-raised p-2">
-                <ArcGauge value={norm} dir={dir} size={90} label={x.l} />
-                <div className="mono-caps mt-1 font-mono text-[11px] text-foreground">{x.v >= 0 ? "+" : ""}{fmt(x.v, x.l === "GAMMA" ? 2 : 1)}{x.u}</div>
-              </div>
-            );
-          })}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onCommand}
+            className="mono-caps interactive border border-primary bg-primary px-4 py-2.5 text-[8px] text-background"
+          >
+            OPEN LIVE RISK OS
+          </button>
+          <Link
+            to="/terminal"
+            className="mono-caps interactive border border-info/55 px-4 py-2.5 text-[8px] text-info"
+          >
+            ADD A POSITION →
+          </Link>
         </div>
-        <div className="mono-caps border-t border-divider px-3 py-2 text-[9px] text-muted-foreground">
-          Aggregate across {book.positions.filter(p => p.cls === "OPTION").length} option position{book.positions.filter(p => p.cls === "OPTION").length === 1 ? "" : "s"} · dollar delta shown per 1pt underlier.
-        </div>
-      </Panel>
-
-      {/* Contribution treemap */}
-      <Panel code="CTR" title="VaR contribution" className="col-span-8 row-span-3">
-        <ContribTreemap items={contribs} />
-      </Panel>
-
-      {/* Alerts */}
-      <Panel code="ALT" title="Concentration & alerts" className="col-span-4 row-span-3">
-        <div className="space-y-2 p-3 text-[11px]">
-          <AlertRow tone={topPct > 0.4 ? "warn" : "ok"} label={`${topSector?.[0] ?? "—"} · ${(topPct*100).toFixed(0)}% of gross`} sub={topPct > 0.4 ? "Concentration above 40% threshold" : "Within concentration budget"} />
-          <AlertRow tone={Math.abs(g.delta) > 5000 ? "warn" : "ok"} label={`Net delta ${g.delta >= 0 ? "+" : ""}${fmt(g.delta,0)}`} sub={Math.abs(g.delta) > 5000 ? "High directional bias" : "Delta within neutral band"} />
-          <AlertRow tone={varDollar > VAR_LIMIT * 0.8 ? "warn" : "ok"} label={`VaR utilisation ${((varDollar/VAR_LIMIT)*100).toFixed(0)}%`} sub="Limit $500k · 95% confidence" />
-          <AlertRow tone={book.positions.some(p => p.cls === "COMMODITY" && p.symbol === "NG") ? "info" : "ok"} label="NG position active" sub="Short exposure — hedges natgas spike risk" />
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-function AlertRow({ tone, label, sub }: { tone: "ok" | "warn" | "info"; label: string; sub: string }) {
-  const c = tone === "warn" ? "text-primary border-primary/50" : tone === "info" ? "text-info border-info/40" : "text-up border-up/40";
-  const dot = tone === "warn" ? "bg-primary" : tone === "info" ? "bg-info" : "bg-up";
-  return (
-    <div className={`border-l-2 bg-raised px-2 py-1.5 ${c}`}>
-      <div className="flex items-center gap-2">
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-        <span className="mono-caps text-[10px] text-foreground">{label}</span>
       </div>
-      <div className="mono-caps mt-0.5 text-[9px] text-muted-foreground">{sub}</div>
+    </section>
+  );
+}
+
+function HeaderStat({
+  label,
+  value,
+  tone = "text-foreground",
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <div className="hidden text-right md:block">
+      <div className="mono-caps text-[8px] text-faint">{label}</div>
+      <div className={`font-mono text-[12px] ${tone}`}>{value}</div>
     </div>
   );
 }
 
-function ContribTreemap({ items }: { items: ReturnType<typeof riskContributions> }) {
-  const [isolated, setIsolated] = useState<string | null>(null);
-  const total = items.reduce((a, b) => a + b.contribPct, 0);
-  // Simple slice-and-dice layout
-  const rows: { items: typeof items; sum: number }[] = [];
-  let cur: typeof items = [];
-  let cursum = 0;
-  const target = total / 3;
-  for (const it of items) {
-    cur.push(it); cursum += it.contribPct;
-    if (cursum >= target && rows.length < 2) {
-      rows.push({ items: cur, sum: cursum }); cur = []; cursum = 0;
-    }
-  }
-  if (cur.length) rows.push({ items: cur, sum: cursum });
-  const heights = rows.map((r) => (r.sum / total) * 100);
+function RiskOverview({
+  book,
+  snapshot,
+  onNavigate,
+}: {
+  book: Book;
+  snapshot: RiskSnapshot;
+  onNavigate: (tab: ProTab) => void;
+}) {
+  const worstLoss = Math.abs(Math.min(0, snapshot.worstScenario?.result.total ?? 0));
+  const breached = snapshot.limits.filter((row) => row.tone === "BREACH");
+  const watched = snapshot.limits.filter((row) => row.tone === "WATCH");
+  const headline =
+    snapshot.status === "BREACH"
+      ? `${breached.length} mandate ${breached.length === 1 ? "limit is" : "limits are"} breached.`
+      : snapshot.status === "WATCH"
+        ? `${watched.length} limit ${watched.length === 1 ? "is" : "limits are"} inside the watch band.`
+        : "The book is operating inside every defined risk limit.";
+  const driver = snapshot.topDriver;
+  const actions = [
+    snapshot.status === "BREACH"
+      ? {
+          priority: "P1",
+          title: `Restore ${breached[0]?.label ?? "risk"} below mandate`,
+          note: `${breached[0]?.displayValue} current versus ${breached[0]?.displayLimit} limit. Stop adding gross until resolved.`,
+          tab: "HEDGES" as ProTab,
+          action: "Review hedges",
+        }
+      : snapshot.status === "WATCH"
+        ? {
+            priority: "P1",
+            title: `Protect headroom in ${watched[0]?.label ?? "risk budget"}`,
+            note: `${watched[0]?.displayValue} current versus ${watched[0]?.displayLimit} limit. Pre-hedge before adding correlated exposure.`,
+            tab: "HEDGES" as ProTab,
+            action: "Review hedges",
+          }
+        : {
+            priority: "P2",
+            title: "Risk budget is available",
+            note: "No mandate limit is in the watch band. Keep new risk diversified across existing drivers.",
+            tab: "EXPOSURES" as ProTab,
+            action: "Inspect exposures",
+          },
+    {
+      priority: "P2",
+      title: `${driver?.pos.symbol ?? "Top position"} drives ${((driver?.contribPct ?? 0) * 100).toFixed(1)}% of portfolio VaR`,
+      note: `${driver?.pos.sector ?? "Other"} is the first place to size, hedge, or set an invalidation level.`,
+      tab: "EXPOSURES" as ProTab,
+      action: "Open positions",
+    },
+    {
+      priority: "P2",
+      title: `${snapshot.worstScenario?.label ?? "Worst scenario"} is the binding stress`,
+      note: `${money(worstLoss)} modeled loss, or ${((worstLoss / book.nav) * 100).toFixed(1)}% of NAV. Review the loss waterfall before the next trade.`,
+      tab: "STRESS" as ProTab,
+      action: "Open stress",
+    },
+  ];
 
   return (
-    <div className="flex h-full flex-col p-2">
-      <div className="flex-1 flex flex-col gap-1">
-        {rows.map((row, ri) => (
-          <div key={ri} className="flex flex-1 gap-1" style={{ height: `${heights[ri]}%` }}>
-            {row.items.map((it) => {
-              const wPct = (it.contribPct / row.sum) * 100;
-              const t = Math.min(1, it.contribPct * 5);
-              const active = isolated === it.pos.id;
-              const dim = isolated && !active;
-              return (
-                <button
-                  key={it.pos.id}
-                  onClick={() => setIsolated(active ? null : it.pos.id)}
-                  className="relative overflow-hidden border border-background text-left transition"
-                  style={{ width: `${wPct}%`, background: viridis(t), opacity: dim ? 0.25 : 1 }}
-                  title={`${it.pos.symbol} · ${(it.contribPct*100).toFixed(1)}% of risk · $${fmt(it.dollar,0)}`}
-                >
-                  <div className="absolute inset-0 p-1.5">
-                    <div className="mono-caps text-[10px] text-black/80 font-bold">{it.pos.symbol}</div>
-                    <div className="font-mono text-[10px] text-black/70">{(it.contribPct*100).toFixed(1)}%</div>
+    <div className="space-y-3">
+      <Panel
+        code="NOW"
+        title="Risk posture"
+        subtitle="What can hurt the book now, how much capacity remains, and where action is required."
+        live
+        right={
+          <span className={`mono-caps text-[9px] ${toneText(snapshot.status)}`}>
+            {snapshot.status}
+          </span>
+        }
+      >
+        <div className="grid gap-0 lg:grid-cols-[1.15fr_2fr]">
+          <div
+            className={`border-b p-5 lg:border-b-0 lg:border-r ${snapshot.status === "BREACH" ? "border-down/40" : snapshot.status === "WATCH" ? "border-primary/30" : "border-up/25"}`}
+          >
+            <div className={`mono-caps text-[10px] ${toneText(snapshot.status)}`}>
+              MANDATE STATUS · {snapshot.status}
+            </div>
+            <div className="mt-3 max-w-xl font-serif text-3xl leading-tight text-foreground lg:text-4xl">
+              {headline}
+            </div>
+            <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-muted-foreground">
+              {snapshot.status === "CLEAR"
+                ? `${money(book.nav * RISK_LIMITS.var99Nav - snapshot.tail99.var)} of 99% VaR headroom remains. The largest avoidable risk is concentration, not total budget.`
+                : "Treat breached and watched limits as the work queue. Scenario losses and hedge impact are recalculated from the current paper book."}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4">
+            <RiskMetricCard
+              label="1D 99% VaR"
+              value={`−${money(snapshot.tail99.var)}`}
+              detail={`${((snapshot.tail99.var / book.nav) * 100).toFixed(2)}% NAV`}
+              tone="down"
+            />
+            <RiskMetricCard
+              label="99% expected shortfall"
+              value={`−${money(snapshot.tail99.es)}`}
+              detail="average loss beyond VaR"
+              tone="down"
+            />
+            <RiskMetricCard
+              label="Worst preset stress"
+              value={`−${money(worstLoss)}`}
+              detail={snapshot.worstScenario?.label ?? "—"}
+              tone="primary"
+            />
+            <RiskMetricCard
+              label="Gross / net"
+              value={`${snapshot.grossLeverage.toFixed(2)}×`}
+              detail={`${book.net >= 0 ? "+" : "−"}${money(book.net)} net`}
+              tone="neutral"
+            />
+          </div>
+        </div>
+      </Panel>
+
+      <RiskVisualBoard book={book} snapshot={snapshot} />
+
+      <div className="grid gap-3 xl:grid-cols-[1.35fr_0.85fr]">
+        <Panel
+          code="DRV"
+          title="Ranked risk drivers"
+          subtitle="Euler contribution includes correlation and signed hedge effects; negative rows diversify the book."
+          right={
+            <button
+              onClick={() => onNavigate("EXPOSURES")}
+              className="mono-caps text-[8px] text-primary hover:text-foreground"
+            >
+              ALL POSITIONS →
+            </button>
+          }
+        >
+          <RiskDriverTable items={snapshot.contributions.slice(0, 8)} nav={book.nav} />
+        </Panel>
+
+        <Panel
+          code="LIM"
+          title="Mandate monitor"
+          subtitle="Watch begins at 80% utilization. Limits are explicit and measured against the current NAV."
+          right={<span className="mono-caps text-[8px] text-faint">6 CONTROLS</span>}
+        >
+          <div className="divide-y divide-divider">
+            {snapshot.limits.map((row) => (
+              <LimitMeter key={row.label} row={row} />
+            ))}
+          </div>
+        </Panel>
+      </div>
+
+      <Panel
+        code="SCN"
+        title="Scenario scan"
+        subtitle="Preset shocks are repriced across equity beta, rate duration, commodities, and option Greeks."
+        right={
+          <button
+            onClick={() => onNavigate("STRESS")}
+            className="mono-caps text-[8px] text-primary hover:text-foreground"
+          >
+            OPEN LAB →
+          </button>
+        }
+      >
+        <div className="grid sm:grid-cols-2 xl:grid-cols-5">
+          {snapshot.scenarios.map((scenario) => (
+            <button
+              key={scenario.key}
+              onClick={() => onNavigate("STRESS")}
+              className="interactive border-b border-divider p-4 text-left last:border-b-0 sm:border-r xl:border-b-0"
+            >
+              <div className="mono-caps text-[9px] text-foreground">{scenario.label}</div>
+              <div
+                className={`mt-3 font-mono text-xl ${scenario.result.total < 0 ? "text-down" : "text-up"}`}
+              >
+                {signedMoney(scenario.result.total)}
+              </div>
+              <div className="mono-caps mt-1 text-[8px] text-faint">
+                {((scenario.result.total / book.nav) * 100).toFixed(2)}% NAV
+              </div>
+              <div className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
+                {scenario.description}
+              </div>
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <Panel
+        code="ACT"
+        title="Action queue"
+        subtitle="Ordered by mandate urgency, then by concentration and stress impact."
+      >
+        <div className="divide-y divide-divider">
+          {actions.map((item) => (
+            <div
+              key={item.title}
+              className="grid items-center gap-3 px-4 py-3 md:grid-cols-[44px_1fr_auto]"
+            >
+              <div
+                className={`mono-caps w-fit border px-2 py-1 text-[8px] ${item.priority === "P1" ? "border-down/50 text-down" : "border-primary/40 text-primary"}`}
+              >
+                {item.priority}
+              </div>
+              <div>
+                <div className="text-[12px] font-medium text-foreground">{item.title}</div>
+                <div className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                  {item.note}
+                </div>
+              </div>
+              <button
+                onClick={() => onNavigate(item.tab)}
+                className="mono-caps interactive w-fit border border-border px-3 py-1.5 text-[8px] text-muted-foreground hover:border-primary hover:text-primary"
+              >
+                {item.action} →
+              </button>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function RiskMetricCard({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: "down" | "primary" | "neutral";
+}) {
+  const color =
+    tone === "down" ? "text-down" : tone === "primary" ? "text-primary" : "text-foreground";
+  return (
+    <div className="border-b border-r border-divider p-4 last:border-r-0 sm:p-5 lg:border-b-0">
+      <div className="mono-caps text-[8px] text-faint">{label}</div>
+      <div className={`mt-3 font-mono text-xl lg:text-2xl ${color}`}>{value}</div>
+      <div className="mono-caps mt-1.5 text-[8px] leading-relaxed text-muted-foreground">
+        {detail}
+      </div>
+    </div>
+  );
+}
+
+function RiskDriverTable({
+  items,
+  nav,
+}: {
+  items: ReturnType<typeof riskContributions>;
+  nav: number;
+}) {
+  const max = Math.max(...items.map((item) => Math.abs(item.contribPct)), 0.01);
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[680px]">
+        <div className="mono-caps grid grid-cols-[1.15fr_90px_110px_1fr_90px] gap-3 border-b border-divider bg-raised/40 px-3 py-2 text-[8px] text-faint">
+          <span>Position</span>
+          <span>Side / class</span>
+          <span className="text-right">Market value</span>
+          <span>VaR share</span>
+          <span className="text-right">Contribution</span>
+        </div>
+        {items.map((item) => {
+          const diversifier = item.contribPct < 0;
+          return (
+            <div
+              key={item.pos.id}
+              className="grid grid-cols-[1.15fr_90px_110px_1fr_90px] items-center gap-3 border-b border-divider/60 px-3 py-2.5 last:border-b-0"
+            >
+              <div className="min-w-0">
+                <div className="font-mono text-[11px] text-foreground">{item.pos.symbol}</div>
+                <div className="truncate text-[9px] text-faint">{item.pos.sector ?? "Other"}</div>
+              </div>
+              <div className="mono-caps text-[8px] text-muted-foreground">
+                {item.pos.mv >= 0 ? "LONG" : "SHORT"} · {item.pos.cls.slice(0, 3)}
+              </div>
+              <div
+                className={`text-right font-mono text-[10px] ${item.pos.mv >= 0 ? "text-up" : "text-down"}`}
+              >
+                {signedMoney(item.pos.mv)}
+              </div>
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="h-1.5 flex-1 bg-background">
+                    <div
+                      className={`h-full ${diversifier ? "bg-info" : "bg-primary"}`}
+                      style={{
+                        width: `${Math.min(100, (Math.abs(item.contribPct) / max) * 100)}%`,
+                      }}
+                    />
                   </div>
-                </button>
+                  <span
+                    className={`w-12 text-right font-mono text-[9px] ${diversifier ? "text-info" : "text-foreground"}`}
+                  >
+                    {(item.contribPct * 100).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              <div
+                className={`text-right font-mono text-[10px] ${diversifier ? "text-info" : "text-down"}`}
+              >
+                {diversifier ? "−" : "+"}
+                {money(item.dollar)}
+                <div className="text-[7px] text-faint">
+                  {((Math.abs(item.dollar) / nav) * 100).toFixed(2)}% NAV
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LimitMeter({ row }: { row: LimitRow }) {
+  const width = Math.min(100, row.utilization * 100);
+  const bar = row.tone === "BREACH" ? "bg-down" : row.tone === "WATCH" ? "bg-primary" : "bg-up";
+  return (
+    <div className="px-4 py-3">
+      <div className="mono-caps flex items-center justify-between gap-3 text-[8px]">
+        <span className="truncate text-muted-foreground">{row.label}</span>
+        <span className={toneText(row.tone)}>{row.tone}</span>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <div className="h-1.5 flex-1 bg-background">
+          <div className={`h-full ${bar}`} style={{ width: `${width}%` }} />
+        </div>
+        <span className="w-12 text-right font-mono text-[9px] text-foreground">
+          {(row.utilization * 100).toFixed(0)}%
+        </span>
+      </div>
+      <div className="mono-caps mt-1.5 flex justify-between text-[7px] text-faint">
+        <span>{row.displayValue} current</span>
+        <span>{row.displayLimit} limit</span>
+      </div>
+    </div>
+  );
+}
+
+function RiskExposures({ book, snapshot }: { book: Book; snapshot: RiskSnapshot }) {
+  const [sort, setSort] = useState<"RISK" | "GROSS" | "PNL">("RISK");
+  const contributions = new Map(snapshot.contributions.map((item) => [item.pos.id, item]));
+  const positions = [...book.positions].sort((a, b) => {
+    if (sort === "GROSS") return b.gross - a.gross;
+    if (sort === "PNL") return Math.abs(b.pnl) - Math.abs(a.pnl);
+    return (
+      Math.abs(contributions.get(b.id)?.contribPct ?? 0) -
+      Math.abs(contributions.get(a.id)?.contribPct ?? 0)
+    );
+  });
+  const bySector = groupExposure(book.positions, (p) => p.sector ?? "Other");
+  const byClass = groupExposure(book.positions, (p) => p.cls);
+  const greeks = netGreeks(book);
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <ExposureSummary
+          label="Gross exposure"
+          value={money(book.gross)}
+          detail={`${snapshot.grossLeverage.toFixed(2)}× NAV`}
+        />
+        <ExposureSummary
+          label="Net exposure"
+          value={`${book.net >= 0 ? "+" : "−"}${money(book.net)}`}
+          detail={`${((book.net / book.nav) * 100).toFixed(1)}% net`}
+          tone={book.net >= 0 ? "up" : "down"}
+        />
+        <ExposureSummary
+          label="Largest sector"
+          value={snapshot.topSector[0]}
+          detail={`${(snapshot.topSectorPct * 100).toFixed(1)}% of gross`}
+          tone={snapshot.topSectorPct > RISK_LIMITS.sectorGross ? "down" : "neutral"}
+        />
+        <ExposureSummary
+          label="Top VaR driver"
+          value={snapshot.topDriver?.pos.symbol ?? "—"}
+          detail={`${((snapshot.topDriver?.contribPct ?? 0) * 100).toFixed(1)}% of VaR`}
+          tone={
+            (snapshot.topDriver?.contribPct ?? 0) > RISK_LIMITS.positionRisk ? "down" : "neutral"
+          }
+        />
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-2">
+        <Panel
+          code="SEC"
+          title="Sector exposure"
+          subtitle="Signed market value against gross exposure; the marker shows the 35% concentration limit."
+        >
+          <ExposureBars rows={bySector} gross={book.gross} />
+        </Panel>
+        <Panel
+          code="CLS"
+          title="Asset-class exposure"
+          subtitle="Long and short notional are shown separately so offsets stay visible."
+        >
+          <ExposureBars rows={byClass} gross={book.gross} />
+        </Panel>
+      </div>
+
+      <Panel
+        code="POS"
+        title={`Position risk register · ${positions.length}`}
+        subtitle="Every position ranked by modeled risk, gross notional, or absolute P&L. Diversifiers retain a negative VaR share."
+        right={
+          <div className="flex gap-1">
+            {(["RISK", "GROSS", "PNL"] as const).map((key) => (
+              <button
+                key={key}
+                onClick={() => setSort(key)}
+                className={`mono-caps border px-2 py-1 text-[7px] ${sort === key ? "border-primary bg-primary/10 text-primary" : "border-border text-faint"}`}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+        }
+      >
+        <div className="overflow-x-auto">
+          <div className="min-w-[980px]">
+            <div className="mono-caps grid grid-cols-[1.45fr_80px_80px_110px_90px_80px_90px_100px] gap-3 border-b border-divider bg-raised/40 px-3 py-2 text-[8px] text-faint">
+              <span>Position</span>
+              <span>Class</span>
+              <span>Side</span>
+              <span className="text-right">Market value</span>
+              <span className="text-right">Book weight</span>
+              <span className="text-right">Ann. vol</span>
+              <span className="text-right">VaR share</span>
+              <span className="text-right">Open P&L</span>
+            </div>
+            {positions.map((position) => {
+              const contribution = contributions.get(position.id);
+              const diversifier = (contribution?.contribPct ?? 0) < 0;
+              return (
+                <div
+                  key={position.id}
+                  className="grid grid-cols-[1.45fr_80px_80px_110px_90px_80px_90px_100px] items-center gap-3 border-b border-divider/60 px-3 py-2.5 last:border-b-0 hover:bg-raised/40"
+                >
+                  <div className="min-w-0">
+                    <div className="font-mono text-[11px] text-foreground">{position.symbol}</div>
+                    <div className="truncate text-[9px] text-faint">
+                      {position.name} · {position.sector ?? "Other"}
+                    </div>
+                  </div>
+                  <span className="mono-caps text-[8px] text-muted-foreground">{position.cls}</span>
+                  <span
+                    className={`mono-caps text-[8px] ${position.mv >= 0 ? "text-up" : "text-down"}`}
+                  >
+                    {position.mv >= 0 ? "LONG" : "SHORT"}
+                  </span>
+                  <span
+                    className={`text-right font-mono text-[10px] ${position.mv >= 0 ? "text-up" : "text-down"}`}
+                  >
+                    {signedMoney(position.mv)}
+                  </span>
+                  <span className="text-right font-mono text-[10px] text-foreground">
+                    {((position.gross / book.gross) * 100).toFixed(1)}%
+                  </span>
+                  <span className="text-right font-mono text-[10px] text-muted-foreground">
+                    {(position.vol * 100).toFixed(1)}%
+                  </span>
+                  <span
+                    className={`text-right font-mono text-[10px] ${diversifier ? "text-info" : "text-primary"}`}
+                  >
+                    {((contribution?.contribPct ?? 0) * 100).toFixed(1)}%
+                  </span>
+                  <span
+                    className={`text-right font-mono text-[10px] ${position.pnl >= 0 ? "text-up" : "text-down"}`}
+                  >
+                    {signedMoney(position.pnl)}
+                  </span>
+                </div>
               );
             })}
           </div>
-        ))}
-      </div>
-      {isolated && (
-        <div className="mono-caps mt-2 border-t border-divider pt-2 text-[9px] text-muted-foreground">
-          ISOLATED · {items.find(x => x.pos.id === isolated)?.pos.name} · click again to reset
         </div>
-      )}
+      </Panel>
+
+      <Panel
+        code="GRK"
+        title="Option Greeks"
+        subtitle="Aggregate sensitivity from option positions only; dollar delta is converted into the portfolio risk model through underlier notional."
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4">
+          {[
+            { label: "DELTA", value: greeks.delta, digits: 0 },
+            { label: "GAMMA", value: greeks.gamma, digits: 2 },
+            { label: "VEGA / VOL PT", value: greeks.vega, digits: 0 },
+            { label: "THETA / DAY", value: greeks.theta, digits: 0 },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="border-b border-r border-divider p-4 last:border-r-0 sm:border-b-0"
+            >
+              <div className="mono-caps text-[8px] text-faint">{item.label}</div>
+              <div
+                className={`mt-2 font-mono text-xl ${item.value >= 0 ? "text-up" : "text-down"}`}
+              >
+                {item.value >= 0 ? "+" : ""}
+                {fmt(item.value, item.digits)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
     </div>
   );
 }
 
-// ══════ EXPOSURE ══════════════════════════════════════════════════════
-function ExposureTab({ book }: { book: Book }) {
-  const gross = book.gross, net = book.net, long = book.long, short = -book.short;
-  const byClass = new Map<string, { long: number; short: number }>();
-  const bySector = new Map<string, { long: number; short: number }>();
-  for (const p of book.positions) {
-    const a = byClass.get(p.cls) ?? { long: 0, short: 0 };
-    if (p.mv >= 0) a.long += p.mv; else a.short += p.mv;
-    byClass.set(p.cls, a);
-    const s = bySector.get(p.sector ?? "Other") ?? { long: 0, short: 0 };
-    if (p.mv >= 0) s.long += p.mv; else s.short += p.mv;
-    bySector.set(p.sector ?? "Other", s);
+function groupExposure(positions: Position[], key: (position: Position) => string) {
+  const groups = new Map<
+    string,
+    { label: string; long: number; short: number; gross: number; net: number }
+  >();
+  for (const position of positions) {
+    const label = key(position);
+    const row = groups.get(label) ?? { label, long: 0, short: 0, gross: 0, net: 0 };
+    if (position.mv >= 0) row.long += position.mv;
+    else row.short += Math.abs(position.mv);
+    row.gross += position.gross;
+    row.net += position.mv;
+    groups.set(label, row);
   }
+  return [...groups.values()].sort((a, b) => b.gross - a.gross);
+}
 
+function ExposureSummary({
+  label,
+  value,
+  detail,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone?: "up" | "down" | "neutral";
+}) {
+  const color = tone === "up" ? "text-up" : tone === "down" ? "text-down" : "text-foreground";
   return (
-    <div className="grid h-full grid-cols-12 grid-rows-6 gap-2">
-      <Panel code="EXP" title="Gross / net / long / short" className="col-span-4 row-span-2">
-        <div className="space-y-3 p-3">
-          <StatRow label="GROSS" value={`$${(gross/1e6).toFixed(2)}M`} />
-          <StatRow label="NET" value={`${net>=0?"+":"-"}$${(Math.abs(net)/1e6).toFixed(2)}M`} tone={net>=0?"up":"down"} />
-          <StatRow label="LONG" value={`+$${(long/1e6).toFixed(2)}M`} tone="up" />
-          <StatRow label="SHORT" value={`−$${(short/1e6).toFixed(2)}M`} tone="down" />
-          <StatRow label="LEVERAGE" value={`${(gross/book.nav).toFixed(2)}×`} />
-        </div>
-      </Panel>
-
-      <Panel code="CLS" title="By asset class" className="col-span-4 row-span-2">
-        <DivergingBars rows={[...byClass.entries()].map(([k, v]) => ({ label: k, long: v.long, short: v.short }))} />
-      </Panel>
-
-      <Panel code="SEC" title="By sector" className="col-span-4 row-span-2">
-        <DivergingBars rows={[...bySector.entries()].map(([k, v]) => ({ label: k, long: v.long, short: v.short }))} />
-      </Panel>
-
-      <Panel code="FAC" title="Factor exposures · z-score" className="col-span-4 row-span-4">
-        <FactorPanel book={book} />
-      </Panel>
-
-      <Panel code="TVL" title="Trade volumes · 30D turnover" className="col-span-4 row-span-4">
-        <TradeVolumesPanel />
-      </Panel>
-
-      <Panel code="COM" title="Commodities · futures curves" className="col-span-4 row-span-4">
-        <CommoditiesPanel />
-      </Panel>
+    <div className="panel p-4">
+      <div className="mono-caps text-[8px] text-faint">{label}</div>
+      <div className={`mt-2 truncate font-mono text-xl ${color}`}>{value}</div>
+      <div className="mono-caps mt-1 text-[8px] text-muted-foreground">{detail}</div>
     </div>
   );
 }
 
-function StatRow({ label, value, tone }: { label: string; value: string; tone?: "up" | "down" }) {
-  const c = tone === "up" ? "text-up" : tone === "down" ? "text-down" : "text-foreground";
+function ExposureBars({ rows, gross }: { rows: ReturnType<typeof groupExposure>; gross: number }) {
+  const max = Math.max(...rows.map((row) => Math.max(row.long, row.short)), 1);
   return (
-    <div className="flex items-baseline justify-between border-b border-divider py-1">
-      <span className="mono-caps text-[10px] text-faint">{label}</span>
-      <span className={`font-mono text-lg ${c}`}>{value}</span>
-    </div>
-  );
-}
-
-function DivergingBars({ rows }: { rows: { label: string; long: number; short: number }[] }) {
-  const max = Math.max(...rows.map((r) => Math.max(r.long, Math.abs(r.short))), 1);
-  return (
-    <div className="space-y-2 p-3">
-      {rows.map((r) => {
-        const lp = (r.long / max) * 50;
-        const sp = (Math.abs(r.short) / max) * 50;
+    <div className="divide-y divide-divider">
+      {rows.map((row) => {
+        const grossPct = gross > 0 ? row.gross / gross : 0;
         return (
-          <div key={r.label} className="grid grid-cols-[70px_1fr] items-center gap-2">
-            <span className="mono-caps text-[9px] text-foreground truncate" title={r.label}>{r.label}</span>
-            <div className="relative h-4 bg-background">
-              <div className="absolute left-1/2 top-0 h-full w-px bg-divider" />
-              <div className="absolute right-1/2 top-0 h-full bg-down/70" style={{ width: `${sp}%`, transition: "width 600ms cubic-bezier(0.16,1,0.3,1)" }} />
-              <div className="absolute left-1/2 top-0 h-full bg-up/70" style={{ width: `${lp}%`, transition: "width 600ms cubic-bezier(0.16,1,0.3,1)" }} />
+          <div
+            key={row.label}
+            className="grid grid-cols-[100px_1fr_64px] items-center gap-3 px-3 py-2.5"
+          >
+            <div className="min-w-0">
+              <div className="mono-caps truncate text-[8px] text-foreground">{row.label}</div>
+              <div className={`font-mono text-[8px] ${row.net >= 0 ? "text-up" : "text-down"}`}>
+                {row.net >= 0 ? "+" : "−"}
+                {money(row.net)} net
+              </div>
+            </div>
+            <div className="relative grid h-3 grid-cols-2 bg-background">
+              <div className="relative border-r border-divider">
+                <div
+                  className="absolute right-0 h-full bg-down/70"
+                  style={{ width: `${(row.short / max) * 100}%` }}
+                />
+              </div>
+              <div className="relative">
+                <div
+                  className="absolute left-0 h-full bg-up/70"
+                  style={{ width: `${(row.long / max) * 100}%` }}
+                />
+              </div>
+            </div>
+            <div
+              className={`text-right font-mono text-[9px] ${grossPct > RISK_LIMITS.sectorGross ? "text-down" : "text-muted-foreground"}`}
+            >
+              {(grossPct * 100).toFixed(1)}%
             </div>
           </div>
         );
       })}
-      <div className="mono-caps mt-2 flex justify-between text-[8px] text-faint"><span>SHORT</span><span>LONG</span></div>
+      <div className="mono-caps flex justify-between px-3 py-2 text-[7px] text-faint">
+        <span>← SHORT</span>
+        <span>LONG →</span>
+      </div>
     </div>
   );
 }
 
-function FactorPanel({ book }: { book: Book }) {
-  const eqs = book.positions.filter((p) => p.cls === "EQUITY");
-  const totalGross = eqs.reduce((a, b) => a + b.gross, 0) || 1;
-  const wBeta = eqs.reduce((a, b) => a + (b.beta ?? 1) * (b.mv / totalGross), 0);
-  // Fake plausible tilts
-  const factors = [
-    { name: "BETA",     z: (wBeta - 1) * 2.5 },
-    { name: "MOMENTUM", z: 1.2 },
-    { name: "VALUE",    z: -0.7 },
-    { name: "SIZE",     z: 0.4 },
-    { name: "QUALITY",  z: 0.9 },
-    { name: "LOW VOL",  z: -1.1 },
-  ];
-  return (
-    <div className="space-y-3 p-3">
-      {factors.map((f) => {
-        const clamped = Math.max(-3, Math.min(3, f.z));
-        const pct = ((clamped + 3) / 6) * 100;
-        return (
-          <div key={f.name}>
-            <div className="mono-caps flex justify-between text-[9px] text-faint"><span>{f.name}</span><span className={f.z >= 0 ? "text-up" : "text-down"}>{f.z >= 0 ? "+" : ""}{f.z.toFixed(2)}σ</span></div>
-            <div className="relative mt-1 h-2 bg-background">
-              <div className="absolute left-1/2 top-0 h-full w-px bg-divider" />
-              <div className="absolute top-0 h-full w-[3px] bg-primary" style={{ left: `${pct}%`, transform: "translateX(-50%)", transition: "left 600ms cubic-bezier(0.16,1,0.3,1)" }} />
-            </div>
-            <div className="mono-caps flex justify-between text-[8px] text-faint"><span>−3</span><span>0</span><span>+3</span></div>
-          </div>
-        );
-      })}
-    </div>
+function RiskStress({
+  book,
+  snapshot,
+  onHedge,
+}: {
+  book: Book;
+  snapshot: RiskSnapshot;
+  onHedge: () => void;
+}) {
+  const [scenarioKey, setScenarioKey] = useState(snapshot.worstScenario?.key ?? "CRISIS08");
+  const [custom, setCustom] = useState({
+    equityPct: -0.12,
+    ratesBp: 75,
+    oilPct: -0.1,
+    volMult: 1.8,
+  });
+  const isCustom = scenarioKey === "CUSTOM";
+  const shock = useMemo(
+    () => (isCustom ? custom : (SCENARIOS[scenarioKey]?.shock ?? SCENARIOS.CRISIS08.shock)),
+    [custom, isCustom, scenarioKey],
   );
-}
+  const result = useMemo(() => stress(book, shock), [book, shock]);
+  const sorted = [...result.byPos].sort((a, b) => a.pnl - b.pnl);
+  const worstPosition = sorted[0];
+  const loss = Math.abs(Math.min(0, result.total));
+  const budget = book.nav * RISK_LIMITS.stressNav;
+  const utilization = loss / (budget || 1);
+  const tone = toneFor(utilization);
+  const selectedLabel = isCustom
+    ? "CUSTOM SCENARIO"
+    : (SCENARIOS[scenarioKey]?.label ?? "SCENARIO");
 
-function TradeVolumesPanel() {
-  const days = useMemo(() => tradeVolumes(30), []);
-  const trades = useMemo(() => largestTrades(), []);
-  const max = Math.max(...days.map((d) => d.turnover));
   return (
-    <div className="flex h-full flex-col">
-      <div className="p-3 pb-2">
-        <div className="mono-caps mb-1 text-[9px] text-faint">DAILY TURNOVER · LAST 30 SESSIONS</div>
-        <svg viewBox="0 0 400 90" className="h-24 w-full">
-          {days.map((d, i) => {
-            const bh = (d.turnover / max) * 80;
-            const x = (i / days.length) * 400;
-            const w = 400 / days.length - 1;
-            return <rect key={i} x={x} y={85 - bh} width={w} height={bh} fill="#F0A929" opacity={i === days.length - 1 ? 1 : 0.55} />;
+    <div className="grid gap-3 xl:grid-cols-[310px_1fr]">
+      <Panel
+        code="SCN"
+        title="Scenario library"
+        subtitle="Select a preset or build a custom cross-asset shock."
+      >
+        <div className="divide-y divide-divider">
+          {Object.entries(SCENARIOS).map(([key, scenario]) => {
+            const preset = snapshot.scenarios.find((item) => item.key === key);
+            return (
+              <button
+                key={key}
+                onClick={() => setScenarioKey(key)}
+                className={`interactive w-full p-3 text-left ${scenarioKey === key ? "bg-primary/10" : "hover:bg-raised"}`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span
+                    className={`mono-caps text-[9px] ${scenarioKey === key ? "text-primary" : "text-foreground"}`}
+                  >
+                    {scenario.label}
+                  </span>
+                  <span
+                    className={`font-mono text-[9px] ${(preset?.result.total ?? 0) < 0 ? "text-down" : "text-up"}`}
+                  >
+                    {signedMoney(preset?.result.total ?? 0)}
+                  </span>
+                </div>
+                <div className="mt-1 text-[9px] leading-relaxed text-muted-foreground">
+                  {scenario.description}
+                </div>
+              </button>
+            );
           })}
-          <line x1={0} y1={85} x2={400} y2={85} stroke="#171B1F" />
-        </svg>
-        <div className="mono-caps mt-1 flex justify-between text-[8px] text-faint">
-          <span>${(days[0].turnover/1e6).toFixed(2)}M</span>
-          <span>TODAY ${(days[days.length-1].turnover/1e6).toFixed(2)}M</span>
+          <button
+            onClick={() => setScenarioKey("CUSTOM")}
+            className={`interactive w-full p-3 text-left ${isCustom ? "bg-primary/10" : "hover:bg-raised"}`}
+          >
+            <div
+              className={`mono-caps text-[9px] ${isCustom ? "text-primary" : "text-foreground"}`}
+            >
+              CUSTOM SHOCK
+            </div>
+            <div className="mt-1 text-[9px] text-muted-foreground">
+              Set equity, rates, oil, and volatility moves.
+            </div>
+          </button>
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto border-t border-divider">
-        <div className="mono-caps sticky top-0 grid grid-cols-[60px_60px_50px_1fr_90px] gap-2 border-b border-divider bg-panel px-3 py-1.5 text-[9px] text-faint">
-          <span>TIME</span><span>SYM</span><span>SIDE</span><span className="text-right">QTY</span><span className="text-right">NOTIONAL</span>
-        </div>
-        {trades.map((t, i) => (
-          <div key={i} className="grid grid-cols-[60px_60px_50px_1fr_90px] gap-2 border-b border-divider/60 px-3 py-1 font-mono text-[10px] tabular-nums">
-            <span className="text-faint">{t.time}</span>
-            <span className="text-primary">{t.sym}</span>
-            <span className={t.side === "BUY" ? "text-up" : "text-down"}>{t.side}</span>
-            <span className="text-right text-foreground">{t.qty.toLocaleString()}</span>
-            <span className="text-right text-foreground">${(t.notional/1000).toFixed(0)}k</span>
+        {isCustom && (
+          <div className="space-y-4 border-t border-divider bg-raised/30 p-3">
+            <RiskSlider
+              label="EQUITY SHOCK"
+              value={custom.equityPct * 100}
+              min={-40}
+              max={20}
+              step={1}
+              format={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(0)}%`}
+              onChange={(v) => setCustom({ ...custom, equityPct: v / 100 })}
+            />
+            <RiskSlider
+              label="RATES Δ"
+              value={custom.ratesBp}
+              min={-200}
+              max={200}
+              step={5}
+              format={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(0)}bp`}
+              onChange={(v) => setCustom({ ...custom, ratesBp: v })}
+            />
+            <RiskSlider
+              label="OIL SHOCK"
+              value={custom.oilPct * 100}
+              min={-50}
+              max={50}
+              step={1}
+              format={(v) => `${v >= 0 ? "+" : ""}${v.toFixed(0)}%`}
+              onChange={(v) => setCustom({ ...custom, oilPct: v / 100 })}
+            />
+            <RiskSlider
+              label="VOL MULTIPLIER"
+              value={custom.volMult}
+              min={0.5}
+              max={4}
+              step={0.1}
+              format={(v) => `${v.toFixed(1)}×`}
+              onChange={(v) => setCustom({ ...custom, volMult: v })}
+            />
           </div>
-        ))}
+        )}
+      </Panel>
+
+      <div className="space-y-3">
+        <Panel
+          code="IMP"
+          title={selectedLabel}
+          subtitle="Estimated instantaneous P&L after repricing each position under the selected shock."
+          right={<span className={`mono-caps text-[9px] ${toneText(tone)}`}>{tone}</span>}
+        >
+          <div className="grid lg:grid-cols-[1.25fr_2fr]">
+            <div className={`border-b p-5 lg:border-b-0 lg:border-r ${toneBorder(tone)}`}>
+              <div className="mono-caps text-[8px] text-faint">MODELED PORTFOLIO IMPACT</div>
+              <div
+                className={`mt-2 font-mono text-4xl lg:text-5xl ${result.total < 0 ? "text-down" : "text-up"}`}
+              >
+                {signedMoney(result.total)}
+              </div>
+              <div className="mono-caps mt-2 text-[9px] text-muted-foreground">
+                {((result.total / book.nav) * 100).toFixed(2)}% NAV · POST-SHOCK{" "}
+                {money(book.nav + result.total)}
+              </div>
+              <button
+                onClick={onHedge}
+                className="mono-caps interactive mt-5 border border-primary px-3 py-2 text-[8px] text-primary hover:bg-primary/10"
+              >
+                Review hedge actions →
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4">
+              <StressMetric
+                label="Stress budget"
+                value={money(budget)}
+                detail={`${(RISK_LIMITS.stressNav * 100).toFixed(0)}% NAV`}
+              />
+              <StressMetric
+                label="Utilization"
+                value={`${(utilization * 100).toFixed(0)}%`}
+                detail={tone}
+                tone={tone === "BREACH" ? "down" : tone === "WATCH" ? "primary" : "neutral"}
+              />
+              <StressMetric
+                label="Worst driver"
+                value={worstPosition?.pos.symbol ?? "—"}
+                detail={worstPosition ? `−${money(worstPosition.pnl)}` : "—"}
+                tone="down"
+              />
+              <StressMetric
+                label="1D 99% VaR"
+                value={`−${money(snapshot.tail99.var)}`}
+                detail="current, pre-shock"
+                tone="down"
+              />
+            </div>
+            <div className="mono-caps col-span-full grid grid-cols-2 border-t border-divider bg-raised/25 text-[8px] sm:grid-cols-4">
+              <ShockCell
+                label="EQUITY"
+                value={`${(shock.equityPct ?? 0) >= 0 ? "+" : ""}${((shock.equityPct ?? 0) * 100).toFixed(0)}%`}
+              />
+              <ShockCell
+                label="RATES"
+                value={`${(shock.ratesBp ?? 0) >= 0 ? "+" : ""}${(shock.ratesBp ?? 0).toFixed(0)}bp`}
+              />
+              <ShockCell
+                label="OIL"
+                value={`${(shock.oilPct ?? 0) >= 0 ? "+" : ""}${((shock.oilPct ?? 0) * 100).toFixed(0)}%`}
+              />
+              <ShockCell label="VOL" value={`${(shock.volMult ?? 1).toFixed(1)}×`} />
+            </div>
+          </div>
+        </Panel>
+
+        <Panel
+          code="WFL"
+          title="Loss waterfall"
+          subtitle="Largest modeled loss contributors first; gains and hedges are shown on the right."
+        >
+          <StressLossTable rows={sorted} total={result.total} />
+        </Panel>
       </div>
     </div>
   );
 }
 
-function CommoditiesPanel() {
-  const list = Object.values(COMMODITIES);
-  const [sym, setSym] = useState<string>("CL");
-  const curve = useMemo(() => futuresCurve(sym), [sym]);
-  const cfg = COMMODITIES[sym];
-  const min = Math.min(...curve.map((c) => c.price));
-  const max = Math.max(...curve.map((c) => c.price));
-  const shape = cfg.curveShape;
-  const insight = shape === "contango" ? `${sym} in CONTANGO — future months trade above spot; carry cost / storage / weak near-term demand.` :
-                  shape === "backwardation" ? `${sym} in BACKWARDATION — near-term supply tightness, longs earn positive roll yield.` :
-                  `${sym} curve is FLAT — no dominant carry or squeeze signal.`;
+function StressMetric({
+  label,
+  value,
+  detail,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone?: "down" | "primary" | "neutral";
+}) {
+  const color =
+    tone === "down" ? "text-down" : tone === "primary" ? "text-primary" : "text-foreground";
   return (
-    <div className="flex h-full flex-col p-3">
-      <div className="mono-caps mb-2 flex flex-wrap gap-1 text-[9px]">
-        {list.map((c) => (
-          <button key={c.symbol} onClick={() => setSym(c.symbol)} className={`interactive border px-2 py-0.5 ${sym === c.symbol ? "border-primary text-primary bg-primary/10" : "border-border text-faint hover:text-foreground"}`}>{c.symbol}</button>
-        ))}
-      </div>
-      <div className="mono-caps flex items-baseline justify-between text-[10px]">
-        <span className="text-foreground">{cfg.name}</span>
-        <span className="font-mono text-primary">${fmt(cfg.spot, 2)} spot</span>
-      </div>
-      <svg viewBox="0 0 400 140" className="mt-2 h-32 w-full" preserveAspectRatio="none">
-        {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
-          <line key={i} x1={0} y1={t * 120 + 10} x2={400} y2={t * 120 + 10} stroke="#171B1F" />
-        ))}
-        <polyline
-          points={curve.map((c, i) => {
-            const x = (i / (curve.length - 1)) * 380 + 10;
-            const y = 130 - ((c.price - min) / (max - min || 1)) * 120;
-            return `${x},${y}`;
-          }).join(" ")}
-          fill="none" stroke="#F0A929" strokeWidth={1.5}
-        />
-        {curve.map((c, i) => {
-          const x = (i / (curve.length - 1)) * 380 + 10;
-          const y = 130 - ((c.price - min) / (max - min || 1)) * 120;
-          return <circle key={i} cx={x} cy={y} r={i === 0 ? 3 : 2} fill={i === 0 ? "#F0A929" : "#636C74"} />;
+    <div className="border-b border-r border-divider p-4 last:border-r-0 lg:border-b-0">
+      <div className="mono-caps text-[8px] text-faint">{label}</div>
+      <div className={`mt-2 truncate font-mono text-xl ${color}`}>{value}</div>
+      <div className="mono-caps mt-1 text-[7px] text-muted-foreground">{detail}</div>
+    </div>
+  );
+}
+
+function ShockCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-r border-divider px-4 py-2.5 last:border-r-0">
+      <span className="text-faint">{label}</span>
+      <span className="font-mono text-primary">{value}</span>
+    </div>
+  );
+}
+
+function StressLossTable({
+  rows,
+  total,
+}: {
+  rows: { pos: Position; pnl: number }[];
+  total: number;
+}) {
+  const max = Math.max(...rows.map((row) => Math.abs(row.pnl)), 1);
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[720px]">
+        {rows.map((row) => {
+          const isLoss = row.pnl < 0;
+          const width = (Math.abs(row.pnl) / max) * 100;
+          return (
+            <div
+              key={row.pos.id}
+              className="grid grid-cols-[140px_1fr_100px] items-center gap-3 border-b border-divider/60 px-3 py-2 last:border-b-0"
+            >
+              <div className="min-w-0">
+                <div className="font-mono text-[10px] text-foreground">{row.pos.symbol}</div>
+                <div className="truncate text-[8px] text-faint">
+                  {row.pos.sector ?? row.pos.cls}
+                </div>
+              </div>
+              <div className="grid h-3 grid-cols-2 bg-background">
+                <div className="relative border-r border-divider">
+                  {isLoss && (
+                    <div
+                      className="absolute right-0 h-full bg-down/80"
+                      style={{ width: `${width}%` }}
+                    />
+                  )}
+                </div>
+                <div className="relative">
+                  {!isLoss && (
+                    <div
+                      className="absolute left-0 h-full bg-up/80"
+                      style={{ width: `${width}%` }}
+                    />
+                  )}
+                </div>
+              </div>
+              <span
+                className={`text-right font-mono text-[10px] ${isLoss ? "text-down" : "text-up"}`}
+              >
+                {signedMoney(row.pnl)}
+              </span>
+            </div>
+          );
         })}
-      </svg>
-      <div className="mono-caps mt-1 grid grid-cols-6 gap-1 text-[8px] text-faint">
-        {curve.slice(0, 6).map((c) => <span key={c.label} className="text-center">{c.label}</span>)}
+        <div className="grid grid-cols-[140px_1fr_100px] gap-3 bg-raised/40 px-3 py-3">
+          <span className="mono-caps text-[9px] text-foreground">TOTAL IMPACT</span>
+          <span />
+          <span
+            className={`text-right font-mono text-[11px] ${total < 0 ? "text-down" : "text-up"}`}
+          >
+            {signedMoney(total)}
+          </span>
+        </div>
       </div>
-      <div className="mono-caps mt-3 border-t border-divider pt-2 text-[10px] text-muted-foreground">{insight}</div>
     </div>
   );
 }
 
-// ══════ STRESS LAB ═════════════════════════════════════════════════════
-function StressTab({ book }: { book: Book }) {
-  const [scenario, setScenario] = useState<string>("CRISIS08");
-  const [custom, setCustom] = useState({ equityPct: -0.10, ratesBp: 0, oilPct: 0, volMult: 1.5 });
-  const isCustom = scenario === "CUSTOM";
-  const shock = isCustom ? { equityPct: custom.equityPct, ratesBp: custom.ratesBp, oilPct: custom.oilPct, volMult: custom.volMult } : SCENARIOS[scenario].shock;
-  const res = useMemo(() => stress(book, shock), [book, shock]);
-  const baseVar = useMemo(() => var1d(book, "HISTORICAL", 0.99), [book]);
-  const stressedVar = baseVar.var + Math.abs(res.total) * 0.2;
-  const dd = useCountUp(Math.abs(res.total));
-  const sortedByLoss = [...res.byPos].sort((a, b) => a.pnl - b.pnl);
+type HedgeCandidate = {
+  id: string;
+  title: string;
+  thesis: string;
+  tradeoff: string;
+  premium: number;
+  positions: Position[];
+};
 
-  return (
-    <div className="grid h-full grid-cols-12 grid-rows-6 gap-2">
-      <Panel code="SCN" title="Scenario" className="col-span-3 row-span-6">
-        <div className="flex h-full flex-col p-3">
-          <div className="mono-caps mb-2 text-[9px] text-faint">PRESET</div>
-          <div className="space-y-1">
-            {Object.entries(SCENARIOS).map(([k, v]) => (
-              <button key={k} onClick={() => setScenario(k)} className={`interactive w-full border px-2 py-2 text-left mono-caps text-[10px] ${scenario === k ? "border-primary bg-primary/10 text-primary" : "border-border text-foreground hover:border-primary/50"}`}>{v.label}</button>
-            ))}
-            <button onClick={() => setScenario("CUSTOM")} className={`interactive w-full border px-2 py-2 text-left mono-caps text-[10px] ${scenario === "CUSTOM" ? "border-primary bg-primary/10 text-primary" : "border-border text-foreground hover:border-primary/50"}`}>CUSTOM SLIDERS</button>
-          </div>
-          {isCustom && (
-            <div className="mt-4 space-y-3 border-t border-divider pt-3">
-              <Slider label="EQUITY SHOCK" value={custom.equityPct*100} min={-40} max={40} step={1} fmt={(v)=>`${v>=0?"+":""}${v.toFixed(0)}%`} onChange={(v) => setCustom({...custom, equityPct: v/100})} />
-              <Slider label="RATES Δ (BP)" value={custom.ratesBp} min={-200} max={200} step={5} fmt={(v)=>`${v>=0?"+":""}${v.toFixed(0)}bp`} onChange={(v) => setCustom({...custom, ratesBp: v})} />
-              <Slider label="OIL SHOCK" value={custom.oilPct*100} min={-50} max={50} step={1} fmt={(v)=>`${v>=0?"+":""}${v.toFixed(0)}%`} onChange={(v) => setCustom({...custom, oilPct: v/100})} />
-              <Slider label="VOL MULT" value={custom.volMult} min={0.5} max={5} step={0.1} fmt={(v)=>`${v.toFixed(1)}×`} onChange={(v) => setCustom({...custom, volMult: v})} />
-            </div>
-          )}
-        </div>
-      </Panel>
-
-      <Panel code="DD" title="Estimated drawdown" className="col-span-5 row-span-2">
-        <div className="flex h-full flex-col items-center justify-center p-3">
-          <div className="mono-caps text-[10px] text-faint">PORTFOLIO IMPACT</div>
-          <div className={`font-mono text-6xl ${res.total >= 0 ? "text-up" : "text-down"}`}>{res.total >= 0 ? "+" : "−"}${fmt(dd, 0)}</div>
-          <div className="mono-caps mt-1 text-[10px] text-muted-foreground">{((res.total/book.nav)*100).toFixed(2)}% OF NAV · POST-SHOCK NAV ${((book.nav+res.total)/1e6).toFixed(2)}M</div>
-        </div>
-      </Panel>
-
-      <Panel code="VAR" title="VaR: before → after" className="col-span-4 row-span-2">
-        <div className="flex h-full items-center justify-around p-3">
-          <div className="text-center">
-            <div className="mono-caps text-[9px] text-faint">CURRENT 1D 99% VaR</div>
-            <div className="mt-1 font-mono text-2xl text-foreground">−${fmt(baseVar.var, 0)}</div>
-          </div>
-          <div className="text-2xl text-primary">→</div>
-          <div className="text-center">
-            <div className="mono-caps text-[9px] text-faint">POST-STRESS VaR</div>
-            <div className="mt-1 font-mono text-2xl text-down">−${fmt(stressedVar, 0)}</div>
-            <div className="mono-caps mt-1 text-[9px] text-primary">+{((stressedVar/baseVar.var - 1)*100).toFixed(0)}%</div>
-          </div>
-        </div>
-      </Panel>
-
-      <Panel code="WF" title="P&L waterfall by position" className="col-span-9 row-span-4">
-        <PnlWaterfall rows={sortedByLoss} />
-      </Panel>
-    </div>
-  );
-}
-
-function Slider({ label, value, min, max, step, onChange, fmt }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; fmt: (v: number) => string }) {
-  return (
-    <div>
-      <div className="mono-caps flex justify-between text-[9px] text-faint"><span>{label}</span><span className="text-primary">{fmt(value)}</span></div>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-primary" />
-    </div>
-  );
-}
-
-function PnlWaterfall({ rows }: { rows: { pos: Position; pnl: number }[] }) {
-  const max = Math.max(...rows.map((r) => Math.abs(r.pnl)), 1);
-  return (
-    <div className="h-full overflow-y-auto p-3">
-      {rows.map((r) => {
-        const pct = (Math.abs(r.pnl) / max) * 45;
-        const isNeg = r.pnl < 0;
-        return (
-          <div key={r.pos.id} className="grid grid-cols-[110px_1fr_90px] items-center gap-2 border-b border-divider/60 py-1">
-            <span className="mono-caps truncate text-[10px] text-foreground" title={r.pos.symbol}>{r.pos.symbol}</span>
-            <div className="relative h-4 bg-background">
-              <div className="absolute left-1/2 top-0 h-full w-px bg-divider" />
-              {isNeg ? (
-                <div className="absolute right-1/2 top-0 h-full bg-down/80" style={{ width: `${pct}%`, transition: "width 500ms cubic-bezier(0.16,1,0.3,1)" }} />
-              ) : (
-                <div className="absolute left-1/2 top-0 h-full bg-up/80" style={{ width: `${pct}%`, transition: "width 500ms cubic-bezier(0.16,1,0.3,1)" }} />
-              )}
-            </div>
-            <span className={`text-right font-mono text-[10px] tabular-nums ${isNeg ? "text-down" : "text-up"}`}>{isNeg ? "−" : "+"}${fmt(Math.abs(r.pnl), 0)}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ══════ HEDGE ═════════════════════════════════════════════════════════
-function HedgeTab({ book }: { book: Book }) {
-  const baseVar = useMemo(() => var1d(book, "HISTORICAL", 0.95), [book]);
-  const g = netGreeks(book);
+function RiskHedges({ book, snapshot }: { book: Book; snapshot: RiskSnapshot }) {
   const [active, setActive] = useState<Set<string>>(new Set(activeHedges()));
+  const candidates = useMemo(() => buildHedgeCandidates(book, snapshot), [book, snapshot]);
+  const scored = useMemo(
+    () =>
+      candidates
+        .map((candidate) => {
+          const projectedBook = bookWith(book, candidate.positions);
+          const projectedVar = var1d(projectedBook, "HISTORICAL", 0.99).var;
+          const currentStress = Math.min(0, snapshot.worstScenario?.result.total ?? 0);
+          const projectedStress = snapshot.worstScenario
+            ? Math.min(0, stress(projectedBook, snapshot.worstScenario.shock).total)
+            : currentStress;
+          return {
+            ...candidate,
+            projectedVar,
+            projectedStress,
+            varReduction:
+              snapshot.tail99.var > 0
+                ? (snapshot.tail99.var - projectedVar) / snapshot.tail99.var
+                : 0,
+            stressReduction:
+              Math.abs(currentStress) > 0
+                ? (Math.abs(currentStress) - Math.abs(projectedStress)) / Math.abs(currentStress)
+                : 0,
+          };
+        })
+        .sort((a, b) => b.varReduction - a.varReduction),
+    [book, candidates, snapshot],
+  );
 
-  const suggestions = useMemo(() => {
-    const list: {
-      id: string; title: string; note: string; cost: number;
-      varAfter: number; positions: Position[];
-    }[] = [];
-    // Short ES futures
-    const eqExposure = book.positions.filter((p) => p.cls === "EQUITY").reduce((a, b) => a + b.mv, 0);
-    if (eqExposure > 500_000) {
-      const qty = -Math.round(eqExposure / (5500 * 50));
-      list.push({
-        id: "SHORT-ES",
-        title: `Short ${Math.abs(qty)} ES futures`,
-        note: "Broad equity beta hedge — cuts systematic exposure without touching cash equities.",
-        cost: 0,
-        varAfter: baseVar.var * 0.69,
-        positions: [{
-          id: "HDG-ES", cls: "COMMODITY", symbol: "ES", name: "E-mini S&P 500 future",
-          qty, entry: 5500, mark: 5500, pnl: 0, mv: qty * 5500 * 50, gross: Math.abs(qty * 5500 * 50),
-          sector: "Hedge", beta: 1.0, vol: 0.14,
-        }],
-      });
-    }
-    // SPY put wing
-    list.push({
-      id: "SPY-PUT",
-      title: "SPY 590P × 10 (30D)",
-      note: "Caps tail loss at −$8.2k · convex protection against gap-down events.",
-      cost: 4200,
-      varAfter: baseVar.var * 0.82,
-      positions: [{
-        id: "HDG-SPY-P", cls: "OPTION", symbol: "SPY P590 30D", name: "SPY $590 Put · 30D",
-        qty: 10, entry: 4.20, mark: 4.20, pnl: 0, mv: 10 * 4.20 * 100, gross: 10 * 4.20 * 100,
-        sector: "Options", beta: 1.0, vol: 0.16,
-        optType: "P", strike: 590, daysToExpiry: 30,
-        delta: -350, gamma: 45, vega: 120, theta: -35,
-      }],
-    });
-    // Gold long
-    list.push({
-      id: "GOLD-LONG",
-      title: "Long 4 GC futures",
-      note: "Diversifier — gold historically bid in risk-off + rate-cut regimes.",
-      cost: 0,
-      varAfter: baseVar.var * 0.94,
-      positions: [{
-        id: "HDG-GC", cls: "COMMODITY", symbol: "GC", name: "Gold future (hedge)",
-        qty: 4, entry: 2680, mark: 2680, pnl: 0, mv: 4 * 2680 * 100, gross: 4 * 2680 * 100,
-        sector: "Precious", beta: 0.1, vol: 0.16,
-      }],
-    });
-    // Delta neutralize
-    if (Math.abs(g.delta) > 2000) {
-      const dir = g.delta > 0 ? "SHORT" : "LONG";
-      const qty = Math.round(Math.abs(g.delta) / 500) * (g.delta > 0 ? -1 : 1);
-      list.push({
-        id: "DELTA-NEUTRAL",
-        title: `${dir} ${Math.abs(qty)} SPY shares`,
-        note: `Zeros net delta (currently ${g.delta >= 0 ? "+" : ""}${fmt(g.delta,0)}) · isolates alpha from market direction.`,
-        cost: 0,
-        varAfter: baseVar.var * 0.88,
-        positions: [{
-          id: "HDG-DELTA", cls: "EQUITY", symbol: "SPY", name: "SPY (delta hedge)",
-          qty, entry: 612, mark: 612, pnl: 0, mv: qty * 612, gross: Math.abs(qty * 612),
-          sector: "Broad", beta: 1.0, vol: 0.12,
-        }],
-      });
-    }
-    return list;
-  }, [book, baseVar.var, g.delta]);
-
-  function toggleApply(s: typeof suggestions[number]) {
-    if (active.has(s.id)) {
-      removeHedge(s.id);
+  function toggle(candidate: HedgeCandidate) {
+    if (active.has(candidate.id)) {
+      removeHedge(candidate.id);
       setActive(new Set(activeHedges()));
-      toast(`Removed hedge · ${s.title}`);
+      toast(`Removed paper hedge · ${candidate.title}`);
     } else {
-      applyHedge(s.id, s.positions);
+      applyHedge(candidate.id, candidate.positions);
       setActive(new Set(activeHedges()));
-      toast.success(`Applied · ${s.title}`);
+      toast.success(`Applied to paper book · ${candidate.title}`);
     }
   }
+
   function reset() {
     resetBook();
     setActive(new Set());
-    toast("Book reset to base positions");
+    toast("Paper hedge overlays cleared");
   }
 
   return (
-    <div className="grid h-full grid-cols-12 gap-2">
-      <Panel code="HDG" title={`Suggested hedges · ${suggestions.length}`} className="col-span-9">
-        <div className="space-y-2 p-3">
-          {suggestions.map((s) => {
-            const isOn = active.has(s.id);
-            const reduction = ((baseVar.var - s.varAfter) / baseVar.var) * 100;
+    <div className="space-y-3">
+      <Panel
+        code="LIVE"
+        title="Live hedge state"
+        subtitle="Current modeled risk after every active paper-book overlay."
+        live
+        right={<span className="mono-caps text-[8px] text-primary">{active.size} ACTIVE</span>}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-4">
+          <RiskMetricCard
+            label="1D 99% VaR"
+            value={`−${money(snapshot.tail99.var)}`}
+            detail={`${((snapshot.tail99.var / book.nav) * 100).toFixed(2)}% NAV`}
+            tone="down"
+          />
+          <RiskMetricCard
+            label="Expected shortfall"
+            value={`−${money(snapshot.tail99.es)}`}
+            detail="beyond 99% VaR"
+            tone="down"
+          />
+          <RiskMetricCard
+            label="Worst stress"
+            value={`−${money(Math.abs(Math.min(0, snapshot.worstScenario?.result.total ?? 0)))}`}
+            detail={snapshot.worstScenario?.label ?? "—"}
+            tone="primary"
+          />
+          <RiskMetricCard
+            label="Gross exposure"
+            value={money(book.gross)}
+            detail={`${snapshot.grossLeverage.toFixed(2)}× NAV`}
+            tone="neutral"
+          />
+        </div>
+      </Panel>
+
+      <Panel
+        code="HDG"
+        title={`Ranked hedge actions · ${scored.length}`}
+        subtitle="Impact is recalculated from signed exposure and scenario repricing; it is not a hard-coded discount."
+        right={
+          <button
+            onClick={reset}
+            className="mono-caps text-[8px] text-muted-foreground hover:text-primary"
+          >
+            CLEAR OVERLAYS
+          </button>
+        }
+      >
+        <div className="divide-y divide-divider">
+          {scored.map((candidate, index) => {
+            const isOn = active.has(candidate.id);
+            const improvesVar = candidate.varReduction > 0;
             return (
-              <div key={s.id} className={`grid grid-cols-[1fr_auto] items-center gap-4 border px-3 py-3 ${isOn ? "border-primary bg-primary/5" : "border-divider bg-raised"}`}>
-                <div>
-                  <div className="mono-caps text-[11px] text-foreground">{s.title}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">{s.note}</div>
-                  <div className="mono-caps mt-2 flex gap-4 text-[9px] text-faint">
-                    <span>COST <span className="text-foreground">${fmt(s.cost, 0)}</span></span>
-                    <span>VAR AFTER <span className="text-down">−${fmt(s.varAfter, 0)}</span></span>
-                    <span>REDUCTION <span className="text-up">−{reduction.toFixed(0)}%</span></span>
+              <div key={candidate.id} className={`p-4 ${isOn ? "bg-primary/5" : ""}`}>
+                <div className="grid gap-4 lg:grid-cols-[54px_1.25fr_1fr_auto] lg:items-center">
+                  <div className="mono-caps flex h-9 w-9 items-center justify-center border border-border text-[9px] text-faint">
+                    0{index + 1}
                   </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-[13px] font-medium text-foreground">
+                        {candidate.title}
+                      </div>
+                      {isOn && (
+                        <span className="mono-caps border border-primary/50 bg-primary/10 px-1.5 py-0.5 text-[7px] text-primary">
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                      {candidate.thesis}
+                    </div>
+                    <div className="mono-caps mt-2 text-[7px] text-faint">
+                      TRADE-OFF · {candidate.tradeoff}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <HedgeImpact
+                      label="99% VaR after"
+                      value={isOn ? "LIVE" : `−${money(candidate.projectedVar)}`}
+                      detail={
+                        isOn
+                          ? "reflected above"
+                          : `${candidate.varReduction >= 0 ? "−" : "+"}${Math.abs(candidate.varReduction * 100).toFixed(0)}%`
+                      }
+                      tone={improvesVar ? "up" : "down"}
+                    />
+                    <HedgeImpact
+                      label="Stress effect"
+                      value={
+                        isOn
+                          ? "LIVE"
+                          : `${candidate.stressReduction >= 0 ? "−" : "+"}${Math.abs(candidate.stressReduction * 100).toFixed(0)}%`
+                      }
+                      detail="worst preset"
+                      tone={candidate.stressReduction >= 0 ? "up" : "down"}
+                    />
+                    <HedgeImpact
+                      label="Premium"
+                      value={candidate.premium > 0 ? money(candidate.premium) : "$0"}
+                      detail={candidate.premium > 0 ? "upfront" : "notional hedge"}
+                      tone="neutral"
+                    />
+                  </div>
+                  <button
+                    onClick={() => toggle(candidate)}
+                    className={`mono-caps interactive min-w-24 border px-4 py-2 text-[8px] ${isOn ? "border-primary bg-primary text-primary-foreground" : "border-primary text-primary hover:bg-primary/10"}`}
+                  >
+                    {isOn ? "REMOVE" : "APPLY"}
+                  </button>
                 </div>
-                <button onClick={() => toggleApply(s)} className={`mono-caps interactive border px-4 py-2 text-[10px] ${isOn ? "border-primary bg-primary text-primary-foreground" : "border-primary text-primary hover:bg-primary/10"}`}>
-                  {isOn ? "REMOVE" : "APPLY"}
-                </button>
               </div>
             );
           })}
         </div>
       </Panel>
-      <Panel code="LIVE" title="Live book state" className="col-span-3">
-        <div className="space-y-3 p-3">
-          <div>
-            <div className="mono-caps text-[9px] text-faint">VaR 95% · LIVE</div>
-            <div className="font-mono text-2xl text-down">−${fmt(baseVar.var, 0)}</div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Panel
+          code="ORD"
+          title="Execution note"
+          subtitle="These controls modify the local paper book only."
+        >
+          <div className="p-4 text-[11px] leading-relaxed text-muted-foreground">
+            No broker order is sent. Premium, slippage, margin, basis risk, and liquidity are not
+            included in the projected impact. Revalidate size against the live instrument before
+            execution.
           </div>
-          <div>
-            <div className="mono-caps text-[9px] text-faint">NET DELTA</div>
-            <div className={`font-mono text-xl ${g.delta >= 0 ? "text-up" : "text-down"}`}>{g.delta >= 0 ? "+" : ""}{fmt(g.delta, 0)}</div>
+        </Panel>
+        <Panel
+          code="GOV"
+          title="Hedge governance"
+          subtitle="Use the smallest action that restores headroom without creating a new concentration."
+        >
+          <div className="grid grid-cols-3 divide-x divide-divider">
+            <GovernanceStep number="01" label="Restore" note="Bring breached limits below 80%." />
+            <GovernanceStep number="02" label="Re-test" note="Run the binding stress again." />
+            <GovernanceStep number="03" label="Monitor" note="Set an exit or rebalance trigger." />
           </div>
-          <div>
-            <div className="mono-caps text-[9px] text-faint">ACTIVE HEDGES</div>
-            <div className="mt-1 space-y-1">
-              {active.size === 0 && <div className="mono-caps text-[9px] text-faint">— none —</div>}
-              {[...active].map((id) => <div key={id} className="mono-caps text-[10px] text-primary">✓ {id}</div>)}
-            </div>
-          </div>
-          <button onClick={reset} className="mono-caps interactive w-full border border-border px-2 py-2 text-[10px] text-muted-foreground hover:border-primary hover:text-primary">RESET BOOK</button>
-        </div>
-      </Panel>
+        </Panel>
+      </div>
     </div>
   );
 }
 
+function buildHedgeCandidates(book: Book, snapshot: RiskSnapshot): HedgeCandidate[] {
+  const candidates: HedgeCandidate[] = [];
+  const equityBeta = book.positions.reduce((sum, position) => {
+    if (position.cls === "COMMODITY") return sum;
+    return sum + (position.riskNotional ?? position.mv) * (position.beta ?? 1);
+  }, 0);
+
+  if (Math.abs(equityBeta) > 250_000) {
+    const contractNotional = 5_500 * 50;
+    const qty = -Math.round(equityBeta / contractNotional);
+    if (qty !== 0) {
+      candidates.push({
+        id: "BETA-ES",
+        title: `${qty < 0 ? "Short" : "Long"} ${Math.abs(qty)} ES future${Math.abs(qty) === 1 ? "" : "s"}`,
+        thesis: "Neutralizes broad equity beta while leaving single-name positions intact.",
+        tradeoff:
+          "Basis and roll risk; futures can raise gross notional even as correlated risk falls.",
+        premium: 0,
+        positions: [
+          {
+            id: "HDG-BETA-ES",
+            cls: "COMMODITY",
+            symbol: "ES",
+            name: "E-mini S&P 500 beta hedge",
+            qty,
+            entry: 5_500,
+            mark: 5_500,
+            pnl: 0,
+            mv: qty * contractNotional,
+            gross: Math.abs(qty * contractNotional),
+            sector: "Broad",
+            beta: 1,
+            vol: 0.16,
+            riskNotional: qty * contractNotional,
+            underlier: "SPY",
+          },
+        ],
+      });
+    }
+  }
+
+  candidates.push({
+    id: "TAIL-SPY",
+    title: "Buy 10 SPY 590 puts · 30D",
+    thesis:
+      "Adds convex downside protection to reduce gap risk and cushion the binding equity stress.",
+    tradeoff: "Premium decays daily; protection weakens if expiry passes before the shock.",
+    premium: 4_200,
+    positions: [
+      {
+        id: "HDG-TAIL-SPY",
+        cls: "OPTION",
+        symbol: "SPY P590 30D",
+        name: "SPY downside tail hedge",
+        qty: 10,
+        entry: 4.2,
+        mark: 4.2,
+        pnl: 0,
+        mv: 4_200,
+        gross: 4_200,
+        sector: "Options",
+        beta: 1,
+        vol: 0.16,
+        riskNotional: -214_200,
+        underlier: "SPY",
+        underlyingMark: 612,
+        optType: "P",
+        strike: 590,
+        daysToExpiry: 30,
+        delta: -350,
+        gamma: 45,
+        vega: 120,
+        theta: -35,
+      },
+    ],
+  });
+
+  const driver = snapshot.topDriver;
+  if (driver) {
+    const source = driver.pos;
+    const scale = -0.25;
+    candidates.push({
+      id: `TRIM-${source.id}`,
+      title: `Reduce ${source.symbol} by 25%`,
+      thesis: `Directly cuts the book's largest modeled VaR contributor and releases concentration headroom.`,
+      tradeoff:
+        "Realizes exposure and may reduce upside participation or close a deliberate hedge.",
+      premium: 0,
+      positions: [
+        {
+          ...source,
+          id: `HDG-TRIM-${source.id}`,
+          name: `${source.name} · 25% risk reduction`,
+          qty: source.qty * scale,
+          pnl: 0,
+          mv: source.mv * scale,
+          gross: Math.abs(source.mv * scale),
+          riskNotional: (source.riskNotional ?? source.mv) * scale,
+          delta: source.delta === undefined ? undefined : source.delta * scale,
+          gamma: source.gamma === undefined ? undefined : source.gamma * scale,
+          vega: source.vega === undefined ? undefined : source.vega * scale,
+          theta: source.theta === undefined ? undefined : source.theta * scale,
+        },
+      ],
+    });
+  }
+
+  return candidates;
+}
+
+function HedgeImpact({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: "up" | "down" | "neutral";
+}) {
+  const color = tone === "up" ? "text-up" : tone === "down" ? "text-down" : "text-foreground";
+  return (
+    <div className="border border-divider bg-background p-2">
+      <div className="mono-caps text-[7px] text-faint">{label}</div>
+      <div className={`mt-1 font-mono text-[11px] ${color}`}>{value}</div>
+      <div className="mono-caps mt-0.5 text-[6px] text-muted-foreground">{detail}</div>
+    </div>
+  );
+}
+
+function GovernanceStep({ number, label, note }: { number: string; label: string; note: string }) {
+  return (
+    <div className="p-4">
+      <div className="mono-caps text-[8px] text-primary">
+        {number} · {label}
+      </div>
+      <div className="mt-2 text-[9px] leading-relaxed text-muted-foreground">{note}</div>
+    </div>
+  );
+}
+
+function RiskSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  format,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  format: (value: number) => string;
+}) {
+  return (
+    <label className="block">
+      <span className="mono-caps flex justify-between text-[8px] text-faint">
+        <span>{label}</span>
+        <span className="text-primary">{format(value)}</span>
+      </span>
+      <input
+        aria-label={label}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-2 w-full accent-primary"
+      />
+    </label>
+  );
+}
+
+function RiskVisualBoard({ book, snapshot }: { book: Book; snapshot: RiskSnapshot }) {
+  const lossScale = Math.max(snapshot.tail99.es * 1.18, snapshot.tail99.var, 1);
+  const var95Pct = Math.min(100, (snapshot.tail95.var / lossScale) * 100);
+  const var99Pct = Math.min(100, (snapshot.tail99.var / lossScale) * 100);
+  const es99Pct = Math.min(100, (snapshot.tail99.es / lossScale) * 100);
+  const positiveDrivers = snapshot.contributions.filter((item) => item.contribPct > 0).slice(0, 7);
+  const positiveTotal = positiveDrivers.reduce((sum, item) => sum + item.contribPct, 0) || 1;
+  const maxScenario = Math.max(
+    ...snapshot.scenarios.map((scenario) => Math.abs(scenario.result.total)),
+    1,
+  );
+
+  return (
+    <Panel
+      code="MAP"
+      title="Risk geometry"
+      subtitle="The book translated into tail distance, concentration structure, and cross-scenario loss shape."
+      right={<span className="mono-caps text-[8px] text-info">LIVE MODEL MAP</span>}
+    >
+      <div className="grid xl:grid-cols-[1.25fr_1fr_1fr]">
+        <section className="border-b border-divider p-4 xl:border-b-0 xl:border-r">
+          <div className="mono-caps flex items-center justify-between text-[8px] text-faint">
+            <span>TAIL LOSS ENVELOPE · 1 DAY</span>
+            <span>{money(lossScale)} SCALE</span>
+          </div>
+          <div className="relative mt-8 h-20">
+            <div className="absolute inset-x-0 top-5 h-3 overflow-hidden border border-divider bg-background">
+              <div
+                className="h-full"
+                style={{
+                  width: `${es99Pct}%`,
+                  background:
+                    "linear-gradient(90deg, rgba(66,201,139,.65), rgba(240,169,41,.75) 58%, rgba(240,100,100,.9))",
+                }}
+              />
+            </div>
+            <TailMarker
+              left={var95Pct}
+              label="95% VAR"
+              value={money(snapshot.tail95.var)}
+              tone="primary"
+            />
+            <TailMarker
+              left={var99Pct}
+              label="99% VAR"
+              value={money(snapshot.tail99.var)}
+              tone="down"
+            />
+            <TailMarker
+              left={es99Pct}
+              label="99% ES"
+              value={money(snapshot.tail99.es)}
+              tone="info"
+            />
+            <div className="mono-caps absolute inset-x-0 bottom-0 flex justify-between text-[7px] text-faint">
+              <span>$0 LOSS</span>
+              <span>FURTHER INTO TAIL →</span>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-3 border border-divider bg-raised/30">
+            <VisualStat
+              label="VAR / NAV"
+              value={`${((snapshot.tail99.var / book.nav) * 100).toFixed(2)}%`}
+            />
+            <VisualStat
+              label="TAIL GAP"
+              value={`+${((snapshot.tail99.es / snapshot.tail99.var - 1) * 100).toFixed(0)}%`}
+            />
+            <VisualStat
+              label="HEADROOM"
+              value={money(Math.max(0, book.nav * RISK_LIMITS.var99Nav - snapshot.tail99.var))}
+            />
+          </div>
+        </section>
+
+        <section className="border-b border-divider p-4 xl:border-b-0 xl:border-r">
+          <div className="mono-caps flex items-center justify-between text-[8px] text-faint">
+            <span>CONCENTRATION STACK</span>
+            <span>POSITIVE VAR CONTRIBUTORS</span>
+          </div>
+          <div className="mt-5 flex h-12 overflow-hidden border border-background bg-background">
+            {positiveDrivers.map((item, index) => {
+              const width = (item.contribPct / positiveTotal) * 100;
+              const colors = [
+                "#F06464",
+                "#F0A929",
+                "#45B9D3",
+                "#8A631F",
+                "#42C98B",
+                "#636C74",
+                "#9AA2A9",
+              ];
+              return (
+                <div
+                  key={item.pos.id}
+                  className="relative h-full border-r border-background/70"
+                  style={{ width: `${width}%`, backgroundColor: colors[index % colors.length] }}
+                  title={`${item.pos.symbol} · ${(item.contribPct * 100).toFixed(1)}% of VaR`}
+                >
+                  {width >= 9 && (
+                    <div className="absolute inset-0 flex flex-col justify-center px-2 text-black/80">
+                      <span className="mono-caps text-[8px] font-bold">{item.pos.symbol}</span>
+                      <span className="font-mono text-[8px]">
+                        {(item.contribPct * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-4 space-y-2">
+            {positiveDrivers.slice(0, 3).map((item, index) => (
+              <div key={item.pos.id} className="grid grid-cols-[20px_1fr_auto] items-center gap-2">
+                <span className="font-mono text-[7px] text-faint">0{index + 1}</span>
+                <div>
+                  <div className="font-mono text-[9px] text-foreground">{item.pos.symbol}</div>
+                  <div className="mono-caps text-[7px] text-faint">
+                    {item.pos.sector ?? item.pos.cls}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-[10px] text-primary">
+                    {(item.contribPct * 100).toFixed(1)}%
+                  </div>
+                  <div className="mono-caps text-[6px] text-faint">{money(item.dollar)} VAR</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="p-4">
+          <div className="mono-caps flex items-center justify-between text-[8px] text-faint">
+            <span>SCENARIO FINGERPRINT</span>
+            <span>% OF MAX LOSS</span>
+          </div>
+          <div className="mt-4 flex h-28 items-end gap-2 border-b border-divider px-1">
+            {snapshot.scenarios.map((scenario, index) => {
+              const magnitude = Math.abs(scenario.result.total);
+              const height = Math.max(8, (magnitude / maxScenario) * 100);
+              return (
+                <div key={scenario.key} className="flex h-full flex-1 flex-col justify-end">
+                  <div className="mb-1 text-center font-mono text-[7px] text-down">
+                    {((magnitude / book.nav) * 100).toFixed(1)}%
+                  </div>
+                  <div
+                    className={`w-full ${index === 0 ? "bg-down" : "bg-down/45"}`}
+                    style={{ height: `${height}%` }}
+                    title={`${scenario.label} · ${signedMoney(scenario.result.total)}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-2 grid grid-cols-5 gap-2">
+            {snapshot.scenarios.map((scenario) => (
+              <span
+                key={scenario.key}
+                className="mono-caps truncate text-center text-[6px] text-faint"
+                title={scenario.label}
+              >
+                {scenario.key.replace(/[0-9]/g, "")}
+              </span>
+            ))}
+          </div>
+          <div className="mt-4 border-l-2 border-down bg-down/5 px-3 py-2">
+            <div className="mono-caps text-[7px] text-down">BINDING SHOCK</div>
+            <div className="mt-1 flex items-baseline justify-between gap-3">
+              <span className="text-[10px] text-foreground">{snapshot.worstScenario?.label}</span>
+              <span className="font-mono text-[11px] text-down">
+                {signedMoney(snapshot.worstScenario?.result.total ?? 0)}
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </Panel>
+  );
+}
+
+function TailMarker({
+  left,
+  label,
+  value,
+  tone,
+}: {
+  left: number;
+  label: string;
+  value: string;
+  tone: "primary" | "down" | "info";
+}) {
+  const marker = tone === "down" ? "bg-down" : tone === "info" ? "bg-info" : "bg-primary";
+  const text = tone === "down" ? "text-down" : tone === "info" ? "text-info" : "text-primary";
+  return (
+    <div className="absolute top-0 -translate-x-1/2" style={{ left: `${left}%` }}>
+      <div className={`mx-auto h-8 w-px ${marker}`} />
+      <div className={`mono-caps mt-1 whitespace-nowrap text-center text-[6px] ${text}`}>
+        {label}
+        <br />
+        <span className="font-mono text-[7px]">{value}</span>
+      </div>
+    </div>
+  );
+}
+
+function VisualStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-r border-divider px-3 py-2 last:border-r-0">
+      <div className="mono-caps text-[6px] text-faint">{label}</div>
+      <div className="mt-1 font-mono text-[10px] text-foreground">{value}</div>
+    </div>
+  );
+}

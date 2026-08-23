@@ -1,4 +1,4 @@
-"""FinSight Alpha - FastAPI backend application (Phase 1C).
+"""FinSight coding-agent research environment and observer API.
 
 Assembles the API: configures the app, adds CORS, and includes the routers from
 ``backend/routes``. The same :class:`MarketDataService` and analytics modules
@@ -27,9 +27,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from backend.routes import (
-    agent, analytics, assets, auth, backtest, context, factors, fundamentals, graph, health,
-    intelligence, market_data, ml, news, paper, portfolio, pricing, quote, regime, research,
-    risk, strategy, tape,
+    agent,
+    analytics,
+    assets,
+    auth,
+    backtest,
+    context,
+    factors,
+    fundamentals,
+    graph,
+    health,
+    intelligence,
+    macro,
+    market_data,
+    ml,
+    news,
+    paper,
+    portfolio,
+    pricing,
+    quote,
+    regime,
+    research,
+    risk,
+    strategy,
+    tape,
+    universe,
 )
 from src import config
 from src.auth.security import verify_session
@@ -54,7 +76,9 @@ if config.SENTRY_DSN:
 
 app = FastAPI(
     title=config.APP_NAME,
-    description="Backend-driven market data and analytics platform.",
+    description=(
+        "Point-in-time finance environment and evaluation substrate for coding agents."
+    ),
     version=config.APP_VERSION,
 )
 
@@ -65,9 +89,15 @@ async def _unhandled_exception(request: Request, exc: Exception) -> JSONResponse
     error_id = uuid.uuid4().hex
     logger.exception(
         "Unhandled request error id=%s method=%s path=%s",
-        error_id, request.method, request.url.path,
+        error_id,
+        request.method,
+        request.url.path,
     )
-    return JSONResponse(status_code=500, content={"detail": "Internal server error", "error_id": error_id})
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "error_id": error_id},
+    )
+
 
 # CORS: allow browser frontends to call the API.
 # In production, replace "*" with the specific dashboard origin(s).
@@ -84,7 +114,7 @@ from src.auth import db  # noqa: E402
 from src.auth.db import init_db  # noqa: E402
 
 # Paths reachable WITHOUT a session (login flow, health probes, login page).
-_PUBLIC_PATHS = {"/login", "/health", "/health/ready", "/health/llm", "/favicon.ico"}
+_PUBLIC_PATHS = {"/login", "/health", "/health/ready", "/favicon.ico"}
 _PUBLIC_PREFIXES = ("/auth/",)
 
 
@@ -108,9 +138,13 @@ async def _auth_gate(request: Request, call_next):
 
     user_id = verify_session(request.cookies.get("fs_session"))
     if user_id:
-        principal = db.resolve_principal(user_id, request.headers.get("x-finsight-organization"))
+        principal = db.resolve_principal(
+            user_id, request.headers.get("x-finsight-organization")
+        )
         if principal is None:
-            return JSONResponse({"detail": "Organization access denied."}, status_code=403)
+            return JSONResponse(
+                {"detail": "Organization access denied."}, status_code=403
+            )
         request.state.user_id = principal.user_id
         request.state.organization_id = principal.organization_id
         request.state.role = principal.role
@@ -128,6 +162,8 @@ app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(assets.router)
 app.include_router(market_data.router)
+app.include_router(universe.router)
+app.include_router(macro.router)
 app.include_router(analytics.router)
 app.include_router(graph.router)
 app.include_router(quote.router)
@@ -155,6 +191,7 @@ FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
     "https://finsight-alpha-web.vercel.app",
 ).rstrip("/")
+
 
 @app.get("/terminal", include_in_schema=False)
 def terminal() -> RedirectResponse:

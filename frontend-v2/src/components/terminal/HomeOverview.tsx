@@ -33,6 +33,21 @@ const CROSS_ASSETS = [
   { label: "USD/INR", symbol: "INR=X", yield: false },
   { label: "INDIA VIX", symbol: "^INDIAVIX", yield: false },
 ] as const;
+const GLOBAL_MARKETS = [
+  { label: "NIKKEI", symbol: "^N225", region: "ASIA" },
+  { label: "HANG SENG", symbol: "^HSI", region: "ASIA" },
+  { label: "SHANGHAI", symbol: "000001.SS", region: "ASIA" },
+  { label: "STOXX 50", symbol: "^STOXX50E", region: "EUROPE" },
+  { label: "FTSE", symbol: "^FTSE", region: "EUROPE" },
+  { label: "DAX", symbol: "^GDAXI", region: "EUROPE" },
+  { label: "EM", symbol: "EEM", region: "EM" },
+  { label: "BRENT", symbol: "BZ=F", region: "COMMODITIES" },
+  { label: "COPPER", symbol: "HG=F", region: "COMMODITIES" },
+  { label: "USD/JPY", symbol: "JPY=X", region: "FX" },
+  { label: "EUR/USD", symbol: "EURUSD=X", region: "FX" },
+  { label: "VIX", symbol: "^VIX", region: "VOL" },
+] as const;
+const GLOBAL_SYMBOLS = GLOBAL_MARKETS.map((market) => market.symbol);
 const INDIA_CROSS_SYMBOLS = new Set(["^NSEI", "^BSESN", "INR=X", "^INDIAVIX"]);
 const COMPANY_ALIASES: Record<string, string[]> = {
   AAPL: ["AAPL", "APPLE", "IPHONE"],
@@ -177,6 +192,21 @@ export function HomeOverview({
     staleTime: 30_000,
     retry: 1,
   });
+  const globalTape = useQuery({
+    queryKey: ["global-market-tape", GLOBAL_SYMBOLS],
+    queryFn: () =>
+      api<TapePayload>("/tape?symbols=" + encodeURIComponent(GLOBAL_SYMBOLS.join(","))),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const globalNews = useQuery({
+    queryKey: ["home-global-news"],
+    queryFn: () => api<GlobalNewsPayload>("/news/global/cues?limit=48"),
+    refetchInterval: 5 * 60_000,
+    staleTime: 2 * 60_000,
+    retry: 1,
+  });
   const regime = useQuery({
     queryKey: ["home-regime", "SPY"],
     queryFn: () => api<RegimePayload>("/regime/SPY?model=hmm&n_states=4"),
@@ -300,10 +330,27 @@ export function HomeOverview({
     };
   }, [sectorReturns]);
 
-  const crossQuotes = crossTape.data?.items ?? [];
+  const crossQuotes = useMemo(() => crossTape.data?.items ?? [], [crossTape.data?.items]);
   const twoYear = crossQuotes.find((item) => item.ticker === "2YY=F");
   const tenYear = crossQuotes.find((item) => item.ticker === "^TNX");
   const curveBps = twoYear && tenYear ? (tenYear.last - twoYear.last) * 100 : null;
+
+  const globalQuotes = useMemo(() => globalTape.data?.items ?? [], [globalTape.data?.items]);
+  const combinedGlobalQuotes = useMemo(
+    () =>
+      Array.from(
+        new Map([...crossQuotes, ...globalQuotes].map((quote) => [quote.ticker, quote])).values(),
+      ),
+    [crossQuotes, globalQuotes],
+  );
+  const globalCues = useMemo(
+    () => buildGlobalCues(combinedGlobalQuotes, globalNews.data?.items ?? []),
+    [combinedGlobalQuotes, globalNews.data?.items],
+  );
+  const globalLead = useMemo(
+    () => [...globalCues].sort((a, b) => Math.abs(b.score) - Math.abs(a.score))[0],
+    [globalCues],
+  );
 
   const [dateLine, setDateLine] = useState("");
   const nifty = crossQuotes.find((item) => item.ticker === "^NSEI");
@@ -327,8 +374,11 @@ export function HomeOverview({
     const sectorTxt = sectorReturns[0]
       ? ` ${sectorReturns[0].name} leads sectors at ${fmtPct(sectorReturns[0].ret)}.`
       : "";
-    return `SPY ${fmtPct(spyPct)} — the tape ${dir}.${outlierTxt}.${bookTxt}${sectorTxt}`;
-  }, [spy, movers, positions.length, bookAgg.pct, sectorReturns]);
+    const globalTxt = globalLead
+      ? ` Global lead: ${globalLead.label.toLowerCase()} is ${globalLead.status.toLowerCase()} (${globalLead.metric}).`
+      : "";
+    return `SPY ${fmtPct(spyPct)} — the tape ${dir}.${outlierTxt}.${bookTxt}${sectorTxt}${globalTxt}`;
+  }, [spy, movers, positions.length, bookAgg.pct, sectorReturns, globalLead]);
 
   const [brief, setBrief] = useState("");
   useEffect(() => {
@@ -371,6 +421,11 @@ export function HomeOverview({
     const lines: string[] = [];
     const spyMove = spy?.changePct ?? 0;
     const vixMove = (vix?.change_pct ?? 0) * 100;
+    if (globalLead) {
+      lines.push(
+        `GLOBAL CUE · ${globalLead.label} · ${globalLead.status} · ${globalLead.metric} → ${globalLead.transmission}.`,
+      );
+    }
     if (vix && Math.abs(vixMove) > Math.max(1, Math.abs(spyMove) * 4)) {
       lines.push(
         `VOL DISLOCATION · VIX ${fmtPct(vixMove)} is outrunning SPY ${fmtPct(spyMove)} → hedging demand is the first transmission risk.`,
@@ -399,7 +454,7 @@ export function HomeOverview({
       );
     }
     return lines;
-  }, [curveBps, movers, sectorInternals, sectorReturns.length, spy, vix]);
+  }, [curveBps, globalLead, movers, sectorInternals, sectorReturns.length, spy, vix]);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[1480px] flex-col gap-3 overflow-y-auto px-4 py-3">
@@ -407,6 +462,18 @@ export function HomeOverview({
       <div className="flex flex-wrap items-center justify-between gap-3 border border-divider bg-panel px-3 py-2">
         <div className="font-serif text-[14px] italic text-muted-foreground">{dateLine}</div>
         <div className="flex flex-wrap items-center gap-2">
+          <SessionBadge
+            label="TOKYO"
+            timeZone="Asia/Tokyo"
+            openMinutes={9 * 60}
+            closeMinutes={15 * 60}
+          />
+          <SessionBadge
+            label="LONDON"
+            timeZone="Europe/London"
+            openMinutes={8 * 60}
+            closeMinutes={16 * 60 + 30}
+          />
           <SessionBadge
             label="NSE CASH"
             timeZone="Asia/Kolkata"
@@ -440,6 +507,15 @@ export function HomeOverview({
         />
       </div>
       <CrossAssetStrip quotes={crossQuotes} curveBps={curveBps} />
+      <GlobalCueRadar
+        cues={globalCues}
+        marketCount={globalQuotes.length}
+        headlineCount={globalNews.data?.coverage?.headlines ?? 0}
+        topicCount={globalNews.data?.coverage?.topics_with_news ?? 0}
+        loading={globalTape.isPending || globalNews.isPending}
+        onOpenCrossAsset={() => onRun?.("CX")}
+        onOpenRisk={() => onRun?.("RISK")}
+      />
 
       <AiInsight
         source="FINSIGHT AI"
@@ -460,6 +536,10 @@ export function HomeOverview({
         leader={movers[0]}
         onOpenNews={() => onRun?.("NEWS", movers[0]?.inst.symbol)}
         onOpenRisk={() => onRun?.("RISK")}
+      />
+      <GlobalTransmissionMatrix
+        cues={globalCues}
+        symbols={list.map((instrument) => instrument.symbol)}
       />
 
       {/* Brief */}
@@ -637,6 +717,540 @@ export function HomeOverview({
   );
 }
 
+type GlobalCueId = "ASIA" | "EUROPE" | "CONDITIONS" | "COMMODITIES" | "INDIA" | "LIQUIDITY";
+
+type GlobalNewsItem = {
+  title?: string;
+  region?: string;
+  channel?: string;
+  topic?: string;
+  proxy?: string;
+  url?: string;
+  published?: string;
+  score?: number;
+  label?: string;
+};
+
+type GlobalNewsPayload = {
+  items?: GlobalNewsItem[];
+  coverage?: {
+    topics_requested?: number;
+    topics_with_news?: number;
+    regions_with_news?: number;
+    headlines?: number;
+  };
+};
+
+type GlobalCue = {
+  id: GlobalCueId;
+  label: string;
+  region: string;
+  score: number;
+  available: number;
+  status: "TAILWIND" | "CROSSWIND" | "MIXED";
+  metric: string;
+  transmission: string;
+  affected: string;
+  headline: string;
+};
+
+function quoteMove(quotes: TapeItem[], symbol: string): number | null {
+  const quote = quotes.find((item) => item.ticker === symbol);
+  return quote && Number.isFinite(quote.change_pct) ? quote.change_pct * 100 : null;
+}
+
+function meanAvailable(values: Array<number | null>): number | null {
+  const available = values.filter((value): value is number => value !== null);
+  return available.length
+    ? available.reduce((sum, value) => sum + value, 0) / available.length
+    : null;
+}
+
+function normalizeCue(value: number | null, scale: number): number | null {
+  if (value === null) return null;
+  return Math.max(-1, Math.min(1, value / scale));
+}
+
+function averageSignals(values: Array<number | null>): number {
+  const available = values.filter((value): value is number => value !== null);
+  return available.length ? available.reduce((sum, value) => sum + value, 0) / available.length : 0;
+}
+
+function cueStatus(score: number): GlobalCue["status"] {
+  return score > 0.18 ? "TAILWIND" : score < -0.18 ? "CROSSWIND" : "MIXED";
+}
+
+function cueMove(value: number | null): string {
+  return value === null ? "—" : fmtPct(value);
+}
+
+function cueHeadline(items: GlobalNewsItem[], regions: string[], channels: string[] = []): string {
+  const match = items.find(
+    (item) =>
+      regions.includes(String(item.region ?? "").toUpperCase()) ||
+      channels.some((channel) =>
+        String(item.channel ?? "")
+          .toUpperCase()
+          .includes(channel),
+      ),
+  );
+  return match?.title ?? "No fresh tagged headline; quote transmission remains active.";
+}
+
+function buildGlobalCues(quotes: TapeItem[], news: GlobalNewsItem[]): GlobalCue[] {
+  const nikkei = quoteMove(quotes, "^N225");
+  const hangSeng = quoteMove(quotes, "^HSI");
+  const shanghai = quoteMove(quotes, "000001.SS");
+  const nifty = quoteMove(quotes, "^NSEI");
+  const stoxx = quoteMove(quotes, "^STOXX50E");
+  const ftse = quoteMove(quotes, "^FTSE");
+  const dax = quoteMove(quotes, "^GDAXI");
+  const tenYear = quoteMove(quotes, "^TNX");
+  const dxy = quoteMove(quotes, "DX-Y.NYB");
+  const vix = quoteMove(quotes, "^VIX");
+  const wti = quoteMove(quotes, "CL=F");
+  const brent = quoteMove(quotes, "BZ=F");
+  const copper = quoteMove(quotes, "HG=F");
+  const usdInr = quoteMove(quotes, "INR=X");
+  const emerging = quoteMove(quotes, "EEM");
+  const bitcoin = quoteMove(quotes, "BTC-USD");
+
+  const asiaValues = [nikkei, hangSeng, shanghai, nifty];
+  const europeValues = [stoxx, ftse, dax];
+  const asiaScore = normalizeCue(meanAvailable(asiaValues), 1.5) ?? 0;
+  const europeScore = normalizeCue(meanAvailable(europeValues), 1.5) ?? 0;
+  const conditionsScore = averageSignals([
+    tenYear === null ? null : -1 * (normalizeCue(tenYear, 2) ?? 0),
+    dxy === null ? null : -1 * (normalizeCue(dxy, 1.2) ?? 0),
+    vix === null ? null : -1 * (normalizeCue(vix, 5) ?? 0),
+  ]);
+  const commodityScore = averageSignals([
+    normalizeCue(copper, 2),
+    meanAvailable([wti, brent]) === null
+      ? null
+      : -1 * (normalizeCue(meanAvailable([wti, brent]), 2) ?? 0),
+  ]);
+  const indiaScore = averageSignals([
+    normalizeCue(nifty, 1.5),
+    usdInr === null ? null : -1 * (normalizeCue(usdInr, 1.2) ?? 0),
+  ]);
+  const liquidityScore = averageSignals([
+    normalizeCue(emerging, 1.5),
+    normalizeCue(bitcoin, 3),
+    dxy === null ? null : -1 * (normalizeCue(dxy, 1.2) ?? 0),
+  ]);
+
+  const cues: GlobalCue[] = [
+    {
+      id: "ASIA",
+      label: "Asia demand pulse",
+      region: "TOKYO · HK · CHINA · INDIA",
+      score: asiaScore,
+      available: asiaValues.filter((value) => value !== null).length,
+      status: cueStatus(asiaScore),
+      metric:
+        "NIKKEI " +
+        cueMove(nikkei) +
+        " · HSI " +
+        cueMove(hangSeng) +
+        " · SHCOMP " +
+        cueMove(shanghai),
+      transmission: "semiconductor demand, China revenue and industrial supply chains",
+      affected: "NVDA · AAPL · TSLA · QQQ",
+      headline: cueHeadline(news, ["ASIA"], ["DEMAND", "YEN"]),
+    },
+    {
+      id: "EUROPE",
+      label: "Europe risk pulse",
+      region: "EUROZONE · UK · GERMANY",
+      score: europeScore,
+      available: europeValues.filter((value) => value !== null).length,
+      status: cueStatus(europeScore),
+      metric: "STOXX " + cueMove(stoxx) + " · FTSE " + cueMove(ftse) + " · DAX " + cueMove(dax),
+      transmission: "global cyclicals, ad demand, FX translation and regulatory beta",
+      affected: "META · GOOGL · MSFT · AMZN",
+      headline: cueHeadline(news, ["EUROPE"], ["TRADE", "REGULATION"]),
+    },
+    {
+      id: "CONDITIONS",
+      label: "Financial conditions",
+      region: "RATES · USD · VOL",
+      score: conditionsScore,
+      available: [tenYear, dxy, vix].filter((value) => value !== null).length,
+      status: cueStatus(conditionsScore),
+      metric: "10Y " + cueMove(tenYear) + " · DXY " + cueMove(dxy) + " · VIX " + cueMove(vix),
+      transmission: "discount rates, dollar translation, dealer hedging and equity duration",
+      affected: "ALL STOCKS · QQQ · IWM · BTC",
+      headline: cueHeadline(news, ["RATES", "FX", "HAVENS"], ["DISCOUNT", "LIQUIDITY"]),
+    },
+    {
+      id: "COMMODITIES",
+      label: "Commodity impulse",
+      region: "OIL · COPPER",
+      score: commodityScore,
+      available: [wti, brent, copper].filter((value) => value !== null).length,
+      status: cueStatus(commodityScore),
+      metric: "WTI " + cueMove(wti) + " · BRENT " + cueMove(brent) + " · COPPER " + cueMove(copper),
+      transmission: "input costs, inflation expectations, freight and real-economy demand",
+      affected: "AMZN · TSLA · IWM · INDIA",
+      headline: cueHeadline(news, ["COMMODITIES"], ["INFLATION", "MARGINS"]),
+    },
+    {
+      id: "INDIA",
+      label: "India local pulse",
+      region: "NIFTY · INR",
+      score: indiaScore,
+      available: [nifty, usdInr].filter((value) => value !== null).length,
+      status: cueStatus(indiaScore),
+      metric: "NIFTY " + cueMove(nifty) + " · USD/INR " + cueMove(usdInr),
+      transmission: "imported inflation, IT exporter translation and domestic risk appetite",
+      affected: "INDIA BOOK · US TECH SERVICES · ENERGY USERS",
+      headline: cueHeadline(news, ["INDIA"], ["INR"]),
+    },
+    {
+      id: "LIQUIDITY",
+      label: "Global liquidity",
+      region: "EM · USD · CRYPTO",
+      score: liquidityScore,
+      available: [emerging, bitcoin, dxy].filter((value) => value !== null).length,
+      status: cueStatus(liquidityScore),
+      metric: "EEM " + cueMove(emerging) + " · BTC " + cueMove(bitcoin) + " · DXY " + cueMove(dxy),
+      transmission: "risk appetite, funding stress, high-beta equity and crypto sensitivity",
+      affected: "BTC · NVDA · TSLA · IWM",
+      headline: cueHeadline(news, ["GLOBAL", "EM"], ["RISK APPETITE", "LIQUIDITY"]),
+    },
+  ];
+
+  return cues;
+}
+
+function GlobalCueRadar({
+  cues,
+  marketCount,
+  headlineCount,
+  topicCount,
+  loading,
+  onOpenCrossAsset,
+  onOpenRisk,
+}: {
+  cues: GlobalCue[];
+  marketCount: number;
+  headlineCount: number;
+  topicCount: number;
+  loading: boolean;
+  onOpenCrossAsset: () => void;
+  onOpenRisk: () => void;
+}) {
+  return (
+    <section className="border border-info/30 bg-info/[0.018]">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-info/20 px-3 py-2">
+        <div>
+          <div className="mono-caps text-[9px] text-info">GLOBAL CUE RADAR · LIVE TRANSMISSION</div>
+          <div className="mono-caps mt-0.5 text-[7px] text-faint">
+            {loading
+              ? "BUILDING CROSS-REGION MAP"
+              : String(marketCount) +
+                " MARKETS · " +
+                String(topicCount) +
+                " NEWS CHANNELS · " +
+                String(headlineCount) +
+                " HEADLINES"}
+          </div>
+        </div>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={onOpenCrossAsset}
+            className="mono-caps border border-info/40 px-2 py-1 text-[7px] text-info hover:bg-info/10"
+          >
+            CROSS-ASSET DESK →
+          </button>
+          <button
+            type="button"
+            onClick={onOpenRisk}
+            className="mono-caps border border-border px-2 py-1 text-[7px] text-muted-foreground hover:border-primary hover:text-primary"
+          >
+            STRESS BOOK →
+          </button>
+        </div>
+      </div>
+      <div className="grid md:grid-cols-2 xl:grid-cols-3">
+        {cues.map((cue) => {
+          const positive = cue.score > 0.18;
+          const negative = cue.score < -0.18;
+          const tone = positive ? "text-up" : negative ? "text-down" : "text-primary";
+          const barStart = cue.score >= 0 ? 50 : 50 + cue.score * 50;
+          return (
+            <div
+              key={cue.id}
+              className="min-w-0 border-b border-r border-divider/70 p-3 last:border-b-0"
+            >
+              <div className="mono-caps flex items-center justify-between gap-2 text-[7px]">
+                <span className="text-faint">{cue.region}</span>
+                <span className={tone}>{cue.status}</span>
+              </div>
+              <div className="mt-1 flex items-baseline justify-between gap-2">
+                <span className="mono-caps text-[10px] text-foreground">{cue.label}</span>
+                <span className={["font-mono text-[10px] tabular-nums", tone].join(" ")}>
+                  {cue.score >= 0 ? "+" : ""}
+                  {Math.round(cue.score * 100)}
+                </span>
+              </div>
+              <div className="relative mt-2 h-1 overflow-hidden bg-background">
+                <span className="absolute inset-y-0 left-1/2 w-px bg-border" />
+                <span
+                  className={[
+                    "absolute inset-y-0",
+                    positive ? "bg-up" : negative ? "bg-down" : "bg-primary",
+                  ].join(" ")}
+                  style={{
+                    left: String(barStart) + "%",
+                    width: String(Math.abs(cue.score) * 50) + "%",
+                  }}
+                />
+              </div>
+              <div
+                className="mono-caps mt-2 truncate text-[7px] text-muted-foreground"
+                title={cue.metric}
+              >
+                {cue.metric}
+              </div>
+              <div className="mt-1 line-clamp-2 text-[9px] leading-snug text-foreground/85">
+                {cue.headline}
+              </div>
+              <div className="mono-caps mt-2 text-[6px] leading-relaxed text-faint">
+                CHANNEL · {cue.transmission}
+              </div>
+              <div className="mono-caps mt-1 text-[6px] text-info/80">EXPOSED · {cue.affected}</div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+type ExposureProfile = {
+  weights: Partial<Record<GlobalCueId, number>>;
+  why: string;
+};
+
+const DEFAULT_EXPOSURE: ExposureProfile = {
+  weights: {
+    ASIA: 0.2,
+    EUROPE: 0.2,
+    CONDITIONS: 0.55,
+    COMMODITIES: 0.2,
+    INDIA: 0.05,
+    LIQUIDITY: 0.4,
+  },
+  why: "Broad beta through global growth, financial conditions and liquidity.",
+};
+
+const GLOBAL_EXPOSURES: Record<string, ExposureProfile> = {
+  SPY: DEFAULT_EXPOSURE,
+  QQQ: {
+    weights: {
+      ASIA: 0.4,
+      EUROPE: 0.2,
+      CONDITIONS: 0.9,
+      COMMODITIES: 0.1,
+      INDIA: 0.05,
+      LIQUIDITY: 0.65,
+    },
+    why: "Long-duration growth; sensitive to yields, USD liquidity and Asian technology demand.",
+  },
+  IWM: {
+    weights: {
+      ASIA: 0.05,
+      EUROPE: 0.05,
+      CONDITIONS: 0.75,
+      COMMODITIES: 0.35,
+      INDIA: 0.05,
+      LIQUIDITY: 0.55,
+    },
+    why: "Domestic cyclicals depend on funding conditions, input costs and broad liquidity.",
+  },
+  NVDA: {
+    weights: {
+      ASIA: 1,
+      EUROPE: 0.15,
+      CONDITIONS: 0.75,
+      COMMODITIES: 0.25,
+      INDIA: 0.1,
+      LIQUIDITY: 0.65,
+    },
+    why: "Asian semiconductor chain and China demand compound high-duration valuation sensitivity.",
+  },
+  AAPL: {
+    weights: {
+      ASIA: 0.95,
+      EUROPE: 0.4,
+      CONDITIONS: 0.5,
+      COMMODITIES: 0.2,
+      INDIA: 0.2,
+      LIQUIDITY: 0.35,
+    },
+    why: "China supply/demand, global consumer FX translation and premium-device demand.",
+  },
+  MSFT: {
+    weights: {
+      ASIA: 0.15,
+      EUROPE: 0.45,
+      CONDITIONS: 0.75,
+      COMMODITIES: 0.05,
+      INDIA: 0.15,
+      LIQUIDITY: 0.5,
+    },
+    why: "Global enterprise demand, European FX translation and long-duration discount rates.",
+  },
+  TSLA: {
+    weights: {
+      ASIA: 0.9,
+      EUROPE: 0.65,
+      CONDITIONS: 0.85,
+      COMMODITIES: 0.55,
+      INDIA: 0.05,
+      LIQUIDITY: 0.65,
+    },
+    why: "China/Europe auto demand, metals and energy inputs, plus financing-sensitive valuation.",
+  },
+  AMZN: {
+    weights: {
+      ASIA: 0.15,
+      EUROPE: 0.3,
+      CONDITIONS: 0.6,
+      COMMODITIES: 0.7,
+      INDIA: 0.1,
+      LIQUIDITY: 0.4,
+    },
+    why: "Freight and fuel costs, consumer demand, AWS duration and international translation.",
+  },
+  META: {
+    weights: {
+      ASIA: 0.15,
+      EUROPE: 0.6,
+      CONDITIONS: 0.7,
+      COMMODITIES: 0.05,
+      INDIA: 0.2,
+      LIQUIDITY: 0.5,
+    },
+    why: "Global advertising cycle, European regulation/FX and duration-heavy valuation.",
+  },
+  GOOGL: {
+    weights: {
+      ASIA: 0.2,
+      EUROPE: 0.6,
+      CONDITIONS: 0.7,
+      COMMODITIES: 0.05,
+      INDIA: 0.2,
+      LIQUIDITY: 0.5,
+    },
+    why: "Global search/ad demand, European regulation and financial-condition sensitivity.",
+  },
+  "BTC-USD": {
+    weights: {
+      ASIA: 0.25,
+      EUROPE: 0.1,
+      CONDITIONS: 0.75,
+      COMMODITIES: 0,
+      INDIA: 0.05,
+      LIQUIDITY: 1.1,
+    },
+    why: "Dollar liquidity, real-rate pressure and global high-beta risk appetite dominate.",
+  },
+};
+
+function GlobalTransmissionMatrix({ cues, symbols }: { cues: GlobalCue[]; symbols: string[] }) {
+  const cueMap = new Map(cues.map((cue) => [cue.id, cue]));
+  const rows = Array.from(new Set(symbols)).map((symbol) => {
+    const profile = GLOBAL_EXPOSURES[symbol] ?? DEFAULT_EXPOSURE;
+    const contributions = (Object.entries(profile.weights) as Array<[GlobalCueId, number]>).map(
+      ([id, weight]) => ({
+        cue: cueMap.get(id),
+        value: (cueMap.get(id)?.score ?? 0) * weight,
+        weight,
+      }),
+    );
+    const denominator =
+      contributions.reduce((sum, contribution) => sum + Math.abs(contribution.weight), 0) || 1;
+    const score =
+      contributions.reduce((sum, contribution) => sum + contribution.value, 0) / denominator;
+    const primary = [...contributions].sort((a, b) => Math.abs(b.value) - Math.abs(a.value))[0];
+    const available = cues.reduce((sum, cue) => sum + (cue.available > 0 ? 1 : 0), 0);
+    const confidence = Math.min(95, Math.round(40 + available * 7 + Math.abs(score) * 20));
+    const bias = score > 0.12 ? "TAILWIND" : score < -0.12 ? "CROSSWIND" : "MIXED";
+    return {
+      symbol,
+      score,
+      bias,
+      confidence,
+      primary: primary?.cue?.label ?? "Data pending",
+      why: profile.why,
+    };
+  });
+
+  return (
+    <section className="border border-divider bg-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-3 py-2">
+        <div>
+          <div className="mono-caps text-[9px] text-primary">
+            GLOBAL TRANSMISSION MATRIX · ALL TRACKED ASSETS
+          </div>
+          <div className="mono-caps mt-0.5 text-[7px] text-faint">
+            LIVE CUES × DECLARED EXPOSURE WEIGHTS · SCENARIO SENSITIVITY, NOT A PRICE FORECAST
+          </div>
+        </div>
+        <span className="mono-caps border border-border px-2 py-1 text-[7px] text-faint">
+          {cues.filter((cue) => cue.available > 0).length}/{cues.length} CUES LIVE
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[820px]">
+          <div className="mono-caps grid grid-cols-[74px_92px_86px_170px_minmax(260px,1fr)] gap-3 border-b border-divider px-3 py-1.5 text-[7px] text-faint">
+            <span>ASSET</span>
+            <span>GLOBAL BIAS</span>
+            <span>CONFIDENCE</span>
+            <span>PRIMARY CHANNEL</span>
+            <span>WHY IT TRANSMITS</span>
+          </div>
+          <div className="divide-y divide-divider/70">
+            {rows.map((row) => {
+              const tone =
+                row.bias === "TAILWIND"
+                  ? "text-up"
+                  : row.bias === "CROSSWIND"
+                    ? "text-down"
+                    : "text-primary";
+              return (
+                <div
+                  key={row.symbol}
+                  className="grid grid-cols-[74px_92px_86px_170px_minmax(260px,1fr)] items-center gap-3 px-3 py-2 hover:bg-raised"
+                >
+                  <span className="mono-caps text-[9px] text-foreground">{row.symbol}</span>
+                  <span className={["mono-caps text-[8px]", tone].join(" ")}>
+                    {row.bias} · {row.score >= 0 ? "+" : ""}
+                    {Math.round(row.score * 100)}
+                  </span>
+                  <span className="font-mono text-[9px] tabular-nums text-info">
+                    {row.confidence}% · MAP
+                  </span>
+                  <span
+                    className="mono-caps truncate text-[7px] text-muted-foreground"
+                    title={row.primary}
+                  >
+                    {row.primary}
+                  </span>
+                  <span className="text-[9px] leading-snug text-muted-foreground">{row.why}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 function DecisionGraph({
   spyPct,
   vix,

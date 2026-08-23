@@ -1,9 +1,9 @@
 // FinSight book — multi-asset simulated portfolio.
-// Equities + commodities futures + option positions. All consistent, all mock.
+// The authenticated paper book is authoritative; market marks can be refreshed
+// from the live tape without fabricating any holdings.
 
 import { seedInstrument, TICKERS } from "./market";
 import { getDemoBook, subscribeDemoBook } from "./demoBook";
-
 
 export type AssetClass = "EQUITY" | "COMMODITY" | "OPTION";
 
@@ -12,20 +12,23 @@ export type Position = {
   cls: AssetClass;
   symbol: string;
   name: string;
-  qty: number;         // shares / contracts
+  qty: number; // shares / contracts
   entry: number;
   mark: number;
   pnl: number;
-  mv: number;          // market value (signed for shorts)
-  gross: number;       // |mv|
+  mv: number; // market value (signed for shorts)
+  gross: number; // |mv|
   sector?: string;
   beta?: number;
-  vol: number;         // annualized vol
+  vol: number; // annualized vol
+  riskNotional?: number; // signed delta-equivalent exposure used by the risk model
   // options only
+  underlier?: string;
+  underlyingMark?: number;
   optType?: "C" | "P";
   strike?: number;
   daysToExpiry?: number;
-  delta?: number;      // per contract
+  delta?: number; // per contract
   gamma?: number;
   vega?: number;
   theta?: number;
@@ -33,23 +36,85 @@ export type Position = {
 
 // ─── Commodity spec ──────────────────────────────────────────────────
 export type CommodityCfg = {
-  symbol: string;      // ticker
+  symbol: string; // ticker
   name: string;
   contractSize: number;
-  multiplier: number;  // $ per unit
+  multiplier: number; // $ per unit
   spot: number;
-  vol: number;         // annualized
+  vol: number; // annualized
   curveShape: "contango" | "backwardation" | "flat";
-  slope: number;       // %/month (positive=contango)
+  slope: number; // %/month (positive=contango)
 };
 
 export const COMMODITIES: Record<string, CommodityCfg> = {
-  GC: { symbol: "GC", name: "Gold",     contractSize: 100,   multiplier: 100,   spot: 2680.50, vol: 0.16, curveShape: "contango",      slope:  0.30 },
-  CL: { symbol: "CL", name: "WTI Crude", contractSize: 1000, multiplier: 1000,  spot:   74.82, vol: 0.32, curveShape: "backwardation", slope: -0.85 },
-  NG: { symbol: "NG", name: "Nat Gas",   contractSize: 10000, multiplier: 10000, spot:    3.42, vol: 0.55, curveShape: "contango",      slope:  1.80 },
-  HG: { symbol: "HG", name: "Copper",    contractSize: 25000, multiplier: 25000, spot:    4.28, vol: 0.24, curveShape: "contango",      slope:  0.45 },
-  SI: { symbol: "SI", name: "Silver",    contractSize: 5000,  multiplier: 5000,  spot:   31.65, vol: 0.28, curveShape: "backwardation", slope: -0.20 },
-  W:  { symbol: "W",  name: "Wheat",     contractSize: 5000,  multiplier: 5000,  spot:    5.62, vol: 0.28, curveShape: "contango",      slope:  0.65 },
+  GC: {
+    symbol: "GC",
+    name: "Gold",
+    contractSize: 100,
+    multiplier: 100,
+    spot: 2680.5,
+    vol: 0.16,
+    curveShape: "contango",
+    slope: 0.3,
+  },
+  CL: {
+    symbol: "CL",
+    name: "WTI Crude",
+    contractSize: 1000,
+    multiplier: 1000,
+    spot: 74.82,
+    vol: 0.32,
+    curveShape: "backwardation",
+    slope: -0.85,
+  },
+  NG: {
+    symbol: "NG",
+    name: "Nat Gas",
+    contractSize: 10000,
+    multiplier: 10000,
+    spot: 3.42,
+    vol: 0.55,
+    curveShape: "contango",
+    slope: 1.8,
+  },
+  HG: {
+    symbol: "HG",
+    name: "Copper",
+    contractSize: 25000,
+    multiplier: 25000,
+    spot: 4.28,
+    vol: 0.24,
+    curveShape: "contango",
+    slope: 0.45,
+  },
+  SI: {
+    symbol: "SI",
+    name: "Silver",
+    contractSize: 5000,
+    multiplier: 5000,
+    spot: 31.65,
+    vol: 0.28,
+    curveShape: "backwardation",
+    slope: -0.2,
+  },
+  W: {
+    symbol: "W",
+    name: "Wheat",
+    contractSize: 5000,
+    multiplier: 5000,
+    spot: 5.62,
+    vol: 0.28,
+    curveShape: "contango",
+    slope: 0.65,
+  },
+};
+export const COMMODITY_QUOTES: Record<string, string> = {
+  GC: "GC=F",
+  CL: "CL=F",
+  NG: "NG=F",
+  HG: "HG=F",
+  SI: "SI=F",
+  W: "ZW=F",
 };
 
 export function futuresCurve(sym: string): { month: number; label: string; price: number }[] {
@@ -57,7 +122,20 @@ export function futuresCurve(sym: string): { month: number; label: string; price
   if (!c) return [];
   const months = 12;
   const now = new Date();
-  const monthNames = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  const monthNames = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+  ];
   return Array.from({ length: months }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() + i + 1, 1);
     const label = `${monthNames[d.getMonth()]}${String(d.getFullYear()).slice(-2)}`;
@@ -70,37 +148,26 @@ export function futuresCurve(sym: string): { month: number; label: string; price
 }
 
 // ─── Build book ──────────────────────────────────────────────────────
-function bs(spot: number, K: number, T: number, sigma: number, r: number, type: "C" | "P") {
-  // Black-Scholes with rough greeks
-  const s = spot, k = K, t = Math.max(0.001, T);
-  const sqT = Math.sqrt(t);
-  const d1 = (Math.log(s / k) + (r + 0.5 * sigma * sigma) * t) / (sigma * sqT);
-  const d2 = d1 - sigma * sqT;
-  const N = (x: number) => 0.5 * (1 + erf(x / Math.SQRT2));
-  const n = (x: number) => Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
-  const price = type === "C"
-    ? s * N(d1) - k * Math.exp(-r * t) * N(d2)
-    : k * Math.exp(-r * t) * N(-d2) - s * N(-d1);
-  const delta = type === "C" ? N(d1) : N(d1) - 1;
-  const gamma = n(d1) / (s * sigma * sqT);
-  const vega = s * n(d1) * sqT * 0.01; // per 1 vol pt
-  const theta = (-(s * n(d1) * sigma) / (2 * sqT)
-    - (type === "C" ? 1 : -1) * r * k * Math.exp(-r * t) * (type === "C" ? N(d2) : N(-d2))) / 365;
-  return { price, delta, gamma, vega, theta };
-}
-function erf(x: number) {
-  const s = Math.sign(x); x = Math.abs(x);
-  const t = 1 / (1 + 0.3275911 * x);
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
-  return s * y;
-}
 
 const EQUITY_SECTORS: Record<string, string> = {
-  NVDA: "Technology", AAPL: "Technology", MSFT: "Technology", META: "Comm Svcs",
-  GOOGL: "Comm Svcs", AMZN: "Cons Disc.", TSLA: "Cons Disc.", SPY: "Broad", QQQ: "Technology", "BTC-USD": "Crypto",
+  NVDA: "Technology",
+  AAPL: "Technology",
+  MSFT: "Technology",
+  META: "Comm Svcs",
+  GOOGL: "Comm Svcs",
+  AMZN: "Cons Disc.",
+  TSLA: "Cons Disc.",
+  SPY: "Broad",
+  QQQ: "Technology",
+  "BTC-USD": "Crypto",
 };
 const COMMODITY_SECTOR: Record<string, string> = {
-  GC: "Precious", SI: "Precious", CL: "Energy", NG: "Energy", HG: "Metals", W: "Agri",
+  GC: "Precious",
+  SI: "Precious",
+  CL: "Energy",
+  NG: "Energy",
+  HG: "Metals",
+  W: "Agri",
 };
 
 export type Book = {
@@ -113,104 +180,55 @@ export type Book = {
   pnlDay: number;
   updatedAt: number;
 };
-
-const NAV_BASE = 10_000_000;
-
-// Positions template — realistic sizing on a $10M book
-const TEMPLATE = {
-  equities: [
-    { sym: "NVDA", qty:  8000, entryOffset: -0.062 },
-    { sym: "AAPL", qty:  4200, entryOffset:  0.018 },
-    { sym: "MSFT", qty:  1800, entryOffset: -0.024 },
-    { sym: "META", qty:  1400, entryOffset:  0.041 },
-    { sym: "GOOGL", qty: 3400, entryOffset: -0.011 },
-    { sym: "AMZN", qty: -2200, entryOffset:  0.032 },  // short
-    { sym: "TSLA", qty: -1800, entryOffset:  0.058 },  // short
-    { sym: "SPY",  qty:  1200, entryOffset:  0.007 },
-  ],
-  commodities: [
-    { sym: "GC",  qty:  8 },
-    { sym: "CL",  qty: 20 },
-    { sym: "NG",  qty: -15 }, // short
-    { sym: "HG",  qty: 10 },
-    { sym: "SI",  qty:  6 },
-  ],
-  options: [
-    { under: "SPY",  type: "P" as const, strikeOffset: -0.03, dte: 30, qty: -15 }, // short put — collect premium
-    { under: "NVDA", type: "C" as const, strikeOffset:  0.05, dte: 45, qty:  25 }, // long call
-  ],
-};
+let marketMarks = new Map<string, number>();
 
 function buildPositions(): Position[] {
   const out: Position[] = [];
   const insts: Record<string, ReturnType<typeof seedInstrument>> = {};
   for (const s of TICKERS) insts[s] = seedInstrument(s);
 
-  // Equities — pull from the shared demo book so RISK reads user edits.
-  let equityPositions: Array<{ symbol: string; qty: number; entry: number }> = getDemoBook();
-  if (!equityPositions.length) {
-    equityPositions = TEMPLATE.equities.map((e) => {
-      const inst = insts[e.sym];
-      const entry = (inst?.prevClose ?? 100) * (1 + e.entryOffset);
-      return { symbol: e.sym, qty: e.qty, entry };
-    });
-  }
-  for (const e of equityPositions) {
-    const inst = insts[e.symbol];
-    if (!inst) continue;
-    const mv = e.qty * inst.price;
-    out.push({
-      id: `EQ-${e.symbol}`, cls: "EQUITY", symbol: e.symbol, name: inst.name,
-      qty: e.qty, entry: e.entry, mark: inst.price,
-      pnl: (inst.price - e.entry) * e.qty,
-      mv, gross: Math.abs(mv),
-      sector: EQUITY_SECTORS[e.symbol] ?? "Other",
-      beta: inst.beta, vol: inst.annualVol,
-    });
-  }
+  // The authenticated paper book is authoritative. Empty means empty: never
+  // inject sample equities, futures, or options into a user's risk totals.
+  for (const position of getDemoBook()) {
+    const commodity = COMMODITIES[position.symbol];
+    if (commodity) {
+      const mark = marketMarks.get(position.symbol) ?? commodity.spot;
+      const mv = position.qty * mark * commodity.multiplier;
+      out.push({
+        id: `CM-${position.symbol}`,
+        cls: "COMMODITY",
+        symbol: position.symbol,
+        name: commodity.name,
+        qty: position.qty,
+        entry: position.entry,
+        mark,
+        pnl: (mark - position.entry) * position.qty * commodity.multiplier,
+        mv,
+        gross: Math.abs(mv),
+        sector: COMMODITY_SECTOR[position.symbol] ?? "Commodities",
+        beta: 0.15,
+        vol: commodity.vol,
+      });
+      continue;
+    }
 
-  // Commodities futures
-  for (const c of TEMPLATE.commodities) {
-    const cfg = COMMODITIES[c.sym];
-    if (!cfg) continue;
-    // small mark drift so P&L isn't 0
-    const drift = (Math.sin((cfg.spot * 13) % 6.28)) * 0.008;
-    const mark = cfg.spot * (1 + drift);
-    const entry = cfg.spot * (1 - drift * 0.7);
-    const mv = c.qty * mark * cfg.multiplier;
+    const inst = insts[position.symbol] ?? seedInstrument(position.symbol);
+    const mark = marketMarks.get(position.symbol) ?? inst.price;
+    const mv = position.qty * mark;
     out.push({
-      id: `CM-${c.sym}`, cls: "COMMODITY", symbol: c.sym, name: cfg.name,
-      qty: c.qty, entry, mark,
-      pnl: (mark - entry) * c.qty * cfg.multiplier,
-      mv, gross: Math.abs(mv),
-      sector: COMMODITY_SECTOR[c.sym] ?? "Commodities",
-      beta: 0.15, vol: cfg.vol,
-    });
-  }
-
-  // Options
-  for (const o of TEMPLATE.options) {
-    const inst = insts[o.under];
-    if (!inst) continue;
-    const strike = Math.round(inst.price * (1 + o.strikeOffset));
-    const T = o.dte / 365;
-    const g = bs(inst.price, strike, T, inst.annualVol, 0.045, o.type);
-    const entryPrice = g.price * (o.qty > 0 ? 0.86 : 1.12); // pretend we entered richer
-    const mv = o.qty * g.price * 100;
-    out.push({
-      id: `OP-${o.under}-${o.type}${strike}`, cls: "OPTION",
-      symbol: `${o.under} ${o.type}${strike} ${o.dte}D`,
-      name: `${o.under} ${o.type === "C" ? "Call" : "Put"} $${strike} ${o.dte}D`,
-      qty: o.qty, entry: entryPrice, mark: g.price,
-      pnl: (g.price - entryPrice) * o.qty * 100,
-      mv, gross: Math.abs(mv),
-      sector: "Options",
-      beta: inst.beta, vol: inst.annualVol,
-      optType: o.type, strike, daysToExpiry: o.dte,
-      delta: g.delta * o.qty * 100,
-      gamma: g.gamma * o.qty * 100,
-      vega: g.vega * o.qty * 100,
-      theta: g.theta * o.qty * 100,
+      id: `EQ-${position.symbol}`,
+      cls: "EQUITY",
+      symbol: position.symbol,
+      name: inst.name,
+      qty: position.qty,
+      entry: position.entry,
+      mark,
+      pnl: (mark - position.entry) * position.qty,
+      mv,
+      gross: Math.abs(mv),
+      sector: EQUITY_SECTORS[position.symbol] ?? "Other",
+      beta: inst.beta,
+      vol: inst.annualVol,
     });
   }
 
@@ -218,17 +236,35 @@ function buildPositions(): Position[] {
 }
 
 function summarize(positions: Position[]): Book {
-  let long = 0, short = 0, pnlDay = 0;
+  let long = 0,
+    short = 0,
+    pnlDay = 0,
+    investedCapital = 0;
   for (const p of positions) {
-    if (p.mv >= 0) long += p.mv; else short += p.mv;
+    if (p.mv >= 0) long += p.mv;
+    else short += p.mv;
     pnlDay += p.pnl;
+    if (p.cls === "COMMODITY") {
+      const multiplier = COMMODITIES[p.symbol]?.multiplier ?? 1;
+      investedCapital += Math.abs(p.entry * p.qty * multiplier);
+    } else if (p.cls === "OPTION") {
+      investedCapital += Math.abs(p.entry * p.qty * 100);
+    } else {
+      investedCapital += Math.abs(p.entry * p.qty);
+    }
   }
   const gross = long + Math.abs(short);
   const net = long + short;
   return {
     positions,
-    nav: NAV_BASE + pnlDay,
-    gross, net, long, short, pnlDay,
+    // Cost-basis capital is the only defensible NAV proxy until broker cash is
+    // connected. Empty books report zero instead of a fabricated $10M NAV.
+    nav: positions.length ? Math.max(0, investedCapital + pnlDay) : 0,
+    gross,
+    net,
+    long,
+    short,
+    pnlDay,
     updatedAt: Date.now(),
   };
 }
@@ -251,7 +287,9 @@ export function getBook(): Book {
 export function subscribe(fn: Sub) {
   subs.add(fn);
   fn(getBook());
-  return () => { subs.delete(fn); };
+  return () => {
+    subs.delete(fn);
+  };
 }
 function emit() {
   const b = getBook();
@@ -266,7 +304,9 @@ export function removeHedge(id: string) {
   overlays = overlays.filter((o) => o.id !== id);
   emit();
 }
-export function activeHedges(): string[] { return overlays.map((o) => o.id); }
+export function activeHedges(): string[] {
+  return overlays.map((o) => o.id);
+}
 
 export function resetBook() {
   baseBook = summarize(buildPositions());
@@ -274,6 +314,21 @@ export function resetBook() {
   emit();
 }
 
+/** Refresh marks for existing paper-book symbols without changing positions. */
+export function updateBookMarks(next: Record<string, number>) {
+  let changed = false;
+  const updated = new Map(marketMarks);
+  for (const [symbol, mark] of Object.entries(next)) {
+    if (!Number.isFinite(mark) || mark <= 0) continue;
+    if (updated.get(symbol) === mark) continue;
+    updated.set(symbol, mark);
+    changed = true;
+  }
+  if (!changed) return;
+  marketMarks = updated;
+  baseBook = summarize(buildPositions());
+  emit();
+}
 // Rebuild base book whenever the shared demo book changes so RISK follows edits.
 subscribeDemoBook(() => {
   baseBook = summarize(buildPositions());
@@ -285,31 +340,73 @@ export type VaRMethod = "PARAMETRIC" | "HISTORICAL" | "MONTE_CARLO";
 
 function normInv(p: number) {
   // Beasley-Springer / Moro
-  const a = [-39.6968302866538, 220.946098424521, -275.928510446969, 138.357751867269, -30.6647980661472, 2.50662827745924];
-  const b = [-54.4760987982241, 161.585836858041, -155.698979859887, 66.8013118877197, -13.2806815528857];
-  const c = [-0.00778489400243029, -0.322396458041136, -2.40075827716184, -2.54973253934373, 4.37466414146497, 2.93816398269878];
+  const a = [
+    -39.6968302866538, 220.946098424521, -275.928510446969, 138.357751867269, -30.6647980661472,
+    2.50662827745924,
+  ];
+  const b = [
+    -54.4760987982241, 161.585836858041, -155.698979859887, 66.8013118877197, -13.2806815528857,
+  ];
+  const c = [
+    -0.00778489400243029, -0.322396458041136, -2.40075827716184, -2.54973253934373,
+    4.37466414146497, 2.93816398269878,
+  ];
   const d = [0.00778469570904146, 0.32246712907004, 2.445134137143, 3.75440866190742];
   const pl = 0.02425;
   let q, r, x;
-  if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); x = (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
-  else if (p <= 1 - pl) { q = p - 0.5; r = q*q; x = (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
-  else { q = Math.sqrt(-2 * Math.log(1-p)); x = -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if (p < pl) {
+    q = Math.sqrt(-2 * Math.log(p));
+    x =
+      (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  } else if (p <= 1 - pl) {
+    q = p - 0.5;
+    r = q * q;
+    x =
+      ((((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q) /
+      (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  } else {
+    q = Math.sqrt(-2 * Math.log(1 - p));
+    x =
+      -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+      ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+  }
   return x;
 }
 
-/** Portfolio 1-day dollar sigma using position-level vols and rough correlation. */
+function riskKey(p: Position): string {
+  return p.underlier ?? p.symbol;
+}
+
+function riskNotional(p: Position): number {
+  return p.riskNotional ?? p.mv;
+}
+
+function correlation(a: Position, b: Position): number {
+  if (a.id === b.id) return 1;
+  if (riskKey(a) === riskKey(b)) return 1;
+  if (a.sector && b.sector && a.sector === b.sector) return 0.55;
+  if (a.cls === b.cls) {
+    if (a.cls === "EQUITY") return 0.38;
+    if (a.cls === "COMMODITY") return 0.18;
+    return 0.32;
+  }
+  if (a.cls === "OPTION" || b.cls === "OPTION") return 0.22;
+  return 0.08;
+}
+
+function dailySignedRisk(p: Position): number {
+  return (p.vol / Math.sqrt(252)) * riskNotional(p);
+}
+
+/** Portfolio 1-day dollar sigma using signed exposures and a transparent correlation proxy. */
 export function portfolioSigma(positions: Position[]): number {
-  const sig1d = (p: Position) => (p.vol / Math.sqrt(252)) * Math.abs(p.mv);
-  // Assume avg correlation 0.35 for equities, 0.15 across classes
-  let total = 0, n = 0;
-  const s = positions.map(sig1d);
-  const cls = positions.map((p) => p.cls);
+  let total = 0;
+  const s = positions.map(dailySignedRisk);
   for (let i = 0; i < s.length; i++) {
     for (let j = 0; j < s.length; j++) {
-      const rho = i === j ? 1 : (cls[i] === cls[j] ? 0.35 : 0.10);
-      total += s[i] * s[j] * rho;
+      total += s[i] * s[j] * correlation(positions[i], positions[j]);
     }
-    n++;
   }
   return Math.sqrt(Math.max(0, total));
 }
@@ -318,15 +415,22 @@ export function var1d(book: Book, method: VaRMethod, conf: number): { var: numbe
   const sigma = portfolioSigma(book.positions);
   const z = Math.abs(normInv(1 - conf));
   const paramVar = z * sigma;
-  const paramES = sigma * Math.exp(-0.5 * z * z) / (Math.sqrt(2 * Math.PI) * (1 - conf));
+  const paramES = (sigma * Math.exp(-0.5 * z * z)) / (Math.sqrt(2 * Math.PI) * (1 - conf));
   if (method === "PARAMETRIC") return { var: paramVar, es: paramES };
   if (method === "HISTORICAL") {
-    // simulate 500 fat-tailed daily P&Ls
+    // Deterministic fat-tailed proxy with a common market factor and idiosyncratic shocks.
     const rng = mulberry32(42);
     const pnls: number[] = [];
-    for (let i = 0; i < 500; i++) {
-      const z = studentT(rng, 5);
-      pnls.push(z * sigma);
+    for (let i = 0; i < 1500; i++) {
+      const common = studentT(rng, 5);
+      let pnl = 0;
+      for (const p of book.positions) {
+        const idio = studentT(rng, 7);
+        const factorWeight = p.cls === "COMMODITY" ? 0.35 : 0.62;
+        const shock = factorWeight * common + Math.sqrt(1 - factorWeight ** 2) * idio;
+        pnl += shock * dailySignedRisk(p);
+      }
+      pnls.push(pnl);
     }
     pnls.sort((a, b) => a - b);
     const k = Math.floor((1 - conf) * pnls.length);
@@ -339,85 +443,294 @@ export function var1d(book: Book, method: VaRMethod, conf: number): { var: numbe
   const N = 2000;
   const pnls: number[] = [];
   for (let i = 0; i < N; i++) {
-    let s = 0;
+    const equityFactor = boxMuller(rng);
+    const commodityFactor = 0.12 * equityFactor + Math.sqrt(1 - 0.12 ** 2) * boxMuller(rng);
+    let pnl = 0;
     for (const p of book.positions) {
-      const z = boxMuller(rng);
-      s += z * (p.vol / Math.sqrt(252)) * p.mv;
+      const common = p.cls === "COMMODITY" ? commodityFactor : equityFactor;
+      const factorWeight = p.cls === "COMMODITY" ? 0.42 : 0.64;
+      const z = factorWeight * common + Math.sqrt(1 - factorWeight ** 2) * boxMuller(rng);
+      pnl += z * dailySignedRisk(p);
     }
-    pnls.push(s);
+    pnls.push(pnl);
   }
   pnls.sort((a, b) => a - b);
   const k = Math.floor((1 - conf) * N);
-  return { var: Math.abs(pnls[k]), es: Math.abs(pnls.slice(0, Math.max(1, k)).reduce((a, b) => a + b, 0) / Math.max(1, k)) };
+  return {
+    var: Math.abs(pnls[k]),
+    es: Math.abs(pnls.slice(0, Math.max(1, k)).reduce((a, b) => a + b, 0) / Math.max(1, k)),
+  };
 }
 function mulberry32(seed: number) {
   let a = seed >>> 0;
-  return () => { a += 0x6D2B79F5; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  return () => {
+    a += 0x6d2b79f5;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 function boxMuller(rng: () => number) {
-  const u = Math.max(1e-9, rng()); const v = rng();
+  const u = Math.max(1e-9, rng());
+  const v = rng();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 function studentT(rng: () => number, df: number) {
   // approx: gaussian / sqrt(chi2/df)
   const z = boxMuller(rng);
   let chi = 0;
-  for (let i = 0; i < df; i++) { const g = boxMuller(rng); chi += g * g; }
+  for (let i = 0; i < df; i++) {
+    const g = boxMuller(rng);
+    chi += g * g;
+  }
   return z / Math.sqrt(chi / df);
 }
 
-/** Marginal VaR contribution per position (approx via component vol). */
-export function riskContributions(book: Book): { pos: Position; contribPct: number; dollar: number }[] {
-  const sigmas = book.positions.map((p) => (p.vol / Math.sqrt(252)) * Math.abs(p.mv));
-  const total = sigmas.reduce((a, b) => a + b, 0) || 1;
-  return book.positions.map((p, i) => ({
-    pos: p,
-    contribPct: sigmas[i] / total,
-    dollar: sigmas[i] * 1.65, // ~95% single-name
-  }));
+/** Euler contribution to 95% parametric VaR. Negative values identify diversifiers. */
+export function riskContributions(
+  book: Book,
+): { pos: Position; contribPct: number; dollar: number }[] {
+  const signed = book.positions.map(dailySignedRisk);
+  const variance = portfolioSigma(book.positions) ** 2;
+  if (variance <= 0) {
+    return book.positions.map((pos) => ({ pos, contribPct: 0, dollar: 0 }));
+  }
+
+  const var95 = 1.6448536269514722 * Math.sqrt(variance);
+  return book.positions.map((p, i) => {
+    const marginal = book.positions.reduce(
+      (sum, other, j) => sum + correlation(p, other) * signed[j],
+      0,
+    );
+    const share = (signed[i] * marginal) / variance;
+    return { pos: p, contribPct: share, dollar: share * var95 };
+  });
 }
 
 /** Aggregate net greeks across option positions. */
-export function netGreeks(book: Book): { delta: number; gamma: number; vega: number; theta: number } {
-  let delta = 0, gamma = 0, vega = 0, theta = 0;
+export function netGreeks(book: Book): {
+  delta: number;
+  gamma: number;
+  vega: number;
+  theta: number;
+} {
+  let delta = 0,
+    gamma = 0,
+    vega = 0,
+    theta = 0;
   for (const p of book.positions) {
     if (p.cls !== "OPTION") continue;
-    delta += p.delta ?? 0; gamma += p.gamma ?? 0; vega += p.vega ?? 0; theta += p.theta ?? 0;
+    delta += p.delta ?? 0;
+    gamma += p.gamma ?? 0;
+    vega += p.vega ?? 0;
+    theta += p.theta ?? 0;
   }
   return { delta, gamma, vega, theta };
 }
 
 // ─── Stress scenarios ────────────────────────────────────────────────
 export type ScenarioShock = {
-  equityPct?: number;   // e.g. -0.15 = -15%
+  equityPct?: number;
   ratesBp?: number;
   oilPct?: number;
   goldPct?: number;
-  volMult?: number;     // multiplier on option vega P&L
+  volMult?: number;
+  techPct?: number;
+  smallCapPct?: number;
+  cryptoPct?: number;
+  indiaPct?: number;
+  usdPct?: number;
+  commodityPct?: number;
 };
-export const SCENARIOS: Record<string, { label: string; shock: ScenarioShock }> = {
-  CRISIS08: { label: "2008 CRISIS",  shock: { equityPct: -0.28, ratesBp: -150, oilPct: -0.35, goldPct: 0.08, volMult: 2.5 } },
-  COVID:    { label: "COVID CRASH",  shock: { equityPct: -0.20, ratesBp: -100, oilPct: -0.45, goldPct: 0.05, volMult: 3.0 } },
-  RATES100: { label: "RATES +100BP", shock: { equityPct: -0.06, ratesBp:  100, oilPct: -0.02, goldPct: -0.04, volMult: 1.3 } },
-  OIL20:    { label: "OIL +20%",     shock: { equityPct: -0.02, ratesBp:   20, oilPct:  0.20, goldPct: 0.02, volMult: 1.1 } },
-  TECH15:   { label: "TECH -15%",    shock: { equityPct: -0.15, ratesBp:    0, oilPct:  0.00, goldPct: 0.03, volMult: 1.4 } },
+export const SCENARIOS: Record<
+  string,
+  { label: string; description: string; shock: ScenarioShock }
+> = {
+  CRISIS08: {
+    label: "2008 CRISIS",
+    description: "Deep equity and oil liquidation with a severe volatility shock.",
+    shock: { equityPct: -0.28, ratesBp: -150, oilPct: -0.35, goldPct: 0.08, volMult: 2.5 },
+  },
+  COVID: {
+    label: "COVID CRASH",
+    description: "Fast cross-asset deleveraging, oil collapse, and volatility expansion.",
+    shock: { equityPct: -0.2, ratesBp: -100, oilPct: -0.45, goldPct: 0.05, volMult: 3.0 },
+  },
+  RATES100: {
+    label: "RATES +100BP",
+    description: "Parallel rate shock with additional growth-duration pressure.",
+    shock: { equityPct: -0.06, ratesBp: 100, oilPct: -0.02, goldPct: -0.04, volMult: 1.3 },
+  },
+  OIL20: {
+    label: "OIL +20%",
+    description: "Energy supply shock with a mild inflation and risk-asset spillover.",
+    shock: { equityPct: -0.02, ratesBp: 20, oilPct: 0.2, goldPct: 0.02, volMult: 1.1 },
+  },
+  TECH15: {
+    label: "TECH -15%",
+    description: "Concentrated technology de-rating with higher implied volatility.",
+    shock: { equityPct: -0.04, techPct: -0.15, ratesBp: 35, goldPct: 0.03, volMult: 1.4 },
+  },
+  AI_BUST: {
+    label: "AI BUBBLE BURST",
+    description: "A sharp semiconductor and mega-cap unwind with correlation convergence.",
+    shock: {
+      equityPct: -0.08,
+      techPct: -0.32,
+      ratesBp: -45,
+      oilPct: -0.08,
+      goldPct: 0.06,
+      volMult: 2.2,
+    },
+  },
+  INFLATION: {
+    label: "INFLATION RETURNS",
+    description: "Rates and commodities rise together while long-duration equities compress.",
+    shock: {
+      equityPct: -0.12,
+      techPct: -0.08,
+      ratesBp: 150,
+      oilPct: 0.18,
+      goldPct: 0.08,
+      usdPct: 0.06,
+      volMult: 1.8,
+    },
+  },
+  HARD_LANDING: {
+    label: "HARD LANDING",
+    description: "Growth breaks, credit conditions tighten, and defensive assets outperform.",
+    shock: {
+      equityPct: -0.22,
+      ratesBp: -120,
+      oilPct: -0.28,
+      goldPct: 0.1,
+      commodityPct: -0.12,
+      volMult: 2.4,
+    },
+  },
+  STAGFLATION: {
+    label: "STAGFLATION",
+    description: "Equity contraction with higher rates, energy, gold, and volatility.",
+    shock: {
+      equityPct: -0.16,
+      techPct: -0.08,
+      ratesBp: 125,
+      oilPct: 0.3,
+      goldPct: 0.12,
+      volMult: 2.0,
+    },
+  },
+  USD_SQUEEZE: {
+    label: "USD FUNDING SQUEEZE",
+    description:
+      "A dollar surge drains global liquidity and pressures commodities and risk assets.",
+    shock: {
+      equityPct: -0.07,
+      ratesBp: 65,
+      oilPct: -0.12,
+      goldPct: -0.08,
+      commodityPct: -0.1,
+      usdPct: 0.12,
+      volMult: 1.6,
+    },
+  },
+  MIDEAST: {
+    label: "MIDEAST ESCALATION",
+    description: "A geopolitical energy shock lifts oil, gold, and implied volatility.",
+    shock: { equityPct: -0.08, ratesBp: 35, oilPct: 0.45, goldPct: 0.15, volMult: 1.9 },
+  },
+  INDIA_RISK: {
+    label: "INDIA RISK-OFF",
+    description: "Foreign outflows pressure Indian equities and the rupee while volatility jumps.",
+    shock: { equityPct: -0.05, indiaPct: -0.18, usdPct: 0.04, oilPct: -0.05, volMult: 1.7 },
+  },
+  SMALLCAP: {
+    label: "SMALL-CAP CREDIT CRUNCH",
+    description: "Financing stress hits smaller companies harder than the broad market.",
+    shock: { equityPct: -0.07, smallCapPct: -0.2, ratesBp: 75, oilPct: -0.08, volMult: 1.8 },
+  },
+  CRYPTO: {
+    label: "CRYPTO -45%",
+    description: "Digital assets gap lower and speculative equity beta unwinds.",
+    shock: { equityPct: -0.03, techPct: -0.03, cryptoPct: -0.45, volMult: 2.0 },
+  },
+  CHINA: {
+    label: "CHINA HARD LANDING",
+    description: "Global demand and industrial commodities retrench on a China growth shock.",
+    shock: {
+      equityPct: -0.1,
+      techPct: -0.04,
+      oilPct: -0.18,
+      commodityPct: -0.22,
+      goldPct: 0.05,
+      volMult: 1.7,
+    },
+  },
+  MELT_UP: {
+    label: "LIQUIDITY MELT-UP",
+    description: "Falling volatility and broad risk appetite drive an upside squeeze.",
+    shock: {
+      equityPct: 0.15,
+      techPct: 0.12,
+      smallCapPct: 0.18,
+      cryptoPct: 0.25,
+      oilPct: 0.08,
+      volMult: 0.75,
+    },
+  },
 };
-
-export function stress(book: Book, shock: ScenarioShock): { total: number; byPos: { pos: Position; pnl: number }[] } {
+export function stress(
+  book: Book,
+  shock: ScenarioShock,
+): { total: number; byPos: { pos: Position; pnl: number }[] } {
   const byPos = book.positions.map((p) => {
     let pnl = 0;
     if (p.cls === "EQUITY") {
       const b = p.beta ?? 1;
-      pnl = (shock.equityPct ?? 0) * b * p.mv;
+      const isTech = p.sector === "Technology" || p.sector === "Comm Svcs";
+      const isSmallCap = p.symbol === "IWM" || p.sector === "Small Cap";
+      const isCrypto = p.sector === "Crypto" || p.symbol.includes("BTC");
+      const isIndia = p.symbol.endsWith(".NS") || p.symbol.endsWith(".BO");
+      const duration = isTech ? 4 : p.sector === "Cons Disc." ? 3 : 2;
+      const rateImpact = (-(shock.ratesBp ?? 0) / 10_000) * duration;
+      const thematic =
+        (isTech ? (shock.techPct ?? 0) : 0) +
+        (isSmallCap ? (shock.smallCapPct ?? 0) : 0) +
+        (isCrypto ? (shock.cryptoPct ?? 0) : 0) +
+        (isIndia ? (shock.indiaPct ?? 0) : 0);
+      const dollarDrag = -0.15 * (shock.usdPct ?? 0);
+      pnl = ((shock.equityPct ?? 0) * b + thematic + rateImpact + dollarDrag) * p.mv;
     } else if (p.cls === "COMMODITY") {
-      if (p.symbol === "CL" || p.symbol === "NG") pnl = (shock.oilPct ?? 0) * p.mv;
-      else if (p.symbol === "GC" || p.symbol === "SI") pnl = (shock.goldPct ?? 0) * p.mv;
-      else pnl = (shock.equityPct ?? 0) * 0.4 * p.mv;
+      const rateImpact = -(shock.ratesBp ?? 0) / 10_000;
+      const dollarImpact = -0.65 * (shock.usdPct ?? 0);
+      if (p.symbol === "CL" || p.symbol === "NG")
+        pnl = ((shock.oilPct ?? 0) + (shock.commodityPct ?? 0) + rateImpact + dollarImpact) * p.mv;
+      else if (p.symbol === "GC" || p.symbol === "SI")
+        pnl =
+          ((shock.goldPct ?? 0) +
+            0.35 * (shock.commodityPct ?? 0) -
+            rateImpact * 4 +
+            dollarImpact) *
+          p.mv;
+      else pnl = ((shock.commodityPct ?? 0) + (shock.equityPct ?? 0) * 0.4 + dollarImpact) * p.mv;
     } else if (p.cls === "OPTION") {
-      const dS = (shock.equityPct ?? 0) * (p.beta ?? 1);
-      const under = Math.abs(p.mv) / 100 * 20; // rough
-      const dP = (p.delta ?? 0) * dS * under + 0.5 * (p.gamma ?? 0) * dS * dS * under * under;
-      const vegaPnl = (p.vega ?? 0) * (((shock.volMult ?? 1) - 1) * 20);
+      const underlier = p.underlier ?? "";
+      const isTech = ["NVDA", "QQQ", "AAPL", "MSFT", "META", "GOOGL", "AMZN"].includes(underlier);
+      const isSmallCap = underlier === "IWM";
+      const isCrypto = underlier.includes("BTC");
+      const isIndia = underlier.endsWith(".NS") || underlier.endsWith(".BO");
+      const underlierShock =
+        (shock.equityPct ?? 0) * (p.beta ?? 1) +
+        (isTech ? (shock.techPct ?? 0) : 0) +
+        (isSmallCap ? (shock.smallCapPct ?? 0) : 0) +
+        (isCrypto ? (shock.cryptoPct ?? 0) : 0) +
+        (isIndia ? (shock.indiaPct ?? 0) : 0);
+      const underlierMove = (p.underlyingMark ?? p.mark) * underlierShock;
+      const dP =
+        (p.delta ?? 0) * underlierMove + 0.5 * (p.gamma ?? 0) * underlierMove * underlierMove;
+      const volPointMove = ((shock.volMult ?? 1) - 1) * p.vol * 100;
+      const vegaPnl = (p.vega ?? 0) * volPointMove;
       pnl = dP + vegaPnl;
     }
     return { pos: p, pnl };
@@ -434,12 +747,23 @@ export function tradeVolumes(days: number): { t: number; turnover: number; trade
   for (let i = days - 1; i >= 0; i--) {
     const base = 1_800_000 + boxMuller(rng) * 500_000 + Math.sin(i / 5) * 400_000;
     const spike = rng() < 0.08 ? 2_500_000 * rng() : 0;
-    out.push({ t: now - i * 86_400_000, turnover: Math.max(200_000, base + spike), trades: 40 + Math.floor(rng() * 60) });
+    out.push({
+      t: now - i * 86_400_000,
+      turnover: Math.max(200_000, base + spike),
+      trades: 40 + Math.floor(rng() * 60),
+    });
   }
   return out;
 }
 
-export function largestTrades(): { time: string; sym: string; side: "BUY" | "SELL"; qty: number; px: number; notional: number }[] {
+export function largestTrades(): {
+  time: string;
+  sym: string;
+  side: "BUY" | "SELL";
+  qty: number;
+  px: number;
+  notional: number;
+}[] {
   const now = Date.now();
   const rng = mulberry32(21);
   const insts: Record<string, ReturnType<typeof seedInstrument>> = {};
@@ -453,9 +777,13 @@ export function largestTrades(): { time: string; sym: string; side: "BUY" | "SEL
     const px = inst.price * (1 + (rng() - 0.5) * 0.002);
     const t = new Date(now - i * 12 * 60000);
     rows.push({
-      time: `${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`,
-      sym, side, qty, px, notional: qty * px,
+      time: `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`,
+      sym,
+      side,
+      qty,
+      px,
+      notional: qty * px,
     });
   }
-  return rows.sort((a,b) => b.notional - a.notional);
+  return rows.sort((a, b) => b.notional - a.notional);
 }

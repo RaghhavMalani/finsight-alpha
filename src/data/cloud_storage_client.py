@@ -41,14 +41,18 @@ class CloudStorageClient:
         GCP project id. Falls back to ``GCP_PROJECT_ID`` env / config.
     """
 
-    def __init__(self, bucket_name: str | None = None, project_id: str | None = None) -> None:
+    def __init__(
+        self, bucket_name: str | None = None, project_id: str | None = None
+    ) -> None:
         self.bucket_name = (
             bucket_name
             or os.getenv("GCS_BUCKET_NAME")
             or config.GCS_BUCKET_NAME
             or DEFAULT_BUCKET_NAME
         )
-        self.project_id = project_id or os.getenv("GCP_PROJECT_ID") or config.GCP_PROJECT_ID
+        self.project_id = (
+            project_id or os.getenv("GCP_PROJECT_ID") or config.GCP_PROJECT_ID
+        )
         self._client = None
 
     # -- configuration / client -------------------------------------------
@@ -74,7 +78,9 @@ class CloudStorageClient:
             return None
 
     # -- uploads -----------------------------------------------------------
-    def upload_file(self, local_path: Path | str, destination_blob_name: str) -> dict[str, Any]:
+    def upload_file(
+        self, local_path: Path | str, destination_blob_name: str
+    ) -> dict[str, Any]:
         """Upload a local file to ``gs://{bucket}/{destination_blob_name}``.
 
         Returns
@@ -104,7 +110,10 @@ class CloudStorageClient:
             blob = bucket.blob(destination_blob_name)
             blob.upload_from_filename(str(local_path))
             logger.info(
-                "Uploaded %s to gs://%s/%s.", local_path, self.bucket_name, destination_blob_name
+                "Uploaded %s to gs://%s/%s.",
+                local_path,
+                self.bucket_name,
+                destination_blob_name,
             )
             return {
                 "success": True,
@@ -153,7 +162,9 @@ class CloudStorageClient:
             blob.upload_from_string(df.to_csv(index=False), content_type="text/csv")
             logger.info(
                 "Uploaded DataFrame (%s rows) to gs://%s/%s.",
-                len(df), self.bucket_name, destination_blob_name,
+                len(df),
+                self.bucket_name,
+                destination_blob_name,
             )
             return {
                 "success": True,
@@ -169,3 +180,54 @@ class CloudStorageClient:
                 "bucket": self.bucket_name,
                 "blob": destination_blob_name,
             }
+
+    def upload_text(
+        self,
+        content: str,
+        destination_blob_name: str,
+        *,
+        content_type: str = "application/json",
+    ) -> dict[str, Any]:
+        """Upload an immutable text object without creating another temp file."""
+
+        bucket = self._get_bucket()
+        if bucket is None:
+            return {
+                "success": False,
+                "message": "Cloud Storage is not configured.",
+                "bucket": None,
+                "blob": None,
+            }
+        try:
+            blob = bucket.blob(destination_blob_name)
+            if not blob.exists():
+                blob.upload_from_string(content, content_type=content_type)
+            return {
+                "success": True,
+                "message": "Immutable object is present in Cloud Storage.",
+                "bucket": self.bucket_name,
+                "blob": destination_blob_name,
+            }
+        except Exception as exc:
+            logger.warning("Cloud Storage text upload failed: %s", exc)
+            return {
+                "success": False,
+                "message": f"Cloud Storage upload failed: {exc}",
+                "bucket": self.bucket_name,
+                "blob": destination_blob_name,
+            }
+
+    def download_text(self, blob_name: str) -> str | None:
+        """Return a UTF-8 object, or ``None`` when storage is unavailable."""
+
+        bucket = self._get_bucket()
+        if bucket is None:
+            return None
+        try:
+            blob = bucket.blob(blob_name)
+            if not blob.exists():
+                return None
+            return blob.download_as_text(encoding="utf-8")
+        except Exception as exc:
+            logger.warning("Cloud Storage text download failed: %s", exc)
+            return None

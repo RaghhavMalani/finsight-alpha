@@ -220,4 +220,31 @@ export type Backtest = {
   in_sample: Record<string, number | null>;
   out_of_sample: Record<string, number | null>;
   n_trades: number;
+  split_date: string | null;
+  ohlc: Array<{
+    time: string;
+    open: number | null;
+    high: number | null;
+    low: number | null;
+    close: number | null;
+  }>;
+  trades: Array<{
+    entry_date: string;
+    exit_date: string;
+    entry: number;
+    exit: number;
+    return: number | null;
+  }>;
+  monthly: Array<{ month: string; ret: number | null }>;
+  truth: {
+    run_id: string;
+    state: "DERIVED";
+    as_of: string;
+    data_version: string;
+    calculation: string;
+    calculation_version: string;
+    observed_from: string;
+    observed_through: string;
+    source: string;
+  };
 };

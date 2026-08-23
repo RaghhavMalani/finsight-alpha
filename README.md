@@ -1,24 +1,119 @@
-# FinSight Alpha
+# FinSight
 
-FinSight Alpha is a local-first financial research terminal: a FastAPI backend,
-a React/TanStack frontend, and a Python quant/AI engine for market analytics,
-risk, options, ML signals, regime detection, RAG research, news, and dependency
-graphs.
+> **An RL environment and evaluation harness for coding agents, instantiated in finance.**
 
-The current product direction is:
+FinSight is a reproducible research lab where a coding agent works against a
+point-in-time financial data plane and a programmatic verifier grades what it
+produces. The verifier result is shaped to be an RL reward; the evidence trail
+is designed to make that reward auditable.
 
-- `backend/` serves the API and redirects browser entrypoints to the web app.
-- `frontend-v2/` is the only frontend and contains the terminal, risk, and login routes.
-- `src/` is the reusable engine for data, analytics, pricing, risk, ML, RAG,
-  graph, news, and visualization helpers.
+This is one repository with two readings:
 
-The old dashboard stack has been removed from the active project surface.
+| Infrastructure reading | Finance reading |
+| --- | --- |
+| Deterministic artifacts, seed control, counterfactual evaluation, fault injection, judge calibration, per-commit regressions | As-of data contracts, snapshot lineage, options pricing, Monte Carlo risk, regime models, walk-forward signals, grounded research |
+| The systems story for Databricks and NVIDIA | The domain-depth story for JPMorgan and Goldman Sachs |
 
----
+The terminal remains a useful observer and demo surface. It is no longer the
+definition of the project.
 
-## Run Locally
+## The numbers this repository publishes
 
-Requires Python 3.10+.
+FinSight's coding-agent scorecard is calculated from strict, versioned JSONL
+evidence. Values are never hard-coded into this README, and missing evidence is
+rendered as `NOT MEASURED`, `PARTIAL`, or `UNDEFINED` rather than zero.
+
+| Metric | Published definition | Default evidence gate |
+| --- | --- | --- |
+| Replay fidelity | Byte-identical replay comparisons / all replay comparisons | Exactly 100% across at least 5 runs per group |
+| Contamination estimate | Mean(real-world Sharpe - counterfactual-world Sharpe) | Every measured pair has both worlds |
+| Cost per verified finding | Total attempt cost in USD / verifier-passing findings | Failed attempts remain in the numerator |
+| Recovery rate | Recovered deterministic faults / injected deterministic faults | At least 90% |
+| Judge-human agreement | Cohen's kappa over paired categorical labels | At least 0.80; single-class samples are undefined |
+| Regression + seed variance | Pass rate and population variance of per-seed pass rates, per commit | 100% pass, zero variance, at least 5 complete seeds |
+
+Build the scorecard:
+
+```bash
+python scripts/build_agent_eval_report.py \\
+  --input path/to/attempts.jsonl \\
+  --output-dir data/exports/agent-eval \\
+  --require-complete
+```
+
+Use `--require-gates` to make every configured target a release condition. The
+input schema lives in
+[`eval/schema/attempt-record.schema.json`](eval/schema/attempt-record.schema.json),
+and the exact formulas and anti-gaming rules are documented in
+[`docs/AGENT_EVALUATION_PROTOCOL.md`](docs/AGENT_EVALUATION_PROTOCOL.md).
+
+## What is implemented now
+
+| Layer | Current repository evidence |
+| --- | --- |
+| Evaluation | Six-metric deterministic scorecard, strict provenance schema, stable JSON/Markdown reports, explicit completeness state |
+| Negative controls | Sabotage tests for replay mutation, missing counterfactuals, denominator stuffing, unrecovered faults, judge drift, seed failure, and incomplete task/seed grids |
+| Truth foundation | Mandatory `as_of` boundaries, content-addressed computation contracts, epistemic states, tenant-licensed immutable snapshots, run and forecast ledgers |
+| ML timing | Expanding lagged regime thresholds, horizon purge, independent embargo, purged validation, untouched outer holdout |
+| Quant verifier | Published-reference Black-Scholes checks, finite-difference Greeks, Monte Carlo convergence, VaR coverage, Markowitz oracle, shuffled-label control, RAG retrieval set |
+| Product surface | FastAPI backend and React/TanStack terminal displaying server-owned computation truth |
+
+The complete MCP tool surface, isolated coding sandbox, multi-agent workflow,
+outcome resolution, cost-aware router, and RLVR training loop remain roadmap
+work. They are not claimed as shipped. See
+[`docs/V2_TRUTH_FOUNDATION.md`](docs/V2_TRUTH_FOUNDATION.md) for the boundary.
+
+## Why finance
+
+Finance makes evaluator shortcuts expensive and visible. A plausible result
+can still be wrong because it observed a future filing, relabelled a historical
+regime using future volatility, skipped a label-horizon purge, ignored trading
+cost, or reported a simulated quantity as historical. FinSight turns those
+failure modes into verifier inputs:
+
+```text
+frozen snapshot + as_of + seed + prompt + plan + commit
+                         |
+                    coding attempt
+                         |
+       numerical / temporal / evidence / replay gates
+                         |
+           verified finding + auditable reward
+```
+
+The hard dependency rule is architectural: quant, determinism, and verification
+must not depend on the agent framework. Orchestration is a replaceable shell;
+the evidence and reward contract are the project.
+
+## Verification
+
+Run the fast negative controls and metric-contract tests:
+
+```bash
+pytest -q tests/test_agent_eval_metrics.py tests/sabotage
+```
+
+Run the full repository suite:
+
+```bash
+pytest -q
+```
+
+Run the cross-layer quant validation suite:
+
+```bash
+python scripts/run_validation_suite.py
+```
+
+That suite evaluates deterministic pricing, risk, portfolio, signal, and RAG
+checks and writes `data/exports/validation/validation_report.json` plus a
+Markdown report. Its default Monte Carlo checkpoints range from 10,000 through
+10,000,000 paths. Use `--returns-csv` to supply a different historical return
+series.
+
+## Run locally
+
+Requires Python 3.10+ and Node.js for the observer UI.
 
 ```bash
 python -m venv .venv
@@ -41,221 +136,30 @@ npm ci
 npm run dev
 ```
 
-Open:
+The API documentation is at `http://127.0.0.1:8000/docs`; the frontend dev
+server prints its local URL.
 
-- Web app: use the local URL printed by `npm run dev`.
-- API docs: `http://127.0.0.1:8000/docs`
-- Health check: `http://127.0.0.1:8000/health`
+## Repository map
 
-Run the optional batch pipeline:
-
-```bash
-python main.py
+```text
+src/eval/          strict evidence model, six metrics, stable report renderer
+eval/schema/       machine-readable attempt contract
+tests/sabotage/    negative controls for evaluator protections
+src/truth/         epistemic states and content-addressed computation contracts
+src/data/          as-of boundary, snapshots, lineage, licensing, providers
+src/validation/    independent quant and retrieval validation oracles
+src/pricing/       Black-Scholes, Greeks, implied volatility, surfaces
+src/risk/          VaR/CVaR and portfolio optimization
+src/ml/            point-in-time features, walk-forward signals, stress tests
+src/rag/           tenant/ticker-isolated grounded research
+backend/           FastAPI observer and computation API
+frontend-v2/       React/TanStack observer terminal
 ```
 
-Run tests:
-
-```bash
-pytest -q
-```
-
----
-
-## Main Parts Of The Project
-
-### 1. Foundation
-
-Files:
-
-- `requirements.txt`
-- `.env.example`
-- `.env.cloud.example`
-- `src/config.py`
-- `src/utils/`
-
-What to fix first:
-
-- Pin dependencies or split them into `requirements-core.txt` and optional
-  `requirements-rag.txt`.
-- Keep real secrets only in `.env`, never in committed examples.
-- Add clear app settings for local, test, and cloud modes.
-
-### 2. Data Layer
-
-Files:
-
-- `src/data/`
-- `src/data/providers/`
-- `sql/`
-
-Role:
-
-- Pulls market data and fundamentals.
-- Wraps yfinance, Alpha Vantage, Finnhub, Polygon, BigQuery, Cloud Storage, and
-  local caches.
-
-What to improve:
-
-- Move away from yfinance as the only practical default for production use.
-- Add a durable cache or ingestion store.
-- Add rate-limit handling, retries, and provider health reporting.
-
-### 3. Analytics, Pricing, Risk, And Simulation
-
-Files:
-
-- `src/analytics/`
-- `src/pricing/`
-- `src/risk/`
-- `src/simulation/`
-
-Role:
-
-- Returns, volatility, drawdown, Sharpe, Sortino, beta, CAPM, correlation.
-- Black-Scholes, Greeks, implied volatility, vol surfaces.
-- VaR, CVaR, Monte Carlo, portfolio optimization.
-
-What to improve:
-
-- Keep tests tight around formulas and edge cases.
-- Add benchmark fixtures for known portfolio/risk results.
-- Surface assumptions clearly in API responses.
-
-### 4. ML And Regime Detection
-
-Files:
-
-- `src/ml/`
-- `src/regime/`
-- `backend/routes/ml.py`
-- `backend/routes/regime.py`
-
-Role:
-
-- Feature engineering, targets, walk-forward validation, signal models, and
-  market state detection.
-
-What to improve:
-
-- Audit for lookahead bias.
-- Make walk-forward validation visible in the UI.
-- Add model cards: data span, features, target, validation quality, and why a
-  signal is suppressed.
-
-### 5. RAG And Research Intelligence
-
-Files:
-
-- `src/rag/`
-- `backend/routes/research.py`
-- `scripts/build_rag_index.py`
-- `scripts/fetch_filings.py`
-- `scripts/ask_rag.py`
-
-Role:
-
-- Discovers filings, loads documents, chunks text, embeds, retrieves, reranks,
-  and generates cited research answers.
-
-What to improve:
-
-- Treat heavy dependencies as optional.
-- Add stronger source freshness and citation checks.
-- Make LLM failures graceful and obvious to the user.
-
-### 6. Agent, Graph, News
-
-Files:
-
-- `src/agent/`
-- `src/graph/`
-- `src/news/`
-- `backend/routes/agent.py`
-- `backend/routes/graph.py`
-- `backend/routes/news.py`
-
-Role:
-
-- Orchestrates research tools, dependency graph analysis, and sentiment/news
-  summaries.
-
-What to improve:
-
-- Make agent actions auditable.
-- Cache graph/news calls.
-- Add confidence/freshness labels in API responses and UI panels.
-
-### 7. Backend API
-
-Files:
-
-- `backend/main.py`
-- `backend/routes/`
-- `backend/schemas/`
-- `src/auth/`
-
-Role:
-
-- Serves the UI, API routes, login, cookies, and router orchestration.
-
-What to improve before production:
-
-- Lock down CORS instead of `allow_origin_regex=".*"` with credentials.
-- Set production cookie flags deliberately.
-- Add structured request logging and error monitoring.
-- Add a CI workflow that runs tests on every push.
-
-### 8. Frontend
-
-Files:
-
-- `frontend-v2/src/routes/`
-- `frontend-v2/src/components/terminal/`
-- `frontend-v2/src/lib/`
-
-Role:
-
-- Main React/TanStack web product, including terminal, risk, login, and stock-intelligence views.
-
-What to improve:
-
-- Add loading, empty, and error states everywhere.
-- Keep design tokens shared across all routes.
-- Add live updates for quote/tape widgets when the backend supports it.
-
-### 9. Infra And Deployment
-
-Files:
-
-- `Dockerfile`
-- `infra/Dockerfile.api`
-- `infra/gcp_commands.sh`
-- `infra/gcp_commands_windows.ps1`
-- `infra/gcp_deployment.md`
-- `infra/`
-
-Role:
-
-- Container and cloud deployment notes for the FastAPI app.
-
-What to improve:
-
-- Use one production Dockerfile strategy.
-- Keep API and frontend deployment scripts scoped to their separate services.
-- Move project-specific cloud IDs into environment variables.
-
----
-
-## Suggested Fix Order
-
-1. Clean foundation: dependency pinning, env templates, logging, config.
-2. Make tests and CI trustworthy.
-3. Harden data providers and caching.
-4. Audit ML/regime for leakage and validation quality.
-5. Make the API production-safe: CORS, cookies, errors, logging.
-6. Continue polishing the active React terminal and its stock-specific intelligence.
-7. Deepen one differentiator: backtesting, portfolio factor risk, or grounded
-   research.
-
-The fastest product win is to polish the terminal UI and Strategy/Backtest Lab.
-The highest credibility win is to prove the data/ML/risk layer is correct.
+## Scope line
+
+This is an agent-systems and research-infrastructure project, not a SaaS
+checkout flow. Billing, plan entitlements, usage quotas, growth analytics, and
+org-admin polish are intentionally frozen unless commercialization becomes the
+goal. Engineering time goes to deterministic execution, verification,
+counterfactuals, calibration, and frozen evaluations.

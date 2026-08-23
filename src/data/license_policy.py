@@ -60,7 +60,9 @@ def resolve_dataset_licenses(
         with get_session() as session:
             _set_tenant(session, organization_id)
             registered = set(
-                session.scalars(select(Dataset.dataset_key).where(Dataset.dataset_key.in_(keys))).all()
+                session.scalars(
+                    select(Dataset.dataset_key).where(Dataset.dataset_key.in_(keys))
+                ).all()
             )
             rows = session.execute(
                 select(Dataset.dataset_key, OrganizationLicenseGrant)
@@ -97,8 +99,16 @@ def resolve_dataset_licenses(
 
             starts_at = grant.starts_at
             ends_at = grant.ends_at
-            comparable_start = starts_at.replace(tzinfo=timezone.utc) if starts_at and starts_at.tzinfo is None else starts_at
-            comparable_end = ends_at.replace(tzinfo=timezone.utc) if ends_at and ends_at.tzinfo is None else ends_at
+            comparable_start = (
+                starts_at.replace(tzinfo=timezone.utc)
+                if starts_at and starts_at.tzinfo is None
+                else starts_at
+            )
+            comparable_end = (
+                ends_at.replace(tzinfo=timezone.utc)
+                if ends_at and ends_at.tzinfo is None
+                else ends_at
+            )
             status = grant.status.upper()
             if status == ACTIVE and comparable_start and comparable_start > now:
                 status = "PENDING"
@@ -112,18 +122,27 @@ def resolve_dataset_licenses(
             }
         return resolved
     except Exception:
-        logger.exception("License resolution failed for organization %s", organization_id)
+        logger.exception(
+            "License resolution failed for organization %s", organization_id
+        )
         return unresolved
 
 
 def dataset_license_status(organization_id: int, dataset_key: str) -> dict[str, Any]:
     return resolve_dataset_licenses(organization_id, {dataset_key}).get(
         dataset_key,
-        {"status": UNVERIFIED, "permitted_uses": [], "starts_at": None, "ends_at": None},
+        {
+            "status": UNVERIFIED,
+            "permitted_uses": [],
+            "starts_at": None,
+            "ends_at": None,
+        },
     )
 
 
-def enforce_evidence_licenses(payload: dict[str, Any], organization_id: int) -> dict[str, Any]:
+def enforce_evidence_licenses(
+    payload: dict[str, Any], organization_id: int
+) -> dict[str, Any]:
     """Annotate evidence and redact observations when a tenant lacks a grant."""
     evidence: list[dict[str, Any]] = []
 
@@ -153,18 +172,23 @@ def enforce_evidence_licenses(payload: dict[str, Any], organization_id: int) -> 
             continue
         grant = grants.get(
             dataset_key,
-            {"status": UNVERIFIED, "permitted_uses": [], "starts_at": None, "ends_at": None},
+            {
+                "status": UNVERIFIED,
+                "permitted_uses": [],
+                "starts_at": None,
+                "ends_at": None,
+            },
         )
         metadata["customer_license_status"] = grant["status"]
         metadata["customer_license_permitted_uses"] = grant["permitted_uses"]
         metadata["customer_license_valid_from"] = grant["starts_at"]
         metadata["customer_license_valid_through"] = grant["ends_at"]
-        if grant["status"] != ACTIVE:
+        if grant["status"] != ACTIVE or "display" not in grant["permitted_uses"]:
             original_status = item.get("status", "UNAVAILABLE")
             item["status"] = "UNAVAILABLE"
             item["reason"] = (
                 f"Evidence redacted: organization {organization_id} license status for "
-                f"{dataset_key} is {grant['status']}."
+                f"{dataset_key} is {grant['status']}; required permitted use is display."
             )
             item["source_status"] = original_status
             if "points" in item:
@@ -174,11 +198,60 @@ def enforce_evidence_licenses(payload: dict[str, Any], organization_id: int) -> 
     available = sum(item.get("status") == "AVAILABLE" for item in evidence)
     if evidence:
         payload["status"] = (
-            "AVAILABLE" if available == len(evidence) else "PARTIAL" if available else "UNAVAILABLE"
+            "AVAILABLE"
+            if available == len(evidence)
+            else "PARTIAL" if available else "UNAVAILABLE"
         )
     payload["license_enforcement"] = {
         "organization_id": organization_id,
         "status": "ACTIVE" if evidence and available == len(evidence) else "RESTRICTED",
         "datasets_evaluated": len(dataset_keys),
+    }
+    return payload
+
+
+class LicenseAccessDenied(PermissionError):
+    """Raised when a response would expose evidence outside a tenant grant."""
+
+
+def require_lineage_licenses(
+    payload: dict[str, Any], organization_id: int, *, permitted_use: str = "display"
+) -> dict[str, Any]:
+    """Authorize every raw lineage item before a route returns its payload."""
+
+    lineage = payload.get("lineage") or []
+    if not isinstance(lineage, list):
+        raise LicenseAccessDenied("Evidence lineage is malformed.")
+    legacy = [
+        item
+        for item in lineage
+        if not isinstance(item, dict) or not item.get("dataset_key")
+    ]
+    if legacy:
+        raise LicenseAccessDenied(
+            "Evidence contains a legacy snapshot without a dataset identity."
+        )
+    keys = {str(item["dataset_key"]) for item in lineage}
+    grants = resolve_dataset_licenses(organization_id, keys)
+    denied = []
+    for key in sorted(keys):
+        grant = grants.get(key, {"status": UNVERIFIED, "permitted_uses": []})
+        uses = grant.get("permitted_uses") or []
+        if grant.get("status") != ACTIVE or permitted_use not in uses:
+            denied.append(
+                {"dataset_key": key, "status": grant.get("status", UNVERIFIED)}
+            )
+    if denied:
+        details = ", ".join(
+            f"{item['dataset_key']}={item['status']}" for item in denied
+        )
+        raise LicenseAccessDenied(
+            f"Organization {organization_id} lacks authorized evidence access: {details}."
+        )
+    payload["license_enforcement"] = {
+        "organization_id": organization_id,
+        "status": "ACTIVE" if keys else "NO_EVIDENCE",
+        "datasets_evaluated": len(keys),
+        "permitted_use": permitted_use,
     }
     return payload

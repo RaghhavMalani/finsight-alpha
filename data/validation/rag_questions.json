@@ -1,0 +1,97 @@
+{
+  "description": "Hand-labeled offline retrieval fixture for FinSight's hybrid retriever.",
+  "chunks": [
+    {
+      "chunk_id": "pricing-bs",
+      "text": "Black Scholes prices European call and put options using spot strike maturity risk free rate dividend yield and implied volatility."
+    },
+    {
+      "chunk_id": "risk-var",
+      "text": "Value at Risk VaR estimates a portfolio loss quantile while CVaR expected shortfall averages losses beyond the VaR threshold."
+    },
+    {
+      "chunk_id": "portfolio-markowitz",
+      "text": "Markowitz mean variance optimization selects portfolio weights from expected returns and a covariance matrix along an efficient frontier."
+    },
+    {
+      "chunk_id": "signals-walk-forward",
+      "text": "Walk forward validation trains only on past observations and measures classifier signal quality with ROC AUC on the next chronological fold."
+    },
+    {
+      "chunk_id": "rag-retrieval",
+      "text": "Hybrid retrieval combines semantic vector similarity with BM25 keyword ranking to find relevant document chunks for a question."
+    },
+    {
+      "chunk_id": "fundamentals-cash-flow",
+      "text": "Free cash flow equals operating cash flow less capital expenditures and supports valuation and liquidity analysis."
+    },
+    {
+      "chunk_id": "macro-rates",
+      "text": "Central bank interest rate cuts can lower discount rates while inflation and employment influence monetary policy decisions."
+    },
+    {
+      "chunk_id": "options-greeks",
+      "text": "Option Greeks include delta gamma vega theta and rho, sensitivities to spot curvature volatility time decay and interest rates."
+    },
+    {
+      "chunk_id": "market-liquidity",
+      "text": "Bid ask spread market depth and trading volume are common indicators of market liquidity and transaction cost."
+    },
+    {
+      "chunk_id": "credit-leverage",
+      "text": "Credit analysis evaluates leverage interest coverage debt maturity and default risk for a corporate borrower."
+    }
+  ],
+  "questions": [
+    {
+      "question_id": "q-bs",
+      "query": "Which inputs are used to price a European option with Black Scholes?",
+      "relevant_chunk_ids": ["pricing-bs"]
+    },
+    {
+      "question_id": "q-var",
+      "query": "How does CVaR expected shortfall differ from the VaR loss quantile?",
+      "relevant_chunk_ids": ["risk-var"]
+    },
+    {
+      "question_id": "q-markowitz",
+      "query": "What data defines the Markowitz efficient frontier portfolio weights?",
+      "relevant_chunk_ids": ["portfolio-markowitz"]
+    },
+    {
+      "question_id": "q-signal",
+      "query": "How is ROC AUC measured in chronological walk forward validation?",
+      "relevant_chunk_ids": ["signals-walk-forward"]
+    },
+    {
+      "question_id": "q-retrieval",
+      "query": "What combines BM25 keyword ranking with semantic vector similarity?",
+      "relevant_chunk_ids": ["rag-retrieval"]
+    },
+    {
+      "question_id": "q-fcf",
+      "query": "How do operating cash flow and capital expenditures determine free cash flow?",
+      "relevant_chunk_ids": ["fundamentals-cash-flow"]
+    },
+    {
+      "question_id": "q-rates",
+      "query": "How might central bank rate cuts change discount rates?",
+      "relevant_chunk_ids": ["macro-rates"]
+    },
+    {
+      "question_id": "q-greeks",
+      "query": "Which option Greeks measure volatility and time decay sensitivity?",
+      "relevant_chunk_ids": ["options-greeks"]
+    },
+    {
+      "question_id": "q-liquidity",
+      "query": "Which market liquidity indicators capture transaction cost and depth?",
+      "relevant_chunk_ids": ["market-liquidity"]
+    },
+    {
+      "question_id": "q-credit",
+      "query": "Which leverage and interest coverage measures inform corporate default risk?",
+      "relevant_chunk_ids": ["credit-leverage"]
+    }
+  ]
+}

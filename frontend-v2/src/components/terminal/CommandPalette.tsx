@@ -1,8 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { COMMANDS, fuzzyCommands, parseCommand } from "@/lib/commands";
 import { TICKERS } from "@/lib/market";
+import { api } from "@/lib/api";
 
 const RECENTS_KEY = "finsight.palette.recents";
+type UniverseHit = {
+  symbol: string;
+  quote_symbol: string;
+  name: string;
+  region: string;
+  exchange: string;
+  asset_type: string;
+};
+
+type UniverseSearch = {
+  items: UniverseHit[];
+  matched: number;
+};
 
 export function CommandPalette({
   open,
@@ -27,11 +42,24 @@ export function CommandPalette({
       try {
         const raw = localStorage.getItem(RECENTS_KEY);
         if (raw) setRecents(JSON.parse(raw));
-      } catch {}
+      } catch {
+        // Storage can be unavailable in privacy-restricted browser contexts.
+      }
     }
   }, [open]);
 
   const parsed = useMemo(() => parseCommand(q), [q]);
+  const searchTerm = (parsed?.symbol ?? q.trim()).toUpperCase();
+  const universeQuery = useQuery({
+    queryKey: ["universe-palette", searchTerm],
+    queryFn: () =>
+      api<UniverseSearch>(
+        `/universe/search?q=${encodeURIComponent(searchTerm)}&regions=US,IN&limit=6`,
+      ),
+    enabled: open && searchTerm.length > 0,
+    staleTime: 5 * 60_000,
+  });
+  const universeHits = useMemo(() => universeQuery.data?.items ?? [], [universeQuery.data?.items]);
 
   const results = useMemo(() => {
     if (!q.trim()) {
@@ -50,29 +78,36 @@ export function CommandPalette({
 
   const symbolMatch = useMemo(() => {
     const upper = q.trim().toUpperCase();
-    return TICKERS.find((t) => t.startsWith(upper) && upper.length >= 1);
-  }, [q]);
+    return (
+      universeHits[0]?.quote_symbol ?? TICKERS.find((t) => t.startsWith(upper) && upper.length >= 1)
+    );
+  }, [q, universeHits]);
 
-  function commit(code: string) {
-    // pulse
-    if (pulseRef.current) {
-      pulseRef.current.classList.remove("palette-pulse");
-      void pulseRef.current.offsetWidth;
-      pulseRef.current.classList.add("palette-pulse");
-    }
-    const sym = parsed?.symbol ?? symbolMatch;
-    const action = parsed?.action;
-    const sym2 = parsed?.symbol2;
-    const next = [code, ...recents.filter((r) => r !== code)].slice(0, 5);
-    setRecents(next);
-    try {
-      localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
-    } catch {}
-    setTimeout(() => {
-      onRun(code, sym, action, sym2);
-      onClose();
-    }, 120);
-  }
+  const commit = useCallback(
+    (code: string, selectedSymbol?: string) => {
+      // pulse
+      if (pulseRef.current) {
+        pulseRef.current.classList.remove("palette-pulse");
+        void pulseRef.current.offsetWidth;
+        pulseRef.current.classList.add("palette-pulse");
+      }
+      const sym = selectedSymbol ?? symbolMatch ?? parsed?.symbol;
+      const action = parsed?.action;
+      const sym2 = parsed?.symbol2;
+      const next = [code, ...recents.filter((r) => r !== code)].slice(0, 5);
+      setRecents(next);
+      try {
+        localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+      } catch {
+        // The command still runs when recent-command persistence is unavailable.
+      }
+      setTimeout(() => {
+        onRun(code, sym, action, sym2);
+        onClose();
+      }, 120);
+    },
+    [onClose, onRun, parsed, recents, symbolMatch],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -94,8 +129,7 @@ export function CommandPalette({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-     
-  }, [open, results, sel, parsed, symbolMatch]);
+  }, [commit, onClose, open, results, sel]);
 
   if (!open) return null;
 
@@ -104,7 +138,10 @@ export function CommandPalette({
       className="fixed inset-0 z-[100] flex items-start justify-center pt-[16vh]"
       onMouseDown={onClose}
     >
-      <div className="absolute inset-0 bg-background/70 backdrop-blur-md animate-fade-in" style={{ animationDuration: "240ms" }} />
+      <div
+        className="absolute inset-0 bg-background/70 backdrop-blur-md animate-fade-in"
+        style={{ animationDuration: "240ms" }}
+      />
       <div
         ref={pulseRef}
         onMouseDown={(e) => e.stopPropagation()}
@@ -135,6 +172,28 @@ export function CommandPalette({
         )}
 
         <div className="max-h-[50vh] overflow-y-auto py-1">
+          {universeHits.length > 0 && (
+            <div className="border-b border-divider py-1">
+              <div className="mono-caps px-4 py-1 text-[8px] text-info">
+                INDIA + US INSTRUMENT DIRECTORY
+              </div>
+              {universeHits.map((hit) => (
+                <button
+                  key={`${hit.exchange}:${hit.quote_symbol}`}
+                  onClick={() => commit("MK", hit.quote_symbol)}
+                  className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-info/10"
+                >
+                  <span className="w-24 font-mono text-[11px] text-info">{hit.quote_symbol}</span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] text-foreground">
+                    {hit.name}
+                  </span>
+                  <span className="mono-caps text-[8px] text-faint">
+                    {hit.region} · {hit.exchange} · {hit.asset_type}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           {results.map((c, i) => (
             <button
               key={c.code}
@@ -144,7 +203,9 @@ export function CommandPalette({
                 i === sel ? "bg-primary/10" : ""
               }`}
             >
-              <span className={`mono-caps w-12 text-[11px] ${i === sel ? "text-primary" : "text-muted-foreground"}`}>
+              <span
+                className={`mono-caps w-12 text-[11px] ${i === sel ? "text-primary" : "text-muted-foreground"}`}
+              >
                 {c.code}
               </span>
               <span className="flex-1">
@@ -186,4 +247,3 @@ export function CommandPalette({
     </div>
   );
 }
-

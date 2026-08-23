@@ -11,7 +11,6 @@ from typing import Any
 from .profiles import STOCK_PROFILES
 from .snapshots import ExternalJsonClient, ProviderUnavailable, SourceLineage
 
-
 MANDI_RESOURCE_ID = "9ef84268-d588-465a-a308-a864a43d0070"
 MANDI_SOURCE_URL = f"https://api.data.gov.in/resource/{MANDI_RESOURCE_ID}"
 FRED_OBSERVATIONS_URL = "https://api.stlouisfed.org/fred/series/observations"
@@ -112,12 +111,12 @@ def _parse_date(value: Any) -> date | None:
 def _lineage(items: list[SourceLineage]) -> list[dict[str, Any]]:
     return [item.to_dict() for item in items]
 
+
 def _freshness_score(observed: date | None, as_of: date, horizon_days: int) -> float:
     if observed is None:
         return 0.0
     age = max(0, (as_of - observed).days)
     return max(0.0, 1 - age / horizon_days)
-
 
 
 def _issue(source: str, exc: Exception) -> dict[str, str]:
@@ -181,7 +180,9 @@ class AgricultureIntelligenceService:
         )
         return {
             "product": "agriculture-intelligence",
-            "status": "healthy" if not issues else "degraded" if available else "unavailable",
+            "status": (
+                "healthy" if not issues else "degraded" if available else "unavailable"
+            ),
             "generated_at": _utc_now(),
             "query": {
                 "state": state,
@@ -255,11 +256,16 @@ class AgricultureIntelligenceService:
         payload, lineage = self.client.get(
             "data.gov.in",
             source_url,
+            dataset_key=f"data-gov-in:{resource_id}",
             params=params,
             timeout=12,
         )
-        if not isinstance(payload, dict) or not isinstance(payload.get("records"), list):
-            raise ProviderUnavailable("data.gov.in returned an unexpected mandi payload.")
+        if not isinstance(payload, dict) or not isinstance(
+            payload.get("records"), list
+        ):
+            raise ProviderUnavailable(
+                "data.gov.in returned an unexpected mandi payload."
+            )
 
         records: list[dict[str, Any]] = []
         for item in payload["records"]:
@@ -279,17 +285,31 @@ class AgricultureIntelligenceService:
                     "modal_price": _float(item.get("modal_price")),
                 }
             )
-        records.sort(key=lambda row: _parse_date(row["arrival_date"]) or date.min, reverse=True)
-        modal = [row["modal_price"] for row in records if row["modal_price"] is not None]
+        records.sort(
+            key=lambda row: _parse_date(row["arrival_date"]) or date.min, reverse=True
+        )
+        modal = [
+            row["modal_price"] for row in records if row["modal_price"] is not None
+        ]
         observed_dates = [
             parsed
             for parsed in (_parse_date(row["arrival_date"]) for row in records)
             if parsed is not None
         ]
         latest = max(observed_dates) if observed_dates else None
-        completeness_fields = ("market", "arrival_date", "min_price", "max_price", "modal_price")
+        completeness_fields = (
+            "market",
+            "arrival_date",
+            "min_price",
+            "max_price",
+            "modal_price",
+        )
         completeness = (
-            sum(row.get(field) is not None for row in records for field in completeness_fields)
+            sum(
+                row.get(field) is not None
+                for row in records
+                for field in completeness_fields
+            )
             / (len(records) * len(completeness_fields))
             if records
             else 0
@@ -300,7 +320,9 @@ class AgricultureIntelligenceService:
             "latest_arrival_date": latest.isoformat() if latest else None,
             "freshness_days": (date.today() - latest).days if latest else None,
             "market_count": len({row["market"] for row in records if row["market"]}),
-            "district_count": len({row["district"] for row in records if row["district"]}),
+            "district_count": len(
+                {row["district"] for row in records if row["district"]}
+            ),
             "modal_price_median": round(statistics.median(modal), 2) if modal else None,
             "modal_price_low": min(modal) if modal else None,
             "modal_price_high": max(modal) if modal else None,
@@ -321,11 +343,14 @@ class AgricultureIntelligenceService:
         payload, lineage = self.client.get(
             "Open-Meteo",
             OPEN_METEO_URL,
+            dataset_key="open-meteo:forecast:daily",
             params=params,
             timeout=10,
         )
         if not isinstance(payload, dict) or not isinstance(payload.get("daily"), dict):
-            raise ProviderUnavailable("Open-Meteo returned an unexpected forecast payload.")
+            raise ProviderUnavailable(
+                "Open-Meteo returned an unexpected forecast payload."
+            )
         daily = payload["daily"]
         times = daily.get("time") or []
         maximums = daily.get("temperature_2m_max") or []
@@ -337,24 +362,56 @@ class AgricultureIntelligenceService:
             days.append(
                 {
                     "date": value,
-                    "temperature_max_c": _float(maximums[index]) if index < len(maximums) else None,
-                    "temperature_min_c": _float(minimums[index]) if index < len(minimums) else None,
-                    "precipitation_mm": _float(precipitation[index]) if index < len(precipitation) else None,
-                    "precipitation_probability_pct": _float(probabilities[index]) if index < len(probabilities) else None,
+                    "temperature_max_c": (
+                        _float(maximums[index]) if index < len(maximums) else None
+                    ),
+                    "temperature_min_c": (
+                        _float(minimums[index]) if index < len(minimums) else None
+                    ),
+                    "precipitation_mm": (
+                        _float(precipitation[index])
+                        if index < len(precipitation)
+                        else None
+                    ),
+                    "precipitation_probability_pct": (
+                        _float(probabilities[index])
+                        if index < len(probabilities)
+                        else None
+                    ),
                 }
             )
         rain = [day["precipitation_mm"] or 0 for day in days]
-        heat = [day["temperature_max_c"] for day in days if day["temperature_max_c"] is not None]
+        heat = [
+            day["temperature_max_c"]
+            for day in days
+            if day["temperature_max_c"] is not None
+        ]
         total_rain = sum(rain)
         max_rain = max(rain, default=0)
         max_heat = max(heat, default=None)
         alerts = []
         if max_heat is not None and max_heat >= 40:
-            alerts.append({"type": "heat", "severity": "high", "value": max_heat, "unit": "°C"})
+            alerts.append(
+                {"type": "heat", "severity": "high", "value": max_heat, "unit": "°C"}
+            )
         if max_rain >= 75 or total_rain >= 120:
-            alerts.append({"type": "heavy-rain", "severity": "high", "value": round(total_rain, 1), "unit": "mm/7d"})
+            alerts.append(
+                {
+                    "type": "heavy-rain",
+                    "severity": "high",
+                    "value": round(total_rain, 1),
+                    "unit": "mm/7d",
+                }
+            )
         if total_rain < 5:
-            alerts.append({"type": "dryness-watch", "severity": "medium", "value": round(total_rain, 1), "unit": "mm/7d"})
+            alerts.append(
+                {
+                    "type": "dryness-watch",
+                    "severity": "medium",
+                    "value": round(total_rain, 1),
+                    "unit": "mm/7d",
+                }
+            )
         return {
             "latitude": payload.get("latitude", latitude),
             "longitude": payload.get("longitude", longitude),
@@ -384,7 +441,9 @@ class CountryIntelligenceService:
     ) -> dict[str, Any]:
         code = country_code.upper()
         if code not in COUNTRIES:
-            raise ValueError(f"Unsupported country '{country_code}'. Choose IND or USA.")
+            raise ValueError(
+                f"Unsupported country '{country_code}'. Choose IND or USA."
+            )
         country = COUNTRIES[code]
         vintage = as_of or date.today()
         selected_trade_year = trade_year or max(2000, vintage.year - 2)
@@ -405,20 +464,24 @@ class CountryIntelligenceService:
                 ("exports", "ITS_MTV_MX"),
                 ("imports", "ITS_MTV_MM"),
             ):
-                jobs[executor.submit(
-                    self._wto_series,
-                    country["wto_reporter_code"],
-                    flow_id,
-                    indicator_code,
-                    vintage,
-                )] = ("wto", flow_id)
-            jobs[executor.submit(
-                self._comtrade,
-                country["comtrade_reporter_code"],
-                selected_trade_year,
-                partner_code,
-                commodity_code,
-            )] = ("comtrade", commodity_code)
+                jobs[
+                    executor.submit(
+                        self._wto_series,
+                        country["wto_reporter_code"],
+                        flow_id,
+                        indicator_code,
+                        vintage,
+                    )
+                ] = ("wto", flow_id)
+            jobs[
+                executor.submit(
+                    self._comtrade,
+                    country["comtrade_reporter_code"],
+                    selected_trade_year,
+                    partner_code,
+                    commodity_code,
+                )
+            ] = ("comtrade", commodity_code)
 
             for future in as_completed(jobs):
                 source, item_id = jobs[future]
@@ -434,7 +497,9 @@ class CountryIntelligenceService:
                 except ProviderUnavailable as exc:
                     issues.append(_issue(f"{source}:{item_id}", exc))
 
-        order = {definition["id"]: index for index, definition in enumerate(country["fred"])}
+        order = {
+            definition["id"]: index for index, definition in enumerate(country["fred"])
+        }
         indicators.sort(key=lambda item: order.get(item["id"], 999))
         wto_series.sort(key=lambda item: item["id"])
         alerts = self._country_alerts(indicators)
@@ -450,16 +515,13 @@ class CountryIntelligenceService:
         )
         freshness = statistics.fmean(freshness_values) if freshness_values else 0.0
         confidence = round(
-            100
-            * (
-                0.6 * coverage
-                + 0.2 * live / expected_sources
-                + 0.2 * freshness
-            )
+            100 * (0.6 * coverage + 0.2 * live / expected_sources + 0.2 * freshness)
         )
         return {
             "product": "trade-country-growth-pulse",
-            "status": "healthy" if not issues else "degraded" if lineage else "unavailable",
+            "status": (
+                "healthy" if not issues else "degraded" if lineage else "unavailable"
+            ),
             "generated_at": _utc_now(),
             "country": {
                 "code": code,
@@ -519,12 +581,17 @@ class CountryIntelligenceService:
         payload, lineage = self.client.get(
             "FRED/ALFRED",
             FRED_OBSERVATIONS_URL,
+            dataset_key=f"fred:{definition['series_id']}",
             params=params,
             timeout=10,
             vintage_date=as_of.isoformat(),
         )
-        observations = payload.get("observations", []) if isinstance(payload, dict) else []
-        usable = [item for item in observations if _float(item.get("value")) is not None]
+        observations = (
+            payload.get("observations", []) if isinstance(payload, dict) else []
+        )
+        usable = [
+            item for item in observations if _float(item.get("value")) is not None
+        ]
         latest = usable[0] if usable else None
         previous = usable[1] if len(usable) > 1 else None
         latest_value = _float(latest.get("value")) if latest else None
@@ -545,7 +612,9 @@ class CountryIntelligenceService:
             "previous_value": previous_value,
             "change": change,
             "observation_count": len(usable),
-            "realtime_start": latest.get("realtime_start") if latest else as_of.isoformat(),
+            "realtime_start": (
+                latest.get("realtime_start") if latest else as_of.isoformat()
+            ),
             "realtime_end": latest.get("realtime_end") if latest else as_of.isoformat(),
         }, lineage
 
@@ -573,6 +642,7 @@ class CountryIntelligenceService:
         payload, lineage = self.client.get(
             "WTO Timeseries",
             WTO_DATA_URL,
+            dataset_key=f"wto:{indicator_code}",
             params=params,
             headers={"Ocp-Apim-Subscription-Key": key},
             timeout=10,
@@ -592,7 +662,11 @@ class CountryIntelligenceService:
             )
         points.sort(key=lambda item: item["period"])
         latest = points[-1] if points else None
-        comparison = points[-13] if len(points) >= 13 else points[-2] if len(points) >= 2 else None
+        comparison = (
+            points[-13]
+            if len(points) >= 13
+            else points[-2] if len(points) >= 2 else None
+        )
         change_pct = None
         if latest and comparison and comparison["value"]:
             change_pct = round((latest["value"] / comparison["value"] - 1) * 100, 2)
@@ -604,7 +678,9 @@ class CountryIntelligenceService:
             "latest_value": latest["value"] if latest else None,
             "unit": latest["unit"] if latest else None,
             "change_pct": change_pct,
-            "comparison": "year-over-year" if len(points) >= 13 else "previous observation",
+            "comparison": (
+                "year-over-year" if len(points) >= 13 else "previous observation"
+            ),
             "points": points,
         }, lineage
 
@@ -634,6 +710,7 @@ class CountryIntelligenceService:
         payload, lineage = self.client.get(
             "UN Comtrade",
             COMTRADE_DATA_URL,
+            dataset_key="un-comtrade:trade",
             params=params,
             timeout=10,
         )
@@ -655,7 +732,11 @@ class CountryIntelligenceService:
                     "aggregate": item.get("isAggregate"),
                 }
             )
-        values = [item["primary_value_usd"] for item in records if item["primary_value_usd"] is not None]
+        values = [
+            item["primary_value_usd"]
+            for item in records
+            if item["primary_value_usd"] is not None
+        ]
         return {
             "period": period,
             "reporter_code": reporter_code,
@@ -697,11 +778,35 @@ class CountryIntelligenceService:
         alerts = []
         values = {item["id"]: item.get("latest_value") for item in indicators}
         if values.get("real_gdp_growth") is not None and values["real_gdp_growth"] < 0:
-            alerts.append({"type": "growth-contraction", "severity": "high", "value": values["real_gdp_growth"]})
-        if values.get("industrial_production_growth") is not None and values["industrial_production_growth"] < 0:
-            alerts.append({"type": "industrial-contraction", "severity": "medium", "value": values["industrial_production_growth"]})
-        if values.get("consumer_inflation") is not None and values["consumer_inflation"] >= 6:
-            alerts.append({"type": "high-inflation", "severity": "medium", "value": values["consumer_inflation"]})
+            alerts.append(
+                {
+                    "type": "growth-contraction",
+                    "severity": "high",
+                    "value": values["real_gdp_growth"],
+                }
+            )
+        if (
+            values.get("industrial_production_growth") is not None
+            and values["industrial_production_growth"] < 0
+        ):
+            alerts.append(
+                {
+                    "type": "industrial-contraction",
+                    "severity": "medium",
+                    "value": values["industrial_production_growth"],
+                }
+            )
+        if (
+            values.get("consumer_inflation") is not None
+            and values["consumer_inflation"] >= 6
+        ):
+            alerts.append(
+                {
+                    "type": "high-inflation",
+                    "severity": "medium",
+                    "value": values["consumer_inflation"],
+                }
+            )
         return alerts
 
 
@@ -770,8 +875,7 @@ class CompanyIntelligenceService:
                     issues.append(_issue(f"comtrade:{flow_id}", exc))
 
         order = {
-            definition["id"]: index
-            for index, definition in enumerate(profile["fred"])
+            definition["id"]: index for index, definition in enumerate(profile["fred"])
         }
         indicators.sort(key=lambda item: order.get(item["id"], 999))
         trade_order = {"exports": 0, "imports": 1}
@@ -790,23 +894,18 @@ class CompanyIntelligenceService:
             observed = _parse_date(f"{flow.get('period')}-12-31")
             freshness_values.append(_freshness_score(observed, vintage, 1095))
         freshness = statistics.fmean(freshness_values) if freshness_values else 0.0
-        confidence = round(
-            100
-            * (
-                0.6 * coverage
-                + 0.2 * live / expected_sources
-                + 0.2 * freshness
+        confidence = (
+            round(
+                100 * (0.6 * coverage + 0.2 * live / expected_sources + 0.2 * freshness)
             )
-        ) if expected_sources else 0
+            if expected_sources
+            else 0
+        )
 
         return {
             "product": "stock-intelligence",
             "status": (
-                "healthy"
-                if not issues
-                else "degraded"
-                if lineage
-                else "unavailable"
+                "healthy" if not issues else "degraded" if lineage else "unavailable"
             ),
             "generated_at": _utc_now(),
             "ticker": symbol,

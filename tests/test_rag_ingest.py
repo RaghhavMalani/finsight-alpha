@@ -110,7 +110,7 @@ def test_answer_question_no_llm_is_extractive(doc_dir, monkeypatch):
     monkeypatch.setattr(retriever, "embed_query", lambda q: _fake_vec(q))
 
     result = ingest.answer_question(
-        "What are the key risks?", vs, chunks, provider="none",
+        "What are the key risks?", vs, chunks, ticker="RELIANCE.NS", provider="none",
     )
     assert result["grounded"] is False
     assert result["provider"] == "none"

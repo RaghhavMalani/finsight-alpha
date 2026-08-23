@@ -17,10 +17,17 @@ __pycache__/
 .ipynb_checkpoints
 
 # Data
+# Local runtime databases may contain accounts, password hashes, and cached data.
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
 data/raw/*.csv
 data/processed/*.csv
 data/exports/*.parquet
 data/exports/*.csv
+data/exports/pytest-*/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/exports/.gitkeep
@@ -49,3 +56,4 @@ frontend-v2/routeTree.gen.ts
 frontend-v2/.vercel/
 .env.local
 frontend-v2/.env.local
+.env*

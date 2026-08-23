@@ -59,7 +59,11 @@ def pipeline_health(request: Request) -> dict:
 
 
 @router.get("/health/llm")
-def health_llm(probe: bool = True) -> dict:
+def health_llm(request: Request, probe: bool = False) -> dict:
+    if probe and getattr(request.state, "role", None) not in {"admin", "owner"}:
+        raise HTTPException(status_code=403, detail="Admin role required for active probes")
+
+
     from src.rag import llm_client
 
     available = [provider for provider in llm_client.available_providers() if provider != "none"]

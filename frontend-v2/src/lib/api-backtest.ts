@@ -46,7 +46,11 @@ function toApiCondition(condition: Condition): ApiCondition | null {
   return null;
 }
 
-export async function runApiBacktest(strategy: Strategy, ticker: string): Promise<Backtest> {
+export async function runApiBacktest(
+  strategy: Strategy,
+  ticker: string,
+  years: number,
+): Promise<Backtest> {
   const entry = strategy.entry
     .map(toApiCondition)
     .filter((item): item is ApiCondition => item !== null);
@@ -68,6 +72,8 @@ export async function runApiBacktest(strategy: Strategy, ticker: string): Promis
       exit_mode: "any",
       cost_bps: 5,
       oos_split: 0.7,
+      years,
+      as_of: new Date().toISOString().slice(0, 10),
     }),
   });
 }

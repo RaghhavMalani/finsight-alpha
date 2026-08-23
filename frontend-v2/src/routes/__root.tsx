@@ -76,17 +76,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "FinSight — A research terminal for people who take their own view" },
+      { title: "FinSight — RL evaluation for coding agents" },
       {
         name: "description",
         content:
-          "FinSight is a cinematic financial research terminal — live analytics, options, risk, Monte Carlo, ML signals and AI research on one desk.",
+          "An RL environment and evaluation harness for coding agents, instantiated in finance.",
       },
       { name: "author", content: "FinSight" },
-      { property: "og:title", content: "FinSight — Research terminal" },
+      { property: "og:title", content: "FinSight — RL evaluation for coding agents" },
       {
         property: "og:description",
-        content: "Live analytics, options, risk, and AI research on one desk.",
+        content:
+          "Deterministic finance research, counterfactual evaluation, and verifiable agent rewards.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
