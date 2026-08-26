@@ -26,6 +26,7 @@ class Trajectory:
     compute_cost_usd: float
     latency_seconds: float
     outcome: str
+    engine_fingerprint_hashes: tuple[str, ...] = ()
     schema_version: str = "0.2.2"
 
     @classmethod
@@ -60,6 +61,7 @@ class Trajectory:
             compute_cost_usd=research.usage.compute_cost_usd,
             latency_seconds=research.usage.latency_seconds,
             outcome="verified" if episode.passed else "failed_verification",
+            engine_fingerprint_hashes=episode.engine_fingerprint_hashes,
         )
 
     @classmethod
@@ -89,6 +91,7 @@ class Trajectory:
             compute_cost_usd=data.get("compute_cost_usd", usage["compute_cost_usd"]),
             latency_seconds=data.get("latency_seconds", usage["latency_seconds"]),
             outcome=data["outcome"],
+            engine_fingerprint_hashes=tuple(data.get("engine_fingerprint_hashes", ())),
             schema_version=data.get("schema_version", "0.2"),
         )
 
@@ -114,6 +117,8 @@ class Trajectory:
             "latency_seconds": self.latency_seconds,
             "outcome": self.outcome,
         }
+        if self.engine_fingerprint_hashes:
+            value["engine_fingerprint_hashes"] = list(self.engine_fingerprint_hashes)
         if include_id:
             value["trajectory_id"] = self.trajectory_id
         return value

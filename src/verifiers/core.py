@@ -42,6 +42,7 @@ class VerificationResult:
     status: VerificationStatus
     score: float
     checks: tuple[CheckResult, ...]
+    engine_fingerprint_hashes: tuple[str, ...] = ()
 
     @classmethod
     def from_checks(
@@ -65,13 +66,16 @@ class VerificationResult:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        value = {
             "verifier": self.verifier,
             "status": self.status.value,
             "score": self.score,
             "checks": [check.to_dict() for check in self.checks],
         }
+        if self.engine_fingerprint_hashes:
+            value["engine_fingerprint_hashes"] = list(self.engine_fingerprint_hashes)
 
+        return value
 
 @dataclass(frozen=True)
 class VerificationContext:

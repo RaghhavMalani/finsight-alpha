@@ -1,0 +1,504 @@
+{
+  "artifact_hash": "37947e8023be959670fc7d8cb82f6b8914354795e9f51021e070dad1c3785426",
+  "comparisons": [
+    {
+      "capability": "l2_book",
+      "metric_deltas": {
+        "best_ask": 0.0,
+        "best_bid": 0.0
+      },
+      "reason": null,
+      "status": "PASS"
+    },
+    {
+      "capability": "bars",
+      "metric_deltas": {},
+      "reason": "capability is outside the declared intersection",
+      "status": "NOT_COMPARABLE"
+    }
+  ],
+  "engines": [
+    {
+      "certification": {
+        "checks": [
+          {
+            "code": "installed-and-version-bound",
+            "detail": "1.1.0",
+            "evidence_hash": "691fcabf663e487cdf4a2d85a0a07ed1103a807ae27d7c5bfc5faf7f87946767",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "native-simulator-invoked",
+            "detail": "vectorbt_probe.py",
+            "evidence_hash": "012b4fe6a847ae5d09eb7e003b7ffb8b9b4b6de57bcce0e64ea4dfb9f871c83f",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "oracle-backed-canonical-tape",
+            "detail": "native observation is not C1 until the exact canonical tape is normalized",
+            "evidence_hash": "012b4fe6a847ae5d09eb7e003b7ffb8b9b4b6de57bcce0e64ea4dfb9f871c83f",
+            "level": "C1_ACCOUNTING_EVENTS",
+            "passed": false
+          },
+          {
+            "code": "canonical-byte-replay",
+            "detail": "two fresh worker processes",
+            "evidence_hash": "012b4fe6a847ae5d09eb7e003b7ffb8b9b4b6de57bcce0e64ea4dfb9f871c83f",
+            "level": "C2_EXACT_REPLAY",
+            "passed": true
+          },
+          {
+            "code": "scoped-comparison-contract",
+            "detail": "raw probe overlap only; ladder remains gated by C1",
+            "evidence_hash": "012b4fe6a847ae5d09eb7e003b7ffb8b9b4b6de57bcce0e64ea4dfb9f871c83f",
+            "level": "C3_SCOPED_AGREEMENT",
+            "passed": true
+          },
+          {
+            "code": "seven-tape-stress-and-mutations",
+            "detail": "real adapter coverage is incomplete; release must not be tagged",
+            "evidence_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "level": "C4_STRESS_MUTATIONS",
+            "passed": false
+          }
+        ],
+        "engine_fingerprint": {
+          "adapter_version": "forge-0.2.4",
+          "dependency_lock_hash": "691fcabf663e487cdf4a2d85a0a07ed1103a807ae27d7c5bfc5faf7f87946767",
+          "engine": "vectorbt",
+          "engine_version": "1.1.0",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python_version": "3.12.0",
+          "rust_version": "UNSUPPORTED",
+          "upstream_commit": "259d2d89fe2e7638baf3ca76c394937cd32b656d",
+          "worker_image_hash": "c17b21a6336bf97dbfbaa65e3a0f4924595807c91e72059ddce3ed310c5859f8"
+        },
+        "engine_fingerprint_hash": "f26a2b070eebd76768cf5b8bd5a17355b2c21b79e9e9078e23e4b4d7ced0ee06",
+        "schema_version": "forge-certification/0.2.4",
+        "supported_tapes": [],
+        "unsupported_tapes": {
+          "cancel_race_fill_survives": "native certified adapter not yet implemented for this tape",
+          "exact_fee_accounting": "native certified adapter not yet implemented for this tape",
+          "immediate_fill": "native certified adapter not yet implemented for this tape",
+          "latency_miss": "native certified adapter not yet implemented for this tape",
+          "partial_fill_101_102": "native certified adapter not yet implemented for this tape",
+          "queue_exhausted_fill": "native certified adapter not yet implemented for this tape",
+          "queue_no_fill": "native certified adapter not yet implemented for this tape"
+        }
+      },
+      "certification_hash": "5572c813851b837ecbebfa34424d0e4e7afd8e54d6488e421fb7efa7e7511599",
+      "dependency_lock": [
+        "ImageIO==2.37.4",
+        "Pygments==2.21.0",
+        "anywidget==0.11.0",
+        "asttokens==3.0.2",
+        "certifi==2026.7.22",
+        "charset-normalizer==3.5.1",
+        "colorama==0.4.6",
+        "comm==0.2.3",
+        "contourpy==1.3.3",
+        "cycler==0.12.1",
+        "dateparser==1.4.2",
+        "dill==0.4.1",
+        "executing==2.2.1",
+        "fonttools==4.63.0",
+        "idna==3.19",
+        "ipython==9.16.1",
+        "ipython_pygments_lexers==1.1.1",
+        "ipywidgets==8.1.9",
+        "jedi==0.20.0",
+        "joblib==1.5.3",
+        "jupyterlab_widgets==3.0.17",
+        "kiwisolver==1.5.0",
+        "llvmlite==0.49.0",
+        "matplotlib-inline==0.2.2",
+        "matplotlib==3.11.1",
+        "mypy_extensions==1.1.0",
+        "narwhals==2.25.0",
+        "numba==0.67.0",
+        "numpy==2.5.2",
+        "packaging==26.3",
+        "pandas==3.0.5",
+        "parso==0.8.7",
+        "pillow==12.3.0",
+        "pip==23.2.1",
+        "plotly==5.24.1",
+        "prompt_toolkit==3.0.53",
+        "psutil==7.2.2",
+        "psygnal==0.15.1",
+        "pure_eval==0.2.3",
+        "pyparsing==3.3.2",
+        "python-dateutil==2.9.0.post0",
+        "pytz==2026.3.post1",
+        "regex==2026.7.19",
+        "requests==2.34.2",
+        "schedule==1.2.2",
+        "scikit-learn==1.9.0",
+        "scipy==1.18.1",
+        "six==1.17.0",
+        "stack-data==0.6.3",
+        "tenacity==9.1.4",
+        "threadpoolctl==3.6.0",
+        "tqdm==4.70.0",
+        "traitlets==5.16.1",
+        "typing_extensions==4.16.0",
+        "tzdata==2026.3",
+        "tzlocal==5.4.4",
+        "urllib3==2.7.0",
+        "vectorbt==1.1.0",
+        "wcwidth==0.8.2",
+        "widgetsnbextension==4.0.16"
+      ],
+      "engine": "vectorbt",
+      "probe": {
+        "ending_cash": 10002.99,
+        "ending_value": 10002.99,
+        "engine": "vectorbt",
+        "fees": 1.01,
+        "order_count": 2,
+        "version": "1.1.0"
+      },
+      "probe_hash": "012b4fe6a847ae5d09eb7e003b7ffb8b9b4b6de57bcce0e64ea4dfb9f871c83f",
+      "replay_hash": "012b4fe6a847ae5d09eb7e003b7ffb8b9b4b6de57bcce0e64ea4dfb9f871c83f"
+    },
+    {
+      "certification": {
+        "checks": [
+          {
+            "code": "installed-and-version-bound",
+            "detail": "1.231.0",
+            "evidence_hash": "3337e855ce5b3e07d4fdb0ceec6ff3d640df1bdb66fb4a8d83a89eca3b8afda0",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "native-simulator-invoked",
+            "detail": "nautilus_probe.py",
+            "evidence_hash": "073ea8161fe6e9824a8fd46f9ad5690197252f9e7bd5e22170001654ceacffb8",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "oracle-backed-canonical-tape",
+            "detail": "native observation is not C1 until the exact canonical tape is normalized",
+            "evidence_hash": "073ea8161fe6e9824a8fd46f9ad5690197252f9e7bd5e22170001654ceacffb8",
+            "level": "C1_ACCOUNTING_EVENTS",
+            "passed": false
+          },
+          {
+            "code": "canonical-byte-replay",
+            "detail": "two fresh worker processes",
+            "evidence_hash": "073ea8161fe6e9824a8fd46f9ad5690197252f9e7bd5e22170001654ceacffb8",
+            "level": "C2_EXACT_REPLAY",
+            "passed": true
+          },
+          {
+            "code": "scoped-comparison-contract",
+            "detail": "raw probe overlap only; ladder remains gated by C1",
+            "evidence_hash": "073ea8161fe6e9824a8fd46f9ad5690197252f9e7bd5e22170001654ceacffb8",
+            "level": "C3_SCOPED_AGREEMENT",
+            "passed": false
+          },
+          {
+            "code": "seven-tape-stress-and-mutations",
+            "detail": "real adapter coverage is incomplete; release must not be tagged",
+            "evidence_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "level": "C4_STRESS_MUTATIONS",
+            "passed": false
+          }
+        ],
+        "engine_fingerprint": {
+          "adapter_version": "forge-0.2.4",
+          "dependency_lock_hash": "3337e855ce5b3e07d4fdb0ceec6ff3d640df1bdb66fb4a8d83a89eca3b8afda0",
+          "engine": "nautilus",
+          "engine_version": "1.231.0",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python_version": "3.12.0",
+          "rust_version": "1.97.1",
+          "upstream_commit": "d3e1685e979925d7b0ffacd1b3f442547686e18f",
+          "worker_image_hash": "e71ce57087baac28f4c4f95a3227aa0343985f5d9f74341fa09e3b431f3a9794"
+        },
+        "engine_fingerprint_hash": "b359361ad0701ea934f4eb3c5aaff9a93d6b4ad2fd5af93e9eb6ccaec33bde27",
+        "schema_version": "forge-certification/0.2.4",
+        "supported_tapes": [],
+        "unsupported_tapes": {
+          "cancel_race_fill_survives": "native certified adapter not yet implemented for this tape",
+          "exact_fee_accounting": "native certified adapter not yet implemented for this tape",
+          "immediate_fill": "native certified adapter not yet implemented for this tape",
+          "latency_miss": "native certified adapter not yet implemented for this tape",
+          "partial_fill_101_102": "native certified adapter not yet implemented for this tape",
+          "queue_exhausted_fill": "native certified adapter not yet implemented for this tape",
+          "queue_no_fill": "native certified adapter not yet implemented for this tape"
+        }
+      },
+      "certification_hash": "a0047782fa0f62cc15f4958d8d07059d9b0f2dd82f6a75d146706cac20503616",
+      "dependency_lock": [
+        "click==8.4.2",
+        "colorama==0.4.6",
+        "fsspec==2026.2.0",
+        "msgspec==0.21.1",
+        "nautilus_trader==1.231.0",
+        "numpy==2.5.2",
+        "pandas==3.0.5",
+        "pip==23.2.1",
+        "portion==2.6.2",
+        "pyarrow==25.0.1",
+        "python-dateutil==2.9.0.post0",
+        "pytz==2026.3.post1",
+        "six==1.17.0",
+        "sortedcontainers==2.4.0",
+        "tqdm==4.70.0",
+        "tzdata==2026.3"
+      ],
+      "engine": "nautilus",
+      "probe": {
+        "backtest_end_ns": 2000,
+        "backtest_start_ns": 1000,
+        "engine": "nautilus",
+        "iterations": 2,
+        "total_orders": 0,
+        "version": "1.231.0"
+      },
+      "probe_hash": "073ea8161fe6e9824a8fd46f9ad5690197252f9e7bd5e22170001654ceacffb8",
+      "replay_hash": "073ea8161fe6e9824a8fd46f9ad5690197252f9e7bd5e22170001654ceacffb8"
+    },
+    {
+      "certification": {
+        "checks": [
+          {
+            "code": "installed-and-version-bound",
+            "detail": "2.4.4",
+            "evidence_hash": "6a55c7b181aaa13eb11cf23b9457bbdcb65033af176df658099e56f7b293e94a",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "native-simulator-invoked",
+            "detail": "hftbacktest_probe.py",
+            "evidence_hash": "498c87b6e5a91bc294ec2f1a66f6f1d0cf1ae26aed6ff09b9cb997ea1e45ace4",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "oracle-backed-canonical-tape",
+            "detail": "native observation is not C1 until the exact canonical tape is normalized",
+            "evidence_hash": "498c87b6e5a91bc294ec2f1a66f6f1d0cf1ae26aed6ff09b9cb997ea1e45ace4",
+            "level": "C1_ACCOUNTING_EVENTS",
+            "passed": false
+          },
+          {
+            "code": "canonical-byte-replay",
+            "detail": "two fresh worker processes",
+            "evidence_hash": "498c87b6e5a91bc294ec2f1a66f6f1d0cf1ae26aed6ff09b9cb997ea1e45ace4",
+            "level": "C2_EXACT_REPLAY",
+            "passed": true
+          },
+          {
+            "code": "scoped-comparison-contract",
+            "detail": "raw probe overlap only; ladder remains gated by C1",
+            "evidence_hash": "498c87b6e5a91bc294ec2f1a66f6f1d0cf1ae26aed6ff09b9cb997ea1e45ace4",
+            "level": "C3_SCOPED_AGREEMENT",
+            "passed": true
+          },
+          {
+            "code": "seven-tape-stress-and-mutations",
+            "detail": "real adapter coverage is incomplete; release must not be tagged",
+            "evidence_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "level": "C4_STRESS_MUTATIONS",
+            "passed": false
+          }
+        ],
+        "engine_fingerprint": {
+          "adapter_version": "forge-0.2.4",
+          "dependency_lock_hash": "6a55c7b181aaa13eb11cf23b9457bbdcb65033af176df658099e56f7b293e94a",
+          "engine": "hftbacktest",
+          "engine_version": "2.4.4",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python_version": "3.12.0",
+          "rust_version": "wheel-build-toolchain-not-exposed",
+          "upstream_commit": "a244a14250b42d97fc305569c93c4117cd5e1dff",
+          "worker_image_hash": "5b237f1db9b1d660c1f08c47d3a78af0ca58c05d474c94285f68bf689b274d12"
+        },
+        "engine_fingerprint_hash": "22c2a8bef07e39e2eb080d7e61912a9869bc5cfd5bff6c044825963bdad0d973",
+        "schema_version": "forge-certification/0.2.4",
+        "supported_tapes": [],
+        "unsupported_tapes": {
+          "cancel_race_fill_survives": "native certified adapter not yet implemented for this tape",
+          "exact_fee_accounting": "native certified adapter not yet implemented for this tape",
+          "immediate_fill": "native certified adapter not yet implemented for this tape",
+          "latency_miss": "native certified adapter not yet implemented for this tape",
+          "partial_fill_101_102": "native certified adapter not yet implemented for this tape",
+          "queue_exhausted_fill": "native certified adapter not yet implemented for this tape",
+          "queue_no_fill": "native certified adapter not yet implemented for this tape"
+        }
+      },
+      "certification_hash": "5170c988efe130ae6393588f26b480c3c6d394ceaa1e78d8e24dbf96413f27ca",
+      "dependency_lock": [
+        "Jinja2==3.1.6",
+        "Markdown==3.10.3",
+        "MarkupSafe==3.0.3",
+        "PyYAML==6.0.3",
+        "bokeh==3.9.2",
+        "certifi==2026.7.22",
+        "charset-normalizer==3.5.1",
+        "colorama==0.4.6",
+        "colorcet==3.2.1",
+        "contourpy==1.3.3",
+        "cycler==0.12.1",
+        "fonttools==4.63.0",
+        "hftbacktest==2.4.4",
+        "holoviews==1.23.2",
+        "idna==3.19",
+        "kiwisolver==1.5.0",
+        "linkify-it-py==2.1.1",
+        "llvmlite==0.49.0",
+        "markdown-it-py==4.2.0",
+        "matplotlib==3.11.1",
+        "mdit-py-plugins==0.6.1",
+        "mdurl==0.1.2",
+        "narwhals==2.25.0",
+        "nh3==0.3.7",
+        "numba==0.67.0",
+        "numpy==2.2.6",
+        "packaging==26.3",
+        "pandas==3.0.5",
+        "panel-material-ui==0.14.2",
+        "panel==1.9.4",
+        "param==2.4.1",
+        "pillow==12.3.0",
+        "pip==23.2.1",
+        "polars-runtime-32==1.44.0",
+        "polars==1.44.0",
+        "pyparsing==3.3.2",
+        "python-dateutil==2.9.0.post0",
+        "pyviz_comms==3.0.6",
+        "requests==2.34.2",
+        "six==1.17.0",
+        "tornado==6.5.8",
+        "tqdm==4.70.0",
+        "typing_extensions==4.16.0",
+        "tzdata==2026.3",
+        "uc-micro-py==2.0.0",
+        "urllib3==2.7.0",
+        "xyzservices==2026.3.0"
+      ],
+      "engine": "hftbacktest",
+      "probe": {
+        "best_ask": 101.0,
+        "best_bid": 100.0,
+        "engine": "hftbacktest",
+        "status": 1,
+        "version": "2.4.4"
+      },
+      "probe_hash": "498c87b6e5a91bc294ec2f1a66f6f1d0cf1ae26aed6ff09b9cb997ea1e45ace4",
+      "replay_hash": "498c87b6e5a91bc294ec2f1a66f6f1d0cf1ae26aed6ff09b9cb997ea1e45ace4"
+    },
+    {
+      "certification": {
+        "checks": [
+          {
+            "code": "installed-and-version-bound",
+            "detail": "0.5.0",
+            "evidence_hash": "aed59a283c77cb070eef7ae7aee36acf7f1dffa82b52b91a8c04fbd268fa7eee",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "native-simulator-invoked",
+            "detail": "legacy_hft_probe.py",
+            "evidence_hash": "66ccddc85a9dc3f7e09923c75cd3659d31048fbfd717c02b59bf21feea6fffac",
+            "level": "C0_PROTOCOL_SCHEMA",
+            "passed": true
+          },
+          {
+            "code": "oracle-backed-canonical-tape",
+            "detail": "native observation is not C1 until the exact canonical tape is normalized",
+            "evidence_hash": "66ccddc85a9dc3f7e09923c75cd3659d31048fbfd717c02b59bf21feea6fffac",
+            "level": "C1_ACCOUNTING_EVENTS",
+            "passed": false
+          },
+          {
+            "code": "canonical-byte-replay",
+            "detail": "two fresh worker processes",
+            "evidence_hash": "66ccddc85a9dc3f7e09923c75cd3659d31048fbfd717c02b59bf21feea6fffac",
+            "level": "C2_EXACT_REPLAY",
+            "passed": true
+          },
+          {
+            "code": "scoped-comparison-contract",
+            "detail": "raw probe overlap only; ladder remains gated by C1",
+            "evidence_hash": "66ccddc85a9dc3f7e09923c75cd3659d31048fbfd717c02b59bf21feea6fffac",
+            "level": "C3_SCOPED_AGREEMENT",
+            "passed": true
+          },
+          {
+            "code": "seven-tape-stress-and-mutations",
+            "detail": "real adapter coverage is incomplete; release must not be tagged",
+            "evidence_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "level": "C4_STRESS_MUTATIONS",
+            "passed": false
+          }
+        ],
+        "engine_fingerprint": {
+          "adapter_version": "forge-0.2.4",
+          "dependency_lock_hash": "aed59a283c77cb070eef7ae7aee36acf7f1dffa82b52b91a8c04fbd268fa7eee",
+          "engine": "legacy-hft",
+          "engine_version": "0.5.0",
+          "platform": "Windows-11-10.0.26200-SP0",
+          "python_version": "3.12.0",
+          "rust_version": "UNSUPPORTED",
+          "upstream_commit": "737ce7bda4a31b839dd8179eab5f3aae22040c3e",
+          "worker_image_hash": "1da7641c1c62e99cc9e66e0a6042594ec4901f1b133ba0d7747cc066ee9142a0"
+        },
+        "engine_fingerprint_hash": "8b14665500b58a4719b88ddc8fcbfa7c08fc45a12af64551d4a39b957906ffaa",
+        "schema_version": "forge-certification/0.2.4",
+        "supported_tapes": [],
+        "unsupported_tapes": {
+          "cancel_race_fill_survives": "native certified adapter not yet implemented for this tape",
+          "exact_fee_accounting": "native certified adapter not yet implemented for this tape",
+          "immediate_fill": "native certified adapter not yet implemented for this tape",
+          "latency_miss": "native certified adapter not yet implemented for this tape",
+          "partial_fill_101_102": "native certified adapter not yet implemented for this tape",
+          "queue_exhausted_fill": "native certified adapter not yet implemented for this tape",
+          "queue_no_fill": "native certified adapter not yet implemented for this tape"
+        }
+      },
+      "certification_hash": "3eed3cb431d00c022fcb0c0abd96488683c29c3e16f362e1f630b6428409258a",
+      "dependency_lock": [
+        "backtesting-hft @ git+https://github.com/evgerher/hft-backtesting.git@737ce7bda4a31b839dd8179eab5f3aae22040c3e",
+        "colorama==0.4.6",
+        "contourpy==1.3.3",
+        "cycler==0.12.1",
+        "fonttools==4.63.0",
+        "kiwisolver==1.5.0",
+        "matplotlib==3.9.4",
+        "numpy==1.26.4",
+        "packaging==26.3",
+        "pandas==2.2.3",
+        "pillow==12.3.0",
+        "pip==23.2.1",
+        "pyparsing==3.3.2",
+        "python-dateutil==2.9.0.post0",
+        "pytz==2026.3.post1",
+        "six==1.17.0",
+        "tqdm==4.67.1",
+        "tzdata==2026.3"
+      ],
+      "engine": "legacy-hft",
+      "probe": {
+        "best_ask": 101.0,
+        "best_bid": 100.0,
+        "delay_us": 250,
+        "engine": "legacy-hft",
+        "version": "0.5.0"
+      },
+      "probe_hash": "66ccddc85a9dc3f7e09923c75cd3659d31048fbfd717c02b59bf21feea6fffac",
+      "replay_hash": "66ccddc85a9dc3f7e09923c75cd3659d31048fbfd717c02b59bf21feea6fffac"
+    }
+  ],
+  "reason": "C1 oracle-backed canonical tapes and C4 stress/mutation coverage are incomplete",
+  "release_eligible": false,
+  "schema_version": "forge-engine-probes/0.2.4"
+}

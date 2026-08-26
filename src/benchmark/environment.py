@@ -86,9 +86,10 @@ class EpisodeResult:
     reward: RewardBreakdown | EvaluationResult
     usage: ResourceUsage
     executions: tuple[ExecutionResult, ...] = ()
+    engine_fingerprint_hashes: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        value = {
             "episode_id": self.episode_id,
             "task_id": self.task_id,
             "case_hash": self.case_hash,
@@ -100,7 +101,10 @@ class EpisodeResult:
             "usage": self.usage.to_dict(),
             "executions": [result.to_dict() for result in self.executions],
         }
+        if self.engine_fingerprint_hashes:
+            value["engine_fingerprint_hashes"] = list(self.engine_fingerprint_hashes)
 
+        return value
 
 Policy = Callable[[ResearchTask, MarketWorld], ResearchFinding | PolicyOutput]
 

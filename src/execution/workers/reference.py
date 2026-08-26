@@ -19,6 +19,7 @@ from src.execution.contracts import (
     SimulationRequest,
     SimulationResult,
 )
+from src.execution.events import CanonicalEventType, CanonicalExecutionEvent, NativeEngineEvent
 from src.execution.workers.protocol import serve
 
 
@@ -135,12 +136,30 @@ def run_reference(request: SimulationRequest) -> SimulationOutcome:
         ),
     }
     assert set(metrics) == set(CANONICAL_METRICS)
+    native_events: list[NativeEngineEvent] = []
+    canonical_events: list[CanonicalExecutionEvent] = []
+    for index, fill in enumerate(fills):
+        market_event = next(item for item in events if int(item["event_ns"]) == fill.event_ns)
+        market_hash = canonical_sha256(market_event)
+        native = NativeEngineEvent(
+            engine=ENGINE_ID, native_type="reference.fill", event_ns=fill.event_ns,
+            payload=fill.to_dict(), input_market_event_hash=market_hash,
+        )
+        native_events.append(native)
+        expected = next(order.quantity for order in orders if order.order_id == fill.order_id)
+        canonical_events.append(CanonicalExecutionEvent(
+            event_id=f"event-fill-{index}", event_type=(CanonicalEventType.FULL_FILL if fill.quantity == expected else CanonicalEventType.PARTIAL_FILL),
+            event_ns=fill.event_ns, native_event_hash=native.native_event_hash,
+            input_market_event_hash=market_hash, order_id=fill.order_id,
+            fill_id=fill.fill_id, quantity=fill.quantity, price=fill.price,
+        ))
     provenance = EngineProvenance(
         engine_id=ENGINE_ID, engine_version="1.0.0", engine_commit=WORKER_HASH,
-        adapter_version="0.2.3", runtime=f"Python {platform.python_version()}",
+        adapter_version="forge-0.2.4", runtime=f"Python {platform.python_version()}",
         rust_version=_absence(MeasurementState.UNSUPPORTED, "reference worker is Python-only"),
         dependency_lock_hash=request.core_lock_hash, worker_hash=WORKER_HASH,
-        license_spdx=LICENSE,
+        license_spdx=LICENSE, python_version=platform.python_version(),
+        platform=platform.platform(),
     )
     result = SimulationResult(
         provenance=provenance, request_hash=request.request_hash,
@@ -148,7 +167,8 @@ def run_reference(request: SimulationRequest) -> SimulationOutcome:
         dataset_hash=request.dataset_hash, assumptions_hash=request.execution.assumptions_hash,
         seed=request.seed, orders=orders, fills=tuple(fills),
         account=AccountState(initial_cash, cash, dict(positions)), metrics=metrics,
-        runtime_ms=0.0,
+        runtime_ms=0.0, native_events=tuple(native_events),
+        canonical_events=tuple(canonical_events),
     )
     return SimulationOutcome(ENGINE_ID, request.request_hash, MeasurementState.MEASURED, result=result)
 

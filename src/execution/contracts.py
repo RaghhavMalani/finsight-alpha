@@ -10,6 +10,8 @@ from enum import Enum
 from typing import Any, Mapping, Protocol
 
 from src.eval.canonical import canonical_sha256
+from src.execution.events import CanonicalExecutionEvent, NativeEngineEvent
+from src.execution.fingerprints import EngineFingerprint
 
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -485,9 +487,11 @@ class EngineProvenance:
     dependency_lock_hash: str
     worker_hash: str
     license_spdx: str
+    python_version: str = "unknown"
+    platform: str = "unknown"
 
     def __post_init__(self) -> None:
-        for name in ("engine_id", "engine_version", "adapter_version", "runtime", "license_spdx"):
+        for name in ("engine_id", "engine_version", "adapter_version", "runtime", "license_spdx", "python_version", "platform"):
             object.__setattr__(self, name, _text(getattr(self, name), name))
         object.__setattr__(self, "engine_commit", _revision(self.engine_commit, "engine_commit"))
         for name in ("dependency_lock_hash", "worker_hash"):
@@ -495,14 +499,37 @@ class EngineProvenance:
         if not isinstance(self.rust_version, EpistemicValue):
             raise ContractError("rust_version must be an EpistemicValue")
 
+    @property
+    def fingerprint(self) -> EngineFingerprint:
+        rust = str(self.rust_version.value) if self.rust_version.state is MeasurementState.MEASURED else self.rust_version.state.value
+        return EngineFingerprint(
+            engine=self.engine_id, engine_version=self.engine_version,
+            upstream_commit=self.engine_commit, adapter_version=self.adapter_version,
+            python_version=self.python_version, rust_version=rust,
+            dependency_lock_hash=self.dependency_lock_hash,
+            worker_image_hash=self.worker_hash, platform=self.platform,
+        )
+
+    @property
+    def fingerprint_hash(self) -> str:
+        return self.fingerprint.fingerprint_hash
+
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "EngineProvenance":
         data = _mapping(value, "engine provenance")
         data["rust_version"] = EpistemicValue.from_dict(data["rust_version"])
         fields = {"engine_id", "engine_version", "engine_commit", "adapter_version", "runtime", "rust_version", "dependency_lock_hash", "worker_hash", "license_spdx"}
-        if set(data) != fields:
+        optional = {"python_version", "platform", "fingerprint", "fingerprint_hash"}
+        if set(data) - fields - optional or fields - set(data):
             raise ContractError(f"engine provenance fields must be exactly {sorted(fields)}")
-        return cls(**data)
+        supplied_fingerprint = data.pop("fingerprint", None)
+        supplied_hash = data.pop("fingerprint_hash", None)
+        result = cls(**data)
+        if supplied_fingerprint is not None and EngineFingerprint.from_dict(supplied_fingerprint) != result.fingerprint:
+            raise ContractError("engine provenance supplied a mismatched fingerprint")
+        if supplied_hash is not None and supplied_hash != result.fingerprint_hash:
+            raise ContractError("engine provenance supplied an invalid fingerprint_hash")
+        return result
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -511,6 +538,9 @@ class EngineProvenance:
             "runtime": self.runtime, "rust_version": self.rust_version.to_dict(),
             "dependency_lock_hash": self.dependency_lock_hash,
             "worker_hash": self.worker_hash, "license_spdx": self.license_spdx,
+            "python_version": self.python_version, "platform": self.platform,
+            "fingerprint": self.fingerprint.to_dict(),
+            "fingerprint_hash": self.fingerprint_hash,
         }
 
 
@@ -528,7 +558,9 @@ class SimulationResult:
     account: AccountState
     metrics: Mapping[str, EpistemicValue]
     runtime_ms: float
-    schema_version: str = "0.2.3"
+    native_events: tuple[NativeEngineEvent, ...] = ()
+    canonical_events: tuple[CanonicalExecutionEvent, ...] = ()
+    schema_version: str = "0.2.4"
 
     def __post_init__(self) -> None:
         if not isinstance(self.provenance, EngineProvenance):
@@ -548,11 +580,21 @@ class SimulationResult:
         if not all(isinstance(item, EpistemicValue) for item in metrics.values()):
             raise ContractError("every metric must be an EpistemicValue")
         object.__setattr__(self, "metrics", metrics)
+        if not all(isinstance(item, NativeEngineEvent) for item in self.native_events):
+            raise ContractError("native_events must contain NativeEngineEvent values")
+        if not all(isinstance(item, CanonicalExecutionEvent) for item in self.canonical_events):
+            raise ContractError("canonical_events must contain CanonicalExecutionEvent values")
+        native_hashes = {item.native_event_hash for item in self.native_events}
+        input_hashes = {item.input_market_event_hash for item in self.native_events}
+        if any(item.native_event_hash not in native_hashes for item in self.canonical_events):
+            raise ContractError("canonical event does not resolve to a preserved native event")
+        if any(item.input_market_event_hash not in input_hashes for item in self.canonical_events):
+            raise ContractError("canonical event lost its input market-event lineage")
         runtime = _finite(self.runtime_ms, "runtime_ms")
         if runtime < 0:
             raise ContractError("runtime_ms must be >= 0")
         object.__setattr__(self, "runtime_ms", runtime)
-        if self.schema_version != "0.2.3":
+        if self.schema_version != "0.2.4":
             raise ContractError("unsupported simulation result schema_version")
 
     @property
@@ -564,6 +606,10 @@ class SimulationResult:
     @property
     def result_hash(self) -> str:
         return canonical_sha256(self._payload())
+    @property
+    def engine_fingerprint_hash(self) -> str:
+        return self.provenance.fingerprint_hash
+
 
     def _payload(self) -> dict[str, Any]:
         return {
@@ -577,7 +623,10 @@ class SimulationResult:
             "seed": self.seed,
             "orders": [item.to_dict() for item in self.orders],
             "fills": [item.to_dict() for item in self.fills],
+            "native_events": [item.to_dict() for item in self.native_events],
+            "canonical_events": [item.to_dict() for item in self.canonical_events],
             "account": self.account.to_dict(),
+            "engine_fingerprint_hash": self.engine_fingerprint_hash,
             "metrics": {name: self.metrics[name].to_dict() for name in sorted(self.metrics)},
             "runtime_ms": self.runtime_ms,
         }
@@ -586,10 +635,11 @@ class SimulationResult:
     def from_dict(cls, value: Mapping[str, Any]) -> "SimulationResult":
         data = _mapping(value, "simulation result")
         supplied_result = data.get("result_hash")
-        fields = {"schema_version", "provenance", "request_hash", "world_hash", "strategy_hash", "dataset_hash", "assumptions_hash", "seed", "orders", "fills", "account", "metrics", "runtime_ms", "result_hash", "replay_hash"}
+        fields = {"schema_version", "provenance", "engine_fingerprint_hash", "request_hash", "world_hash", "strategy_hash", "dataset_hash", "assumptions_hash", "seed", "orders", "fills", "native_events", "canonical_events", "account", "metrics", "runtime_ms", "result_hash", "replay_hash"}
         if set(data) != fields:
             raise ContractError(f"simulation result fields must be exactly {sorted(fields)}")
         data.pop("result_hash")
+        supplied_fingerprint = data.pop("engine_fingerprint_hash", None)
         supplied_replay = data.pop("replay_hash", None)
         result = cls(
             schema_version=data["schema_version"],
@@ -599,6 +649,8 @@ class SimulationResult:
             assumptions_hash=data["assumptions_hash"], seed=data["seed"],
             orders=tuple(CanonicalOrder.from_dict(item) for item in data["orders"]),
             fills=tuple(CanonicalFill.from_dict(item) for item in data["fills"]),
+            native_events=tuple(NativeEngineEvent.from_dict(item) for item in data["native_events"]),
+            canonical_events=tuple(CanonicalExecutionEvent.from_dict(item) for item in data["canonical_events"]),
             account=AccountState.from_dict(data["account"]),
             metrics={name: EpistemicValue.from_dict(item) for name, item in data["metrics"].items()},
             runtime_ms=data["runtime_ms"],
@@ -608,6 +660,8 @@ class SimulationResult:
         if supplied_replay is not None and supplied_replay != result.replay_hash:
             raise ContractError("worker supplied an invalid replay_hash")
         return result
+        if supplied_fingerprint != result.engine_fingerprint_hash:
+            raise ContractError("worker supplied an invalid engine_fingerprint_hash")
 
     def to_dict(self) -> dict[str, Any]:
         data = self._payload()
