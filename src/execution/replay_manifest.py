@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any, Mapping
 
 from src.eval.canonical import canonical_sha256
+from src.execution.failures import BoundaryError, FailureCode
 
 
 @dataclass(frozen=True)
@@ -17,6 +19,15 @@ class ExecutionReplayManifest:
     native_event_stream_hash: str
     canonical_event_stream_hash: str
     schema_version: str = "forge-replay/0.2.4"
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "forge-replay/0.2.4":
+            raise BoundaryError("unsupported replay manifest schema", FailureCode.SCHEMA_INVALID)
+        for name in ("engine_fingerprint_hash", "request_hash", "result_hash", "replay_hash",
+                     "native_event_stream_hash", "canonical_event_stream_hash"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+                raise BoundaryError(f"invalid replay manifest {name}", FailureCode.SCHEMA_INVALID)
 
     @property
     def manifest_hash(self) -> str:
@@ -35,10 +46,14 @@ class ExecutionReplayManifest:
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ExecutionReplayManifest":
         data = dict(value)
-        supplied = data.pop("manifest_hash", None)
+        fields = {"schema_version", "engine_fingerprint_hash", "request_hash", "result_hash",
+                  "replay_hash", "native_event_stream_hash", "canonical_event_stream_hash", "manifest_hash"}
+        if set(data) != fields:
+            raise BoundaryError("invalid replay manifest fields", FailureCode.SCHEMA_INVALID)
+        supplied = data.pop("manifest_hash")
         result = cls(**data)
-        if supplied is not None and supplied != result.manifest_hash:
-            raise ValueError("invalid execution replay manifest hash")
+        if supplied != result.manifest_hash:
+            raise BoundaryError("invalid execution replay manifest hash", FailureCode.REPLAY_MISMATCH)
         return result
 
     def to_dict(self, *, include_hash: bool = True) -> dict[str, str]:
@@ -53,4 +68,3 @@ class ExecutionReplayManifest:
         if include_hash:
             value["manifest_hash"] = self.manifest_hash
         return value
-

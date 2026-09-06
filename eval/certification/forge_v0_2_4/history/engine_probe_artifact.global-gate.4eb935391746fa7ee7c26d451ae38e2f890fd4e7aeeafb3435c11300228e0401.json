@@ -1,6 +1,40 @@
 {
-  "artifact_hash": "9ee9dabbadaa0e260e942d9c304c3c5dd0571e49470d8e8a4f35a0151c3f3166",
-  "certification_summary": "MIXED",
+  "artifact_hash": "4eb935391746fa7ee7c26d451ae38e2f890fd4e7aeeafb3435c11300228e0401",
+  "blocking_gates": [
+    {
+      "engine": "hftbacktest",
+      "failed_checks": [
+        "mandatory-oracle-backed-tapes"
+      ],
+      "gate": "C1",
+      "reason": "Forge oracle and independent accounting for every declared tape; failures: [{'tape_id': 'T03', 'tape_hash': 'b07bd2b53acda958f9f7f808f3d0527dd03e79c2b09972e807bfdc702e8ce1a2', 'state': 'FAIL', 'failures': ['ACCOUNTING_MISMATCH'], 'result_hash': 'a7a645322863ff7ef56bd34f795fbd764da1ae6ddac4c7eabaa27b8ab862c361', 'oracle_hash': 'aa7678c3ae71060acafcb90cba8c81adce79414813219625bb68d9455f24cc4d'}, {'tape_id': 'T04', 'tape_hash': 'e73fa3ac57061ddb180d5be2997c4e4479127c8f11873e7e885a11d485d39e48', 'state': 'FAIL', 'failures': ['ACCOUNTING_MISMATCH', 'FILL_IMPOSSIBLE'], 'result_hash': '7196632afd3d8b05202fcd3112ea3a847884c9ad8852c6e2c9aebcf439021442', 'oracle_hash': '3cf341703025223cf509b4049d34230c0f548b1f06ff2a5fdbfe506c0299f617'}, {'tape_id': 'T12', 'tape_hash': 'a095c4a01b8da196db8f31a4f529993d5a3c6bb16790455ad712f48ec879d1fa', 'state': 'FAIL', 'failures': ['ACCOUNTING_MISMATCH'], 'result_hash': 'e07c1b2a82ef42f16d9b35a65267e29a0be2931d4035e95fff7fdf8b1c0b23b4', 'oracle_hash': '4499f648fe1699e03562a16d080b27a1e0617a0e43ec909b8fad37b4743afe7d'}]"
+    },
+    {
+      "engine": "hftbacktest",
+      "failed_checks": [
+        "host-and-native-result-mutations"
+      ],
+      "gate": "C4",
+      "reason": "production-boundary and actual native-result mutation suite; failed attacks: []; invalid native positive controls: [{'tape_id': 'T03', 'failure_codes': ['ACCOUNTING_MISMATCH'], 'state': 'INVALID_POSITIVE_CONTROL'}, {'tape_id': 'T04', 'failure_codes': ['ACCOUNTING_MISMATCH', 'FILL_IMPOSSIBLE'], 'state': 'INVALID_POSITIVE_CONTROL'}, {'tape_id': 'T12', 'failure_codes': ['ACCOUNTING_MISMATCH'], 'state': 'INVALID_POSITIVE_CONTROL'}]"
+    },
+    {
+      "engine": "legacy-hft",
+      "failed_checks": [
+        "mandatory-oracle-backed-tapes"
+      ],
+      "gate": "C1",
+      "reason": "Forge oracle and independent accounting for every declared tape; failures: [{'tape_id': 'T12', 'tape_hash': 'a095c4a01b8da196db8f31a4f529993d5a3c6bb16790455ad712f48ec879d1fa', 'state': 'FAIL', 'failures': ['ACCOUNTING_MISMATCH'], 'result_hash': '4c156094380fa09bc990f9a60ed91537e672a8eca832d9041d6fa02e4e53255f', 'oracle_hash': '4499f648fe1699e03562a16d080b27a1e0617a0e43ec909b8fad37b4743afe7d'}]"
+    },
+    {
+      "engine": "legacy-hft",
+      "failed_checks": [
+        "host-and-native-result-mutations"
+      ],
+      "gate": "C4",
+      "reason": "production-boundary and actual native-result mutation suite; failed attacks: []; invalid native positive controls: [{'tape_id': 'T12', 'failure_codes': ['ACCOUNTING_MISMATCH'], 'state': 'INVALID_POSITIVE_CONTROL'}]"
+    }
+  ],
+  "certification_level": "C0",
   "clean_environment_receipt": {
     "engines": {
       "hftbacktest": {
@@ -552,12 +586,10 @@
     "passed": true,
     "python_version": "3.12.0",
     "skipped": 0,
-    "tests": 427
+    "tests": 426
   },
-  "engine_certification_target": "C4",
   "engines": [
     {
-      "blocking_tapes": [],
       "certification": {
         "blocking_gates": [],
         "certification_level": "C4",
@@ -625,7 +657,6 @@
           "T09"
         ],
         "schema_version": "forge-certification/0.2.4",
-        "status": "CERTIFIED",
         "supported_tapes": [
           "T01",
           "T02",
@@ -643,7 +674,7 @@
           "T12": "VectorBT bar-order simulation has no native L2 liquidity, resting-order cancellation, latency, or queue model for this tape"
         }
       },
-      "certification_hash": "110751a6c9aaa206e0a29ad67cccfd88f1ecc2dabace226fabac4880716af997",
+      "certification_hash": "7e5bd065f288a55c2d1e2f25dd42e532a7ad198f5237fb67e0170476e83d3829",
       "dependency_lock": [
         "ImageIO==2.37.4",
         "Pygments==2.21.0",
@@ -707,7 +738,6 @@
         "widgetsnbextension==4.0.16"
       ],
       "engine": "vectorbt",
-      "findings": {},
       "fresh_environment": true,
       "installed_identity": {
         "direct_url": null,
@@ -1823,7 +1853,6 @@
           "tape_id": "T12"
         }
       ],
-      "status": "CERTIFIED",
       "stress": {
         "cases": [
           {
@@ -2367,7 +2396,6 @@
       }
     },
     {
-      "blocking_tapes": [],
       "certification": {
         "blocking_gates": [],
         "certification_level": "C4",
@@ -2440,7 +2468,6 @@
           "T10"
         ],
         "schema_version": "forge-certification/0.2.4",
-        "status": "CERTIFIED",
         "supported_tapes": [
           "T01",
           "T02",
@@ -2458,7 +2485,7 @@
           "T12": "QUEUE_MODEL_NOT_IN_DECLARED_NAUTILUS_CAPABILITY_SET"
         }
       },
-      "certification_hash": "7685f48f7c03d6dfdc86436d1216b0a3408d0a0b6b4a1ddfac5d3fa0ecf21d97",
+      "certification_hash": "40d29c7198fc0d1a423b0ccc6fdf28131f96e01723ac455bcec195e824db67b1",
       "dependency_lock": [
         "click==8.4.2",
         "colorama==0.4.6",
@@ -2478,7 +2505,6 @@
         "tzdata==2026.3"
       ],
       "engine": "nautilus",
-      "findings": {},
       "fresh_environment": true,
       "installed_identity": {
         "direct_url": null,
@@ -3762,7 +3788,6 @@
           "tape_id": "T12"
         }
       ],
-      "status": "CERTIFIED",
       "stress": {
         "cases": [
           {
@@ -4306,11 +4331,6 @@
       }
     },
     {
-      "blocking_tapes": [
-        "T03",
-        "T04",
-        "T12"
-      ],
       "certification": {
         "blocking_gates": [
           {
@@ -4402,7 +4422,6 @@
           "T12"
         ],
         "schema_version": "forge-certification/0.2.4",
-        "status": "FAILED_CERTIFICATION",
         "supported_tapes": [
           "T01",
           "T02",
@@ -4419,7 +4438,7 @@
         ],
         "unsupported_tapes": {}
       },
-      "certification_hash": "81d05cbc071c3749fc128b2be8556ca9310883b442a8c14881dc3e23b4241b2f",
+      "certification_hash": "33390e2bd21dcfbf44d6d560e456f02f226523c3af9f63039c08d31fda5d8636",
       "dependency_lock": [
         "Jinja2==3.1.6",
         "Markdown==3.10.3",
@@ -4470,25 +4489,6 @@
         "xyzservices==2026.3.0"
       ],
       "engine": "hftbacktest",
-      "findings": {
-        "upstream_evidence": {
-          "candidate_pr": {
-            "head_commit": "22856574ca1d877594ecd8fb0f5ef33e1e702cbb",
-            "mergeable": true,
-            "merged": false,
-            "number": 323,
-            "state": "OPEN",
-            "url": "https://github.com/nkaz001/hftbacktest/pull/323"
-          },
-          "certified_package_patched": false,
-          "issue": {
-            "number": 316,
-            "state": "OPEN",
-            "url": "https://github.com/nkaz001/hftbacktest/issues/316"
-          },
-          "observed_on": "2026-09-06"
-        }
-      },
       "fresh_environment": true,
       "installed_identity": {
         "direct_url": null,
@@ -7900,7 +7900,6 @@
           "tape_id": "T12"
         }
       ],
-      "status": "FAILED_CERTIFICATION",
       "stress": {
         "cases": [
           {
@@ -8467,9 +8466,6 @@
       }
     },
     {
-      "blocking_tapes": [
-        "T12"
-      ],
       "certification": {
         "blocking_gates": [
           {
@@ -8552,7 +8548,6 @@
           "T12"
         ],
         "schema_version": "forge-certification/0.2.4",
-        "status": "FAILED_CERTIFICATION",
         "supported_tapes": [
           "T02",
           "T11",
@@ -8570,7 +8565,7 @@
           "T10": "Legacy engine supports passive inverse USD contracts; aggressive linear orders, L2 sweeps, nonzero linear fees, reversal and nanosecond latency are outside the declared native semantic intersection"
         }
       },
-      "certification_hash": "19b10693182ebe91d7109866427bbafd8a9d5ee28306fd83928451c4c2b1ae83",
+      "certification_hash": "10152e03cc359cbd9f57db7aa8a8256f916f8a83ff65364c2feb2cef4eaabb7d",
       "dependency_lock": [
         "backtesting-hft @ git+https://github.com/evgerher/hft-backtesting.git@737ce7bda4a31b839dd8179eab5f3aae22040c3e",
         "colorama==0.4.6",
@@ -8592,20 +8587,6 @@
         "tzdata==2026.3"
       ],
       "engine": "legacy-hft",
-      "findings": {
-        "capability_analysis": {
-          "T12": {
-            "adapter_normalization": "VALIDATED",
-            "classification": "IMPLEMENTATION_DEFECT",
-            "declared_capability": "SUPPORTED",
-            "evidence": [
-              "native matcher emits PARTIAL and FINISHED for the requested passive queue sequence",
-              "matcher and Strategy share one mutable OrderRequest and both increment volume_filled on PARTIAL",
-              "native final accounting records 2 of 3 filled base units while the native status stream proves both fills"
-            ]
-          }
-        }
-      },
       "fresh_environment": true,
       "installed_identity": {
         "direct_url": {
@@ -9355,7 +9336,6 @@
           "tape_id": "T12"
         }
       ],
-      "status": "FAILED_CERTIFICATION",
       "stress": {
         "cases": [
           {
@@ -9999,8 +9979,7 @@
       ]
     }
   },
-  "maximum_engine_level": "C4",
-  "minimum_engine_level": "C0",
+  "release_eligible": false,
   "request": {
     "request_hash": "93cb60a15edb6c0a133eae4e2fb36857d8799ddc3db342b768e77a73e58cafdc",
     "schema_version": "forge-semantic-request/0.2.4",
@@ -10647,7 +10626,13 @@
     ]
   },
   "request_hash": "93cb60a15edb6c0a133eae4e2fb36857d8799ddc3db342b768e77a73e58cafdc",
-  "schema_version": "forge-engine-certification/0.2.4-system-release",
+  "required_levels": {
+    "hftbacktest": "C4",
+    "legacy-hft": "C4",
+    "nautilus": "C4",
+    "vectorbt": "C4"
+  },
+  "schema_version": "forge-engine-certification/0.2.4",
   "source_hash_convention": "CRLF normalized to LF; all other source bytes preserved",
   "source_manifest": {
     ".gitattributes": "3150e392cd11bb1e834fa02e990dc29302bb30fd77ed55a7d9a78b18a649e6f4",
@@ -10666,7 +10651,7 @@
     "scripts/build_agent_eval_report.py": "19a8dbb8d8b9dddf9247c85962304657d106dda666e04306d9b4a62c2cf24fd0",
     "scripts/build_graph.py": "15d90f0dbcd79530b5864f4257ac6f7c47d5958b2cff29087d7f11e3a56cc441",
     "scripts/build_rag_index.py": "757bd162c70bc014c66e2dc32fcc7e98bae1ce48dc0cf6ada653982b25243bb7",
-    "scripts/certify_execution_engines.py": "167716a12da13e2e0fb420741ed7d0ce7a2d9e9769eb8c9f0e7debcad9e0a487",
+    "scripts/certify_execution_engines.py": "2643f9fec09bdd57f7c122d19038965c3693f67e1361a958898b86e0405c779c",
     "scripts/check_free_api_connections.py": "fda3fdbd7705fdf0409009e52ee1c97247018f78d366b42670d654134f5681fd",
     "scripts/engine_certification/engine_identity.py": "41723e22eea30c3598b83edfcf7e1a9d98d10fb85e7c27f8a9650dc5c9b4dc19",
     "scripts/engine_certification/hftbacktest_probe.py": "ff146ddcecc75905dd45cb15e4de499e55832692622eb07ac5bcc2c6c45dc5d7",
@@ -10686,7 +10671,7 @@
     "scripts/prepare_certification_environments.py": "d1ffbcb6a2443aabe6a28c27b50b189fd38c00f176a7c4f70b99ca2d75e3b347",
     "scripts/run_forge_benchmark.py": "1720c2fa6d16f20a748dd4d5988f032e5b009f14abe1d5bb0bef26b062bf838c",
     "scripts/run_validation_suite.py": "7d9b5f177b2e81daa0e1f5cfaea112352d65cea2b20d05848b24c736b56e25d5",
-    "scripts/verify_engine_certification.py": "60541707a85e39d24055a21e6a3429a46e5dd2f2d4bf40b8f954d58309bfccb4",
+    "scripts/verify_engine_certification.py": "a55f547fdcc8140fe6b0d062337144a38139a30f8dd27018efc47ec116916c95",
     "scripts/verify_production_phase0.py": "e1f8cd973675c7513328f558a0600c43128728b3b9bd07ebd2208797ea7d5635",
     "src/__init__.py": "3de907f97bdfc420e9ba47571f93d9395c374bb66565467d003b56a86315888e",
     "src/agent/__init__.py": "17b804405a75eb379800a5c04c6776b9944ccebebc54051164db7573a4b25223",
@@ -10742,12 +10727,12 @@
     "src/eval/metrics.py": "2186b7499645f76dfcd0fd47da05605a0c4c937cc82650439b9dea89de03338c",
     "src/eval/models.py": "c9f0502b1f3552931c25fc6c147c84c1ee1654bb7d6a960ebafa7a90f28f6d91",
     "src/eval/report.py": "b6a0907e101b3f468e5876d2ae4e57ca875b5b66eaf56268fc1e95bcc68927c7",
-    "src/execution/__init__.py": "9640cb09d73bf775616363c29682a4a80a84acdb3106bbe23e535bf7269e5387",
+    "src/execution/__init__.py": "59a5ffbb80233527871e9da195ffbf3ce5ae6bb0a3f40206714d5c8f1ff1a2fc",
     "src/execution/adversarial.py": "3ca652ad2ea1f2dd2bfd8b23aad5a216c13c729f7cb58f4c0f55ac7aecd37c77",
     "src/execution/assumptions.py": "5f4d055a175b8a7dcbbb85ffb1bedb49b32ab2eb68744ce147f128d478143761",
     "src/execution/benchmark.py": "d8a22cec96a9f4d00aa220b137efd393d0d2deb8fcc3073dd05bb9a2a255815f",
     "src/execution/causal_gap.py": "56e6c0cc69fc05a9f0db4d343c3cec2b46f01dd600d6d0c223bdaee9f93ec04c",
-    "src/execution/certification.py": "f521b838564cb6521e069a076fe74fc9695588db09f315d4c563308e0b2f6fd4",
+    "src/execution/certification.py": "faf1587c9346937b022c5f9cb24f784bb331217cc26c3b0cad483312765fdd55",
     "src/execution/comparison.py": "abe4a68fd97cd313e53bba2feebc163f7aa5eb2f8e0ddcd4070ca744e5d16d9d",
     "src/execution/contracts.py": "354929b76f375c36c5726a8197757ad3dca77000a6a309d34cbdb0e169134463",
     "src/execution/engines.py": "a83af505a6e0fe8238f2f015cafe1e8a415f9e5d7074d7966229e60a7bd5a062",
@@ -10911,7 +10896,7 @@
     "tests/test_agent_eval_metrics.py": "289970e7d3f09703d52a6c0d235333725b3b67dddf1eb31d034896cf506233c3",
     "tests/test_api.py": "ee52a87d74b15027d62bbe918332c11f219f4526f85a6a37d9f7ee75a020f7e5",
     "tests/test_black_scholes.py": "f599d72599fac65d144ce74fc9ab281b7559152f321ef97398bf3a54d0c170ba",
-    "tests/test_certification_release_gate.py": "e5b4ae49fd83a502d57f2d8dd53aeff639b39a9d3f6d5a41a68a517aca4f4121",
+    "tests/test_certification_release_gate.py": "3a84952ac2eefb5f9d1ba9c6aee1f349d75382c4839cb9f6e334deb6ab4aa097",
     "tests/test_chunker.py": "c7b21e3b7e63b8472ccbd5dd0b7fe316b339ab8765628a18a4c43384b8b60ece",
     "tests/test_cloud_clients.py": "b390aab8f1dd7bf2b4975460312be61a6e36602e45d73b89fdc043d1f952a0f5",
     "tests/test_company_ir_discovery.py": "82931ca2c4aae1277148618cc5b15681546ce2e1ed9e42bfc55fce132fa2f213",
@@ -10983,73 +10968,5 @@
     "tests/test_var_cvar.py": "b073c23b126ff2d76ca467e15aef0313f2dbc13b3798a11deedbc5ef04042d83",
     "tests/test_vol_surface.py": "eec3f6b31569462bef42961dc34f990351e284929233388228cd3af82754f14e"
   },
-  "source_manifest_hash": "b88f2226fbd2108e002c739aa97c58a2501bf51f8bce4d662b1625f5a8a59ee7",
-  "supersedes_artifact": {
-    "artifact_hash": "4eb935391746fa7ee7c26d451ae38e2f890fd4e7aeeafb3435c11300228e0401",
-    "file_sha256": "e0b7057093553cbc8b2c4b8e463bc8aa5fdb6e25223e052e22f67250914bc61f",
-    "path": "eval/certification/forge_v0_2_4/history/engine_probe_artifact.global-gate.4eb935391746fa7ee7c26d451ae38e2f890fd4e7aeeafb3435c11300228e0401.json",
-    "reason": "the prior release gate incorrectly conflated certification-system validity with the minimum third-party engine level"
-  },
-  "system": {
-    "blocking_gates": [],
-    "checks": {
-      "artifact_consistency": {
-        "detail": "embedded response, replay, certification, mutation, and identity evidence must be internally bound",
-        "evidence_hash": "b67d7e7031470b2ac4841a27c15a06e0d1d4357674821ce8486f794fa10b59cc",
-        "status": "PASS"
-      },
-      "c3_comparison_rules": {
-        "detail": "comparable semantics must converge and incompatible queue semantics must be explicitly rejected",
-        "evidence_hash": "e0522daef655744e744862cc1d08453aab80b857398aa23c3107c1ab0e895002",
-        "status": "PASS"
-      },
-      "c4_host_boundary_mutation_suite": {
-        "detail": "every required production host-boundary attack must be rejected for every engine fingerprint",
-        "evidence_hash": "68b1053f9985d656ddc0a7c1c7e72346b01bc4b940106421bdb8ccda36e63223",
-        "status": "PASS"
-      },
-      "certification_harness": {
-        "detail": "all four declared engines must have complete C0-C4 verdict evidence",
-        "evidence_hash": "3e1ec23ce18c6691c156109b9072642d0200c405e6ee8e9d9fea3f894add051a",
-        "status": "PASS"
-      },
-      "clean_environment": {
-        "detail": "all official packages must be tested unpatched in fresh isolated locked environments",
-        "evidence_hash": "1497653ddb3ce607c073b4da497923a697913d3b1f3451f57dcd9e1549c7aa18",
-        "status": "PASS"
-      },
-      "engine_failures_honestly_preserved": {
-        "detail": "engine statuses, cumulative levels, and blocking tapes must exactly match the independently graded observations",
-        "evidence_hash": "494149eac8b4c9292bcd1bb01813e61c28198ae2cf605d006c2a70baf8d7cecd",
-        "status": "PASS"
-      },
-      "forge_owned_oracle_suite": {
-        "detail": "all Forge-owned tapes must be independently graded with positive and negative engine verdicts visible",
-        "evidence_hash": "db1b7ba58b9024793ffa24dd315eeb5bb847de97ec9eb589f6bc49c7800999d3",
-        "status": "PASS"
-      },
-      "full_test_suite": {
-        "detail": "the complete Forge test suite must pass in the certification run",
-        "evidence_hash": "e9e5be5d528cb04f5b875bcb00809633b01ade68964ae024f5852f8d2a7e2471",
-        "status": "PASS"
-      },
-      "historical_artifact_preserved": {
-        "detail": "the original global-gate artifact must remain byte-identical and content-addressed",
-        "evidence_hash": "8fbe26cbef55ca913a79685eb2806d7db98f2286e4744f2dd3e00d4812b8b8c8",
-        "status": "PASS"
-      },
-      "replay_verification": {
-        "detail": "every engine response must reproduce byte-for-byte in a fresh worker process",
-        "evidence_hash": "106c6d3ae4bfa3c0e7dd4e760b9b5d23a63ec8adface9baec8e92991ef8574a7",
-        "status": "PASS"
-      },
-      "source_stability": {
-        "detail": "certified source must remain unchanged during the run",
-        "evidence_hash": "b88f2226fbd2108e002c739aa97c58a2501bf51f8bce4d662b1625f5a8a59ee7",
-        "status": "PASS"
-      }
-    },
-    "release_eligible": true
-  },
-  "system_release_eligible": true
+  "source_manifest_hash": "ca6eda74a84e636f07ae83b5fb8857e2e47d41cd9d27236d6111e8bc418b2899"
 }

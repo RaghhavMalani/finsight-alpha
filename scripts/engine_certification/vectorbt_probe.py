@@ -18,4 +18,3 @@ print(json.dumps({
     "ending_value": round(float(portfolio.value().iloc[-1]), 10),
     "fees": round(float(orders["Fees"].sum()), 10),
 }, sort_keys=True, separators=(",", ":")))
-

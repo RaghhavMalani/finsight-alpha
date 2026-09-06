@@ -24,4 +24,3 @@ print(json.dumps({
     "best_bid": float(depth.best_bid), "best_ask": float(depth.best_ask),
 }, sort_keys=True, separators=(",", ":")))
 backtest.close()
-

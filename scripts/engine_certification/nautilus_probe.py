@@ -22,4 +22,3 @@ print(json.dumps({
     "iterations": int(result.iterations), "total_orders": int(result.total_orders),
 }, sort_keys=True, separators=(",", ":")))
 engine.dispose()
-

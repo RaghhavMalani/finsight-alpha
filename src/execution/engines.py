@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 from pathlib import Path
 from typing import Mapping, Sequence
 
 from src.eval.canonical import canonical_json_bytes, canonical_sha256
+from src.execution.failures import FailureCode
+from src.execution.normalization import normalize_worker_outcome
+from src.execution.worker_process import WorkerResourceError, run_bounded
 from src.execution.contracts import (
     ContractError,
     EngineDescriptor,
@@ -32,6 +34,7 @@ class WorkerEngine:
         timeout_seconds: float = 60.0,
         max_output_bytes: int = 8_000_000,
         cwd: str | Path | None = None,
+        expected_fingerprint_hash: str | None = None,
     ) -> None:
         self._descriptor = descriptor
         self._command = tuple(command or ())
@@ -42,6 +45,7 @@ class WorkerEngine:
         self.timeout_seconds = float(timeout_seconds)
         self.max_output_bytes = int(max_output_bytes)
         self.cwd = str(cwd) if cwd is not None else None
+        self._expected_fingerprint_hash = expected_fingerprint_hash
         self._requests: dict[str, SimulationRequest] = {}
         self._replay_hashes: dict[str, str] = {}
 
@@ -89,29 +93,27 @@ class WorkerEngine:
         safe_env["PYTHONUTF8"] = "1"
         safe_env["PYTHONHASHSEED"] = str(request.seed)
         try:
-            completed = subprocess.run(
+            completed = run_bounded(
                 self._command,
                 input=canonical_json_bytes(envelope),
-                capture_output=True,
-                shell=False,
-                timeout=self.timeout_seconds,
+                timeout_seconds=self.timeout_seconds,
+                max_output_bytes=self.max_output_bytes,
                 cwd=self.cwd,
                 env=safe_env,
-                check=False,
             )
-        except (OSError, subprocess.TimeoutExpired) as exc:
+        except WorkerResourceError as exc:
             return SimulationOutcome(
                 self.descriptor.engine_id,
                 request.request_hash,
                 MeasurementState.ERROR,
-                reason=f"worker launch failed: {type(exc).__name__}: {exc}",
+                reason=f"{FailureCode.WORKER_RESOURCE_FAILURE.value}: {exc}",
             )
         if len(completed.stdout) > self.max_output_bytes:
             return SimulationOutcome(
                 self.descriptor.engine_id,
                 request.request_hash,
                 MeasurementState.ERROR,
-                reason="worker response exceeded the configured byte limit",
+                reason=f"{FailureCode.WORKER_RESOURCE_FAILURE.value}: worker response exceeded the configured byte limit",
             )
         if completed.returncode != 0:
             stderr = completed.stderr[:1000].decode("utf-8", errors="replace").strip()
@@ -119,7 +121,7 @@ class WorkerEngine:
                 self.descriptor.engine_id,
                 request.request_hash,
                 MeasurementState.ERROR,
-                reason=f"worker exited {completed.returncode}: {stderr or 'no diagnostic'}",
+                reason=f"{FailureCode.WORKER_RESOURCE_FAILURE.value}: worker exited {completed.returncode}: {stderr or 'no diagnostic'}",
             )
         try:
             response = json.loads(completed.stdout.decode("utf-8"))
@@ -127,17 +129,21 @@ class WorkerEngine:
                 raise ContractError("RPC response fields are not canonical")
             if response["protocol_version"] != RPC_VERSION:
                 raise ContractError("RPC protocol version mismatch")
-            outcome = SimulationOutcome.from_dict(response["outcome"])
-            self._validate_binding(outcome, request)
+            outcome = normalize_worker_outcome(
+                response["outcome"], descriptor=self.descriptor, request=request,
+                expected_fingerprint_hash=self._expected_fingerprint_hash,
+            )
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ContractError, ValueError) as exc:
             return SimulationOutcome(
                 self.descriptor.engine_id,
                 request.request_hash,
                 MeasurementState.ERROR,
-                reason=f"invalid worker response: {type(exc).__name__}: {exc}",
+                reason=f"{getattr(exc, 'code', FailureCode.SCHEMA_INVALID).value}: invalid worker response: {type(exc).__name__}: {exc}",
             )
         if outcome.state is MeasurementState.MEASURED:
             assert outcome.result is not None
+            if self._expected_fingerprint_hash is None:
+                self._expected_fingerprint_hash = outcome.result.engine_fingerprint_hash
             self._requests[outcome.result.result_hash] = request
             self._replay_hashes[outcome.result.result_hash] = outcome.result.replay_hash
         return outcome
@@ -155,27 +161,15 @@ class WorkerEngine:
                     self.descriptor.engine_id,
                     request.request_hash,
                     MeasurementState.ERROR,
-                    reason="worker replay hash diverged from the original run",
+                    reason=f"{FailureCode.REPLAY_MISMATCH.value}: worker replay hash diverged from the original run",
                 )
         return outcome
 
     def _validate_binding(self, outcome: SimulationOutcome, request: SimulationRequest) -> None:
-        if outcome.engine_id != self.descriptor.engine_id:
-            raise ContractError("worker engine_id does not match configured adapter")
-        if outcome.request_hash != request.request_hash:
-            raise ContractError("worker outcome is bound to a different request")
-        if outcome.result is None:
-            return
-        result = outcome.result
-        if result.provenance.engine_id != self.descriptor.engine_id:
-            raise ContractError("result provenance engine_id mismatch")
-        if result.provenance.license_spdx != self.descriptor.license_spdx:
-            raise ContractError("worker license metadata mismatch")
-        for name in ("world_hash", "strategy_hash", "dataset_hash", "seed"):
-            if getattr(result, name) != getattr(request, name):
-                raise ContractError(f"result {name} is not bound to the request")
-        if result.assumptions_hash != request.execution.assumptions_hash:
-            raise ContractError("result assumptions_hash mismatch")
+        normalize_worker_outcome(
+            outcome.to_dict(), descriptor=self.descriptor, request=request,
+            expected_fingerprint_hash=self._expected_fingerprint_hash,
+        )
 
 
 def worker_command_hash(command: Sequence[str]) -> str:

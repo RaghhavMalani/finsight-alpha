@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import re
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
 from src.eval.canonical import canonical_sha256
+from src.execution.failures import BoundaryError, FailureCode
 
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -72,7 +74,7 @@ class NativeEngineEvent:
             raise ValueError(f"native event fields must be exactly {sorted(fields)}")
         result = cls(**data)
         if supplied is not None and supplied != result.native_event_hash:
-            raise ValueError("invalid native_event_hash")
+            raise BoundaryError("invalid native_event_hash", FailureCode.REPLAY_MISMATCH)
         return result
 
     def to_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
@@ -112,9 +114,10 @@ class CanonicalExecutionEvent:
                 object.__setattr__(self, name, _text(getattr(self, name), name))
         for name in ("quantity", "price"):
             if getattr(self, name) is not None:
-                number = float(getattr(self, name))
-                if number < 0:
-                    raise ValueError(f"{name} must be >= 0")
+                raw = getattr(self, name)
+                if type(raw) not in {int, float} or not math.isfinite(raw) or raw < 0:
+                    raise ValueError(f"{name} must be a finite number >= 0")
+                number = float(raw)
                 object.__setattr__(self, name, number)
 
     @classmethod

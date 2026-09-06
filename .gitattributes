@@ -2,3 +2,10 @@
 data/exports/forge_v0_2_baseline/** -text
 data/exports/forge_v0_2_reward_calibration/** -text
 
+
+# Certification sources and frozen evidence use a platform-independent byte form.
+scripts/engine_certification/** text eol=lf
+scripts/certify_execution_engines.py text eol=lf
+scripts/prepare_certification_environments.py text eol=lf
+scripts/verify_engine_certification.py text eol=lf
+eval/certification/forge_v0_2_4/** text eol=lf

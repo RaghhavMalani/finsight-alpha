@@ -12,6 +12,7 @@ from typing import Any, Mapping, Protocol
 from src.eval.canonical import canonical_sha256
 from src.execution.events import CanonicalExecutionEvent, NativeEngineEvent
 from src.execution.fingerprints import EngineFingerprint
+from src.execution.failures import FailureCode
 
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -31,6 +32,10 @@ CANONICAL_METRICS = (
 
 class ContractError(ValueError):
     """Raised when an engine attempts to cross the canonical boundary incorrectly."""
+
+    def __init__(self, message: str, code: FailureCode = FailureCode.SCHEMA_INVALID) -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class MeasurementState(str, Enum):
@@ -261,7 +266,7 @@ class SimulationRequest:
         inputs = _mapping(self.inputs, "inputs")
         object.__setattr__(self, "inputs", inputs)
         if canonical_sha256(inputs) != self.dataset_hash:
-            raise ContractError("dataset_hash does not match canonical inputs")
+            raise ContractError("dataset_hash does not match canonical inputs", FailureCode.REPLAY_MISMATCH)
         if self.schema_version != "0.2.3":
             raise ContractError("unsupported simulation request schema_version")
 
@@ -420,11 +425,11 @@ class CanonicalFill:
         for name in ("quantity", "price"):
             numeric = _finite(getattr(self, name), name)
             if numeric <= 0:
-                raise ContractError(f"{name} must be > 0")
+                raise ContractError(f"{name} must be > 0", FailureCode.FILL_IMPOSSIBLE)
             object.__setattr__(self, name, numeric)
         fee = _finite(self.fee, "fee")
         if fee < 0:
-            raise ContractError("fee must be >= 0")
+            raise ContractError("fee must be >= 0", FailureCode.ACCOUNTING_MISMATCH)
         object.__setattr__(self, "fee", fee)
         object.__setattr__(self, "event_ns", _integer(self.event_ns, "event_ns"))
         for name in ("latency_ns", "queue_ahead_quantity", "available_quantity"):
@@ -526,9 +531,9 @@ class EngineProvenance:
         supplied_hash = data.pop("fingerprint_hash", None)
         result = cls(**data)
         if supplied_fingerprint is not None and EngineFingerprint.from_dict(supplied_fingerprint) != result.fingerprint:
-            raise ContractError("engine provenance supplied a mismatched fingerprint")
+            raise ContractError("engine provenance supplied a mismatched fingerprint", FailureCode.ENGINE_DRIFT)
         if supplied_hash is not None and supplied_hash != result.fingerprint_hash:
-            raise ContractError("engine provenance supplied an invalid fingerprint_hash")
+            raise ContractError("engine provenance supplied an invalid fingerprint_hash", FailureCode.ENGINE_DRIFT)
         return result
 
     def to_dict(self) -> dict[str, Any]:
@@ -571,7 +576,7 @@ class SimulationResult:
         if len({item.order_id for item in self.orders}) != len(self.orders):
             raise ContractError("order IDs must be unique")
         if len({item.fill_id for item in self.fills}) != len(self.fills):
-            raise ContractError("fill IDs must be unique")
+            raise ContractError("fill IDs must be unique", FailureCode.FILL_IMPOSSIBLE)
         if not isinstance(self.account, AccountState):
             raise ContractError("account must be AccountState")
         metrics = dict(self.metrics)
@@ -634,6 +639,8 @@ class SimulationResult:
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "SimulationResult":
         data = _mapping(value, "simulation result")
+        if not isinstance(data.get("provenance"), Mapping) or not data.get("provenance"):
+            raise ContractError("worker result provenance is missing", FailureCode.PROVENANCE_MISSING)
         supplied_result = data.get("result_hash")
         fields = {"schema_version", "provenance", "engine_fingerprint_hash", "request_hash", "world_hash", "strategy_hash", "dataset_hash", "assumptions_hash", "seed", "orders", "fills", "native_events", "canonical_events", "account", "metrics", "runtime_ms", "result_hash", "replay_hash"}
         if set(data) != fields:
@@ -655,13 +662,13 @@ class SimulationResult:
             metrics={name: EpistemicValue.from_dict(item) for name, item in data["metrics"].items()},
             runtime_ms=data["runtime_ms"],
         )
-        if supplied_result is not None and supplied_result != result.result_hash:
-            raise ContractError("worker supplied an invalid result_hash")
-        if supplied_replay is not None and supplied_replay != result.replay_hash:
-            raise ContractError("worker supplied an invalid replay_hash")
-        return result
         if supplied_fingerprint != result.engine_fingerprint_hash:
-            raise ContractError("worker supplied an invalid engine_fingerprint_hash")
+            raise ContractError("worker supplied an invalid engine_fingerprint_hash", FailureCode.ENGINE_DRIFT)
+        if supplied_result != result.result_hash:
+            raise ContractError("worker supplied an invalid result_hash", FailureCode.REPLAY_MISMATCH)
+        if supplied_replay != result.replay_hash:
+            raise ContractError("worker supplied an invalid replay_hash", FailureCode.REPLAY_MISMATCH)
+        return result
 
     def to_dict(self) -> dict[str, Any]:
         data = self._payload()
