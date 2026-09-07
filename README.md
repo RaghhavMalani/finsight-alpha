@@ -27,6 +27,9 @@ honest implementation boundary.
 The optional simulation federation, Reality Ladder, execution verifiers, and
 prediction-market research pack are documented in
 [`docs/FINSIGHT_FORGE_V0_2_3.md`](docs/FINSIGHT_FORGE_V0_2_3.md). The C4 engine evidence and first measured Reality Ladder freeze are documented in [`docs/forge-v0.2.4-engine-certification.md`](docs/forge-v0.2.4-engine-certification.md) and [`docs/forge-v0.2.4.1-reality-ladder-freeze.md`](docs/forge-v0.2.4.1-reality-ladder-freeze.md).
+The provider-neutral v0.2.5 real single-agent harness and its pending live-freeze
+boundary are documented in
+[`docs/forge-v0.2.5-real-single-agent-baseline.md`](docs/forge-v0.2.5-real-single-agent-baseline.md).
 
 
 ## The numbers this repository publishes
@@ -65,17 +68,18 @@ and the exact formulas and anti-gaming rules are documented in
 | --- | --- |
 | Evaluation | Six-metric deterministic scorecard, strict provenance schema, stable JSON/Markdown reports, explicit completeness state |
 | Forge environment | Machine-actionable task/finding contracts, availability-dated `MarketWorld`, deterministic counterfactual forks, research and execution verifier suites, calibrated gate-aware reward model |
-| Frozen tasks | Forge v0.1 cases, immutable v0.2.1 150-episode baseline, v0.2.2 calibration artifact, twelve v0.2.3 execution-conformance tasks, the v0.2.4 certification artifact, and the v0.2.4.1 Reality Ladder |
+| Frozen tasks | Forge v0.1 cases, immutable v0.2.1 150-episode baseline, v0.2.2 calibration artifact, twelve v0.2.3 execution-conformance tasks, the v0.2.4 certification artifact, the v0.2.4.1 Reality Ladder, and six sealed v0.2.5 behavioral cases |
 | Negative controls | Sabotage tests for replay mutation, missing counterfactuals, denominator stuffing, worker self-grading, false-zero epistemic states, request/hash mismatch, and incomplete task/seed grids |
 | Truth foundation | Mandatory `as_of` boundaries, content-addressed computation contracts, epistemic states, tenant-licensed immutable snapshots, run and forecast ledgers |
 | ML timing | Expanding lagged regime thresholds, horizon purge, independent embargo, purged validation, untouched outer holdout |
 | Quant verifier | Published-reference Black-Scholes checks, finite-difference Greeks, Monte Carlo convergence, VaR coverage, Markowitz oracle, shuffled-label control, RAG retrieval set |
 | Product surface | FastAPI backend and React/TanStack terminal displaying server-owned computation truth |
 | Simulation federation | C4-certified VectorBT and Nautilus reward paths, fail-closed task trust policy, 90-record Reality Ladder evidence, canonical execution contracts, and five independent verifiers; failed hftbacktest and legacy-HFT verdicts remain preserved |
+| Behavioral baseline | Provider-neutral single-agent loop, hard research budgets, durable paid-call checkpoints, hidden graders, exact 6 × 3 × 3 coverage, and independent false-alpha and experiment-routing metrics; live model evidence is pending |
 
-Measured runs from separately locked external-engine backends, the complete MCP
-surface, multi-agent ablations, outcome resolution, a learned experiment
-router, and RLVR remain roadmap work. They are not claimed as shipped. See the
+The v0.2.5 live-model freeze, the complete MCP surface, multi-agent ablations,
+outcome resolution, a learned experiment router, and RLVR remain roadmap work.
+They are not claimed as shipped. See the
 versioned Forge documents under `docs/` for the exact boundary.
 
 
@@ -128,6 +132,13 @@ Run the v0.2.3 execution federation and negative controls:
 
 ```bash
 pytest -q tests/test_forge_execution_federation.py tests/test_prediction_markets.py tests/sabotage/test_execution_federation_guards.py
+```
+
+Run the v0.2.5 behavioral contracts, sealed-data checks, and full 54-episode
+fixture freeze:
+
+```bash
+pytest -q tests/test_real_single_agent_baseline.py
 ```
 
 

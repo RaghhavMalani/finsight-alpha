@@ -1,0 +1,682 @@
+{
+  "certification_artifact_hash": "9ee9dabbadaa0e260e942d9c304c3c5dd0571e49470d8e8a4f35a0151c3f3166",
+  "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+  "schema_version": "forge-real-single-agent-suite/0.2.5",
+  "suite_id": "FORGE_REAL_SINGLE_AGENT_V0_2_5",
+  "tasks": [
+    {
+      "acceptance_criteria": "ACCEPT only after reliable counterfactual-stress evidence retains Sharpe >= 0.75 and at least 50% of screened Sharpe. REJECT once reliable evidence shows Sharpe <= 0.50. ABSTAIN when evidence is insufficient or a required engine is not trusted.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "recommended_stop_stage": "SCREEN",
+        "require_trust_refusal": false,
+        "required_stage": "SCREEN"
+      },
+      "hypothesis": "A short-horizon small-cap spread-reversion signal has deployable alpha.",
+      "objective": "Decide whether to promote or kill the supplied alpha hypothesis.",
+      "primary_metric": "sharpe",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-real-single-agent-task/0.2.5",
+      "stages": [
+        {
+          "available": true,
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.013000000000000001,
+            "sharpe": -0.3
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0666666666666667,
+            "max_drawdown": 0.0132,
+            "sharpe": -0.32
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.6666666666666667,
+            "max_drawdown": 0.015,
+            "sharpe": -0.5
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 2.666666666666667,
+            "max_drawdown": 0.018000000000000002,
+            "sharpe": -0.8
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 4.0,
+            "max_drawdown": 0.022,
+            "sharpe": -1.2
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "obviously_fragile_alpha",
+      "task_id": "v025_case_001"
+    },
+    {
+      "acceptance_criteria": "ACCEPT only after reliable counterfactual-stress evidence retains Sharpe >= 0.75 and at least 50% of screened Sharpe. REJECT once reliable evidence shows Sharpe <= 0.50. ABSTAIN when evidence is insufficient or a required engine is not trusted.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "recommended_stop_stage": "LATENCY",
+        "require_trust_refusal": false,
+        "required_stage": "LATENCY"
+      },
+      "hypothesis": "An opening-auction momentum signal remains profitable after realistic latency.",
+      "objective": "Decide whether to promote or kill the supplied alpha hypothesis.",
+      "primary_metric": "sharpe",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-real-single-agent-task/0.2.5",
+      "stages": [
+        {
+          "available": true,
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.03,
+            "sharpe": 2.0
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.975,
+            "max_drawdown": 0.0295,
+            "sharpe": 1.95
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.85,
+            "max_drawdown": 0.027000000000000003,
+            "sharpe": 1.7
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.1,
+            "max_drawdown": 0.012,
+            "sharpe": 0.2
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.025,
+            "max_drawdown": 0.0105,
+            "sharpe": 0.05
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "dies_under_latency",
+      "task_id": "v025_case_002"
+    },
+    {
+      "acceptance_criteria": "ACCEPT only after reliable counterfactual-stress evidence retains Sharpe >= 0.75 and at least 50% of screened Sharpe. REJECT once reliable evidence shows Sharpe <= 0.50. ABSTAIN when evidence is insufficient or a required engine is not trusted.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "recommended_stop_stage": "STRESS",
+        "require_trust_refusal": false,
+        "required_stage": "STRESS"
+      },
+      "hypothesis": "A volatility-compression breakout remains robust across counterfactual regimes.",
+      "objective": "Decide whether to promote or kill the supplied alpha hypothesis.",
+      "primary_metric": "sharpe",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-real-single-agent-task/0.2.5",
+      "stages": [
+        {
+          "available": true,
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.03,
+            "sharpe": 2.0
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.975,
+            "max_drawdown": 0.0295,
+            "sharpe": 1.95
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.875,
+            "max_drawdown": 0.027500000000000004,
+            "sharpe": 1.75
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.725,
+            "max_drawdown": 0.0245,
+            "sharpe": 1.45
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.1,
+            "max_drawdown": 0.012,
+            "sharpe": 0.2
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "dies_under_stress",
+      "task_id": "v025_case_003"
+    },
+    {
+      "acceptance_criteria": "ACCEPT only after reliable counterfactual-stress evidence retains Sharpe >= 0.75 and at least 50% of screened Sharpe. REJECT once reliable evidence shows Sharpe <= 0.50. ABSTAIN when evidence is insufficient or a required engine is not trusted.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ACCEPT",
+        "recommended_stop_stage": "STRESS",
+        "require_trust_refusal": false,
+        "required_stage": "STRESS"
+      },
+      "hypothesis": "A diversified post-earnings drift signal survives execution and regime stress.",
+      "objective": "Decide whether to promote or kill the supplied alpha hypothesis.",
+      "primary_metric": "sharpe",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-real-single-agent-task/0.2.5",
+      "stages": [
+        {
+          "available": true,
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.03,
+            "sharpe": 2.0
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.975,
+            "max_drawdown": 0.0295,
+            "sharpe": 1.95
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.875,
+            "max_drawdown": 0.027500000000000004,
+            "sharpe": 1.75
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.775,
+            "max_drawdown": 0.025500000000000002,
+            "sharpe": 1.55
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.6,
+            "max_drawdown": 0.022,
+            "sharpe": 1.2
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "robust_alpha",
+      "task_id": "v025_case_004"
+    },
+    {
+      "acceptance_criteria": "ACCEPT only after reliable counterfactual-stress evidence retains Sharpe >= 0.75 and at least 50% of screened Sharpe. REJECT once reliable evidence shows Sharpe <= 0.50. ABSTAIN when evidence is insufficient or a required engine is not trusted.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ABSTAIN",
+        "recommended_stop_stage": "SCREEN",
+        "require_trust_refusal": false,
+        "required_stage": "SCREEN"
+      },
+      "hypothesis": "A sparse borrow-cost reversal panel is sufficient to support deployment.",
+      "objective": "Decide whether to promote or kill the supplied alpha hypothesis.",
+      "primary_metric": "sharpe",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-real-single-agent-task/0.2.5",
+      "stages": [
+        {
+          "available": true,
+          "engine": "vectorbt",
+          "evidence_quality": "INSUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.021,
+            "sharpe": 1.1
+          },
+          "minimum_certification": "C4",
+          "observations": 18,
+          "reason": null,
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": false,
+          "engine": "nautilus",
+          "evidence_quality": "UNAVAILABLE",
+          "high_fidelity": false,
+          "metrics": {},
+          "minimum_certification": "C4",
+          "observations": 0,
+          "reason": "The frozen evidence panel is too sparse for promotion.",
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": false,
+          "engine": "nautilus",
+          "evidence_quality": "UNAVAILABLE",
+          "high_fidelity": false,
+          "metrics": {},
+          "minimum_certification": "C4",
+          "observations": 0,
+          "reason": "The frozen evidence panel is too sparse for promotion.",
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": false,
+          "engine": "nautilus",
+          "evidence_quality": "UNAVAILABLE",
+          "high_fidelity": true,
+          "metrics": {},
+          "minimum_certification": "C4",
+          "observations": 0,
+          "reason": "The frozen evidence panel is too sparse for promotion.",
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": false,
+          "engine": "nautilus",
+          "evidence_quality": "UNAVAILABLE",
+          "high_fidelity": true,
+          "metrics": {},
+          "minimum_certification": "C4",
+          "observations": 0,
+          "reason": "The frozen evidence panel is too sparse for promotion.",
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "insufficient_evidence",
+      "task_id": "v025_case_005"
+    },
+    {
+      "acceptance_criteria": "ACCEPT only after reliable counterfactual-stress evidence retains Sharpe >= 0.75 and at least 50% of screened Sharpe. REJECT once reliable evidence shows Sharpe <= 0.50. ABSTAIN when evidence is insufficient or a required engine is not trusted.",
+      "allowed_engines": {
+        "hftbacktest": {
+          "minimum_certification": "C1"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ABSTAIN",
+        "recommended_stop_stage": "EVENT_REPLAY",
+        "require_trust_refusal": true,
+        "required_stage": "EVENT_REPLAY"
+      },
+      "hypothesis": "A sub-millisecond queue-imbalance signal survives native event replay.",
+      "objective": "Decide whether to promote or kill the supplied alpha hypothesis.",
+      "primary_metric": "sharpe",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-real-single-agent-task/0.2.5",
+      "stages": [
+        {
+          "available": true,
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.03,
+            "sharpe": 2.0
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "reason": null,
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "engine": "hftbacktest",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.95,
+            "max_drawdown": 0.028999999999999998,
+            "sharpe": 1.9
+          },
+          "minimum_certification": "C1",
+          "observations": 240,
+          "reason": null,
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "engine": "hftbacktest",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.85,
+            "max_drawdown": 0.027000000000000003,
+            "sharpe": 1.7
+          },
+          "minimum_certification": "C1",
+          "observations": 240,
+          "reason": null,
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "engine": "hftbacktest",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.7,
+            "max_drawdown": 0.024,
+            "sharpe": 1.4
+          },
+          "minimum_certification": "C1",
+          "observations": 240,
+          "reason": null,
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "engine": "hftbacktest",
+          "evidence_quality": "SUFFICIENT",
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.5,
+            "max_drawdown": 0.02,
+            "sharpe": 1.0
+          },
+          "minimum_certification": "C1",
+          "observations": 240,
+          "reason": null,
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "uncertified_required_engine",
+      "task_id": "v025_case_006"
+    }
+  ]
+}
