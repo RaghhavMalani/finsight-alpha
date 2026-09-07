@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from src.execution.contracts import SimulationOutcome, SimulationRequest
 from src.execution.engines import EngineRegistry
+from src.execution.trust import BoundEngineTrust
 
 
 SIMULATION_TOOL_DEFINITIONS: dict[str, dict[str, list[str]]] = {
@@ -25,8 +26,9 @@ class SimulationToolAction:
 
 
 class SimulationToolPlane:
-    def __init__(self, registry: EngineRegistry) -> None:
+    def __init__(self, registry: EngineRegistry, *, engine_trust: BoundEngineTrust | None = None) -> None:
         self.registry = registry
+        self.engine_trust = engine_trust
         self.actions: list[SimulationToolAction] = []
 
     def definitions(self) -> dict[str, dict[str, list[str]]]:
@@ -45,12 +47,16 @@ class SimulationToolPlane:
         if tool == "simulation.list_engines":
             value: Any = self.registry.describe()
         elif tool == "simulation.run":
+            if self.engine_trust is not None:
+                self.engine_trust.require(str(args["engine"]))
             request = args["request"]
             if not isinstance(request, SimulationRequest):
                 request = SimulationRequest.from_dict(request)
             outcome = self.registry.get(str(args["engine"])).run(request)
             value = outcome
         else:
+            if self.engine_trust is not None:
+                self.engine_trust.require(str(args["engine"]))
             outcome = self.registry.get(str(args["engine"])).replay(str(args["run_id"]))
             value = outcome
         self.actions.append(SimulationToolAction(len(self.actions) + 1, tool, args, outcome))

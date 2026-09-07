@@ -1,4 +1,4 @@
-"""Strict loader for the twelve v0.2.3 execution benchmark specifications."""
+"""Strict loader for versioned execution benchmark specifications."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from typing import Any, Mapping
 
 from src.eval.canonical import canonical_sha256
 from src.execution.reality_ladder import RealityLevel
+from src.execution.trust import EngineTrustPolicy
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class ExecutionBenchmarkTask:
     primary_metric: str
     required_verifiers: tuple[str, ...]
     budget: ExecutionTaskBudget
+    engine_trust_policy: EngineTrustPolicy | None = None
     schema_version: str = "0.2.3"
 
     def __post_init__(self) -> None:
@@ -50,8 +52,13 @@ class ExecutionBenchmarkTask:
                 raise ValueError(f"{name} must be unique")
         if not self.reality_levels:
             raise ValueError("reality_levels must not be empty")
-        if self.schema_version != "0.2.3":
+        if self.schema_version not in {"0.2.3", "0.2.4.1"}:
             raise ValueError("unsupported execution benchmark schema")
+        if self.schema_version == "0.2.4.1":
+            if self.engine_trust_policy is None:
+                raise ValueError("v0.2.4.1 benchmark tasks require allowed_engines")
+            if set(self.engines) != set(self.engine_trust_policy.allowed_engines):
+                raise ValueError("task engines must exactly match allowed_engines")
 
     @property
     def task_hash(self) -> str:
@@ -60,10 +67,11 @@ class ExecutionBenchmarkTask:
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ExecutionBenchmarkTask":
         data = dict(value)
-        fields = {
+        base_fields = {
             "schema_version", "task_id", "objective", "engines", "capabilities",
             "reality_levels", "primary_metric", "required_verifiers", "budget",
         }
+        fields = base_fields | ({"allowed_engines"} if data.get("schema_version") == "0.2.4.1" else set())
         if set(data) != fields:
             raise ValueError(f"execution task fields must be exactly {sorted(fields)}")
         budget = dict(data["budget"])
@@ -77,10 +85,14 @@ class ExecutionBenchmarkTask:
             primary_metric=data["primary_metric"],
             required_verifiers=tuple(data["required_verifiers"]),
             budget=ExecutionTaskBudget(**budget),
+            engine_trust_policy=(
+                EngineTrustPolicy.from_dict({"allowed_engines": data["allowed_engines"]})
+                if "allowed_engines" in data else None
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        value = {
             "schema_version": self.schema_version, "task_id": self.task_id,
             "objective": self.objective, "engines": list(self.engines),
             "capabilities": list(self.capabilities),
@@ -89,6 +101,9 @@ class ExecutionBenchmarkTask:
             "required_verifiers": list(self.required_verifiers),
             "budget": self.budget.to_dict(),
         }
+        if self.engine_trust_policy is not None:
+            value.update(self.engine_trust_policy.to_dict())
+        return value
 
 
 def load_execution_task(path: str | Path) -> ExecutionBenchmarkTask:

@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.2.4.1",
+  "task_id": "reality_ladder_001_dual_moving_average",
+  "objective": "Measure how a fixed dual moving-average strategy degrades from analytical screening through certified event execution, deterministic costs, latency, and counterfactual market stress.",
+  "engines": ["vectorbt", "nautilus"],
+  "allowed_engines": {
+    "vectorbt": {"minimum_certification": "C4"},
+    "nautilus": {"minimum_certification": "C4"}
+  },
+  "capabilities": ["portfolio_screening", "event_driven", "latency"],
+  "reality_levels": ["L0_MATHEMATICAL", "L1_VECTORIZED", "L2_EVENT_REPLAY", "L3_MICROSTRUCTURE", "L4_COUNTERFACTUAL_STRESS"],
+  "primary_metric": "sharpe",
+  "required_verifiers": ["execution_integrity", "fill_plausibility", "latency_robustness", "cross_engine_consistency", "microstructure_robustness"],
+  "budget": {"max_engine_runs": 75, "max_compute_seconds": 900.0}
+}

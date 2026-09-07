@@ -37,6 +37,10 @@ from .tapes import SYNTHETIC_TAPES, SyntheticTape, independent_oracle
 from .causal_gap import CausalRealityGap
 from .engines import ENGINE_DESCRIPTORS, EngineRegistry, WorkerEngine, default_registry
 from .tool_plane import SimulationToolPlane
+from .trust import (
+    BoundEngineTrust, CertificationIndex, CertifiedEngine, EngineTrustError,
+    EngineTrustPolicy, EngineTrustRequirement, certification_rank,
+)
 
 __all__ = [
     "FailureCode", "SEMANTIC_TAPES", "SemanticTape", "accounting_from_fills", "evaluate_semantic_result",
@@ -51,4 +55,6 @@ __all__ = [
     "EngineRegistry", "EpistemicValue", "ExecutionAssumptions", "MeasurementState",
     "SimulationEngine", "SimulationMode", "SimulationOutcome", "SimulationRequest",
     "SimulationResult", "SimulationToolPlane", "WorkerEngine", "default_registry",
+    "BoundEngineTrust", "CertificationIndex", "CertifiedEngine", "EngineTrustError",
+    "EngineTrustPolicy", "EngineTrustRequirement", "certification_rank",
 ]

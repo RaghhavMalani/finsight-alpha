@@ -26,7 +26,7 @@ honest implementation boundary.
 
 The optional simulation federation, Reality Ladder, execution verifiers, and
 prediction-market research pack are documented in
-[`docs/FINSIGHT_FORGE_V0_2_3.md`](docs/FINSIGHT_FORGE_V0_2_3.md).
+[`docs/FINSIGHT_FORGE_V0_2_3.md`](docs/FINSIGHT_FORGE_V0_2_3.md). The C4 engine evidence and first measured Reality Ladder freeze are documented in [`docs/forge-v0.2.4-engine-certification.md`](docs/forge-v0.2.4-engine-certification.md) and [`docs/forge-v0.2.4.1-reality-ladder-freeze.md`](docs/forge-v0.2.4.1-reality-ladder-freeze.md).
 
 
 ## The numbers this repository publishes
@@ -65,13 +65,13 @@ and the exact formulas and anti-gaming rules are documented in
 | --- | --- |
 | Evaluation | Six-metric deterministic scorecard, strict provenance schema, stable JSON/Markdown reports, explicit completeness state |
 | Forge environment | Machine-actionable task/finding contracts, availability-dated `MarketWorld`, deterministic counterfactual forks, research and execution verifier suites, calibrated gate-aware reward model |
-| Frozen tasks | Forge v0.1 cases, immutable v0.2.1 150-episode baseline, v0.2.2 calibration artifact, and twelve v0.2.3 execution-conformance tasks |
+| Frozen tasks | Forge v0.1 cases, immutable v0.2.1 150-episode baseline, v0.2.2 calibration artifact, twelve v0.2.3 execution-conformance tasks, the v0.2.4 certification artifact, and the v0.2.4.1 Reality Ladder |
 | Negative controls | Sabotage tests for replay mutation, missing counterfactuals, denominator stuffing, worker self-grading, false-zero epistemic states, request/hash mismatch, and incomplete task/seed grids |
 | Truth foundation | Mandatory `as_of` boundaries, content-addressed computation contracts, epistemic states, tenant-licensed immutable snapshots, run and forecast ledgers |
 | ML timing | Expanding lagged regime thresholds, horizon purge, independent embargo, purged validation, untouched outer holdout |
 | Quant verifier | Published-reference Black-Scholes checks, finite-difference Greeks, Monte Carlo convergence, VaR coverage, Markowitz oracle, shuffled-label control, RAG retrieval set |
 | Product surface | FastAPI backend and React/TanStack terminal displaying server-owned computation truth |
-| Simulation federation | Optional JSON/RPC workers for VectorBT, Nautilus, hftbacktest, and legacy HFT; canonical execution evidence, Reality Ladder, five independent verifiers, and clean-room event-market mathematics |
+| Simulation federation | C4-certified VectorBT and Nautilus reward paths, fail-closed task trust policy, 90-record Reality Ladder evidence, canonical execution contracts, and five independent verifiers; failed hftbacktest and legacy-HFT verdicts remain preserved |
 
 Measured runs from separately locked external-engine backends, the complete MCP
 surface, multi-agent ablations, outcome resolution, a learned experiment
