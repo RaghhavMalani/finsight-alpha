@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhzlNysNsV8BOlc7kA6iojFvnSz2",
+  "object": "chat.completion",
+  "created": 1788842713,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.submit\",\"arguments\":{\"verdict\":\"ACCEPT\",\"reason\":\"C4-certified Nautilus counterfactual stress evidence is sufficient: Sharpe 1.20, retaining 60% of screened Sharpe 2.00, which exceeds both the 0.75 minimum and 50% retention criterion.\"}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 2386,
+    "completion_tokens": 108,
+    "total_tokens": 2494,
+    "prompt_tokens_details": {
+      "cached_tokens": 2104,
+      "cache_write_tokens": 279,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 33,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

@@ -31,6 +31,7 @@ data/exports/*.csv
 data/exports/pytest-*/
 data/exports/.forge_v0_2_5_real_baseline.checkpoint/
 data/exports/.forge_v0_2_5_real_baseline.staging/
+data/exports/.forge_v0_2_5_real_baseline.checkpoint.interrupted-history/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/exports/.gitkeep

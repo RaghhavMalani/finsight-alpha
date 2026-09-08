@@ -1,0 +1,36 @@
+{
+  "schema_version": "forge-post-generation-packaging-repair/0.2.5",
+  "reason": "Load excluded-attempt recovery accounting before manifest assembly.",
+  "episodes_sha256": "c79993a8eb1d03ba4d3e6c3a293547acb214c52ce20378ff0cef40c4d664471b",
+  "requests_sha256": "88351c2836a970ba387e7e31cc8bb171f81ef3435f82606b05dc5d42402e24fb",
+  "completed_source_hashes": {
+    "src/behavioral/contracts.py": "d37cc0a0afd1b2f44c52b2fcc0680e5811902e98314ab3e53e6274483a9f0d0a",
+    "src/behavioral/tool_plane.py": "d68fea6acae51eed0498b2db53277d92436b9c622aa9ccd9cdd714295c15032b",
+    "src/behavioral/agent.py": "fc09a0a6d616d4847254b03be7a3e46ece88e435d0ae940af8d5c293c3490173",
+    "src/behavioral/verifier.py": "08f8de28993a7a89dc0e918c565733d2f76f6e1cd727bd1be9e77f503f986681",
+    "src/behavioral/baseline.py": "24d3d20801314c64c85b96636a1ce3b2c2d6175ad920bbc762ff1a67f21ecf91",
+    "src/behavioral/openai_api.py": "4d3a6019ef5b11fe7853932dac975c7cde1331b057a273d364123e04d0dfa9e6",
+    "src/behavioral/recovery.py": "9bbff0a7dffad7fb799dc4ea6c36b7c3e78646b42249a9b7c88734a145bb5d0c",
+    "eval/models/forge_v0_2_5_openai.json": "d68cdca4e5ba164e1cf1e10e1347f0e7f091ae487d1078b44a1315143b9ea0b7",
+    "scripts/build_real_single_agent_suite.py": "97fdb015f402bae3a3cf00199476fc2a22ddbf66d207bf33034c1c33ba9f3330",
+    "scripts/run_real_single_agent_baseline.py": "be8c0cfb8d5f5282ba9741d98d1d67a5e63b511b5f461586dc6f1e21071ae123",
+    "scripts/verify_real_single_agent_baseline.py": "66b8748ec7abde43ce2fe68d2e5759d9048d8bd4085ff5b6384b893f19c61111",
+    "eval/tasks/forge_v0_2_5/suite.json": "3facce277928fa8ceb0a140e20424510e2111771f14fb9b18a88dad1997de64e"
+  },
+  "packaging_source_hashes": {
+    "src/behavioral/contracts.py": "d37cc0a0afd1b2f44c52b2fcc0680e5811902e98314ab3e53e6274483a9f0d0a",
+    "src/behavioral/tool_plane.py": "d68fea6acae51eed0498b2db53277d92436b9c622aa9ccd9cdd714295c15032b",
+    "src/behavioral/agent.py": "fc09a0a6d616d4847254b03be7a3e46ece88e435d0ae940af8d5c293c3490173",
+    "src/behavioral/verifier.py": "08f8de28993a7a89dc0e918c565733d2f76f6e1cd727bd1be9e77f503f986681",
+    "src/behavioral/baseline.py": "3cb4b42d4007b9280e20f084702d31472e7803ebe776645ba4e1ec6e36609568",
+    "src/behavioral/openai_api.py": "4d3a6019ef5b11fe7853932dac975c7cde1331b057a273d364123e04d0dfa9e6",
+    "src/behavioral/recovery.py": "60b84a42c9a4a1ebed65c47fd91a95c86aa6fd95482d24f3462b660410071bff",
+    "eval/models/forge_v0_2_5_openai.json": "d68cdca4e5ba164e1cf1e10e1347f0e7f091ae487d1078b44a1315143b9ea0b7",
+    "scripts/build_real_single_agent_suite.py": "97fdb015f402bae3a3cf00199476fc2a22ddbf66d207bf33034c1c33ba9f3330",
+    "scripts/run_real_single_agent_baseline.py": "be8c0cfb8d5f5282ba9741d98d1d67a5e63b511b5f461586dc6f1e21071ae123",
+    "scripts/verify_real_single_agent_baseline.py": "66b8748ec7abde43ce2fe68d2e5759d9048d8bd4085ff5b6384b893f19c61111",
+    "eval/tasks/forge_v0_2_5/suite.json": "3facce277928fa8ceb0a140e20424510e2111771f14fb9b18a88dad1997de64e"
+  },
+  "model_api_calls_after_completion": 0,
+  "repair_hash": "308ebe4f8fff73fb44c836ef1f65e26716b51ce463384afd4876aa9601e7f0b4"
+}

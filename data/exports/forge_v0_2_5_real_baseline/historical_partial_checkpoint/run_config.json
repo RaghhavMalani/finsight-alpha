@@ -1,0 +1,60 @@
+{
+  "models": [
+    {
+      "reasoning_effort": "medium",
+      "cached_input_usd_per_million_tokens": 0.02,
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "model_version": "gpt-5.6-luna",
+      "model_kind": "live",
+      "temperature": null,
+      "seed_supported": false,
+      "input_usd_per_million_tokens": 0.2,
+      "output_usd_per_million_tokens": 1.2
+    },
+    {
+      "reasoning_effort": "medium",
+      "cached_input_usd_per_million_tokens": 0.2,
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "model_version": "gpt-5.6-terra",
+      "model_kind": "live",
+      "temperature": null,
+      "seed_supported": false,
+      "input_usd_per_million_tokens": 2.0,
+      "output_usd_per_million_tokens": 12.0
+    },
+    {
+      "reasoning_effort": "high",
+      "cached_input_usd_per_million_tokens": 0.4,
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "model_version": "gpt-5.6-sol",
+      "model_kind": "live",
+      "temperature": null,
+      "seed_supported": false,
+      "input_usd_per_million_tokens": 4.0,
+      "output_usd_per_million_tokens": 20.0
+    }
+  ],
+  "seeds": [
+    101,
+    211,
+    307
+  ],
+  "suite_hash": "a125ca3dd3760f52ad7dd66e500fea92ade587571462215544a021a48c65c24b",
+  "global_cap_usd": 8.0,
+  "source_hashes": {
+    "src/behavioral/contracts.py": "d37cc0a0afd1b2f44c52b2fcc0680e5811902e98314ab3e53e6274483a9f0d0a",
+    "src/behavioral/tool_plane.py": "d68fea6acae51eed0498b2db53277d92436b9c622aa9ccd9cdd714295c15032b",
+    "src/behavioral/agent.py": "fc09a0a6d616d4847254b03be7a3e46ece88e435d0ae940af8d5c293c3490173",
+    "src/behavioral/verifier.py": "d99710bc4e86288e5e1571a09f41c35fd8c4c32b788af075b6acc02dfd0b4a52",
+    "src/behavioral/baseline.py": "80dbf48f4f6d818de9ebac2b1beaf5e88d6c2d7affee2084c3d747e0fcf7abb8",
+    "src/behavioral/openai_api.py": "88b7bdeaa86f60f50b96e954400ce93ab403e4636344dc2001b57653f31be21d",
+    "eval/models/forge_v0_2_5_openai.json": "d68cdca4e5ba164e1cf1e10e1347f0e7f091ae487d1078b44a1315143b9ea0b7",
+    "scripts/build_real_single_agent_suite.py": "97fdb015f402bae3a3cf00199476fc2a22ddbf66d207bf33034c1c33ba9f3330",
+    "scripts/run_real_single_agent_baseline.py": "be8c0cfb8d5f5282ba9741d98d1d67a5e63b511b5f461586dc6f1e21071ae123",
+    "scripts/verify_real_single_agent_baseline.py": "66b8748ec7abde43ce2fe68d2e5759d9048d8bd4085ff5b6384b893f19c61111",
+    "eval/tasks/forge_v0_2_5/suite.json": "3facce277928fa8ceb0a140e20424510e2111771f14fb9b18a88dad1997de64e"
+  }
+}

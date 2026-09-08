@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhzPsZGPO0GYbNQkFBSZN238jZ45",
+  "object": "chat.completion",
+  "created": 1788842691,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.add_costs\",\"arguments\":{}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1490,
+    "completion_tokens": 29,
+    "total_tokens": 1519,
+    "prompt_tokens_details": {
+      "cached_tokens": 1446,
+      "cache_write_tokens": 41,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 8,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

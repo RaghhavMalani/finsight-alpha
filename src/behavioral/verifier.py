@@ -7,9 +7,10 @@ import statistics
 from dataclasses import dataclass
 from typing import Any
 
-from src.behavioral.agent import AgentRun, PROMPT_VERSION, _system_prompt
+from src.behavioral.agent import AgentRun, PROMPT_VERSION, _system_prompt, _parse_action
+from src.behavioral.openai_api import verify_api_evidence, input_bound, token_cost
 from src.behavioral.contracts import BehavioralTask, ModelIdentity, STAGE_TOOLS, Verdict
-from src.behavioral.tool_plane import ACTION_SCHEMAS, BehavioralToolPlane, ToolStatus
+from src.behavioral.tool_plane import ACTION_SCHEMAS, BehavioralToolPlane, ToolStatus, BudgetExceeded
 from src.eval.canonical import canonical_sha256
 from src.execution.trust import CertificationIndex, EngineTrustError
 
@@ -185,6 +186,45 @@ class BehavioralVerifier:
                 return False
         return True
 
+    def _api_requests_bound(self, task, run):
+        if run.model_identity.get("provider") != "openai":
+            return True
+        plane = BehavioralToolPlane(task, self.certifications)
+        messages = [
+            {"role": "system", "content": _system_prompt(plane.definitions())},
+            {"role": "user", "content": "TASK " + json.dumps(task.public_dict(), sort_keys=True, separators=(",", ":"))},
+        ]
+        used_tokens, used_cost = 0, 0.0
+        try:
+            identity = ModelIdentity.from_dict(run.model_identity)
+            for turn in run.model_turns:
+                evidence = turn["api_evidence"]
+                request = evidence["request"]
+                bound = input_bound(messages)
+                expected_limit = min(4096, task.budget.max_tokens - used_tokens - bound)
+                reservation = token_cost(identity, bound, 0, expected_limit)
+                if (request["messages"] != messages
+                        or request["max_completion_tokens"] != expected_limit
+                        or evidence["input_token_bound"] != bound
+                        or evidence["reserved_usd"] != reservation
+                        or used_cost + reservation > task.budget.max_cost_usd):
+                    return False
+                used_tokens += turn["tokens_in"] + turn["tokens_out"]
+                used_cost += turn["cost_usd"]
+                messages.append({"role": "assistant", "content": turn["text"]})
+                try:
+                    action, arguments = _parse_action(turn["text"])
+                    result = plane.call(action, arguments)
+                except BudgetExceeded:
+                    return not run.completed
+                except (json.JSONDecodeError, ValueError, RuntimeError) as exc:
+                    messages.append({"role": "user", "content": f"ACTION_ERROR {type(exc).__name__}: {exc}"})
+                    continue
+                messages.append({"role": "user", "content": "TOOL_RESULT " + json.dumps(result, sort_keys=True, separators=(",", ":"))})
+            return True
+        except (KeyError, TypeError, ValueError, AttributeError):
+            return False
+
     @staticmethod
     def _required_evidence(task: BehavioralTask, run: AgentRun) -> bool:
         required_status = (
@@ -229,13 +269,13 @@ class BehavioralVerifier:
         usage = dict(run.usage)
         try:
             metering_match = (
-                set(usage) == {
+                (set(usage) - {"cached_input_tokens", "reasoning_tokens"}) == {
                     "tool_calls", "engine_runs", "high_fidelity_runs", "model_calls",
                     "tokens_in", "tokens_out", "total_tokens", "inference_cost_usd",
                     "wall_seconds",
                 }
                 and all(
-                    set(item) == {
+                    (set(item) - {"api_evidence"}) == {
                         "sequence", "text", "tokens_in", "tokens_out",
                         "latency_seconds", "cost_usd", "calculated_cost_usd",
                         "cost_source", "provider_request_id",
@@ -246,7 +286,7 @@ class BehavioralVerifier:
                 and all(
                     item["sequence"] == index
                     and isinstance(item["text"], str)
-                    and bool(item["text"].strip())
+                    and (bool(item["text"].strip()) or "api_evidence" in item)
                     and type(item["tokens_in"]) is int
                     and item["tokens_in"] >= 0
                     and type(item["tokens_out"]) is int
@@ -259,14 +299,22 @@ class BehavioralVerifier:
                         - (
                             item["tokens_in"] * identity.input_usd_per_million_tokens
                             + item["tokens_out"] * identity.output_usd_per_million_tokens
+                            - item.get("api_evidence", {}).get("cached_input_tokens", 0)
+                            * (identity.input_usd_per_million_tokens
+                               - (identity.cached_input_usd_per_million_tokens or 0))
                         ) / 1_000_000
                     ) <= 1e-9
                     and (
                         item["cost_source"] == "provider"
                         or abs(item["cost_usd"] - item["calculated_cost_usd"]) <= 1e-9
                     )
+                    and (verify_api_evidence(identity, item) if "api_evidence" in item
+                         else identity.provider != "openai")
                     for index, item in enumerate(run.model_turns, 1)
                 )
+                and (not any("api_evidence" in t for t in run.model_turns) or (
+                    usage.get("cached_input_tokens") == sum(t["api_evidence"]["cached_input_tokens"] for t in run.model_turns)
+                    and usage.get("reasoning_tokens") == sum(t["api_evidence"]["reasoning_tokens"] for t in run.model_turns)))
                 and usage.get("model_calls") == len(run.model_turns)
                 and usage.get("tokens_in")
                 == sum(item["tokens_in"] for item in run.model_turns)
@@ -282,12 +330,26 @@ class BehavioralVerifier:
             )
         except (KeyError, TypeError):
             metering_match = False
+        # Rejected, well-formed tool attempts consume the tool-call budget even
+        # though the plane does not append a successful action record for them.
+        # Reconstruct those attempts from the paid model outputs; never infer
+        # tool_calls from len(actions), which loses the rejected attempts.
+        replay = BehavioralToolPlane(task, self.certifications)
+        for index, turn in enumerate(run.model_turns):
+            if index == len(run.model_turns) - 1 and run.failure_reason in {
+                "max_wall_seconds exceeded", "max_tokens exceeded", "max_cost_usd exceeded"
+            }:
+                break
+            try:
+                action, arguments = _parse_action(turn["text"])
+                replay.call(action, arguments)
+            except BudgetExceeded:
+                break
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError, RuntimeError):
+                continue
         counters_match = (
-            usage.get("tool_calls") == len(run.actions)
-            and usage.get("engine_runs")
-            == sum(bool(item.get("engine_run")) for item in run.actions)
-            and usage.get("high_fidelity_runs")
-            == sum(bool(item.get("high_fidelity_run")) for item in run.actions)
+            all(usage.get(key) == value for key, value in replay.usage().items())
+            and tuple(action.to_dict() for action in replay.actions) == run.actions
         )
         budget = task.budget
         within_budget = (
@@ -333,7 +395,7 @@ class BehavioralVerifier:
             ),
             "trajectory_actions": actions_valid,
             "model_action_binding": self._model_actions_bound(run),
-            "sealed_data_hidden": self._no_sealed_data(run),
+            "sealed_data_hidden": self._no_sealed_data(run) and self._api_requests_bound(task, run),
             "usage_counters": counters_match,
             "model_metering": metering_match,
             "budget": within_budget,

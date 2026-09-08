@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import math
+import shutil
 import os
 import statistics
 from collections import defaultdict
@@ -19,7 +21,6 @@ from src.behavioral.verifier import (
 )
 from src.eval.canonical import canonical_sha256, sha256_bytes
 from src.execution.trust import CertificationIndex
-from src.sandbox.cleanup import remove_runner_tree
 
 
 BASELINE_TAG = "FORGE_REAL_SINGLE_AGENT_BASELINE_V0_2_5"
@@ -30,6 +31,9 @@ SOURCE_PATHS = (
     "src/behavioral/agent.py",
     "src/behavioral/verifier.py",
     "src/behavioral/baseline.py",
+    "src/behavioral/openai_api.py",
+    "src/behavioral/recovery.py",
+    "eval/models/forge_v0_2_5_openai.json",
     "scripts/build_real_single_agent_suite.py",
     "scripts/run_real_single_agent_baseline.py",
     "scripts/verify_real_single_agent_baseline.py",
@@ -109,22 +113,61 @@ class LiveBaselineRunner:
         self.output = output.resolve()
         self.authorized_total_cost_usd = float(authorized_total_cost_usd)
         self.seeds = seeds
+        self.openai_run = any(item.provider == "openai" for item in models)
+        if self.openai_run:
+            from src.behavioral.openai_api import GLOBAL_CAP, frozen_models, OpenAIFactory
+            if models != frozen_models() or authorized_total_cost_usd != GLOBAL_CAP:
+                raise ValueError("OpenAI baseline must use the frozen three tiers and $8 cap")
+            if not isinstance(client_factory, OpenAIFactory):
+                raise ValueError("OpenAI baseline requires the budget-enforcing OpenAIFactory")
+            expected_ledger = self.output.with_name(f".{self.output.name}.checkpoint") / "requests.jsonl"
+            if client_factory.ledger.path.resolve() != expected_ledger:
+                raise ValueError("OpenAI ledger must use the locked baseline checkpoint")
         if len(models) != 3 or len({item.identity_hash for item in models}) != 3:
             raise ValueError("v0.2.5 requires exactly three unique model identities")
         if any(item.model_kind != "live" for item in models):
             raise ValueError("v0.2.5 freeze accepts live model identities only")
         if len(seeds) != 3 or len(set(seeds)) != 3 or any(seed < 0 for seed in seeds):
             raise ValueError("v0.2.5 requires exactly three unique non-negative seeds")
-        if authorized_total_cost_usd <= 0:
+        if not math.isfinite(authorized_total_cost_usd) or authorized_total_cost_usd <= 0:
             raise ValueError("authorized_total_cost_usd must be positive")
         if suite.certification_artifact_hash != certifications.artifact_hash:
             raise ValueError("suite is not bound to the loaded certification artifact")
 
     def run(self) -> dict[str, Any]:
+        checkpoint = self.output.with_name(f".{self.output.name}.checkpoint")
+        checkpoint.mkdir(parents=True, exist_ok=True)
+        lock = checkpoint / "run.lock"
+        # An interrupted process leaves its lock: fail closed until inspected.
+        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        try:
+            os.write(descriptor, str(os.getpid()).encode())
+            os.fsync(descriptor)
+            return self._run()
+        finally:
+            os.close(descriptor)
+            lock.unlink(missing_ok=True)
+
+    def _run(self) -> dict[str, Any]:
         if self.output.exists():
             raise FileExistsError(f"baseline artifact is immutable: {self.output}")
         checkpoint = self.output.with_name(f".{self.output.name}.checkpoint")
         checkpoint_file = checkpoint / "episodes.jsonl"
+        config = {"models": [m.to_dict() for m in self.models], "seeds": list(self.seeds),
+                  "suite_hash": self.suite.suite_hash, "global_cap_usd": self.authorized_total_cost_usd,
+                  "source_hashes": {name: sha256_bytes((self.root / name).read_bytes().replace(b"\r\n", b"\n")) for name in SOURCE_PATHS}}
+        config_path = checkpoint / "run_config.json"
+        if config_path.exists():
+            if json.loads(config_path.read_text(encoding="utf-8")) != config:
+                raise RuntimeError("checkpoint configuration/source changed; do not rerun paid calls")
+        else:
+            config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+        if self.openai_run:
+            from src.execution.reality_ladder_verify import verify_reality_ladder_file
+            report = verify_reality_ladder_file(
+                self.root / "eval/reality_ladder/forge_v0_2_4_1/reality_ladder_artifact.json", root=self.root)
+            if not report["valid"] or report["artifact_hash"] != self.suite.reality_ladder_artifact_hash:
+                raise RuntimeError("frozen Reality Ladder does not independently verify")
         records = _read_jsonl(checkpoint_file)
         existing: dict[str, dict[str, Any]] = {}
         verifier = BehavioralVerifier(self.certifications)
@@ -156,11 +199,26 @@ class LiveBaselineRunner:
             verification = verifier.verify(task, run).to_dict()
             if verification != record["verification"]:
                 raise ValueError("checkpoint verification does not reproduce")
+            if self.openai_run and not verification["checks"]["model_metering"]:
+                raise ValueError("checkpoint API metering does not verify")
             if record["episode_key"] in existing:
                 raise ValueError("checkpoint contains duplicate episodes")
             existing[record["episode_key"]] = record
-        total_cost = sum(float(item["run"]["usage"]["inference_cost_usd"]) for item in records)
+        from src.behavioral.recovery import recovery_info
+        _, recovery_cost = recovery_info(checkpoint, records)
+        total_cost = recovery_cost + sum(float(item["run"]["usage"]["inference_cost_usd"]) for item in records)
         for identity in self.models:
+            if hasattr(self.client_factory, "before_tier"):
+                remaining_count = sum(_episode_key(t.task_id, identity.identity_hash, seed) not in existing
+                                      for seed in self.seeds for t in self.suite.tasks)
+                try:
+                    self.client_factory.before_tier(identity, records, remaining_count)
+                except RuntimeError as exc:
+                    (checkpoint / "stop.json").write_text(json.dumps({
+                        "status": "BUDGET_EXHAUSTED" if type(exc).__name__ == "BudgetExceeded" else "STOPPED",
+                        "model": identity.model, "completed_episodes": len(records), "reason": str(exc)
+                    }, indent=2) + "\n", encoding="utf-8")
+                    raise
             client = self.client_factory(identity)
             if getattr(client, "model_kind", None) != "live":
                 raise ValueError("live baseline client factory returned a non-live client")
@@ -188,8 +246,12 @@ class LiveBaselineRunner:
                     records.append(record)
                     existing[key] = record
                     total_cost += float(run.usage["inference_cost_usd"])
+                    print(f"Checkpoint: {identity.model} / seed {seed} / {task.task_id}: "
+                          f"{len(records)}/54, estimated cost ${total_cost:.6f}", flush=True)
                     if total_cost > self.authorized_total_cost_usd:
                         raise RuntimeError("provider exceeded the authorized total API spend")
+                    if self.openai_run and not run.completed:
+                        raise RuntimeError(f"partial checkpoint preserved: {run.failure_reason}")
         expected_episodes = len(self.models) * len(self.seeds) * len(self.suite.tasks)
         if len(records) != expected_episodes:
             raise RuntimeError("baseline checkpoint is incomplete")
@@ -221,14 +283,53 @@ class LiveBaselineRunner:
             json.dumps(summary, indent=2, sort_keys=True) + "\n",
             encoding="utf-8", newline="\n",
         )
+        if self.openai_run:
+            self.client_factory.before_tier(self.models[-1], records, 0)
         source_manifest = {
             name: sha256_bytes((self.root / name).read_bytes().replace(b"\r\n", b"\n"))
             for name in SOURCE_PATHS
         }
+        if source_manifest != config["source_hashes"]:
+            raise RuntimeError("source changed during the run; preserve checkpoint")
         artifact_hashes = {
             "episodes.jsonl": sha256_bytes(episodes_path.read_bytes()),
             "summary.json": sha256_bytes(summary_path.read_bytes()),
         }
+        interrupted: dict[str, dict[str, Any]] = {}
+        interrupted_cost = 0.0
+        if self.openai_run:
+            shutil.copyfile(checkpoint / "requests.jsonl", staging / "requests.jsonl")
+            artifact_hashes["requests.jsonl"] = sha256_bytes((staging / "requests.jsonl").read_bytes())
+            recovery_files = []
+            if (checkpoint / "recovery.json").exists():
+                recovery_files = ["recovery.json", "original_run_config.json", "original_episodes.jsonl"]
+                for audit_name in ("completed_run_config.json", "packaging_repair.json"):
+                    if (checkpoint / audit_name).exists():
+                        recovery_files.append(audit_name)
+                recovery_files += [p.relative_to(checkpoint).as_posix() for p in (checkpoint / "execution_source").rglob("*") if p.is_file()]
+            for name in ("run_config.json", "tier_preflights.jsonl", *recovery_files):
+                (staging / name).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(checkpoint / name, staging / name)
+                artifact_hashes[name] = sha256_bytes((staging / name).read_bytes())
+            from src.behavioral.recovery import recovery_info
+            interrupted, interrupted_cost = recovery_info(checkpoint, records)
+            if interrupted:
+                history = checkpoint.with_name(checkpoint.name + ".interrupted-history")
+                for path in history.rglob("*"):
+                    if path.is_file():
+                        name = Path("historical_partial_checkpoint") / path.relative_to(history)
+                        destination = staging / name
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(path, destination)
+                        artifact_hashes[name.as_posix()] = sha256_bytes(destination.read_bytes())
+            (staging / "README.md").write_text(
+                "# REAL API MODEL BASELINE\n\n"
+                "Six deliberately constructed Forge research tasks, three task/world seeds, "
+                "and three OpenAI model tiers. API outputs are not deterministic.\n\n"
+                "Costs are token estimates using frozen prices, not account invoices. "
+                "Reasoning tokens are included in output, cached input is a subset of input.\n",
+                encoding="utf-8")
+            artifact_hashes["README.md"] = sha256_bytes((staging / "README.md").read_bytes())
         manifest = {
             "schema_version": "forge-real-single-agent-baseline/0.2.5",
             "tag": BASELINE_TAG,
@@ -240,8 +341,14 @@ class LiveBaselineRunner:
             "models": [item.to_dict() for item in self.models],
             "seeds": list(self.seeds),
             "episodes": expected_episodes,
+            "attempts_total": expected_episodes + len(interrupted),
+            "episodes_admitted": expected_episodes,
+            "excluded_attempts": len(interrupted),
+            "excluded_reasons": ({"INTERRUPTED": len(interrupted)} if interrupted else {}),
             "authorized_total_cost_usd": self.authorized_total_cost_usd,
             "total_cost_usd": round(total_cost, 12),
+            "cost_usd_all_attempts": round(total_cost, 12),
+            "cost_usd_admitted_episodes": round(total_cost - interrupted_cost, 12),
             "metrics": summary["overall"],
             "source_hash_convention": "SHA-256 over source bytes after CRLF-to-LF normalization",
             "source_manifest": source_manifest,
@@ -258,8 +365,7 @@ class LiveBaselineRunner:
         if not report["valid"]:
             raise RuntimeError(f"baseline artifact did not verify: {report['errors']}")
         staging.rename(self.output)
-        if checkpoint.exists():
-            remove_runner_tree(checkpoint)
+        # Retain the durable request/checkpoint evidence after a successful freeze.
         return manifest
 
 
@@ -278,6 +384,9 @@ def verify_baseline_artifact(
             "schema_version", "tag", "created_at", "suite_hash",
             "certification_artifact_hash", "reality_ladder_artifact_hash",
             "case_hashes", "models", "seeds", "episodes",
+            "attempts_total", "episodes_admitted", "excluded_attempts",
+            "excluded_reasons", "cost_usd_all_attempts",
+            "cost_usd_admitted_episodes",
             "authorized_total_cost_usd", "total_cost_usd", "metrics",
             "source_hash_convention", "source_manifest", "artifacts", "baseline_id",
         }
@@ -363,6 +472,11 @@ def verify_baseline_artifact(
             verification = verifier.verify(task, run)
             if verification.to_dict() != record["verification"]:
                 errors.append("verification")
+            if any(not verification.checks[name] for name in (
+                "task_identity", "model_identity", "prompt_identity", "tool_schema_identity",
+                "artifact_binding", "trajectory_actions", "model_action_binding",
+                "sealed_data_hidden", "usage_counters", "model_metering", "budget")):
+                errors.append("trajectory_integrity")
             pairs.append((verification, run))
         if pairs:
             summary = json.loads((artifact / "summary.json").read_text(encoding="utf-8"))
@@ -372,12 +486,28 @@ def verify_baseline_artifact(
             }
             if summary != expected or manifest.get("metrics") != expected["overall"]:
                 errors.append("summary")
-        total = sum(float(item["run"]["usage"]["inference_cost_usd"]) for item in records)
+        if any(m.provider == "openai" for m in model_identities):
+            from src.behavioral.openai_api import verify_ledger_artifact
+            errors.extend(verify_ledger_artifact(artifact, manifest, records))
+        from src.behavioral.recovery import recovery_info
+        _, recovery_cost = recovery_info(artifact, records)
+        total = recovery_cost + sum(float(item["run"]["usage"]["inference_cost_usd"]) for item in records)
+        admitted_cost = total - recovery_cost
+        excluded_count = 1 if recovery_cost else 0
+        if (
+            manifest.get("attempts_total") != 54 + excluded_count
+            or manifest.get("episodes_admitted") != 54
+            or manifest.get("excluded_attempts") != excluded_count
+            or manifest.get("excluded_reasons") != ({"INTERRUPTED": 1} if excluded_count else {})
+            or abs(float(manifest.get("cost_usd_all_attempts", -1)) - total) > 1e-9
+            or abs(float(manifest.get("cost_usd_admitted_episodes", -1)) - admitted_cost) > 1e-9
+        ):
+            errors.append("attempt_accounting")
         if total > float(manifest.get("authorized_total_cost_usd", -1)):
             errors.append("authorized_cost")
         if abs(total - float(manifest.get("total_cost_usd", -1))) > 1e-9:
             errors.append("total_cost")
-    except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError) as exc:
+    except (KeyError, TypeError, ValueError, OSError, RuntimeError, IndexError, AttributeError) as exc:
         errors.append(f"invalid_artifact:{type(exc).__name__}:{exc}")
     return {
         "schema_version": "forge-real-single-agent-verification/0.2.5",

@@ -1,0 +1,46 @@
+{
+  "status": "PAUSED_AWAITING_INTERRUPTED_EPISODE_DECISION",
+  "completed_episodes": 11,
+  "expected_grid_episodes": 54,
+  "settled_requests": 69,
+  "unresolved_reservations": 0,
+  "interrupted_episode": {
+    "model": "gpt-5.6-luna",
+    "seed": 211,
+    "task_id": "v025_case_006",
+    "saved_request_ids": [
+      "8dc7a6e7b93f4173a9607ab9bca5ec11"
+    ],
+    "status": "INTERRUPTED",
+    "wall_seconds": null
+  },
+  "cost_basis": "token_estimate_not_invoice",
+  "total_cost_usd": 0.0107623,
+  "model_spend_usd": {
+    "gpt-5.6-luna": 0.0107623,
+    "gpt-5.6-terra": 0.0,
+    "gpt-5.6-sol": 0.0
+  },
+  "global_hard_cap_usd": 8.0,
+  "original_evidence_preserved": true,
+  "regraded_metrics": {
+    "episodes": 11,
+    "verified_research_success_rate": 0.7272727272727273,
+    "false_alpha_acceptance_rate": 0.0,
+    "correct_rejection_rate": 0.8333333333333334,
+    "correct_acceptance_rate": 1.0,
+    "abstention_accuracy": 1.0,
+    "critical_gate_failure_rate": 0.09090909090909091,
+    "mean_tool_calls": 6.181818181818182,
+    "mean_engine_runs": 2.5454545454545454,
+    "mean_cost_usd": 0.0009647,
+    "mean_latency_seconds": 11.102990636363636,
+    "cost_per_verified_finding_usd": 0.0013264625,
+    "unnecessary_high_fidelity_promotion_rate": 0.0,
+    "mean_behavioral_score": 0.7272727272727273
+  },
+  "pause_reason": "Verifier incorrectly compared tool_calls with successful action count; rejected well-formed attempts consume tool budget.",
+  "fix": "Verifier replays all recorded model actions, including rejected attempts, and checks the resulting counters.",
+  "no_task_prompt_or_model_changes": true,
+  "release_tag_created": false
+}

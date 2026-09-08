@@ -352,3 +352,15 @@ def test_provider_overspend_aborts_freeze_and_preserves_checkpoint(
     checkpoint = tmp_path / ".overspend.checkpoint/episodes.jsonl"
     assert not output.exists()
     assert len(checkpoint.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_rejected_out_of_order_tool_attempt_is_independently_metered(suite, certifications):
+    task = suite.tasks[0]
+    actions = [_action("research.promote_event_replay"), *_optimal_actions(task)]
+    run = SingleResearchAgent(ScriptedClient(actions), IDENTITY, certifications).run(task, seed=101)
+    assert run.usage["tool_calls"] == len(run.actions) + 1
+    verification = BehavioralVerifier(certifications).verify(task, run)
+    assert verification.checks["usage_counters"]
+    assert verification.verified_research_success
+    tampered = replace(run, usage={**run.usage, "tool_calls": len(run.actions)})
+    assert not BehavioralVerifier(certifications).verify(task, tampered).checks["usage_counters"]
