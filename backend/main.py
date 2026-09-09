@@ -36,6 +36,7 @@ from backend.routes import (
     context,
     factors,
     fundamentals,
+    forge,
     graph,
     health,
     intelligence,
@@ -180,6 +181,7 @@ app.include_router(intelligence.router)
 app.include_router(factors.router)
 app.include_router(strategy.router)
 app.include_router(fundamentals.router)
+app.include_router(forge.router)
 app.include_router(agent.router)
 app.include_router(regime.router)
 app.include_router(tape.router)
