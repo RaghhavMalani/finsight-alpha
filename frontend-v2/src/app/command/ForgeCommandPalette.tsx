@@ -56,10 +56,20 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
     onClose();
     switch (id) {
       case "center":
-        void navigate({ to: "/forge", search: { run: undefined } });
+        void navigate({ to: "/forge", search: { run: undefined, node: 1 } });
         break;
       case "runs":
-        void navigate({ to: "/runs", search: { model: undefined, verdict: undefined } });
+        void navigate({
+          to: "/runs",
+          search: {
+            model: undefined,
+            verdict: undefined,
+            task: undefined,
+            taskClass: undefined,
+            seed: undefined,
+            verified: undefined,
+          },
+        });
         break;
       case "bench":
         void navigate({ to: "/bench" });

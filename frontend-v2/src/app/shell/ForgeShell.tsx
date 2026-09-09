@@ -52,7 +52,7 @@ export function ForgeShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-[1800px] items-center gap-4 px-3 sm:px-5">
           <Link
             to="/forge"
-            search={{ run: undefined }}
+            search={{ run: undefined, node: 1 }}
             className="group flex shrink-0 items-center gap-2 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]"
           >
             <span className="grid size-7 place-items-center border border-[#FFB000] font-mono text-[10px] font-semibold text-[#FFB000]">
@@ -113,7 +113,7 @@ export function ForgeShell({ children }: { children: ReactNode }) {
       <main
         id="forge-main"
         tabIndex={-1}
-        className="mx-auto w-full max-w-[1800px] px-3 py-6 outline-none sm:px-5 sm:py-8"
+        className="mx-auto w-full max-w-[1800px] px-3 py-4 outline-none sm:px-5 sm:py-5"
       >
         {children}
       </main>

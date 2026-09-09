@@ -433,6 +433,7 @@ function adaptRunSummary(entry: unknown, index: number, artifact: ArtifactBindin
   return {
     runId,
     taskId: text(item.task_id, `runs[${index}].task_id`),
+    taskClass: text(item.task_class, `runs[${index}].task_class`),
     worldHash,
     model: text(item.model, `runs[${index}].model`),
     modelVersion: text(item.model_version, `runs[${index}].model_version`),
@@ -629,6 +630,7 @@ export function adaptRun(value: unknown): RunDetail {
     binding: artifact,
     runId,
     taskId: text(run.task_id, "run.task_id"),
+    taskClass: text(root.task_class, "task_class"),
     taskHash: text(run.task_hash, "run.task_hash"),
     worldHash,
     model: text(identity.model, "run.model_identity.model"),

@@ -42,6 +42,8 @@ def test_representative_run_projection_is_redacted_and_exact() -> None:
     summary = next(item for item in index["items"] if item["run_id"].startswith("7bc015925b"))
     projection = forge.get_run(summary["run_id"])
 
+    assert summary["task_class"] == "obviously_fragile_alpha"
+    assert projection["task_class"] == "obviously_fragile_alpha"
     assert projection["run"]["trajectory_hash"].startswith("7bc015925b")
     assert projection["run"]["world_hash"].startswith("07bc4122")
     assert len(projection["run"]["actions"]) == 3

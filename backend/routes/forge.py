@@ -22,7 +22,10 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _BASELINE_ALIAS = "forge-v0.2.5"
 _BASELINE_SCHEMA = "forge-real-single-agent-baseline/0.2.5"
 _TRAJECTORY_SCHEMA = "forge-real-single-agent-trajectory/0.2.5"
+_SUITE_SCHEMA = "forge-real-single-agent-suite/0.2.5"
 _BASELINE_DIR = _PROJECT_ROOT / "data" / "exports" / "forge_v0_2_5_real_baseline"
+_SUITE_RELATIVE_PATH = "execution_source/eval/tasks/forge_v0_2_5/suite.json"
+_SUITE_PATH = _BASELINE_DIR / _SUITE_RELATIVE_PATH
 _REALITY_ALIAS = "forge-v0.2.4.1"
 _REALITY_SCHEMA = "forge-reality-ladder/0.2.4.1"
 _REALITY_PATH = (
@@ -119,6 +122,32 @@ def _episode_records() -> tuple[dict[str, Any], ...]:
 
 
 @lru_cache(maxsize=1)
+def _task_classes() -> dict[str, str]:
+    manifest, _ = _baseline_documents()
+    artifacts = manifest.get("artifacts", {})
+    expected_hash = artifacts.get(_SUITE_RELATIVE_PATH)
+    if not isinstance(expected_hash, str) or _artifact_sha256(_SUITE_PATH) != expected_hash:
+        raise HTTPException(status_code=409, detail="Frozen baseline manifest mismatch: suite.json")
+
+    suite = _read_json(_SUITE_PATH)
+    _require_schema(suite, _SUITE_SCHEMA, "task suite")
+    tasks = suite.get("tasks")
+    if not isinstance(tasks, list):
+        raise HTTPException(status_code=503, detail="Task suite shape is invalid")
+
+    classes: dict[str, str] = {}
+    for index, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            raise HTTPException(status_code=503, detail=f"Invalid task suite item: {index}")
+        task_id = task.get("task_id")
+        task_class = task.get("task_class")
+        if not isinstance(task_id, str) or not isinstance(task_class, str):
+            raise HTTPException(status_code=503, detail=f"Invalid task metadata: {index}")
+        classes[task_id] = task_class
+    return classes
+
+
+@lru_cache(maxsize=1)
 def _reality_document() -> dict[str, Any]:
     document = _read_json(_REALITY_PATH)
     _require_schema(document, _REALITY_SCHEMA, "Reality Ladder")
@@ -172,11 +201,13 @@ def _baseline_header(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[
 def _run_summary(record: dict[str, Any]) -> dict[str, Any]:
     run = record["run"]
     identity = run.get("model_identity", {})
+    task_id = run["task_id"]
     return {
         "run_id": run["trajectory_hash"],
         "episode_key": record.get("episode_key"),
         "record_hash": record.get("record_hash"),
-        "task_id": run["task_id"],
+        "task_id": task_id,
+        "task_class": _task_classes().get(task_id),
         "world_hash": run["world_hash"],
         "model": identity.get("model"),
         "model_version": identity.get("model_version"),
@@ -296,6 +327,7 @@ def get_run(run_id: str, baseline_id: str = _BASELINE_ALIAS) -> dict[str, Any]:
         "episode_key": record.get("episode_key"),
         "record_hash": record.get("record_hash"),
         "task_id": record.get("task_id"),
+        "task_class": _task_classes().get(str(record.get("task_id", ""))),
         "seed": record.get("seed"),
         "run": {
             key: run.get(key)

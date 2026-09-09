@@ -86,6 +86,7 @@ export type BaselineIndexItem = Readonly<{
 export type RunSummary = Readonly<{
   runId: string;
   taskId: string;
+  taskClass: string;
   worldHash: string;
   model: string;
   modelVersion: string;
@@ -140,6 +141,7 @@ export type RunDetail = Readonly<{
   binding: ArtifactBinding;
   runId: string;
   taskId: string;
+  taskClass: string;
   taskHash: string;
   worldHash: string;
   model: string;
