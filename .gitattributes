@@ -2,6 +2,22 @@
 data/exports/forge_v0_2_baseline/** -text
 data/exports/forge_v0_2_reward_calibration/** -text
 
+# Forge v0.2.5 manifest digests seal CRLF bytes for these records. Recreate
+# those bytes on every checkout while keeping the frozen Git blobs untouched.
+data/exports/forge_v0_2_5_real_baseline/README.md text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/episodes.jsonl text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/original_episodes.jsonl text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/original_run_config.json text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/packaging_repair.json text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/recovery.json text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/historical_partial_checkpoint/episodes.jsonl text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/historical_partial_checkpoint/original_episodes.jsonl text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/historical_partial_checkpoint/original_run_config.json text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/historical_partial_checkpoint/partial_status.json text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/historical_partial_checkpoint/regraded_episodes.jsonl text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/historical_partial_checkpoint/run_config.json text eol=crlf
+data/exports/forge_v0_2_5_real_baseline/historical_partial_checkpoint/tier_preflight.json text eol=crlf
+
 
 # Certification sources and frozen evidence use a platform-independent byte form.
 scripts/engine_certification/** text eol=lf
