@@ -1,0 +1,4 @@
+{"basis": "bootstrap_30k_tokens_half_input_half_output", "estimated_tier_cost_usd": 0.504, "model": "gpt-5.6-luna", "observed_episodes": 0, "remaining_episodes": 24, "remaining_global_usd": 2.0, "remaining_model_usd": 2.0}
+{"basis": "observed_mean_uncached", "estimated_tier_cost_usd": 0.38947, "model": "gpt-5.6-terra", "observed_episodes": 24, "remaining_episodes": 24, "remaining_global_usd": 1.97892934, "remaining_model_usd": 2.0}
+{"basis": "observed_mean_uncached", "estimated_tier_cost_usd": 0.74423, "model": "gpt-5.6-sol", "observed_episodes": 48, "remaining_episodes": 24, "remaining_global_usd": 1.79240354, "remaining_model_usd": 2.0}
+{"basis": "observed_mean_uncached", "estimated_tier_cost_usd": 0.0, "model": "gpt-5.6-sol", "observed_episodes": 72, "remaining_episodes": 0, "remaining_global_usd": 1.40646434, "remaining_model_usd": 1.6140608}

@@ -1,7 +1,7 @@
 # FinSight Forge master roadmap
 
 Status: active master sequence.
-Updated: 2026-09-10.
+Updated: 2026-09-12.
 
 FinSight Forge advances through two coordinated tracks. Research artifacts define
 truth; product surfaces observe those artifacts. UI code may project, navigate,
@@ -11,7 +11,7 @@ or silently infer benchmark truth.
 | Milestone | Research / agent track | UI / product track |
 | --- | --- | --- |
 | v0.2.5 | Real single-agent baseline — complete | Observer Foundation — complete |
-| v0.2.5.1 | Behavioral Discrimination Hardening — active | Reality Terrain + Replay — finishing |
+| v0.2.5.1 | Behavioral Discrimination Hardening — complete | Reality Terrain + Replay — finishing |
 | v0.3 | Multi-agent ablations | MarketWorld graph + Research Lab |
 | v0.4 | Learned experiment routing | Routing / decision visualization |
 | v0.5 | Delayed outcome resolution | Forecast ledger + outcome UI |
@@ -21,7 +21,7 @@ or silently infer benchmark truth.
 
 ```text
 v0.2.5      Real single-agent baseline             COMPLETE
-v0.2.5.1    Behavioral discrimination hardening    ACTIVE
+v0.2.5.1    Behavioral discrimination hardening    COMPLETE
 v0.3        Multi-agent ablations
 v0.4        Learned experiment routing
 v0.5        Delayed outcome learning
@@ -32,6 +32,8 @@ v0.2.5.1 is not a UI dependency and does not wait for a product phase. It runs o
 its own branch against a new sealed distribution, produces a new content-addressed
 artifact, and reuses no v0.2.5 trajectories. Its research contract is frozen in
 [`forge-v0.2.5.1-behavioral-hardening.md`](forge-v0.2.5.1-behavioral-hardening.md).
+The completed 72-episode live artifact is independently verified at
+[`data/exports/forge_v0_2_5_1_behavioral_hardening`](../data/exports/forge_v0_2_5_1_behavioral_hardening).
 
 v0.3 holds tasks, models, budgets, verifier semantics, and artifact bindings fixed
 while comparing:
@@ -67,7 +69,9 @@ Phase 10    Outcome + RLVR console
 ```
 
 Phase 7 consumes the independently verified v0.2.5.1 projection. Until that
-artifact exists and verifies, the Hardened column remains `UNAVAILABLE`.
+artifact exists and verifies, the Hardened column remains `UNAVAILABLE`. The
+research gate is now satisfied; Phase 7 remains queued behind the active UI work
+and must consume this artifact read-only.
 
 The Bench comparison will expose, at minimum:
 

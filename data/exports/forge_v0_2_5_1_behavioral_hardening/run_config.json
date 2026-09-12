@@ -1,0 +1,62 @@
+{
+  "models": [
+    {
+      "reasoning_effort": "medium",
+      "cached_input_usd_per_million_tokens": 0.02,
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "model_version": "gpt-5.6-luna",
+      "model_kind": "live",
+      "temperature": null,
+      "seed_supported": false,
+      "input_usd_per_million_tokens": 0.2,
+      "output_usd_per_million_tokens": 1.2
+    },
+    {
+      "reasoning_effort": "medium",
+      "cached_input_usd_per_million_tokens": 0.2,
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "model_version": "gpt-5.6-terra",
+      "model_kind": "live",
+      "temperature": null,
+      "seed_supported": false,
+      "input_usd_per_million_tokens": 2.0,
+      "output_usd_per_million_tokens": 12.0
+    },
+    {
+      "reasoning_effort": "high",
+      "cached_input_usd_per_million_tokens": 0.4,
+      "provider": "openai",
+      "model": "gpt-5.6-sol",
+      "model_version": "gpt-5.6-sol",
+      "model_kind": "live",
+      "temperature": null,
+      "seed_supported": false,
+      "input_usd_per_million_tokens": 4.0,
+      "output_usd_per_million_tokens": 20.0
+    }
+  ],
+  "seeds": [
+    101,
+    307
+  ],
+  "suite_hash": "d9a3e4f2a571e287180925a584c80d68ecc7c432204ce9604c14eb142b6d47a6",
+  "global_cap_usd": 2.0,
+  "source_hashes": {
+    "src/behavioral/agent.py": "fc09a0a6d616d4847254b03be7a3e46ece88e435d0ae940af8d5c293c3490173",
+    "src/behavioral/contracts.py": "d37cc0a0afd1b2f44c52b2fcc0680e5811902e98314ab3e53e6274483a9f0d0a",
+    "src/behavioral/openai_api.py": "4d3a6019ef5b11fe7853932dac975c7cde1331b057a273d364123e04d0dfa9e6",
+    "src/behavioral_hardening/contracts.py": "76bd50b70b7ad4c064edee9610c5e1626590b0856cda22ed599dc0ea464b0fcc",
+    "src/behavioral_hardening/tool_plane.py": "e1bd08ff25ff2b47b18c5ac7f47a1a9be8f17c6225debd7a80cd3ab93b80e91e",
+    "src/behavioral_hardening/agent.py": "21680543d8d2eacf4f59717506922cc70c6ea3e63ed5689400ea0f711f27a95a",
+    "src/behavioral_hardening/verifier.py": "30040117899c91b3c660066f46640aa258ca6331acd8956f23c647a81f4a03d7",
+    "src/behavioral_hardening/openai_api.py": "f43174283ff32c25b6da93fca6f7e77d141a80ad78fae75d8c33b75743d17871",
+    "src/behavioral_hardening/benchmark.py": "fad675ad74626715bc9a9bfa2036bc9a0536ffa44ca2f2cf06f36b72fd78a9dd",
+    "eval/models/forge_v0_2_5_1_openai.json": "83dd4e1e7995813f39c522af3c0a4985656c360a4234fa6b9a6248cac30c7fd8",
+    "scripts/build_behavioral_hardening_suite.py": "c4055965aa748fb9dab3393984aacc3e22e1dea2392fa999bc81dcaca384e709",
+    "scripts/run_behavioral_hardening.py": "97399a31950960ce7fe06dc187b49b1f51a3d85b22d6a2a2264c4e9a6936234b",
+    "scripts/verify_behavioral_hardening.py": "97e6255f0955a5775663acde433a1df02ec435d05afee065a162c01fcd709d57",
+    "eval/tasks/forge_v0_2_5_1/suite.json": "05a3a0cac0d6a621dda46ad973cfe51e175996a2eb152421b645c2e506811ac9"
+  }
+}

@@ -1,6 +1,6 @@
 # FinSight Forge v0.2.5.1 — Behavioral Discrimination Hardening
 
-Status: implementation and sealed suite complete; live 72-episode artifact not yet frozen.
+Status: complete; the live 72-episode artifact is frozen and independently verified.
 Branch: `feat/forge-v0.2.5.1-behavioral-hardening`.
 
 ## Frozen research question
@@ -120,6 +120,50 @@ python scripts/run_behavioral_hardening.py
 python scripts/verify_behavioral_hardening.py \
   data/exports/forge_v0_2_5_1_behavioral_hardening
 ```
+
+## Frozen live result
+
+The 72-episode matrix completed on 2026-09-12. The independently verified
+artifact is frozen at
+[`data/exports/forge_v0_2_5_1_behavioral_hardening`](../data/exports/forge_v0_2_5_1_behavioral_hardening)
+with benchmark ID
+`6552f725eb6ccffd9807f9f18675b7df188fb0dfaefe23f168262f71c98d8051`.
+All 72 episodes and all six model/seed tiers were admitted, the source manifest
+remained fixed, and the verifier reported no errors. Estimated API cost was
+`$0.59353566` against the authorized `$2.00` global ceiling. Costs are token
+estimates, not invoices.
+
+| Model | Verified research success | Correct rejection | Correct acceptance | Abstention accuracy | `NOT_COMPARABLE` accuracy | Estimated API cost |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpt-5.6-luna` | 70.83% | 90.00% | 50.00% | 75.00% | 0.00% | $0.02107066 |
+| `gpt-5.6-terra` | 75.00% | 100.00% | 50.00% | 75.00% | 0.00% | $0.18652580 |
+| `gpt-5.6-sol` | 70.83% | 90.00% | 50.00% | 75.00% | 0.00% | $0.38593920 |
+| **Overall** | **72.22%** | **93.33%** | **50.00%** | **75.00%** | **0.00%** | **$0.59353566** |
+
+The hardened distribution exposes consistent behavioral weaknesses that the
+easier baseline could not isolate:
+
+- all three tiers rejected the tiny-sample case instead of abstaining in both
+  seeds;
+- all three tiers abstained on the mediocre-headline but strongly robust case
+  instead of accepting it, and omitted required evidence;
+- all three tiers submitted `NOT_COMPARABLE` for the out-of-scope engine
+  disagreement, but none gathered the evidence required to justify that verdict;
+- the near-two-Sharpe pair was cleanly separated: every tier rejected case 01
+  after its survival failure and accepted case 09 after the selected latency test;
+- Sol had one seed-sensitive miss on the narrow threshold case, while Luna had
+  one seed-sensitive miss on the cheap decisive screen.
+
+Experiment Selection Regret was defined for the 52 verified paths (72.22%
+coverage). Mean tool-call regret was `0.980769`; mean logical USD,
+high-fidelity-run, and wall-time regret were all zero. Only one eligible path
+was exactly oracle-minimal, giving a 1.92% zero-regret rate. The result therefore
+separates two facts: most successful conclusions used the right experiments,
+but almost every successful trajectory made one avoidable tool call.
+
+These figures are diagnostic measurements over two seeds, not a statistical
+leaderboard. Terra's one-episode lead is reported descriptively and is not a
+claim of tier superiority.
 
 ## Release gates
 
