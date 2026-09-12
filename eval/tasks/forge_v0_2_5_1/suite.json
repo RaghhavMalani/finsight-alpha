@@ -1,0 +1,2388 @@
+{
+  "certification_artifact_hash": "9ee9dabbadaa0e260e942d9c304c3c5dd0571e49470d8e8a4f35a0151c3f3166",
+  "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+  "research_question": "Can FinSight Bench distinguish agents that merely follow obvious decision thresholds from agents that reason about uncertainty, conflicting evidence, trust boundaries and experiment value?",
+  "schema_version": "forge-behavioral-hardening-suite/0.2.5.1",
+  "suite_id": "FORGE_BEHAVIORAL_HARDENING_V0_2_5_1",
+  "supersedes_suite_hash": "a125ca3dd3760f52ad7dd66e500fea92ade587571462215544a021a48c65c24b",
+  "tasks": [
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. At STRESS, Sharpe must be >= 0.75 and survival must be >= 0.50.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "oracle_path": [
+          "research.run_screen",
+          "research.run_counterfactual_stress",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.09,
+          "high_fidelity_runs": 1,
+          "tool_calls": 3,
+          "wall_seconds": 16.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "STRESS",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A cross-sectional reversal signal survives regime stress strongly enough to deploy.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": "near_two_sharpe",
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 2.08,
+            "sharpe_ci_high": 2.2600000000000002,
+            "sharpe_ci_low": 1.9000000000000001
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.94,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.96,
+            "sharpe_ci_high": 2.14,
+            "sharpe_ci_low": 1.78
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.83,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.72,
+            "sharpe_ci_high": 1.9,
+            "sharpe_ci_low": 1.54
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.68,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.41,
+            "sharpe_ci_high": 1.5899999999999999,
+            "sharpe_ci_low": 1.23
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.39,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.82,
+            "sharpe_ci_high": 1.0,
+            "sharpe_ci_low": 0.6399999999999999
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "stress_sharpe_passes_survival_fails",
+      "task_id": "v0251_case_001"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. At STRESS, Sharpe must be >= 0.75 and survival must be >= 0.50; thresholds are exact.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "oracle_path": [
+          "research.run_screen",
+          "research.run_counterfactual_stress",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.09,
+          "high_fidelity_runs": 1,
+          "tool_calls": 3,
+          "wall_seconds": 16.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "STRESS",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A defensive carry signal clears the exact stress deployment boundary.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.46,
+            "sharpe_ci_high": 1.64,
+            "sharpe_ci_low": 1.28
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.92,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.35,
+            "sharpe_ci_high": 1.53,
+            "sharpe_ci_low": 1.1700000000000002
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.77,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.12,
+            "sharpe_ci_high": 1.3,
+            "sharpe_ci_low": 0.9400000000000002
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.66,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.96,
+            "sharpe_ci_high": 1.14,
+            "sharpe_ci_low": 0.78
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.51,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.74,
+            "sharpe_ci_high": 0.9199999999999999,
+            "sharpe_ci_low": 0.56
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "stress_sharpe_narrowly_fails",
+      "task_id": "v0251_case_002"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. Any deployment decision requires sample_size >= 120 and a confidence interval wholly above 0.50.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ABSTAIN",
+        "oracle_path": [
+          "research.run_screen",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.01,
+          "high_fidelity_runs": 0,
+          "tool_calls": 2,
+          "wall_seconds": 1.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A spectacular sparse-sample microcap signal has enough evidence for deployment.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "INSUFFICIENT_SAMPLE",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 18.0,
+            "sharpe": 4.2,
+            "sharpe_ci_high": 8.8,
+            "sharpe_ci_low": -0.4
+          },
+          "minimum_certification": "C4",
+          "observations": 18,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 18.0,
+            "sharpe": 3.9,
+            "sharpe_ci_high": 8.4,
+            "sharpe_ci_low": -0.6
+          },
+          "minimum_certification": "C4",
+          "observations": 18,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 18.0,
+            "sharpe": 3.6,
+            "sharpe_ci_high": 8.0,
+            "sharpe_ci_low": -0.8
+          },
+          "minimum_certification": "C4",
+          "observations": 18,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 18.0,
+            "sharpe": 3.2,
+            "sharpe_ci_high": 7.8,
+            "sharpe_ci_low": -1.0
+          },
+          "minimum_certification": "C4",
+          "observations": 18,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 18.0,
+            "sharpe": 3.0,
+            "sharpe_ci_high": 7.4,
+            "sharpe_ci_low": -1.2
+          },
+          "minimum_certification": "C4",
+          "observations": 18,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "spectacular_sharpe_tiny_sample",
+      "task_id": "v0251_case_003"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. ACCEPT after COSTS, LATENCY, and STRESS all retain Sharpe >= 0.75, survival >= 0.50, and drawdown <= 0.25.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ACCEPT",
+        "oracle_path": [
+          "research.run_screen",
+          "research.add_costs",
+          "research.run_latency_sensitivity",
+          "research.run_counterfactual_stress",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.18,
+          "high_fidelity_runs": 2,
+          "tool_calls": 5,
+          "wall_seconds": 30.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "COSTS",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "LATENCY",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "STRESS",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A modest diversified carry signal is deployable because its edge is unusually robust.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": "headline_vs_robustness",
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.14,
+            "sample_size": 240.0,
+            "sharpe": 0.91,
+            "sharpe_ci_high": 1.09,
+            "sharpe_ci_low": 0.73
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.98,
+            "max_drawdown": 0.14,
+            "sample_size": 240.0,
+            "sharpe": 0.89,
+            "sharpe_ci_high": 1.07,
+            "sharpe_ci_low": 0.71
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.95,
+            "max_drawdown": 0.15,
+            "sample_size": 240.0,
+            "sharpe": 0.86,
+            "sharpe_ci_high": 1.04,
+            "sharpe_ci_low": 0.6799999999999999
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.9,
+            "max_drawdown": 0.16,
+            "sample_size": 240.0,
+            "sharpe": 0.82,
+            "sharpe_ci_high": 1.0,
+            "sharpe_ci_low": 0.6399999999999999
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.87,
+            "max_drawdown": 0.18,
+            "sample_size": 240.0,
+            "sharpe": 0.79,
+            "sharpe_ci_high": 0.97,
+            "sharpe_ci_low": 0.6100000000000001
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "mediocre_headline_strong_robustness",
+      "task_id": "v0251_case_004"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. When certified engines disagree inside the same declared semantics, investigate the discrepancy; reject if the aligned control is <= 0.50.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "oracle_path": [
+          "research.run_screen",
+          "research.promote_event_replay",
+          "research.add_costs",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.04,
+          "high_fidelity_runs": 0,
+          "tool_calls": 4,
+          "wall_seconds": 7.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "EVENT_REPLAY",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "COSTS",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "Two certified engines agree that a fee-sensitive signal is deployable under common semantics.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "COMMON_BAR_T07",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.38,
+            "sharpe_ci_high": 1.5599999999999998,
+            "sharpe_ci_low": 1.2
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_COMMON_CAPABILITY",
+            "fee_bps": "25",
+            "tape": "T07"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_BAR_T07",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.32,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.44,
+            "sharpe_ci_high": 0.62,
+            "sharpe_ci_low": 0.26
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_COMMON_CAPABILITY",
+            "fee_bps": "25",
+            "tape": "T07"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "DISCREPANCY_CONTROL_T07",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.3,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.41,
+            "sharpe_ci_high": 0.59,
+            "sharpe_ci_low": 0.22999999999999998
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "DISCREPANCY_PERSISTS",
+            "fee_bps": "25",
+            "tape": "T07"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.28,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.38,
+            "sharpe_ci_high": 0.56,
+            "sharpe_ci_low": 0.2
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.26,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.36,
+            "sharpe_ci_high": 0.54,
+            "sharpe_ci_low": 0.18
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "certified_engines_disagree_in_scope",
+      "task_id": "v0251_case_005"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. Return NOT_COMPARABLE when the observed queue semantics are outside the engines' common capability intersection.",
+      "allowed_engines": {
+        "hftbacktest": {
+          "minimum_certification": "C0"
+        },
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "NOT_COMPARABLE",
+        "oracle_path": [
+          "research.run_screen",
+          "research.promote_event_replay",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.03,
+          "high_fidelity_runs": 0,
+          "tool_calls": 3,
+          "wall_seconds": 5.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "EVENT_REPLAY",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A bar simulator and native queue simulator provide directly comparable queue evidence.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_AGGREGATE",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.6,
+            "sharpe_ci_high": 1.78,
+            "sharpe_ci_low": 1.4200000000000002
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "OUTSIDE_COMMON_CAPABILITY",
+            "queue_model": "NONE"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "NATIVE_QUEUE",
+          "engine": "hftbacktest",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.55,
+            "sharpe_ci_high": 1.73,
+            "sharpe_ci_low": 1.37
+          },
+          "minimum_certification": "C0",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "OUTSIDE_COMMON_CAPABILITY",
+            "queue_model": "NATIVE"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.42,
+            "sharpe_ci_high": 1.5999999999999999,
+            "sharpe_ci_low": 1.24
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.2,
+            "sharpe_ci_high": 1.38,
+            "sharpe_ci_low": 1.02
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.1,
+            "sharpe_ci_high": 1.28,
+            "sharpe_ci_low": 0.9200000000000002
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "engines_outside_capability_intersection",
+      "task_id": "v0251_case_006"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. REJECT immediately when reliable evidence shows max_drawdown > 0.25, regardless of Sharpe.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "oracle_path": [
+          "research.run_screen",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.01,
+          "high_fidelity_runs": 0,
+          "tool_calls": 2,
+          "wall_seconds": 1.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A high-Sharpe leveraged convergence trade satisfies the deployment risk envelope.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": "headline_vs_robustness",
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.42,
+            "sample_size": 240.0,
+            "sharpe": 4.2,
+            "sharpe_ci_high": 4.38,
+            "sharpe_ci_low": 4.0200000000000005
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.41,
+            "sample_size": 240.0,
+            "sharpe": 4.0,
+            "sharpe_ci_high": 4.18,
+            "sharpe_ci_low": 3.82
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.43,
+            "sample_size": 240.0,
+            "sharpe": 3.7,
+            "sharpe_ci_high": 3.8800000000000003,
+            "sharpe_ci_low": 3.52
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.47,
+            "sample_size": 240.0,
+            "sharpe": 3.2,
+            "sharpe_ci_high": 3.3800000000000003,
+            "sharpe_ci_low": 3.02
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.5,
+            "sample_size": 240.0,
+            "sharpe": 2.8,
+            "sharpe_ci_high": 2.98,
+            "sharpe_ci_low": 2.6199999999999997
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "high_sharpe_unacceptable_drawdown",
+      "task_id": "v0251_case_007"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. REJECT once any reliable Sharpe estimate is <= 0.50.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "REJECT",
+        "oracle_path": [
+          "research.run_screen",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.01,
+          "high_fidelity_runs": 0,
+          "tool_calls": 2,
+          "wall_seconds": 1.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A weak intraday continuation screen warrants expensive robustness testing.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": -0.21,
+            "sharpe_ci_high": -0.03,
+            "sharpe_ci_low": -0.39
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": -0.24,
+            "sharpe_ci_high": -0.06,
+            "sharpe_ci_low": -0.42
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": -0.31,
+            "sharpe_ci_high": -0.13,
+            "sharpe_ci_low": -0.49
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": -0.4,
+            "sharpe_ci_high": -0.22000000000000003,
+            "sharpe_ci_low": -0.5800000000000001
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": -0.55,
+            "sharpe_ci_high": -0.37000000000000005,
+            "sharpe_ci_low": -0.73
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "cheap_evidence_decisive",
+      "task_id": "v0251_case_008"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. Only one high-fidelity experiment is affordable. Because the mechanism is latency-sensitive, ACCEPT only if LATENCY retains Sharpe >= 0.75 and survival >= 0.50.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.09,
+        "max_high_fidelity_runs": 1,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ACCEPT",
+        "oracle_path": [
+          "research.run_screen",
+          "research.run_latency_sensitivity",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.09,
+          "high_fidelity_runs": 1,
+          "tool_calls": 3,
+          "wall_seconds": 13.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "LATENCY",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A sub-second opening-imbalance signal remains deployable under its dominant latency risk.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": "near_two_sharpe",
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 2.11,
+            "sharpe_ci_high": 2.29,
+            "sharpe_ci_low": 1.93
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.96,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 2.02,
+            "sharpe_ci_high": 2.2,
+            "sharpe_ci_low": 1.84
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.85,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.8,
+            "sharpe_ci_high": 1.98,
+            "sharpe_ci_low": 1.62
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.56,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.18,
+            "sharpe_ci_high": 1.3599999999999999,
+            "sharpe_ci_low": 1.0
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.62,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.31,
+            "sharpe_ci_high": 1.49,
+            "sharpe_ci_low": 1.1300000000000001
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "single_affordable_high_value_experiment",
+      "task_id": "v0251_case_009"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. STRESS is mandatory; ABSTAIN if it is unavailable at the frozen as-of boundary.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ABSTAIN",
+        "oracle_path": [
+          "research.run_screen",
+          "research.run_counterfactual_stress",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.01,
+          "high_fidelity_runs": 0,
+          "tool_calls": 3,
+          "wall_seconds": 1.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "STRESS",
+            "status": "UNAVAILABLE"
+          }
+        ]
+      },
+      "hypothesis": "A regime-dependent signal has sufficient high-fidelity evidence for deployment.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.32,
+            "sharpe_ci_high": 1.5,
+            "sharpe_ci_low": 1.1400000000000001
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.92,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.22,
+            "sharpe_ci_high": 1.4,
+            "sharpe_ci_low": 1.04
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.8,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.05,
+            "sharpe_ci_high": 1.23,
+            "sharpe_ci_low": 0.8700000000000001
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.7,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.93,
+            "sharpe_ci_high": 1.11,
+            "sharpe_ci_low": 0.75
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": false,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "UNAVAILABLE",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {},
+          "minimum_certification": "C4",
+          "observations": 0,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": "Required high-fidelity regime panel was not captured before the as-of boundary.",
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "required_high_fidelity_evidence_missing",
+      "task_id": "v0251_case_010"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. Native queue evidence requires C1 or better; ABSTAIN when trust validation refuses the required engine before metrics are exposed.",
+      "allowed_engines": {
+        "hftbacktest": {
+          "minimum_certification": "C1"
+        },
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ABSTAIN",
+        "oracle_path": [
+          "research.run_screen",
+          "research.promote_event_replay",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.01,
+          "high_fidelity_runs": 0,
+          "tool_calls": 3,
+          "wall_seconds": 1.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "EVENT_REPLAY",
+            "status": "REFUSED"
+          }
+        ]
+      },
+      "hypothesis": "An attractive queue-model result from an insufficiently certified engine supports deployment.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 2.35,
+            "sharpe_ci_high": 2.5300000000000002,
+            "sharpe_ci_low": 2.17
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "NATIVE_QUEUE",
+          "engine": "hftbacktest",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.94,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 2.2,
+            "sharpe_ci_high": 2.3800000000000003,
+            "sharpe_ci_low": 2.02
+          },
+          "minimum_certification": "C1",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.85,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 2.0,
+            "sharpe_ci_high": 2.18,
+            "sharpe_ci_low": 1.82
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.77,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.8,
+            "sharpe_ci_high": 1.98,
+            "sharpe_ci_low": 1.62
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.68,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.6,
+            "sharpe_ci_high": 1.78,
+            "sharpe_ci_low": 1.4200000000000002
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "uncertified_engine_attractive_answer",
+      "task_id": "v0251_case_011"
+    },
+    {
+      "acceptance_criteria": "Treat every declared gate as conjunctive. ACCEPT only when all task-relevant gates are supported by reliable evidence. REJECT as soon as reliable evidence decisively violates a gate. ABSTAIN when a required result is missing, uncertified, or uncertainty crosses a failure boundary. Use NOT_COMPARABLE only for observed results outside the engines' common capability intersection. Prefer the minimal valid experiment path. STRESS requires point Sharpe >= 0.75 and confidence interval low >= 0.50; ABSTAIN if the interval crosses the failure region.",
+      "allowed_engines": {
+        "nautilus": {
+          "minimum_certification": "C4"
+        },
+        "vectorbt": {
+          "minimum_certification": "C4"
+        }
+      },
+      "budget": {
+        "max_cost_usd": 1.0,
+        "max_engine_runs": 5,
+        "max_experiment_cost_usd": 0.2,
+        "max_high_fidelity_runs": 2,
+        "max_tokens": 30000,
+        "max_tool_calls": 12,
+        "max_wall_seconds": 180.0
+      },
+      "execution_mode": "frozen_evidence_replay",
+      "grading": {
+        "expected_verdict": "ABSTAIN",
+        "oracle_path": [
+          "research.run_screen",
+          "research.run_counterfactual_stress",
+          "research.submit"
+        ],
+        "oracle_resources": {
+          "experiment_cost_usd": 0.09,
+          "high_fidelity_runs": 1,
+          "tool_calls": 3,
+          "wall_seconds": 16.0
+        },
+        "required_evidence": [
+          {
+            "stage": "SCREEN",
+            "status": "OBSERVED"
+          },
+          {
+            "stage": "STRESS",
+            "status": "OBSERVED"
+          }
+        ]
+      },
+      "hypothesis": "A noisy signal clears the stress gate with sufficiently certain evidence.",
+      "objective": "Reach a defensible deployment decision using the minimal valid research path.",
+      "pair_id": null,
+      "primary_metric": "multi_gate_research_decision",
+      "reality_ladder_artifact_hash": "db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c",
+      "schema_version": "forge-behavioral-hardening-task/0.2.5.1",
+      "stages": [
+        {
+          "available": true,
+          "capability_scope": "BAR_SCREEN",
+          "engine": "vectorbt",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 1.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 1.0,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.1,
+            "sharpe_ci_high": 1.32,
+            "sharpe_ci_low": 0.88
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "SCREEN",
+          "tool": "research.run_screen"
+        },
+        {
+          "available": true,
+          "capability_scope": "COMMON_EVENT",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 4.0,
+          "experiment_cost_usd": 0.02,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.93,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 1.02,
+            "sharpe_ci_high": 1.26,
+            "sharpe_ci_low": 0.78
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "EVENT_REPLAY",
+          "tool": "research.promote_event_replay"
+        },
+        {
+          "available": true,
+          "capability_scope": "COST_MODEL",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 2.0,
+          "experiment_cost_usd": 0.01,
+          "high_fidelity": false,
+          "metrics": {
+            "alpha_survival_ratio": 0.85,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.94,
+            "sharpe_ci_high": 1.19,
+            "sharpe_ci_low": 0.69
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "COSTS",
+          "tool": "research.add_costs"
+        },
+        {
+          "available": true,
+          "capability_scope": "LATENCY_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 12.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.8,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.88,
+            "sharpe_ci_high": 1.18,
+            "sharpe_ci_low": 0.58
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "LATENCY",
+          "tool": "research.run_latency_sensitivity"
+        },
+        {
+          "available": true,
+          "capability_scope": "REGIME_STRESS",
+          "engine": "nautilus",
+          "evidence_quality": "SUFFICIENT",
+          "expected_wall_seconds": 15.0,
+          "experiment_cost_usd": 0.08,
+          "high_fidelity": true,
+          "metrics": {
+            "alpha_survival_ratio": 0.75,
+            "max_drawdown": 0.12,
+            "sample_size": 240.0,
+            "sharpe": 0.82,
+            "sharpe_ci_high": 1.26,
+            "sharpe_ci_low": 0.38
+          },
+          "minimum_certification": "C4",
+          "observations": 240,
+          "prerequisites": [
+            "research.run_screen"
+          ],
+          "reason": null,
+          "semantics": {
+            "comparison_status": "IN_SCOPE",
+            "information_policy": "POINT_IN_TIME"
+          },
+          "stage": "STRESS",
+          "tool": "research.run_counterfactual_stress"
+        }
+      ],
+      "task_class": "point_estimate_passes_interval_crosses_failure",
+      "task_id": "v0251_case_012"
+    }
+  ]
+}

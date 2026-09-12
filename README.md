@@ -30,6 +30,10 @@ prediction-market research pack are documented in
 The provider-neutral v0.2.5 real single-agent harness and its pending live-freeze
 boundary are documented in
 [`docs/forge-v0.2.5-real-single-agent-baseline.md`](docs/forge-v0.2.5-real-single-agent-baseline.md).
+The coordinated research/product sequence is maintained in
+[`docs/forge-master-roadmap.md`](docs/forge-master-roadmap.md). The active
+v0.2.5.1 Behavioral Discrimination Hardening contract is documented in
+[`docs/forge-v0.2.5.1-behavioral-hardening.md`](docs/forge-v0.2.5.1-behavioral-hardening.md).
 
 
 ## The numbers this repository publishes
