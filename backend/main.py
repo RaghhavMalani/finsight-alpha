@@ -34,6 +34,7 @@ from backend.routes import (
     auth,
     backtest,
     context,
+    dynamics,
     factors,
     fundamentals,
     forge,
@@ -177,6 +178,7 @@ app.include_router(news.router)
 app.include_router(portfolio.router)
 app.include_router(backtest.router)
 app.include_router(context.router)
+app.include_router(dynamics.router)
 app.include_router(intelligence.router)
 app.include_router(factors.router)
 app.include_router(strategy.router)

@@ -16,6 +16,7 @@ import { Route as RiskRouteImport } from './routes/risk'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LegacyTerminalRouteImport } from './routes/legacy-terminal'
 import { Route as ForgeRouteImport } from './routes/forge'
+import { Route as DynamicsRouteImport } from './routes/dynamics'
 import { Route as BenchRouteImport } from './routes/bench'
 import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as IndexRouteImport } from './routes/index'
@@ -58,6 +59,11 @@ const LegacyTerminalRoute = LegacyTerminalRouteImport.update({
 const ForgeRoute = ForgeRouteImport.update({
   id: '/forge',
   path: '/forge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DynamicsRoute = DynamicsRouteImport.update({
+  id: '/dynamics',
+  path: '/dynamics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BenchRoute = BenchRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
   '/bench': typeof BenchRouteWithChildren
+  '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
+  '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
   '/bench': typeof BenchRouteWithChildren
+  '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/'
     | '/artifacts'
     | '/bench'
+    | '/dynamics'
     | '/forge'
     | '/legacy-terminal'
     | '/login'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/artifacts'
+    | '/dynamics'
     | '/forge'
     | '/legacy-terminal'
     | '/login'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/'
     | '/artifacts'
     | '/bench'
+    | '/dynamics'
     | '/forge'
     | '/legacy-terminal'
     | '/login'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArtifactsRoute: typeof ArtifactsRoute
   BenchRoute: typeof BenchRouteWithChildren
+  DynamicsRoute: typeof DynamicsRoute
   ForgeRoute: typeof ForgeRoute
   LegacyTerminalRoute: typeof LegacyTerminalRoute
   LoginRoute: typeof LoginRoute
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/forge'
       fullPath: '/forge'
       preLoaderRoute: typeof ForgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dynamics': {
+      id: '/dynamics'
+      path: '/dynamics'
+      fullPath: '/dynamics'
+      preLoaderRoute: typeof DynamicsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bench': {
@@ -355,6 +375,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArtifactsRoute: ArtifactsRoute,
   BenchRoute: BenchRouteWithChildren,
+  DynamicsRoute: DynamicsRoute,
   ForgeRoute: ForgeRoute,
   LegacyTerminalRoute: LegacyTerminalRoute,
   LoginRoute: LoginRoute,
