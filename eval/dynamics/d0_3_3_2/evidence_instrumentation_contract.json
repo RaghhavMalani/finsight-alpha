@@ -1,0 +1,292 @@
+{
+  "artifact_hash": "a8dba02f07d29d58431c566122597c3c87091599bf6fad023b186f8eda6c4457",
+  "boundaries": {
+    "effect_sizes_estimated": false,
+    "estimator_rerun": false,
+    "hawkes_started": false,
+    "new_estimator_added": false,
+    "real_market_rerun": false,
+    "scientific_outcome_claims": false,
+    "threshold_changes": false,
+    "threshold_selection": false,
+    "worlds_executed": 0
+  },
+  "capture_implementation": {
+    "entry_points": [
+      "capture_sindy_bootstrap_evidence",
+      "capture_state_diffusion_evidence",
+      "capture_topology_stage_evidence",
+      "make_world_evidence_record",
+      "verify_world_evidence_record"
+    ],
+    "sources": [
+      {
+        "sha256": "134c6be2c6ef1d180a840cac92899a0674e59f6b6b87ea9ab63e3d6e4b337b1a",
+        "source": "src/dynamics/evidence_contract.py"
+      },
+      {
+        "sha256": "e05ab884d0261f162be62ee1be063e1dfda1a6a53a9de22b47be26c2c4594323",
+        "source": "src/dynamics/evidence_capture.py"
+      },
+      {
+        "sha256": "9c573413453812f95fc52ace5c05d634b2c17cc922254b3afa89956c3bd9e2d2",
+        "source": "src/dynamics/instrumentation_artifact.py"
+      }
+    ]
+  },
+  "contract_status": "READY_FOR_EVIDENCE_COMPLETE_REPLICATION",
+  "evidence_records": [],
+  "frozen": true,
+  "frozen_instrument": {
+    "estimator_source_sha256": "2c3ef88b93d3f85e0f6bd9e5f7af07b7d25ca78a54438ae50d1b6c14198d566d",
+    "milestone": "D0.3.3",
+    "mutation_policy": "NO ESTIMATOR OR THRESHOLD CHANGES",
+    "thresholds": {
+      "diffusion_bootstrap_dominance": 0.5,
+      "diffusion_max_min_ratio": 1.7,
+      "diffusion_twice_log_likelihood_ratio": 0.0,
+      "double_well_minimum_holdout_gain": -0.2,
+      "root_minimum_local_support": 4.0,
+      "topology_certificate_score": 0.4
+    }
+  },
+  "market_claim_eligible": false,
+  "milestone": "D0.3.3.2",
+  "parent_seals": [
+    {
+      "artifact": "eval/dynamics/d0_3_3/targeted_recovery.json",
+      "artifact_hash": "af7c56599b554871efc703256241f3afa256918112055f66d08436a86168bcd4",
+      "file_sha256": "73df3fa04b3a03577ba2adfcd512b9aa5a596c8807a2f804bfe0edf5bb1316b7",
+      "milestone": "D0.3.3",
+      "source": "src/dynamics/targeted_recovery.py",
+      "source_sha256": "2c3ef88b93d3f85e0f6bd9e5f7af07b7d25ca78a54438ae50d1b6c14198d566d"
+    },
+    {
+      "artifact": "eval/dynamics/d0_3_3_1/generalization_autopsy.json",
+      "artifact_hash": "8795e18c6f2edc7b98c03f06d892c7eda1827fbcae7f1294708d80df6a9d74ff",
+      "file_sha256": "6c8fce8ce0880ca109b88f2bf77e76a1187869e5b75533ee427450d0960853c2",
+      "milestone": "D0.3.3.1",
+      "source": "src/dynamics/generalization_autopsy.py",
+      "source_sha256": "bb7de63ebe041c1a0f8e9a986c772c6f2c2e9a9866af1015028204ead7b79429"
+    }
+  ],
+  "purpose": "Make every causal transition required by the next frozen replication observable without changing the D0.3.3 instrument.",
+  "real_market_claim": {
+    "interpretation": "No nonlinear structure was certified by an estimator whose nonlinear identification power is currently insufficient.",
+    "market_claim": "ABSTAIN",
+    "rerun_performed": false,
+    "selected_model": "M1"
+  },
+  "replication_artifact_specification": {
+    "decision_decomposition_rule": "group each world by the sorted set of failed contributing gates; retain PASS as an explicit zero-failure group",
+    "incomplete_record_policy": "fail closed; incomplete worlds remain explicit and out of denominators",
+    "outcome_rule": "estimate operating characteristics; do not retune the D0.3.3 instrument",
+    "required_top_level_fields": [
+      "schema_version",
+      "milestone",
+      "preregistration",
+      "frozen_instrument",
+      "seed_ledger",
+      "world_evidence",
+      "capability_estimates",
+      "decision_decomposition",
+      "artifact_hash"
+    ],
+    "schema_version": "dynamics-evidence-complete-replication/0.3.4",
+    "uncertainty_rule": "report Wilson 95 percent intervals for every capability proportion",
+    "world_count_rule": "exactly 100 records per preregistered role; no silent omission",
+    "world_evidence_schema_id": "urn:finsight:dynamics:d0.3.4:world-evidence"
+  },
+  "role_section_requirements": {
+    "double_well": [
+      "sindy",
+      "topology"
+    ],
+    "linear_control": [
+      "sindy",
+      "state_diffusion",
+      "topology"
+    ],
+    "no_basin_control": [
+      "sindy",
+      "topology"
+    ],
+    "state_diffusion": [
+      "state_diffusion"
+    ]
+  },
+  "routing": {
+    "hawkes_deferred": true,
+    "next_milestone": "D0.3.4_FROZEN_LARGE_SAMPLE_REPLICATION"
+  },
+  "schema_version": "dynamics-evidence-instrumentation-contract/0.3.3.2",
+  "scientific_result": null,
+  "stream_contracts": {
+    "sindy": {
+      "purpose": "Separate true-term stability from spurious support selection.",
+      "replicate_fields": [
+        "replicate",
+        "selected_terms",
+        "coefficients",
+        "coefficient_signs",
+        "structural_support_identity"
+      ],
+      "required_fields": [
+        "library",
+        "library_identity",
+        "truth_terms",
+        "truth_support_identity",
+        "bootstrap_repetitions",
+        "replicates",
+        "terms"
+      ],
+      "term_fields": [
+        "term",
+        "truth_term",
+        "inclusion_count",
+        "inclusion_frequency",
+        "coefficients_per_bootstrap",
+        "coefficient_sign_per_bootstrap",
+        "coefficient_uncertainty"
+      ]
+    },
+    "state_diffusion": {
+      "decision_gates": [
+        "twice_log_likelihood_ratio",
+        "diffusion_max_min_ratio",
+        "bootstrap_dominance"
+      ],
+      "purpose": "Expose every transition from cross-fitted innovations to the final conjunction.",
+      "required_fields": [
+        "drift_reconstruction_score",
+        "g_reconstruction_score",
+        "cross_fitted_residuals",
+        "state_support_bins",
+        "support_coverage",
+        "diffusion_contrast",
+        "gate_results",
+        "final_conjunction"
+      ],
+      "support_bin_fields": [
+        "bin",
+        "left",
+        "right",
+        "samples",
+        "conditional_variance_estimate",
+        "true_g",
+        "estimated_g"
+      ]
+    },
+    "topology": {
+      "decision_gates": [
+        "root_cluster_triplet",
+        "minimum_cluster_occupancy",
+        "sealed_holdout_gain",
+        "root_persistence",
+        "stability_support",
+        "sign_topology",
+        "barrier_support",
+        "certificate_score"
+      ],
+      "purpose": "Expose root formation, clustering, stability, persistence, basin assignment, and certification.",
+      "required_fields": [
+        "roots_before_clustering",
+        "root_clusters",
+        "root_certificate",
+        "bootstrap_persistence",
+        "basin_assignment",
+        "gate_results",
+        "final_topology_gate"
+      ],
+      "root_fields": [
+        "bootstrap",
+        "root",
+        "state",
+        "derivative",
+        "stable",
+        "classification",
+        "cluster_id"
+      ]
+    }
+  },
+  "title": "Evidence Instrumentation Contract",
+  "world_evidence_schema": {
+    "$id": "urn:finsight:dynamics:d0.3.4:world-evidence",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "evidence_hash": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "schema_version": {
+        "const": "dynamics-world-evidence/0.3.4"
+      },
+      "sindy": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "state_diffusion": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "topology": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "world": {
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "double_well",
+              "state_diffusion",
+              "linear_control",
+              "no_basin_control"
+            ]
+          },
+          "seed": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "split": {
+            "enum": [
+              "replication"
+            ]
+          },
+          "world_hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "world_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "world_id",
+          "world_hash",
+          "split",
+          "role",
+          "seed"
+        ],
+        "type": "object"
+      }
+    },
+    "required": [
+      "schema_version",
+      "world",
+      "sindy",
+      "state_diffusion",
+      "topology",
+      "evidence_hash"
+    ],
+    "type": "object"
+  }
+}
