@@ -5,6 +5,7 @@ import { fetchNonlinearLabPayload } from "@/dynamics/nonlinear-contracts";
 import { fetchTournamentArtifact } from "@/dynamics/tournament-contracts";
 import { fetchFailureDecomposition } from "@/dynamics/failure-contracts";
 import { fetchTargetedRecovery } from "@/dynamics/recovery-contracts";
+import { fetchGeneralizationAutopsy } from "@/dynamics/autopsy-contracts";
 
 export const referenceDynamicsQuery = queryOptions({
   queryKey: ["dynamics", "theory-certification", "d0.2.1-reference-1"],
@@ -39,6 +40,12 @@ export const failureDecompositionQuery = queryOptions({
 export const targetedRecoveryQuery = queryOptions({
   queryKey: ["dynamics", "targeted-recovery", "d0.3.3-reference-1"],
   queryFn: fetchTargetedRecovery,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+export const generalizationAutopsyQuery = queryOptions({
+  queryKey: ["dynamics", "generalization-autopsy", "d0.3.3.1-reference-1"],
+  queryFn: fetchGeneralizationAutopsy,
   staleTime: Number.POSITIVE_INFINITY,
 });
 

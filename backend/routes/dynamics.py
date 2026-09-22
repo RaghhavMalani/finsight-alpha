@@ -14,6 +14,7 @@ from src.dynamics import (
     DynamicsInputError,
     EstimatorTournamentError,
     FailureDecompositionError,
+    GeneralizationAutopsyError,
     IdentifiabilityError,
     NonlinearDynamicsError,
     TargetedRecoveryError,
@@ -24,6 +25,7 @@ from src.dynamics import (
     generate_nonlinear_reference,
     load_frozen_estimator_tournament,
     load_frozen_failure_decomposition,
+    load_frozen_generalization_autopsy,
     load_frozen_identifiability_artifact,
     load_frozen_targeted_recovery,
     run_ou_certification_suite,
@@ -424,3 +426,14 @@ def targeted_recovery_artifact() -> dict[str, Any]:
         return load_frozen_targeted_recovery()
     except TargetedRecoveryError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/certification/generalization-autopsy")
+def generalization_autopsy_artifact() -> dict[str, Any]:
+    """Return the frozen diagnostic-only D0.3.3.1 autopsy."""
+
+    try:
+        artifact = load_frozen_generalization_autopsy()
+    except GeneralizationAutopsyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {**artifact, "marketClaimEligible": False}

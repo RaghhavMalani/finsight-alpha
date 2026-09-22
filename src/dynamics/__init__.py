@@ -42,6 +42,12 @@ from src.dynamics.targeted_recovery import (
     run_targeted_recovery,
     verify_targeted_recovery,
 )
+from src.dynamics.generalization_autopsy import (
+    GeneralizationAutopsyError,
+    load_frozen_generalization_autopsy,
+    run_generalization_autopsy,
+    verify_generalization_autopsy,
+)
 from src.dynamics.power import run_ou_power_map
 from src.dynamics.selection_freeze import canonical_sha256, verify_selection_freeze
 from src.dynamics.stat_arb import (
@@ -57,6 +63,7 @@ __all__ = [
     "DiscoveryLedger",
     "EstimatorTournamentError",
     "FailureDecompositionError",
+    "GeneralizationAutopsyError",
     "HypothesisLedger",
     "IdentifiabilityError",
     "MarketTheory",
@@ -79,12 +86,14 @@ __all__ = [
     "load_frozen_identifiability_artifact",
     "load_frozen_estimator_tournament",
     "load_frozen_failure_decomposition",
+    "load_frozen_generalization_autopsy",
     "load_frozen_targeted_recovery",
     "make_theory_world",
     "run_nonlinear_certification_suite",
     "run_nonlinear_identifiability_suite",
     "run_estimator_tournament",
     "run_failure_decomposition",
+    "run_generalization_autopsy",
     "run_targeted_recovery",
     "run_ou_certification_suite",
     "run_ou_power_map",
@@ -93,5 +102,6 @@ __all__ = [
     "verify_identifiability_artifact",
     "verify_estimator_tournament",
     "verify_failure_decomposition",
+    "verify_generalization_autopsy",
     "verify_targeted_recovery",
 ]

@@ -23,8 +23,10 @@ import { PowerObservatory } from "@/dynamics/PowerObservatory";
 import { TournamentObservatory } from "@/dynamics/TournamentObservatory";
 import { FailureMicroscope } from "@/dynamics/FailureMicroscope";
 import { RepairMicroscope } from "@/dynamics/RepairMicroscope";
+import { GeneralizationAutopsy } from "@/dynamics/GeneralizationAutopsy";
 import {
   failureDecompositionQuery,
+  generalizationAutopsyQuery,
   identifiabilityQuery,
   nonlinearDynamicsQuery,
   ouPowerQuery,
@@ -77,6 +79,7 @@ export function DynamicsLab() {
   const tournament = useQuery(tournamentQuery);
   const failureDecomposition = useQuery(failureDecompositionQuery);
   const targetedRecovery = useQuery(targetedRecoveryQuery);
+  const generalizationAutopsy = useQuery(generalizationAutopsyQuery);
   const [view, setView] = useState<"potential" | "phase">("potential");
   const [mounted, setMounted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(true);
@@ -105,7 +108,8 @@ export function DynamicsLab() {
     identifiability.isPending ||
     tournament.isPending ||
     failureDecomposition.isPending ||
-    targetedRecovery.isPending
+    targetedRecovery.isPending ||
+    generalizationAutopsy.isPending
   ) {
     return (
       <ForgeShell>
@@ -120,12 +124,14 @@ export function DynamicsLab() {
     tournament.error ||
     failureDecomposition.error ||
     targetedRecovery.error ||
+    generalizationAutopsy.error ||
     !query.data ||
     !nonlinearQuery.data ||
     !identifiability.data ||
     !tournament.data ||
     !failureDecomposition.data ||
-    !targetedRecovery.data
+    !targetedRecovery.data ||
+    !generalizationAutopsy.data
   ) {
     return (
       <ForgeShell>
@@ -137,7 +143,8 @@ export function DynamicsLab() {
             identifiability.error ??
             tournament.error ??
             failureDecomposition.error ??
-            targetedRecovery.error
+            targetedRecovery.error ??
+            generalizationAutopsy.error
           }
           retry={() => {
             void query.refetch();
@@ -146,6 +153,7 @@ export function DynamicsLab() {
             void tournament.refetch();
             void failureDecomposition.refetch();
             void targetedRecovery.refetch();
+            void generalizationAutopsy.refetch();
           }}
         />
       </ForgeShell>
@@ -158,9 +166,9 @@ export function DynamicsLab() {
   return (
     <ForgeShell>
       <SurfaceHeader
-        eyebrow="FinSight Dynamics Lab / D0.3.3 targeted recovery"
-        title="Repair the instrument. Preserve the controls."
-        description="Development worlds lock the repair before untouched confirmation. The frozen confirmation result remains the final scientific gate."
+        eyebrow="FinSight Dynamics Lab / D0.3.3.1 generalization autopsy"
+        title="Explain the failure. Preserve the evidence."
+        description="Development passed and untouched confirmation failed. This diagnostic milestone localizes the loss without retuning the sealed estimator."
         meta={
           <div className="flex flex-wrap gap-2">
             <StatusMark status="INFO" label="FROZEN CONTROL" />
@@ -296,6 +304,7 @@ export function DynamicsLab() {
       <TournamentObservatory artifact={tournament.data} />
       <FailureMicroscope artifact={failureDecomposition.data} />
       <RepairMicroscope artifact={targetedRecovery.data} />
+      <GeneralizationAutopsy artifact={generalizationAutopsy.data} />
 
       <PowerMapSection
         visible={powerVisible}
