@@ -72,14 +72,20 @@ function humanize(code: string): string {
   return code.replaceAll("_", " ");
 }
 
-export function DynamicsLab() {
+export function DynamicsLab({
+  baseOnly = false,
+  embedded = false,
+}: {
+  baseOnly?: boolean;
+  embedded?: boolean;
+}) {
   const query = useQuery(referenceDynamicsQuery);
-  const nonlinearQuery = useQuery(nonlinearDynamicsQuery);
-  const identifiability = useQuery(identifiabilityQuery);
-  const tournament = useQuery(tournamentQuery);
-  const failureDecomposition = useQuery(failureDecompositionQuery);
-  const targetedRecovery = useQuery(targetedRecoveryQuery);
-  const generalizationAutopsy = useQuery(generalizationAutopsyQuery);
+  const nonlinearQuery = useQuery({ ...nonlinearDynamicsQuery, enabled: !baseOnly });
+  const identifiability = useQuery({ ...identifiabilityQuery, enabled: !baseOnly });
+  const tournament = useQuery({ ...tournamentQuery, enabled: !baseOnly });
+  const failureDecomposition = useQuery({ ...failureDecompositionQuery, enabled: !baseOnly });
+  const targetedRecovery = useQuery({ ...targetedRecoveryQuery, enabled: !baseOnly });
+  const generalizationAutopsy = useQuery({ ...generalizationAutopsyQuery, enabled: !baseOnly });
   const [view, setView] = useState<"potential" | "phase">("potential");
   const [mounted, setMounted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(true);
@@ -104,67 +110,67 @@ export function DynamicsLab() {
 
   if (
     query.isPending ||
-    nonlinearQuery.isPending ||
-    identifiability.isPending ||
-    tournament.isPending ||
-    failureDecomposition.isPending ||
-    targetedRecovery.isPending ||
-    generalizationAutopsy.isPending
+    (!baseOnly &&
+      (nonlinearQuery.isPending ||
+        identifiability.isPending ||
+        tournament.isPending ||
+        failureDecomposition.isPending ||
+        targetedRecovery.isPending ||
+        generalizationAutopsy.isPending))
   ) {
-    return (
-      <ForgeShell>
-        <LoadingState label="Dynamics theory certification" />
-      </ForgeShell>
-    );
+    const content = <LoadingState label="Dynamics theory certification" />;
+    return embedded ? content : <ForgeShell>{content}</ForgeShell>;
   }
   if (
     query.error ||
-    nonlinearQuery.error ||
-    identifiability.error ||
-    tournament.error ||
-    failureDecomposition.error ||
-    targetedRecovery.error ||
-    generalizationAutopsy.error ||
     !query.data ||
-    !nonlinearQuery.data ||
-    !identifiability.data ||
-    !tournament.data ||
-    !failureDecomposition.data ||
-    !targetedRecovery.data ||
-    !generalizationAutopsy.data
+    (!baseOnly &&
+      (nonlinearQuery.error ||
+        identifiability.error ||
+        tournament.error ||
+        failureDecomposition.error ||
+        targetedRecovery.error ||
+        generalizationAutopsy.error ||
+        !nonlinearQuery.data ||
+        !identifiability.data ||
+        !tournament.data ||
+        !failureDecomposition.data ||
+        !targetedRecovery.data ||
+        !generalizationAutopsy.data))
   ) {
-    return (
-      <ForgeShell>
-        <UnavailableState
-          title="Dynamics Lab failed closed"
-          error={
-            query.error ??
-            nonlinearQuery.error ??
-            identifiability.error ??
-            tournament.error ??
-            failureDecomposition.error ??
-            targetedRecovery.error ??
-            generalizationAutopsy.error
-          }
-          retry={() => {
-            void query.refetch();
+    const content = (
+      <UnavailableState
+        title="Dynamics Lab failed closed"
+        error={
+          query.error ??
+          nonlinearQuery.error ??
+          identifiability.error ??
+          tournament.error ??
+          failureDecomposition.error ??
+          targetedRecovery.error ??
+          generalizationAutopsy.error
+        }
+        retry={() => {
+          void query.refetch();
+          if (!baseOnly) {
             void nonlinearQuery.refetch();
             void identifiability.refetch();
             void tournament.refetch();
             void failureDecomposition.refetch();
             void targetedRecovery.refetch();
             void generalizationAutopsy.refetch();
-          }}
-        />
-      </ForgeShell>
+          }
+        }}
+      />
     );
+    return embedded ? content : <ForgeShell>{content}</ForgeShell>;
   }
 
   const { experiment, certification, statArb } = query.data;
   const halfLifeInterval = experiment.parameterUncertainty.half_life;
 
-  return (
-    <ForgeShell>
+  const content = (
+    <>
       <SurfaceHeader
         eyebrow="FinSight Dynamics Lab / D0.3.3.1 generalization autopsy"
         title="Explain the failure. Preserve the evidence."
@@ -299,12 +305,16 @@ export function DynamicsLab() {
       </section>
 
       <StatArbLaboratory statArb={statArb} />
-      <NonlinearWorkbench payload={nonlinearQuery.data} />
-      <PowerObservatory artifact={identifiability.data} />
-      <TournamentObservatory artifact={tournament.data} />
-      <FailureMicroscope artifact={failureDecomposition.data} />
-      <RepairMicroscope artifact={targetedRecovery.data} />
-      <GeneralizationAutopsy artifact={generalizationAutopsy.data} />
+      {baseOnly ? null : (
+        <>
+          <NonlinearWorkbench payload={nonlinearQuery.data!} />
+          <PowerObservatory artifact={identifiability.data!} />
+          <TournamentObservatory artifact={tournament.data!} />
+          <FailureMicroscope artifact={failureDecomposition.data!} />
+          <RepairMicroscope artifact={targetedRecovery.data!} />
+          <GeneralizationAutopsy artifact={generalizationAutopsy.data!} />
+        </>
+      )}
 
       <PowerMapSection
         visible={powerVisible}
@@ -338,8 +348,9 @@ export function DynamicsLab() {
           accent
         />
       </section>
-    </ForgeShell>
+    </>
   );
+  return embedded ? content : <ForgeShell>{content}</ForgeShell>;
 }
 
 function WorldSeal({ experiment }: { experiment: DynamicsExperiment }) {

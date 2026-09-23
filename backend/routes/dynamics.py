@@ -17,6 +17,7 @@ from src.dynamics import (
     GeneralizationAutopsyError,
     IdentifiabilityError,
     NonlinearDynamicsError,
+    ReplicationProjectionError,
     TargetedRecoveryError,
     HypothesisLedger,
     certify_ou,
@@ -28,6 +29,7 @@ from src.dynamics import (
     load_frozen_generalization_autopsy,
     load_frozen_identifiability_artifact,
     load_frozen_targeted_recovery,
+    load_evidence_complete_replication_projection,
     run_ou_certification_suite,
     run_nonlinear_certification_suite,
     run_ou_power_map,
@@ -437,3 +439,13 @@ def generalization_autopsy_artifact() -> dict[str, Any]:
     except GeneralizationAutopsyError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {**artifact, "marketClaimEligible": False}
+
+
+@router.get("/certification/evidence-complete-replication")
+def evidence_complete_replication_artifact() -> dict[str, Any]:
+    """Return the read-only D0.3.4 replication projection."""
+
+    try:
+        return load_evidence_complete_replication_projection()
+    except ReplicationProjectionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc

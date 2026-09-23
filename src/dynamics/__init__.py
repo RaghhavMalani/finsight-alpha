@@ -48,6 +48,10 @@ from src.dynamics.generalization_autopsy import (
     run_generalization_autopsy,
     verify_generalization_autopsy,
 )
+from src.dynamics.replication_projection import (
+    ReplicationProjectionError,
+    load_evidence_complete_replication_projection,
+)
 from src.dynamics.power import run_ou_power_map
 from src.dynamics.selection_freeze import canonical_sha256, verify_selection_freeze
 from src.dynamics.stat_arb import (
@@ -69,6 +73,7 @@ __all__ = [
     "MarketTheory",
     "NonlinearDynamicsError",
     "OUTheory",
+    "ReplicationProjectionError",
     "ScientificVerdict",
     "StatArbInputError",
     "TheoryArtifact",
@@ -88,6 +93,7 @@ __all__ = [
     "load_frozen_failure_decomposition",
     "load_frozen_generalization_autopsy",
     "load_frozen_targeted_recovery",
+    "load_evidence_complete_replication_projection",
     "make_theory_world",
     "run_nonlinear_certification_suite",
     "run_nonlinear_identifiability_suite",
