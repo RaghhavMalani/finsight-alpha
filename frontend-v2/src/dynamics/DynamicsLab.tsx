@@ -402,6 +402,28 @@ function SealCell({
   );
 }
 
+function EvidenceRow({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="grid min-w-0 grid-cols-[5rem_minmax(0,1fr)] gap-3 px-3 py-2">
+      <dt className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#596670]">{label}</dt>
+      <dd
+        className={`truncate text-right font-mono text-[8px] ${accent ? "text-[#42C98B]" : "text-[#AEB7BE]"}`}
+        title={value}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function Metric({
   label,
   value,
