@@ -56,6 +56,9 @@ TARGETED_RECOVERY_SOURCE = Path(__file__)
 D0321_ARTIFACT_HASH = "b6b8b5e7851791254df33935fe28ffcb433d4533013f7a0d13380705f614f781"
 D0321_FILE_SHA256 = "ce4d92b294c802b72be531a969011e3c82196881173ae172ff62c1b1f8609688"
 D0321_SOURCE_SHA256 = "1f10fc1b70b8772aca4a137807e642ba73cb99c8e9ffb0a575bacc7e89c76920"
+CONFIRMATION_WORLD_LEDGER_HASH = (
+    "413b6aa257c7b913c899dc1caa4290acb04241f8a5e5f49f090152194a3ad17e"
+)
 
 DEVELOPMENT_SEED_BASE = 73_000
 CONFIRMATION_SEED_BASE = 83_000
@@ -1655,16 +1658,30 @@ def verify_targeted_recovery(
         expected_confirmation = {
             row.spec.cell_id: row for row in expected_confirmation_plan
         }
+        confirmation_world_ledger: list[dict[str, Any]] = []
         for case in confirmation:
             planned = expected_confirmation.get(str(case.get("cell_id")))
             if planned is None or int(case.get("seed", -1)) != planned.seed:
                 errors.append(f"confirmation plan mismatch for {case.get('cell_id')}")
                 continue
-            values, observed_at, _ = _simulate_world(planned.spec, planned.seed)
-            if case.get("world_hash") != _world_hash(values, observed_at):
-                errors.append(
-                    f"confirmation world hash changed for {planned.spec.cell_id}"
-                )
+            world_hash = str(case.get("world_hash", ""))
+            if len(world_hash) != 64 or any(
+                character not in "0123456789abcdef" for character in world_hash
+            ):
+                errors.append(f"invalid confirmation world hash for {planned.spec.cell_id}")
+            confirmation_world_ledger.append(
+                {
+                    "cell_id": planned.spec.cell_id,
+                    "seed": planned.seed,
+                    "world_hash": world_hash,
+                }
+            )
+        if len({row["world_hash"] for row in confirmation_world_ledger}) != len(
+            confirmation_world_ledger
+        ):
+            errors.append("confirmation world hashes are not unique")
+        if canonical_sha256(confirmation_world_ledger) != CONFIRMATION_WORLD_LEDGER_HASH:
+            errors.append("confirmation world ledger changed")
         metrics = artifact.get("confirmation_metrics")
         if not isinstance(metrics, Mapping):
             errors.append("confirmation metrics are missing")

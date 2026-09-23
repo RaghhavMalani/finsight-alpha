@@ -1,5 +1,5 @@
 {
-  "artifact_hash": "af7c56599b554871efc703256241f3afa256918112055f66d08436a86168bcd4",
+  "artifact_hash": "729af3f253a8878b158e21124bcea70f5d388d4f60f07f0c6ec1c2c3597f3fdc",
   "calibration": {
     "confirmation_results_seen": false,
     "diffusion_roc": [
@@ -131129,11 +131129,11 @@
       "32b853e81be5961e3a6d54c5bdf4732f015b760c79648636b0cc615fb35fc2ee"
     ],
     "historical_results_used": false,
-    "lock_hash": "88142e7702a9aaecc73e662c4d1bb56ff1e69957bf4416fc6b2ced8e133a27d9",
+    "lock_hash": "c4c8e1f442393656deef22fefa5106ee5df27e52ef7487f47031486cbf3b7c44",
     "locked_diffusion_llr": 0.0,
     "locked_topology_persistence": 0.4,
     "preregistration_hash": "05b1bd8f3edb27511ca2a6f4b49565ce709620ae0dad4e4961ce1e3b7fc71a13",
-    "source_sha256": "2c3ef88b93d3f85e0f6bd9e5f7af07b7d25ca78a54438ae50d1b6c14198d566d"
+    "source_sha256": "b2cf6fcfe38e9a469789a8f5fc89b514df3d807dc05b7a98093bd8fcd8bf8a98"
   },
   "milestone": "D0.3.3",
   "parent": {

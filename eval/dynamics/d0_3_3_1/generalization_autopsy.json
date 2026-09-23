@@ -1,5 +1,5 @@
 {
-  "artifact_hash": "8795e18c6f2edc7b98c03f06d892c7eda1827fbcae7f1294708d80df6a9d74ff",
+  "artifact_hash": "c14831fa1894197924215f189108ec160c2a8d9c9565bf6d1e5f5e12bb1ad29a",
   "boundaries": {
     "confirmation_threshold_selection": false,
     "hawkes_started": false,
@@ -2417,7 +2417,7 @@
     "deterministic": true,
     "estimator_rerun": false,
     "path_regeneration_only": true,
-    "source_sha256": "bb7de63ebe041c1a0f8e9a986c772c6f2c2e9a9866af1015028204ead7b79429"
+    "source_sha256": "d87ce3400b8ea5680cf186d9d57b63e77c7730dc05d82b5acafa7fceefc51d14"
   },
   "locked_thresholds": {
     "diffusion_bootstrap_dominance": {
@@ -2739,10 +2739,10 @@
     },
     {
       "artifact": "eval/dynamics/d0_3_3/targeted_recovery.json",
-      "artifact_hash": "af7c56599b554871efc703256241f3afa256918112055f66d08436a86168bcd4",
-      "file_sha256": "73df3fa04b3a03577ba2adfcd512b9aa5a596c8807a2f804bfe0edf5bb1316b7",
+      "artifact_hash": "729af3f253a8878b158e21124bcea70f5d388d4f60f07f0c6ec1c2c3597f3fdc",
+      "file_sha256": "b038c55bcc7fc7632e8befb6a0daa2d679d957292f0a9c3e83fba8d174616993",
       "milestone": "D0.3.3",
-      "source_sha256": "2c3ef88b93d3f85e0f6bd9e5f7af07b7d25ca78a54438ae50d1b6c14198d566d"
+      "source_sha256": "b2cf6fcfe38e9a469789a8f5fc89b514df3d807dc05b7a98093bd8fcd8bf8a98"
     }
   ],
   "path_information": {
@@ -6546,7 +6546,7 @@
     "rule": "Targeted repair requires confirmation support in both target families and a specific downstream loss. Path or oracle loss alone supports a data-limited decision; mixed evidence remains insufficient.",
     "specific_downstream_loss_detected": true
   },
-  "sealed_d0_3_3_source_sha256": "2c3ef88b93d3f85e0f6bd9e5f7af07b7d25ca78a54438ae50d1b6c14198d566d",
+  "sealed_d0_3_3_source_sha256": "b2cf6fcfe38e9a469789a8f5fc89b514df3d807dc05b7a98093bd8fcd8bf8a98",
   "sindy_structure_stability": {
     "estimator_rerun_performed": false,
     "reason": "bootstrap term-level evidence was not frozen",

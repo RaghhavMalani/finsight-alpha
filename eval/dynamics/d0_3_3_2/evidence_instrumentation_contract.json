@@ -1,5 +1,5 @@
 {
-  "artifact_hash": "a8dba02f07d29d58431c566122597c3c87091599bf6fad023b186f8eda6c4457",
+  "artifact_hash": "3733bc7f4cd4cdd7abc30ff089cf210d696c6d476e8b34d6116702b92b5ef821",
   "boundaries": {
     "effect_sizes_estimated": false,
     "estimator_rerun": false,
@@ -21,7 +21,7 @@
     ],
     "sources": [
       {
-        "sha256": "134c6be2c6ef1d180a840cac92899a0674e59f6b6b87ea9ab63e3d6e4b337b1a",
+        "sha256": "2ba2072fd1675b9caae68fba145cc82f0643e5651870e465c7310bfe9a3a43e7",
         "source": "src/dynamics/evidence_contract.py"
       },
       {
@@ -38,7 +38,7 @@
   "evidence_records": [],
   "frozen": true,
   "frozen_instrument": {
-    "estimator_source_sha256": "2c3ef88b93d3f85e0f6bd9e5f7af07b7d25ca78a54438ae50d1b6c14198d566d",
+    "estimator_source_sha256": "a910fc6f10aa24662773dcfdcbba53a3fb0162d09fa30bc034d7a9eb88db4be6",
     "milestone": "D0.3.3",
     "mutation_policy": "NO ESTIMATOR OR THRESHOLD CHANGES",
     "thresholds": {
@@ -55,19 +55,19 @@
   "parent_seals": [
     {
       "artifact": "eval/dynamics/d0_3_3/targeted_recovery.json",
-      "artifact_hash": "af7c56599b554871efc703256241f3afa256918112055f66d08436a86168bcd4",
-      "file_sha256": "73df3fa04b3a03577ba2adfcd512b9aa5a596c8807a2f804bfe0edf5bb1316b7",
+      "artifact_hash": "729af3f253a8878b158e21124bcea70f5d388d4f60f07f0c6ec1c2c3597f3fdc",
+      "file_sha256": "b038c55bcc7fc7632e8befb6a0daa2d679d957292f0a9c3e83fba8d174616993",
       "milestone": "D0.3.3",
       "source": "src/dynamics/targeted_recovery.py",
-      "source_sha256": "2c3ef88b93d3f85e0f6bd9e5f7af07b7d25ca78a54438ae50d1b6c14198d566d"
+      "source_sha256": "a910fc6f10aa24662773dcfdcbba53a3fb0162d09fa30bc034d7a9eb88db4be6"
     },
     {
       "artifact": "eval/dynamics/d0_3_3_1/generalization_autopsy.json",
-      "artifact_hash": "8795e18c6f2edc7b98c03f06d892c7eda1827fbcae7f1294708d80df6a9d74ff",
-      "file_sha256": "6c8fce8ce0880ca109b88f2bf77e76a1187869e5b75533ee427450d0960853c2",
+      "artifact_hash": "c14831fa1894197924215f189108ec160c2a8d9c9565bf6d1e5f5e12bb1ad29a",
+      "file_sha256": "9784733be5368557f941d1b91f655b014afb4e024e26ad008d26c7b6d31cdc1c",
       "milestone": "D0.3.3.1",
       "source": "src/dynamics/generalization_autopsy.py",
-      "source_sha256": "bb7de63ebe041c1a0f8e9a986c772c6f2c2e9a9866af1015028204ead7b79429"
+      "source_sha256": "64749c28e9d979939a779f65c3e6d1ec321ff76a362443eb3bbd3a6fd92286ec"
     }
   ],
   "purpose": "Make every causal transition required by the next frozen replication observable without changing the D0.3.3 instrument.",

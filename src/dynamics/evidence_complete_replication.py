@@ -85,10 +85,10 @@ D0332_ARTIFACT = (
     ROOT / "eval/dynamics/d0_3_3_2/evidence_instrumentation_contract.json"
 )
 D0332_ARTIFACT_HASH = (
-    "a8dba02f07d29d58431c566122597c3c87091599bf6fad023b186f8eda6c4457"
+    "3733bc7f4cd4cdd7abc30ff089cf210d696c6d476e8b34d6116702b92b5ef821"
 )
 D0332_FILE_SHA256 = (
-    "7ea9e48d99b10c5c27766abb30fcfe8108bfd40c5fc3af79c4ed964dd51f2087"
+    "4c4254b250a82df166349f27b7f26ed77ccfd15e2d97494b3274e1f55fa1779a"
 )
 
 PRIOR_SEED_SOURCES: tuple[dict[str, str], ...] = (
@@ -117,7 +117,7 @@ PRIOR_SEED_SOURCES: tuple[dict[str, str], ...] = (
         "milestone": "D0.3.3",
         "artifact": "eval/dynamics/d0_3_3/targeted_recovery.json",
         "file_sha256": (
-            "73df3fa04b3a03577ba2adfcd512b9aa5a596c8807a2f804bfe0edf5bb1316b7"
+            "b038c55bcc7fc7632e8befb6a0daa2d679d957292f0a9c3e83fba8d174616993"
         ),
     },
 )
@@ -1934,7 +1934,7 @@ def load_frozen_evidence_complete_replication(
     return artifact
 D033_ARTIFACT = ROOT / "eval/dynamics/d0_3_3/targeted_recovery.json"
 D033_FILE_SHA256 = (
-    "73df3fa04b3a03577ba2adfcd512b9aa5a596c8807a2f804bfe0edf5bb1316b7"
+    "b038c55bcc7fc7632e8befb6a0daa2d679d957292f0a9c3e83fba8d174616993"
 )
 def _load_targeted_recovery_portable() -> dict[str, Any]:
     """Load D0.3.3 while treating CRLF and LF as the same sealed source."""
