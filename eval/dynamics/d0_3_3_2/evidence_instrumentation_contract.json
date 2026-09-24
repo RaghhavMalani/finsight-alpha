@@ -1,5 +1,5 @@
 {
-  "artifact_hash": "3733bc7f4cd4cdd7abc30ff089cf210d696c6d476e8b34d6116702b92b5ef821",
+  "artifact_hash": "b7704160800f4f6d52b56d0717670fe7e6ecae2efa940a9ab14828bf527f10a8",
   "boundaries": {
     "effect_sizes_estimated": false,
     "estimator_rerun": false,
@@ -21,7 +21,7 @@
     ],
     "sources": [
       {
-        "sha256": "2ba2072fd1675b9caae68fba145cc82f0643e5651870e465c7310bfe9a3a43e7",
+        "sha256": "2b3d2de7c3c9a8e45f710c47a0e66e98356f4b9f9b3d65ca3747a439f1c79293",
         "source": "src/dynamics/evidence_contract.py"
       },
       {
@@ -63,11 +63,11 @@
     },
     {
       "artifact": "eval/dynamics/d0_3_3_1/generalization_autopsy.json",
-      "artifact_hash": "c14831fa1894197924215f189108ec160c2a8d9c9565bf6d1e5f5e12bb1ad29a",
-      "file_sha256": "9784733be5368557f941d1b91f655b014afb4e024e26ad008d26c7b6d31cdc1c",
+      "artifact_hash": "7587ca19a1d2a8f7d78c5c104f193e6f9babbdd3e6038781964af960c49d5856",
+      "file_sha256": "38cbbc7ee59853f8825f27ab307bfbd94d35ad7b2cd8751a0c59f245305ffc52",
       "milestone": "D0.3.3.1",
       "source": "src/dynamics/generalization_autopsy.py",
-      "source_sha256": "64749c28e9d979939a779f65c3e6d1ec321ff76a362443eb3bbd3a6fd92286ec"
+      "source_sha256": "dd8937f6cb3a9f531747d159b19c4137e4fd3c59d8722a782c8be872646bf812"
     }
   ],
   "purpose": "Make every causal transition required by the next frozen replication observable without changing the D0.3.3 instrument.",

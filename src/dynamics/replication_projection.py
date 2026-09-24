@@ -15,10 +15,10 @@ DEFAULT_D034_ARTIFACT = (
     ROOT / "eval/dynamics/d0_3_4/evidence_complete_replication.json"
 )
 D034_ARTIFACT_HASH = (
-    "0562a6d250090655522d8b752450e69c8cf7449ab98594349443f00280f00d3d"
+    "396985c5a6ac49eae79866768b6a57fb0aa972f7d77077704d0337bbe58a4929"
 )
 D034_FILE_SHA256 = (
-    "8d9cd7fa90112ed5f426a44eb72ceb3912ba8245ad8ebd8007c10de8140e0717"
+    "aeee6afb3b010ff8b7541dba3f31fe9f0276113d9bd8e27aa36b6e5cc8a9e2df"
 )
 
 

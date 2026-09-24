@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 from collections import Counter
 
@@ -12,6 +13,7 @@ from src.dynamics.evidence_complete_replication import (
     _replication_plan,
     verify_evidence_complete_replication,
 )
+from src.dynamics.selection_freeze import canonical_sha256
 
 
 def test_replication_plan_is_preregistered_and_seed_disjoint() -> None:
@@ -39,6 +41,24 @@ def test_frozen_replication_recomputes_from_400_complete_records() -> None:
     assert artifact["execution"]["tuning_events"] == 0
     assert artifact["execution"]["stopped_early"] is False
     assert artifact["capability_estimates"]["evidence_completeness"]["estimate"] == 1.0
+
+
+def test_replication_world_hash_ledger_rejects_rehashed_tampering() -> None:
+    artifact = json.loads(DEFAULT_D034_ARTIFACT.read_text(encoding="utf-8"))
+    tampered = copy.deepcopy(artifact)
+    world_id = tampered["world_evidence"][0]["world"]["world_id"]
+    tampered["world_evidence"][0]["world"]["world_hash"] = "0" * 64
+    execution = next(
+        row for row in tampered["execution_records"] if row["world_id"] == world_id
+    )
+    execution["world_hash"] = "0" * 64
+    tampered.pop("artifact_hash")
+    tampered["artifact_hash"] = canonical_sha256(tampered)
+
+    report = verify_evidence_complete_replication(tampered)
+
+    assert not report["valid"]
+    assert "replication world hash ledger changed" in report["errors"]
 
 
 def test_capability_vector_and_market_boundary_remain_non_scalar() -> None:

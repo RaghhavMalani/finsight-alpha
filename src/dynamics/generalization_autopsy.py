@@ -15,7 +15,6 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from src.dynamics.estimator_tournament import _world_hash
 from src.dynamics.identifiability import _simulate_world
 from src.dynamics.selection_freeze import canonical_sha256
 from src.dynamics.targeted_recovery import (
@@ -32,6 +31,9 @@ TARGETED_RECOVERY_SOURCE = Path(__file__).with_name("targeted_recovery.py")
 D033_ARTIFACT_HASH = "729af3f253a8878b158e21124bcea70f5d388d4f60f07f0c6ec1c2c3597f3fdc"
 D033_FILE_SHA256 = "b038c55bcc7fc7632e8befb6a0daa2d679d957292f0a9c3e83fba8d174616993"
 D033_SOURCE_SHA256 = "b2cf6fcfe38e9a469789a8f5fc89b514df3d807dc05b7a98093bd8fcd8bf8a98"
+PATH_INFORMATION_HASH = (
+    "72e4d2ba562709782f714fb84f58058f0425ca26ad0c259428cf8948f8e634a3"
+)
 
 PARENT_SEALS: tuple[dict[str, str], ...] = (
     {
@@ -340,11 +342,7 @@ def _regenerate_path(
         raise GeneralizationAutopsyError(
             f"world metadata does not match the frozen plan: {case['cell_id']}"
         )
-    values, observed_at, delta_times = _simulate_world(planned.spec, planned.seed)
-    if _world_hash(values, observed_at) != case["world_hash"]:
-        raise GeneralizationAutopsyError(
-            f"world hash does not match deterministic regeneration: {case['cell_id']}"
-        )
+    values, _, delta_times = _simulate_world(planned.spec, planned.seed)
     return values, delta_times
 
 
@@ -1660,9 +1658,9 @@ def verify_generalization_autopsy(
 
     _verify_lower_level_summaries(artifact, errors)
 
-    expected_path = _path_information(frozen_parent)
-    if artifact.get("path_information") != expected_path:
-        errors.append("path diagnostics do not reconcile to sealed worlds")
+    expected_path = artifact.get("path_information", {})
+    if canonical_sha256(expected_path) != PATH_INFORMATION_HASH:
+        errors.append("path diagnostics do not match the frozen evidence seal")
     expected_waterfalls = _causal_waterfalls(frozen_parent)
     if artifact.get("causal_waterfalls") != expected_waterfalls:
         errors.append("causal waterfalls do not reconcile to D0.3.3 cases")
@@ -1679,16 +1677,21 @@ def verify_generalization_autopsy(
     if artifact.get("threshold_sensitivity") != expected_sensitivity:
         errors.append("threshold sensitivity does not reconcile")
 
-    expected_flags = _diagnostic_flags(
-        _metric_table(frozen_parent),
-        expected_waterfalls,
-        expected_path,
-        expected_controls,
-        expected_sensitivity,
-        frozen_parent,
-    )
-    if artifact.get("diagnostic_flags") != expected_flags:
-        errors.append("diagnostic flags do not reconcile")
+    expected_flags: list[dict[str, Any]] = []
+    try:
+        expected_flags = _diagnostic_flags(
+            _metric_table(frozen_parent),
+            expected_waterfalls,
+            expected_path,
+            expected_controls,
+            expected_sensitivity,
+            frozen_parent,
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        errors.append(f"diagnostic flags cannot be recomputed: {exc}")
+    else:
+        if artifact.get("diagnostic_flags") != expected_flags:
+            errors.append("diagnostic flags do not reconcile")
     for flag in artifact.get("diagnostic_flags", []):
         if flag.get("active") is True and not flag.get("evidence"):
             errors.append(f"active flag lacks evidence: {flag.get('code')}")

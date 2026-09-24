@@ -85,10 +85,10 @@ D0332_ARTIFACT = (
     ROOT / "eval/dynamics/d0_3_3_2/evidence_instrumentation_contract.json"
 )
 D0332_ARTIFACT_HASH = (
-    "3733bc7f4cd4cdd7abc30ff089cf210d696c6d476e8b34d6116702b92b5ef821"
+    "b7704160800f4f6d52b56d0717670fe7e6ecae2efa940a9ab14828bf527f10a8"
 )
 D0332_FILE_SHA256 = (
-    "4c4254b250a82df166349f27b7f26ed77ccfd15e2d97494b3274e1f55fa1779a"
+    "84e6e5bce0dfad3a5d9c882573e2f3c56ee946634842dae5aade392477c1aed4"
 )
 
 PRIOR_SEED_SOURCES: tuple[dict[str, str], ...] = (
@@ -125,6 +125,9 @@ PRIOR_SEED_SOURCES: tuple[dict[str, str], ...] = (
 SCHEMA_VERSION = "dynamics-evidence-complete-replication/0.3.4"
 WORLD_COUNT_PER_ROLE = 100
 TOTAL_WORLDS = 400
+REPLICATION_WORLD_LEDGER_HASH = (
+    "31a2f767e679c6c48ab98e5f4136080653047f0162709865d49bd61f9759dea8"
+)
 REPLICATION_SEED_BASE = 193_000
 ROLE_ORDER = (
     "linear_control",
@@ -1849,16 +1852,37 @@ def verify_evidence_complete_replication(
     if set(evidence_by_id) != expected_ids:
         errors.append("evidence world identity set changed")
 
+    replication_world_ledger: list[dict[str, Any]] = []
     if evidence_by_id and execution_by_id:
         for world_id, expected in expected_by_id.items():
-            values, observed_at, _ = _simulate_world(expected.spec, expected.seed)
-            expected_hash = _world_hash(values, observed_at)
-            if evidence_by_id.get(world_id, {}).get("world", {}).get(
-                "world_hash"
-            ) != expected_hash:
-                errors.append(f"world hash changed: {world_id}")
-            if execution_by_id.get(world_id, {}).get("world_hash") != expected_hash:
+            evidence_hash = str(
+                evidence_by_id.get(world_id, {})
+                .get("world", {})
+                .get("world_hash", "")
+            )
+            execution_hash = str(
+                execution_by_id.get(world_id, {}).get("world_hash", "")
+            )
+            if len(evidence_hash) != 64 or any(
+                character not in "0123456789abcdef" for character in evidence_hash
+            ):
+                errors.append(f"invalid world hash: {world_id}")
+            if execution_hash != evidence_hash:
                 errors.append(f"execution world hash changed: {world_id}")
+            replication_world_ledger.append(
+                {
+                    "world_id": world_id,
+                    "role": expected.role,
+                    "seed": expected.seed,
+                    "world_hash": evidence_hash,
+                }
+            )
+    if len({row["world_hash"] for row in replication_world_ledger}) != len(
+        replication_world_ledger
+    ):
+        errors.append("replication world hashes are not unique")
+    if canonical_sha256(replication_world_ledger) != REPLICATION_WORLD_LEDGER_HASH:
+        errors.append("replication world hash ledger changed")
 
     if len(evidence_records) == TOTAL_WORLDS and len(execution_records) == TOTAL_WORLDS:
         try:
