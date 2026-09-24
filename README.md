@@ -42,7 +42,7 @@ This table separates code on `main`, completed research on public branches, and 
 | Agent evaluation core | Shipped on `main` | Versioned attempt schema, six deterministic metrics, completeness states, report generation, and sabotage tests |
 | Forge benchmark and execution federation | Research-complete on [`finsight-forge`](https://github.com/RaghhavMalani/finsight-alpha/tree/finsight-forge) | Frozen tasks, counterfactual worlds, execution adapters, calibrated rewards, Reality Ladder evidence, and a provider-neutral single-agent harness |
 | Nonlinear Dynamics Lab through D0.3.3.2 | Frozen on [`dynamics/d0.3.3.2-evidence-contract`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.3.3.2-evidence-contract) | Estimator tournament, failure decomposition, targeted recovery, generalization autopsy, and a content-addressed evidence contract |
-| D0.3.4 evidence-complete replication | Planned next milestone | Preregistered 400-world replication with no tuning and complete causal evidence per world |
+| D0.3.4 evidence-complete replication | Frozen on [`dynamics/d0.3.4-evidence-complete-replication`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.3.4-evidence-complete-replication) | 400/400 evidence-complete worlds; `PARTIALLY_CHARACTERIZED`; false-basin control and basin recall supported; state-diffusion limitation replicated |
 | Reinforcement learning from verifiable rewards | Roadmap | Training starts only after live baselines, completeness gates, and contamination controls are frozen |
 
 Branch-specific work is not presented as merged into `main`. Each research artifact records its own claim boundary.
