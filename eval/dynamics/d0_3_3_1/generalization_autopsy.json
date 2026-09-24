@@ -1,5 +1,5 @@
 {
-  "artifact_hash": "7587ca19a1d2a8f7d78c5c104f193e6f9babbdd3e6038781964af960c49d5856",
+  "artifact_hash": "e62fe93798a94ce1c41c76c5ad6c0120496c15e520a57eab80a9520442822336",
   "boundaries": {
     "confirmation_threshold_selection": false,
     "hawkes_started": false,
@@ -2417,7 +2417,7 @@
     "deterministic": true,
     "estimator_rerun": false,
     "path_regeneration_only": true,
-    "source_sha256": "f9d849d75400a79c53adffa85c614d707855678764a35d99305029f25241a5ab"
+    "source_sha256": "0b15b14909c037e37301f1387a43bb01e69a35ecca6c62514926f31ccf5a8abf"
   },
   "locked_thresholds": {
     "diffusion_bootstrap_dominance": {

@@ -61,6 +61,24 @@ def test_replication_world_hash_ledger_rejects_rehashed_tampering() -> None:
     assert "replication world hash ledger changed" in report["errors"]
 
 
+def test_sindy_diagnostics_seal_rejects_rehashed_tampering() -> None:
+    artifact = json.loads(DEFAULT_D034_ARTIFACT.read_text(encoding="utf-8"))
+    tampered = copy.deepcopy(artifact)
+    tampered["sindy_diagnostics"]["aggregate"][
+        "true_term_inclusion_frequency"
+    ] = 0.0
+    tampered.pop("artifact_hash")
+    tampered["artifact_hash"] = canonical_sha256(tampered)
+
+    report = verify_evidence_complete_replication(tampered)
+
+    assert not report["valid"]
+    assert (
+        "sindy diagnostics do not match the frozen evidence seal"
+        in report["errors"]
+    )
+
+
 def test_capability_vector_and_market_boundary_remain_non_scalar() -> None:
     artifact = json.loads(DEFAULT_D034_ARTIFACT.read_text(encoding="utf-8"))
     classifications = {

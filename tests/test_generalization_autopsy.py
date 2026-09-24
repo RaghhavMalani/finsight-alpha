@@ -105,6 +105,17 @@ def test_verifier_rejects_rehashed_rate_parent_source_and_gate_tampering() -> No
     assert not path_report["valid"]
     assert any("frozen evidence seal" in error for error in path_report["errors"])
 
+    bad_control_seal = copy.deepcopy(artifact)
+    bad_control_seal["control_diagnostics"]["summaries"]["confirmation"][
+        "diffusion_nonconstancy_score"
+    ]["mean"] = 0.0
+    control_report = verify_generalization_autopsy(_rehash(bad_control_seal))
+    assert not control_report["valid"]
+    assert (
+        "control diagnostics do not match the frozen evidence seal"
+        in control_report["errors"]
+    )
+
     assert artifact["parent_seals"][-1]["artifact_hash"] == D033_ARTIFACT_HASH
     assert artifact["sealed_d0_3_3_source_sha256"] == D033_SOURCE_SHA256
     assert artifact["gate_definitions"] == GATE_DEFINITIONS

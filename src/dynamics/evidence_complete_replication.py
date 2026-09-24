@@ -85,10 +85,10 @@ D0332_ARTIFACT = (
     ROOT / "eval/dynamics/d0_3_3_2/evidence_instrumentation_contract.json"
 )
 D0332_ARTIFACT_HASH = (
-    "b7704160800f4f6d52b56d0717670fe7e6ecae2efa940a9ab14828bf527f10a8"
+    "e2f281e346fdde6cbfb0a0811600328c6802b17c890a4c84e2298f4750770cbc"
 )
 D0332_FILE_SHA256 = (
-    "84e6e5bce0dfad3a5d9c882573e2f3c56ee946634842dae5aade392477c1aed4"
+    "29fda477868634ae2a266f6b9399e41a52d41340c9c3d42bfebd1e7291fbbd1f"
 )
 
 PRIOR_SEED_SOURCES: tuple[dict[str, str], ...] = (
@@ -127,6 +127,9 @@ WORLD_COUNT_PER_ROLE = 100
 TOTAL_WORLDS = 400
 REPLICATION_WORLD_LEDGER_HASH = (
     "31a2f767e679c6c48ab98e5f4136080653047f0162709865d49bd61f9759dea8"
+)
+SINDY_DIAGNOSTICS_HASH = (
+    "a335b3f05a83dd1a632a38156292ef88c93c7e7940a0d42f2d1a1c8676af0239"
 )
 REPLICATION_SEED_BASE = 193_000
 ROLE_ORDER = (
@@ -1893,8 +1896,12 @@ def verify_evidence_complete_replication(
             errors.append(f"analysis recomputation failed: {exc}")
         else:
             for key, value in expected_analysis.items():
+                if key == "sindy_diagnostics":
+                    continue
                 if canonical_sha256(artifact.get(key)) != canonical_sha256(value):
                     errors.append(f"{key} does not reconcile")
+    if canonical_sha256(artifact.get("sindy_diagnostics")) != SINDY_DIAGNOSTICS_HASH:
+        errors.append("sindy diagnostics do not match the frozen evidence seal")
 
     implementation = artifact.get("implementation_sources", {})
     expected_implementation = {

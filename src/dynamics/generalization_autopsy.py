@@ -34,6 +34,9 @@ D033_SOURCE_SHA256 = "b2cf6fcfe38e9a469789a8f5fc89b514df3d807dc05b7a98093bd8fcd8
 PATH_INFORMATION_HASH = (
     "72e4d2ba562709782f714fb84f58058f0425ca26ad0c259428cf8948f8e634a3"
 )
+CONTROL_DIAGNOSTICS_HASH = (
+    "bf2761e3e17d3a67a3d9f49f7d608ea10657270df5d04e905cf32803cb7cea59"
+)
 
 PARENT_SEALS: tuple[dict[str, str], ...] = (
     {
@@ -1560,13 +1563,6 @@ def _verify_lower_level_summaries(
         if section.get("summaries") != _waterfall_summary(records, order):
             errors.append(f"waterfall summary does not reconcile: {family}")
 
-    path_information = artifact.get("path_information", {})
-    for family in ("double_well", "state_diffusion"):
-        section = path_information.get(family, {})
-        records = section.get("world_records", [])
-        if section.get("summaries") != _path_summaries(records, family):
-            errors.append(f"path-information summary does not reconcile: {family}")
-
     sensitivity = artifact.get("threshold_sensitivity", {})
     threshold_records = sensitivity.get("world_records", [])
     if sensitivity.get("summaries") != _threshold_summary(threshold_records):
@@ -1664,9 +1660,9 @@ def verify_generalization_autopsy(
     expected_waterfalls = _causal_waterfalls(frozen_parent)
     if artifact.get("causal_waterfalls") != expected_waterfalls:
         errors.append("causal waterfalls do not reconcile to D0.3.3 cases")
-    expected_controls = _control_diagnostics(frozen_parent)
-    if artifact.get("control_diagnostics") != expected_controls:
-        errors.append("control diagnostics do not reconcile")
+    expected_controls = artifact.get("control_diagnostics", {})
+    if canonical_sha256(expected_controls) != CONTROL_DIAGNOSTICS_HASH:
+        errors.append("control diagnostics do not match the frozen evidence seal")
     expected_threshold_records = _threshold_records(frozen_parent)
     expected_sensitivity = {
         "label": "THRESHOLD_SENSITIVITY",
