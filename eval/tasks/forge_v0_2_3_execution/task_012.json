@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_012_full_reality_ladder",
+  "objective": "Determine whether apparent alpha survives mathematical, vectorized, event-driven, microstructure, and counterfactual stress gates.",
+  "engines": ["vectorbt", "nautilus", "hftbacktest", "legacy-hft", "prediction-pack"],
+  "capabilities": ["parameter_sweep", "event_driven", "latency", "queue", "l3", "differential_reference"],
+  "reality_levels": ["L0_MATHEMATICAL", "L1_VECTORIZED", "L2_EVENT_REPLAY", "L3_MICROSTRUCTURE", "L4_COUNTERFACTUAL_STRESS"],
+  "primary_metric": "sharpe",
+  "required_verifiers": ["execution_integrity", "fill_plausibility", "latency_robustness", "cross_engine_consistency", "microstructure_robustness"],
+  "budget": {"max_engine_runs": 32, "max_compute_seconds": 900.0}
+}

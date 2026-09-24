@@ -1,0 +1,4 @@
+configuration,episodes,verified,verified_rate,mean_reward,reward_variance,min_reward,max_reward,mean_tool_calls,mean_wall_clock_seconds,total_cost_usd,cost_per_verified_finding_usd
+deterministic-scripted,50,50,1.0,0.99192059,8.897690000005672e-11,0.9918965,0.9919365,4.0,0.36829732000362125,0.0,0.0
+offline-strong-model,50,42,0.84,0.96111806,0.006480974285210783,0.6391792272727272,0.991935,4.0,0.4228052899916656,0.0,0.0
+offline-weak-model,50,16,0.32,0.8619752754545453,0.014086124027614664,0.6391707272727273,0.9919345,4.0,0.39291999401059,0.0,0.0

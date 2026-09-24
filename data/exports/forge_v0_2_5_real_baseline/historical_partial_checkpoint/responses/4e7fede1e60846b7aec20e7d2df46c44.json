@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhyeMOsWRrrNY9xEMkfY4NXfiDel",
+  "object": "chat.completion",
+  "created": 1788842644,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.run_counterfactual_stress\",\"arguments\":{}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 2065,
+    "completion_tokens": 37,
+    "total_tokens": 2102,
+    "prompt_tokens_details": {
+      "cached_tokens": 1786,
+      "cache_write_tokens": 276,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 13,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

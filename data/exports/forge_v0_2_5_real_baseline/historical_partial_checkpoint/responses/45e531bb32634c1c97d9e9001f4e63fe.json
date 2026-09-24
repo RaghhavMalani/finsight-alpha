@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhy3tv526buOdU8ZeUwmE51Wqyir",
+  "object": "chat.completion",
+  "created": 1788842607,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.submit\",\"arguments\":{\"verdict\":\"REJECT\",\"reason\":\"Reliable C4 vectorbt screening evidence shows Sharpe -0.30, which is <= 0.50; the hypothesis fails the rejection criterion.\"}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1158,
+    "completion_tokens": 92,
+    "total_tokens": 1250,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 1155,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 36,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

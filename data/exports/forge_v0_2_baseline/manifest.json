@@ -1,0 +1,87 @@
+{
+  "artifacts": {
+    "README.md": "e06b57e2ecdeb63c43068c228f1efdd379f5689fdceb651adcda0235190d1cac",
+    "episodes.jsonl": "0986e12c637343c5e95a9092f1128a99c6e1aa36de0b85384fc804a10c060546",
+    "failures.jsonl": "e855e5775ee6dd2ed910cfcea8192fdcf2f6aac878c04bb4e2695f3a75d812ab",
+    "model_summary.csv": "1b0a78bd540afae1e58f9cad965e5a7c5e4796186b1c6c9e4a81f18458372a49",
+    "task_summary.csv": "6daa82e4df37c66df6d27abb00ef3511fd15690feb9de766b4ded08ef543935e"
+  },
+  "baseline_id": "980fd548426b1cb9cc7d00697b2efc74021235685a97e1b07f66f5db9e4a6b15",
+  "configurations": [
+    {
+      "description": "Current deterministic ResearchAgent recipe baseline.",
+      "fault_rate_percent": 0,
+      "model_kind": "scripted_policy",
+      "name": "deterministic-scripted"
+    },
+    {
+      "description": "Deterministic 70% generic-error emulator; no external LLM call.",
+      "fault_rate_percent": 70,
+      "model_kind": "offline_error_emulator",
+      "name": "offline-weak-model"
+    },
+    {
+      "description": "Deterministic 20% generic-error emulator; no external LLM call.",
+      "fault_rate_percent": 20,
+      "model_kind": "offline_error_emulator",
+      "name": "offline-strong-model"
+    }
+  ],
+  "cost_accounting": {
+    "compute": "zero USD: local compute unpriced; seconds recorded",
+    "embedding": "zero: no embedding calls",
+    "external_data": "zero: no network or paid data APIs",
+    "inference": "zero: no external model calls",
+    "retrieval": "zero: in-memory frozen fixtures"
+  },
+  "created_at": "2026-08-23T10:37:13.682146Z",
+  "episodes": 150,
+  "reward_discrimination": {
+    "by_configuration": {
+      "deterministic-scripted": {
+        "near_perfect_fraction": 1.0,
+        "variance": 8.897690000005672e-11
+      },
+      "offline-strong-model": {
+        "near_perfect_fraction": 0.84,
+        "variance": 0.006480974285210783
+      },
+      "offline-weak-model": {
+        "near_perfect_fraction": 0.32,
+        "variance": 0.014086124027614664
+      }
+    },
+    "failed_mean_reward": 0.800556435064935,
+    "failed_min_reward": 0.6391707272727273,
+    "near_perfect_fraction": 0.72,
+    "overall_variance": 0.00992946306217239,
+    "recommendation": "Do not use the current scalar reward for learning unchanged; add graded statistical, citation-quality, and robustness checks plus harder partial-credit tasks.",
+    "saturation_detected": true,
+    "verified_mean_reward": 0.9919196851851851
+  },
+  "reward_variance": 0.00992946306217239,
+  "schema_version": "0.2.1",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "split_manifest_hash": "4b3365c688a2f51fea28a40bdfcff4cbb160b1efec0da52f1c9bc627b9e7fdf5",
+  "tag": "FORGE_BASELINE_V0_2",
+  "task_source_hashes": {
+    "task_001.json": "4881d8b11256c5f46df01514430bab8507c001ed402ecacd70fef7c57850b131",
+    "task_002.json": "d6833af4f62472fa7ff37d63252c333de0b5b86824aef2b81e81adabee239cbd",
+    "task_003.json": "48bf430b535b71f051f28f378798b5fb43b38a081e2fb9983dba50b9a897778a",
+    "task_004.json": "0165d213a693e8d21daf3e352a5f476b09ae7ca3593bbdc6d19d7c0627c553c5",
+    "task_005.json": "d89a5a9c43213941bb6407218649c4f3e80513ef7af2940578c3b5b3d98bd6dd",
+    "task_006.json": "0eff35a826a25f2a42162384b5631a900d51394ab6dbc2a10c80642fa334c09c",
+    "task_007.json": "a01c4be87ac27180f8dbdc67511f4529998015d2c681175e62425e056651f91f",
+    "task_008.json": "298c74ae869864beb610c35f201d67e7030fa509640b38784ac8eba5f73ca110",
+    "task_009.json": "352c8ae42b40a236f1eefe1fc7be2fbb83641bb7c7c2cb152da42a2f4163bae8",
+    "task_010.json": "faed29373ed30fa55fd9d95537f4a961b0c62914df01bde792a999756d372dbc"
+  },
+  "tasks": 10,
+  "verified": 108
+}

@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhzu5xQ8jfybqOnO2gt669fVEXFr",
+  "object": "chat.completion",
+  "created": 1788842722,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.submit\",\"arguments\":{\"verdict\":\"ABSTAIN\",\"reason\":\"The screened Sharpe is 1.10, but evidence quality is INSUFFICIENT and the required C4 Nautilus event replay is UNAVAILABLE because the panel is too sparse. Reliable counterfactual-stress evidence is therefore unavailable, so acceptance criteria cannot be verified.\"}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1293,
+    "completion_tokens": 103,
+    "total_tokens": 1396,
+    "prompt_tokens_details": {
+      "cached_tokens": 1290,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 21,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

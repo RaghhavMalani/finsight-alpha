@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_007_covariance_instability",
+    "question": "Detect covariance instability by reporting the ratio of the largest to smallest absolute off-diagonal covariance across regimes.",
+    "as_of": "2020-12-31T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "covariance_estimates", "observed_at": "observed_at", "available_from": "available_from", "records": [
+      {"observed_at": "2020-06-30T20:00:00Z", "available_from": "2020-07-01T12:00:00Z", "regime": "calm", "off_diagonal_covariance": 0.01},
+      {"observed_at": "2020-12-30T20:00:00Z", "available_from": "2020-12-31T12:00:00Z", "regime": "stress", "off_diagonal_covariance": 0.04}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "covariance_instability_ratio", "metric": "covariance_instability_ratio", "expected": 4.0, "unit": "ratio", "absolute_tolerance": 1e-12, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "covariance_estimates", "minimum_count": 2}], "minimum_replays": 2
+}

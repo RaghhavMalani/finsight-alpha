@@ -1,8 +1,10 @@
 # FinSight Alpha v2 truth foundation
 
 This change establishes the minimum trustworthy substrate for the broader v2
-research-lab plan. It does **not** claim that the full MCP, agent-orchestration,
-MAF, verification, and evaluation roadmap is complete.
+research-lab plan. The Forge v0.1 contracts, point-in-time environment, four
+deterministic verifier stages, reward shaping, and two frozen cases now build on
+that substrate. It does **not** claim that the full MCP, sandbox,
+agent-orchestration, adaptive-routing, or RLVR roadmap is complete.
 
 ## What is authoritative now
 
@@ -73,8 +75,11 @@ The following work remains before calling the complete integration plan done:
 2. Add deterministic sandbox manifests and isolated execution for generated
    research code.
 3. Implement the multi-agent research workflow and explicit evidence handoffs.
-4. Define and validate the Machine-Actionable Findings schema.
-5. Add numerical, evidence, reproducibility, and temporal verifier stages.
-6. Expand the shipped scorecard and sabotage invariants into 30 frozen golden tasks.
+4. Connect the implemented Machine-Actionable Findings schema to agent runtimes
+   and the eventual MCP tool plane.
+5. Extend the implemented temporal, numerical, evidence, and reproducibility
+   stages with statistical and robustness verifiers.
+6. Expand the two shipped frozen Forge v0.1 cases and sabotage invariants into
+   30 golden tasks.
 7. Resolve issued forecasts after their horizons and compute calibrated model
    performance from the forecast ledger.

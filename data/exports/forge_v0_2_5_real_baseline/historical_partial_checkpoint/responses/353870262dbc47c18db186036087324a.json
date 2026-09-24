@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhyLzILmoKjAGzEdn3Y2tU2J5oge",
+  "object": "chat.completion",
+  "created": 1788842625,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.submit\",\"arguments\":{\"verdict\":\"REJECT\",\"reason\":\"Reliable C4 latency-sensitivity evidence shows Sharpe 0.20, which is <= 0.50; the hypothesis fails the rejection criterion despite screened Sharpe 2.00.\"}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 2080,
+    "completion_tokens": 84,
+    "total_tokens": 2164,
+    "prompt_tokens_details": {
+      "cached_tokens": 1806,
+      "cache_write_tokens": 271,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 20,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

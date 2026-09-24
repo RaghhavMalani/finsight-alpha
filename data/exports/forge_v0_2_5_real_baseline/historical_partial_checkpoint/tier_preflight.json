@@ -1,0 +1,9 @@
+{
+  "model": "gpt-5.6-luna",
+  "remaining_episodes": 18,
+  "observed_episodes": 0,
+  "estimated_tier_cost_usd": 0.378,
+  "remaining_model_usd": 0.5,
+  "remaining_global_usd": 8.0,
+  "basis": "bootstrap_30k_tokens_half_input_half_output"
+}

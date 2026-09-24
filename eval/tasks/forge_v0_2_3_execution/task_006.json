@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_006_latency_edge_decay",
+  "objective": "Quantify edge degradation on the fixed 0, 1, 5, 10, 25, 50, and 100 millisecond latency grid.",
+  "engines": ["hftbacktest"],
+  "capabilities": ["tick_data", "latency"],
+  "reality_levels": ["L3_MICROSTRUCTURE"],
+  "primary_metric": "sharpe",
+  "required_verifiers": ["execution_integrity", "latency_robustness"],
+  "budget": {"max_engine_runs": 7, "max_compute_seconds": 300.0}
+}

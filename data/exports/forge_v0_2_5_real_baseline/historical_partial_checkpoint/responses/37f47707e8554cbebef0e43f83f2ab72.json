@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhz1hP8fafdTQqRZbyfMm67UT6BU",
+  "object": "chat.completion",
+  "created": 1788842667,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.submit\",\"arguments\":{\"verdict\":\"REJECT\",\"reason\":\"The certified C4 vectorbt screen is sufficient and reports Sharpe -0.30, which is <= 0.50; the alpha hypothesis fails the rejection criterion.\"}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1158,
+    "completion_tokens": 111,
+    "total_tokens": 1269,
+    "prompt_tokens_details": {
+      "cached_tokens": 1155,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 51,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

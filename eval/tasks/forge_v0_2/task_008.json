@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_008_var_coverage",
+    "question": "Compare the 95% VaR forecast with realized loss coverage and report the realized breach rate.",
+    "as_of": "2020-12-31T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "var_observations", "observed_at": "observed_at", "available_from": "available_from", "records": [
+      {"observed_at": "2020-12-01T21:00:00Z", "available_from": "2020-12-01T21:01:00Z", "return": 0.01, "var_95": 0.02},
+      {"observed_at": "2020-12-02T21:00:00Z", "available_from": "2020-12-02T21:01:00Z", "return": -0.01, "var_95": 0.02},
+      {"observed_at": "2020-12-03T21:00:00Z", "available_from": "2020-12-03T21:01:00Z", "return": -0.03, "var_95": 0.02},
+      {"observed_at": "2020-12-04T21:00:00Z", "available_from": "2020-12-04T21:01:00Z", "return": 0.005, "var_95": 0.02},
+      {"observed_at": "2020-12-07T21:00:00Z", "available_from": "2020-12-07T21:01:00Z", "return": -0.015, "var_95": 0.02},
+      {"observed_at": "2020-12-08T21:00:00Z", "available_from": "2020-12-08T21:01:00Z", "return": 0.02, "var_95": 0.02},
+      {"observed_at": "2020-12-09T21:00:00Z", "available_from": "2020-12-09T21:01:00Z", "return": -0.025, "var_95": 0.02},
+      {"observed_at": "2020-12-10T21:00:00Z", "available_from": "2020-12-10T21:01:00Z", "return": 0.0, "var_95": 0.02},
+      {"observed_at": "2020-12-11T21:00:00Z", "available_from": "2020-12-11T21:01:00Z", "return": -0.005, "var_95": 0.02},
+      {"observed_at": "2020-12-14T21:00:00Z", "available_from": "2020-12-14T21:01:00Z", "return": 0.012, "var_95": 0.02}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "realized_breach_rate", "metric": "realized_breach_rate", "expected": 0.2, "unit": "decimal", "absolute_tolerance": 1e-12, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "var_observations", "minimum_count": 10}], "minimum_replays": 2
+}

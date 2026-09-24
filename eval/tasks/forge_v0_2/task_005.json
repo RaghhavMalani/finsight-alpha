@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_005_point_in_time_momentum",
+    "question": "Construct a point-in-time momentum factor and report the strongest trailing return across the available tickers.",
+    "as_of": "2020-06-30T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "prices", "observed_at": "observed_at", "available_from": "available_from", "records": [
+      {"ticker": "A", "observed_at": "2020-01-02T21:00:00Z", "available_from": "2020-01-02T21:00:01Z", "close": 100.0},
+      {"ticker": "A", "observed_at": "2020-06-30T20:00:00Z", "available_from": "2020-06-30T20:00:01Z", "close": 110.0},
+      {"ticker": "B", "observed_at": "2020-01-02T21:00:00Z", "available_from": "2020-01-02T21:00:01Z", "close": 50.0},
+      {"ticker": "B", "observed_at": "2020-06-30T20:00:00Z", "available_from": "2020-06-30T20:00:01Z", "close": 60.0},
+      {"ticker": "C", "observed_at": "2020-01-02T21:00:00Z", "available_from": "2020-01-02T21:00:01Z", "close": 80.0},
+      {"ticker": "C", "observed_at": "2020-06-30T20:00:00Z", "available_from": "2020-06-30T20:00:01Z", "close": 76.0}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "winning_momentum", "metric": "winning_momentum", "expected": 0.2, "unit": "decimal", "absolute_tolerance": 1e-12, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "prices", "minimum_count": 6}], "minimum_replays": 2
+}

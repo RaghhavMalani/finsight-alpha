@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_006_leaked_alpha",
+    "question": "Reject the alpha strategy if any training label was unavailable at its decision timestamp. Return 1 when leakage is detected.",
+    "as_of": "2020-12-31T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "strategy_rows", "observed_at": "decision_time", "available_from": "row_available_from", "records": [
+      {"decision_time": "2020-01-03T14:30:00Z", "row_available_from": "2020-02-03T14:30:00Z", "feature": 0.2, "label": 0.1, "label_available_from": "2020-02-03T14:30:00Z"},
+      {"decision_time": "2020-01-06T14:30:00Z", "row_available_from": "2020-02-06T14:30:00Z", "feature": -0.1, "label": -0.2, "label_available_from": "2020-02-06T14:30:00Z"}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "label_leak_detected", "metric": "label_leak_detected", "expected": 1, "unit": "boolean_code", "absolute_tolerance": 0, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "strategy_rows", "minimum_count": 2}], "minimum_replays": 2
+}

@@ -1,0 +1,2724 @@
+{
+  "artifact_hash": "b5e759c3a4e71daad1d5eefb8303fa0e9da9ebca13ac36d79c488b4ec284d4b0",
+  "candidate_compression": {
+    "economic_survivors": 0,
+    "hypotheses_screened": 28,
+    "multiple_testing_survivors": 1,
+    "notation": "28 \u2192 1 \u2192 1 \u2192 0",
+    "scientific_predictive_survivors": 1
+  },
+  "decision_summary": "Screened all 28 pairs, corrected the full family, and found 1 sealed-holdout OU survivor(s) and 0 economically certified survivor(s); search survival is 0/28.",
+  "discovery_ledger": {
+    "as_of": "2024-12-30T21:20:00+00:00",
+    "candidate_pairs": 28,
+    "certified": 1,
+    "cointegrated_candidates": 1,
+    "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+    "correction_level": 0.05,
+    "correction_method": "Benjamini-Hochberg FDR q=0.050",
+    "discovery_run_id": "discovery-59f7e0cc344d4422",
+    "economic_survivors": 0,
+    "eligible_securities": 8,
+    "hedge_ratio_window": {
+      "elapsed_time": 155.0,
+      "end": "2024-10-29T21:00:00+00:00",
+      "end_index": 216,
+      "observations": 112,
+      "start": "2024-05-27T21:00:00+00:00",
+      "start_index": 104,
+      "time_unit": "day"
+    },
+    "holdout_window": {
+      "elapsed_time": 61.0,
+      "end": "2024-12-30T21:00:00+00:00",
+      "end_index": 260,
+      "observations": 44,
+      "start": "2024-10-30T21:00:00+00:00",
+      "start_index": 216,
+      "time_unit": "day"
+    },
+    "ou_candidates": 1,
+    "ou_fits_completed": 1,
+    "pairs_screened": 28,
+    "screen_window": {
+      "elapsed_time": 143.0,
+      "end": "2024-05-24T21:00:00+00:00",
+      "end_index": 104,
+      "observations": 104,
+      "start": "2024-01-02T21:00:00+00:00",
+      "start_index": 0,
+      "time_unit": "day"
+    },
+    "search_universe": [
+      "ALPHA",
+      "ANCHOR",
+      "BRAVO",
+      "DELTA",
+      "ECHO",
+      "KAPPA",
+      "PAIRED",
+      "SIGMA"
+    ],
+    "selection_metric": "adjusted cointegration p-value, then sealed OU holdout NLL",
+    "selection_timestamp": "2024-05-24T21:20:00+00:00",
+    "world_hash": "dc6a39dbdd1b70ef2134686a066a8da6fbafb42a931cd7affe5d6202848e12c2"
+  },
+  "economic_verdict": "ABSTAIN",
+  "freeze": {
+    "content_addressing": "SHA-256 over canonical JSON excluding artifact_hash",
+    "discovery_run_id": "discovery-59f7e0cc344d4422",
+    "frozen": true,
+    "milestone": "D0.2.1",
+    "pit_world_hash": "dc6a39dbdd1b70ef2134686a066a8da6fbafb42a931cd7affe5d6202848e12c2"
+  },
+  "pair_artifacts": [
+    {
+      "certified": true,
+      "cointegration": {
+        "adjusted_p_value": 0.0005589960625164581,
+        "correction": "Benjamini-Hochberg FDR q=0.050",
+        "p_value": 1.9964145089873503e-05,
+        "statistic": -6.4811856867672315,
+        "test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation"
+      },
+      "dependent": "ANCHOR",
+      "execution_evidence": null,
+      "execution_reality": [
+        {
+          "stage": "sealed signal",
+          "status": "PASS"
+        },
+        {
+          "stage": "cost model",
+          "status": "NOT_MEASURED"
+        },
+        {
+          "stage": "realized net economics",
+          "status": "NOT_MEASURED"
+        },
+        {
+          "stage": "fills and latency",
+          "status": "NOT_MEASURED"
+        },
+        {
+          "stage": "borrow and capacity",
+          "status": "NOT_MEASURED"
+        }
+      ],
+      "hedge_ratio": {
+        "beta": 0.7333014118387762,
+        "fit_window": {
+          "elapsed_time": 155.0,
+          "end": "2024-10-29T21:00:00+00:00",
+          "end_index": 216,
+          "observations": 112,
+          "start": "2024-05-27T21:00:00+00:00",
+          "start_index": 104,
+          "time_unit": "day"
+        },
+        "frozen_before_holdout": true,
+        "intercept": 0.5779217368677863
+      },
+      "independent": "PAIRED",
+      "ou_artifact": {
+        "as_of": "2024-12-30T21:20:00+00:00",
+        "baseline_scores": [
+          {
+            "complexity": "LOW",
+            "parameters": 2,
+            "role": "baseline",
+            "score": {
+              "coverage_90": 0.9545454545454546,
+              "interval_score_90": 0.06523165842653521,
+              "log_likelihood": 2.734894499095006,
+              "mae": 0.012497848673799845,
+              "negative_log_likelihood": -2.734894499095006,
+              "observations": 44,
+              "rmse": 0.015623083541810964
+            },
+            "theory": "Random walk"
+          },
+          {
+            "complexity": "MINIMAL",
+            "parameters": 1,
+            "role": "baseline",
+            "score": {
+              "coverage_90": 0.9318181818181818,
+              "interval_score_90": 0.06596965148232713,
+              "log_likelihood": 2.7359893307028136,
+              "mae": 0.012497848673799843,
+              "negative_log_likelihood": -2.7359893307028136,
+              "observations": 44,
+              "rmse": 0.015604981137208249
+            },
+            "theory": "Persistence"
+          },
+          {
+            "complexity": "MINIMAL",
+            "parameters": 2,
+            "role": "baseline",
+            "score": {
+              "coverage_90": 0.9090909090909091,
+              "interval_score_90": 0.06590918731215739,
+              "log_likelihood": 2.6591809081295734,
+              "mae": 0.013951734727206476,
+              "negative_log_likelihood": -2.6591809081295734,
+              "observations": 44,
+              "rmse": 0.016917166249992316
+            },
+            "theory": "Historical mean"
+          },
+          {
+            "complexity": "LOW",
+            "parameters": 3,
+            "role": "baseline",
+            "score": {
+              "coverage_90": 0.9090909090909091,
+              "interval_score_90": 0.058333814439967435,
+              "log_likelihood": 2.8486026408925302,
+              "mae": 0.01125967755677674,
+              "negative_log_likelihood": -2.8486026408925302,
+              "observations": 44,
+              "rmse": 0.014006459716721714
+            },
+            "theory": "AR(1)"
+          },
+          {
+            "complexity": "LOW",
+            "parameters": 2,
+            "role": "baseline",
+            "score": {
+              "coverage_90": 0.9318181818181818,
+              "interval_score_90": 0.06069315522777867,
+              "log_likelihood": 2.8206602000284002,
+              "mae": 0.011152011610675557,
+              "negative_log_likelihood": -2.8206602000284002,
+              "observations": 44,
+              "rmse": 0.01432640774449817
+            },
+            "theory": "Rolling z-score"
+          }
+        ],
+        "comparison": {
+          "best_baseline": "AR(1)",
+          "best_baseline_loss": -2.8486026408925302,
+          "delta_baseline": 0.023167512088531517,
+          "explanation": "OU improves proper-score loss by 0.0232 and does not worsen RMSE.",
+          "predictive_verdict": "ACCEPT",
+          "theory_loss": -2.8717701529810618,
+          "winner": "OU"
+        },
+        "decision_summary": "OU survives scientific and predictive certification; execution is unmeasured \u2192 MARKET CLAIM ABSTAIN.",
+        "economic_verdict": "ABSTAIN",
+        "equation": "dX_t = theta(mu - X_t)dt + sigma dW_t",
+        "falsification_checks": [
+          {
+            "code": "pit_world",
+            "critical": true,
+            "details": {
+              "world_hash": "605ab92db360715b2e3296ce37ba1b2f541249694cdb00d81cc62157caa2df94"
+            },
+            "message": "Every observation was available by the bound as-of timestamp.",
+            "status": "PASS"
+          },
+          {
+            "code": "optimizer_convergence",
+            "critical": true,
+            "details": {
+              "converged": true,
+              "exact_irregular_transition": true,
+              "iterations": 11,
+              "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+              "method": "L-BFGS-B"
+            },
+            "message": "Exact-transition maximum likelihood converged.",
+            "status": "PASS"
+          },
+          {
+            "code": "theta_positive",
+            "critical": true,
+            "details": {
+              "theta": 0.5822055709390351
+            },
+            "message": "The fitted continuous-time reversion rate is positive.",
+            "status": "PASS"
+          },
+          {
+            "code": "parameter_identifiability",
+            "critical": true,
+            "details": {
+              "half_life": 1.1905540158984966,
+              "theta_ci_low": 0.3107418318727744
+            },
+            "message": "Parameter uncertainty identifies a supported reversion rate.",
+            "status": "PASS"
+          },
+          {
+            "code": "half_life_support",
+            "critical": true,
+            "details": {
+              "half_life": 1.1905540158984966,
+              "maximum_ratio": 0.3333333333333333,
+              "training_span": 155.0
+            },
+            "message": "The estimated half-life is short relative to the training span.",
+            "status": "PASS"
+          },
+          {
+            "code": "residual_distribution",
+            "critical": true,
+            "details": {
+              "absolute_mean": 0.015598062489487417,
+              "jarque_bera_pvalue": 0.47980920009648476,
+              "standard_deviation": 1.0044129472124637
+            },
+            "message": "Standardized innovations pass the D0.1 moment and tail screen.",
+            "status": "PASS"
+          },
+          {
+            "code": "residual_independence",
+            "critical": true,
+            "details": {
+              "absolute_lag_one": 0.006806402618599343,
+              "tolerance": 0.2
+            },
+            "message": "Innovation lag-one dependence is below the pre-registered tolerance.",
+            "status": "PASS"
+          },
+          {
+            "code": "irregular_time_transition",
+            "critical": true,
+            "details": {
+              "irregular": true,
+              "maximum_delta": 3.0,
+              "minimum_delta": 1.0
+            },
+            "message": "The exact transition likelihood uses each observed delta time.",
+            "status": "PASS"
+          },
+          {
+            "code": "structural_stability",
+            "critical": true,
+            "details": {
+              "bic_improvement": -13.178301675545413,
+              "candidate_splits": 3,
+              "mu_shift_stationary_sigma": 0.39059310413109827,
+              "score": 0.5027962210863745,
+              "stable": true,
+              "theta_relative_gap": 0.49720377891362555
+            },
+            "message": "Pre-holdout subwindow fits remain structurally stable.",
+            "status": "PASS"
+          },
+          {
+            "code": "sealed_holdout",
+            "critical": true,
+            "details": {
+              "holdout_observations": 44,
+              "holdout_start": "2024-10-30T21:00:00+00:00"
+            },
+            "message": "The future holdout remained untouched during selection.",
+            "status": "PASS"
+          },
+          {
+            "code": "multiple_testing",
+            "critical": true,
+            "details": {
+              "hypotheses_considered": 28,
+              "multiplicity_adjustment": "Benjamini-Hochberg FDR q=0.050",
+              "selection_procedure": "full pair-family Engle-Granger screen followed by Benjamini-Hochberg correction"
+            },
+            "message": "The searched hypothesis family carries a supported multiplicity correction.",
+            "status": "PASS"
+          }
+        ],
+        "final_market_claim": "ABSTAIN",
+        "forecast_distribution": {
+          "points": [
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.02220469733410471,
+              "mean": -5.866933043953285e-05,
+              "target_time": "2024-10-30T21:00:00+00:00",
+              "upper_90": 0.022087358673225643,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.022124079313468104,
+              "mean": 2.1948690197074556e-05,
+              "target_time": "2024-10-31T21:00:00+00:00",
+              "upper_90": 0.02216797669386225,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.030578932958677828,
+              "mean": -0.008432904955012652,
+              "target_time": "2024-11-01T21:00:00+00:00",
+              "upper_90": 0.013713123048652525,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.027577616370249594,
+              "mean": -0.0012851714754110496,
+              "target_time": "2024-11-04T21:00:00+00:00",
+              "upper_90": 0.025007273419427496,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.03562276970783785,
+              "mean": -0.013476741704172672,
+              "target_time": "2024-11-05T21:00:00+00:00",
+              "upper_90": 0.008669286299492505,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.045479807040847926,
+              "mean": -0.02333377903718275,
+              "target_time": "2024-11-06T21:00:00+00:00",
+              "upper_90": -0.0011877510335175714,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.03538921392278173,
+              "mean": -0.013243185919116555,
+              "target_time": "2024-11-07T21:00:00+00:00",
+              "upper_90": 0.008902842084548623,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.02358170082621888,
+              "mean": -0.0014356728225537016,
+              "target_time": "2024-11-08T21:00:00+00:00",
+              "upper_90": 0.020710355181111476,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.026638224307005173,
+              "mean": -0.00034577941216662976,
+              "target_time": "2024-11-11T21:00:00+00:00",
+              "upper_90": 0.025946665482671917,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.024263272620012294,
+              "mean": -0.002117244616347115,
+              "target_time": "2024-11-12T21:00:00+00:00",
+              "upper_90": 0.02002878338731806,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.01637520905545621,
+              "mean": 0.005770818948208967,
+              "target_time": "2024-11-13T21:00:00+00:00",
+              "upper_90": 0.027916846951874144,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.034924573992050234,
+              "mean": -0.012778545988385058,
+              "target_time": "2024-11-14T21:00:00+00:00",
+              "upper_90": 0.009367482015280119,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.03459185509763488,
+              "mean": -0.012445827093969698,
+              "target_time": "2024-11-15T21:00:00+00:00",
+              "upper_90": 0.00970020090969548,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.028406563355400514,
+              "mean": -0.002114118460561968,
+              "target_time": "2024-11-18T21:00:00+00:00",
+              "upper_90": 0.024178326434276576,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.020622316242389423,
+              "mean": 0.0015237117612757534,
+              "target_time": "2024-11-19T21:00:00+00:00",
+              "upper_90": 0.023669739764940932,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.02611022992320905,
+              "mean": -0.003964201919543871,
+              "target_time": "2024-11-20T21:00:00+00:00",
+              "upper_90": 0.018181826084121305,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.0044541752413891425,
+              "mean": 0.017691852762276035,
+              "target_time": "2024-11-21T21:00:00+00:00",
+              "upper_90": 0.03983788076594121,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.013974886373591608,
+              "mean": 0.00817114163007357,
+              "target_time": "2024-11-22T21:00:00+00:00",
+              "upper_90": 0.030317169633738747,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.02528455958291858,
+              "mean": 0.0010078853119199656,
+              "target_time": "2024-11-25T21:00:00+00:00",
+              "upper_90": 0.02730033020675851,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.03522186334957372,
+              "mean": -0.01307583534590855,
+              "target_time": "2024-11-26T21:00:00+00:00",
+              "upper_90": 0.009070192657756628,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.03340417788683877,
+              "mean": -0.011258149883173594,
+              "target_time": "2024-11-27T21:00:00+00:00",
+              "upper_90": 0.010887878120491584,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.030460601422191144,
+              "mean": -0.008314573418525966,
+              "target_time": "2024-11-28T21:00:00+00:00",
+              "upper_90": 0.013831454585139211,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.019244875502890255,
+              "mean": 0.0029011525007749234,
+              "target_time": "2024-11-29T21:00:00+00:00",
+              "upper_90": 0.0250471805044401,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.025904108304517667,
+              "mean": 0.00038833659032087826,
+              "target_time": "2024-12-02T21:00:00+00:00",
+              "upper_90": 0.026680781485159424,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.034125537766682,
+              "mean": -0.011979509763016821,
+              "target_time": "2024-12-03T21:00:00+00:00",
+              "upper_90": 0.010166518240648357,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.032374921957782916,
+              "mean": -0.01022889395411774,
+              "target_time": "2024-12-04T21:00:00+00:00",
+              "upper_90": 0.011917134049547437,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.03074734976031347,
+              "mean": -0.008601321756648291,
+              "target_time": "2024-12-05T21:00:00+00:00",
+              "upper_90": 0.013544706247016886,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.02823197377135316,
+              "mean": -0.006085945767687981,
+              "target_time": "2024-12-06T21:00:00+00:00",
+              "upper_90": 0.016060082235977196,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.024429502217105804,
+              "mean": 0.0018629426777327397,
+              "target_time": "2024-12-09T21:00:00+00:00",
+              "upper_90": 0.028155387572571286,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.018277998601287142,
+              "mean": 0.0038680294023780344,
+              "target_time": "2024-12-10T21:00:00+00:00",
+              "upper_90": 0.026014057406043213,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.01762257873269368,
+              "mean": 0.0045234492709714975,
+              "target_time": "2024-12-11T21:00:00+00:00",
+              "upper_90": 0.026669477274636675,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.016981213272470066,
+              "mean": 0.005164814731195111,
+              "target_time": "2024-12-12T21:00:00+00:00",
+              "upper_90": 0.02731084273486029,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.02701066371727511,
+              "mean": -0.004864635713609933,
+              "target_time": "2024-12-13T21:00:00+00:00",
+              "upper_90": 0.017281392290055243,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.024535111342303264,
+              "mean": 0.0017573335525352825,
+              "target_time": "2024-12-16T21:00:00+00:00",
+              "upper_90": 0.028049778447373826,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.011206675101717023,
+              "mean": 0.010939352901948154,
+              "target_time": "2024-12-17T21:00:00+00:00",
+              "upper_90": 0.03308538090561333,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.00445218074741003,
+              "mean": 0.017693847256255148,
+              "target_time": "2024-12-18T21:00:00+00:00",
+              "upper_90": 0.039839875259920325,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.01166108328476342,
+              "mean": 0.010484944718901757,
+              "target_time": "2024-12-19T21:00:00+00:00",
+              "upper_90": 0.03263097272256693,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.022406082470764723,
+              "mean": -0.0002600544670995445,
+              "target_time": "2024-12-20T21:00:00+00:00",
+              "upper_90": 0.021885973536565632,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.026831219339796007,
+              "mean": -0.0005387744449574612,
+              "target_time": "2024-12-23T21:00:00+00:00",
+              "upper_90": 0.025753670449881083,
+              "variance": 0.00025550972301025275
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.03015547397283313,
+              "mean": -0.00800944596916795,
+              "target_time": "2024-12-24T21:00:00+00:00",
+              "upper_90": 0.014136582034497228,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.01960476028056362,
+              "mean": 0.0025412677231015563,
+              "target_time": "2024-12-25T21:00:00+00:00",
+              "upper_90": 0.024687295726766735,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.012702481788729306,
+              "mean": 0.009443546214935872,
+              "target_time": "2024-12-26T21:00:00+00:00",
+              "upper_90": 0.03158957421860105,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 1.0,
+              "lower_90": -0.005308965381571197,
+              "mean": 0.01683706262209398,
+              "target_time": "2024-12-27T21:00:00+00:00",
+              "upper_90": 0.03898309062575916,
+              "variance": 0.0001812746920019812
+            },
+            {
+              "delta_time": 3.0,
+              "lower_90": -0.021883708218107596,
+              "mean": 0.004408736676730951,
+              "target_time": "2024-12-30T21:00:00+00:00",
+              "upper_90": 0.030701181571569494,
+              "variance": 0.00025550972301025275
+            }
+          ],
+          "target": "one-step conditional distribution (ornstein_uhlenbeck)"
+        },
+        "holdout_score": {
+          "coverage_90": 0.9318181818181818,
+          "interval_score_90": 0.058088765626992035,
+          "log_likelihood": 2.8717701529810618,
+          "mae": 0.010933436499397873,
+          "negative_log_likelihood": -2.8717701529810618,
+          "observations": 44,
+          "rmse": 0.013827839132767408
+        },
+        "holdout_window": {
+          "elapsed_time": 61.0,
+          "end": "2024-12-30T21:00:00+00:00",
+          "end_index": 156,
+          "observations": 44,
+          "start": "2024-10-30T21:00:00+00:00",
+          "start_index": 112,
+          "time_unit": "day"
+        },
+        "hypothesis_ledger": {
+          "holdout_untouched": true,
+          "hypotheses_considered": 28,
+          "multiplicity_adjustment": "Benjamini-Hochberg FDR q=0.050",
+          "selection_metric": "adjusted cointegration p-value, then sealed OU holdout NLL",
+          "selection_procedure": "full pair-family Engle-Granger screen followed by Benjamini-Hochberg correction",
+          "selection_timestamp": "2024-05-24T21:20:00+00:00"
+        },
+        "identifiability": {
+          "criterion": "theta 95% CI > 0 and half-life <= one-third training span",
+          "identified": true,
+          "optimizer_converged": true
+        },
+        "market_claim_eligible": false,
+        "observable": "ANCHOR - (0.577922 + 0.733301 \u00d7 PAIRED)",
+        "parameter_uncertainty": {
+          "half_life": {
+            "ci_high": 1.7456710756595082,
+            "ci_low": 0.635436956137485,
+            "estimate": 1.1905540158984966,
+            "standard_error": 0.28322298967398557
+          },
+          "mu": {
+            "ci_high": 0.005614305844262973,
+            "ci_low": -0.0043679980516066865,
+            "estimate": 0.0006231538963281432,
+            "standard_error": 0.002546506095885117
+          },
+          "sigma": {
+            "ci_high": 0.020748349164921066,
+            "ci_low": 0.014285763605793946,
+            "estimate": 0.017517056385357506,
+            "standard_error": 0.0016486187650834486
+          },
+          "theta": {
+            "ci_high": 0.8536693100052959,
+            "ci_low": 0.3107418318727744,
+            "estimate": 0.5822055709390351,
+            "standard_error": 0.13850190768686774
+          }
+        },
+        "parameters": {
+          "half_life": 1.1905540158984966,
+          "mu": 0.0006231538963281432,
+          "sigma": 0.017517056385357506,
+          "theta": 0.5822055709390351
+        },
+        "predictive_verdict": "ACCEPT",
+        "schema_version": "dynamics-theory/0.1.0",
+        "scientific_verdict": "ACCEPT",
+        "series": [
+          {
+            "available_at": "2024-05-27T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 0,
+            "observed": -0.011968770267196227,
+            "observed_at": "2024-05-27T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-05-28T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 1,
+            "observed": -0.01868519561291837,
+            "observed_at": "2024-05-28T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-05-29T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 2,
+            "observed": -0.0030799132085235215,
+            "observed_at": "2024-05-29T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-05-30T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 3,
+            "observed": -0.02617213776487759,
+            "observed_at": "2024-05-30T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-05-31T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 4,
+            "observed": -0.01804965505662448,
+            "observed_at": "2024-05-31T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-03T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 5,
+            "observed": 0.014225743580123407,
+            "observed_at": "2024-06-03T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-04T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 6,
+            "observed": 0.019956997049960457,
+            "observed_at": "2024-06-04T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-05T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 7,
+            "observed": 0.010417225413339004,
+            "observed_at": "2024-06-05T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-06T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 8,
+            "observed": 0.007763547930707659,
+            "observed_at": "2024-06-06T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-07T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 9,
+            "observed": 0.011490315613790436,
+            "observed_at": "2024-06-07T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-10T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 10,
+            "observed": -0.019462153380317204,
+            "observed_at": "2024-06-10T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-11T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 11,
+            "observed": -0.015410692557201067,
+            "observed_at": "2024-06-11T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-12T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 12,
+            "observed": -0.02129850252286758,
+            "observed_at": "2024-06-12T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-13T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 13,
+            "observed": -0.021239782873270663,
+            "observed_at": "2024-06-13T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-14T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 14,
+            "observed": -0.00361031479185403,
+            "observed_at": "2024-06-14T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-17T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 15,
+            "observed": 0.008629008721642961,
+            "observed_at": "2024-06-17T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-18T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 16,
+            "observed": -0.009949731017553809,
+            "observed_at": "2024-06-18T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-19T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 17,
+            "observed": -0.003814631511105837,
+            "observed_at": "2024-06-19T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-20T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 18,
+            "observed": -0.013149437773619432,
+            "observed_at": "2024-06-20T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-21T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 19,
+            "observed": -0.013424436782075055,
+            "observed_at": "2024-06-21T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-24T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 20,
+            "observed": 0.006717892862810437,
+            "observed_at": "2024-06-24T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-25T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 21,
+            "observed": 0.037692513710518405,
+            "observed_at": "2024-06-25T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-26T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 22,
+            "observed": 0.002564567447544519,
+            "observed_at": "2024-06-26T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-27T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 23,
+            "observed": 0.005883120263216135,
+            "observed_at": "2024-06-27T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-06-28T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 24,
+            "observed": 0.0044142539033051875,
+            "observed_at": "2024-06-28T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-01T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 25,
+            "observed": -0.005669227329842208,
+            "observed_at": "2024-07-01T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-02T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 26,
+            "observed": -0.013373536231343408,
+            "observed_at": "2024-07-02T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-03T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 27,
+            "observed": 0.009537670383805263,
+            "observed_at": "2024-07-03T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-04T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 28,
+            "observed": -0.0032034001084362274,
+            "observed_at": "2024-07-04T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-05T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 29,
+            "observed": -0.005916240608180523,
+            "observed_at": "2024-07-05T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-08T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 30,
+            "observed": -0.0030085710372489416,
+            "observed_at": "2024-07-08T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-09T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 31,
+            "observed": -0.015698156889706993,
+            "observed_at": "2024-07-09T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-10T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 32,
+            "observed": -0.00826264901120588,
+            "observed_at": "2024-07-10T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-11T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 33,
+            "observed": 0.02913030471473288,
+            "observed_at": "2024-07-11T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-12T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 34,
+            "observed": 0.03670387719816404,
+            "observed_at": "2024-07-12T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-15T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 35,
+            "observed": 0.02573322519134802,
+            "observed_at": "2024-07-15T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-16T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 36,
+            "observed": 0.020223939718835737,
+            "observed_at": "2024-07-16T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-17T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 37,
+            "observed": 0.021295482448846492,
+            "observed_at": "2024-07-17T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-18T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 38,
+            "observed": 0.03458198644489929,
+            "observed_at": "2024-07-18T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-19T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 39,
+            "observed": 0.04236221498352055,
+            "observed_at": "2024-07-19T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-22T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 40,
+            "observed": 0.009105977287853229,
+            "observed_at": "2024-07-22T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-23T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 41,
+            "observed": 0.00832066685029531,
+            "observed_at": "2024-07-23T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-24T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 42,
+            "observed": 0.0018904352985877892,
+            "observed_at": "2024-07-24T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-25T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 43,
+            "observed": 0.012734313810047304,
+            "observed_at": "2024-07-25T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-26T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 44,
+            "observed": 0.004751811899753378,
+            "observed_at": "2024-07-26T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-29T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 45,
+            "observed": -0.02423312085839946,
+            "observed_at": "2024-07-29T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-30T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 46,
+            "observed": -0.038294008091170006,
+            "observed_at": "2024-07-30T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-07-31T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 47,
+            "observed": -0.009976711507536429,
+            "observed_at": "2024-07-31T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-01T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 48,
+            "observed": -0.016767915285238466,
+            "observed_at": "2024-08-01T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-02T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 49,
+            "observed": 0.008413393034761185,
+            "observed_at": "2024-08-02T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-05T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 50,
+            "observed": -8.072843368189808e-05,
+            "observed_at": "2024-08-05T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-06T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 51,
+            "observed": -0.014759007667847435,
+            "observed_at": "2024-08-06T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-07T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 52,
+            "observed": -0.005358920862341243,
+            "observed_at": "2024-08-07T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-08T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 53,
+            "observed": -0.008851472485885914,
+            "observed_at": "2024-08-08T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-09T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 54,
+            "observed": -0.010768871326562568,
+            "observed_at": "2024-08-09T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-12T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 55,
+            "observed": 0.008182839678383402,
+            "observed_at": "2024-08-12T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-13T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 56,
+            "observed": 0.015894093016345145,
+            "observed_at": "2024-08-13T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-14T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 57,
+            "observed": -0.0089060127981746,
+            "observed_at": "2024-08-14T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-15T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 58,
+            "observed": 0.004925617723058551,
+            "observed_at": "2024-08-15T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-16T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 59,
+            "observed": 0.003071226681908179,
+            "observed_at": "2024-08-16T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-19T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 60,
+            "observed": -0.008076570216462464,
+            "observed_at": "2024-08-19T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-20T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 61,
+            "observed": 0.03304582838372827,
+            "observed_at": "2024-08-20T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-21T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 62,
+            "observed": 0.01762633341696329,
+            "observed_at": "2024-08-21T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-22T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 63,
+            "observed": -0.005980208120286434,
+            "observed_at": "2024-08-22T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-23T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 64,
+            "observed": -0.021337452269031942,
+            "observed_at": "2024-08-23T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-26T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 65,
+            "observed": 0.004177539122506069,
+            "observed_at": "2024-08-26T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-27T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 66,
+            "observed": -0.0007819981097272333,
+            "observed_at": "2024-08-27T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-28T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 67,
+            "observed": 0.014050388045591333,
+            "observed_at": "2024-08-28T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-29T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 68,
+            "observed": 0.007469855416825766,
+            "observed_at": "2024-08-29T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-08-30T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 69,
+            "observed": -0.011745177422517905,
+            "observed_at": "2024-08-30T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-02T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 70,
+            "observed": 0.012019300977100578,
+            "observed_at": "2024-09-02T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-03T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 71,
+            "observed": 0.005970410798949111,
+            "observed_at": "2024-09-03T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-04T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 72,
+            "observed": 0.010939618148781527,
+            "observed_at": "2024-09-04T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-05T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 73,
+            "observed": 0.018475235509499477,
+            "observed_at": "2024-09-05T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-06T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 74,
+            "observed": 0.02530315780069703,
+            "observed_at": "2024-09-06T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-09T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 75,
+            "observed": -0.004330670710521289,
+            "observed_at": "2024-09-09T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-10T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 76,
+            "observed": -0.007454567941648449,
+            "observed_at": "2024-09-10T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-11T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 77,
+            "observed": 0.015019503960806091,
+            "observed_at": "2024-09-11T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-12T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 78,
+            "observed": 0.007604155918171429,
+            "observed_at": "2024-09-12T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-13T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 79,
+            "observed": 0.016714688838164626,
+            "observed_at": "2024-09-13T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-16T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 80,
+            "observed": 0.009918654039482888,
+            "observed_at": "2024-09-16T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-17T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 81,
+            "observed": -0.00484413901808356,
+            "observed_at": "2024-09-17T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-18T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 82,
+            "observed": 0.005363603331008271,
+            "observed_at": "2024-09-18T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-19T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 83,
+            "observed": 0.00697894713095959,
+            "observed_at": "2024-09-19T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-20T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 84,
+            "observed": 0.02876890360772677,
+            "observed_at": "2024-09-20T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-23T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 85,
+            "observed": 0.016603639410854854,
+            "observed_at": "2024-09-23T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-24T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 86,
+            "observed": 0.006285639591284031,
+            "observed_at": "2024-09-24T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-25T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 87,
+            "observed": -0.01051778731758013,
+            "observed_at": "2024-09-25T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-26T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 88,
+            "observed": -0.023033446222154197,
+            "observed_at": "2024-09-26T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-27T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 89,
+            "observed": 0.011624419276961007,
+            "observed_at": "2024-09-27T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-09-30T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 90,
+            "observed": 0.0007349027466885261,
+            "observed_at": "2024-09-30T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-01T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 91,
+            "observed": 0.006579815191482652,
+            "observed_at": "2024-10-01T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-02T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 92,
+            "observed": -0.00437610692556234,
+            "observed_at": "2024-10-02T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-03T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 93,
+            "observed": 0.008435580829243783,
+            "observed_at": "2024-10-03T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-04T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 94,
+            "observed": -0.0038941216497478948,
+            "observed_at": "2024-10-04T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-07T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 95,
+            "observed": 0.0007131138007654414,
+            "observed_at": "2024-10-07T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-08T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 96,
+            "observed": -0.01854403622070322,
+            "observed_at": "2024-10-08T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-09T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 97,
+            "observed": 0.00046039509187512095,
+            "observed_at": "2024-10-09T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-10T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 98,
+            "observed": -0.007850238583137603,
+            "observed_at": "2024-10-10T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-11T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 99,
+            "observed": -0.02069721439936778,
+            "observed_at": "2024-10-11T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-14T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 100,
+            "observed": 0.013232770095922497,
+            "observed_at": "2024-10-14T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-15T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 101,
+            "observed": -0.01784593101480958,
+            "observed_at": "2024-10-15T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-16T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 102,
+            "observed": -0.018489531864548603,
+            "observed_at": "2024-10-16T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-17T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 103,
+            "observed": -0.020927772056582583,
+            "observed_at": "2024-10-17T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-18T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 104,
+            "observed": -0.023266618818694518,
+            "observed_at": "2024-10-18T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-21T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 105,
+            "observed": -0.007293038922314921,
+            "observed_at": "2024-10-21T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-22T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 106,
+            "observed": -0.0230688718763421,
+            "observed_at": "2024-10-22T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-23T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 107,
+            "observed": -0.0069588246420435595,
+            "observed_at": "2024-10-23T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-24T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 108,
+            "observed": -0.03277739786188949,
+            "observed_at": "2024-10-24T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-25T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 109,
+            "observed": -0.03897122281331633,
+            "observed_at": "2024-10-25T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-28T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 110,
+            "observed": 0.005373484721213018,
+            "observed_at": "2024-10-28T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-29T21:20:00+00:00",
+            "forecast": null,
+            "forecast_lower_90": null,
+            "forecast_upper_90": null,
+            "index": 111,
+            "observed": -0.0005972974153145572,
+            "observed_at": "2024-10-29T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-30T21:20:00+00:00",
+            "forecast": -5.866933043953285e-05,
+            "forecast_lower_90": -0.02220469733410471,
+            "forecast_upper_90": 0.022087358673225643,
+            "index": 112,
+            "observed": -0.0004529926084888558,
+            "observed_at": "2024-10-30T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-10-31T21:20:00+00:00",
+            "forecast": 2.1948690197074556e-05,
+            "forecast_lower_90": -0.022124079313468104,
+            "forecast_upper_90": 0.02216797669386225,
+            "index": 113,
+            "observed": -0.015587028552030091,
+            "observed_at": "2024-10-31T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-01T21:20:00+00:00",
+            "forecast": -0.008432904955012652,
+            "forecast_lower_90": -0.030578932958677828,
+            "forecast_upper_90": 0.013713123048652525,
+            "index": 114,
+            "observed": -0.01032140908501944,
+            "observed_at": "2024-11-01T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-04T21:20:00+00:00",
+            "forecast": -0.0012851714754110496,
+            "forecast_lower_90": -0.027577616370249594,
+            "forecast_upper_90": 0.025007273419427496,
+            "index": 115,
+            "observed": -0.024615405607189444,
+            "observed_at": "2024-11-04T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-05T21:20:00+00:00",
+            "forecast": -0.013476741704172672,
+            "forecast_lower_90": -0.03562276970783785,
+            "forecast_upper_90": 0.008669286299492505,
+            "index": 116,
+            "observed": -0.04225932513016328,
+            "observed_at": "2024-11-05T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-06T21:20:00+00:00",
+            "forecast": -0.02333377903718275,
+            "forecast_lower_90": -0.045479807040847926,
+            "forecast_upper_90": -0.0011877510335175714,
+            "index": 117,
+            "observed": -0.02419734495301551,
+            "observed_at": "2024-11-06T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-07T21:20:00+00:00",
+            "forecast": -0.013243185919116555,
+            "forecast_lower_90": -0.03538921392278173,
+            "forecast_upper_90": 0.008902842084548623,
+            "index": 118,
+            "observed": -0.003062108897396776,
+            "observed_at": "2024-11-07T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-08T21:20:00+00:00",
+            "forecast": -0.0014356728225537016,
+            "forecast_lower_90": -0.02358170082621888,
+            "forecast_upper_90": 0.020710355181111476,
+            "index": 119,
+            "observed": -0.004933839568513676,
+            "observed_at": "2024-11-08T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-11T21:20:00+00:00",
+            "forecast": -0.00034577941216662976,
+            "forecast_lower_90": -0.026638224307005173,
+            "forecast_upper_90": 0.025946665482671917,
+            "index": 120,
+            "observed": -0.004282110148538187,
+            "observed_at": "2024-11-11T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-12T21:20:00+00:00",
+            "forecast": -0.002117244616347115,
+            "forecast_lower_90": -0.024263272620012294,
+            "forecast_upper_90": 0.02002878338731806,
+            "index": 121,
+            "observed": 0.009837381745749774,
+            "observed_at": "2024-11-12T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-13T21:20:00+00:00",
+            "forecast": 0.005770818948208967,
+            "forecast_lower_90": -0.01637520905545621,
+            "forecast_upper_90": 0.027916846951874144,
+            "index": 122,
+            "observed": -0.02336564783470063,
+            "observed_at": "2024-11-13T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-14T21:20:00+00:00",
+            "forecast": -0.012778545988385058,
+            "forecast_lower_90": -0.034924573992050234,
+            "forecast_upper_90": 0.009367482015280119,
+            "index": 123,
+            "observed": -0.02277008699846661,
+            "observed_at": "2024-11-14T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-15T21:20:00+00:00",
+            "forecast": -0.012445827093969698,
+            "forecast_lower_90": -0.03459185509763488,
+            "forecast_upper_90": 0.00970020090969548,
+            "index": 124,
+            "observed": -0.01507555773364011,
+            "observed_at": "2024-11-15T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-18T21:20:00+00:00",
+            "forecast": -0.002114118460561968,
+            "forecast_lower_90": -0.028406563355400514,
+            "forecast_upper_90": 0.024178326434276576,
+            "index": 125,
+            "observed": 0.002235136275831273,
+            "observed_at": "2024-11-18T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-19T21:20:00+00:00",
+            "forecast": 0.0015237117612757534,
+            "forecast_lower_90": -0.020622316242389423,
+            "forecast_upper_90": 0.023669739764940932,
+            "index": 126,
+            "observed": -0.007588130499180501,
+            "observed_at": "2024-11-19T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-20T21:20:00+00:00",
+            "forecast": -0.003964201919543871,
+            "forecast_lower_90": -0.02611022992320905,
+            "forecast_upper_90": 0.018181826084121305,
+            "index": 127,
+            "observed": 0.03117581784375112,
+            "observed_at": "2024-11-20T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-21T21:20:00+00:00",
+            "forecast": 0.017691852762276035,
+            "forecast_lower_90": -0.0044541752413891425,
+            "forecast_upper_90": 0.03983788076594121,
+            "index": 128,
+            "observed": 0.01413391617056714,
+            "observed_at": "2024-11-21T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-22T21:20:00+00:00",
+            "forecast": 0.00817114163007357,
+            "forecast_lower_90": -0.013974886373591608,
+            "forecast_upper_90": 0.030317169633738747,
+            "index": 129,
+            "observed": 0.002829652468953725,
+            "observed_at": "2024-11-22T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-25T21:20:00+00:00",
+            "forecast": 0.0010078853119199656,
+            "forecast_lower_90": -0.02528455958291858,
+            "forecast_upper_90": 0.02730033020675851,
+            "index": 130,
+            "observed": -0.023897790437185762,
+            "observed_at": "2024-11-25T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-26T21:20:00+00:00",
+            "forecast": -0.01307583534590855,
+            "forecast_lower_90": -0.03522186334957372,
+            "forecast_upper_90": 0.009070192657756628,
+            "index": 131,
+            "observed": -0.020644166154443866,
+            "observed_at": "2024-11-26T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-27T21:20:00+00:00",
+            "forecast": -0.011258149883173594,
+            "forecast_lower_90": -0.03340417788683877,
+            "forecast_upper_90": 0.010887878120491584,
+            "index": 132,
+            "observed": -0.015375217230203297,
+            "observed_at": "2024-11-27T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-28T21:20:00+00:00",
+            "forecast": -0.008314573418525966,
+            "forecast_lower_90": -0.030460601422191144,
+            "forecast_upper_90": 0.013831454585139211,
+            "index": 133,
+            "observed": 0.004700730422867672,
+            "observed_at": "2024-11-28T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-11-29T21:20:00+00:00",
+            "forecast": 0.0029011525007749234,
+            "forecast_lower_90": -0.019244875502890255,
+            "forecast_upper_90": 0.0250471805044401,
+            "index": 134,
+            "observed": -0.0007235623569723515,
+            "observed_at": "2024-11-29T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-02T21:20:00+00:00",
+            "forecast": 0.00038833659032087826,
+            "forecast_lower_90": -0.025904108304517667,
+            "forecast_upper_90": 0.026680781485159424,
+            "index": 135,
+            "observed": -0.02193538736392764,
+            "observed_at": "2024-12-02T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-03T21:20:00+00:00",
+            "forecast": -0.011979509763016821,
+            "forecast_lower_90": -0.034125537766682,
+            "forecast_upper_90": 0.010166518240648357,
+            "index": 136,
+            "observed": -0.018801816555138906,
+            "observed_at": "2024-12-03T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-04T21:20:00+00:00",
+            "forecast": -0.01022889395411774,
+            "forecast_lower_90": -0.032374921957782916,
+            "forecast_upper_90": 0.011917134049547437,
+            "index": 137,
+            "observed": -0.015888491597566556,
+            "observed_at": "2024-12-04T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-05T21:20:00+00:00",
+            "forecast": -0.008601321756648291,
+            "forecast_lower_90": -0.03074734976031347,
+            "forecast_upper_90": 0.013544706247016886,
+            "index": 138,
+            "observed": -0.01138601382256521,
+            "observed_at": "2024-12-05T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-06T21:20:00+00:00",
+            "forecast": -0.006085945767687981,
+            "forecast_lower_90": -0.02823197377135316,
+            "forecast_upper_90": 0.016060082235977196,
+            "index": 139,
+            "observed": 0.007733548487625974,
+            "observed_at": "2024-12-06T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-09T21:20:00+00:00",
+            "forecast": 0.0018629426777327397,
+            "forecast_lower_90": -0.024429502217105804,
+            "forecast_upper_90": 0.028155387572571286,
+            "index": 140,
+            "observed": 0.006431422685072796,
+            "observed_at": "2024-12-09T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-10T21:20:00+00:00",
+            "forecast": 0.0038680294023780344,
+            "forecast_lower_90": -0.018277998601287142,
+            "forecast_upper_90": 0.026014057406043213,
+            "index": 141,
+            "observed": 0.007604612460513138,
+            "observed_at": "2024-12-10T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-11T21:20:00+00:00",
+            "forecast": 0.0045234492709714975,
+            "forecast_lower_90": -0.01762257873269368,
+            "forecast_upper_90": 0.026669477274636675,
+            "index": 142,
+            "observed": 0.008752645097774625,
+            "observed_at": "2024-12-11T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-12T21:20:00+00:00",
+            "forecast": 0.005164814731195111,
+            "forecast_lower_90": -0.016981213272470066,
+            "forecast_upper_90": 0.02731084273486029,
+            "index": 143,
+            "observed": -0.00919989079403738,
+            "observed_at": "2024-12-12T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-13T21:20:00+00:00",
+            "forecast": -0.004864635713609933,
+            "forecast_lower_90": -0.02701066371727511,
+            "forecast_upper_90": 0.017281392290055243,
+            "index": 144,
+            "observed": 0.007127862612855473,
+            "observed_at": "2024-12-13T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-16T21:20:00+00:00",
+            "forecast": 0.0017573335525352825,
+            "forecast_lower_90": -0.024535111342303264,
+            "forecast_upper_90": 0.028049778447373826,
+            "index": 145,
+            "observed": 0.019088964554119237,
+            "observed_at": "2024-12-16T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-17T21:20:00+00:00",
+            "forecast": 0.010939352901948154,
+            "forecast_lower_90": -0.011206675101717023,
+            "forecast_upper_90": 0.03308538090561333,
+            "index": 146,
+            "observed": 0.031179387952097848,
+            "observed_at": "2024-12-17T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-18T21:20:00+00:00",
+            "forecast": 0.017693847256255148,
+            "forecast_lower_90": -0.00445218074741003,
+            "forecast_upper_90": 0.039839875259920325,
+            "index": 147,
+            "observed": 0.01827558208011748,
+            "observed_at": "2024-12-18T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-19T21:20:00+00:00",
+            "forecast": 0.010484944718901757,
+            "forecast_lower_90": -0.01166108328476342,
+            "forecast_upper_90": 0.03263097272256693,
+            "index": 148,
+            "observed": -0.0009577731875278772,
+            "observed_at": "2024-12-19T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-20T21:20:00+00:00",
+            "forecast": -0.0002600544670995445,
+            "forecast_lower_90": -0.022406082470764723,
+            "forecast_upper_90": 0.021885973536565632,
+            "index": 149,
+            "observed": -0.006040698138203737,
+            "observed_at": "2024-12-20T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-23T21:20:00+00:00",
+            "forecast": -0.0005387744449574612,
+            "forecast_lower_90": -0.026831219339796007,
+            "forecast_upper_90": 0.025753670449881083,
+            "index": 150,
+            "observed": -0.014829044584321771,
+            "observed_at": "2024-12-23T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-24T21:20:00+00:00",
+            "forecast": -0.00800944596916795,
+            "forecast_lower_90": -0.03015547397283313,
+            "forecast_upper_90": 0.014136582034497228,
+            "index": 151,
+            "observed": 0.004056543144247193,
+            "observed_at": "2024-12-24T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-25T21:20:00+00:00",
+            "forecast": 0.0025412677231015563,
+            "forecast_lower_90": -0.01960476028056362,
+            "forecast_upper_90": 0.024687295726766735,
+            "index": 152,
+            "observed": 0.016411497490137705,
+            "observed_at": "2024-12-25T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-26T21:20:00+00:00",
+            "forecast": 0.009443546214935872,
+            "forecast_lower_90": -0.012702481788729306,
+            "forecast_upper_90": 0.03158957421860105,
+            "index": 153,
+            "observed": 0.029645758868332983,
+            "observed_at": "2024-12-26T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-27T21:20:00+00:00",
+            "forecast": 0.01683706262209398,
+            "forecast_lower_90": -0.005308965381571197,
+            "forecast_upper_90": 0.03898309062575916,
+            "index": 154,
+            "observed": 0.0223340999303705,
+            "observed_at": "2024-12-27T21:00:00+00:00"
+          },
+          {
+            "available_at": "2024-12-30T21:20:00+00:00",
+            "forecast": 0.004408736676730951,
+            "forecast_lower_90": -0.021883708218107596,
+            "forecast_upper_90": 0.030701181571569494,
+            "index": 155,
+            "observed": -0.012130927867650243,
+            "observed_at": "2024-12-30T21:00:00+00:00"
+          }
+        ],
+        "structural_stability": {
+          "bic_improvement": -13.178301675545413,
+          "candidate_splits": 3,
+          "mu_shift_stationary_sigma": 0.39059310413109827,
+          "score": 0.5027962210863745,
+          "stable": true,
+          "theta_relative_gap": 0.49720377891362555
+        },
+        "theory": "ornstein_uhlenbeck",
+        "train_window": {
+          "elapsed_time": 155.0,
+          "end": "2024-10-29T21:00:00+00:00",
+          "end_index": 112,
+          "observations": 112,
+          "start": "2024-05-27T21:00:00+00:00",
+          "start_index": 0,
+          "time_unit": "day"
+        },
+        "world_hash": "605ab92db360715b2e3296ce37ba1b2f541249694cdb00d81cc62157caa2df94"
+      },
+      "pair_id": "ANCHOR~PAIRED",
+      "sealed_holdout": {
+        "available_at": [
+          "2024-10-30T21:20:00+00:00",
+          "2024-10-31T21:20:00+00:00",
+          "2024-11-01T21:20:00+00:00",
+          "2024-11-04T21:20:00+00:00",
+          "2024-11-05T21:20:00+00:00",
+          "2024-11-06T21:20:00+00:00",
+          "2024-11-07T21:20:00+00:00",
+          "2024-11-08T21:20:00+00:00",
+          "2024-11-11T21:20:00+00:00",
+          "2024-11-12T21:20:00+00:00",
+          "2024-11-13T21:20:00+00:00",
+          "2024-11-14T21:20:00+00:00",
+          "2024-11-15T21:20:00+00:00",
+          "2024-11-18T21:20:00+00:00",
+          "2024-11-19T21:20:00+00:00",
+          "2024-11-20T21:20:00+00:00",
+          "2024-11-21T21:20:00+00:00",
+          "2024-11-22T21:20:00+00:00",
+          "2024-11-25T21:20:00+00:00",
+          "2024-11-26T21:20:00+00:00",
+          "2024-11-27T21:20:00+00:00",
+          "2024-11-28T21:20:00+00:00",
+          "2024-11-29T21:20:00+00:00",
+          "2024-12-02T21:20:00+00:00",
+          "2024-12-03T21:20:00+00:00",
+          "2024-12-04T21:20:00+00:00",
+          "2024-12-05T21:20:00+00:00",
+          "2024-12-06T21:20:00+00:00",
+          "2024-12-09T21:20:00+00:00",
+          "2024-12-10T21:20:00+00:00",
+          "2024-12-11T21:20:00+00:00",
+          "2024-12-12T21:20:00+00:00",
+          "2024-12-13T21:20:00+00:00",
+          "2024-12-16T21:20:00+00:00",
+          "2024-12-17T21:20:00+00:00",
+          "2024-12-18T21:20:00+00:00",
+          "2024-12-19T21:20:00+00:00",
+          "2024-12-20T21:20:00+00:00",
+          "2024-12-23T21:20:00+00:00",
+          "2024-12-24T21:20:00+00:00",
+          "2024-12-25T21:20:00+00:00",
+          "2024-12-26T21:20:00+00:00",
+          "2024-12-27T21:20:00+00:00",
+          "2024-12-30T21:20:00+00:00"
+        ],
+        "commitment_hash": "db4b7563b87a32a153ba86a6fe1235b96b41397264de1d0c1dd224303f79da03",
+        "observed_at": [
+          "2024-10-30T21:00:00+00:00",
+          "2024-10-31T21:00:00+00:00",
+          "2024-11-01T21:00:00+00:00",
+          "2024-11-04T21:00:00+00:00",
+          "2024-11-05T21:00:00+00:00",
+          "2024-11-06T21:00:00+00:00",
+          "2024-11-07T21:00:00+00:00",
+          "2024-11-08T21:00:00+00:00",
+          "2024-11-11T21:00:00+00:00",
+          "2024-11-12T21:00:00+00:00",
+          "2024-11-13T21:00:00+00:00",
+          "2024-11-14T21:00:00+00:00",
+          "2024-11-15T21:00:00+00:00",
+          "2024-11-18T21:00:00+00:00",
+          "2024-11-19T21:00:00+00:00",
+          "2024-11-20T21:00:00+00:00",
+          "2024-11-21T21:00:00+00:00",
+          "2024-11-22T21:00:00+00:00",
+          "2024-11-25T21:00:00+00:00",
+          "2024-11-26T21:00:00+00:00",
+          "2024-11-27T21:00:00+00:00",
+          "2024-11-28T21:00:00+00:00",
+          "2024-11-29T21:00:00+00:00",
+          "2024-12-02T21:00:00+00:00",
+          "2024-12-03T21:00:00+00:00",
+          "2024-12-04T21:00:00+00:00",
+          "2024-12-05T21:00:00+00:00",
+          "2024-12-06T21:00:00+00:00",
+          "2024-12-09T21:00:00+00:00",
+          "2024-12-10T21:00:00+00:00",
+          "2024-12-11T21:00:00+00:00",
+          "2024-12-12T21:00:00+00:00",
+          "2024-12-13T21:00:00+00:00",
+          "2024-12-16T21:00:00+00:00",
+          "2024-12-17T21:00:00+00:00",
+          "2024-12-18T21:00:00+00:00",
+          "2024-12-19T21:00:00+00:00",
+          "2024-12-20T21:00:00+00:00",
+          "2024-12-23T21:00:00+00:00",
+          "2024-12-24T21:00:00+00:00",
+          "2024-12-25T21:00:00+00:00",
+          "2024-12-26T21:00:00+00:00",
+          "2024-12-27T21:00:00+00:00",
+          "2024-12-30T21:00:00+00:00"
+        ],
+        "untouched_during_estimation": true,
+        "values": [
+          -0.0004529926084888558,
+          -0.015587028552030091,
+          -0.01032140908501944,
+          -0.024615405607189444,
+          -0.04225932513016328,
+          -0.02419734495301551,
+          -0.003062108897396776,
+          -0.004933839568513676,
+          -0.004282110148538187,
+          0.009837381745749774,
+          -0.02336564783470063,
+          -0.02277008699846661,
+          -0.01507555773364011,
+          0.002235136275831273,
+          -0.007588130499180501,
+          0.03117581784375112,
+          0.01413391617056714,
+          0.002829652468953725,
+          -0.023897790437185762,
+          -0.020644166154443866,
+          -0.015375217230203297,
+          0.004700730422867672,
+          -0.0007235623569723515,
+          -0.02193538736392764,
+          -0.018801816555138906,
+          -0.015888491597566556,
+          -0.01138601382256521,
+          0.007733548487625974,
+          0.006431422685072796,
+          0.007604612460513138,
+          0.008752645097774625,
+          -0.00919989079403738,
+          0.007127862612855473,
+          0.019088964554119237,
+          0.031179387952097848,
+          0.01827558208011748,
+          -0.0009577731875278772,
+          -0.006040698138203737,
+          -0.014829044584321771,
+          0.004056543144247193,
+          0.016411497490137705,
+          0.029645758868332983,
+          0.0223340999303705,
+          -0.012130927867650243
+        ],
+        "window": {
+          "elapsed_time": 61.0,
+          "end": "2024-12-30T21:00:00+00:00",
+          "end_index": 260,
+          "observations": 44,
+          "start": "2024-10-30T21:00:00+00:00",
+          "start_index": 216,
+          "time_unit": "day"
+        }
+      }
+    }
+  ],
+  "schema_version": "dynamics-stat-arb/0.2.1",
+  "screening_ledger": [
+    {
+      "adf_statistic": -2.437026465275962,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ALPHA",
+      "engle_granger_statistic": -2.437026465275962,
+      "independent": "ANCHOR",
+      "p_value": 0.30908203125,
+      "pair_id": "ALPHA~ANCHOR",
+      "screen_hedge_intercept": 3.61773993836647,
+      "screen_hedge_ratio": 0.07600557770902144,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.448845635009177,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ALPHA",
+      "engle_granger_statistic": -2.448845635009177,
+      "independent": "BRAVO",
+      "p_value": 0.30419921875,
+      "pair_id": "ALPHA~BRAVO",
+      "screen_hedge_intercept": 3.794911030336595,
+      "screen_hedge_ratio": 0.041135949710402034,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.561419053809596,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ALPHA",
+      "engle_granger_statistic": -2.561419053809596,
+      "independent": "DELTA",
+      "p_value": 0.256591796875,
+      "pair_id": "ALPHA~DELTA",
+      "screen_hedge_intercept": 4.253676495493735,
+      "screen_hedge_ratio": -0.06783905533229753,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.527253396549815,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ALPHA",
+      "engle_granger_statistic": -2.527253396549815,
+      "independent": "ECHO",
+      "p_value": 0.271728515625,
+      "pair_id": "ALPHA~ECHO",
+      "screen_hedge_intercept": 4.793441230720801,
+      "screen_hedge_ratio": -0.18778141711812446,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.5134095416691213,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ALPHA",
+      "engle_granger_statistic": -2.5134095416691213,
+      "independent": "KAPPA",
+      "p_value": 0.279052734375,
+      "pair_id": "ALPHA~KAPPA",
+      "screen_hedge_intercept": 3.4222658467115914,
+      "screen_hedge_ratio": 0.12002022646814901,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.4582385673725518,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ALPHA",
+      "engle_granger_statistic": -2.4582385673725518,
+      "independent": "PAIRED",
+      "p_value": 0.2998046875,
+      "pair_id": "ALPHA~PAIRED",
+      "screen_hedge_intercept": 3.66789259068758,
+      "screen_hedge_ratio": 0.054491591761194814,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.4468521761006645,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ALPHA",
+      "engle_granger_statistic": -2.4468521761006645,
+      "independent": "SIGMA",
+      "p_value": 0.304931640625,
+      "pair_id": "ALPHA~SIGMA",
+      "screen_hedge_intercept": 4.1251598673348,
+      "screen_hedge_ratio": -0.03416274141350168,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.6722204362413096,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ANCHOR",
+      "engle_granger_statistic": -2.6722204362413096,
+      "independent": "BRAVO",
+      "p_value": 0.208740234375,
+      "pair_id": "ANCHOR~BRAVO",
+      "screen_hedge_intercept": 1.3895258185918244,
+      "screen_hedge_ratio": 0.7632702097723008,
+      "selected": false
+    },
+    {
+      "adf_statistic": -1.3237122064902311,
+      "adjusted_p_value": 0.82568359375,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ANCHOR",
+      "engle_granger_statistic": -1.3237122064902311,
+      "independent": "DELTA",
+      "p_value": 0.82568359375,
+      "pair_id": "ANCHOR~DELTA",
+      "screen_hedge_intercept": 6.3365302908758965,
+      "screen_hedge_ratio": -0.4081310189595953,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.2827514888657956,
+      "adjusted_p_value": 0.5061848958333334,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ANCHOR",
+      "engle_granger_statistic": -2.2827514888657956,
+      "independent": "ECHO",
+      "p_value": 0.379638671875,
+      "pair_id": "ANCHOR~ECHO",
+      "screen_hedge_intercept": 8.764476082265903,
+      "screen_hedge_ratio": -0.9430231590780812,
+      "selected": false
+    },
+    {
+      "adf_statistic": -1.9920455087264515,
+      "adjusted_p_value": 0.602109375,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ANCHOR",
+      "engle_granger_statistic": -1.9920455087264515,
+      "independent": "KAPPA",
+      "p_value": 0.53759765625,
+      "pair_id": "ANCHOR~KAPPA",
+      "screen_hedge_intercept": 0.7793569949758279,
+      "screen_hedge_ratio": 0.843881568401203,
+      "selected": false
+    },
+    {
+      "adf_statistic": -6.4811856867672315,
+      "adjusted_p_value": 0.0005589960625164581,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ANCHOR",
+      "engle_granger_statistic": -6.4811856867672315,
+      "independent": "PAIRED",
+      "p_value": 1.9964145089873503e-05,
+      "pair_id": "ANCHOR~PAIRED",
+      "screen_hedge_intercept": 0.43036710037112247,
+      "screen_hedge_ratio": 0.7584269173040501,
+      "selected": true
+    },
+    {
+      "adf_statistic": -2.4499576913440317,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ANCHOR",
+      "engle_granger_statistic": -2.4499576913440317,
+      "independent": "SIGMA",
+      "p_value": 0.303955078125,
+      "pair_id": "ANCHOR~SIGMA",
+      "screen_hedge_intercept": 7.9792518786408415,
+      "screen_hedge_ratio": -0.7351730307610731,
+      "selected": false
+    },
+    {
+      "adf_statistic": -1.7741057390492667,
+      "adjusted_p_value": 0.6765046296296297,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "BRAVO",
+      "engle_granger_statistic": -1.7741057390492667,
+      "independent": "DELTA",
+      "p_value": 0.65234375,
+      "pair_id": "BRAVO~DELTA",
+      "screen_hedge_intercept": 5.861236555204446,
+      "screen_hedge_ratio": -0.38677235674343713,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.0871769896709083,
+      "adjusted_p_value": 0.5902683423913043,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "BRAVO",
+      "engle_granger_statistic": -2.0871769896709083,
+      "independent": "ECHO",
+      "p_value": 0.48486328125,
+      "pair_id": "BRAVO~ECHO",
+      "screen_hedge_intercept": 7.6261141340672385,
+      "screen_hedge_ratio": -0.7715377186866014,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.104422264501226,
+      "adjusted_p_value": 0.5902683423913043,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "BRAVO",
+      "engle_granger_statistic": -2.104422264501226,
+      "independent": "KAPPA",
+      "p_value": 0.476318359375,
+      "pair_id": "BRAVO~KAPPA",
+      "screen_hedge_intercept": -0.016394503530387183,
+      "screen_hedge_ratio": 0.9338271583599448,
+      "selected": false
+    },
+    {
+      "adf_statistic": -3.5897965230079185,
+      "adjusted_p_value": 0.1798577132290286,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "BRAVO",
+      "engle_granger_statistic": -3.5897965230079185,
+      "independent": "PAIRED",
+      "p_value": 0.032117448790897965,
+      "pair_id": "BRAVO~PAIRED",
+      "screen_hedge_intercept": 0.5008341245306935,
+      "screen_hedge_ratio": 0.6759522345635955,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.413198751639269,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "BRAVO",
+      "engle_granger_statistic": -2.413198751639269,
+      "independent": "SIGMA",
+      "p_value": 0.317626953125,
+      "pair_id": "BRAVO~SIGMA",
+      "screen_hedge_intercept": 7.390061367974569,
+      "screen_hedge_ratio": -0.6905764908285233,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.294748450989781,
+      "adjusted_p_value": 0.5061848958333334,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "DELTA",
+      "engle_granger_statistic": -2.294748450989781,
+      "independent": "ECHO",
+      "p_value": 0.373291015625,
+      "pair_id": "DELTA~ECHO",
+      "screen_hedge_intercept": -4.049231532475504,
+      "screen_hedge_ratio": 1.8777230005315466,
+      "selected": false
+    },
+    {
+      "adf_statistic": -1.781229536392874,
+      "adjusted_p_value": 0.6765046296296297,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "DELTA",
+      "engle_granger_statistic": -1.781229536392874,
+      "independent": "KAPPA",
+      "p_value": 0.64892578125,
+      "pair_id": "DELTA~KAPPA",
+      "screen_hedge_intercept": 12.605772762932016,
+      "screen_hedge_ratio": -1.846007310517532,
+      "selected": false
+    },
+    {
+      "adf_statistic": -3.730919762450307,
+      "adjusted_p_value": 0.15679649451585087,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "DELTA",
+      "engle_granger_statistic": -3.730919762450307,
+      "independent": "PAIRED",
+      "p_value": 0.022399499216550125,
+      "pair_id": "DELTA~PAIRED",
+      "screen_hedge_intercept": 12.511007817491983,
+      "screen_hedge_ratio": -1.5039376308737327,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.0201056664650805,
+      "adjusted_p_value": 0.602109375,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "DELTA",
+      "engle_granger_statistic": -2.0201056664650805,
+      "independent": "SIGMA",
+      "p_value": 0.5234375,
+      "pair_id": "DELTA~SIGMA",
+      "screen_hedge_intercept": -2.634869648836471,
+      "screen_hedge_ratio": 1.4965571544473877,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.369551949616408,
+      "adjusted_p_value": 0.4983038651315789,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ECHO",
+      "engle_granger_statistic": -2.369551949616408,
+      "independent": "KAPPA",
+      "p_value": 0.338134765625,
+      "pair_id": "ECHO~KAPPA",
+      "screen_hedge_intercept": 7.209372053819613,
+      "screen_hedge_ratio": -0.618832299280251,
+      "selected": false
+    },
+    {
+      "adf_statistic": -4.047084577460066,
+      "adjusted_p_value": 0.11253327803584817,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ECHO",
+      "engle_granger_statistic": -4.047084577460066,
+      "independent": "PAIRED",
+      "p_value": 0.009991210714620963,
+      "pair_id": "ECHO~PAIRED",
+      "screen_hedge_intercept": 7.799015751865231,
+      "screen_hedge_ratio": -0.6164947924307552,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.4370181574959897,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "ECHO",
+      "engle_granger_statistic": -2.4370181574959897,
+      "independent": "SIGMA",
+      "p_value": 0.30908203125,
+      "pair_id": "ECHO~SIGMA",
+      "screen_hedge_intercept": 2.1537486423296754,
+      "screen_hedge_ratio": 0.4899672539131755,
+      "selected": false
+    },
+    {
+      "adf_statistic": -3.2303516750077157,
+      "adjusted_p_value": 0.3509114583333333,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "KAPPA",
+      "engle_granger_statistic": -3.2303516750077157,
+      "independent": "PAIRED",
+      "p_value": 0.0751953125,
+      "pair_id": "KAPPA~PAIRED",
+      "screen_hedge_intercept": 2.3953200403060615,
+      "screen_hedge_ratio": 0.39097132681364566,
+      "selected": false
+    },
+    {
+      "adf_statistic": -2.5812924716863432,
+      "adjusted_p_value": 0.4940863715277778,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "KAPPA",
+      "engle_granger_statistic": -2.5812924716863432,
+      "independent": "SIGMA",
+      "p_value": 0.2470703125,
+      "pair_id": "KAPPA~SIGMA",
+      "screen_hedge_intercept": 6.174934100843116,
+      "screen_hedge_ratio": -0.35446083808469253,
+      "selected": false
+    },
+    {
+      "adf_statistic": -3.973479880553945,
+      "adjusted_p_value": 0.11253327803584817,
+      "cointegration_test": "Engle-Granger residual ADF(0), finite-sample null with exponential lower-tail extrapolation",
+      "dependent": "PAIRED",
+      "engle_granger_statistic": -3.973479880553945,
+      "independent": "SIGMA",
+      "p_value": 0.012057136932412305,
+      "pair_id": "PAIRED~SIGMA",
+      "screen_hedge_intercept": 9.510431478989567,
+      "screen_hedge_ratio": -0.8722381402914878,
+      "selected": false
+    }
+  ],
+  "search_survival_rate": {
+    "economically_certified_hypotheses": 0,
+    "fraction": "0/28",
+    "hypotheses_screened": 28,
+    "value": 0.0
+  },
+  "selection_verdict": "ACCEPT",
+  "world": {
+    "as_of": "2024-12-30T21:20:00+00:00",
+    "point_in_time_enforced": true,
+    "price_transform": "log",
+    "revision": "d0.2.1-reference-1",
+    "source": "controlled-synthetic-stat-arb",
+    "time_unit": "day",
+    "world_hash": "dc6a39dbdd1b70ef2134686a066a8da6fbafb42a931cd7affe5d6202848e12c2"
+  }
+}

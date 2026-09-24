@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_003_event_replay_reproduction",
+  "objective": "Reproduce a simple strategy under deterministic event-driven order and portfolio replay.",
+  "engines": ["nautilus"],
+  "capabilities": ["event_driven", "tick_data", "paper_execution"],
+  "reality_levels": ["L2_EVENT_REPLAY"],
+  "primary_metric": "pnl",
+  "required_verifiers": ["execution_integrity", "fill_plausibility"],
+  "budget": {"max_engine_runs": 2, "max_compute_seconds": 120.0}
+}

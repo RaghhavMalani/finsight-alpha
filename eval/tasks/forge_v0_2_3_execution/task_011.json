@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_011_inventory_event_market_maker",
+  "objective": "Compare symmetric, linear inventory-skew, Avellaneda-Stoikov, and GLFT-style bounded event-contract quotes.",
+  "engines": ["prediction-pack"],
+  "capabilities": ["event_contract", "inventory_control", "market_making"],
+  "reality_levels": ["L0_MATHEMATICAL", "L4_COUNTERFACTUAL_STRESS"],
+  "primary_metric": "pnl",
+  "required_verifiers": ["execution_integrity", "microstructure_robustness"],
+  "budget": {"max_engine_runs": 12, "max_compute_seconds": 90.0}
+}

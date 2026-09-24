@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-ELhyvU0rSW2Pls7rz5nXavP2FMyQ4",
+  "object": "chat.completion",
+  "created": 1788842661,
+  "model": "gpt-5.6-luna",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"action\":\"research.submit\",\"arguments\":{\"verdict\":\"ABSTAIN\",\"reason\":\"Native event replay required for reliable counterfactual-stress validation was refused because hftbacktest certification C0 is below the required C1; therefore the hypothesis cannot be reliably accepted or rejected.\"}}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1307,
+    "completion_tokens": 125,
+    "total_tokens": 1432,
+    "prompt_tokens_details": {
+      "cached_tokens": 1144,
+      "cache_write_tokens": 160,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 59,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

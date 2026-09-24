@@ -1,0 +1,19 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_004_valuation_sensitivity",
+    "question": "Identify the dominant valuation sensitivity by absolute percentage change. Use category codes revenue growth=1, operating margin=2, WACC=3.",
+    "as_of": "2020-03-31T23:59:59Z", "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "valuation_sensitivities", "observed_at": "observed_at", "available_from": "available_from", "records": [
+      {"observed_at": "2020-03-31T16:00:00Z", "available_from": "2020-03-31T16:00:01Z", "parameter": "revenue_growth", "valuation_change_pct": 8.0},
+      {"observed_at": "2020-03-31T16:00:00Z", "available_from": "2020-03-31T16:00:01Z", "parameter": "operating_margin", "valuation_change_pct": 12.0},
+      {"observed_at": "2020-03-31T16:00:00Z", "available_from": "2020-03-31T16:00:01Z", "parameter": "wacc", "valuation_change_pct": -18.0}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "dominant_parameter_code", "metric": "dominant_parameter_code", "expected": 3, "unit": "category_code", "absolute_tolerance": 0, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "valuation_sensitivities", "minimum_count": 3}], "minimum_replays": 2
+}

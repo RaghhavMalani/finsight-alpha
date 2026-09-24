@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "task_id": "task_001_future_filing_contamination",
+    "question": "As of 2020-06-30, determine how many versions of the 2019 filing were actually available and exclude the later restatement.",
+    "as_of": "2020-06-30T23:59:59Z",
+    "seed": 42,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility", "robustness"],
+    "budget": {"max_tool_calls": 4, "max_compute_seconds": 10.0, "max_cost_usd": 0.1}
+  },
+  "world": {"name": "real", "information_policy": "strict", "datasets": [{
+    "name": "sec_facts", "observed_at": "period_end", "available_from": "filed_at", "records": [
+      {"ticker": "TEST", "period_end": "2019-12-31T23:59:59Z", "filed_at": "2020-02-14T16:00:00Z", "revenue": 100.0, "version": "original"},
+      {"ticker": "TEST", "period_end": "2019-12-31T23:59:59Z", "filed_at": "2020-08-14T16:00:00Z", "revenue": 92.0, "version": "restated"}
+    ]
+  }]},
+  "numeric_expectations": [{"claim_id": "visible_filing_versions", "metric": "visible_filing_versions", "expected": 1, "unit": "count", "absolute_tolerance": 0, "relative_tolerance": 0}],
+  "evidence_requirements": [{"dataset": "sec_facts", "minimum_count": 1}],
+  "minimum_replays": 2
+}

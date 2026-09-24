@@ -1,0 +1,61 @@
+{
+  "schema_version": "0.1",
+  "task": {
+    "task_id": "filing_gross_margin",
+    "question": "As of 2024-02-15, compute reported gross margin using only the filing version then available. Exclude the later restatement.",
+    "as_of": "2024-02-15T23:59:59Z",
+    "seed": 23,
+    "required_verifiers": ["temporal", "evidence", "numerical", "reproducibility"],
+    "budget": {
+      "max_tool_calls": 4,
+      "max_compute_seconds": 10.0,
+      "max_cost_usd": 0.1
+    }
+  },
+  "world": {
+    "name": "real",
+    "information_policy": "strict",
+    "datasets": [
+      {
+        "name": "sec_facts",
+        "observed_at": "period_end",
+        "available_from": "filed_at",
+        "records": [
+          {
+            "ticker": "TEST",
+            "period_end": "2023-12-31T23:59:59Z",
+            "filed_at": "2024-02-01T16:30:00Z",
+            "revenue": 100.0,
+            "gross_profit": 40.0,
+            "accession": "0000000000-24-000001"
+          },
+          {
+            "ticker": "TEST",
+            "period_end": "2023-12-31T23:59:59Z",
+            "filed_at": "2024-03-01T16:30:00Z",
+            "revenue": 90.0,
+            "gross_profit": 35.0,
+            "accession": "0000000000-24-000002"
+          }
+        ]
+      }
+    ]
+  },
+  "numeric_expectations": [
+    {
+      "claim_id": "gross_margin",
+      "metric": "gross_margin",
+      "expected": 0.4,
+      "unit": "decimal",
+      "absolute_tolerance": 1e-12,
+      "relative_tolerance": 0.0
+    }
+  ],
+  "evidence_requirements": [
+    {
+      "dataset": "sec_facts",
+      "minimum_count": 1
+    }
+  ],
+  "minimum_replays": 2
+}

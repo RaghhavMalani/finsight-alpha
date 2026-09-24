@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.2.3",
+  "task_id": "execution_005_fill_discrepancy_diagnosis",
+  "objective": "Diagnose fill differences between event replay and latency/queue-aware microstructure replay.",
+  "engines": ["nautilus", "hftbacktest"],
+  "capabilities": ["event_driven", "latency", "queue", "partial_fills"],
+  "reality_levels": ["L2_EVENT_REPLAY", "L3_MICROSTRUCTURE"],
+  "primary_metric": "fill_rate",
+  "required_verifiers": ["execution_integrity", "fill_plausibility", "cross_engine_consistency"],
+  "budget": {"max_engine_runs": 6, "max_compute_seconds": 240.0}
+}
