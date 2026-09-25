@@ -52,6 +52,12 @@ from src.dynamics.replication_projection import (
     ReplicationProjectionError,
     load_evidence_complete_replication_projection,
 )
+from src.dynamics.hawkes_certification import (
+    HawkesCertificationError,
+    load_frozen_hawkes_certification,
+    run_hawkes_certification,
+)
+from src.dynamics.hawkes_verifier import verify_hawkes_certification
 from src.dynamics.power import run_ou_power_map
 from src.dynamics.selection_freeze import canonical_sha256, verify_selection_freeze
 from src.dynamics.stat_arb import (
@@ -68,6 +74,7 @@ __all__ = [
     "EstimatorTournamentError",
     "FailureDecompositionError",
     "GeneralizationAutopsyError",
+    "HawkesCertificationError",
     "HypothesisLedger",
     "IdentifiabilityError",
     "MarketTheory",
@@ -92,6 +99,7 @@ __all__ = [
     "load_frozen_estimator_tournament",
     "load_frozen_failure_decomposition",
     "load_frozen_generalization_autopsy",
+    "load_frozen_hawkes_certification",
     "load_frozen_targeted_recovery",
     "load_evidence_complete_replication_projection",
     "make_theory_world",
@@ -100,6 +108,7 @@ __all__ = [
     "run_estimator_tournament",
     "run_failure_decomposition",
     "run_generalization_autopsy",
+    "run_hawkes_certification",
     "run_targeted_recovery",
     "run_ou_certification_suite",
     "run_ou_power_map",
@@ -109,5 +118,6 @@ __all__ = [
     "verify_estimator_tournament",
     "verify_failure_decomposition",
     "verify_generalization_autopsy",
+    "verify_hawkes_certification",
     "verify_targeted_recovery",
 ]

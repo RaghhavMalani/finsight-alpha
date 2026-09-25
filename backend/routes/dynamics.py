@@ -15,6 +15,7 @@ from src.dynamics import (
     EstimatorTournamentError,
     FailureDecompositionError,
     GeneralizationAutopsyError,
+    HawkesCertificationError,
     IdentifiabilityError,
     NonlinearDynamicsError,
     ReplicationProjectionError,
@@ -27,6 +28,7 @@ from src.dynamics import (
     load_frozen_estimator_tournament,
     load_frozen_failure_decomposition,
     load_frozen_generalization_autopsy,
+    load_frozen_hawkes_certification,
     load_frozen_identifiability_artifact,
     load_frozen_targeted_recovery,
     load_evidence_complete_replication_projection,
@@ -448,4 +450,14 @@ def evidence_complete_replication_artifact() -> dict[str, Any]:
     try:
         return load_evidence_complete_replication_projection()
     except ReplicationProjectionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/certification/hawkes-event-process")
+def hawkes_event_process_artifact() -> dict[str, Any]:
+    """Return the read-only D0.4 synthetic event-process artifact."""
+
+    try:
+        return load_frozen_hawkes_certification()
+    except HawkesCertificationError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

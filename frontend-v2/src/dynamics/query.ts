@@ -7,6 +7,7 @@ import { fetchFailureDecomposition } from "@/dynamics/failure-contracts";
 import { fetchTargetedRecovery } from "@/dynamics/recovery-contracts";
 import { fetchGeneralizationAutopsy } from "@/dynamics/autopsy-contracts";
 import { fetchEvidenceCompleteReplication } from "@/dynamics/replication-contracts";
+import { fetchHawkesCertification } from "@/dynamics/hawkes-contracts";
 
 export const referenceDynamicsQuery = queryOptions({
   queryKey: ["dynamics", "theory-certification", "d0.2.1-reference-1"],
@@ -53,6 +54,12 @@ export const generalizationAutopsyQuery = queryOptions({
 export const evidenceCompleteReplicationQuery = queryOptions({
   queryKey: ["dynamics", "evidence-complete-replication", "d0.3.4-reference-1"],
   queryFn: fetchEvidenceCompleteReplication,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+export const hawkesCertificationQuery = queryOptions({
+  queryKey: ["dynamics", "hawkes-event-process", "d0.4-reference-1"],
+  queryFn: fetchHawkesCertification,
   staleTime: Number.POSITIVE_INFINITY,
 });
 

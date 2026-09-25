@@ -8,7 +8,7 @@ export const Route = createFileRoute("/dynamics")({
       {
         name: "description",
         content:
-          "A milestone-indexed research console for falsifiable stochastic dynamics experiments.",
+          "A milestone-indexed research console for falsifiable stochastic and event-process experiments.",
       },
       { name: "robots", content: "noindex" },
     ],

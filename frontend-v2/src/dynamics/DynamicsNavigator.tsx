@@ -3,6 +3,7 @@ import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { DynamicsLab } from "@/dynamics/DynamicsLab";
 import { FailureMicroscope } from "@/dynamics/FailureMicroscope";
+import { EventDynamicsWorkbench } from "@/dynamics/EventDynamicsWorkbench";
 import { GeneralizationAutopsy } from "@/dynamics/GeneralizationAutopsy";
 import { NonlinearWorkbench } from "@/dynamics/NonlinearWorkbench";
 import { PowerObservatory } from "@/dynamics/PowerObservatory";
@@ -13,6 +14,7 @@ import {
   evidenceCompleteReplicationQuery,
   failureDecompositionQuery,
   generalizationAutopsyQuery,
+  hawkesCertificationQuery,
   identifiabilityQuery,
   nonlinearDynamicsQuery,
   targetedRecoveryQuery,
@@ -20,7 +22,7 @@ import {
 } from "@/dynamics/query";
 import { LoadingState, StatusMark, UnavailableState } from "@/forge/shared/SurfacePrimitives";
 
-type ProgramKey = "mean-reversion" | "nonlinear";
+type ProgramKey = "mean-reversion" | "nonlinear" | "event-dynamics";
 type MilestoneKey =
   | "d0.2.1"
   | "d0.3"
@@ -30,7 +32,8 @@ type MilestoneKey =
   | "d0.3.3"
   | "d0.3.3.1"
   | "d0.3.3.2"
-  | "d0.3.4";
+  | "d0.3.4"
+  | "d0.4";
 
 type Selection = { program: ProgramKey; milestone: MilestoneKey };
 
@@ -61,9 +64,15 @@ const PROGRAMS: Array<{
       { key: "d0.3.4", label: "D0.3.4", result: "Evidence-complete replication" },
     ],
   },
+  {
+    key: "event-dynamics",
+    label: "Event dynamics",
+    summary: "Excitation versus ordinary clustering",
+    milestones: [{ key: "d0.4", label: "D0.4", result: "Hawkes certification" }],
+  },
 ];
 
-const DEFAULT_SELECTION: Selection = { program: "nonlinear", milestone: "d0.3.4" };
+const DEFAULT_SELECTION: Selection = { program: "event-dynamics", milestone: "d0.4" };
 
 function validSelection(program: string | null, milestone: string | null): Selection {
   const match = PROGRAMS.find((candidate) => candidate.key === program);
@@ -130,8 +139,8 @@ export function DynamicsNavigator() {
               Every milestone keeps its evidence, boundary, and result separate.
             </h1>
             <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]">
-              Navigate the frozen experiment lineage. D0.3.4 reports a preregistered 400-world
-              replication and does not promote synthetic evidence into a market claim.
+              Navigate the frozen experiment lineage. D0.4 tests event-process identification on
+              synthetic timestamps and keeps both market and causal claims ineligible.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -184,27 +193,6 @@ export function DynamicsNavigator() {
                   </div>
                 </section>
               ))}
-              <section
-                className="w-64 bg-[#090D10] opacity-60 lg:w-auto"
-                aria-label="Event dynamics locked"
-              >
-                <div className="border-b border-[#1B232A] px-3 py-3">
-                  <h2 className="text-[11px] font-semibold text-[#9DA6AD]">Event dynamics</h2>
-                  <p className="mt-1 text-[8px] leading-4 text-[#5F6B75]">
-                    Point-process research track
-                  </p>
-                </div>
-                <div className="p-1.5">
-                  <button
-                    type="button"
-                    disabled
-                    className="grid w-full cursor-not-allowed grid-cols-[4.2rem_1fr] items-center gap-2 border border-transparent px-2.5 py-2 text-left text-[#5B656D]"
-                  >
-                    <span className="font-mono text-[9px] font-semibold">D0.4</span>
-                    <span className="text-[8px] leading-3">Locked / not started</span>
-                  </button>
-                </div>
-              </section>
             </div>
           </div>
         </aside>
@@ -229,9 +217,18 @@ function MilestoneSurface({ selection }: { selection: Selection }) {
     ...evidenceCompleteReplicationQuery,
     enabled: is("d0.3.4"),
   });
+  const hawkes = useQuery({
+    ...hawkesCertificationQuery,
+    enabled: is("d0.4"),
+  });
 
   if (selection.program === "mean-reversion") {
     return <DynamicsLab baseOnly embedded />;
+  }
+  if (selection.program === "event-dynamics") {
+    return querySurface(hawkes, "D0.4 Hawkes event-process certification", (data) => (
+      <EventDynamicsWorkbench artifact={data} />
+    ));
   }
   if (is("d0.3.3.2")) return <EvidenceContractBoundary />;
   if (is("d0.3")) {
