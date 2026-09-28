@@ -359,9 +359,13 @@ def _verify_world(
     if not isinstance(world, Mapping):
         errors.append(f"world payload missing: {world_id}")
         return record
-    expected_fields = {"world_id": world_id, "family": family, "information_regime": information, "variant": variant, "seed": seed, "audit_subset": audit}
-    for key, value in expected_fields.items():
-        if world.get(key) != value or registry.get(key) != value:
+    world_fields = {"world_id": world_id, "family": family, "information_regime": information, "variant": variant, "seed": seed, "audit_subset": audit}
+    registry_fields = {"world_id": world_id, "family": family, "information_regime": information, "variant": variant, "seed": seed, "audit": audit}
+    for key, value in world_fields.items():
+        if world.get(key) != value:
+            errors.append(f"registry identity changed: {world_id}:{key}")
+    for key, value in registry_fields.items():
+        if registry.get(key) != value:
             errors.append(f"registry identity changed: {world_id}:{key}")
     world_payload = dict(world)
     claimed_world_hash = world_payload.pop("world_hash", None)

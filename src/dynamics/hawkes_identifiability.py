@@ -343,6 +343,8 @@ def hawkes_log_likelihood_gradient(
     alpha: Sequence[Sequence[float]],
     beta: float,
     horizon: float,
+    *,
+    groups_cache: Sequence[tuple[float, np.ndarray]] | None = None,
 ) -> tuple[float, np.ndarray, np.ndarray, float]:
     """Exact shared-decay exponential Hawkes likelihood and analytic gradient."""
 
@@ -358,7 +360,8 @@ def hawkes_log_likelihood_gradient(
     grad_mu = np.zeros(dimension, dtype=float)
     grad_alpha = np.zeros_like(excitation)
     grad_beta = 0.0
-    for time, marks in _event_groups(events, end=horizon):
+    groups = groups_cache if groups_cache is not None else _event_groups(events, end=horizon)
+    for time, marks in groups:
         delta = time - previous
         decay = math.exp(-beta * delta)
         old_state = state.copy()
@@ -410,16 +413,17 @@ def fit_exponential_hawkes(
         raise HawkesIdentifiabilityError("D0.4.1 supports one to three channels")
     counts = np.asarray([max(1, len(stream)) for stream in events], dtype=float)
     empirical = counts / horizon
+    groups = _event_groups(events, end=horizon)
     bounds = [(-7.0, 4.0)] * dimension + [(-8.0, 1.4)] * (dimension * dimension) + [(-2.3, 2.3)]
 
     def objective(vector: np.ndarray) -> tuple[float, np.ndarray]:
         mu, alpha, beta = _decode(vector, dimension)
         branching = alpha / beta
-        rho = spectral_radius(branching)
+        rho = float(branching[0, 0]) if dimension == 1 else spectral_radius(branching)
         if rho >= STABILITY_BARRIER:
             penalty = 1_000_000.0 + 1_000_000.0 * (rho - STABILITY_BARRIER) ** 2
             return penalty, np.zeros_like(vector)
-        likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(events, mu, alpha, beta, horizon)
+        likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(events, mu, alpha, beta, horizon, groups_cache=groups)
         if not math.isfinite(likelihood):
             return 1_000_000.0, np.zeros_like(vector)
         transformed = np.concatenate((grad_mu * mu, (grad_alpha * alpha).ravel(), [grad_beta * beta]))
@@ -637,6 +641,7 @@ def _profile_uncertainty(
         return {"method": "PROFILE_LIKELIHOOD", "available": False, "reason": "UNIVARIATE_ONLY"}
     fitted_mu = float(np.asarray(fit["baseline"])[0])
     fitted_beta = float(fit["beta"])
+    groups = _event_groups(events, end=horizon)
     grid = np.linspace(0.001, 0.99, 49)
     rows: list[dict[str, float]] = []
     start = np.log([fitted_mu, fitted_beta])
@@ -644,7 +649,7 @@ def _profile_uncertainty(
         def objective(vector: np.ndarray) -> tuple[float, np.ndarray]:
             mu, beta = np.exp(vector)
             alpha = np.asarray([[eta * beta]], dtype=float)
-            likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(events, [mu], alpha, beta, horizon)
+            likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(events, [mu], alpha, beta, horizon, groups_cache=groups)
             total_beta_gradient = grad_beta + eta * float(grad_alpha[0, 0])
             return -likelihood, -np.asarray([float(grad_mu[0]) * mu, total_beta_gradient * beta])
 
