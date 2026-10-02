@@ -25,13 +25,36 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=8)
     arguments = parser.parse_args()
     artifact = run_hawkes_identifiability(workers=arguments.workers)
+    # Preserve the candidate for diagnosis even when verification fails. This
+    # ignored staging file is never served as certified evidence.
+    candidate = ROOT / "data/.cache/dynamics-d0-4-1/candidate.json"
+    candidate.parent.mkdir(parents=True, exist_ok=True)
+    candidate.write_text(
+        json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     report = verify_hawkes_identifiability(artifact)
     if not report["valid"]:
-        raise SystemExit("D0.4.1 verification failed before freeze: " + "; ".join(report["errors"]))
+        raise SystemExit(
+            "D0.4.1 verification failed before freeze: " + "; ".join(report["errors"])
+        )
     target = Path(DEFAULT_D041_ARTIFACT)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"artifact": str(target), "artifact_hash": artifact["artifact_hash"], "status": artifact["program_result"]["status"], "worlds": len(artifact["worlds"])}, sort_keys=True))
+    staging = target.with_suffix(".json.tmp")
+    staging.write_text(
+        json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    staging.replace(target)
+    print(
+        json.dumps(
+            {
+                "artifact": str(target),
+                "artifact_hash": artifact["artifact_hash"],
+                "status": artifact["program_result"]["status"],
+                "worlds": len(artifact["worlds"]),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 

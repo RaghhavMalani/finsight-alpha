@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -20,7 +20,9 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_D041_ARTIFACT = ROOT / "eval/dynamics/d0_4_1/hawkes_identifiability.json"
 PARENT_ARTIFACT = ROOT / "eval/dynamics/d0_4/hawkes_certification.json"
 PARENT_COMMIT = "a625ab85bc407213a3e46c241394ba8a0f060d64"
-PARENT_CANONICAL_HASH = "020c2c0f8c875ef32915512db14427a5fa543a8a0169e907a6825a6f9f1c4039"
+PARENT_CANONICAL_HASH = (
+    "020c2c0f8c875ef32915512db14427a5fa543a8a0169e907a6825a6f9f1c4039"
+)
 PARENT_FILE_SHA256 = "364a918006f4e02eadc024d206202e96ed8e3af5862baacd76bd8b0e87fca47f"
 SCHEMA_VERSION = "dynamics-hawkes-identifiability/0.4.1"
 EDGE_THRESHOLD = 0.035
@@ -97,7 +99,23 @@ def build_world_registry() -> tuple[WorldSpec, ...]:
             for variant in range(5):
                 mu = (0.55 + 0.12 * variant,)
                 world_id = f"univariate_eta_{eta:.2f}_{info.lower()}_v{variant}"
-                rows.append(WorldSpec(world_id, "UNIVARIATE_CALIBRATION", f"ETA_{eta:.2f}", info, target, variant, seed, "hawkes", 1, mu, ((eta,),), betas[variant], variant == 0))
+                rows.append(
+                    WorldSpec(
+                        world_id,
+                        "UNIVARIATE_CALIBRATION",
+                        f"ETA_{eta:.2f}",
+                        info,
+                        target,
+                        variant,
+                        seed,
+                        "hawkes",
+                        1,
+                        mu,
+                        ((eta,),),
+                        betas[variant],
+                        variant == 0,
+                    )
+                )
                 seed += 1
 
     regimes: tuple[tuple[str, tuple[tuple[float, ...], ...]], ...] = (
@@ -115,13 +133,49 @@ def build_world_registry() -> tuple[WorldSpec, ...]:
             for variant in range(5):
                 baseline = (0.70 + 0.08 * variant, 0.62 + 0.07 * variant)
                 world_id = f"direction_{regime.lower()}_{info.lower()}_v{variant}"
-                rows.append(WorldSpec(world_id, "DIRECTIONAL_IDENTIFICATION", regime, info, target, variant, seed, "hawkes", 2, baseline, truth, betas[variant], False))
+                rows.append(
+                    WorldSpec(
+                        world_id,
+                        "DIRECTIONAL_IDENTIFICATION",
+                        regime,
+                        info,
+                        target,
+                        variant,
+                        seed,
+                        "hawkes",
+                        2,
+                        baseline,
+                        truth,
+                        betas[variant],
+                        False,
+                    )
+                )
                 seed += 1
     observed_truth = ((0.0, 0.0, 0.28), (0.0, 0.0, 0.28), (0.0, 0.0, 0.10))
     for info, target in INFO_REGIMES:
         for variant in range(5):
-            baseline = (0.60 + 0.06 * variant, 0.56 + 0.05 * variant, 0.38 + 0.04 * variant)
-            rows.append(WorldSpec(f"direction_observed_z_{info.lower()}_v{variant}", "DIRECTIONAL_IDENTIFICATION", "OBSERVED_Z_TO_A_AND_B", info, target, variant, seed, "hawkes", 3, baseline, observed_truth, betas[variant], False))
+            baseline = (
+                0.60 + 0.06 * variant,
+                0.56 + 0.05 * variant,
+                0.38 + 0.04 * variant,
+            )
+            rows.append(
+                WorldSpec(
+                    f"direction_observed_z_{info.lower()}_v{variant}",
+                    "DIRECTIONAL_IDENTIFICATION",
+                    "OBSERVED_Z_TO_A_AND_B",
+                    info,
+                    target,
+                    variant,
+                    seed,
+                    "hawkes",
+                    3,
+                    baseline,
+                    observed_truth,
+                    betas[variant],
+                    False,
+                )
+            )
             seed += 1
 
     for rho in (0.70, 0.85, 0.93, 0.97, 0.99):
@@ -135,7 +189,23 @@ def build_world_registry() -> tuple[WorldSpec, ...]:
                     truth = ((diagonal, cross), (cross, diagonal))
                     baseline = (0.34 + 0.04 * variant, 0.31 + 0.035 * variant)
                 beta = (0.9, 1.4, 2.0, 2.8)[variant]
-                rows.append(WorldSpec(f"critical_rho_{rho:.2f}_{info.lower()}_v{variant}", "NEAR_CRITICAL_RECOVERY", f"RHO_{rho:.2f}", info, target, variant, seed, "hawkes", len(baseline), baseline, _matrix(truth), beta, variant == 0))
+                rows.append(
+                    WorldSpec(
+                        f"critical_rho_{rho:.2f}_{info.lower()}_v{variant}",
+                        "NEAR_CRITICAL_RECOVERY",
+                        f"RHO_{rho:.2f}",
+                        info,
+                        target,
+                        variant,
+                        seed,
+                        "hawkes",
+                        len(baseline),
+                        baseline,
+                        _matrix(truth),
+                        beta,
+                        variant == 0,
+                    )
+                )
                 seed += 1
 
     controls = (
@@ -151,13 +221,31 @@ def build_world_registry() -> tuple[WorldSpec, ...]:
     for regime, generator, dimension in controls:
         for variant in range(5):
             target = 600 + 100 * variant
-            baseline = tuple(0.72 + 0.06 * variant - 0.05 * channel for channel in range(dimension))
+            baseline = tuple(
+                0.72 + 0.06 * variant - 0.05 * channel for channel in range(dimension)
+            )
             truth = np.zeros((dimension, dimension), dtype=float)
             if generator == "observed_common_driver":
                 truth[0, 2] = 0.26
                 truth[1, 2] = 0.26
                 truth[2, 2] = 0.08
-            rows.append(WorldSpec(f"control_{regime.lower()}_v{variant}", "CONTROL", regime, "CONTROL", target, variant, seed, generator, dimension, baseline, _matrix(truth), betas[variant], False))
+            rows.append(
+                WorldSpec(
+                    f"control_{regime.lower()}_v{variant}",
+                    "CONTROL",
+                    regime,
+                    "CONTROL",
+                    target,
+                    variant,
+                    seed,
+                    generator,
+                    dimension,
+                    baseline,
+                    _matrix(truth),
+                    betas[variant],
+                    False,
+                )
+            )
             seed += 1
 
     if len(rows) != 420 or seed != 41421:
@@ -184,7 +272,9 @@ def _observation_horizon(spec: WorldSpec) -> float:
     return max(2.0, float(spec.target_events / max(rate, 1e-8)))
 
 
-def _poisson_times(rng: np.random.Generator, rate: float, horizon: float) -> list[float]:
+def _poisson_times(
+    rng: np.random.Generator, rate: float, horizon: float
+) -> list[float]:
     values: list[float] = []
     current = 0.0
     while True:
@@ -249,7 +339,11 @@ def simulate_exponential_hawkes(
         current = candidate
         if rng.random() * upper > total:
             continue
-        mark = int(np.searchsorted(np.cumsum(candidate_intensity), rng.random() * total, side="right"))
+        mark = int(
+            np.searchsorted(
+                np.cumsum(candidate_intensity), rng.random() * total, side="right"
+            )
+        )
         mark = min(mark, dimension - 1)
         if candidate >= burn_in:
             events[mark].append(candidate - burn_in)
@@ -257,7 +351,9 @@ def simulate_exponential_hawkes(
     return events
 
 
-def _generate_events(spec: WorldSpec) -> tuple[list[list[float]], float, dict[str, Any]]:
+def _generate_events(
+    spec: WorldSpec,
+) -> tuple[list[list[float]], float, dict[str, Any]]:
     horizon = _observation_horizon(spec)
     rng = np.random.default_rng(spec.seed)
     metadata: dict[str, Any] = {}
@@ -275,7 +371,15 @@ def _generate_events(spec: WorldSpec) -> tuple[list[list[float]], float, dict[st
         amplitude = 0.70
         period = max(8.0, horizon / 8.0)
         rate = spec.baseline[0]
-        events = [_thinned_poisson(rng, lambda t: rate * (1.0 + amplitude * math.sin(2.0 * math.pi * t / period)), rate * (1.0 + amplitude), horizon)]
+        events = [
+            _thinned_poisson(
+                rng,
+                lambda t: rate
+                * (1.0 + amplitude * math.sin(2.0 * math.pi * t / period)),
+                rate * (1.0 + amplitude),
+                horizon,
+            )
+        ]
         metadata = {"amplitude": amplitude, "period": period}
     elif spec.generator == "clustered_renewal":
         shape = 0.58
@@ -291,7 +395,9 @@ def _generate_events(spec: WorldSpec) -> tuple[list[list[float]], float, dict[st
         metadata = {"shape": shape, "scale": scale}
     elif spec.generator == "refractory":
         refractory = 0.22 / (1.0 + 0.08 * spec.variant)
-        adjusted_rate = spec.baseline[0] / max(0.25, 1.0 - refractory * spec.baseline[0])
+        adjusted_rate = spec.baseline[0] / max(
+            0.25, 1.0 - refractory * spec.baseline[0]
+        )
         stream = []
         current = 0.0
         while True:
@@ -302,9 +408,18 @@ def _generate_events(spec: WorldSpec) -> tuple[list[list[float]], float, dict[st
         events = [stream]
         metadata = {"refractory_period": refractory}
     elif spec.generator == "exogenous_bursts":
-        windows = [(horizon * left, horizon * (left + 0.04)) for left in (0.18, 0.48, 0.74)]
+        windows = [
+            (horizon * left, horizon * (left + 0.04)) for left in (0.18, 0.48, 0.74)
+        ]
         outside, inside = spec.baseline[0] * 0.70, spec.baseline[0] * 3.2
-        events = [_thinned_poisson(rng, lambda t: inside if any(a <= t < b for a, b in windows) else outside, inside, horizon)]
+        events = [
+            _thinned_poisson(
+                rng,
+                lambda t: inside if any(a <= t < b for a, b in windows) else outside,
+                inside,
+                horizon,
+            )
+        ]
         metadata = {"windows": windows, "inside_rate": inside, "outside_rate": outside}
     elif spec.generator == "independent_streams":
         events = [_poisson_times(rng, rate, horizon) for rate in spec.baseline]
@@ -344,14 +459,19 @@ def hawkes_log_likelihood_gradient(
     beta: float,
     horizon: float,
     *,
-    groups_cache: Sequence[tuple[float, np.ndarray]] | None = None,
+    groups_cache: tuple[np.ndarray, np.ndarray] | None = None,
 ) -> tuple[float, np.ndarray, np.ndarray, float]:
     """Exact shared-decay exponential Hawkes likelihood and analytic gradient."""
 
     mu = np.asarray(baseline, dtype=float)
     excitation = np.asarray(alpha, dtype=float)
     dimension = len(mu)
-    if excitation.shape != (dimension, dimension) or np.any(mu <= 0.0) or np.any(excitation < 0.0) or beta <= 0.0:
+    if (
+        excitation.shape != (dimension, dimension)
+        or np.any(mu <= 0.0)
+        or np.any(excitation < 0.0)
+        or beta <= 0.0
+    ):
         return float("-inf"), np.zeros_like(mu), np.zeros_like(excitation), 0.0
     state = np.zeros(dimension, dtype=float)
     derivative_state = np.zeros(dimension, dtype=float)
@@ -360,30 +480,58 @@ def hawkes_log_likelihood_gradient(
     grad_mu = np.zeros(dimension, dtype=float)
     grad_alpha = np.zeros_like(excitation)
     grad_beta = 0.0
-    groups = groups_cache if groups_cache is not None else _event_groups(events, end=horizon)
-    for time, marks in groups:
-        delta = time - previous
+    times, all_marks = (
+        groups_cache if groups_cache is not None else _group_arrays(events, horizon)
+    )
+    # Exact recurrence expressed as exclusive prefix sums. Bounded exponent
+    # spans avoid overflow; ties are evaluated before any tied event increments.
+    start = 0
+    while start < len(times):
+        anchor = float(times[start])
+        delta = anchor - previous
         decay = math.exp(-beta * delta)
-        old_state = state.copy()
-        state *= decay
-        derivative_state = decay * (derivative_state - delta * old_state)
-        intensity = mu + excitation @ state
+        derivative_state = decay * (derivative_state - delta * state)
+        state = state * decay
+        stop = min(
+            start + 256, int(np.searchsorted(times, anchor + 32.0 / beta, side="right"))
+        )
+        stop = max(start + 1, stop)
+        relative = times[start:stop] - anchor
+        marks = all_marks[start:stop]
+        weighted = marks * np.exp(beta * relative)[:, None]
+        prefix = np.vstack((np.zeros((1, dimension)), np.cumsum(weighted, axis=0)[:-1]))
+        moment = np.vstack(
+            (
+                np.zeros((1, dimension)),
+                np.cumsum(relative[:, None] * weighted, axis=0)[:-1],
+            )
+        )
+        exponentials = np.exp(-beta * relative)[:, None]
+        states = exponentials * (state + prefix)
+        derivatives = exponentials * (
+            derivative_state
+            - relative[:, None] * state
+            + moment
+            - relative[:, None] * prefix
+        )
+        intensity = mu + states @ excitation.T
         if np.any(intensity <= 0.0) or not np.all(np.isfinite(intensity)):
             return float("-inf"), grad_mu, grad_alpha, grad_beta
-        for target, count in enumerate(marks):
-            if count <= 0:
-                continue
-            weight = float(count) / float(intensity[target])
-            log_likelihood += float(count) * math.log(float(intensity[target]))
-            grad_mu[target] += weight
-            grad_alpha[target, :] += weight * state
-            grad_beta += weight * float(excitation[target, :] @ derivative_state)
-        state += marks
-        previous = time
+        weights = marks / intensity
+        log_likelihood += float(np.sum(marks * np.log(intensity)))
+        grad_mu += np.sum(weights, axis=0)
+        grad_alpha += weights.T @ states
+        grad_beta += float(np.sum(weights * (derivatives @ excitation.T)))
+        state = states[-1] + marks[-1]
+        derivative_state = derivatives[-1]
+        previous = float(times[stop - 1])
+        start = stop
     log_likelihood -= float(np.sum(mu) * horizon)
     grad_mu -= horizon
     for source, stream in enumerate(events):
-        deltas = horizon - np.asarray([event for event in stream if event < horizon], dtype=float)
+        deltas = horizon - np.asarray(
+            [event for event in stream if event < horizon], dtype=float
+        )
         if not deltas.size:
             continue
         exponentials = np.exp(-beta * deltas)
@@ -391,8 +539,22 @@ def hawkes_log_likelihood_gradient(
         integral_derivative = float(np.sum(deltas * exponentials))
         log_likelihood -= float(np.sum(excitation[:, source])) * integral / beta
         grad_alpha[:, source] -= integral / beta
-        grad_beta -= float(np.sum(excitation[:, source])) * (integral_derivative * beta - integral) / (beta * beta)
+        grad_beta -= (
+            float(np.sum(excitation[:, source]))
+            * (integral_derivative * beta - integral)
+            / (beta * beta)
+        )
     return float(log_likelihood), grad_mu, grad_alpha, float(grad_beta)
+
+
+def _group_arrays(
+    events: Sequence[Sequence[float]], horizon: float
+) -> tuple[np.ndarray, np.ndarray]:
+    groups = _event_groups(events, end=horizon)
+    return (
+        np.asarray([time for time, _ in groups]),
+        np.asarray([marks for _, marks in groups]).reshape(-1, len(events)),
+    )
 
 
 def _decode(vector: np.ndarray, dimension: int) -> tuple[np.ndarray, np.ndarray, float]:
@@ -413,8 +575,12 @@ def fit_exponential_hawkes(
         raise HawkesIdentifiabilityError("D0.4.1 supports one to three channels")
     counts = np.asarray([max(1, len(stream)) for stream in events], dtype=float)
     empirical = counts / horizon
-    groups = _event_groups(events, end=horizon)
-    bounds = [(-7.0, 4.0)] * dimension + [(-8.0, 1.4)] * (dimension * dimension) + [(-2.3, 2.3)]
+    groups = _group_arrays(events, horizon)
+    bounds = (
+        [(-7.0, 4.0)] * dimension
+        + [(-8.0, 1.4)] * (dimension * dimension)
+        + [(-2.3, 2.3)]
+    )
 
     def objective(vector: np.ndarray) -> tuple[float, np.ndarray]:
         mu, alpha, beta = _decode(vector, dimension)
@@ -422,11 +588,25 @@ def fit_exponential_hawkes(
         rho = float(branching[0, 0]) if dimension == 1 else spectral_radius(branching)
         if rho >= STABILITY_BARRIER:
             penalty = 1_000_000.0 + 1_000_000.0 * (rho - STABILITY_BARRIER) ** 2
-            return penalty, np.zeros_like(vector)
-        likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(events, mu, alpha, beta, horizon, groups_cache=groups)
+            # Differentiate the unchanged D0.4 barrier, not a zero-gradient
+            # plateau. Finite differences are used only outside stability.
+            derivative = np.zeros_like(vector)
+            for index in range(dimension, len(vector)):
+                shifted = vector.copy()
+                shifted[index] += 1e-7
+                _, shifted_alpha, shifted_beta = _decode(shifted, dimension)
+                derivative[index] = (
+                    spectral_radius(shifted_alpha / shifted_beta) - rho
+                ) / 1e-7
+            return penalty, 2_000_000.0 * (rho - STABILITY_BARRIER) * derivative
+        likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(
+            events, mu, alpha, beta, horizon, groups_cache=groups
+        )
         if not math.isfinite(likelihood):
             return 1_000_000.0, np.zeros_like(vector)
-        transformed = np.concatenate((grad_mu * mu, (grad_alpha * alpha).ravel(), [grad_beta * beta]))
+        transformed = np.concatenate(
+            (grad_mu * mu, (grad_alpha * alpha).ravel(), [grad_beta * beta])
+        )
         return -likelihood, -transformed
 
     starts: list[np.ndarray] = []
@@ -436,9 +616,24 @@ def fit_exponential_hawkes(
         if dimension >= 2:
             alpha[0, 1] *= 0.75
             alpha[1, 0] *= 1.25
-        starts.append(np.concatenate((np.log(mu), np.log(np.maximum(alpha, 1e-6)).ravel(), [math.log(beta_value)])))
+        starts.append(
+            np.concatenate(
+                (
+                    np.log(mu),
+                    np.log(np.maximum(alpha, 1e-6)).ravel(),
+                    [math.log(beta_value)],
+                )
+            )
+        )
     results = [
-        minimize(objective, start, jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": 260, "ftol": 1e-11, "gtol": 1e-7, "maxls": 30})
+        minimize(
+            objective,
+            start,
+            jac=True,
+            method="L-BFGS-B",
+            bounds=bounds,
+            options={"maxiter": 260, "ftol": 1e-11, "gtol": 1e-7, "maxls": 30},
+        )
         for start in starts
     ]
     result = min(results, key=lambda row: float(row.fun))
@@ -448,8 +643,14 @@ def fit_exponential_hawkes(
     covariance: np.ndarray | None = None
     condition: float | None = None
     try:
-        inverse = result.hess_inv.todense() if hasattr(result.hess_inv, "todense") else result.hess_inv
-        candidate = np.asarray(inverse, dtype=float).reshape(len(result.x), len(result.x))
+        inverse = (
+            result.hess_inv.todense()
+            if hasattr(result.hess_inv, "todense")
+            else result.hess_inv
+        )
+        candidate = np.asarray(inverse, dtype=float).reshape(
+            len(result.x), len(result.x)
+        )
         if np.all(np.isfinite(candidate)):
             covariance = candidate
             condition = float(np.linalg.cond(candidate))
@@ -477,7 +678,12 @@ def fit_exponential_hawkes(
             "parameter_count": int(len(result.x)),
             "events_per_parameter": float(np.sum(counts) / len(result.x)),
             "inverse_hessian_condition": condition,
-            "locally_identifiable": bool(result.success and condition is not None and condition < 1e12 and rho < STABILITY_BARRIER),
+            "locally_identifiable": bool(
+                result.success
+                and condition is not None
+                and condition < 1e12
+                and rho < STABILITY_BARRIER
+            ),
         },
     }
 
@@ -501,7 +707,12 @@ def _hessian_uncertainty(
     covariance_value = fit.get("log_parameter_covariance")
     if covariance_value is None:
         blank = np.full_like(estimate, np.nan)
-        return {"method": "INVERSE_HESSIAN_DELTA", "available": False, "branching": _interval_payload(estimate, blank, blank, truth), "spectral_radius_ci95": None}
+        return {
+            "method": "INVERSE_HESSIAN_DELTA",
+            "available": False,
+            "branching": _interval_payload(estimate, blank, blank, truth),
+            "spectral_radius_ci95": None,
+        }
     covariance = np.asarray(covariance_value, dtype=float)
     dimension = estimate.shape[0]
     beta_index = dimension + dimension * dimension
@@ -509,7 +720,12 @@ def _hessian_uncertainty(
     for target in range(dimension):
         for source in range(dimension):
             alpha_index = dimension + target * dimension + source
-            variance[target, source] = max(0.0, covariance[alpha_index, alpha_index] + covariance[beta_index, beta_index] - 2.0 * covariance[alpha_index, beta_index])
+            variance[target, source] = max(
+                0.0,
+                covariance[alpha_index, alpha_index]
+                + covariance[beta_index, beta_index]
+                - 2.0 * covariance[alpha_index, beta_index],
+            )
     standard_error = estimate * np.sqrt(variance)
     lower = np.maximum(0.0, estimate - 1.959963984540054 * standard_error)
     upper = estimate + 1.959963984540054 * standard_error
@@ -517,11 +733,17 @@ def _hessian_uncertainty(
     safe_covariance = (eigenvectors * np.maximum(eigenvalues, 0.0)) @ eigenvectors.T
     rng = np.random.default_rng(seed)
     center = np.zeros(covariance.shape[0], dtype=float)
-    draws = rng.multivariate_normal(center, safe_covariance, size=256, check_valid="ignore")
+    draws = rng.multivariate_normal(
+        center, safe_covariance, size=256, check_valid="ignore"
+    )
     spectral_draws = []
     for draw in draws:
-        log_g_delta = draw[dimension:beta_index].reshape(dimension, dimension) - draw[beta_index]
-        spectral_draws.append(spectral_radius(estimate * np.exp(np.clip(log_g_delta, -12.0, 12.0))))
+        log_g_delta = (
+            draw[dimension:beta_index].reshape(dimension, dimension) - draw[beta_index]
+        )
+        spectral_draws.append(
+            spectral_radius(estimate * np.exp(np.clip(log_g_delta, -12.0, 12.0)))
+        )
     return {
         "method": "INVERSE_HESSIAN_DELTA",
         "available": True,
@@ -582,7 +804,10 @@ def attribution_uncertainty(
     upper = estimate + half_width
     spectral_samples = np.asarray([spectral_radius(sample) for sample in samples])
     spectral_center = float(np.median(spectral_samples))
-    spectral_half_width = max(float(np.quantile(spectral_samples, 0.975) - spectral_center), float(spectral_center - np.quantile(spectral_samples, 0.025)))
+    spectral_half_width = max(
+        float(np.quantile(spectral_samples, 0.975) - spectral_center),
+        float(spectral_center - np.quantile(spectral_samples, 0.025)),
+    )
     rho = float(fit["spectral_radius"])
     return {
         "method": "EVENT_ATTRIBUTION_BOOTSTRAP",
@@ -591,7 +816,13 @@ def attribution_uncertainty(
         "seed": seed,
         "branching": _interval_payload(estimate, lower, upper, truth),
         "edge_support": (lower > EDGE_THRESHOLD).astype(int),
-        "spectral_radius_ci95": [max(0.0, rho - spectral_half_width), rho + spectral_half_width],
+        "bootstrap_support_probability": np.mean(
+            estimate + samples - raw_center > EDGE_THRESHOLD, axis=0
+        ),
+        "spectral_radius_ci95": [
+            max(0.0, rho - spectral_half_width),
+            rho + spectral_half_width,
+        ],
     }
 
 
@@ -618,7 +849,15 @@ def _parametric_uncertainty(
     estimate = np.asarray(fit["branching_matrix"], dtype=float)
     if not samples:
         blank = np.full_like(estimate, np.nan)
-        return {"method": "PARAMETRIC_REFIT_BOOTSTRAP", "available": False, "repetitions": PARAMETRIC_REPETITIONS, "failures": failures, "samples": [], "branching": _interval_payload(estimate, blank, blank, truth), "spectral_radius_ci95": None}
+        return {
+            "method": "PARAMETRIC_REFIT_BOOTSTRAP",
+            "available": False,
+            "repetitions": PARAMETRIC_REPETITIONS,
+            "failures": failures,
+            "samples": [],
+            "branching": _interval_payload(estimate, blank, blank, truth),
+            "spectral_radius_ci95": None,
+        }
     array = np.asarray(samples)
     lower = np.quantile(array, 0.025, axis=0)
     upper = np.quantile(array, 0.975, axis=0)
@@ -635,30 +874,62 @@ def _parametric_uncertainty(
 
 
 def _profile_uncertainty(
-    events: Sequence[Sequence[float]], fit: Mapping[str, Any], truth: np.ndarray, *, horizon: float
+    events: Sequence[Sequence[float]],
+    fit: Mapping[str, Any],
+    truth: np.ndarray,
+    *,
+    horizon: float,
 ) -> dict[str, Any]:
     if len(events) != 1:
-        return {"method": "PROFILE_LIKELIHOOD", "available": False, "reason": "UNIVARIATE_ONLY"}
+        return {
+            "method": "PROFILE_LIKELIHOOD",
+            "available": False,
+            "reason": "UNIVARIATE_ONLY",
+        }
     fitted_mu = float(np.asarray(fit["baseline"])[0])
     fitted_beta = float(fit["beta"])
-    groups = _event_groups(events, end=horizon)
+    groups = _group_arrays(events, horizon)
     grid = np.linspace(0.001, 0.99, 49)
     rows: list[dict[str, float]] = []
     start = np.log([fitted_mu, fitted_beta])
     for eta in grid:
+
         def objective(vector: np.ndarray) -> tuple[float, np.ndarray]:
             mu, beta = np.exp(vector)
             alpha = np.asarray([[eta * beta]], dtype=float)
-            likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(events, [mu], alpha, beta, horizon, groups_cache=groups)
+            likelihood, grad_mu, grad_alpha, grad_beta = hawkes_log_likelihood_gradient(
+                events, [mu], alpha, beta, horizon, groups_cache=groups
+            )
             total_beta_gradient = grad_beta + eta * float(grad_alpha[0, 0])
-            return -likelihood, -np.asarray([float(grad_mu[0]) * mu, total_beta_gradient * beta])
+            return -likelihood, -np.asarray(
+                [float(grad_mu[0]) * mu, total_beta_gradient * beta]
+            )
 
-        result = minimize(objective, start, jac=True, method="L-BFGS-B", bounds=[(-7.0, 4.0), (-2.3, 2.3)], options={"maxiter": 160, "ftol": 1e-10, "gtol": 1e-7})
+        result = minimize(
+            objective,
+            start,
+            jac=True,
+            method="L-BFGS-B",
+            bounds=[(-7.0, 4.0), (-2.3, 2.3)],
+            options={"maxiter": 160, "ftol": 1e-10, "gtol": 1e-7},
+        )
         start = np.asarray(result.x, dtype=float)
         mu, beta = np.exp(start)
-        rows.append({"branching_ratio": float(eta), "baseline": float(mu), "beta": float(beta), "log_likelihood": -float(result.fun)})
+        rows.append(
+            {
+                "branching_ratio": float(eta),
+                "baseline": float(mu),
+                "beta": float(beta),
+                "log_likelihood": -float(result.fun),
+                "optimizer_success": bool(result.success),
+            }
+        )
     maximum = max(row["log_likelihood"] for row in rows)
-    admitted = [row["branching_ratio"] for row in rows if maximum - row["log_likelihood"] <= PROFILE_CUTOFF]
+    admitted = [
+        row["branching_ratio"]
+        for row in rows
+        if maximum - row["log_likelihood"] <= PROFILE_CUTOFF
+    ]
     lower, upper = min(admitted), max(admitted)
     estimate = np.asarray(fit["branching_matrix"], dtype=float)
     return {
@@ -666,7 +937,9 @@ def _profile_uncertainty(
         "available": True,
         "cutoff": PROFILE_CUTOFF,
         "grid": rows,
-        "branching": _interval_payload(estimate, np.asarray([[lower]]), np.asarray([[upper]]), truth),
+        "branching": _interval_payload(
+            estimate, np.asarray([[lower]]), np.asarray([[upper]]), truth
+        ),
         "spectral_radius_ci95": [lower, upper],
     }
 
@@ -698,9 +971,20 @@ def _residual_diagnostics(
         previous = time
     values = np.asarray(residuals, dtype=float)
     if len(values) < 8:
-        return {"count": len(values), "mean": None, "variance": None, "ks_pvalue": None, "lag1_autocorrelation": None, "calibrated": False}
+        return {
+            "count": len(values),
+            "mean": None,
+            "variance": None,
+            "ks_pvalue": None,
+            "lag1_autocorrelation": None,
+            "calibrated": False,
+        }
     ks = kstest(values, "expon")
-    autocorrelation = float(np.corrcoef(values[:-1], values[1:])[0, 1]) if len(values) > 2 and np.std(values[:-1]) > 0 and np.std(values[1:]) > 0 else 0.0
+    autocorrelation = (
+        float(np.corrcoef(values[:-1], values[1:])[0, 1])
+        if len(values) > 2 and np.std(values[:-1]) > 0 and np.std(values[1:]) > 0
+        else 0.0
+    )
     return {
         "count": int(len(values)),
         "mean": float(np.mean(values)),
@@ -713,12 +997,25 @@ def _residual_diagnostics(
 
 def _graph_evaluation(truth: np.ndarray, support: np.ndarray) -> dict[str, Any]:
     dimension = truth.shape[0]
-    true_edges = {(source, target) for target in range(dimension) for source in range(dimension) if source != target and truth[target, source] > EDGE_THRESHOLD}
-    inferred_edges = {(source, target) for target in range(dimension) for source in range(dimension) if source != target and support[target, source] == 1}
+    true_edges = {
+        (source, target)
+        for target in range(dimension)
+        for source in range(dimension)
+        if source != target and truth[target, source] > EDGE_THRESHOLD
+    }
+    inferred_edges = {
+        (source, target)
+        for target in range(dimension)
+        for source in range(dimension)
+        if source != target and support[target, source] == 1
+    }
     true_positive = len(true_edges & inferred_edges)
     false_positive = len(inferred_edges - true_edges)
     false_negative = len(true_edges - inferred_edges)
-    reversed_edges = sum((target, source) in inferred_edges and (target, source) not in true_edges for source, target in true_edges)
+    reversed_edges = sum(
+        (target, source) in inferred_edges and (target, source) not in true_edges
+        for source, target in true_edges
+    )
     if inferred_edges == true_edges:
         direction = "EXACT"
     elif not inferred_edges:
@@ -732,8 +1029,14 @@ def _graph_evaluation(truth: np.ndarray, support: np.ndarray) -> dict[str, Any]:
     else:
         direction = "FALSE_EDGE"
     return {
-        "true_edges": [{"source": source, "target": target} for source, target in sorted(true_edges)],
-        "inferred_edges": [{"source": source, "target": target} for source, target in sorted(inferred_edges)],
+        "true_edges": [
+            {"source": source, "target": target}
+            for source, target in sorted(true_edges)
+        ],
+        "inferred_edges": [
+            {"source": source, "target": target}
+            for source, target in sorted(inferred_edges)
+        ],
         "true_positive": true_positive,
         "false_positive": false_positive,
         "false_negative": false_negative,
@@ -744,7 +1047,9 @@ def _graph_evaluation(truth: np.ndarray, support: np.ndarray) -> dict[str, Any]:
     }
 
 
-def _information_payload(spec: WorldSpec, events: Sequence[Sequence[float]], horizon: float) -> dict[str, Any]:
+def _information_payload(
+    spec: WorldSpec, events: Sequence[Sequence[float]], horizon: float
+) -> dict[str, Any]:
     baseline = np.asarray(spec.baseline, dtype=float)
     branching = np.asarray(spec.branching, dtype=float)
     if spec.generator in {"hawkes", "observed_common_driver"}:
@@ -775,26 +1080,45 @@ def _world_record(spec: WorldSpec) -> dict[str, Any]:
         raise HawkesIdentifiabilityError(f"unstable truth: {spec.world_id}")
     fit = fit_exponential_hawkes(events, horizon=horizon)
     hessian = _hessian_uncertainty(fit, truth, seed=spec.seed + 10_000)
-    attribution = attribution_uncertainty(events, fit, truth, horizon=horizon, seed=spec.seed + 20_000)
+    attribution = attribution_uncertainty(
+        events, fit, truth, horizon=horizon, seed=spec.seed + 20_000
+    )
     methods: dict[str, Any] = {
         "inverse_hessian": hessian,
         "event_attribution": attribution,
     }
     if spec.audit:
-        methods["parametric_bootstrap"] = _parametric_uncertainty(fit, truth, horizon=horizon, seed=spec.seed + 30_000)
-        methods["profile_likelihood"] = _profile_uncertainty(events, fit, truth, horizon=horizon)
+        methods["parametric_bootstrap"] = _parametric_uncertainty(
+            fit, truth, horizon=horizon, seed=spec.seed + 30_000
+        )
+        methods["profile_likelihood"] = _profile_uncertainty(
+            events, fit, truth, horizon=horizon
+        )
     else:
-        methods["parametric_bootstrap"] = {"method": "PARAMETRIC_REFIT_BOOTSTRAP", "available": False, "reason": "OUTSIDE_PREREGISTERED_AUDIT_SUBSET"}
-        methods["profile_likelihood"] = {"method": "PROFILE_LIKELIHOOD", "available": False, "reason": "OUTSIDE_PREREGISTERED_AUDIT_SUBSET"}
+        methods["parametric_bootstrap"] = {
+            "method": "PARAMETRIC_REFIT_BOOTSTRAP",
+            "available": False,
+            "reason": "OUTSIDE_PREREGISTERED_AUDIT_SUBSET",
+        }
+        methods["profile_likelihood"] = {
+            "method": "PROFILE_LIKELIHOOD",
+            "available": False,
+            "reason": "OUTSIDE_PREREGISTERED_AUDIT_SUBSET",
+        }
     support = np.asarray(attribution["edge_support"], dtype=int)
     graph = _graph_evaluation(truth, support)
     fit_rho = float(fit["spectral_radius"])
     graph["near_critical_truth"] = truth_rho >= 0.93
     graph["near_critical_inferred"] = fit_rho >= 0.90
-    graph["near_critical_correct"] = graph["near_critical_truth"] == graph["near_critical_inferred"]
+    graph["near_critical_correct"] = (
+        graph["near_critical_truth"] == graph["near_critical_inferred"]
+    )
     graph["unsupported_ab_edge"] = bool(
         spec.dimension >= 2
-        and ((support[0, 1] == 1 and truth[0, 1] <= EDGE_THRESHOLD) or (support[1, 0] == 1 and truth[1, 0] <= EDGE_THRESHOLD))
+        and (
+            (support[0, 1] == 1 and truth[0, 1] <= EDGE_THRESHOLD)
+            or (support[1, 0] == 1 and truth[1, 0] <= EDGE_THRESHOLD)
+        )
     )
     residuals = _residual_diagnostics(events, fit, horizon)
     world = {
@@ -808,7 +1132,13 @@ def _world_record(spec: WorldSpec) -> dict[str, Any]:
         "generator": spec.generator,
         "dimension": spec.dimension,
         "channels": [chr(ord("A") + index) for index in range(spec.dimension)],
-        "observation_window": {"start": 0.0, "end": horizon, "time_unit": "synthetic_time", "left_boundary": "BURN_IN_DISCARDED", "right_boundary": "OBSERVATION_END_RECORDED"},
+        "observation_window": {
+            "start": 0.0,
+            "end": horizon,
+            "time_unit": "synthetic_time",
+            "left_boundary": "BURN_IN_DISCARDED",
+            "right_boundary": "OBSERVATION_END_RECORDED",
+        },
         "event_times": events,
         "event_counts": [len(stream) for stream in events],
         "metadata": metadata,
@@ -852,13 +1182,30 @@ def _mean(values: Sequence[float]) -> float | None:
 
 def _uncertainty_summary(worlds: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
-    keys = ("inverse_hessian", "event_attribution", "parametric_bootstrap", "profile_likelihood")
+    keys = (
+        "inverse_hessian",
+        "event_attribution",
+        "parametric_bootstrap",
+        "profile_likelihood",
+    )
     for key in keys:
         covered: list[int] = []
         widths: list[float] = []
+        errors: list[float] = []
+        rho_covered: list[int] = []
+        rho_widths: list[float] = []
+        attempts = failures = 0
+        strata: dict[str, dict[str, list[float]]] = {}
         available_worlds = 0
         for record in worlds:
             method = record["uncertainty"][key]
+            eligible = (
+                key in {"inverse_hessian", "event_attribution"}
+                or record["world"]["audit_subset"]
+            )
+            if eligible:
+                attempts += 1
+                failures += int(not method.get("available"))
             if not method.get("available"):
                 continue
             available_worlds += 1
@@ -870,113 +1217,351 @@ def _uncertainty_summary(worlds: Sequence[Mapping[str, Any]]) -> list[dict[str, 
             if np.any(mask):
                 covered.extend(method_covered[mask].tolist())
                 widths.extend(method_width[mask].tolist())
-        output.append({"method": key, "available_worlds": available_worlds, "parameter_count": len(covered), "coverage": _ratio(sum(covered), len(covered)), "mean_width": _mean(widths), "median_width": float(np.median(widths)) if widths else None})
+                errors.extend(
+                    (np.asarray(branch["estimate"], dtype=float) - truth)[mask].tolist()
+                )
+                stratum = (
+                    record["world"]["family"]
+                    + "/"
+                    + record["world"]["information_regime"]
+                )
+                bucket = strata.setdefault(stratum, {"covered": [], "widths": []})
+                bucket["covered"].extend(method_covered[mask].tolist())
+                bucket["widths"].extend(method_width[mask].tolist())
+            ci = method.get("spectral_radius_ci95")
+            if ci is not None:
+                rho = float(record["truth"]["spectral_radius"])
+                rho_covered.append(int(ci[0] <= rho <= ci[1]))
+                rho_widths.append(float(ci[1] - ci[0]))
+        output.append(
+            {
+                "method": key,
+                "available_worlds": available_worlds,
+                "attempted_worlds": attempts,
+                "failed_worlds": failures,
+                "failure_rate": _ratio(failures, attempts),
+                "parameter_count": len(covered),
+                "coverage": _ratio(sum(covered), len(covered)),
+                "mean_width": _mean(widths),
+                "median_width": float(np.median(widths)) if widths else None,
+                "bias": _mean(errors),
+                "rmse": (
+                    math.sqrt(float(np.mean(np.square(errors)))) if errors else None
+                ),
+                "spectral_radius_parameter_count": len(rho_covered),
+                "spectral_radius_coverage": _ratio(sum(rho_covered), len(rho_covered)),
+                "spectral_radius_mean_width": _mean(rho_widths),
+                "strata": [
+                    {
+                        "stratum": name,
+                        "parameters": len(bucket["covered"]),
+                        "coverage": _mean(bucket["covered"]),
+                        "mean_width": _mean(bucket["widths"]),
+                    }
+                    for name, bucket in sorted(strata.items())
+                ],
+            }
+        )
     return output
 
 
 def _direction_frontier(worlds: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     order = {name: index for index, (name, _) in enumerate(INFO_REGIMES)}
-    regimes = sorted({record["world"]["regime"] for record in worlds if record["world"]["family"] == "DIRECTIONAL_IDENTIFICATION" and record["world"]["regime"] != "NO_EXCITATION"})
+    regimes = sorted(
+        {
+            record["world"]["regime"]
+            for record in worlds
+            if record["world"]["family"] == "DIRECTIONAL_IDENTIFICATION"
+            and record["world"]["regime"] != "NO_EXCITATION"
+        }
+    )
     rows = []
     for regime in regimes:
         cells = []
         for info, _ in INFO_REGIMES:
-            selected = [record for record in worlds if record["world"]["regime"] == regime and record["world"]["information_regime"] == info]
-            rate = _ratio(sum(bool(record["graph_evaluation"]["exact_graph"]) for record in selected), len(selected))
-            cells.append({"information_regime": info, "worlds": len(selected), "exact_graph_rate": rate})
-        eligible = [cell for cell in cells if cell["exact_graph_rate"] is not None and cell["exact_graph_rate"] >= 0.80]
-        frontier = min(eligible, key=lambda row: order[row["information_regime"]])["information_regime"] if eligible else "UNRESOLVED"
-        rows.append({"regime": regime, "frontier": frontier, "cells": cells})
+            selected = [
+                record
+                for record in worlds
+                if record["world"]["regime"] == regime
+                and record["world"]["information_regime"] == info
+            ]
+            rate = _ratio(
+                sum(
+                    bool(record["graph_evaluation"]["exact_graph"])
+                    for record in selected
+                ),
+                len(selected),
+            )
+            cells.append(
+                {
+                    "information_regime": info,
+                    "worlds": len(selected),
+                    "exact_graph_rate": rate,
+                }
+            )
+        eligible = [
+            cell
+            for cell in cells
+            if cell["exact_graph_rate"] is not None and cell["exact_graph_rate"] >= 0.80
+        ]
+        frontier = (
+            min(eligible, key=lambda row: order[row["information_regime"]])[
+                "information_regime"
+            ]
+            if eligible
+            else "UNRESOLVED"
+        )
+        reference = next(row for row in worlds if row["world"]["regime"] == regime)
+        matrix = np.asarray(reference["truth"]["branching_matrix"], dtype=float)
+        rows.append(
+            {
+                "regime": regime,
+                "edge_asymmetry": abs(float(matrix[0, 1] - matrix[1, 0])),
+                "frontier": frontier,
+                "cells": cells,
+            }
+        )
     return rows
 
 
 def _suite_metrics(worlds: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-    directional = [row for row in worlds if row["world"]["family"] == "DIRECTIONAL_IDENTIFICATION"]
-    true_positive = sum(int(row["graph_evaluation"]["true_positive"]) for row in directional)
-    false_positive = sum(int(row["graph_evaluation"]["false_positive"]) for row in directional)
-    false_negative = sum(int(row["graph_evaluation"]["false_negative"]) for row in directional)
+    directional = [
+        row for row in worlds if row["world"]["family"] == "DIRECTIONAL_IDENTIFICATION"
+    ]
+    true_positive = sum(
+        int(row["graph_evaluation"]["true_positive"]) for row in directional
+    )
+    false_positive = sum(
+        int(row["graph_evaluation"]["false_positive"]) for row in directional
+    )
+    false_negative = sum(
+        int(row["graph_evaluation"]["false_negative"]) for row in directional
+    )
     precision = _ratio(true_positive, true_positive + false_positive)
     recall = _ratio(true_positive, true_positive + false_negative)
-    f1 = (2.0 * precision * recall / (precision + recall)) if precision is not None and recall is not None and precision + recall > 0 else None
-    exact_graph = _ratio(sum(bool(row["graph_evaluation"]["exact_graph"]) for row in directional), len(directional))
-    direction_candidates = [row for row in directional if len(row["graph_evaluation"]["true_edges"]) == 1]
-    direction_detected = [row for row in direction_candidates if row["graph_evaluation"]["inferred_edges"]]
-    conditional_direction = _ratio(sum(row["graph_evaluation"]["direction_class"] == "EXACT" for row in direction_detected), len(direction_detected))
-    null_worlds = [row for row in worlds if row["world"]["dimension"] >= 2 and not row["graph_evaluation"]["true_edges"]]
-    false_discovery = _ratio(sum(bool(row["graph_evaluation"]["inferred_edges"]) for row in null_worlds), len(null_worlds))
+    f1 = (
+        (2.0 * precision * recall / (precision + recall))
+        if precision is not None and recall is not None and precision + recall > 0
+        else None
+    )
+    exact_graph = _ratio(
+        sum(bool(row["graph_evaluation"]["exact_graph"]) for row in directional),
+        len(directional),
+    )
+    direction_candidates = [
+        row for row in directional if len(row["graph_evaluation"]["true_edges"]) == 1
+    ]
+    direction_detected = [
+        row for row in direction_candidates if row["graph_evaluation"]["inferred_edges"]
+    ]
+    conditional_direction = _ratio(
+        sum(
+            row["graph_evaluation"]["direction_class"] == "EXACT"
+            for row in direction_detected
+        ),
+        len(direction_detected),
+    )
+    null_worlds = [
+        row
+        for row in worlds
+        if row["world"]["dimension"] >= 2 and not row["graph_evaluation"]["true_edges"]
+    ]
+    false_discovery = _ratio(
+        sum(bool(row["graph_evaluation"]["inferred_edges"]) for row in null_worlds),
+        len(null_worlds),
+    )
     strong_total = 0
     strong_detected = 0
     for row in directional:
         truth = np.asarray(row["truth"]["branching_matrix"], dtype=float)
-        support = np.asarray(row["uncertainty"]["event_attribution"]["edge_support"], dtype=int)
+        support = np.asarray(
+            row["uncertainty"]["event_attribution"]["edge_support"], dtype=int
+        )
         for target in range(truth.shape[0]):
             for source in range(truth.shape[1]):
                 if target != source and truth[target, source] >= 0.20:
                     strong_total += 1
                     strong_detected += int(support[target, source] == 1)
-    critical = [row for row in worlds if row["world"]["family"] == "NEAR_CRITICAL_RECOVERY"]
-    near_critical_accuracy = _ratio(sum(bool(row["graph_evaluation"]["near_critical_correct"]) for row in critical), len(critical))
+    critical = [
+        row for row in worlds if row["world"]["family"] == "NEAR_CRITICAL_RECOVERY"
+    ]
+    near_critical_accuracy = _ratio(
+        sum(bool(row["graph_evaluation"]["near_critical_correct"]) for row in critical),
+        len(critical),
+    )
     control_rows = [row for row in worlds if row["world"]["family"] == "CONTROL"]
-    false_critical = _ratio(sum(bool(row["graph_evaluation"]["near_critical_inferred"]) for row in control_rows), len(control_rows))
+    false_critical = _ratio(
+        sum(
+            bool(row["graph_evaluation"]["near_critical_inferred"])
+            for row in control_rows
+        ),
+        len(control_rows),
+    )
     latent = [row for row in worlds if row["world"]["regime"] == "LATENT_COMMON_SHOCK"]
-    latent_false_ab = _ratio(sum(bool(row["graph_evaluation"]["unsupported_ab_edge"]) for row in latent), len(latent))
-    numerical_failures = sum(not bool(row["fit"]["optimizer"]["success"]) for row in worlds)
-    residual_rate = _ratio(sum(bool(row["residual_diagnostics"]["calibrated"]) for row in worlds), len(worlds))
-    rho_errors = [float(row["fit"]["spectral_radius"]) - float(row["truth"]["spectral_radius"]) for row in worlds if row["world"]["generator"] in {"hawkes", "observed_common_driver"}]
+    latent_false_ab = _ratio(
+        sum(bool(row["graph_evaluation"]["unsupported_ab_edge"]) for row in latent),
+        len(latent),
+    )
+    numerical_failures = sum(
+        not bool(row["fit"]["optimizer"]["success"]) for row in worlds
+    )
+    residual_rate = _ratio(
+        sum(bool(row["residual_diagnostics"]["calibrated"]) for row in worlds),
+        len(worlds),
+    )
+    rho_errors = [
+        float(row["fit"]["spectral_radius"]) - float(row["truth"]["spectral_radius"])
+        for row in worlds
+        if row["world"]["generator"] in {"hawkes", "observed_common_driver"}
+    ]
     uncertainty = _uncertainty_summary(worlds)
-    parametric = next(row for row in uncertainty if row["method"] == "parametric_bootstrap")
-    return _round({
-        "world_count": len(worlds),
-        "numerical_failures": numerical_failures,
-        "spectral_radius_bias": _mean(rho_errors),
-        "spectral_radius_rmse": math.sqrt(float(np.mean(np.square(rho_errors)))) if rho_errors else None,
-        "uncertainty_methods": uncertainty,
-        "graph": {
-            "true_positive": true_positive,
-            "false_positive": false_positive,
-            "false_negative": false_negative,
-            "precision": precision,
-            "recall": recall,
-            "f1": f1,
-            "exact_graph_rate": exact_graph,
-            "conditional_direction_accuracy": conditional_direction,
-            "reversed_edges": sum(int(row["graph_evaluation"]["reversed_edges"]) for row in directional),
-            "abstention_rate": _ratio(sum(bool(row["graph_evaluation"]["abstained"]) for row in directional), len(directional)),
-        },
-        "false_edge_discovery_rate": false_discovery,
-        "moderate_strong_edge_detection_rate": _ratio(strong_detected, strong_total),
-        "parametric_branching_coverage": parametric["coverage"],
-        "near_critical_accuracy": near_critical_accuracy,
-        "false_near_critical_alarm_rate": false_critical,
-        "latent_common_shock_false_ab_edge_rate": latent_false_ab,
-        "residual_calibration_rate": residual_rate,
-    })
+    parametric = next(
+        row for row in uncertainty if row["method"] == "parametric_bootstrap"
+    )
+    return _round(
+        {
+            "world_count": len(worlds),
+            "numerical_failures": numerical_failures,
+            "spectral_radius_bias": _mean(rho_errors),
+            "spectral_radius_rmse": (
+                math.sqrt(float(np.mean(np.square(rho_errors)))) if rho_errors else None
+            ),
+            "uncertainty_methods": uncertainty,
+            "graph": {
+                "true_positive": true_positive,
+                "false_positive": false_positive,
+                "false_negative": false_negative,
+                "precision": precision,
+                "recall": recall,
+                "f1": f1,
+                "exact_graph_rate": exact_graph,
+                "conditional_direction_accuracy": conditional_direction,
+                "reversed_edges": sum(
+                    int(row["graph_evaluation"]["reversed_edges"])
+                    for row in directional
+                ),
+                "missed_edge_rate": _ratio(
+                    false_negative, true_positive + false_negative
+                ),
+                "false_edge_rate": _ratio(
+                    false_positive, true_positive + false_positive
+                ),
+                "reversed_edge_rate": _ratio(
+                    sum(
+                        int(row["graph_evaluation"]["reversed_edges"])
+                        for row in directional
+                    ),
+                    true_positive + false_negative,
+                ),
+                "abstention_rate": _ratio(
+                    sum(
+                        bool(row["graph_evaluation"]["abstained"])
+                        for row in directional
+                    ),
+                    len(directional),
+                ),
+            },
+            "false_edge_discovery_rate": false_discovery,
+            "control_false_excitation_rate": _ratio(
+                sum(
+                    bool(
+                        np.any(
+                            np.asarray(
+                                row["uncertainty"]["event_attribution"]["edge_support"]
+                            )
+                        )
+                    )
+                    for row in control_rows
+                    if row["world"]["regime"] != "OBSERVED_COMMON_DRIVER"
+                ),
+                sum(
+                    row["world"]["regime"] != "OBSERVED_COMMON_DRIVER"
+                    for row in control_rows
+                ),
+            ),
+            "parametric_refit_failures": sum(
+                int(row["uncertainty"]["parametric_bootstrap"].get("failures", 0))
+                for row in worlds
+            ),
+            "profile_nuisance_fit_failures": sum(
+                not point["optimizer_success"]
+                for row in worlds
+                for point in row["uncertainty"]["profile_likelihood"].get("grid", [])
+            ),
+            "moderate_strong_edge_detection_rate": _ratio(
+                strong_detected, strong_total
+            ),
+            "parametric_branching_coverage": parametric["coverage"],
+            "near_critical_accuracy": near_critical_accuracy,
+            "false_near_critical_alarm_rate": false_critical,
+            "latent_common_shock_false_ab_edge_rate": latent_false_ab,
+            "residual_calibration_rate": residual_rate,
+        }
+    )
 
 
 def _capability_result(metrics: Mapping[str, Any]) -> dict[str, Any]:
     graph = metrics["graph"]
     gates = {
-        "false_edge_discovery": float(metrics["false_edge_discovery_rate"] or 0.0) <= 0.05,
-        "moderate_strong_detection": float(metrics["moderate_strong_edge_detection_rate"] or 0.0) >= 0.80,
-        "parametric_branching_coverage": float(metrics["parametric_branching_coverage"] or 0.0) >= 0.85,
+        "false_edge_discovery": float(metrics["false_edge_discovery_rate"] or 0.0)
+        <= 0.05,
+        "moderate_strong_detection": float(
+            metrics["moderate_strong_edge_detection_rate"] or 0.0
+        )
+        >= 0.80,
+        "parametric_branching_coverage": float(
+            metrics["parametric_branching_coverage"] or 0.0
+        )
+        >= 0.85,
         "directional_precision": float(graph["precision"] or 0.0) >= 0.90,
         "directional_recall": float(graph["recall"] or 0.0) >= 0.80,
-        "near_critical_accuracy": float(metrics["near_critical_accuracy"] or 0.0) >= 0.80,
-        "false_near_critical_alarms": float(metrics["false_near_critical_alarm_rate"] or 0.0) <= 0.05,
-        "latent_common_shock_resistance": float(metrics["latent_common_shock_false_ab_edge_rate"] or 0.0) <= 0.05,
-        "residual_calibration": float(metrics["residual_calibration_rate"] or 0.0) >= 0.75,
+        "near_critical_accuracy": float(metrics["near_critical_accuracy"] or 0.0)
+        >= 0.80,
+        "false_near_critical_alarms": float(
+            metrics["false_near_critical_alarm_rate"] or 0.0
+        )
+        <= 0.05,
+        "latent_common_shock_resistance": float(
+            metrics["latent_common_shock_false_ab_edge_rate"] or 0.0
+        )
+        <= 0.05,
+        "residual_calibration": float(metrics["residual_calibration_rate"] or 0.0)
+        >= 0.75,
         "numerical_stability": int(metrics["numerical_failures"]) <= 2,
     }
-    structural_keys = ("false_edge_discovery", "moderate_strong_detection", "directional_precision", "directional_recall", "latent_common_shock_resistance")
+    structural_keys = (
+        "false_edge_discovery",
+        "moderate_strong_detection",
+        "directional_precision",
+        "directional_recall",
+        "latent_common_shock_resistance",
+    )
     structural_passes = sum(bool(gates[key]) for key in structural_keys)
-    structural_status = "SUPPORTED" if structural_passes == len(structural_keys) else "PARTIALLY_CHARACTERIZED" if structural_passes >= 2 else "UNRESOLVED"
-    status = "SYNTHETIC_CERTIFICATION_SUPPORTED" if all(gates.values()) else "PARTIALLY_CHARACTERIZED" if sum(gates.values()) >= 4 else "INSTRUMENT_REJECTED"
+    structural_status = (
+        "SUPPORTED"
+        if structural_passes == len(structural_keys)
+        else "PARTIALLY_CHARACTERIZED" if structural_passes >= 2 else "UNRESOLVED"
+    )
+    status = (
+        "SYNTHETIC_CERTIFICATION_SUPPORTED"
+        if all(gates.values())
+        else (
+            "PARTIALLY_CHARACTERIZED"
+            if sum(gates.values()) >= 4
+            else "INSTRUMENT_REJECTED"
+        )
+    )
     return {
         "status": status,
         "promotion_gates": gates,
         "capability_vector": {
             "STRUCTURAL_IDENTIFIABILITY": {"tested": True, "status": structural_status},
-            "PROCESS_CALIBRATION": {"tested": True, "status": "SUPPORTED" if gates["residual_calibration"] else "UNRESOLVED"},
+            "PROCESS_CALIBRATION": {
+                "tested": True,
+                "status": (
+                    "SUPPORTED" if gates["residual_calibration"] else "UNRESOLVED"
+                ),
+            },
             "PREDICTIVE_VALIDITY": {"tested": False, "status": "NOT_TESTED"},
             "ECONOMIC_UTILITY": {"tested": False, "status": "NOT_TESTED"},
             "CAUSAL_IDENTIFICATION": {"tested": False, "status": "NOT_ESTABLISHED"},
@@ -985,7 +1570,9 @@ def _capability_result(metrics: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _observatory(worlds: Sequence[Mapping[str, Any]], metrics: Mapping[str, Any]) -> dict[str, Any]:
+def _observatory(
+    worlds: Sequence[Mapping[str, Any]], metrics: Mapping[str, Any]
+) -> dict[str, Any]:
     representative_ids = {
         "univariate_eta_0.40_moderate_v0",
         "univariate_eta_0.92_rich_v0",
@@ -1002,19 +1589,68 @@ def _observatory(worlds: Sequence[Mapping[str, Any]], metrics: Mapping[str, Any]
     for row in worlds:
         if row["world"]["world_id"] not in representative_ids:
             continue
-        representatives.append({
-            "world": {key: row["world"][key] for key in ("world_id", "family", "regime", "information_regime", "channels", "event_counts", "world_hash")},
-            "truth": row["truth"],
-            "fit": {key: row["fit"][key] for key in ("baseline", "branching_matrix", "beta", "spectral_radius", "optimizer")},
-            "uncertainty": row["uncertainty"],
-            "graph_evaluation": row["graph_evaluation"],
-            "residual_diagnostics": row["residual_diagnostics"],
-        })
+        representatives.append(
+            {
+                "world": {
+                    key: row["world"][key]
+                    for key in (
+                        "world_id",
+                        "family",
+                        "regime",
+                        "information_regime",
+                        "channels",
+                        "event_counts",
+                        "world_hash",
+                    )
+                },
+                "truth": row["truth"],
+                "fit": {
+                    key: row["fit"][key]
+                    for key in (
+                        "baseline",
+                        "branching_matrix",
+                        "beta",
+                        "spectral_radius",
+                        "optimizer",
+                    )
+                },
+                "uncertainty": row["uncertainty"],
+                "graph_evaluation": row["graph_evaluation"],
+                "residual_diagnostics": row["residual_diagnostics"],
+            }
+        )
     calibration = []
     for rho in (0.70, 0.85, 0.93, 0.97, 0.99):
-        selected = [row for row in worlds if row["world"]["family"] == "NEAR_CRITICAL_RECOVERY" and math.isclose(float(row["truth"]["spectral_radius"]), rho, abs_tol=1e-6)]
-        calibration.append({"truth": rho, "mean_estimate": _mean([float(row["fit"]["spectral_radius"]) for row in selected]), "rmse": math.sqrt(float(np.mean([(float(row["fit"]["spectral_radius"]) - rho) ** 2 for row in selected])))})
-    return {"representative_worlds": representatives, "spectral_radius_calibration": _round(calibration), "interval_coverage": metrics["uncertainty_methods"], "direction_frontier": _direction_frontier(worlds)}
+        selected = [
+            row
+            for row in worlds
+            if row["world"]["family"] == "NEAR_CRITICAL_RECOVERY"
+            and math.isclose(float(row["truth"]["spectral_radius"]), rho, abs_tol=1e-6)
+        ]
+        calibration.append(
+            {
+                "truth": rho,
+                "mean_estimate": _mean(
+                    [float(row["fit"]["spectral_radius"]) for row in selected]
+                ),
+                "rmse": math.sqrt(
+                    float(
+                        np.mean(
+                            [
+                                (float(row["fit"]["spectral_radius"]) - rho) ** 2
+                                for row in selected
+                            ]
+                        )
+                    )
+                ),
+            }
+        )
+    return {
+        "representative_worlds": representatives,
+        "spectral_radius_calibration": _round(calibration),
+        "interval_coverage": metrics["uncertainty_methods"],
+        "direction_frontier": _direction_frontier(worlds),
+    }
 
 
 def _parent_seal() -> dict[str, Any]:
@@ -1043,15 +1679,75 @@ def _parent_seal() -> dict[str, Any]:
     }
 
 
-def run_hawkes_identifiability(*, workers: int = 8) -> dict[str, Any]:
+def run_hawkes_identifiability(
+    *, workers: int = 8, checkpoint_root: Path | None = None
+) -> dict[str, Any]:
     """Execute the preregistered suite once without reading D0.4 results for tuning."""
 
     parent = _parent_seal()
+    key = canonical_sha256(
+        {
+            "generator": normalized_source_sha256(Path(__file__)),
+            "preregistration": normalized_source_sha256(
+                ROOT / "docs/dynamics-lab-d0-4-1-preregistration.md"
+            ),
+            "parent": parent,
+        }
+    )
+    cache = (checkpoint_root or ROOT / "data/.cache/dynamics-d0-4-1") / key
+    cache.mkdir(parents=True, exist_ok=True)
+    completed: dict[str, dict[str, Any]] = {}
+    pending = []
+    for spec in WORLD_SPECS:
+        target = cache / (spec.world_id + ".json")
+        if target.exists():
+            saved = json.loads(target.read_text(encoding="utf-8"))
+            if (
+                saved.get("cache_key") != key
+                or saved.get("record_hash") != canonical_sha256(saved.get("record", {}))
+                or saved["record"]["world"]["world_id"] != spec.world_id
+            ):
+                raise HawkesIdentifiabilityError(
+                    f"checkpoint integrity failed: {target}"
+                )
+            completed[spec.world_id] = saved["record"]
+        else:
+            pending.append(spec)
+    print(
+        f"D0.4.1 checkpoint: {len(completed)}/420 complete; {len(pending)} pending",
+        flush=True,
+    )
+
+    def save(spec: WorldSpec, record: dict[str, Any]) -> None:
+        target = cache / (spec.world_id + ".json")
+        staging = target.with_suffix(".json.tmp")
+        staging.write_text(
+            json.dumps(
+                {
+                    "cache_key": key,
+                    "record_hash": canonical_sha256(record),
+                    "record": record,
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        staging.replace(target)
+        completed[spec.world_id] = record
+        print(
+            f"D0.4.1 {len(completed)}/420: {spec.world_id} events={sum(record['world']['event_counts'])} fit_success={record['fit']['optimizer']['success']}",
+            flush=True,
+        )
+
     if workers <= 1:
-        worlds = [_world_record(spec) for spec in WORLD_SPECS]
-    else:
+        for spec in pending:
+            save(spec, _world_record(spec))
+    elif pending:
         with ProcessPoolExecutor(max_workers=workers) as executor:
-            worlds = list(executor.map(_world_record, WORLD_SPECS, chunksize=1))
+            futures = {executor.submit(_world_record, spec): spec for spec in pending}
+            for future in as_completed(futures):
+                save(futures[future], future.result())
+    worlds = [completed[spec.world_id] for spec in WORLD_SPECS]
     metrics = _suite_metrics(worlds)
     result = _capability_result(metrics)
     artifact: dict[str, Any] = {
@@ -1063,7 +1759,9 @@ def run_hawkes_identifiability(*, workers: int = 8) -> dict[str, Any]:
         "parent_seal": parent,
         "preregistration": {
             "path": "docs/dynamics-lab-d0-4-1-preregistration.md",
-            "source_sha256": normalized_source_sha256(ROOT / "docs/dynamics-lab-d0-4-1-preregistration.md"),
+            "source_sha256": normalized_source_sha256(
+                ROOT / "docs/dynamics-lab-d0-4-1-preregistration.md"
+            ),
             "worlds": 420,
             "seed_range": [41001, 41420],
             "d0_4_worlds_used_for_tuning": 0,
@@ -1072,7 +1770,9 @@ def run_hawkes_identifiability(*, workers: int = 8) -> dict[str, Any]:
             "worlds_planned": 420,
             "worlds_executed": len(worlds),
             "audit_worlds": sum(spec.audit for spec in WORLD_SPECS),
-            "information_regimes": [{"name": name, "target_events": target} for name, target in INFO_REGIMES],
+            "information_regimes": [
+                {"name": name, "target_events": target} for name, target in INFO_REGIMES
+            ],
             "attribution_bootstrap_repetitions": ATTRIBUTION_REPETITIONS,
             "parametric_bootstrap_repetitions": PARAMETRIC_REPETITIONS,
             "profile_likelihood_cutoff": PROFILE_CUTOFF,
@@ -1120,8 +1820,12 @@ def load_frozen_hawkes_identifiability(
     try:
         artifact = json.loads(target.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise HawkesIdentifiabilityError(f"unable to read frozen D0.4.1 artifact: {exc}") from exc
-    from src.dynamics.hawkes_identifiability_verifier import verify_hawkes_identifiability
+        raise HawkesIdentifiabilityError(
+            f"unable to read frozen D0.4.1 artifact: {exc}"
+        ) from exc
+    from src.dynamics.hawkes_identifiability_verifier import (
+        verify_hawkes_identifiability,
+    )
 
     report = verify_hawkes_identifiability(artifact)
     if not report["valid"]:
