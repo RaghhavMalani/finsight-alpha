@@ -10,6 +10,11 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
 
+from src.dynamics.hawkes_identifiability import HawkesIdentifiabilityError
+from src.dynamics.hawkes_identifiability_projection import (
+    load_hawkes_identifiability_projection,
+)
+
 from src.dynamics import (
     DynamicsInputError,
     EstimatorTournamentError,
@@ -460,4 +465,13 @@ def hawkes_event_process_artifact() -> dict[str, Any]:
     try:
         return load_frozen_hawkes_certification()
     except HawkesCertificationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/certification/hawkes-identifiability")
+def hawkes_identifiability_artifact() -> dict[str, Any]:
+    """Return only verified frozen D0.4.1 evidence, never run an experiment."""
+    try:
+        return load_hawkes_identifiability_projection()
+    except HawkesIdentifiabilityError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

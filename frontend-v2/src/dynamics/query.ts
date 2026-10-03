@@ -8,6 +8,7 @@ import { fetchTargetedRecovery } from "@/dynamics/recovery-contracts";
 import { fetchGeneralizationAutopsy } from "@/dynamics/autopsy-contracts";
 import { fetchEvidenceCompleteReplication } from "@/dynamics/replication-contracts";
 import { fetchHawkesCertification } from "@/dynamics/hawkes-contracts";
+import { fetchHawkesIdentifiability } from "@/dynamics/hawkes-identifiability-contracts";
 
 export const referenceDynamicsQuery = queryOptions({
   queryKey: ["dynamics", "theory-certification", "d0.2.1-reference-1"],
@@ -60,6 +61,12 @@ export const evidenceCompleteReplicationQuery = queryOptions({
 export const hawkesCertificationQuery = queryOptions({
   queryKey: ["dynamics", "hawkes-event-process", "d0.4-reference-1"],
   queryFn: fetchHawkesCertification,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+export const hawkesIdentifiabilityQuery = queryOptions({
+  queryKey: ["dynamics", "hawkes-identifiability", "d0.4.1-frozen"],
+  queryFn: fetchHawkesIdentifiability,
   staleTime: Number.POSITIVE_INFINITY,
 });
 

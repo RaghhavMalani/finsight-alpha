@@ -36,6 +36,7 @@ IMPLEMENTATION_SOURCES = (
     ROOT / "src/dynamics/hawkes_identifiability_verifier.py",
     ROOT / "scripts/freeze_dynamics_d0_4_1.py",
     ROOT / "scripts/verify_dynamics_d0_4_1.py",
+    ROOT / "scripts/replay_dynamics_d0_4_1_hessian.py",
     ROOT / "docs/dynamics-lab-d0-4-1-preregistration.md",
 )
 
@@ -703,7 +704,8 @@ def _interval_payload(
 def _hessian_uncertainty(
     fit: Mapping[str, Any], truth: np.ndarray, *, seed: int
 ) -> dict[str, Any]:
-    estimate = np.asarray(fit["branching_matrix"], dtype=float)
+    # Draw from the same precision that will be sealed in the artifact.
+    estimate = np.asarray(_round(fit["branching_matrix"]), dtype=float)
     covariance_value = fit.get("log_parameter_covariance")
     if covariance_value is None:
         blank = np.full_like(estimate, np.nan)
@@ -713,7 +715,7 @@ def _hessian_uncertainty(
             "branching": _interval_payload(estimate, blank, blank, truth),
             "spectral_radius_ci95": None,
         }
-    covariance = np.asarray(covariance_value, dtype=float)
+    covariance = np.asarray(_round(covariance_value), dtype=float)
     dimension = estimate.shape[0]
     beta_index = dimension + dimension * dimension
     variance = np.zeros_like(estimate)
@@ -730,12 +732,15 @@ def _hessian_uncertainty(
     lower = np.maximum(0.0, estimate - 1.959963984540054 * standard_error)
     upper = estimate + 1.959963984540054 * standard_error
     eigenvalues, eigenvectors = np.linalg.eigh((covariance + covariance.T) / 2.0)
-    safe_covariance = (eigenvectors * np.maximum(eigenvalues, 0.0)) @ eigenvectors.T
+    # The symmetric principal root is invariant to signs/rotations of repeated
+    # eigenvectors. SVD-based multivariate_normal transports are not, making
+    # finite Monte Carlo replay sensitive to serialization of nearly repeated
+    # eigenvalues. The Gaussian distribution and interval rule are unchanged.
+    principal_root = (
+        eigenvectors * np.sqrt(np.maximum(eigenvalues, 0.0))
+    ) @ eigenvectors.T
     rng = np.random.default_rng(seed)
-    center = np.zeros(covariance.shape[0], dtype=float)
-    draws = rng.multivariate_normal(
-        center, safe_covariance, size=256, check_valid="ignore"
-    )
+    draws = rng.standard_normal((256, covariance.shape[0])) @ principal_root.T
     spectral_draws = []
     for draw in draws:
         log_g_delta = (

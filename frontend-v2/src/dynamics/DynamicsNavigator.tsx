@@ -4,6 +4,7 @@ import { ForgeShell } from "@/app/shell/ForgeShell";
 import { DynamicsLab } from "@/dynamics/DynamicsLab";
 import { FailureMicroscope } from "@/dynamics/FailureMicroscope";
 import { EventDynamicsWorkbench } from "@/dynamics/EventDynamicsWorkbench";
+import { EventIdentifiabilityObservatory } from "@/dynamics/EventIdentifiabilityObservatory";
 import { GeneralizationAutopsy } from "@/dynamics/GeneralizationAutopsy";
 import { NonlinearWorkbench } from "@/dynamics/NonlinearWorkbench";
 import { PowerObservatory } from "@/dynamics/PowerObservatory";
@@ -15,6 +16,7 @@ import {
   failureDecompositionQuery,
   generalizationAutopsyQuery,
   hawkesCertificationQuery,
+  hawkesIdentifiabilityQuery,
   identifiabilityQuery,
   nonlinearDynamicsQuery,
   targetedRecoveryQuery,
@@ -33,7 +35,8 @@ type MilestoneKey =
   | "d0.3.3.1"
   | "d0.3.3.2"
   | "d0.3.4"
-  | "d0.4";
+  | "d0.4"
+  | "d0.4.1";
 
 type Selection = { program: ProgramKey; milestone: MilestoneKey };
 
@@ -68,11 +71,14 @@ const PROGRAMS: Array<{
     key: "event-dynamics",
     label: "Event dynamics",
     summary: "Excitation versus ordinary clustering",
-    milestones: [{ key: "d0.4", label: "D0.4", result: "Hawkes certification" }],
+    milestones: [
+      { key: "d0.4", label: "D0.4", result: "Hawkes certification" },
+      { key: "d0.4.1", label: "D0.4.1", result: "Uncertainty & edge identifiability" },
+    ],
   },
 ];
 
-const DEFAULT_SELECTION: Selection = { program: "event-dynamics", milestone: "d0.4" };
+const DEFAULT_SELECTION: Selection = { program: "event-dynamics", milestone: "d0.4.1" };
 
 function validSelection(program: string | null, milestone: string | null): Selection {
   const match = PROGRAMS.find((candidate) => candidate.key === program);
@@ -139,8 +145,9 @@ export function DynamicsNavigator() {
               Every milestone keeps its evidence, boundary, and result separate.
             </h1>
             <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]">
-              Navigate the frozen experiment lineage. D0.4 tests event-process identification on
-              synthetic timestamps and keeps both market and causal claims ineligible.
+              Navigate the frozen experiment lineage. D0.4.1 measures uncertainty and directed
+              structure on synthetic timestamps. The D0.4 parent stays frozen; market and causal
+              claims remain ineligible.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -150,9 +157,9 @@ export function DynamicsNavigator() {
         </div>
       </header>
 
-      <div className="mt-3 grid items-start gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className="mt-3 grid grid-cols-1 items-start gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <aside
-          className="border border-[#25313A] bg-[#090D10] lg:sticky lg:top-3"
+          className="min-w-0 border border-[#25313A] bg-[#090D10] lg:sticky lg:top-3"
           aria-label="Dynamics milestones"
         >
           <div className="border-b border-[#25313A] px-3 py-3 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] text-[#6C7882]">
@@ -221,11 +228,17 @@ function MilestoneSurface({ selection }: { selection: Selection }) {
     ...hawkesCertificationQuery,
     enabled: is("d0.4"),
   });
+  const hawkesIdentifiability = useQuery({ ...hawkesIdentifiabilityQuery, enabled: is("d0.4.1") });
 
   if (selection.program === "mean-reversion") {
     return <DynamicsLab baseOnly embedded />;
   }
   if (selection.program === "event-dynamics") {
+    if (is("d0.4.1")) {
+      return querySurface(hawkesIdentifiability, "D0.4.1 Hawkes identifiability", (data) => (
+        <EventIdentifiabilityObservatory artifact={data} />
+      ));
+    }
     return querySurface(hawkes, "D0.4 Hawkes event-process certification", (data) => (
       <EventDynamicsWorkbench artifact={data} />
     ));
