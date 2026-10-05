@@ -69,7 +69,7 @@ export function ForgeShell({ children }: { children: ReactNode }) {
                 onClick={() => setPaletteOpen(true)}
                 className="flex items-center gap-2 border-x border-[#1D232B] px-3 py-4 text-left hover:bg-[#0B0E11] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000]"
               >
-                <kbd className="font-mono text-[8px] text-[#65707c]">F1</kbd>
+                <kbd className="font-mono text-[8px] text-[#93A0AD]">F1</kbd>
                 <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#c6ccd2]">
                   Command
                 </span>
@@ -86,7 +86,7 @@ export function ForgeShell({ children }: { children: ReactNode }) {
                       active ? "bg-[#111820] text-[#FFB000]" : "text-[#c6ccd2] hover:bg-[#0B0E11]"
                     }`}
                   >
-                    <kbd className="font-mono text-[8px] text-[#65707c]">{item.key}</kbd>
+                    <kbd className="font-mono text-[8px] text-[#93A0AD]">{item.key}</kbd>
                     <span className="font-mono text-[9px] uppercase tracking-[0.1em]">
                       {item.label}
                     </span>
@@ -118,7 +118,7 @@ export function ForgeShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="border-t border-[#1D232B] px-4 py-3">
-        <div className="mx-auto flex max-w-[1760px] flex-wrap items-center justify-between gap-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#59636e]">
+        <div className="mx-auto flex max-w-[1760px] flex-wrap items-center justify-between gap-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#93A0AD]">
           <span>Observer Foundation · read-only</span>
           <span>Unknown schemas fail closed</span>
         </div>

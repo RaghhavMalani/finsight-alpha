@@ -34,9 +34,13 @@ const BoundaryStructureMicroscope = lazy(() =>
 const MarketRegimeLab = lazy(() =>
   import("@/dynamics/MarketRegimeLab").then((module) => ({ default: module.MarketRegimeLab })),
 );
+const RegimeProduct = lazy(() =>
+  import("@/dynamics/RegimeProduct").then((module) => ({ default: module.RegimeProduct })),
+);
 
 type ProgramKey = "mean-reversion" | "nonlinear" | "event-dynamics" | "market-regime";
 type MilestoneKey =
+  | "v1"
   | "d0.2.1"
   | "d0.3"
   | "d0.3.1"
@@ -63,7 +67,10 @@ const PROGRAMS: Array<{
     key: "market-regime",
     label: "Market regime intelligence",
     summary: "Integrated PIT product analytics",
-    milestones: [{ key: "d0.4.2", label: "D0.4.2", result: "Vol / factors / momentum / fracture" }],
+    milestones: [
+      { key: "v1", label: "V1", result: "NOW / REPLAY / COMPARE" },
+      { key: "d0.4.2", label: "D0.4.2", result: "Frozen integrated analytics" },
+    ],
   },
   {
     key: "mean-reversion",
@@ -98,7 +105,7 @@ const PROGRAMS: Array<{
   },
 ];
 
-const DEFAULT_SELECTION: Selection = { program: "market-regime", milestone: "d0.4.2" };
+const DEFAULT_SELECTION: Selection = { program: "market-regime", milestone: "v1" };
 
 function validSelection(program: string | null, milestone: string | null): Selection {
   const match = PROGRAMS.find((candidate) => candidate.key === program);
@@ -158,16 +165,17 @@ export function DynamicsNavigator() {
       <header className="border border-[#25313A] bg-[#090D10] px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-[#6D7A84]">
-              FinSight Forge / Dynamics research program
+            <div className="font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-[#9BAAB5]">
+              FinSight Forge / Market Regime Intelligence
             </div>
             <h1 className="mt-2 max-w-4xl text-balance text-2xl font-semibold tracking-[-0.03em] text-[#E8ECEF] sm:text-3xl">
-              Market research, with inspectable evidence.
+              Markets as published. History as known.
             </h1>
             <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]">
-              D0.4.2 integrates five PIT analytics modules and aggregate event diagnostics. The
-              historical experiment lineage stays separately addressable. Experimental composites
-              remain ineligible for market and causal claims.
+              Publication-aware asset analytics, historical replay and snapshot comparison. Frozen
+              D0.4.2 instruments power the product; the complete research lineage remains in the
+              secondary evidence drawer. Experimental composites are not market or causal
+              certification.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -177,56 +185,73 @@ export function DynamicsNavigator() {
         </div>
       </header>
 
-      <div className="mt-3 grid grid-cols-1 items-start gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <aside
-          className="min-w-0 border border-[#25313A] bg-[#090D10] lg:sticky lg:top-3"
-          aria-label="Dynamics milestones"
+      <div className="mt-3 space-y-3">
+        <button
+          className="border border-[#5A6B77] px-3 py-2 text-xs text-[#D7E0E6]"
+          onClick={() => choose(DEFAULT_SELECTION)}
         >
-          <div className="border-b border-[#25313A] px-3 py-3 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] text-[#6C7882]">
-            Program ledger
-          </div>
-          <div className="max-h-[36rem] overflow-x-auto lg:max-h-none lg:overflow-visible">
-            <div className="flex min-w-max gap-px bg-[#202930] lg:block lg:min-w-0">
-              {PROGRAMS.map((program) => (
-                <section key={program.key} className="w-64 bg-[#090D10] lg:w-auto">
-                  <div className="border-b border-[#1B232A] px-3 py-3">
-                    <h2 className="text-[11px] font-semibold text-[#C9D0D5]">{program.label}</h2>
-                    <p className="mt-1 text-[8px] leading-4 text-[#5F6B75]">{program.summary}</p>
-                  </div>
-                  <div className="p-1.5">
-                    {program.milestones.map((milestone) => {
-                      const active =
-                        selection.program === program.key && selection.milestone === milestone.key;
-                      const next = { program: program.key, milestone: milestone.key };
-                      return (
-                        <a
-                          key={milestone.key}
-                          href={selectionHref(next)}
-                          aria-current={active ? "page" : undefined}
-                          onClick={(event) => followMilestone(event, next)}
-                          className={`mb-1 grid w-full grid-cols-[4.2rem_1fr] items-center gap-2 border px-2.5 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${
-                            active
-                              ? "border-[#80631F] bg-[#171309] text-[#F1D18B]"
-                              : "border-transparent text-[#7A8790] hover:border-[#28343D] hover:bg-[#0D1317] hover:text-[#C7CFD5]"
-                          }`}
-                        >
-                          <span className="font-mono text-[9px] font-semibold">
-                            {milestone.label}
-                          </span>
-                          <span className="text-[8px] leading-3">{milestone.result}</span>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
+          Open current product
+        </button>
+        <details className="border border-[#25313A] p-3">
+          <summary className="cursor-pointer text-xs text-[#B7C6D0]">
+            Frozen research evidence / D0–D0.4.2 lineage
+          </summary>
+          <aside
+            className="mt-3 min-w-0 border border-[#25313A] bg-[#090D10]"
+            aria-label="Dynamics milestones"
+          >
+            <div className="border-b border-[#25313A] px-3 py-3 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] text-[#9BAAB5]">
+              Program ledger
             </div>
-          </div>
-        </aside>
+            <div className="max-h-[36rem] overflow-x-auto lg:max-h-none lg:overflow-visible">
+              <div className="flex min-w-max gap-px bg-[#202930] lg:block lg:min-w-0">
+                {PROGRAMS.map((program) => (
+                  <section key={program.key} className="w-64 bg-[#090D10] lg:w-auto">
+                    <div className="border-b border-[#1B232A] px-3 py-3">
+                      <h2 className="text-[11px] font-semibold text-[#C9D0D5]">{program.label}</h2>
+                      <p className="mt-1 text-[8px] leading-4 text-[#9BAAB5]">{program.summary}</p>
+                    </div>
+                    <div className="p-1.5">
+                      {program.milestones.map((milestone) => {
+                        const active =
+                          selection.program === program.key &&
+                          selection.milestone === milestone.key;
+                        const next = { program: program.key, milestone: milestone.key };
+                        return (
+                          <a
+                            key={milestone.key}
+                            href={selectionHref(next)}
+                            aria-current={active ? "page" : undefined}
+                            onClick={(event) => followMilestone(event, next)}
+                            className={`mb-1 grid w-full grid-cols-[4.2rem_1fr] items-center gap-2 border px-2.5 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${
+                              active
+                                ? "border-[#80631F] bg-[#171309] text-[#F1D18B]"
+                                : "border-transparent text-[#7A8790] hover:border-[#28343D] hover:bg-[#0D1317] hover:text-[#C7CFD5]"
+                            }`}
+                          >
+                            <span className="font-mono text-[9px] font-semibold">
+                              {milestone.label}
+                            </span>
+                            <span className="text-[8px] leading-3">{milestone.result}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </details>
 
-        <main id="dynamics-milestone" className="min-w-0" aria-live="polite">
+        <section
+          id="dynamics-milestone"
+          className="min-w-0"
+          aria-label="Dynamics product and evidence"
+          aria-live="polite"
+        >
           <MilestoneSurface selection={selection} />
-        </main>
+        </section>
       </div>
     </ForgeShell>
   );
@@ -254,7 +279,7 @@ function MilestoneSurface({ selection }: { selection: Selection }) {
   if (selection.program === "market-regime") {
     return (
       <Suspense fallback={<LoadingState label="Market Regime Intelligence" />}>
-        <MarketRegimeLab />
+        {is("v1") ? <RegimeProduct /> : <MarketRegimeLab />}
       </Suspense>
     );
   }

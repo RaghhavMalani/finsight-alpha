@@ -40,6 +40,7 @@ data/documents/
 data/graphs/
 data/rag_index/
 data/intelligence/snapshots/
+data/regime_intelligence/
 
 # IDEs
 .vscode/
