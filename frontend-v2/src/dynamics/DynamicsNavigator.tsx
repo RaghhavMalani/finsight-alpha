@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { DynamicsLab } from "@/dynamics/DynamicsLab";
 import { FailureMicroscope } from "@/dynamics/FailureMicroscope";
@@ -17,12 +17,19 @@ import {
   generalizationAutopsyQuery,
   hawkesCertificationQuery,
   hawkesIdentifiabilityQuery,
+  hawkesBoundaryQuery,
   identifiabilityQuery,
   nonlinearDynamicsQuery,
   targetedRecoveryQuery,
   tournamentQuery,
 } from "@/dynamics/query";
 import { LoadingState, StatusMark, UnavailableState } from "@/forge/shared/SurfacePrimitives";
+
+const BoundaryStructureMicroscope = lazy(() =>
+  import("@/dynamics/BoundaryStructureMicroscope").then((module) => ({
+    default: module.BoundaryStructureMicroscope,
+  })),
+);
 
 type ProgramKey = "mean-reversion" | "nonlinear" | "event-dynamics";
 type MilestoneKey =
@@ -36,7 +43,8 @@ type MilestoneKey =
   | "d0.3.3.2"
   | "d0.3.4"
   | "d0.4"
-  | "d0.4.1";
+  | "d0.4.1"
+  | "d0.4.1.1";
 
 type Selection = { program: ProgramKey; milestone: MilestoneKey };
 
@@ -74,11 +82,12 @@ const PROGRAMS: Array<{
     milestones: [
       { key: "d0.4", label: "D0.4", result: "Hawkes certification" },
       { key: "d0.4.1", label: "D0.4.1", result: "Uncertainty & edge identifiability" },
+      { key: "d0.4.1.1", label: "D0.4.1.1", result: "Boundary & structure microscope" },
     ],
   },
 ];
 
-const DEFAULT_SELECTION: Selection = { program: "event-dynamics", milestone: "d0.4.1" };
+const DEFAULT_SELECTION: Selection = { program: "event-dynamics", milestone: "d0.4.1.1" };
 
 function validSelection(program: string | null, milestone: string | null): Selection {
   const match = PROGRAMS.find((candidate) => candidate.key === program);
@@ -145,9 +154,9 @@ export function DynamicsNavigator() {
               Every milestone keeps its evidence, boundary, and result separate.
             </h1>
             <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]">
-              Navigate the frozen experiment lineage. D0.4.1 measures uncertainty and directed
-              structure on synthetic timestamps. The D0.4 parent stays frozen; market and causal
-              claims remain ineligible.
+              Navigate the frozen experiment lineage. D0.4.1.1 decomposes boundary and structural
+              failures on matched synthetic timestamps. Both event parents stay frozen; market and
+              causal claims remain ineligible.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -229,11 +238,19 @@ function MilestoneSurface({ selection }: { selection: Selection }) {
     enabled: is("d0.4"),
   });
   const hawkesIdentifiability = useQuery({ ...hawkesIdentifiabilityQuery, enabled: is("d0.4.1") });
+  const hawkesBoundary = useQuery({ ...hawkesBoundaryQuery, enabled: is("d0.4.1.1") });
 
   if (selection.program === "mean-reversion") {
     return <DynamicsLab baseOnly embedded />;
   }
   if (selection.program === "event-dynamics") {
+    if (is("d0.4.1.1")) {
+      return querySurface(hawkesBoundary, "D0.4.1.1 boundary diagnostics", (data) => (
+        <Suspense fallback={<LoadingState label="Boundary / Structure Microscope" />}>
+          <BoundaryStructureMicroscope artifact={data} />
+        </Suspense>
+      ));
+    }
     if (is("d0.4.1")) {
       return querySurface(hawkesIdentifiability, "D0.4.1 Hawkes identifiability", (data) => (
         <EventIdentifiabilityObservatory artifact={data} />

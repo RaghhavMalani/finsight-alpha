@@ -45,6 +45,7 @@ This table separates code on `main`, completed research on public branches, and 
 | D0.3.4 evidence-complete replication | Frozen on [`dynamics/d0.3.4-evidence-complete-replication`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.3.4-evidence-complete-replication) | 400/400 evidence-complete worlds; `PARTIALLY_CHARACTERIZED`; false-basin control and basin recall supported; state-diffusion limitation replicated |
 | D0.4 Hawkes event processes | Frozen parent on [`dynamics/d0.4-hawkes-event-dynamics`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.4-hawkes-event-dynamics); not promoted to `main` | 12 historical worlds; canonical evidence unchanged; interval and graph limitations remain visible |
 | D0.4.1 Hawkes uncertainty & edge identifiability | Frozen on [`dynamics/d0.4.1-hawkes-identifiability`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.4.1-hawkes-identifiability); not promoted to `main` | 420 new seed-disjoint worlds; `PARTIALLY_CHARACTERIZED`; fixed-attribution coverage 19.1%, parametric-refit coverage 65.9%, exact graph recovery 69.4%; [full evidence and boundaries](docs/dynamics-lab-d0-4-1-results.md) |
+| D0.4.1.1 Hawkes boundary & structural failure decomposition | Frozen diagnostic on [`dynamics/d0.4.1.1-boundary-structure-decomposition`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.4.1.1-boundary-structure-decomposition); not promoted to `main` | 200 new matched latent worlds / 1,800 protocol fits; `EVIDENCE_INSUFFICIENT`; neither repair warrant activated; both parent artifacts byte-identical; [diagnostic evidence and stop boundary](docs/dynamics-lab-d0-4-1-1-results.md) |
 | Reinforcement learning from verifiable rewards | Roadmap | Training starts only after live baselines, completeness gates, and contamination controls are frozen |
 
 Branch-specific work is not presented as merged into `main`. Each research artifact records its own claim boundary.
@@ -496,6 +497,7 @@ The repository has deliberate boundaries:
 - D0.3.3.2 defines evidence requirements but contains zero scientific worlds
 - D0.3.4 completed 400 worlds and remains `PARTIALLY_CHARACTERIZED`
 - Hawkes D0.4.1 completed 420 synthetic worlds but has not established calibrated uncertainty or reliable structure across the full grid; no event research has been promoted to `main`
+- Hawkes D0.4.1.1 decomposed nine observation protocols on 200 new matched realizations without repairing the instrument; its preregistered decision is `EVIDENCE_INSUFFICIENT`, and D0.4.2 has not started
 - The platform is not investment advice, a broker, or an execution venue
 - Authentication and tenancy controls have not received an external security audit
 - Billing, subscriptions, growth analytics, and organization-administration polish are outside the current research scope

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
+import ast
 
 import numpy as np
 import pytest
@@ -174,17 +176,21 @@ def test_terminal_decision_does_not_invent_evidence_for_empty_suite() -> None:
     assert not result["intrinsic_nonidentifiability_established"]
 
 
-def test_independent_dev_world_reconstruction() -> None:
+@pytest.mark.parametrize("index", [0, 120, 160, 180])
+def test_independent_dev_world_reconstruction(index: int) -> None:
     from src.dynamics.hawkes_boundary_analysis import derive_details
 
-    spec = copy.deepcopy(lab.registry()[120])
+    spec = copy.deepcopy(lab.registry()[index])
     spec.update(id="independent_unit_only", seed=799912, target=60, audit=False)
     record = derive_details(lab.record_latent(spec))
     assert independent._latent(spec) == record["latent"]
     errors = []
     independent._world(record, spec, errors)
     assert not errors, errors
-    record["protocols"][0]["structural_identifiability"] = "HIGH"
+    current = record["protocols"][0]["structural_identifiability"]
+    record["protocols"][0]["structural_identifiability"] = (
+        "HIGH" if current != "HIGH" else "LOW"
+    )
     independent._world(record, spec, errors)
     assert errors
 
@@ -193,3 +199,104 @@ def test_independent_registry_and_empty_decision() -> None:
     assert independent._design() == lab.registry()
     assert independent._decision([]) == terminal_decision([])
     assert not independent.verify_hawkes_boundary({})["valid"]
+
+
+@pytest.fixture(scope="module")
+def frozen_boundary():
+    return json.loads(lab.ARTIFACT.read_text(encoding="utf-8"))
+
+
+def test_verifier_has_no_instrument_or_analysis_imports() -> None:
+    tree = ast.parse(
+        (lab.ROOT / "src/dynamics/hawkes_boundary_verifier.py").read_text(
+            encoding="utf-8"
+        )
+    )
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            assert not (node.module or "").startswith(("src", "backend"))
+        elif isinstance(node, ast.Import):
+            assert all(
+                not alias.name.startswith(("src", "backend")) for alias in node.names
+            )
+
+
+def test_frozen_diagnostics_reconstruct_independently(frozen_boundary) -> None:
+    assert frozen_boundary["summary"] == independent._summary(
+        frozen_boundary["records"]
+    )
+    assert len(frozen_boundary["records"]) == 200
+    assert all(len(r["protocols"]) == 9 for r in frozen_boundary["records"])
+    assert all(not v for v in frozen_boundary["claims"].values())
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "rho",
+        "state",
+        "likelihood",
+        "exposure",
+        "identity",
+        "support",
+        "coverage",
+        "comparison",
+        "condition",
+    ],
+)
+def test_frozen_world_rejects_lower_evidence_tampering(frozen_boundary, field) -> None:
+    record = copy.deepcopy(frozen_boundary["records"][0])
+    row = record["protocols"][0]
+    if field == "rho":
+        row["fit"]["spectral_radius"] += 0.1
+    elif field == "state":
+        row["structural_identifiability"] = "FABRICATED_HIGH"
+    elif field == "likelihood":
+        row["fit"]["log_likelihood"] += 10
+    elif field == "exposure":
+        row["protocol"]["history"][0].append(-1.0)
+    elif field == "identity":
+        row["retained_hash"] = "0" * 64
+    elif field == "support":
+        row["uncertainty"]["event_attribution"]["edge_support"][0][0] ^= 1
+    elif field == "coverage":
+        row["uncertainty"]["event_attribution"]["branching"]["covered"][0][0] ^= 1
+    elif field == "comparison":
+        row["comparison_to_zero"]["rho_delta"] += 0.1
+    elif field == "condition":
+        row["geometry"]["condition"] = 1.0
+    errors = []
+    independent._world(record, lab.registry()[0], errors)
+    assert errors, field
+
+
+def test_false_edge_tag_cannot_be_invented(frozen_boundary) -> None:
+    record = copy.deepcopy(
+        next(
+            r for r in frozen_boundary["records"] if r["protocols"][0]["edge_failures"]
+        )
+    )
+    record["protocols"][0]["edge_failures"][0]["tags"] = ["CAUSAL_CONFIRMED"]
+    errors = []
+    independent._world(record, record["latent"]["spec"], errors)
+    assert errors
+
+
+@pytest.mark.parametrize(
+    "field", ["claims", "threshold", "registry", "sources", "missing"]
+)
+def test_resealed_payload_cannot_bypass_contract(frozen_boundary, field) -> None:
+    payload = copy.deepcopy(frozen_boundary)
+    if field == "claims":
+        payload["claims"]["causal_claim_eligible"] = True
+    elif field == "threshold":
+        payload["thresholds"]["oracle_rmse_reduction"] = 0.01
+    elif field == "registry":
+        payload["registry"][0]["seed"] = 1
+    elif field == "sources":
+        payload["implementation_sources"]["src/dynamics/hawkes_boundary.py"] = "0" * 64
+    else:
+        payload["records"].pop()
+    payload.pop("artifact_hash")
+    payload["artifact_hash"] = lab.canonical(payload)
+    assert not independent.verify_hawkes_boundary(payload)["valid"]

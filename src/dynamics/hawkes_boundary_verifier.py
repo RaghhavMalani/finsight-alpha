@@ -859,6 +859,32 @@ def _world(record: dict, spec: dict, errors: list, *, replay: bool = True) -> No
             return
         geometric = _geometry(fit)
         _compare(row["geometry"], geometric, errors, rlabel + ".geometry")
+        # The optimizer's original condition is a primitive diagnostic taken
+        # before nine-decimal serialization. Weyl bounds, not an arbitrary
+        # relative tolerance, account for quantization of its covariance.
+        original_condition = fit["identifiability"]["inverse_hessian_condition"]
+        if c is None:
+            if original_condition is not None:
+                errors.append(rlabel + ": missing covariance for condition")
+        else:
+            singular = np.linalg.svd(np.asarray(c), compute_uv=False)
+            perturbation = (
+                len(c) * 0.5e-9 + 8 * np.finfo(float).eps * len(c) * singular[0]
+            )
+            lower = max(0.0, singular[0] - perturbation) / (singular[-1] + perturbation)
+            upper = (
+                (singular[0] + perturbation) / (singular[-1] - perturbation)
+                if singular[-1] > perturbation
+                else math.inf
+            )
+            if (
+                original_condition is None
+                or not math.isfinite(original_condition)
+                or not lower <= original_condition <= upper
+            ):
+                errors.append(
+                    rlabel + ": original condition outside covariance rounding bounds"
+                )
         count = sum(max(1, len(s)) for s in events)
         _compare(
             fit["identifiability"],
@@ -866,11 +892,11 @@ def _world(record: dict, spec: dict, errors: list, *, replay: bool = True) -> No
                 "event_count": count,
                 "parameter_count": n + n * n + 1,
                 "events_per_parameter": count / (n + n * n + 1),
-                "inverse_hessian_condition": geometric["condition"],
+                "inverse_hessian_condition": original_condition,
                 "locally_identifiable": bool(
                     optimizer["success"]
-                    and geometric["condition"] is not None
-                    and geometric["condition"] < 1e12
+                    and original_condition is not None
+                    and original_condition < 1e12
                     and fit["spectral_radius"] < 0.995
                 ),
             },

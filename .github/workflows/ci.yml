@@ -53,6 +53,7 @@ jobs:
           python scripts/verify_dynamics_d0_3_4.py
           python scripts/verify_dynamics_d0_4.py
           python scripts/verify_dynamics_d0_4_1.py
+          python scripts/verify_dynamics_d0_4_1_1.py
       - name: Verify agent-eval anti-gaming contracts
         run: pytest -q tests/test_agent_eval_metrics.py tests/sabotage
       - run: pytest -q
@@ -74,8 +75,11 @@ jobs:
       - run: npx eslint src/components/terminal/StockIntelligencePanel.tsx src/components/terminal/MonteCarloPanel.tsx
       - run: npx eslint src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
       - run: npx prettier --check src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
+      - run: npx eslint src/dynamics/BoundaryStructureMicroscope.tsx src/dynamics/hawkes-boundary-contracts.ts
+      - run: npx prettier --check src/dynamics/BoundaryStructureMicroscope.tsx src/dynamics/hawkes-boundary-contracts.ts scripts/verify-hawkes-boundary.mjs
       - run: npx tsc --noEmit
       - run: node scripts/verify-hawkes-identifiability.mjs
+      - run: node scripts/verify-hawkes-boundary.mjs
       - run: npm run build
 
   truth-contract:

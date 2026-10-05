@@ -11,6 +11,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
 
 from src.dynamics.hawkes_identifiability import HawkesIdentifiabilityError
+from src.dynamics.hawkes_boundary import BoundaryEvidenceError
+from src.dynamics.hawkes_boundary_projection import load_boundary_projection
 from src.dynamics.hawkes_identifiability_projection import (
     load_hawkes_identifiability_projection,
 )
@@ -474,4 +476,13 @@ def hawkes_identifiability_artifact() -> dict[str, Any]:
     try:
         return load_hawkes_identifiability_projection()
     except HawkesIdentifiabilityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/certification/hawkes-boundary-decomposition")
+def hawkes_boundary_artifact() -> dict[str, Any]:
+    """Serve verified frozen diagnostics; never fit, tune or ingest events."""
+    try:
+        return load_boundary_projection()
+    except BoundaryEvidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

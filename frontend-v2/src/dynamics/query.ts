@@ -9,6 +9,7 @@ import { fetchGeneralizationAutopsy } from "@/dynamics/autopsy-contracts";
 import { fetchEvidenceCompleteReplication } from "@/dynamics/replication-contracts";
 import { fetchHawkesCertification } from "@/dynamics/hawkes-contracts";
 import { fetchHawkesIdentifiability } from "@/dynamics/hawkes-identifiability-contracts";
+import { fetchHawkesBoundary } from "@/dynamics/hawkes-boundary-contracts";
 
 export const referenceDynamicsQuery = queryOptions({
   queryKey: ["dynamics", "theory-certification", "d0.2.1-reference-1"],
@@ -73,5 +74,11 @@ export const hawkesIdentifiabilityQuery = queryOptions({
 export const ouPowerQuery = queryOptions({
   queryKey: ["dynamics", "ou-power", "pilot-power-1", 6],
   queryFn: fetchOUPowerMap,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+export const hawkesBoundaryQuery = queryOptions({
+  queryKey: ["dynamics", "hawkes-boundary-decomposition", "d0.4.1.1-frozen"],
+  queryFn: fetchHawkesBoundary,
   staleTime: Number.POSITIVE_INFINITY,
 });

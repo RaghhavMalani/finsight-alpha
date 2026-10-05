@@ -104,7 +104,7 @@ def edge_evidence(
         "shared_decay_kernel_overlap": 1.0,
         "tags": tags,
         "primary_category": tags[0] if tags else None,
-        "reversed": kind == "FALSE" and truth[source, target] > 0.035,
+        "reversed": bool(kind == "FALSE" and truth[source, target] > 0.035),
     }
 
 
