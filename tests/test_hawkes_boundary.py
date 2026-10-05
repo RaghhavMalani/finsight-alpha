@@ -300,3 +300,24 @@ def test_resealed_payload_cannot_bypass_contract(frozen_boundary, field) -> None
     payload.pop("artifact_hash")
     payload["artifact_hash"] = lab.canonical(payload)
     assert not independent.verify_hawkes_boundary(payload)["valid"]
+
+
+def test_replay_tolerance_does_not_replace_exact_stored_identity(
+    frozen_boundary, monkeypatch
+) -> None:
+    record = frozen_boundary["records"][0]
+    replay = copy.deepcopy(record["latent"])
+    replay["full_events"][0][0] += 1e-9
+    replay["hash"] = independent._hash({k: v for k, v in replay.items() if k != "hash"})
+    monkeypatch.setattr(independent, "_latent", lambda spec: replay)
+    errors = []
+    independent._world(record, record["latent"]["spec"], errors)
+    assert not errors, errors
+    bad = copy.deepcopy(record)
+    bad["latent"]["hash"] = replay["hash"]
+    independent._world(bad, bad["latent"]["spec"], errors)
+    assert errors
+    replay["full_events"][0][0] += 1e-6
+    errors = []
+    independent._world(record, record["latent"]["spec"], errors)
+    assert errors

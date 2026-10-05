@@ -13,8 +13,11 @@ D0.4.1 remains **PARTIALLY_CHARACTERIZED**. No estimator, historical world, supp
 | Preregistration commit | `67f0537` |
 | Instrumentation-before-execution commit | `8cf7527` |
 | Artifact | `eval/dynamics/d0_4_1_1/hawkes_boundary_decomposition.json` |
-| Canonical content address | `d269438ccf6c7e186baa7454364a69df24a1f82277c697ea71d856dbea7913cb` |
-| Checkout-byte SHA-256 | `35d3d3aca8d8d71cfa0ee49f1da446fc052abb2c6f3e63ce555b75ee45686c09` |
+| Canonical content address | `fc035e03f41f73c209ce31e56a032b5ddb2c3a76472406b08b6d58de13a32b02` |
+| Checkout-byte SHA-256 | `655727aebbbf3f7528c121f94e0f6a63ee3304ec1a21554e1ce2f311ecb1746a` |
+| Scientific snapshot commit | `eea950b` (retained with its original envelope) |
+| Unchanged records content address | `cb7a1653b3010884f390c536655e0e283f8108717ccf0dc9c81db4a2cfcf3507` |
+| Unchanged summary content address | `e5ebc2f6d1941763c5fac00849c9f6acb596d5f008d4068c17a8d6a5936975fb` |
 | New independent realizations | 200, seeds `511001..511200` |
 | Primary protocol fits | 1,800; nine paired fits per realization |
 | Ordinary-fit uncertainty audit | 20 new criticality worlds; unchanged 16-refit and 49-point methods |
@@ -113,6 +116,18 @@ The original optimizer condition is recorded before covariance serialization. It
 `GET /dynamics/certification/hawkes-boundary-decomposition` returns a verified, authenticated, read-only projection. It never fits or ingests data. Successful verification is cached under child bytes, both parent bytes and all child/parent source seals; returned objects are copied so callers cannot poison the cache. A changed or malformed seal fails closed with HTTP 409. The first request performs the full independent reconstruction and is intentionally slow; this is not a low-latency market service.
 
 At `/dynamics?program=event-dynamics&milestone=d0.4.1.1`, the Boundary/Structure Microscope shows paired rho curves, protocol-specific confusion and false-edge counts, coverage filters, geometry groups/associations, ten preregistered representative realizations, true/fitted matrices, lower-level edge evidence, unavailable methods and terminal witnesses. Historical D0.4 and D0.4.1 views remain separately addressable. All numerical views originate in frozen evidence.
+
+## Release verification and portability
+
+The local release checks cover the full repository suite, all twelve Dynamics verifiers, the 112-file frozen Forge byte manifest, Python compilation/formatting, API fail-closed/cache checks, frontend lint/format/types, 25 new real-adapter assertions plus the 12 parent assertions, and client/server production builds. Responsive browser verification exercised the actual authenticated API at 1440px and 390px, protocol/coverage/representative controls, correct observed-driver Z labels and home/Dynamics navigation. There was no framework error overlay, page error or page-level horizontal overflow. The browser and both isolated servers were closed afterward.
+
+Browser authentication used a disposable account in ignored test storage and direct Dynamics navigation, avoiding the existing login-to-market-terminal redirect. Market endpoints were blocked; backend request logs contain only disposable authentication, paper-position reads and the synthetic evidence API. No market data was fetched by this verification.
+
+The first [release CI run](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/37265491042) passed the frontend and truth-contract jobs but exposed an exact hash comparison between stored events and independently regenerated Linux events at rho `.99`. Numerical replay had agreed, but platform floating-point rounding gave the regenerated realization a different content hash. Exact stored artifact/latent/retained/exposure hashes remain mandatory. Cross-platform seed replay now compares event times with zero relative tolerance and at most `2e-9` absolute tolerance, two nine-decimal serialization units; event counts, marks, registry and shared retained identities remain exact. A regression test accepts a one-unit replay difference, rejects an invented stored hash and rejects a `1e-6` timestamp discrepancy.
+
+Only the verifier source seal and release-envelope hash changed in this follow-up. Every timestamp, fit, interval, score, label, scientific gate and terminal witness remains identical, proven by the unchanged records and summary content addresses above. The original scientific snapshot and failed CI record remain in history. No refit, new simulation, score-based tuning or parent alteration occurred.
+
+All commits preserve `Raghhav Malani <96712854+RaghhavMalani@users.noreply.github.com>` as author and committer. The authorship gate reports no accidental attribution declarations and preserves legal third-party attribution. The primary user checkout was not edited or switched; this work used the attached diagnostic worktree.
 
 ## Stop boundary
 

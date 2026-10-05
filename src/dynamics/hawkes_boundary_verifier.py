@@ -89,13 +89,20 @@ def _hash(value: Any) -> str:
     ).hexdigest()
 
 
-def _compare(actual: Any, expected: Any, errors: list[str], label: str) -> None:
+def _compare(
+    actual: Any,
+    expected: Any,
+    errors: list[str],
+    label: str,
+    *,
+    tolerance: tuple[float, float] = (5e-6, 5e-6),
+) -> None:
     if isinstance(expected, Mapping):
         if not isinstance(actual, Mapping) or set(actual) != set(expected):
             errors.append(label + ": fields")
             return
         for key, value in expected.items():
-            _compare(actual[key], value, errors, label + "." + key)
+            _compare(actual[key], value, errors, label + "." + key, tolerance=tolerance)
     elif isinstance(expected, (list, tuple, np.ndarray)):
         if not isinstance(actual, (list, tuple, np.ndarray)) or len(actual) != len(
             expected
@@ -103,13 +110,15 @@ def _compare(actual: Any, expected: Any, errors: list[str], label: str) -> None:
             errors.append(label + ": length")
             return
         for i, value in enumerate(expected):
-            _compare(actual[i], value, errors, label + f"[{i}]")
+            _compare(actual[i], value, errors, label + f"[{i}]", tolerance=tolerance)
     elif isinstance(expected, (float, np.floating)):
         if (
             isinstance(actual, bool)
             or not isinstance(actual, (int, float))
             or not math.isfinite(actual)
-            or not math.isclose(actual, float(expected), rel_tol=5e-6, abs_tol=5e-6)
+            or not math.isclose(
+                actual, float(expected), rel_tol=tolerance[0], abs_tol=tolerance[1]
+            )
         ):
             errors.append(label + ": numeric")
     elif actual != expected or (
@@ -789,7 +798,18 @@ def _world(record: dict, spec: dict, errors: list, *, replay: bool = True) -> No
     label = spec["id"]
     latent = record["latent"]
     expected = _latent(spec) if replay else latent
-    _compare(latent, expected, errors, label + ".latent")
+    # Stored event identities remain exact content addresses. A replay made on
+    # another libm/BLAS platform can round one timestamp to an adjacent 1e-9
+    # unit after a long near-critical prefix; its independently generated hash
+    # is not the identity of the stored evidence. Replay uses no relative
+    # tolerance and at most two serialization units, with counts/marks exact.
+    _compare(
+        {k: v for k, v in latent.items() if k != "hash"},
+        {k: v for k, v in expected.items() if k != "hash"},
+        errors,
+        label + ".latent",
+        tolerance=(0.0, 2e-9),
+    )
     _compare(
         latent["hash"],
         _hash({k: v for k, v in latent.items() if k != "hash"}),
