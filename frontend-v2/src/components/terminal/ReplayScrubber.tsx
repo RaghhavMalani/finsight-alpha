@@ -2,10 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 export function ReplayScrubber({
   onReplay,
-  training,
 }: {
   onReplay: (t: number | null) => void; // 0..1, null = live
-  training?: { count: number; label: string; reduced: boolean };
 }) {
   const [t, setT] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -21,11 +19,7 @@ export function ReplayScrubber({
     callback.current(t);
   }, [t]);
   useEffect(() => {
-    if (training?.reduced) setPlaying(false);
-  }, [training?.reduced]);
-
-  useEffect(() => {
-    if (!playing || training?.reduced) return;
+    if (!playing) return;
     function step(now: number) {
       if (!last.current) last.current = now;
       const dt = (now - last.current) / 1000;
@@ -46,7 +40,7 @@ export function ReplayScrubber({
       if (raf.current) cancelAnimationFrame(raf.current);
       last.current = 0;
     };
-  }, [playing, speed, training?.reduced]);
+  }, [playing, speed]);
 
   function fmtSession(v: number) {
     // 09:30 -> 16:00 = 390 minutes
@@ -61,7 +55,6 @@ export function ReplayScrubber({
       <span className={t !== null ? "text-info" : "text-primary"}>REPLAY</span>
       <button
         aria-label={playing ? "Pause replay" : "Play replay"}
-        disabled={training?.reduced}
         onClick={() => {
           if (t === null) setT(0);
           setPlaying((p) => !p);
@@ -83,7 +76,7 @@ export function ReplayScrubber({
       ))}
       <div className="relative flex-1">
         <input
-          aria-label={training ? `${training.label} step` : "Session replay time"}
+          aria-label="Session replay time"
           type="range"
           min={0}
           max={1000}
@@ -97,11 +90,7 @@ export function ReplayScrubber({
         />
       </div>
       <span className="font-mono text-[10px] text-foreground whitespace-nowrap text-right">
-        {training
-          ? `${training.label} ${Math.round((t ?? 1) * (training.count - 1)) + 1}/${training.count}`
-          : t === null
-            ? "16:00"
-            : fmtSession(t)}
+        {t === null ? "16:00" : fmtSession(t)}
       </span>
       <button
         onClick={() => {
@@ -109,9 +98,9 @@ export function ReplayScrubber({
           setPlaying(false);
         }}
         className="border border-border px-1.5 py-0.5 hover:border-up hover:text-up"
-        title={training ? "Jump to final recorded fit" : "Jump to live"}
+        title="Jump to live"
       >
-        {training ? "FINAL FIT ↦" : "LIVE ↦"}
+        LIVE ↦
       </button>
     </div>
   );

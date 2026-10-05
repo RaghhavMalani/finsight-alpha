@@ -11,7 +11,8 @@ const NAV_ITEMS = [
   { key: "F7", label: "Observatory", to: "/observatory" },
 ] as const;
 
-export function ForgeShell({ children }: { children: ReactNode }) {
+/** `bleed` gives the page the whole viewport below the nav: no gutters, no footer. */
+export function ForgeShell({ children, bleed = false }: { children: ReactNode; bleed?: boolean }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
@@ -42,7 +43,9 @@ export function ForgeShell({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   return (
-    <div className="min-h-dvh bg-[#07090B] text-[#E6E8EB]">
+    <div
+      className={`bg-[#07090B] text-[#E6E8EB] ${bleed ? "flex h-dvh flex-col max-[900px]:h-auto max-[900px]:min-h-dvh" : "min-h-dvh"}`}
+    >
       <a
         href="#forge-main"
         className="fixed left-3 top-3 z-[60] -translate-y-20 border border-[#FFB000] bg-[#080a0d] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#FFB000] transition-transform focus:translate-y-0"
@@ -114,16 +117,22 @@ export function ForgeShell({ children }: { children: ReactNode }) {
       <main
         id="forge-main"
         tabIndex={-1}
-        className="mx-auto w-full max-w-[1800px] px-3 py-4 outline-none sm:px-5 sm:py-5"
+        className={
+          bleed
+            ? "flex min-h-0 w-full flex-1 flex-col outline-none"
+            : "mx-auto w-full max-w-[1800px] px-3 py-4 outline-none sm:px-5 sm:py-5"
+        }
       >
         {children}
       </main>
-      <footer className="border-t border-[#1D232B] px-4 py-3">
-        <div className="mx-auto flex max-w-[1760px] flex-wrap items-center justify-between gap-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#93A0AD]">
-          <span>Observer Foundation · read-only</span>
-          <span>Unknown schemas fail closed</span>
-        </div>
-      </footer>
+      {!bleed && (
+        <footer className="border-t border-[#1D232B] px-4 py-3">
+          <div className="mx-auto flex max-w-[1760px] flex-wrap items-center justify-between gap-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#93A0AD]">
+            <span>Observer Foundation · read-only</span>
+            <span>Unknown schemas fail closed</span>
+          </div>
+        </footer>
+      )}
       <ForgeCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );

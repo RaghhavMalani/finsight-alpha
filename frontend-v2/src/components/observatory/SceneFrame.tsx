@@ -9,7 +9,7 @@ import {
   Vector3,
   PerspectiveCamera,
 } from "three";
-import type { ModelTrace, Vec3, SceneNode } from "./types";
+import type { Vec3, SceneNode } from "./types";
 
 const BloomLayer = lazy(() => import("./BloomLayer"));
 class BloomBoundary extends Component<
@@ -42,7 +42,7 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
     );
   }
 }
-type Metrics = {
+export type Metrics = {
   median: number;
   p5: number;
   calls: number;
@@ -159,35 +159,27 @@ function Monitor({
   return null;
 }
 export function SceneFrame({
-  trace,
-  hash,
-  endpoint,
-  footer,
   children,
   curves,
   nodes,
   hover,
   reduced,
+  onMetrics,
   camera = [0, 1, 15],
 }: {
-  trace: ModelTrace;
-  hash: string | null;
-  endpoint: string;
-  footer: ReactNode;
   children: ReactNode;
   curves: number;
   nodes: number;
   hover: number | null;
   reduced: boolean;
+  onMetrics: (m: Metrics) => void;
   camera?: Vec3;
 }) {
-  const [bloomFailed, setBloomFailed] = useState(false),
-    [metrics, setMetrics] = useState<Metrics | null>(null),
-    [inside, setInside] = useState(false);
+  const [inside, setInside] = useState(false);
   return (
-    <div className="obs-scene-wrap">
+    <>
       <div
-        className="obs-canvas"
+        className="obs-gl"
         onPointerEnter={() => setInside(true)}
         onPointerLeave={() => {
           setInside(false);
@@ -210,41 +202,15 @@ export function SceneFrame({
               minDistance={7}
               maxDistance={28}
             />
-            <BloomBoundary onError={() => setBloomFailed(true)}>
+            <BloomBoundary onError={() => undefined}>
               <Suspense fallback={null}>
                 <BloomLayer />
               </Suspense>
             </BloomBoundary>
-            <Monitor curves={curves} nodes={nodes} hover={hover !== null} onMetrics={setMetrics} />
+            <Monitor curves={curves} nodes={nodes} hover={hover !== null} onMetrics={onMetrics} />
           </Canvas>
         </CanvasBoundary>
-        <div className="obs-scene-top" title={hash ? `sha256:${hash}` : endpoint}>
-          <span className="obs-dot" />
-          {hash
-            ? `REPLAY · SHA256:${hash.slice(0, 12)}…${hash.slice(-6)}`
-            : `LIVE MODEL RUN · ${endpoint} · ${trace.ticker} · IEX_ONLY`}
-        </div>
-        <div className="obs-scene-caption">
-          {trace.kind === "hmm"
-            ? "POSTERIOR STATES UNDER THE SELECTED FIT"
-            : "GBM CANDIDATE · CUMULATIVE TREE IMPORTANCE"}
-        </div>
-        <div className="obs-scene-help">
-          DRAG TO ORBIT · SCROLL TO ZOOM · HOVER TO INSPECT{reduced ? " · STATIC MOTION" : ""}
-          {bloomFailed ? " · BLOOM UNAVAILABLE" : ""}
-        </div>
       </div>
-      <div className="obs-truth-footer">
-        <span className="obs-dot" />
-        {hash ? "REPLAY" : "LIVE MODEL RUN"} · {trace.ticker} · {trace.provenance.coverage} ·{" "}
-        {trace.provenance.evidence_mode} · {footer}
-      </div>
-      <div className="obs-perf" aria-live="off">
-        {curves.toLocaleString()} CURVES · {nodes} INSTANCED NODES ·{" "}
-        {metrics
-          ? `${metrics.median.toFixed(0)} FPS MEDIAN · P5 ${metrics.p5.toFixed(0)} · ${metrics.calls} DRAW CALLS`
-          : "MEASURING FRAME TIME"}
-      </div>
-    </div>
+    </>
   );
 }

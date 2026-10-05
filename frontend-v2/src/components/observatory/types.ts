@@ -128,6 +128,11 @@ export const FONT = "/fonts/jetbrains-mono-latin-400-normal.woff";
 export const decimal = (x: number | null, digits = 3) =>
   x == null ? "UNAVAILABLE" : x.toFixed(digits);
 
+/** Tickers the manifest declares, in manifest order. Each has a checked HMM and signal replay. */
+export function manifestTickers(manifest: Manifest) {
+  return [...new Set(Object.keys(manifest.artifacts).map((key) => key.split(":")[0]))];
+}
+
 /** Missing checksums must never turn a replay into an unchecked live trace. */
 export function validateManifest(value: unknown): Manifest {
   const manifest = value as Manifest;
@@ -138,10 +143,14 @@ export function validateManifest(value: unknown): Manifest {
     !manifest ||
     manifest.schema_version !== "model-observatory-manifest/1" ||
     !Number.isFinite(Date.parse(manifest.as_of)) ||
-    !manifest.artifacts
+    !manifest.artifacts ||
+    typeof manifest.artifacts !== "object"
   )
     fail();
-  for (const ticker of ["SPY", "QQQ", "IWM"])
+  const keys = Object.keys(manifest.artifacts);
+  if (!keys.length || keys.some((key) => !/^[A-Z]{1,6}:(hmm|signal)$/.test(key))) fail();
+  // Every declared ticker must carry both scenes, so a missing half can't be silently skipped.
+  for (const ticker of manifestTickers(manifest))
     for (const kind of ["hmm", "signal"]) {
       const entry = manifest.artifacts[`${ticker}:${kind}`];
       if (
