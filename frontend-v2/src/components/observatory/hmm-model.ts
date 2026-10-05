@@ -107,3 +107,19 @@ export function hmmFit(view: HMMView): CameraFit {
     narrow: 1.12,
   };
 }
+
+/** Ribbon: dominant regime per session, bar height and opacity from its posterior. */
+export function paintRegimeRibbon(view: HMMView, index: number) {
+  const f = view.frames[index];
+  return (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+    const n = f.dominant.length,
+      bw = w / n;
+    for (let i = 0; i < n; i++) {
+      const p = f.posterior[i],
+        hh = 4 + (h - 4) * p;
+      ctx.fillStyle = view.states[f.dominant[i]].color;
+      ctx.globalAlpha = 0.35 + 0.55 * p;
+      ctx.fillRect(i * bw, h - hh, Math.max(1, bw - 0.4), hh);
+    }
+  };
+}

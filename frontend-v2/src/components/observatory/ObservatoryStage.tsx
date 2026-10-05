@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import HMMScene from "./HMMScene";
-import { hmmFit, hmmView } from "./hmm-model";
+import { hmmFit, type HMMView } from "./hmm-model";
 import { SceneFrame, type CameraFit, type Metrics } from "./SceneFrame";
 import { LabelLayer } from "./SceneLabels";
 import SignalScene from "./SignalScene";
-import { signalFit, signalView } from "./signal-model";
-import type { ModelTrace } from "./types";
+import { signalFit, type SignalView } from "./signal-model";
 
 const IDLE_FIT: CameraFit = {
   key: "idle",
@@ -22,7 +21,8 @@ const IDLE_FIT: CameraFit = {
  */
 export default function ObservatoryStage({
   kind,
-  trace,
+  hmm,
+  signal,
   index,
   reduced,
   labelsRoot,
@@ -31,7 +31,8 @@ export default function ObservatoryStage({
   onFps,
 }: {
   kind: "hmm" | "signal";
-  trace: ModelTrace | null;
+  hmm: HMMView | null;
+  signal: SignalView | null;
   index: number;
   reduced: boolean;
   labelsRoot: HTMLElement | null;
@@ -46,8 +47,6 @@ export default function ObservatoryStage({
   useEffect(() => () => labels?.dispose(), [labels]);
   // While the next trace loads, hold the last framing instead of jumping to a default.
   const [held, setHeld] = useState(IDLE_FIT);
-  const hmm = useMemo(() => (trace?.kind === "hmm" ? hmmView(trace) : null), [trace]);
-  const signal = useMemo(() => (trace?.kind === "signal" ? signalView(trace) : null), [trace]);
   const traceFit = useMemo(
     () => (hmm ? hmmFit(hmm) : signal ? signalFit(signal) : null),
     [hmm, signal],

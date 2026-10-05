@@ -1,13 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { API_BASE } from "@/lib/api";
-import { HMMReadout } from "./HMMReadout";
+import { HMMReadout, HMMStatus } from "./HMMReadout";
+import { hmmView, paintRegimeRibbon } from "./hmm-model";
 import { MethodDrawer, type SourceMode } from "./MethodDrawer";
-import { byOrder, regimeStates } from "./regime-palette";
-import { FAMILY_COLORS } from "./signal-model";
+import { byOrder } from "./regime-palette";
 import type { Metrics } from "./SceneFrame";
-import { SignalReadout } from "./SignalReadout";
+import { FAMILY_COLORS, paintAucRibbon, signalView } from "./signal-model";
+import { SignalReadout, SignalStatus } from "./SignalReadout";
 import { Timeline } from "./Timeline";
 import { useReducedMotion } from "./useReducedMotion";
 import { useTrainingStream } from "./useTrainingStream";
@@ -96,6 +97,8 @@ export default function ObservatoryPage() {
         : null);
 
   // Scrub position and playback belong to one trace; a new trace starts at its final frame.
+  const hmm = useMemo(() => (trace?.kind === "hmm" ? hmmView(trace) : null), [trace]),
+    signal = useMemo(() => (trace?.kind === "signal" ? signalView(trace) : null), [trace]);
   const traceKey = trace ? `${stream.identity}:${stream.hash}` : "";
   const count = trace ? stepCount(trace) : 1;
   const [scrub, setScrub] = useState({ key: "", index: 0, playing: false });
@@ -152,6 +155,10 @@ export default function ObservatoryPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [reduced, togglePlay]);
 
+  const ribbon = useMemo(
+    () => (hmm ? paintRegimeRibbon(hmm, index) : signal ? paintAucRibbon(signal, index) : null),
+    [hmm, signal, index],
+  );
   const [title, lead] = TITLE[kind](ticker);
   const shortSha = stream.hash ? `${stream.hash.slice(0, 8)}…${stream.hash.slice(-4)}` : null;
   return (
@@ -202,7 +209,8 @@ export default function ObservatoryPage() {
           <Suspense fallback={<div className="obs-status">Initializing model geometry…</div>}>
             <ObservatoryStage
               kind={kind}
-              trace={trace}
+              hmm={hmm}
+              signal={signal}
               index={index}
               reduced={reduced}
               labelsRoot={labelsRoot}
@@ -231,9 +239,9 @@ export default function ObservatoryPage() {
             <h1>{title}</h1>
             <p>{lead}</p>
           </section>
-          {trace?.kind === "hmm" && (
+          {hmm && (
             <div className="obs-hud obs-legend">
-              {byOrder(regimeStates(trace)).map((st) => (
+              {byOrder(hmm.states).map((st) => (
                 <span key={st.index}>
                   <i style={{ background: st.color, color: st.color }} />
                   {st.name}
@@ -241,9 +249,9 @@ export default function ObservatoryPage() {
               ))}
             </div>
           )}
-          {trace?.kind === "signal" && trace.families && (
+          {signal?.families && (
             <div className="obs-hud obs-legend">
-              {trace.families.map((name) => (
+              {signal.families.map((name) => (
                 <span key={name}>
                   <i style={{ background: FAMILY_COLORS[name], color: FAMILY_COLORS[name] }} />
                   {name}
@@ -258,13 +266,10 @@ export default function ObservatoryPage() {
             </div>
           )}
         </main>
-        {trace && (
+        {(hmm || signal) && (
           <aside className="obs-readout" aria-live="polite">
-            {trace.kind === "hmm" ? (
-              <HMMReadout trace={trace} index={index} />
-            ) : (
-              <SignalReadout trace={trace} index={index} />
-            )}
+            {hmm && <HMMReadout view={hmm} index={index} />}
+            {signal && <SignalReadout view={signal} index={index} />}
           </aside>
         )}
         <Timeline
@@ -273,9 +278,27 @@ export default function ObservatoryPage() {
           playing={playing}
           reduced={reduced}
           label={kind === "hmm" ? "EM" : "Boosting stage"}
-          status={trace ? `${index + 1} / ${count}` : "—"}
-          axis={["", "", ""]}
-          paint={null}
+          status={
+            hmm ? (
+              <HMMStatus view={hmm} index={index} />
+            ) : signal ? (
+              <SignalStatus view={signal} index={index} />
+            ) : (
+              "—"
+            )
+          }
+          axis={
+            hmm
+              ? [hmm.dates[0], "Regime by day · last 250 sessions", hmm.dates[hmm.dates.length - 1]]
+              : signal
+                ? [
+                    "Fold 1",
+                    "Validation AUC above / below 0.50, every boosting stage",
+                    `Fold ${signal.folds.length}`,
+                  ]
+                : ["", "", ""]
+          }
+          paint={ribbon}
           onScrub={(i) => setIndex(i)}
           onPlay={togglePlay}
         />

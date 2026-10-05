@@ -43,6 +43,8 @@ export type HMMTrace = TraceBase & {
   semantics: string;
   feature_start: string;
   latest_feature: string;
+  /** EM stops when the log-likelihood gain falls below this. */
+  tolerance?: number;
 };
 export type Stage = {
   fold: number;
@@ -91,6 +93,14 @@ export type SignalTrace = TraceBase & {
     indices: number[];
     training_target_information_end: string;
     visible_after_selection: boolean;
+    /** Percentile bootstrap of holdout AUC over resampled holdout rows. */
+    auc_ci95?: {
+      low: number;
+      high: number;
+      resamples: number;
+      valid_resamples: number;
+      seed: number;
+    } | null;
   };
   inference: { date: string; included_in_labeled_rows: boolean };
   importance_semantics: string;
@@ -100,7 +110,19 @@ export type SignalTrace = TraceBase & {
   family?: string[];
   /** Spearman ρ of final-stage importances between consecutive folds. */
   rho?: (number | null)[];
+  /** Every family's validation AUC ≤ 0.5: picking the best of them would be selection on noise. */
+  suppressed?: boolean;
+  verdict?: Verdict;
+  verdict_reason?: VerdictReason;
 };
+export type Verdict = "edge" | "none" | "inconclusive";
+export type VerdictReason =
+  | "holdout_ci_above_chance"
+  | "validation_at_or_below_chance"
+  | "holdout_ci_below_chance"
+  | "holdout_ci_spans_chance"
+  | "validation_edge_too_small"
+  | "holdout_auc_unavailable";
 export type ModelTrace = HMMTrace | SignalTrace;
 export type TraceRequest = { kind: "hmm" | "signal"; ticker: string; asOf: string };
 export type Manifest = {
@@ -108,9 +130,6 @@ export type Manifest = {
   as_of: string;
   artifacts: Record<string, { url: string; sha256: string; input_hash: string }>;
 };
-export const PALETTE = ["#42C98B", "#F0A929", "#5CA9E6", "#F06464", "#A98CF0", "#A7B0B7"];
-export const decimal = (x: number | null, digits = 3) =>
-  x == null ? "UNAVAILABLE" : x.toFixed(digits);
 
 /** Tickers the manifest declares, in manifest order. Each has a checked HMM and signal replay. */
 export function manifestTickers(manifest: Manifest) {
