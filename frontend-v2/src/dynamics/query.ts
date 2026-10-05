@@ -7,6 +7,10 @@ import { fetchFailureDecomposition } from "@/dynamics/failure-contracts";
 import { fetchTargetedRecovery } from "@/dynamics/recovery-contracts";
 import { fetchGeneralizationAutopsy } from "@/dynamics/autopsy-contracts";
 import { fetchEvidenceCompleteReplication } from "@/dynamics/replication-contracts";
+import { fetchHawkesCertification } from "@/dynamics/hawkes-contracts";
+import { fetchHawkesIdentifiability } from "@/dynamics/hawkes-identifiability-contracts";
+import { fetchHawkesBoundary } from "@/dynamics/hawkes-boundary-contracts";
+import { fetchMarketRegime, fetchRegimeCatalog } from "@/dynamics/market-regime-contracts";
 
 export const referenceDynamicsQuery = queryOptions({
   queryKey: ["dynamics", "theory-certification", "d0.2.1-reference-1"],
@@ -56,8 +60,40 @@ export const evidenceCompleteReplicationQuery = queryOptions({
   staleTime: Number.POSITIVE_INFINITY,
 });
 
+export const hawkesCertificationQuery = queryOptions({
+  queryKey: ["dynamics", "hawkes-event-process", "d0.4-reference-1"],
+  queryFn: fetchHawkesCertification,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+export const hawkesIdentifiabilityQuery = queryOptions({
+  queryKey: ["dynamics", "hawkes-identifiability", "d0.4.1-frozen"],
+  queryFn: fetchHawkesIdentifiability,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
 export const ouPowerQuery = queryOptions({
   queryKey: ["dynamics", "ou-power", "pilot-power-1", 6],
   queryFn: fetchOUPowerMap,
   staleTime: Number.POSITIVE_INFINITY,
 });
+
+export const hawkesBoundaryQuery = queryOptions({
+  queryKey: ["dynamics", "hawkes-boundary-decomposition", "d0.4.1.1-frozen"],
+  queryFn: fetchHawkesBoundary,
+  staleTime: Number.POSITIVE_INFINITY,
+});
+
+export const marketRegimeCatalogQuery = queryOptions({
+  queryKey: ["dynamics", "market-regime-catalog"],
+  queryFn: fetchRegimeCatalog,
+  staleTime: 60_000,
+});
+
+export const marketRegimeQuery = (world: string, asOf?: string) =>
+  queryOptions({
+    queryKey: ["dynamics", "market-regime-intelligence", "d0.4.2", world, asOf ?? "latest"],
+    queryFn: () => fetchMarketRegime(world, asOf),
+    staleTime: world === "pit-local" ? 30_000 : Number.POSITIVE_INFINITY,
+    retry: false,
+  });

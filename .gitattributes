@@ -2,8 +2,9 @@
 data/exports/forge_v0_2_baseline/** -text
 data/exports/forge_v0_2_reward_calibration/** -text
 
-# Forge v0.2.5 manifest digests seal CRLF bytes for these records. Recreate
-# those bytes on every checkout while keeping the frozen Git blobs untouched.
+# Forge v0.2.5 mostly seals LF bytes. The explicit overrides below retain
+# its CRLF records while keeping all frozen Git blobs untouched.
+data/exports/forge_v0_2_5_real_baseline/** text eol=lf
 data/exports/forge_v0_2_5_real_baseline/README.md text eol=crlf
 data/exports/forge_v0_2_5_real_baseline/episodes.jsonl text eol=crlf
 data/exports/forge_v0_2_5_real_baseline/original_episodes.jsonl text eol=crlf

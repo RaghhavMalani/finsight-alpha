@@ -9,12 +9,21 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
+from backend.routes.market_regime import router as market_regime_router
+
+from src.dynamics.hawkes_identifiability import HawkesIdentifiabilityError
+from src.dynamics.hawkes_boundary import BoundaryEvidenceError
+from src.dynamics.hawkes_boundary_projection import load_boundary_projection
+from src.dynamics.hawkes_identifiability_projection import (
+    load_hawkes_identifiability_projection,
+)
 
 from src.dynamics import (
     DynamicsInputError,
     EstimatorTournamentError,
     FailureDecompositionError,
     GeneralizationAutopsyError,
+    HawkesCertificationError,
     IdentifiabilityError,
     NonlinearDynamicsError,
     ReplicationProjectionError,
@@ -27,6 +36,7 @@ from src.dynamics import (
     load_frozen_estimator_tournament,
     load_frozen_failure_decomposition,
     load_frozen_generalization_autopsy,
+    load_frozen_hawkes_certification,
     load_frozen_identifiability_artifact,
     load_frozen_targeted_recovery,
     load_evidence_complete_replication_projection,
@@ -39,6 +49,8 @@ from src.dynamics import (
 )
 
 router = APIRouter(prefix="/dynamics", tags=["dynamics lab"])
+
+router.include_router(market_regime_router)
 
 
 class DynamicsObservation(BaseModel):
@@ -448,4 +460,32 @@ def evidence_complete_replication_artifact() -> dict[str, Any]:
     try:
         return load_evidence_complete_replication_projection()
     except ReplicationProjectionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/certification/hawkes-event-process")
+def hawkes_event_process_artifact() -> dict[str, Any]:
+    """Return the read-only D0.4 synthetic event-process artifact."""
+
+    try:
+        return load_frozen_hawkes_certification()
+    except HawkesCertificationError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/certification/hawkes-identifiability")
+def hawkes_identifiability_artifact() -> dict[str, Any]:
+    """Return only verified frozen D0.4.1 evidence, never run an experiment."""
+    try:
+        return load_hawkes_identifiability_projection()
+    except HawkesIdentifiabilityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/certification/hawkes-boundary-decomposition")
+def hawkes_boundary_artifact() -> dict[str, Any]:
+    """Serve verified frozen diagnostics; never fit, tune or ingest events."""
+    try:
+        return load_boundary_projection()
+    except BoundaryEvidenceError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

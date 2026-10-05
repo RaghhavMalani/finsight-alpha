@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { DynamicsLab } from "@/dynamics/DynamicsLab";
 import { FailureMicroscope } from "@/dynamics/FailureMicroscope";
+import { EventDynamicsWorkbench } from "@/dynamics/EventDynamicsWorkbench";
+import { EventIdentifiabilityObservatory } from "@/dynamics/EventIdentifiabilityObservatory";
 import { GeneralizationAutopsy } from "@/dynamics/GeneralizationAutopsy";
 import { NonlinearWorkbench } from "@/dynamics/NonlinearWorkbench";
 import { PowerObservatory } from "@/dynamics/PowerObservatory";
@@ -13,6 +15,9 @@ import {
   evidenceCompleteReplicationQuery,
   failureDecompositionQuery,
   generalizationAutopsyQuery,
+  hawkesCertificationQuery,
+  hawkesIdentifiabilityQuery,
+  hawkesBoundaryQuery,
   identifiabilityQuery,
   nonlinearDynamicsQuery,
   targetedRecoveryQuery,
@@ -20,7 +25,17 @@ import {
 } from "@/dynamics/query";
 import { LoadingState, StatusMark, UnavailableState } from "@/forge/shared/SurfacePrimitives";
 
-type ProgramKey = "mean-reversion" | "nonlinear";
+const BoundaryStructureMicroscope = lazy(() =>
+  import("@/dynamics/BoundaryStructureMicroscope").then((module) => ({
+    default: module.BoundaryStructureMicroscope,
+  })),
+);
+
+const MarketRegimeLab = lazy(() =>
+  import("@/dynamics/MarketRegimeLab").then((module) => ({ default: module.MarketRegimeLab })),
+);
+
+type ProgramKey = "mean-reversion" | "nonlinear" | "event-dynamics" | "market-regime";
 type MilestoneKey =
   | "d0.2.1"
   | "d0.3"
@@ -30,7 +45,11 @@ type MilestoneKey =
   | "d0.3.3"
   | "d0.3.3.1"
   | "d0.3.3.2"
-  | "d0.3.4";
+  | "d0.3.4"
+  | "d0.4"
+  | "d0.4.1"
+  | "d0.4.1.1"
+  | "d0.4.2";
 
 type Selection = { program: ProgramKey; milestone: MilestoneKey };
 
@@ -40,6 +59,12 @@ const PROGRAMS: Array<{
   summary: string;
   milestones: Array<{ key: MilestoneKey; label: string; result: string }>;
 }> = [
+  {
+    key: "market-regime",
+    label: "Market regime intelligence",
+    summary: "Integrated PIT product analytics",
+    milestones: [{ key: "d0.4.2", label: "D0.4.2", result: "Vol / factors / momentum / fracture" }],
+  },
   {
     key: "mean-reversion",
     label: "Mean reversion",
@@ -61,9 +86,19 @@ const PROGRAMS: Array<{
       { key: "d0.3.4", label: "D0.3.4", result: "Evidence-complete replication" },
     ],
   },
+  {
+    key: "event-dynamics",
+    label: "Event dynamics",
+    summary: "Excitation versus ordinary clustering",
+    milestones: [
+      { key: "d0.4", label: "D0.4", result: "Hawkes certification" },
+      { key: "d0.4.1", label: "D0.4.1", result: "Uncertainty & edge identifiability" },
+      { key: "d0.4.1.1", label: "D0.4.1.1", result: "Boundary & structure microscope" },
+    ],
+  },
 ];
 
-const DEFAULT_SELECTION: Selection = { program: "nonlinear", milestone: "d0.3.4" };
+const DEFAULT_SELECTION: Selection = { program: "market-regime", milestone: "d0.4.2" };
 
 function validSelection(program: string | null, milestone: string | null): Selection {
   const match = PROGRAMS.find((candidate) => candidate.key === program);
@@ -127,11 +162,12 @@ export function DynamicsNavigator() {
               FinSight Forge / Dynamics research program
             </div>
             <h1 className="mt-2 max-w-4xl text-balance text-2xl font-semibold tracking-[-0.03em] text-[#E8ECEF] sm:text-3xl">
-              Every milestone keeps its evidence, boundary, and result separate.
+              Market research, with inspectable evidence.
             </h1>
             <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]">
-              Navigate the frozen experiment lineage. D0.3.4 reports a preregistered 400-world
-              replication and does not promote synthetic evidence into a market claim.
+              D0.4.2 integrates five PIT analytics modules and aggregate event diagnostics. The
+              historical experiment lineage stays separately addressable. Experimental composites
+              remain ineligible for market and causal claims.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -141,9 +177,9 @@ export function DynamicsNavigator() {
         </div>
       </header>
 
-      <div className="mt-3 grid items-start gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className="mt-3 grid grid-cols-1 items-start gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <aside
-          className="border border-[#25313A] bg-[#090D10] lg:sticky lg:top-3"
+          className="min-w-0 border border-[#25313A] bg-[#090D10] lg:sticky lg:top-3"
           aria-label="Dynamics milestones"
         >
           <div className="border-b border-[#25313A] px-3 py-3 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] text-[#6C7882]">
@@ -184,27 +220,6 @@ export function DynamicsNavigator() {
                   </div>
                 </section>
               ))}
-              <section
-                className="w-64 bg-[#090D10] opacity-60 lg:w-auto"
-                aria-label="Event dynamics locked"
-              >
-                <div className="border-b border-[#1B232A] px-3 py-3">
-                  <h2 className="text-[11px] font-semibold text-[#9DA6AD]">Event dynamics</h2>
-                  <p className="mt-1 text-[8px] leading-4 text-[#5F6B75]">
-                    Point-process research track
-                  </p>
-                </div>
-                <div className="p-1.5">
-                  <button
-                    type="button"
-                    disabled
-                    className="grid w-full cursor-not-allowed grid-cols-[4.2rem_1fr] items-center gap-2 border border-transparent px-2.5 py-2 text-left text-[#5B656D]"
-                  >
-                    <span className="font-mono text-[9px] font-semibold">D0.4</span>
-                    <span className="text-[8px] leading-3">Locked / not started</span>
-                  </button>
-                </div>
-              </section>
             </div>
           </div>
         </aside>
@@ -229,9 +244,40 @@ function MilestoneSurface({ selection }: { selection: Selection }) {
     ...evidenceCompleteReplicationQuery,
     enabled: is("d0.3.4"),
   });
+  const hawkes = useQuery({
+    ...hawkesCertificationQuery,
+    enabled: is("d0.4"),
+  });
+  const hawkesIdentifiability = useQuery({ ...hawkesIdentifiabilityQuery, enabled: is("d0.4.1") });
+  const hawkesBoundary = useQuery({ ...hawkesBoundaryQuery, enabled: is("d0.4.1.1") });
+
+  if (selection.program === "market-regime") {
+    return (
+      <Suspense fallback={<LoadingState label="Market Regime Intelligence" />}>
+        <MarketRegimeLab />
+      </Suspense>
+    );
+  }
 
   if (selection.program === "mean-reversion") {
     return <DynamicsLab baseOnly embedded />;
+  }
+  if (selection.program === "event-dynamics") {
+    if (is("d0.4.1.1")) {
+      return querySurface(hawkesBoundary, "D0.4.1.1 boundary diagnostics", (data) => (
+        <Suspense fallback={<LoadingState label="Boundary / Structure Microscope" />}>
+          <BoundaryStructureMicroscope artifact={data} />
+        </Suspense>
+      ));
+    }
+    if (is("d0.4.1")) {
+      return querySurface(hawkesIdentifiability, "D0.4.1 Hawkes identifiability", (data) => (
+        <EventIdentifiabilityObservatory artifact={data} />
+      ));
+    }
+    return querySurface(hawkes, "D0.4 Hawkes event-process certification", (data) => (
+      <EventDynamicsWorkbench artifact={data} />
+    ));
   }
   if (is("d0.3.3.2")) return <EvidenceContractBoundary />;
   if (is("d0.3")) {
