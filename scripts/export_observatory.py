@@ -37,6 +37,11 @@ def main():
                 "url": f"/artifacts/observatory/{filename}", "sha256": hashlib.sha256(raw).hexdigest(),
                 "bytes": len(raw), "input_hash": trace["provenance"]["input_hash"]}
             print(ticker, kind, len(raw), "bytes", flush=True)
+            if kind == "signal":
+                ci = trace["holdout"]["auc_ci95"]
+                print(f"  verdict {trace['verdict']} ({trace['verdict_reason']}); holdout AUC "
+                      f"{trace['holdout']['auc']} CI {ci and (round(ci['low'], 4), round(ci['high'], 4))}; "
+                      f"suppressed {trace['suppressed']}; rho {trace['rho']}", flush=True)
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 

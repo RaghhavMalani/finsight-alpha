@@ -249,7 +249,7 @@ export default function ObservatoryPage() {
               ))}
             </div>
           )}
-          {signal?.families && (
+          {signal && (
             <div className="obs-hud obs-legend">
               {signal.families.map((name) => (
                 <span key={name}>

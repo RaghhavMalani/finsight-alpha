@@ -19,7 +19,7 @@ import {
 export function SignalReadout({ view, index }: { view: SignalView; index: number }) {
   const { trace } = view,
     ho = trace.holdout,
-    ci = ho.auc_ci95 ?? null;
+    ci = ho.auc_ci95;
   const [f, s] = view.frames[index],
     fold = view.folds[f],
     imp = importanceAt(view, f + 1, index)!;
@@ -42,13 +42,9 @@ export function SignalReadout({ view, index }: { view: SignalView; index: number
         Gradient boosting · {view.features.length} features · {view.folds.length} folds
       </div>
       <div>
-        {trace.verdict ? (
-          <div className={`obs-verdict ${trace.verdict}`} data-verdict={trace.verdict}>
-            {VERDICT_TITLE[trace.verdict]}
-          </div>
-        ) : (
-          <div className="obs-verdict">No verdict in this trace</div>
-        )}
+        <div className={`obs-verdict ${trace.verdict}`} data-verdict={trace.verdict}>
+          {VERDICT_TITLE[trace.verdict]}
+        </div>
         <p className="obs-lead">{verdictLead(trace)}</p>
       </div>
       <div>

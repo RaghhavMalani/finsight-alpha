@@ -15,9 +15,9 @@ export const NEUTRAL = "#8A939B";
 export type SignalView = {
   trace: SignalTrace;
   features: string[];
-  /** Family names in display order, and each feature's index into them (null: not exported). */
-  families: string[] | null;
-  family: number[] | null;
+  /** Family names in display order, and each feature's index into them. */
+  families: string[];
+  family: number[];
   folds: {
     fold: number;
     validationStart: string;
@@ -28,7 +28,7 @@ export type SignalView = {
   }[];
   /** Every scrub position: [fold index, stage index]. */
   frames: [number, number][];
-  rho: (number | null)[] | null;
+  rho: (number | null)[];
   /** Row of each feature in the input column: grouped by family, then mean final importance. */
   inputSlot: number[];
 };
@@ -43,16 +43,15 @@ export function signalView(trace: SignalTrace): SignalView {
     auc: f.frames.map((s) => s.val_auc),
     importance: f.frames.map((s) => s.feature_importance),
   }));
-  const families = trace.families ?? null;
-  const family =
-    families && trace.family ? trace.family.map((name) => families.indexOf(name)) : null;
+  const families = trace.families;
+  const family = trace.family.map((name) => families.indexOf(name));
   const meanImp = features.map(
     (_, i) =>
       folds.reduce((a, f) => a + f.importance[f.importance.length - 1][i], 0) / folds.length,
   );
   const inputOrder = features
     .map((_, i) => i)
-    .sort((a, b) => (family ? family[a] - family[b] : 0) || meanImp[b] - meanImp[a] || a - b);
+    .sort((a, b) => family[a] - family[b] || meanImp[b] - meanImp[a] || a - b);
   const inputSlot = new Array<number>(features.length);
   inputOrder.forEach((f, k) => (inputSlot[f] = k));
   return {
@@ -62,7 +61,7 @@ export function signalView(trace: SignalTrace): SignalView {
     family,
     folds,
     frames: folds.flatMap((f, k) => f.stages.map((_, s) => [k, s] as [number, number])),
-    rho: trace.rho ?? null,
+    rho: trace.rho,
     inputSlot,
   };
 }
@@ -95,9 +94,7 @@ export const TONE_VAR: Record<Tone, string> = {
 export const TONE_HEX: Record<Tone, string> = { down: "#F06464", flat: "#9AA2A9", up: "#42C98B" };
 
 export const familyColor = (view: SignalView, i: number) =>
-  view.family && view.families
-    ? (FAMILY_COLORS[view.families[view.family[i]]] ?? NEUTRAL)
-    : NEUTRAL;
+  FAMILY_COLORS[view.families[view.family[i]]] ?? NEUTRAL;
 
 export function signalFit(view: SignalView): CameraFit {
   return {
@@ -139,14 +136,12 @@ export function verdictLead(trace: SignalTrace) {
       return `The holdout's 95% interval (${interval}) clears chance, but no family beat 0.52 on validation, so the pick can't be trusted.`;
     case "holdout_auc_unavailable":
       return "The holdout AUC could not be computed, so there is no out-of-sample check.";
-    default:
-      return "This trace carries no verdict.";
   }
 }
 
 /** What fold-to-fold rank stability says, given the verdict. */
 export function stabilityNote(trace: SignalTrace) {
-  const rho = (trace.rho ?? []).filter((r): r is number => r != null);
+  const rho = trace.rho.filter((r): r is number => r != null);
   if (!rho.length) return null;
   const lo = Math.min(...rho),
     hi = Math.max(...rho),

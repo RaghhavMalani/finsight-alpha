@@ -245,7 +245,7 @@ export default function SignalScene({
       list: LabelSpec[] = [];
     const at = (x: number, y: number) => new Vector3(x, y, zOf(x));
     list.push({
-      pos: at(X[0], HEIGHT / 2 + 0.5),
+      pos: at(X[0], HEIGHT / 2 + 0.8),
       align: "right",
       valign: "bottom",
       dx: 6,
@@ -257,7 +257,7 @@ export default function SignalScene({
         pending = k > f,
         auc = foldAuc(view, k, idx);
       list.push({
-        pos: at(x, HEIGHT / 2 + 0.5),
+        pos: at(x, HEIGHT / 2 + 0.8),
         cls: pending ? "dim" : "",
         valign: "bottom",
         pri: 3,
@@ -274,18 +274,19 @@ export default function SignalScene({
               : "Val AUC<br>n/a"
             : `Val AUC<br><span class="auc" style="color:${TONE_VAR[aucTone(auc)]}">${auc.toFixed(3)}</span>`,
       });
-      const rho = view.rho?.[k - 1];
+      const rho = view.rho[k - 1];
       if (k > 0 && k <= f && rho != null) {
+        // Between the fold headers and the lines, clear of both.
         const xm = (X[k] + x) / 2;
         list.push({
-          pos: at(xm, HEIGHT / 2 + 0.5),
+          pos: at(xm, HEIGHT / 2 + 0.32),
           cls: "rho",
           pri: 1,
           html: `ρ ${rho.toFixed(2)}`,
         });
       }
     });
-    if (view.families && view.family) {
+    {
       const { family } = view;
       view.families.forEach((name, k) => {
         const slots = view.features
@@ -329,7 +330,7 @@ export default function SignalScene({
       const imp = importanceAt(view, k + 1, sim.idx)!;
       return 1 + imp.filter((v) => v > imp[id]).length;
     });
-    const family = view.families && view.family ? `${esc(view.families[view.family[id]])}<br>` : "";
+    const family = `${esc(view.families[view.family[id]])}<br>`;
     return `<strong style="color:${familyColor(view, id)}">${esc(view.features[id])}</strong>${family}rank by fold ${ranks.map((r) => "#" + r).join(" → ")}<br>importance now ${importanceAt(view, f + 1, sim.idx)![id].toFixed(4)}`;
   }
 

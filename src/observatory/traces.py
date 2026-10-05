@@ -16,10 +16,12 @@ from src.dynamics.market_regime_inputs import digest
 from src.ml import models, signal_features, signal_targets
 from src.ml.point_in_time_modeling import build_signal_splits, signal_selection_split, train_point_in_time_signal_suite
 from src.observatory.adapters import adapter_for
+from src.observatory.evidence import (FAMILIES, bootstrap_auc_ci, feature_family, fold_rho,
+                                      selection_suppressed, selection_verdict)
 from src.observatory.inputs import pit_prices
 from src.regime.hmm_regime import trace_hmm_fit
 
-VERSION = "model-observatory/1"
+VERSION = "model-observatory/2"
 CLAIMS = dict(market_claim_eligible=False, causal_claim_eligible=False, validated_alpha=False)
 _cache = OrderedDict()
 _pending = {}
@@ -141,12 +143,17 @@ def signal_trace(ticker, as_of, source, *, horizon=1, embargo=0, dataset=None,
             frame, columns, "target_direction", inference_row=inference, horizon=horizon,
             signal_date=inference.iloc[0]["Date"].isoformat(), data_version=provenance["input_hash"],
             embargo=embargo, ticker=ticker)
+    families = [feature_family(c) for c in columns]
     selection = []
     for row in suite["model_results"].to_dict(orient="records"):
         selection.append({"model": row["model_name"], "validation_auc": _finite(row.get("roc_auc")),
                           "stage_trace": "AVAILABLE" if adapter_for(row["model_name"]) else "UNAVAILABLE",
                           "stage_trace_note": "Cumulative impurity importance from trees fitted through each stage"
                           if adapter_for(row["model_name"]) else "No validated deterministic intermediate-stage adapter installed"})
+    validation_aucs = [row["validation_auc"] for row in selection]
+    # The interval and verdict use the holdout predictions the suite already made; no refit.
+    ci = bootstrap_auc_ci(suite["y_test"], suite["y_pred_proba"]) if _finite(suite.get("roc_auc")) is not None else None
+    verdict, verdict_reason = selection_verdict(ci, validation_aucs)
     return {
         "schema_version": VERSION, "kind": "signal", "ticker": ticker, "source": source,
         "as_of": provenance["as_of"], "provenance": provenance, "claims": CLAIMS,
@@ -156,8 +163,12 @@ def signal_trace(ticker, as_of, source, *, horizon=1, embargo=0, dataset=None,
                     "start": holdout_boundary["validation_start"], "end": holdout_boundary["validation_end"],
                     "rows": len(split["X_test"]), "indices": [int(i) for i in split["X_test"].index],
                     "training_target_information_end": holdout_boundary["training_target_information_end"],
-                    "auc": _finite(suite.get("roc_auc")), "baseline_accuracy": _finite(suite.get("baseline_accuracy")),
+                    "auc": _finite(suite.get("roc_auc")), "auc_ci95": ci,
+                    "baseline_accuracy": _finite(suite.get("baseline_accuracy")),
                     "model": suite["diagnostic_model_name"], "visible_after_selection": True},
+        "families": list(FAMILIES), "family": families, "rho": fold_rho(folds),
+        "suppressed": selection_suppressed(validation_aucs),
+        "verdict": verdict, "verdict_reason": verdict_reason,
         "inference": {"date": inference.iloc[0]["Date"].isoformat(),
                       "included_in_labeled_rows": bool(inference.index[0] in frame.index)},
         "importance_semantics": "Cumulative normalized impurity decrease of sklearn GBM trees through the displayed stage; selection stages use VALIDATION only.",

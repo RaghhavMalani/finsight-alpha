@@ -74,6 +74,37 @@ for (const [key, entry] of Object.entries(manifest.artifacts)) {
     reject((x) => {
       x.inference.included_in_labeled_rows = true;
     });
+    // The verdict must follow from the trace's own interval and validation scores.
+    reject((x) => {
+      x.verdict = x.verdict === "edge" ? "none" : "edge";
+    });
+    reject((x) => {
+      x.verdict_reason = "holdout_ci_spans_chance";
+      x.verdict = "inconclusive";
+      x.suppressed = false;
+      for (const s of x.selection) s.validation_auc = 0.49;
+    });
+    reject((x) => {
+      x.suppressed = !x.suppressed;
+    });
+    reject((x) => {
+      x.holdout.auc_ci95 = { ...x.holdout.auc_ci95, low: 0.9, high: 0.1 };
+    });
+    reject((x) => {
+      delete x.holdout.auc_ci95;
+    });
+    reject((x) => {
+      x.family.pop();
+    });
+    reject((x) => {
+      x.family[0] = "Astrology";
+    });
+    reject((x) => {
+      x.rho.push(0.5);
+    });
+    reject((x) => {
+      x.schema_version = "model-observatory/1";
+    });
   }
   count++;
 }
