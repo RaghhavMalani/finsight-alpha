@@ -4,6 +4,7 @@ import { ForgeShell } from "@/app/shell/ForgeShell";
 import { API_BASE } from "@/lib/api";
 import { HMMReadout } from "./HMMReadout";
 import { MethodDrawer, type SourceMode } from "./MethodDrawer";
+import { byOrder, regimeStates } from "./regime-palette";
 import type { Metrics } from "./SceneFrame";
 import { SignalReadout } from "./SignalReadout";
 import { Timeline } from "./Timeline";
@@ -51,7 +52,8 @@ export default function ObservatoryPage() {
     [showFps, setShowFps] = useState(false),
     [fps, setFps] = useState<number | null>(null),
     [, setMetrics] = useState<Metrics | null>(null),
-    [labelsRoot, setLabelsRoot] = useState<HTMLDivElement | null>(null);
+    [labelsRoot, setLabelsRoot] = useState<HTMLDivElement | null>(null),
+    [tip, setTip] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     fetch("/artifacts/observatory/manifest.json", { signal: controller.signal })
@@ -203,11 +205,13 @@ export default function ObservatoryPage() {
               index={index}
               reduced={reduced}
               labelsRoot={labelsRoot}
+              tip={tip}
               onMetrics={setMetrics}
               onFps={setFps}
             />
           </Suspense>
           <div className="obs-labels" ref={setLabelsRoot} />
+          <div className="obs-tip" ref={setTip} role="tooltip" />
           {error ? (
             <div className="obs-status" role="alert">
               <div>
@@ -226,6 +230,16 @@ export default function ObservatoryPage() {
             <h1>{title}</h1>
             <p>{lead}</p>
           </section>
+          {trace?.kind === "hmm" && (
+            <div className="obs-hud obs-legend">
+              {byOrder(regimeStates(trace)).map((st) => (
+                <span key={st.index}>
+                  <i style={{ background: st.color, color: st.color }} />
+                  {st.name}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="obs-hud obs-hint">Drag to orbit · scroll to zoom · hover to inspect</div>
           {showFps && (
             <div className="obs-hud obs-fps">

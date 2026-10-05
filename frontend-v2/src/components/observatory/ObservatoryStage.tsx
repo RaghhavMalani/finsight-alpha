@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import HMMScene from "./HMMScene";
-import { hmmFit } from "./hmm-model";
+import { hmmFit, hmmView } from "./hmm-model";
 import { SceneFrame, type CameraFit, type Metrics } from "./SceneFrame";
 import { LabelLayer } from "./SceneLabels";
 import SignalScene from "./SignalScene";
@@ -25,6 +25,7 @@ export default function ObservatoryStage({
   index,
   reduced,
   labelsRoot,
+  tip,
   onMetrics,
   onFps,
 }: {
@@ -33,16 +34,21 @@ export default function ObservatoryStage({
   index: number;
   reduced: boolean;
   labelsRoot: HTMLElement | null;
+  tip: HTMLElement | null;
   onMetrics: (m: Metrics) => void;
   onFps: (fps: number) => void;
 }) {
-  const labels = useMemo(() => (labelsRoot ? new LabelLayer(labelsRoot) : null), [labelsRoot]);
+  const labels = useMemo(
+    () => (labelsRoot ? new LabelLayer(labelsRoot, ".obs-title, .obs-legend") : null),
+    [labelsRoot],
+  );
   useEffect(() => () => labels?.dispose(), [labels]);
   // While the next trace loads, hold the last framing instead of jumping to a default.
   const [held, setHeld] = useState(IDLE_FIT);
+  const hmm = useMemo(() => (trace?.kind === "hmm" ? hmmView(trace) : null), [trace]);
   const traceFit = useMemo(
-    () => (trace ? (trace.kind === "hmm" ? hmmFit(trace) : signalFit(trace)) : null),
-    [trace],
+    () => (hmm ? hmmFit(hmm) : trace?.kind === "signal" ? signalFit(trace) : null),
+    [hmm, trace],
   );
   const fit = traceFit ?? held;
   useEffect(() => {
@@ -56,8 +62,8 @@ export default function ObservatoryStage({
       onMetrics={onMetrics}
       onFps={onFps}
     >
-      {labels && trace?.kind === "hmm" && (
-        <HMMScene trace={trace} index={index} reduced={reduced} labels={labels} />
+      {labels && hmm && (
+        <HMMScene view={hmm} target={index} reduced={reduced} labels={labels} tip={tip} />
       )}
       {labels && trace?.kind === "signal" && (
         <SignalScene trace={trace} index={index} reduced={reduced} labels={labels} />

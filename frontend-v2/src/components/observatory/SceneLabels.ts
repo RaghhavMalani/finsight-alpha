@@ -33,10 +33,17 @@ const tmp = new Vector3();
 const hits = (r: Rect, q: Rect) =>
   r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y;
 
-/** Pooled HTML labels projected from 3D each frame, with priority-based collision handling. */
+/**
+ * Pooled HTML labels projected from 3D each frame, with priority-based collision handling.
+ * Elements matching `obstacles` (siblings of the root, such as the title overlay) are treated
+ * as already placed, so labels move or give way instead of running under them.
+ */
 export class LabelLayer {
   private pool: Slot[] = [];
-  constructor(private root: HTMLElement) {}
+  constructor(
+    private root: HTMLElement,
+    private obstacles = "",
+  ) {}
 
   set(list: LabelSpec[]) {
     while (this.pool.length < list.length) {
@@ -69,6 +76,15 @@ export class LabelLayer {
   }
 
   place(group: Object3D, camera: Camera, width: number, height: number) {
+    const placed: Rect[] = [];
+    if (this.obstacles && this.root.parentElement) {
+      const origin = this.root.getBoundingClientRect();
+      for (const el of this.root.parentElement.querySelectorAll<HTMLElement>(this.obstacles)) {
+        const r = el.getBoundingClientRect();
+        if (r.width && r.height)
+          placed.push({ x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height });
+      }
+    }
     const items: { d: Slot; L: LabelSpec; x: number; y: number }[] = [];
     for (const d of this.pool) {
       const L = d._L;
@@ -98,7 +114,6 @@ export class LabelLayer {
     feats.sort((a, b) => a.y - b.y);
     for (let k = 1; k < feats.length; k++) feats[k].y = Math.max(feats[k].y, feats[k - 1].y + 15);
     items.sort((a, b) => (b.L.pri ?? 2) - (a.L.pri ?? 2));
-    const placed: Rect[] = [];
     for (const { d, L, x, y } of items) {
       const w = d._w ?? 0,
         h = d._h ?? 0,
