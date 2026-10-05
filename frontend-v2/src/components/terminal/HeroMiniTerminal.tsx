@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { TICKERS, seedInstrument, nextTick, fmt, fmtPct, monteCarloPaths, percentileBands, type Instrument } from "@/lib/market";
+import {
+  TICKERS,
+  seedInstrument,
+  nextTick,
+  fmt,
+  fmtPct,
+  monteCarloPaths,
+  percentileBands,
+  type Instrument,
+} from "@/lib/market";
 
 type Mode = "MK" | "MC" | "VS";
 
@@ -74,7 +83,12 @@ export function HeroMiniTerminal() {
           </div>
           <div className="mono-caps flex items-center gap-1 text-[9px]">
             {(["MK", "MC", "VS"] as Mode[]).map((m) => (
-              <span key={m} className={`border px-1.5 py-0.5 ${mode === m ? "border-primary text-primary" : "border-border text-faint"}`}>{m}</span>
+              <span
+                key={m}
+                className={`border px-1.5 py-0.5 ${mode === m ? "border-primary text-primary" : "border-border text-faint"}`}
+              >
+                {m}
+              </span>
             ))}
           </div>
         </div>
@@ -92,10 +106,17 @@ export function HeroMiniTerminal() {
             const i = insts[s];
             const up = i.changePct >= 0;
             return (
-              <div key={s} className="grid grid-cols-[60px_1fr_80px] items-center gap-2 px-3 py-1.5 tabular-nums">
+              <div
+                key={s}
+                className="grid grid-cols-[60px_1fr_80px] items-center gap-2 px-3 py-1.5 tabular-nums"
+              >
                 <span className="mono-caps text-[10px] text-foreground">{s}</span>
-                <span className="text-right font-mono text-[11px] text-foreground">{fmt(i.price)}</span>
-                <span className={`text-right font-mono text-[10px] ${up ? "text-up" : "text-down"}`}>
+                <span className="text-right font-mono text-[11px] text-foreground">
+                  {fmt(i.price)}
+                </span>
+                <span
+                  className={`text-right font-mono text-[10px] ${up ? "text-up" : "text-down"}`}
+                >
                   {up ? "▲" : "▼"} {fmtPct(i.changePct)}
                 </span>
               </div>
@@ -111,7 +132,10 @@ export function HeroMiniTerminal() {
               return (
                 <span key={k} className="mono-caps flex items-center gap-1.5 text-[9.5px]">
                   <span className="text-foreground">{i.symbol}</span>
-                  <span className={up ? "text-up" : "text-down"}>{up ? "▲" : "▼"}{Math.abs(i.changePct).toFixed(2)}%</span>
+                  <span className={up ? "text-up" : "text-down"}>
+                    {up ? "▲" : "▼"}
+                    {Math.abs(i.changePct).toFixed(2)}%
+                  </span>
                 </span>
               );
             })}
@@ -119,22 +143,33 @@ export function HeroMiniTerminal() {
         </div>
 
         {/* Command */}
-        <div className={`flex items-center border-t border-divider bg-background px-2 py-1.5 transition ${err ? "animate-shake" : ""}`}>
+        <div
+          className={`flex items-center border-t border-divider bg-background px-2 py-1.5 transition ${err ? "animate-shake" : ""}`}
+        >
           <span className="mono-caps text-[10px] text-primary pr-2">/</span>
           <input
             value={cmd}
             onChange={(e) => setCmd(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") run(cmd); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") run(cmd);
+            }}
             placeholder={isMobile ? "MK · MC · VS" : "Type MK, MC, or VS · Enter"}
             disabled={isMobile}
             readOnly={isMobile}
             className="w-full bg-transparent font-mono text-[11px] text-foreground outline-none placeholder:text-faint"
           />
-          <Link to="/terminal" className="mono-caps ml-2 border border-primary bg-primary/10 px-2 py-0.5 text-[9px] text-primary hover:bg-primary hover:text-primary-foreground">OPEN →</Link>
+          <Link
+            to="/terminal"
+            className="mono-caps ml-2 border border-primary bg-primary/10 px-2 py-0.5 text-[9px] text-primary hover:bg-primary hover:text-primary-foreground"
+          >
+            OPEN →
+          </Link>
         </div>
       </div>
       <p className="mono-caps mt-3 text-center text-[10px] text-faint">
-        {isMobile ? "Mini-terminal preview · tap OPEN to launch" : "This is live. Type MK, MC, or VS."}
+        {isMobile
+          ? "Mini-terminal preview · tap OPEN to launch"
+          : "This is live. Type MK, MC, or VS."}
       </p>
     </div>
   );
@@ -155,21 +190,30 @@ function useIsMobile() {
 function MiniPriceChart({ inst }: { inst: Instrument }) {
   const h = inst.history;
   const prices = h.map((x) => x.p);
-  const min = Math.min(...prices), max = Math.max(...prices);
+  const min = Math.min(...prices),
+    max = Math.max(...prices);
   const up = inst.changePct >= 0;
-  const pts = h.map((x, i) => {
-    const px = (i / (h.length - 1)) * 100;
-    const py = 100 - ((x.p - min) / (max - min || 1)) * 96 - 2;
-    return `${px.toFixed(2)},${py.toFixed(2)}`;
-  }).join(" ");
+  const pts = h
+    .map((x, i) => {
+      const px = (i / (h.length - 1)) * 100;
+      const py = 100 - ((x.p - min) / (max - min || 1)) * 96 - 2;
+      return `${px.toFixed(2)},${py.toFixed(2)}`;
+    })
+    .join(" ");
   return (
     <div className="relative h-full w-full p-3">
       <div className="mono-caps mb-1 flex items-baseline justify-between text-[9px] text-muted-foreground">
         <span>{inst.symbol} · SESSION</span>
-        <span className={up ? "text-up" : "text-down"}>{up ? "▲" : "▼"} {fmtPct(inst.changePct)}</span>
+        <span className={up ? "text-up" : "text-down"}>
+          {up ? "▲" : "▼"} {fmtPct(inst.changePct)}
+        </span>
       </div>
       <div className="font-mono text-2xl tabular-nums text-foreground">{fmt(inst.price)}</div>
-      <svg viewBox="0 0 100 60" className="absolute inset-x-3 bottom-3 h-32" preserveAspectRatio="none">
+      <svg
+        viewBox="0 0 100 60"
+        className="absolute inset-x-3 bottom-3 h-32"
+        preserveAspectRatio="none"
+      >
         <defs>
           <linearGradient id="miniFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={up ? "#F0A929" : "#F06464"} stopOpacity="0.35" />
@@ -183,7 +227,11 @@ function MiniPriceChart({ inst }: { inst: Instrument }) {
           stroke={up ? "#F0A929" : "#F06464"}
           strokeWidth="1.2"
           vectorEffect="non-scaling-stroke"
-          style={{ strokeDasharray: 400, strokeDashoffset: 0, animation: "draw-in 900ms cubic-bezier(0.16,1,0.3,1) both" }}
+          style={{
+            strokeDasharray: 400,
+            strokeDashoffset: 0,
+            animation: "draw-in 900ms cubic-bezier(0.16,1,0.3,1) both",
+          }}
         />
         <style>{`@keyframes draw-in { from { stroke-dashoffset: 400 } to { stroke-dashoffset: 0 } }`}</style>
       </svg>
@@ -198,20 +246,42 @@ function MiniFan({ spot }: { spot: number }) {
     return { p5: a, p50: b, p95: c };
   }, [spot]);
   const steps = p5.length;
-  const min = Math.min(...p5), max = Math.max(...p95);
+  const min = Math.min(...p5),
+    max = Math.max(...p95);
   const scale = (v: number, i: number) => {
     const x = (i / (steps - 1)) * 100;
     const y = 100 - ((v - min) / (max - min || 1)) * 90 - 5;
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   };
-  const band = (a: number[], b: number[]) => `${b.map((v, i) => scale(v, i)).join(" ")} ${a.map((v, i) => scale(v, i)).reverse().join(" ")}`;
+  const band = (a: number[], b: number[]) =>
+    `${b.map((v, i) => scale(v, i)).join(" ")} ${a
+      .map((v, i) => scale(v, i))
+      .reverse()
+      .join(" ")}`;
   return (
     <div className="relative h-full w-full p-3">
-      <div className="mono-caps mb-1 text-[9px] text-muted-foreground">MONTE CARLO · 10,000 PATHS · GBM</div>
-      <svg viewBox="0 0 100 60" className="absolute inset-x-3 bottom-3 h-40" preserveAspectRatio="none">
+      <div className="mono-caps mb-1 text-[9px] text-muted-foreground">
+        MONTE CARLO · 10,000 PATHS · GBM
+      </div>
+      <svg
+        viewBox="0 0 100 60"
+        className="absolute inset-x-3 bottom-3 h-40"
+        preserveAspectRatio="none"
+      >
         <polygon points={band(p5, p95)} fill="#21918C" opacity="0.25" />
         <polygon points={band(p5, p50)} fill="#440154" opacity="0.20" />
-        <polyline points={p50.map((v, i) => scale(v, i)).join(" ")} fill="none" stroke="#F0A929" strokeWidth="1.2" vectorEffect="non-scaling-stroke" style={{ strokeDasharray: 300, strokeDashoffset: 0, animation: "draw-mc 900ms cubic-bezier(0.16,1,0.3,1) both" }} />
+        <polyline
+          points={p50.map((v, i) => scale(v, i)).join(" ")}
+          fill="none"
+          stroke="#F0A929"
+          strokeWidth="1.2"
+          vectorEffect="non-scaling-stroke"
+          style={{
+            strokeDasharray: 300,
+            strokeDashoffset: 0,
+            animation: "draw-mc 900ms cubic-bezier(0.16,1,0.3,1) both",
+          }}
+        />
         <style>{`@keyframes draw-mc { from { stroke-dashoffset: 300 } to { stroke-dashoffset: 0 } }`}</style>
       </svg>
     </div>
@@ -243,13 +313,15 @@ function MiniSurface() {
           height={4}
           fill={colorFor(h)}
           opacity={0.85}
-        />
+        />,
       );
     }
   }
   return (
     <div ref={ref} className="relative h-full w-full p-3">
-      <div className="mono-caps mb-1 text-[9px] text-muted-foreground">IV SURFACE · SIM · AUTO-ROTATE</div>
+      <div className="mono-caps mb-1 text-[9px] text-muted-foreground">
+        IV SURFACE · SIM · AUTO-ROTATE
+      </div>
       <svg viewBox="0 0 100 60" className="absolute inset-x-3 bottom-3 h-40 w-[calc(100%-1.5rem)]">
         {cells}
       </svg>
@@ -270,4 +342,3 @@ function colorFor(h: number) {
   if (t < 0.8) return "#5EC962";
   return "#FDE725";
 }
-

@@ -11,7 +11,9 @@ function SurfaceMesh({
 }: {
   symbol: string;
   spot: number;
-  onHover: (info: { strike: number; expiry: number; iv: number; point: THREE.Vector3 } | null) => void;
+  onHover: (
+    info: { strike: number; expiry: number; iv: number; point: THREE.Vector3 } | null,
+  ) => void;
 }) {
   const surface = useMemo(() => generateVolSurface(symbol, spot), [symbol, spot]);
   const meshRef = useRef<THREE.Mesh>(null!);
@@ -28,10 +30,11 @@ function SurfaceMesh({
 
     let ivMin = Infinity;
     let ivMax = -Infinity;
-    for (const row of surface.iv) for (const v of row) {
-      if (v < ivMin) ivMin = v;
-      if (v > ivMax) ivMax = v;
-    }
+    for (const row of surface.iv)
+      for (const v of row) {
+        if (v < ivMin) ivMin = v;
+        if (v > ivMax) ivMax = v;
+      }
     const range = ivMax - ivMin || 1;
 
     const pos = g.attributes.position as THREE.BufferAttribute;
@@ -105,12 +108,7 @@ function SurfaceMesh({
         <meshBasicMaterial color="#0A0C0E" />
       </mesh>
 
-      <mesh
-        ref={meshRef}
-        geometry={geometry}
-        onPointerMove={handleMove}
-        onPointerOut={handleOut}
-      >
+      <mesh ref={meshRef} geometry={geometry} onPointerMove={handleMove} onPointerOut={handleOut}>
         <meshStandardMaterial
           vertexColors
           side={THREE.DoubleSide}
@@ -124,9 +122,30 @@ function SurfaceMesh({
       </lineSegments>
 
       {/* Axes */}
-      <Line points={[[-size, 0, size], [size, 0, size]]} color="#636C74" lineWidth={1} />
-      <Line points={[[-size, 0, size], [-size, 0, -size]]} color="#636C74" lineWidth={1} />
-      <Line points={[[-size, 0, size], [-size, heightScale, size]]} color="#636C74" lineWidth={1} />
+      <Line
+        points={[
+          [-size, 0, size],
+          [size, 0, size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
+      <Line
+        points={[
+          [-size, 0, size],
+          [-size, 0, -size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
+      <Line
+        points={[
+          [-size, 0, size],
+          [-size, heightScale, size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
 
       <Text position={[0, -0.4, size + 0.6]} fontSize={0.35} color="#F0A929" anchorX="center">
         STRIKE
@@ -166,7 +185,13 @@ function SurfaceMesh({
       {[-20, 0, 20].map((k) => {
         const x = (k / 25) * size;
         return (
-          <Text key={k} position={[x, -0.05, size + 0.3]} fontSize={0.22} color="#9AA2A9" anchorX="center">
+          <Text
+            key={k}
+            position={[x, -0.05, size + 0.3]}
+            fontSize={0.22}
+            color="#9AA2A9"
+            anchorX="center"
+          >
             {k >= 0 ? `+${k}%` : `${k}%`}
           </Text>
         );
@@ -213,17 +238,36 @@ function HoverChip({
   });
 
   if (!info || !screen) return null;
-  return (
-    <Html screen={screen} iv={info.iv} strike={info.strike} expiry={info.expiry} />
-  );
+  return <Html screen={screen} iv={info.iv} strike={info.strike} expiry={info.expiry} />;
 }
 
-function Html({ screen, strike, expiry, iv }: { screen: { x: number; y: number }; strike: number; expiry: number; iv: number }) {
+function Html({
+  screen,
+  strike,
+  expiry,
+  iv,
+}: {
+  screen: { x: number; y: number };
+  strike: number;
+  expiry: number;
+  iv: number;
+}) {
   return null; // placeholder — the real HTML overlay lives in the parent component
 }
 
-export default function VolatilitySurfaceCanvas({ symbol, spot }: { symbol: string; spot: number }) {
-  const [hover, setHover] = useState<{ strike: number; expiry: number; iv: number; point: THREE.Vector3 } | null>(null);
+export default function VolatilitySurfaceCanvas({
+  symbol,
+  spot,
+}: {
+  symbol: string;
+  spot: number;
+}) {
+  const [hover, setHover] = useState<{
+    strike: number;
+    expiry: number;
+    iv: number;
+    point: THREE.Vector3;
+  } | null>(null);
   const [screen, setScreen] = useState<{ x: number; y: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -289,4 +333,3 @@ function ScreenTracker({
   });
   return null;
 }
-

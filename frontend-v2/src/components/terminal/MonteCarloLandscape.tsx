@@ -18,8 +18,13 @@ export type Landscape = {
 
 function buildLandscape(paths: number[][], binCount: number): Landscape {
   const T = paths[0].length;
-  let pMin = Infinity, pMax = -Infinity;
-  for (const p of paths) for (const v of p) { if (v < pMin) pMin = v; if (v > pMax) pMax = v; }
+  let pMin = Infinity,
+    pMax = -Infinity;
+  for (const p of paths)
+    for (const v of p) {
+      if (v < pMin) pMin = v;
+      if (v > pMax) pMax = v;
+    }
   const bins: number[] = [];
   const step = (pMax - pMin) / (binCount - 1);
   for (let i = 0; i < binCount; i++) bins.push(pMin + i * step);
@@ -37,7 +42,8 @@ function buildLandscape(paths: number[][], binCount: number): Landscape {
     // Gaussian smooth along price axis
     const smooth = new Array(binCount).fill(0);
     for (let k = 0; k < binCount; k++) {
-      let s = 0, w = 0;
+      let s = 0,
+        w = 0;
       for (let dk = -3; dk <= 3; dk++) {
         const kk = k + dk;
         if (kk < 0 || kk >= binCount) continue;
@@ -61,7 +67,9 @@ function Landscape3D({
 }: {
   paths: number[][];
   buildKey: number;
-  onHover: (info: { t: number; price: number; density: number; point: THREE.Vector3 } | null) => void;
+  onHover: (
+    info: { t: number; price: number; density: number; point: THREE.Vector3 } | null,
+  ) => void;
   spot: number;
 }) {
   const landscape = useMemo(() => buildLandscape(paths, 64), [paths]);
@@ -70,7 +78,7 @@ function Landscape3D({
 
   const { geometry, wireGeometry } = useMemo(() => {
     const cols = landscape.bins.length; // price axis (Z)
-    const rows = landscape.timeCount;    // time axis (X)
+    const rows = landscape.timeCount; // time axis (X)
     const g = new THREE.PlaneGeometry(size * 2, size * 2, rows - 1, cols - 1);
     g.rotateX(-Math.PI / 2);
     const pos = g.attributes.position as THREE.BufferAttribute;
@@ -96,10 +104,16 @@ function Landscape3D({
   // Sweep animation: scale X (time axis) from 0 to full over ~800ms.
   const groupRef = useRef<THREE.Group>(null!);
   const sweepStart = useRef(performance.now());
-  useEffect(() => { sweepStart.current = performance.now(); }, [buildKey]);
+  useEffect(() => {
+    sweepStart.current = performance.now();
+  }, [buildKey]);
   const [userInteracting, setUserInteracting] = useState(false);
-  const reducedMotion = useMemo(() =>
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
+  const reducedMotion = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    [],
+  );
 
   useFrame((_, dt) => {
     if (!groupRef.current) return;
@@ -140,7 +154,8 @@ function Landscape3D({
   }
 
   // Spot ridge line at Z=spot
-  const spotZ = ((spot - landscape.pMin) / (landscape.pMax - landscape.pMin || 1) - 0.5) * (size * 2);
+  const spotZ =
+    ((spot - landscape.pMin) / (landscape.pMax - landscape.pMin || 1) - 0.5) * (size * 2);
 
   return (
     <group ref={groupRef}>
@@ -151,30 +166,97 @@ function Landscape3D({
       </mesh>
 
       <mesh geometry={geometry} onPointerMove={handleMove} onPointerOut={() => onHover(null)}>
-        <meshStandardMaterial vertexColors side={THREE.DoubleSide} roughness={0.75} metalness={0.05} />
+        <meshStandardMaterial
+          vertexColors
+          side={THREE.DoubleSide}
+          roughness={0.75}
+          metalness={0.05}
+        />
       </mesh>
       <lineSegments geometry={wireGeometry}>
         <lineBasicMaterial color="#F0A929" transparent opacity={0.15} />
       </lineSegments>
 
       {/* Spot reference plane */}
-      <Line points={[[-size, 0.02, spotZ], [size, 0.02, spotZ]]} color="#F0A929" lineWidth={1.5} />
-      <Line points={[[-size, heightScale + 0.4, spotZ], [size, heightScale + 0.4, spotZ]]} color="#F0A929" lineWidth={0.75} transparent opacity={0.4} />
+      <Line
+        points={[
+          [-size, 0.02, spotZ],
+          [size, 0.02, spotZ],
+        ]}
+        color="#F0A929"
+        lineWidth={1.5}
+      />
+      <Line
+        points={[
+          [-size, heightScale + 0.4, spotZ],
+          [size, heightScale + 0.4, spotZ],
+        ]}
+        color="#F0A929"
+        lineWidth={0.75}
+        transparent
+        opacity={0.4}
+      />
 
       {/* Axes */}
-      <Line points={[[-size, 0, size], [size, 0, size]]} color="#636C74" lineWidth={1} />
-      <Line points={[[-size, 0, size], [-size, 0, -size]]} color="#636C74" lineWidth={1} />
-      <Line points={[[-size, 0, size], [-size, heightScale, size]]} color="#636C74" lineWidth={1} />
+      <Line
+        points={[
+          [-size, 0, size],
+          [size, 0, size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
+      <Line
+        points={[
+          [-size, 0, size],
+          [-size, 0, -size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
+      <Line
+        points={[
+          [-size, 0, size],
+          [-size, heightScale, size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
 
-      <Text position={[0, -0.4, size + 0.6]} fontSize={0.35} color="#F0A929" anchorX="center">TIME →</Text>
-      <Text position={[-size - 0.6, -0.4, 0]} rotation={[0, Math.PI / 2, 0]} fontSize={0.35} color="#F0A929" anchorX="center">PRICE</Text>
-      <Text position={[-size - 0.4, heightScale + 0.4, size]} fontSize={0.35} color="#F0A929" anchorX="center">P</Text>
+      <Text position={[0, -0.4, size + 0.6]} fontSize={0.35} color="#F0A929" anchorX="center">
+        TIME →
+      </Text>
+      <Text
+        position={[-size - 0.6, -0.4, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        fontSize={0.35}
+        color="#F0A929"
+        anchorX="center"
+      >
+        PRICE
+      </Text>
+      <Text
+        position={[-size - 0.4, heightScale + 0.4, size]}
+        fontSize={0.35}
+        color="#F0A929"
+        anchorX="center"
+      >
+        P
+      </Text>
 
       {/* Price ticks */}
       {[landscape.pMin, (landscape.pMin + landscape.pMax) / 2, landscape.pMax].map((p, i) => {
-        const z = ((p - landscape.pMin) / (landscape.pMax - landscape.pMin || 1) - 0.5) * (size * 2);
+        const z =
+          ((p - landscape.pMin) / (landscape.pMax - landscape.pMin || 1) - 0.5) * (size * 2);
         return (
-          <Text key={i} position={[-size - 0.15, -0.05, z]} rotation={[0, Math.PI / 2, 0]} fontSize={0.22} color="#9AA2A9" anchorX="center">
+          <Text
+            key={i}
+            position={[-size - 0.15, -0.05, z]}
+            rotation={[0, Math.PI / 2, 0]}
+            fontSize={0.22}
+            color="#9AA2A9"
+            anchorX="center"
+          >
             {p.toFixed(0)}
           </Text>
         );
@@ -192,7 +274,10 @@ function ScreenTracker({
 }) {
   const { camera, size } = useThree();
   useFrame(() => {
-    if (!point) { onScreen(null); return; }
+    if (!point) {
+      onScreen(null);
+      return;
+    }
     const v = point.clone().project(camera);
     onScreen({ x: (v.x * 0.5 + 0.5) * size.width, y: (-v.y * 0.5 + 0.5) * size.height });
   });
@@ -210,7 +295,12 @@ export default function MonteCarloLandscape({
   spot: number;
   horizonDays: number;
 }) {
-  const [hover, setHover] = useState<{ t: number; price: number; density: number; point: THREE.Vector3 } | null>(null);
+  const [hover, setHover] = useState<{
+    t: number;
+    price: number;
+    density: number;
+    point: THREE.Vector3;
+  } | null>(null);
   const [screen, setScreen] = useState<{ x: number; y: number } | null>(null);
   return (
     <div className="relative h-full w-full bg-[#050607]">
@@ -218,7 +308,7 @@ export default function MonteCarloLandscape({
         PROBABILITY LANDSCAPE · {paths.length.toLocaleString()} PATHS · T+{horizonDays}D
       </div>
       <div className="mono-caps pointer-events-none absolute right-3 top-3 z-10 text-[9px] text-faint">
-        DRAG · ORBIT   SCROLL · ZOOM
+        DRAG · ORBIT SCROLL · ZOOM
       </div>
       <Canvas
         camera={{ position: [10, 8, 12], fov: 42 }}
@@ -231,19 +321,30 @@ export default function MonteCarloLandscape({
         <directionalLight position={[-6, 6, -4]} intensity={0.55} color="#45B9D3" />
         <Landscape3D paths={paths} buildKey={buildKey} spot={spot} onHover={setHover} />
         <ScreenTracker point={hover?.point ?? null} onScreen={setScreen} />
-        <OrbitControls enablePan={false} minDistance={9} maxDistance={26} minPolarAngle={0.2} maxPolarAngle={Math.PI / 2 - 0.08} />
+        <OrbitControls
+          enablePan={false}
+          minDistance={9}
+          maxDistance={26}
+          minPolarAngle={0.2}
+          maxPolarAngle={Math.PI / 2 - 0.08}
+        />
       </Canvas>
       {hover && screen && (
         <div
           className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full border border-primary bg-panel/95 px-2 py-1 font-mono text-[10px] text-foreground amber-glow"
           style={{ left: screen.x, top: screen.y - 8 }}
         >
-          <div className="mono-caps text-[9px] text-primary">T+{Math.round(hover.t * horizonDays)}d</div>
-          <div className="mono-caps text-[9px] text-muted-foreground">PRICE {hover.price.toFixed(2)}</div>
-          <div className="mono-caps text-[9px] text-info">P {(hover.density * 100).toFixed(1)}%</div>
+          <div className="mono-caps text-[9px] text-primary">
+            T+{Math.round(hover.t * horizonDays)}d
+          </div>
+          <div className="mono-caps text-[9px] text-muted-foreground">
+            PRICE {hover.price.toFixed(2)}
+          </div>
+          <div className="mono-caps text-[9px] text-info">
+            P {(hover.density * 100).toFixed(1)}%
+          </div>
         </div>
       )}
     </div>
   );
 }
-

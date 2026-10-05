@@ -35,23 +35,35 @@ type Cfg = {
 };
 
 const CFG: Record<string, Cfg> = {
-  SPY:       { name: "SPDR S&P 500 ETF",    prevClose: 612.40,   annualVol: 0.12, beta: 1.00, avgVolMM: 75 },
-  QQQ:       { name: "Invesco QQQ Trust",   prevClose: 548.11,   annualVol: 0.16, beta: 1.15, avgVolMM: 45 },
-  AAPL:      { name: "Apple Inc.",          prevClose: 234.12,   annualVol: 0.22, beta: 1.10, avgVolMM: 58 },
-  MSFT:      { name: "Microsoft Corp.",     prevClose: 448.70,   annualVol: 0.20, beta: 0.95, avgVolMM: 25 },
-  NVDA:      { name: "NVIDIA Corp.",        prevClose: 178.44,   annualVol: 0.35, beta: 1.55, avgVolMM: 220 },
-  TSLA:      { name: "Tesla, Inc.",         prevClose: 312.90,   annualVol: 0.45, beta: 1.75, avgVolMM: 95 },
-  AMZN:      { name: "Amazon.com, Inc.",    prevClose: 214.55,   annualVol: 0.28, beta: 1.20, avgVolMM: 42 },
-  META:      { name: "Meta Platforms",      prevClose: 612.31,   annualVol: 0.30, beta: 1.30, avgVolMM: 16 },
-  GOOGL:     { name: "Alphabet Inc.",       prevClose: 198.12,   annualVol: 0.24, beta: 1.10, avgVolMM: 22 },
-  IWM:       { name: "iShares Russell 2000", prevClose: 232.18,  annualVol: 0.19, beta: 1.15, avgVolMM: 32 },
-  "BTC-USD": { name: "Bitcoin",             prevClose: 98450.20, annualVol: 0.65, beta: 0.40, avgVolMM: 8 },
+  SPY: { name: "SPDR S&P 500 ETF", prevClose: 612.4, annualVol: 0.12, beta: 1.0, avgVolMM: 75 },
+  QQQ: { name: "Invesco QQQ Trust", prevClose: 548.11, annualVol: 0.16, beta: 1.15, avgVolMM: 45 },
+  AAPL: { name: "Apple Inc.", prevClose: 234.12, annualVol: 0.22, beta: 1.1, avgVolMM: 58 },
+  MSFT: { name: "Microsoft Corp.", prevClose: 448.7, annualVol: 0.2, beta: 0.95, avgVolMM: 25 },
+  NVDA: { name: "NVIDIA Corp.", prevClose: 178.44, annualVol: 0.35, beta: 1.55, avgVolMM: 220 },
+  TSLA: { name: "Tesla, Inc.", prevClose: 312.9, annualVol: 0.45, beta: 1.75, avgVolMM: 95 },
+  AMZN: { name: "Amazon.com, Inc.", prevClose: 214.55, annualVol: 0.28, beta: 1.2, avgVolMM: 42 },
+  META: { name: "Meta Platforms", prevClose: 612.31, annualVol: 0.3, beta: 1.3, avgVolMM: 16 },
+  GOOGL: { name: "Alphabet Inc.", prevClose: 198.12, annualVol: 0.24, beta: 1.1, avgVolMM: 22 },
+  IWM: {
+    name: "iShares Russell 2000",
+    prevClose: 232.18,
+    annualVol: 0.19,
+    beta: 1.15,
+    avgVolMM: 32,
+  },
+  "BTC-USD": { name: "Bitcoin", prevClose: 98450.2, annualVol: 0.65, beta: 0.4, avgVolMM: 8 },
 };
 
 export const TICKERS = Object.keys(CFG);
-export function annualVolOf(symbol: string): number { return CFG[symbol]?.annualVol ?? 0.25; }
-export function betaOf(symbol: string): number { return CFG[symbol]?.beta ?? 1.0; }
-export function prevCloseOf(symbol: string): number { return CFG[symbol]?.prevClose ?? 100; }
+export function annualVolOf(symbol: string): number {
+  return CFG[symbol]?.annualVol ?? 0.25;
+}
+export function betaOf(symbol: string): number {
+  return CFG[symbol]?.beta ?? 1.0;
+}
+export function prevCloseOf(symbol: string): number {
+  return CFG[symbol]?.prevClose ?? 100;
+}
 
 function boxMuller(): number {
   const u = Math.max(1e-9, Math.random());
@@ -59,11 +71,7 @@ function boxMuller(): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
-function generateSession(
-  symbol: string,
-  spyRet: number,
-  forcedOutlier: number | null,
-): Instrument {
+function generateSession(symbol: string, spyRet: number, forcedOutlier: number | null): Instrument {
   const cfg = CFG[symbol];
   const dailyVol = cfg.annualVol / Math.sqrt(252);
   let ret: number;
@@ -225,7 +233,10 @@ function bootstrap(): Session {
   // Force diversity: if <2 red or <2 green, resample idiosyncratic on a few
   let greens = 0;
   let reds = 0;
-  for (const s of TICKERS) instruments[s].changePct >= 0 ? greens++ : reds++;
+  for (const s of TICKERS) {
+    if (instruments[s].changePct >= 0) greens++;
+    else reds++;
+  }
   if (greens < 2 || reds < 2) {
     // flip a couple mid-vol tickers
     const flipCandidates = ["AAPL", "MSFT", "GOOGL", "AMZN", "META"];
@@ -256,11 +267,14 @@ function bootstrap(): Session {
     });
   }
   // Two more color headlines from top movers
-  const ranked = [...TICKERS].sort((a, b) => Math.abs(instruments[b].changePct) - Math.abs(instruments[a].changePct));
+  const ranked = [...TICKERS].sort(
+    (a, b) => Math.abs(instruments[b].changePct) - Math.abs(instruments[a].changePct),
+  );
   for (const s of ranked.slice(0, 3)) {
     if (s === outlierSym) continue;
     const inst = instruments[s];
-    const sentiment: "pos" | "neg" | "neu" = inst.changePct > 0.5 ? "pos" : inst.changePct < -0.5 ? "neg" : "neu";
+    const sentiment: "pos" | "neg" | "neu" =
+      inst.changePct > 0.5 ? "pos" : inst.changePct < -0.5 ? "neg" : "neu";
     const pool = BASE_HEADLINES.filter((h) => h.sent === sentiment || h.sent === "neu");
     const tpl = pool[Math.floor(Math.random() * pool.length)];
     seedHeadlines.push({
@@ -337,10 +351,7 @@ export function nextTick(inst: Instrument): Instrument {
   const spread = Math.max(0.01, (price * spreadBps) / 10000);
   const lastTick = inst.history[inst.history.length - 1];
   const microVol = (lastTick.v ?? 1000) * (0.6 + Math.random() * 0.8);
-  const history = [
-    ...inst.history.slice(1),
-    { t: Date.now(), p: price, v: microVol },
-  ];
+  const history = [...inst.history.slice(1), { t: Date.now(), p: price, v: microVol }];
   const sessionHigh = Math.max(inst.sessionHigh, price);
   const sessionLow = Math.min(inst.sessionLow, price);
   return {
@@ -444,7 +455,8 @@ export function correlationMatrix(symbols: string[]): number[][] {
         const bi = betaOf(symbols[i]);
         const bj = betaOf(symbols[j]);
         const closeness = 1 - Math.min(1, Math.abs(bi - bj) / 1.5);
-        const seedNoise = (Math.sin((symbols[i].charCodeAt(0) + symbols[j].charCodeAt(0)) * 12.9) + 1) / 2;
+        const seedNoise =
+          (Math.sin((symbols[i].charCodeAt(0) + symbols[j].charCodeAt(0)) * 12.9) + 1) / 2;
         m[i][j] = Math.max(-0.1, Math.min(0.95, 0.15 + closeness * 0.7 + (seedNoise - 0.5) * 0.1));
       } else m[i][j] = m[j][i];
     }
@@ -475,12 +487,18 @@ export function viridis(t: number): string {
 // ─── Daily history for longer timeframes ─────────────────────────────
 function symHash(s: string): number {
   let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h * 16777619) >>> 0;
+  }
   return h;
 }
 function seedRng(seed: number) {
   let s = seed >>> 0;
-  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
 }
 function seedBM(rng: () => number): number {
   const u = Math.max(1e-9, rng());
@@ -500,7 +518,10 @@ export function dailyHistory(symbol: string, days: number): Tick[] {
   // integrate then shift so last close == prevClose
   let cur = 0;
   const path: number[] = [0];
-  for (let i = 1; i < days; i++) { cur += rets[i]; path.push(cur); }
+  for (let i = 1; i < days; i++) {
+    cur += rets[i];
+    path.push(cur);
+  }
   const shift = Math.log(cfg.prevClose) - path[path.length - 1];
   const now = Date.now();
   const oneDay = 24 * 3600 * 1000;
@@ -520,8 +541,14 @@ export function bucketCandles(ticks: Tick[], count: number): Candle[] {
   for (let i = 0; i < ticks.length; i += size) {
     const slice = ticks.slice(i, Math.min(ticks.length, i + size));
     if (!slice.length) continue;
-    let h = -Infinity, l = Infinity, v = 0;
-    for (const s of slice) { if (s.p > h) h = s.p; if (s.p < l) l = s.p; v += s.v ?? 0; }
+    let h = -Infinity,
+      l = Infinity,
+      v = 0;
+    for (const s of slice) {
+      if (s.p > h) h = s.p;
+      if (s.p < l) l = s.p;
+      v += s.v ?? 0;
+    }
     out.push({ t: slice[0].t, o: slice[0].p, h, l, c: slice[slice.length - 1].p, v });
   }
   return out;

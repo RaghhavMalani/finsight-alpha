@@ -1,15 +1,30 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, type SimulationNodeDatum } from "d3-force";
+import {
+  forceSimulation,
+  forceLink,
+  forceManyBody,
+  forceCenter,
+  forceCollide,
+  type SimulationNodeDatum,
+  type Simulation,
+  type SimulationLinkDatum,
+} from "d3-force";
 import { depsOf, DEP_COLOR, DEP_LABEL, type DepEdge, type DepType } from "@/lib/dependencies";
 
 type Node = SimulationNodeDatum & { id: string; type: DepType | "center"; strength: number };
-type Link = { source: string; target: string; strength: number };
+type Link = SimulationLinkDatum<Node> & { strength: number };
 
 const TYPE_ORDER: DepType[] = ["supplier", "customer", "competitor", "sector", "index"];
 
-export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus?: (sym: string) => void }) {
+export function DependenciesGraph({
+  symbol,
+  onFocus,
+}: {
+  symbol: string;
+  onFocus?: (sym: string) => void;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const simRef = useRef<any>(null);
+  const simRef = useRef<Simulation<Node, Link> | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -30,20 +45,32 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
     const raf = requestAnimationFrame(measure);
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); };
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, []);
 
   useEffect(() => {
     if (size.w < 40 || size.h < 40) return;
-    const cx = size.w / 2, cy = size.h / 2;
+    const cx = size.w / 2,
+      cy = size.h / 2;
     const radius = Math.min(size.w, size.h) * 0.35;
-    const centerNode: Node = { id: symbol, type: "center", strength: 1, fx: cx, fy: cy, x: cx, y: cy };
+    const centerNode: Node = {
+      id: symbol,
+      type: "center",
+      strength: 1,
+      fx: cx,
+      fy: cy,
+      x: cx,
+      y: cy,
+    };
     // Position outer nodes radially by type sector
     const initial: Node[] = [centerNode];
     edges.forEach((e, i) => {
       const typeIdx = TYPE_ORDER.indexOf(e.type);
       const baseAngle = (typeIdx / TYPE_ORDER.length) * Math.PI * 2;
-      const spread = (i * 0.35) - edges.length * 0.05;
+      const spread = i * 0.35 - edges.length * 0.05;
       const angle = baseAngle + spread;
       initial.push({
         id: e.id,
@@ -55,11 +82,19 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
     });
     setNodes(initial);
 
-    const links: Link[] = edges.map((e) => ({ source: symbol, target: e.id, strength: e.strength }));
-    const sim = forceSimulation(initial as any)
-      .force("link", forceLink(links as any).id((d: any) => d.id)
-        .distance((l: any) => 60 + (1 - l.strength) * (radius * 0.9))
-        .strength((l: any) => 0.3 + l.strength * 0.5))
+    const links: Link[] = edges.map((e) => ({
+      source: symbol,
+      target: e.id,
+      strength: e.strength,
+    }));
+    const sim = forceSimulation<Node>(initial)
+      .force(
+        "link",
+        forceLink<Node, Link>(links)
+          .id((d) => d.id)
+          .distance((l) => 60 + (1 - l.strength) * (radius * 0.9))
+          .strength((l) => 0.3 + l.strength * 0.5),
+      )
       .force("charge", forceManyBody().strength(-220))
       .force("center", forceCenter(cx, cy))
       .force("collide", forceCollide().radius(28))
@@ -67,20 +102,36 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
       .alphaDecay(0.04)
       .on("tick", () => setNodes([...(sim.nodes() as Node[])]));
     simRef.current = sim;
-    return () => { sim.stop(); simRef.current = null; };
+    return () => {
+      sim.stop();
+      simRef.current = null;
+    };
   }, [size.w, size.h, symbol, edges]);
 
-  function pointerDown(id: string) { dragRef.current = { id }; simRef.current?.alphaTarget(0.3).restart(); }
+  function pointerDown(id: string) {
+    dragRef.current = { id };
+    simRef.current?.alphaTarget(0.3).restart();
+  }
   function pointerMove(e: React.PointerEvent) {
     if (!dragRef.current || !wrapRef.current) return;
     const rect = wrapRef.current.getBoundingClientRect();
-    const n = (simRef.current?.nodes() as Node[] | undefined)?.find((n) => n.id === dragRef.current!.id);
-    if (n) { n.fx = e.clientX - rect.left; n.fy = e.clientY - rect.top; }
+    const n = (simRef.current?.nodes() as Node[] | undefined)?.find(
+      (n) => n.id === dragRef.current!.id,
+    );
+    if (n) {
+      n.fx = e.clientX - rect.left;
+      n.fy = e.clientY - rect.top;
+    }
   }
   function pointerUp() {
     if (dragRef.current) {
-      const n = (simRef.current?.nodes() as Node[] | undefined)?.find((n) => n.id === dragRef.current!.id);
-      if (n && n.id !== symbol) { n.fx = null; n.fy = null; }
+      const n = (simRef.current?.nodes() as Node[] | undefined)?.find(
+        (n) => n.id === dragRef.current!.id,
+      );
+      if (n && n.id !== symbol) {
+        n.fx = null;
+        n.fy = null;
+      }
       simRef.current?.alphaTarget(0);
       dragRef.current = null;
     }
@@ -110,9 +161,12 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
                 return (
                   <line
                     key={e.id}
-                    x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                    x1={s.x}
+                    y1={s.y}
+                    x2={t.x}
+                    y2={t.y}
                     stroke={DEP_COLOR[e.type]}
-                    strokeOpacity={active ? 0.20 + e.strength * 0.55 : 0.06}
+                    strokeOpacity={active ? 0.2 + e.strength * 0.55 : 0.06}
                     strokeWidth={Math.max(0.75, e.strength * 3.5)}
                   />
                 );
@@ -132,12 +186,24 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
                     onMouseEnter={() => setHover(n.id)}
                     onMouseLeave={() => setHover(null)}
                     onDoubleClick={() => !isCenter && onFocus?.(n.id)}
-                    style={{ cursor: isCenter ? "default" : "grab", opacity: dim ? 0.3 : 1, transition: "opacity 180ms" }}
+                    style={{
+                      cursor: isCenter ? "default" : "grab",
+                      opacity: dim ? 0.3 : 1,
+                      transition: "opacity 180ms",
+                    }}
                   >
                     {isCenter && <circle r={r + 6} fill={color} opacity={0.15} />}
                     <circle r={r} fill="#0A0C0E" stroke={color} strokeWidth={isCenter ? 2 : 1.5} />
-                    <text textAnchor="middle" dy={4} className="mono-caps" fontSize={isCenter ? 11 : 9} fill="#E7EAEC"
-                      style={{ pointerEvents: "none", userSelect: "none" }}>{n.id}</text>
+                    <text
+                      textAnchor="middle"
+                      dy={4}
+                      className="mono-caps"
+                      fontSize={isCenter ? 11 : 9}
+                      fill="#E7EAEC"
+                      style={{ pointerEvents: "none", userSelect: "none" }}
+                    >
+                      {n.id}
+                    </text>
                   </g>
                 );
               })}
@@ -161,7 +227,9 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
           DEPENDENCIES · {symbol} · {edges.length}
         </div>
         {edges.length === 0 && (
-          <div className="mono-caps p-4 text-center text-[10px] text-faint">No curated deps for {symbol}.</div>
+          <div className="mono-caps p-4 text-center text-[10px] text-faint">
+            No curated deps for {symbol}.
+          </div>
         )}
         {edges.map((e) => {
           const highlight = hover === e.id;
@@ -175,15 +243,23 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
             >
               <div className="mono-caps flex items-center justify-between text-[9px] text-faint">
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: DEP_COLOR[e.type] }} />
+                  <span
+                    className="inline-block h-1.5 w-1.5 rounded-full"
+                    style={{ background: DEP_COLOR[e.type] }}
+                  />
                   <span className="text-primary">{e.id}</span>
                   <span>· {DEP_LABEL[e.type]}</span>
                 </span>
-                <span className="tabular-nums text-foreground">{(e.strength * 100).toFixed(0)}</span>
+                <span className="tabular-nums text-foreground">
+                  {(e.strength * 100).toFixed(0)}
+                </span>
               </div>
               <div className="mt-1 text-[11px] leading-snug text-foreground">{e.note}</div>
               <div className="mt-1 h-[2px] bg-background">
-                <div className="h-full" style={{ width: `${e.strength * 100}%`, background: DEP_COLOR[e.type] }} />
+                <div
+                  className="h-full"
+                  style={{ width: `${e.strength * 100}%`, background: DEP_COLOR[e.type] }}
+                />
               </div>
             </button>
           );
@@ -197,4 +273,3 @@ export function DependenciesGraph({ symbol, onFocus }: { symbol: string; onFocus
     </div>
   );
 }
-

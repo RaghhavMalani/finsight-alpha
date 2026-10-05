@@ -9,7 +9,6 @@ type PaperBookPayload = { positions: DemoPosition[] };
 
 const KEY = "finsight.demoBook.v1";
 
-
 function load(): DemoPosition[] {
   if (typeof window === "undefined") return [];
   try {
@@ -19,11 +18,14 @@ function load(): DemoPosition[] {
     if (!Array.isArray(arr)) return [];
     return arr.filter(
       (p: unknown): p is DemoPosition =>
-        !!p && typeof (p as DemoPosition).symbol === "string" &&
+        !!p &&
+        typeof (p as DemoPosition).symbol === "string" &&
         typeof (p as DemoPosition).qty === "number" &&
         typeof (p as DemoPosition).entry === "number",
     );
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 let positions: DemoPosition[] = load();
@@ -51,7 +53,11 @@ function validPositions(value: unknown): DemoPosition[] {
 
 function persistCache() {
   if (typeof window === "undefined") return;
-  try { localStorage.setItem(KEY, JSON.stringify(positions)); } catch { /* offline cache only */ }
+  try {
+    localStorage.setItem(KEY, JSON.stringify(positions));
+  } catch {
+    /* offline cache only */
+  }
 }
 
 function setSyncStatus(next: DemoBookSync) {
@@ -129,27 +135,35 @@ function commit(next: DemoPosition[]) {
   scheduleSave();
 }
 
-export function getDemoBook() { return positions; }
+export function getDemoBook() {
+  return positions;
+}
 export function subscribeDemoBook(fn: (p: DemoPosition[]) => void) {
   subs.add(fn);
   fn(positions);
   void ensureHydrated();
-  return () => { subs.delete(fn); };
+  return () => {
+    subs.delete(fn);
+  };
 }
 export function subscribeDemoBookStatus(fn: (status: DemoBookSync) => void) {
   statusSubs.add(fn);
   fn(syncStatus);
   void ensureHydrated();
-  return () => { statusSubs.delete(fn); };
+  return () => {
+    statusSubs.delete(fn);
+  };
 }
 export function addDemoPosition(position: DemoPosition) {
   const symbol = position.symbol.trim().toUpperCase();
   const existing = positions.find((item) => item.symbol === symbol);
   if (existing) {
     const qty = existing.qty + position.qty;
-    commit(qty === 0
-      ? positions.filter((item) => item.symbol !== symbol)
-      : positions.map((item) => item.symbol === symbol ? { ...item, qty } : item));
+    commit(
+      qty === 0
+        ? positions.filter((item) => item.symbol !== symbol)
+        : positions.map((item) => (item.symbol === symbol ? { ...item, qty } : item)),
+    );
   } else {
     commit([...positions, { ...position, symbol }]);
   }
@@ -158,6 +172,12 @@ export function removeDemoPosition(symbol: string) {
   commit(positions.filter((position) => position.symbol !== symbol));
 }
 export function updateDemoPosition(symbol: string, patch: Partial<DemoPosition>) {
-  commit(positions.map((position) => position.symbol === symbol ? { ...position, ...patch } : position));
+  commit(
+    positions.map((position) =>
+      position.symbol === symbol ? { ...position, ...patch } : position,
+    ),
+  );
 }
-export function clearDemoBook() { commit([]); }
+export function clearDemoBook() {
+  commit([]);
+}

@@ -13,13 +13,7 @@ export type ContextState = {
   items: ContextItem[];
 } | null;
 
-export function ContextMenu({
-  state,
-  onClose,
-}: {
-  state: ContextState;
-  onClose: () => void;
-}) {
+export function ContextMenu({ state, onClose }: { state: ContextState; onClose: () => void }) {
   const ref = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!state) return;
@@ -60,4 +54,3 @@ export function ContextMenu({
     </div>
   );
 }
-

@@ -41,9 +41,7 @@ export function AlertsPanel({
             <span className="font-mono text-[11px] text-muted-foreground">
               {a.direction === "above" ? "≥" : "≤"} {fmt(a.level)}
             </span>
-            <span
-              className={`mono-caps text-[9px] ${on ? "text-primary" : "text-faint"}`}
-            >
+            <span className={`mono-caps text-[9px] ${on ? "text-primary" : "text-faint"}`}>
               {on ? "TRIGGERED" : "ARMED"}
             </span>
             <button
@@ -127,4 +125,3 @@ export function AlertPopover({
     </div>
   );
 }
-

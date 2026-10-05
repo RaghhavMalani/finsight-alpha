@@ -25,7 +25,10 @@ export function AiInsight({
   return (
     <div className="flex flex-wrap items-center gap-3 border-l-2 border-info bg-info/5 px-3 py-1.5">
       <span className="mono-caps shrink-0 text-[9px] text-info">{source} · INSIGHT</span>
-      <span key={idx} className="min-w-0 flex-1 font-mono text-[12px] text-foreground animate-fade-in">
+      <span
+        key={idx}
+        className="min-w-0 flex-1 font-mono text-[12px] text-foreground animate-fade-in"
+      >
         {lines[idx] ?? lines[0]}
       </span>
       {jumps && jumps.length > 0 && (
@@ -45,4 +48,3 @@ export function AiInsight({
     </div>
   );
 }
-

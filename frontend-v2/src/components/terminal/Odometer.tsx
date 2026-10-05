@@ -5,21 +5,22 @@ function useAnimatedNumber(target: number, duration = 500) {
   const raf = useRef<number | null>(null);
   const startVal = useRef(target);
   const startTime = useRef(0);
+  const current = useRef(target);
 
   useEffect(() => {
-    startVal.current = val;
+    startVal.current = current.current;
     startTime.current = performance.now();
     const step = (t: number) => {
       const p = Math.min(1, (t - startTime.current) / duration);
       const eased = 1 - Math.pow(1 - p, 3);
-      setVal(startVal.current + (target - startVal.current) * eased);
+      current.current = startVal.current + (target - startVal.current) * eased;
+      setVal(current.current);
       if (p < 1) raf.current = requestAnimationFrame(step);
     };
     raf.current = requestAnimationFrame(step);
     return () => {
       if (raf.current) cancelAnimationFrame(raf.current);
     };
-     
   }, [target, duration]);
 
   return val;
@@ -60,4 +61,3 @@ export function Odometer({
     </span>
   );
 }
-

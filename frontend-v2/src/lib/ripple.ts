@@ -15,7 +15,7 @@ export function installRipple() {
       // Only ripple on things that "look interactive".
       const el =
         t.closest(
-          "button, a, [role='button'], [data-ripple], .interactive, .mono-caps.border, [data-tour], .splitter"
+          "button, a, [role='button'], [data-ripple], .interactive, .mono-caps.border, [data-tour], .splitter",
         ) || null;
       if (!el) return;
       const dot = document.createElement("div");
@@ -25,6 +25,6 @@ export function installRipple() {
       document.body.appendChild(dot);
       setTimeout(() => dot.remove(), 300);
     },
-    { passive: true }
+    { passive: true },
   );
 }

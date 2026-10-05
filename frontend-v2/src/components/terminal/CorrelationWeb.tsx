@@ -6,11 +6,13 @@ import {
   forceCenter,
   forceCollide,
   type SimulationNodeDatum,
+  type Simulation,
+  type SimulationLinkDatum,
 } from "d3-force";
 import { correlationMatrix } from "@/lib/market";
 
 type Node = SimulationNodeDatum & { id: string; vol: number };
-type Edge = { source: string; target: string; rho: number };
+type Edge = SimulationLinkDatum<Node> & { rho: number };
 
 export function CorrelationWeb({
   symbols,
@@ -31,7 +33,7 @@ export function CorrelationWeb({
   }, [symbols, m]);
 
   const wrapRef = useRef<HTMLDivElement>(null);
-  const simRef = useRef<any>(null);
+  const simRef = useRef<Simulation<Node, Edge> | null>(null);
   const dragRef = useRef<{ id: string } | null>(null);
 
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -80,13 +82,13 @@ export function CorrelationWeb({
     setNodes(initial);
 
     const links = edges.map((e) => ({ ...e }));
-    const sim = forceSimulation(initial as any)
+    const sim = forceSimulation<Node>(initial)
       .force(
         "link",
-        forceLink(links as any)
-          .id((d: any) => d.id)
-          .distance((l: any) => 40 + (1 - Math.abs(l.rho)) * Math.min(220, radius * 1.4))
-          .strength((l: any) => Math.abs(l.rho) * 0.7),
+        forceLink<Node, Edge>(links)
+          .id((d) => d.id)
+          .distance((l) => 40 + (1 - Math.abs(l.rho)) * Math.min(220, radius * 1.4))
+          .strength((l) => Math.abs(l.rho) * 0.7),
       )
       .force("charge", forceManyBody().strength(-260))
       .force("center", forceCenter(cx, cy))
@@ -210,4 +212,3 @@ export function CorrelationWeb({
     </div>
   );
 }
-

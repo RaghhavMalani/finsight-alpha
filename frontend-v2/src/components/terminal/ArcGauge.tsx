@@ -33,18 +33,27 @@ export function ArcGauge({ value, dir, size = 110, label, trend }: Props) {
 
   const color = dir === "up" ? "#42C98B" : "#F06464";
   const [nx, ny] = pt(needleAngle, r - 6);
-  const trendPts = trend && trend.length > 1
-    ? trend.map((v, i) => {
-        const x = (i / (trend.length - 1)) * (size - 20) + 10;
-        const y = size - 8 - v * 10;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(" ")
-    : null;
+  const trendPts =
+    trend && trend.length > 1
+      ? trend
+          .map((v, i) => {
+            const x = (i / (trend.length - 1)) * (size - 20) + 10;
+            const y = size - 8 - v * 10;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          })
+          .join(" ")
+      : null;
 
   return (
     <svg viewBox={`0 0 ${size} ${size}`} className="block" width={size} height={size}>
       {/* Track */}
-      <path d={arcPath(s, e, r)} stroke="#171B1F" strokeWidth={7} fill="none" strokeLinecap="round" />
+      <path
+        d={arcPath(s, e, r)}
+        stroke="#171B1F"
+        strokeWidth={7}
+        fill="none"
+        strokeLinecap="round"
+      />
       {/* Filled arc */}
       <path
         d={arcPath(s, needleAngle, r)}
@@ -59,25 +68,56 @@ export function ArcGauge({ value, dir, size = 110, label, trend }: Props) {
         const a = s + t * total;
         const [tx1, ty1] = pt(a, r + 2);
         const [tx2, ty2] = pt(a, r + 5);
-        return <line key={i} x1={tx1} y1={ty1} x2={tx2} y2={ty2} stroke="#636C74" strokeWidth={1} />;
+        return (
+          <line key={i} x1={tx1} y1={ty1} x2={tx2} y2={ty2} stroke="#636C74" strokeWidth={1} />
+        );
       })}
       {/* Needle */}
-      <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="#F0A929" strokeWidth={1.5} strokeLinecap="round" />
+      <line
+        x1={cx}
+        y1={cy}
+        x2={nx}
+        y2={ny}
+        stroke="#F0A929"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
       <circle cx={cx} cy={cy} r={2.5} fill="#F0A929" />
       {/* Value */}
-      <text x={cx} y={cy - 4} textAnchor="middle" fontFamily="JetBrains Mono" fontSize={14} fill="#E7EAEC">
+      <text
+        x={cx}
+        y={cy - 4}
+        textAnchor="middle"
+        fontFamily="JetBrains Mono"
+        fontSize={14}
+        fill="#E7EAEC"
+      >
         {(clamped * 100).toFixed(0)}%
       </text>
       {label && (
-        <text x={cx} y={cy + 12} textAnchor="middle" fontFamily="JetBrains Mono" fontSize={7} fill="#636C74" style={{ letterSpacing: "0.08em" }}>
+        <text
+          x={cx}
+          y={cy + 12}
+          textAnchor="middle"
+          fontFamily="JetBrains Mono"
+          fontSize={7}
+          fill="#636C74"
+          style={{ letterSpacing: "0.08em" }}
+        >
           {label.toUpperCase()}
         </text>
       )}
       {/* Trend sparkline */}
       {trendPts && (
-        <polyline points={trendPts} fill="none" stroke={color} strokeWidth={0.75} opacity={0.7} vectorEffect="non-scaling-stroke" />
+        <polyline
+          points={trendPts}
+          fill="none"
+          stroke={color}
+          strokeWidth={0.75}
+          opacity={0.7}
+          vectorEffect="non-scaling-stroke"
+        />
       )}
     </svg>
   );
 }
-
