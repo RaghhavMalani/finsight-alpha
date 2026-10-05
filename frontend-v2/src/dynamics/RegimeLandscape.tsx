@@ -1,11 +1,14 @@
 import { useId, useState } from "react";
 import type { MarketRegimeArtifact, SurfaceCell } from "@/dynamics/market-regime-contracts";
+import { useSnapshotLabel } from "@/dynamics/snapshot-label";
 
 const fmt = (n: number | null | undefined, digits = 3) =>
   n == null ? "UNAVAILABLE" : n.toFixed(digits);
 
 export function RegimeLandscape({ artifact }: { artifact: MarketRegimeArtifact }) {
   const id = useId();
+  const regionLabel = useSnapshotLabel("Regime Fracture Landscape");
+  const tableLabel = useSnapshotLabel("Objective components table");
   const surface = artifact.landscape;
   const cells = surface.cells;
   const [color, setColor] = useState("objective");
@@ -49,7 +52,7 @@ export function RegimeLandscape({ artifact }: { artifact: MarketRegimeArtifact }
     )
     .join(" ");
   return (
-    <section className="border border-[#25313A] bg-[#080C0F]" aria-labelledby={id}>
+    <section className="border border-[#25313A] bg-[#080C0F]" aria-label={regionLabel}>
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-[#25313A] px-4 py-4">
         <div>
           <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#B49555]">
@@ -266,12 +269,7 @@ export function RegimeLandscape({ artifact }: { artifact: MarketRegimeArtifact }
                 </div>
               </dl>
             </div>
-            <div
-              className="overflow-x-auto"
-              tabIndex={0}
-              role="region"
-              aria-label="Objective components table"
-            >
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={tableLabel}>
               <table className="w-full font-mono text-[10px] text-[#A5B1B9]">
                 <caption className="pb-2 text-left text-[#D4DCE1]">
                   Selected point / objective decomposition

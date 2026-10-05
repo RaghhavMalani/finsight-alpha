@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useId, useState, type ReactNode } from "react";
 import type { MarketRegimeArtifact, SeasonCell } from "@/dynamics/market-regime-contracts";
 import { RegimeLandscape } from "@/dynamics/RegimeLandscape";
+import { useSnapshotLabel } from "@/dynamics/snapshot-label";
 import { marketRegimeQuery, marketRegimeCatalogQuery } from "@/dynamics/query";
 import { LoadingState, StatusMark, UnavailableState } from "@/forge/shared/SurfacePrimitives";
 
@@ -109,7 +110,9 @@ export function MarketRegimeLab() {
   );
 }
 
-function RegimeDashboard({ artifact: a }: { artifact: MarketRegimeArtifact }) {
+export function RegimeDashboard({ artifact: a }: { artifact: MarketRegimeArtifact }) {
+  const nowId = useId();
+  const regionLabel = useSnapshotLabel("Regime now");
   const current = a.current;
   const vectorLabels = {
     V: "Volatility stress",
@@ -147,10 +150,10 @@ function RegimeDashboard({ artifact: a }: { artifact: MarketRegimeArtifact }) {
           AS OF {a.world.as_of} / trading-time display {a.world.timezone}
         </p>
       </section>
-      <section aria-labelledby="regime-now" className="border border-[#25313A] bg-[#0B1115]">
+      <section aria-label={regionLabel} className="border border-[#25313A] bg-[#0B1115]">
         <header className="flex flex-wrap justify-between gap-2 border-b border-[#25313A] px-4 py-3">
           <h3
-            id="regime-now"
+            id={nowId}
             className="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#CDD6DC]"
           >
             Regime now / {words(current.regime)}
@@ -225,8 +228,9 @@ function Panel({
   children: ReactNode;
 }) {
   const id = useId();
+  const regionLabel = useSnapshotLabel(title);
   return (
-    <section className="min-w-0 border border-[#25313A] bg-[#0A1014]" aria-labelledby={id}>
+    <section className="min-w-0 border border-[#25313A] bg-[#0A1014]" aria-label={regionLabel}>
       <header className="border-b border-[#25313A] px-4 py-3">
         <p className="font-mono text-[8px] uppercase tracking-[.14em] text-[#8E9FA9]">{kicker}</p>
         <h3 id={id} className="mt-1 text-sm font-semibold text-[#DAE2E7]">
@@ -379,18 +383,14 @@ function VolatilityPanel({ artifact: a }: { artifact: MarketRegimeArtifact }) {
 }
 
 function FactorPanel({ artifact: a }: { artifact: MarketRegimeArtifact }) {
+  const tableLabel = useSnapshotLabel("Factor loadings table");
   const f = a.current.factors;
   return (
     <Panel title="Factor Neutrality Check" kicker={"Prior-only regression / " + f.status}>
       <p className="mb-3 font-mono text-[9px] text-[#A0AFB8]">
         Aligned training n={f.n} / κ={num(f.condition, 1)} / α={num(f.alpha, 5)}
       </p>
-      <div
-        className="overflow-x-auto"
-        tabIndex={0}
-        role="region"
-        aria-label="Factor loadings table"
-      >
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={tableLabel}>
         <table className="w-full min-w-[570px] font-mono text-[9px] text-[#BAC6CE]">
           <caption className="sr-only">
             Rolling factor exposures and approximate HAC uncertainty
@@ -595,6 +595,7 @@ function SeasonalityPanel({ artifact: a }: { artifact: MarketRegimeArtifact }) {
 }
 
 function MomentumPanel({ artifact: a }: { artifact: MarketRegimeArtifact }) {
+  const tableLabel = useSnapshotLabel("Conditional momentum table");
   return (
     <Panel
       title="Regime-Dependent Momentum"
@@ -608,12 +609,7 @@ function MomentumPanel({ artifact: a }: { artifact: MarketRegimeArtifact }) {
       <p className="mt-3 font-mono text-[10px] text-[#D2BC88]">
         Weighted signal {num(a.current.momentum.signal, 4)} / weights .10 / .20 / .30 / .40
       </p>
-      <div
-        className="mt-4 overflow-x-auto"
-        tabIndex={0}
-        role="region"
-        aria-label="Conditional momentum table"
-      >
+      <div className="mt-4 overflow-x-auto" tabIndex={0} role="region" aria-label={tableLabel}>
         <table className="w-full min-w-[620px] font-mono text-[9px] text-[#BBCAD3]">
           <caption className="sr-only">
             Momentum sample and performance conditional on prior-session regime

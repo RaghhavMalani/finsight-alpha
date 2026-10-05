@@ -43,10 +43,11 @@ This table separates code on `main`, completed research on public branches, and 
 | Forge benchmark and execution federation | Research-complete on [`finsight-forge`](https://github.com/RaghhavMalani/finsight-alpha/tree/finsight-forge) | Frozen tasks, counterfactual worlds, execution adapters, calibrated rewards, Reality Ladder evidence, and a provider-neutral single-agent harness |
 | Nonlinear Dynamics Lab through D0.3.3.2 | Frozen on [`dynamics/d0.3.3.2-evidence-contract`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.3.3.2-evidence-contract) | Estimator tournament, failure decomposition, targeted recovery, generalization autopsy, and a content-addressed evidence contract |
 | D0.3.4 evidence-complete replication | Frozen on [`dynamics/d0.3.4-evidence-complete-replication`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.3.4-evidence-complete-replication) | 400/400 evidence-complete worlds; `PARTIALLY_CHARACTERIZED`; false-basin control and basin recall supported; state-diffusion limitation replicated |
-| D0.4 Hawkes event processes | Frozen parent on [`dynamics/d0.4-hawkes-event-dynamics`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.4-hawkes-event-dynamics); not promoted to `main` | 12 historical worlds; canonical evidence unchanged; interval and graph limitations remain visible |
-| D0.4.1 Hawkes uncertainty & edge identifiability | Frozen on [`dynamics/d0.4.1-hawkes-identifiability`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.4.1-hawkes-identifiability); not promoted to `main` | 420 new seed-disjoint worlds; `PARTIALLY_CHARACTERIZED`; fixed-attribution coverage 19.1%, parametric-refit coverage 65.9%, exact graph recovery 69.4%; [full evidence and boundaries](docs/dynamics-lab-d0-4-1-results.md) |
-| D0.4.1.1 Hawkes boundary & structural failure decomposition | Frozen diagnostic on [`dynamics/d0.4.1.1-boundary-structure-decomposition`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.4.1.1-boundary-structure-decomposition); not promoted to `main` | 200 new matched latent worlds / 1,800 protocol fits; `EVIDENCE_INSUFFICIENT`; neither repair warrant activated; both parent artifacts byte-identical; [diagnostic evidence and stop boundary](docs/dynamics-lab-d0-4-1-1-results.md) |
-| D0.4.2 Market Regime Intelligence Lab | Integrated product analytics on [`dynamics/d0.4.2-market-regime-intelligence`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics/d0.4.2-market-regime-intelligence); not promoted to `main` | Five connected PIT modules, aggregate Hawkes diagnostics, deterministic 121-point landscape and historical optimizer trail; two clearly synthetic 420-session fixtures; all market/alpha/causal claim flags false; [implementation and boundaries](docs/dynamics-lab-d0-4-2.md) |
+| D0.4 Hawkes event processes | History-preserving merge to `main`; frozen at [`dynamics-v0.4.2`](https://github.com/RaghhavMalani/finsight-alpha/tree/dynamics-v0.4.2) | 12 historical worlds; canonical evidence unchanged; interval and graph limitations remain visible |
+| D0.4.1 Hawkes uncertainty & edge identifiability | Merged to `main`; frozen in `dynamics-v0.4.2` | 420 new seed-disjoint worlds; `PARTIALLY_CHARACTERIZED`; fixed-attribution coverage 19.1%, parametric-refit coverage 65.9%, exact graph recovery 69.4%; [full evidence and boundaries](docs/dynamics-lab-d0-4-1-results.md) |
+| D0.4.1.1 Hawkes boundary & structural failure decomposition | Merged to `main`; diagnostic frozen in `dynamics-v0.4.2` | 200 new matched latent worlds / 1,800 protocol fits; `EVIDENCE_INSUFFICIENT`; neither repair warrant activated; both parent artifacts byte-identical; [diagnostic evidence and stop boundary](docs/dynamics-lab-d0-4-1-1-results.md) |
+| D0.4.2 Market Regime Intelligence Lab | Merged to `main`; analytics frozen in `dynamics-v0.4.2` | Five connected PIT modules, aggregate Hawkes diagnostics, deterministic 121-point landscape and historical optimizer trail; two clearly synthetic 420-session fixtures; all market/alpha/causal claim flags false; [implementation and boundaries](docs/dynamics-lab-d0-4-2.md) |
+| Market Regime Intelligence v1 — Real PIT Integration | Product implementation on [`market-regime/v1-real-pit-integration`](https://github.com/RaghhavMalani/finsight-alpha/tree/market-regime/v1-real-pit-integration); real-feed activation requires legitimate inputs | SPY/QQQ/IWM publication contracts, append-only imports, ALFRED vintage adapter, content-addressed replay cache, NOW / REPLAY / COMPARE, provenance and transition contributions; [operator and product guide](docs/market-regime-product-v1.md) |
 | Reinforcement learning from verifiable rewards | Roadmap | Training starts only after live baselines, completeness gates, and contamination controls are frozen |
 
 Branch-specific work is not presented as merged into `main`. Each research artifact records its own claim boundary.
@@ -249,13 +250,13 @@ The targeted recovery artifact reports each confirmation gate independently:
 | State-diffusion detection | 65% | At least 80% | Fail |
 | Numerical failure | 0% | At most 2% | Pass |
 
-The result remains `NO_GRADUATE`. The real-market result remains `M1 / ABSTAIN`, and Hawkes-process work remains deferred.
+That historical D0.3.3 result remains `NO_GRADUATE`. The later D0.3.4 replication froze the nonlinear boundary as `PARTIALLY_CHARACTERIZED`; the real-market result remains `M1 / ABSTAIN`. The subsequent Hawkes research is now preserved on `main`, without promoting its uncertainty or structural limitations into trusted claims.
 
-### D0.3.4 preregistered direction
+### D0.3.4 completed replication
 
-The next milestone will run a fixed 400-world replication with 100 linear controls, 100 no-basin controls, 100 double-well worlds, and 100 state-dependent diffusion worlds. Seeds will remain disjoint from every prior development and confirmation run.
+The fixed replication completed 400/400 evidence-complete worlds: 100 linear controls, 100 no-basin controls, 100 double-well worlds, and 100 state-dependent diffusion worlds. Seeds were disjoint from prior development and confirmation runs. Basin recall and false-basin control were supported; the state-diffusion limitation replicated. Other capability decisions remained unresolved.
 
-The replication will preserve these traces for every admitted world:
+The frozen replication preserves these traces for every admitted world:
 
 - SINDy bootstrap coefficients, support identities, term inclusion frequencies, signs, and uncertainty
 - Raw roots, clustered roots, derivatives, stability classes, persistence, basin assignments, and every topology gate
@@ -263,7 +264,7 @@ The replication will preserve these traces for every admitted world:
 - Wilson 95% intervals, exact false-positive and false-negative decompositions, topology waterfalls, and diffusion gate patterns
 - Capability-level classifications of `CAPABILITY_SUPPORTED`, `LIMITATION_REPLICATED`, or `UNRESOLVED`
 
-An incomplete world will receive `INSTRUMENTATION_INVALID` and will not enter a scientific denominator. No tuning, early stopping, estimator replacement, market rerun, or Hawkes expansion is permitted inside this milestone.
+The protocol excluded `INSTRUMENTATION_INVALID` worlds from scientific denominators and prohibited tuning, early stopping, estimator replacement and market reruns. The nonlinear program is closed for now, not an invitation to tune against these 400 worlds.
 
 Read the frozen [D0.3.3.2 evidence contract](https://github.com/RaghhavMalani/finsight-alpha/blob/dynamics/d0.3.3.2-evidence-contract/docs/dynamics-lab-d0-3-3-2.md).
 
@@ -273,7 +274,9 @@ D0.4.2 makes the default Dynamics screen an integrated research instrument: mult
 
 Every landscape vertex is a reproducible server-side objective with return, drawdown, cost proxy, conflict, turnover, and tail contributions. Volatility, correlation, liquidity, event, factor, and macro changes have separate fracture contributions. Hawkes enters only as aggregate excitation/intensity diagnostics; exact causal graphs and precise edge-confidence claims remain untrusted. The earlier research lineage is preserved.
 
-The console starts with explicit synthetic full/sparse demos, not fabricated market history. A read-only local PIT mode accepts versioned data with genuine observation/publication timestamps; without that input it stays `UNAVAILABLE`. Missing factors, macro, liquidity, and costs are not filled with zeros. Small conditional samples stay unresolved. Neither an in-sample optimum nor a residual return is advertised as live HFT alpha or trading profitability.
+The frozen D0.4.2 console starts with explicit synthetic full/sparse demos. The v1 product instead starts with SPY and exposes NOW, REPLAY and COMPARE; without a legitimate publication-evidenced export it stays `UNAVAILABLE`. Synthetic demos are explicit, separately labeled choices. Missing factors, macro, liquidity, and costs are not filled with zeros. Small conditional samples stay unresolved. Neither an in-sample optimum nor a residual return is advertised as live HFT alpha or trading profitability.
+
+The v1 integration retains `observed_at`, `available_at`, source, revision, quality and source `as_of` per record. Read-only APIs project the entire dashboard at a requested cutoff. A bounded single-flight cache keys on visible input content, cutoff, asset and frozen analytics version, so future publications do not refit or alter an earlier replay. Comparison shows both complete module sets and landscapes. The research ledger is a secondary evidence drawer. See the [v1 integration and honest data-activation requirements](docs/market-regime-product-v1.md).
 
 Read the [D0.4.2 implementation, formulas, data contract, and evidence boundaries](docs/dynamics-lab-d0-4-2.md). Normal analytics follow focused correctness, PIT/leakage, numerical control, artifact/API, and UI checks in one product iteration; novel high-risk claims still require appropriate independent research validation.
 
@@ -460,13 +463,13 @@ Use synthetic or licensed data in local and shared environments. Never commit pr
 
 The roadmap advances evidence quality before model ambition.
 
-### Phase 1: complete nonlinear replication
+### Phase 1: activate the publication-aware product
 
-- Freeze D0.3.4’s 400-world seed ledger before execution
-- Capture complete SINDy, topology, and diffusion evidence for every world
-- Recompute capability intervals and exact failure decompositions independently
-- Add the read-only replication API and milestone navigator
-- Preserve `M1 / ABSTAIN` until a later protocol authorizes a market rerun
+- Preserve the completed nonlinear and Hawkes evidence at `dynamics-v0.4.2`
+- Install legitimate SPY/QQQ/IWM publication-evidenced daily and intraday inputs
+- Add licensed/versioned factor, macro, aggregate-event and liquidity publications without inventing missing coverage
+- Exercise NOW / REPLAY / COMPARE against the installed data and retain source/revision evidence
+- Keep all market, causal, alpha and trusted-graph flags false; no D0.4.3 research ladder or estimator retuning
 
 ### Phase 2: freeze live agent baselines
 
@@ -507,9 +510,9 @@ The repository has deliberate boundaries:
 - D0.3.3 did not graduate nonlinear capability
 - D0.3.3.2 defines evidence requirements but contains zero scientific worlds
 - D0.3.4 completed 400 worlds and remains `PARTIALLY_CHARACTERIZED`
-- Hawkes D0.4.1 completed 420 synthetic worlds but has not established calibrated uncertainty or reliable structure across the full grid; no event research has been promoted to `main`
+- Hawkes D0.4.1 completed 420 synthetic worlds but has not established calibrated uncertainty or reliable structure across the full grid; its history is now merged to `main` without broadening its claims
 - Hawkes D0.4.1.1 decomposed nine observation protocols on 200 new matched realizations without repairing the instrument; its preregistered decision remains `EVIDENCE_INSUFFICIENT`
-- D0.4.2 integrates product analytics without repairing the Hawkes instrument or claiming alpha; its default inputs are synthetic, and real local PIT data must be separately supplied
+- D0.4.2 freezes product analytics without repairing the Hawkes instrument or claiming alpha; v1 real asset views remain unavailable until publication-evidenced inputs are separately supplied
 - The platform is not investment advice, a broker, or an execution venue
 - Authentication and tenancy controls have not received an external security audit
 - Billing, subscriptions, growth analytics, and organization-administration polish are outside the current research scope

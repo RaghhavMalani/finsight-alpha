@@ -89,6 +89,9 @@ jobs:
       - run: npx eslint src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts
       - run: npx prettier --check src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts scripts/verify-market-regime.mjs
       - run: node scripts/verify-market-regime.mjs
+      - run: npx eslint src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx
+      - run: npx prettier --check src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx scripts/verify-regime-product.mjs
+      - run: node scripts/verify-regime-product.mjs
       - run: npm run build
 
   truth-contract:
