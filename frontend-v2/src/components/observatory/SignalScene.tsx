@@ -1,22 +1,23 @@
-import { useMemo, useState } from "react";
-import { SceneLabel as Text } from "./SceneLabel";
-import { GlowCurves } from "./GlowCurves";
+import { useMemo, useRef, useState } from "react";
+import { Vector3, type Group } from "three";
+import { StaticCurves } from "./GlowCurves";
 import { NodeCloud } from "./NodeCloud";
-import { SceneFrame, type Metrics } from "./SceneFrame";
-import { FONT, decimal, type Curve, type SceneNode, type SignalTrace, type Vec3 } from "./types";
+import { useProjectedLabels, type LabelLayer, type LabelSpec } from "./SceneLabels";
+import { decimal, type Curve, type SceneNode, type SignalTrace, type Vec3 } from "./types";
 
 export default function SignalScene({
   trace,
   index,
   reduced,
-  onMetrics,
+  labels,
 }: {
   trace: SignalTrace;
   index: number;
   reduced: boolean;
-  onMetrics: (m: Metrics) => void;
+  labels: LabelLayer;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const group = useRef<Group>(null);
   const allFrames = trace.folds.flatMap((f) => f.frames);
   const frame = allFrames[index];
   const final = index === allFrames.length - 1;
@@ -81,23 +82,28 @@ export default function SignalScene({
     curves.sort((a, b) => b.weight - a.weight || a.to - b.to || a.from - b.from);
     return { nodes, curves: curves.slice(0, 5000), eligible: curves.length };
   }, [trace]);
+  const specs = useMemo<LabelSpec[]>(
+    () => [
+      { pos: new Vector3(-6.7, 4.1, 0), html: "Fit features", color: "#3FE0FF", pri: 3 },
+      ...trace.folds.map((f, i) => ({
+        pos: new Vector3(-3.8 + i * 2.05, 4.1, 0),
+        html: `Fold ${f.fold}<small>Val AUC ${f.fold < frame.fold ? decimal(f.frames.at(-1)!.val_auc) : f.fold === frame.fold ? decimal(frame.val_auc) : "pending"}</small>`,
+        color: i % 2 ? "#A98CF0" : "#3FE0FF",
+        pri: 3,
+      })),
+      {
+        pos: new Vector3(7.1, 1.9, 0),
+        html: `Untouched holdout<small>${final ? `AUC ${decimal(trace.holdout.auc)} · ${trace.holdout.rows} rows` : "locked"}</small>`,
+        color: "#F0A929",
+        pri: 3,
+      },
+    ],
+    [trace, frame, final],
+  );
+  useProjectedLabels(labels, specs, group);
   return (
-    <SceneFrame
-      curves={topology.curves.length}
-      nodes={topology.nodes.length}
-      hover={hover}
-      reduced={reduced}
-      camera={[0, 1, 18]}
-      onMetrics={onMetrics}
-    >
-      <GlowCurves
-        curves={topology.curves}
-        hover={hover}
-        reduced={reduced}
-        group={frame.fold}
-        stage={frame.stage}
-        head={frame.stage / 100}
-      />
+    <group ref={group}>
+      <StaticCurves curves={topology.curves} hover={hover} reduced={reduced} />
       <NodeCloud
         nodes={topology.nodes}
         connections={topology.curves}
@@ -112,48 +118,6 @@ export default function SignalScene({
             : []
         }
       />
-      <Text font={FONT} position={[-6.7, 4.1, 0]} fontSize={0.15} color="#3FE0FF">
-        FIT FEATURES
-      </Text>
-      {trace.folds.map((f, i) => (
-        <Text
-          key={f.fold}
-          font={FONT}
-          position={[-3.8 + i * 2.05, 4.1, 0]}
-          fontSize={0.16}
-          color={i % 2 ? "#A98CF0" : "#3FE0FF"}
-          anchorX="center"
-        >{`FOLD ${f.fold}\nVALIDATION\nAUC ${f.fold < frame.fold ? decimal(f.frames.at(-1)!.val_auc) : f.fold === frame.fold ? decimal(frame.val_auc) : "PENDING"}`}</Text>
-      ))}
-      {trace.feature_names
-        .filter((_, i) => i % Math.ceil(trace.feature_names.length / 8) === 0)
-        .map((name) => {
-          const i = trace.feature_names.indexOf(name);
-          return (
-            <Text
-              key={name}
-              font={FONT}
-              position={[-6.9, topology.nodes[i].position[1], 0]}
-              fontSize={0.09}
-              color="#636C74"
-              anchorX="right"
-              maxWidth={2}
-            >
-              {name.toUpperCase()}
-            </Text>
-          );
-        })}
-      <Text
-        font={FONT}
-        position={[7.1, 1.9, 0]}
-        fontSize={0.16}
-        color="#F0A929"
-        maxWidth={1.8}
-        textAlign="center"
-      >{`UNTOUCHED\nOOS HOLDOUT\n\n${final ? `AUC ${decimal(trace.holdout.auc)}\n${trace.holdout.rows} ROWS` : "LOCKED"}`}</Text>
-      <Text font={FONT} position={[0, -4.1, 0]} fontSize={0.11} color="#636C74">
-        TIME → / EXPANDING DEVELOPMENT WINDOW / VALIDATION ONLY
-      </Text>
-    </SceneFrame>
+    </group>
   );
 }

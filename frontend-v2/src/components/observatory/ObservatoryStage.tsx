@@ -1,0 +1,67 @@
+import { useEffect, useMemo, useState } from "react";
+import HMMScene from "./HMMScene";
+import { hmmFit } from "./hmm-model";
+import { SceneFrame, type CameraFit, type Metrics } from "./SceneFrame";
+import { LabelLayer } from "./SceneLabels";
+import SignalScene from "./SignalScene";
+import { signalFit } from "./signal-model";
+import type { ModelTrace } from "./types";
+
+const IDLE_FIT: CameraFit = {
+  key: "idle",
+  radius: 6,
+  direction: [0, 0, 1],
+  target: [0, 0, 0],
+  factor: 1,
+};
+
+/**
+ * The WebGL stage. The canvas stays mounted while the ticker or source changes; the scene
+ * inside it unmounts as soon as its trace is no longer the verified one being shown.
+ */
+export default function ObservatoryStage({
+  kind,
+  trace,
+  index,
+  reduced,
+  labelsRoot,
+  onMetrics,
+  onFps,
+}: {
+  kind: "hmm" | "signal";
+  trace: ModelTrace | null;
+  index: number;
+  reduced: boolean;
+  labelsRoot: HTMLElement | null;
+  onMetrics: (m: Metrics) => void;
+  onFps: (fps: number) => void;
+}) {
+  const labels = useMemo(() => (labelsRoot ? new LabelLayer(labelsRoot) : null), [labelsRoot]);
+  useEffect(() => () => labels?.dispose(), [labels]);
+  // While the next trace loads, hold the last framing instead of jumping to a default.
+  const [held, setHeld] = useState(IDLE_FIT);
+  const traceFit = useMemo(
+    () => (trace ? (trace.kind === "hmm" ? hmmFit(trace) : signalFit(trace)) : null),
+    [trace],
+  );
+  const fit = traceFit ?? held;
+  useEffect(() => {
+    if (fit.key !== held.key) setHeld(fit);
+  }, [fit, held.key]);
+  return (
+    <SceneFrame
+      fit={fit}
+      autoRotate={kind === "hmm" && !reduced}
+      bloom={kind === "hmm" ? 0.85 : 0.55}
+      onMetrics={onMetrics}
+      onFps={onFps}
+    >
+      {labels && trace?.kind === "hmm" && (
+        <HMMScene trace={trace} index={index} reduced={reduced} labels={labels} />
+      )}
+      {labels && trace?.kind === "signal" && (
+        <SignalScene trace={trace} index={index} reduced={reduced} labels={labels} />
+      )}
+    </SceneFrame>
+  );
+}

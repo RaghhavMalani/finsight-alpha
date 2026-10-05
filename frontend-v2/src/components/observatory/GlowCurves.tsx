@@ -1,104 +1,60 @@
 import { useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
-import { BufferAttribute, BufferGeometry, Color, QuadraticBezierCurve3, Vector3 } from "three";
-import { PulseMaterial } from "./PulseMaterial";
+import { Color, QuadraticBezierCurve3, Vector3 } from "three";
+import { createLineBundle, type LineBundle } from "./bundles";
 import type { Curve } from "./types";
 
-/** One batched geometry. Only model-frame changes rebuild it; animation/hover are uniforms. */
-export function GlowCurves({
+/** One batched draw call per bundle. Model changes rewrite attributes; motion and hover are uniforms. */
+export function GlowCurves({ bundle, reduced }: { bundle: LineBundle; reduced: boolean }) {
+  useEffect(() => () => bundle.dispose(), [bundle]);
+  useFrame(({ clock }) => {
+    bundle.material.uniforms.uTime.value = clock.elapsedTime;
+    bundle.material.uniforms.uMotion.value = reduced ? 0 : 1;
+  });
+  return (
+    <lineSegments geometry={bundle.geometry} material={bundle.material} frustumCulled={false} />
+  );
+}
+
+/** Fixed quadratic arcs drawn through a bundle. */
+export function StaticCurves({
   curves,
   hover,
   reduced,
-  group = -1,
-  stage = 100,
-  head = 0,
-  ribbons = false,
 }: {
   curves: Curve[];
   hover: number | null;
   reduced: boolean;
-  group?: number;
-  stage?: number;
-  head?: number;
-  ribbons?: boolean;
 }) {
-  const material = useMemo(() => new PulseMaterial(), []);
-  const geometry = useMemo(() => {
-    const positions: number[] = [],
-      t: number[] = [],
-      weights: number[] = [],
-      colors: number[] = [],
-      nodes: number[] = [],
-      steps: number[] = [],
-      offsets: number[] = [];
-    const emit = (p: Vector3, progress: number, c: Curve, color: Color, offset: Vector3) => {
-      positions.push(p.x, p.y, p.z);
-      t.push(progress);
-      weights.push(c.weight);
-      colors.push(color.r, color.g, color.b);
-      nodes.push(c.from, c.to);
-      steps.push(c.group ?? 0, c.stage ?? 0);
-      offsets.push(offset.x, offset.y, offset.z);
-    };
-    const zero = new Vector3();
-    curves.forEach((c) => {
+  const bundle = useMemo(() => {
+    const segments = 18,
+      b = createLineBundle(curves.length * segments * 2, 0.14);
+    let v = 0;
+    for (const c of curves) {
       const path = new QuadraticBezierCurve3(
-        new Vector3(...c.start),
-        new Vector3(...c.control),
-        new Vector3(...c.end),
-      );
-      const points = path.getPoints(18),
+          new Vector3(...c.start),
+          new Vector3(...c.control),
+          new Vector3(...c.end),
+        ),
+        points = path.getPoints(segments),
         color = new Color(c.color);
-      for (let i = 0; i < 18; i++) {
-        if (ribbons) {
-          const normal = points[i + 1]
-            .clone()
-            .sub(points[i])
-            .cross(new Vector3(0, 0, 1))
-            .normalize()
-            .multiplyScalar(0.006 + c.weight * 0.035);
-          const back = normal.clone().negate();
-          emit(points[i], i / 18, c, color, normal);
-          emit(points[i], i / 18, c, color, back);
-          emit(points[i + 1], (i + 1) / 18, c, color, normal);
-          emit(points[i + 1], (i + 1) / 18, c, color, normal);
-          emit(points[i], i / 18, c, color, back);
-          emit(points[i + 1], (i + 1) / 18, c, color, back);
-        } else {
-          emit(points[i], i / 18, c, color, zero);
-          emit(points[i + 1], (i + 1) / 18, c, color, zero);
+      for (let i = 0; i < segments; i++)
+        for (const k of [i, i + 1]) {
+          b.position.setXYZ(v, points[k].x, points[k].y, points[k].z);
+          b.t.setX(v, k / segments);
+          b.color.setXYZ(v, color.r, color.g, color.b);
+          b.w.setX(v, c.weight);
+          b.key.setXY(v, c.from, c.to);
+          v++;
         }
-      }
-    });
-    const g = new BufferGeometry();
-    for (const [key, data, size] of [
-      ["position", positions, 3],
-      ["aT", t, 1],
-      ["aWeight", weights, 1],
-      ["aColor", colors, 3],
-      ["aNodes", nodes, 2],
-      ["aStep", steps, 2],
-      ["aOffset", offsets, 3],
-    ] as const)
-      g.setAttribute(key, new BufferAttribute(new Float32Array(data), size));
-    g.computeBoundingSphere();
-    return g;
-  }, [curves, ribbons]);
-  useEffect(() => () => geometry.dispose(), [geometry]);
-  useEffect(() => () => material.dispose(), [material]);
-  useFrame(({ clock }) => {
-    material.uniforms.uTime.value = clock.elapsedTime;
-    material.uniforms.uHover.value = hover ?? -1;
-    material.uniforms.uMotion.value = reduced ? 0 : 1;
-    material.uniforms.uHead.value = head;
-    material.uniforms.uGroup.value = group;
-    material.uniforms.uStage.value = stage;
-    // Normalize additive radiance by the actual group density; retain relative model weights.
-    material.uniforms.uGain.value = Math.min(1, 1000 / Math.max(1, curves.length));
+    }
+    b.commit();
+    return b;
+  }, [curves]);
+  useFrame(() => {
+    bundle.material.uniforms.uHover.value = hover ?? -1;
+    // Additive radiance scales with the number of arcs drawn, keeping relative weights.
+    bundle.material.uniforms.uGain.value = Math.min(1, 1000 / Math.max(1, curves.length));
   });
-  return ribbons ? (
-    <mesh geometry={geometry} material={material} frustumCulled={false} />
-  ) : (
-    <lineSegments geometry={geometry} material={material} frustumCulled={false} />
-  );
+  return <GlowCurves bundle={bundle} reduced={reduced} />;
 }

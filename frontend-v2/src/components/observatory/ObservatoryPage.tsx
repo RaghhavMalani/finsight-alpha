@@ -12,8 +12,7 @@ import { useTrainingStream } from "./useTrainingStream";
 import { manifestTickers, validateManifest, type Manifest, type ModelTrace } from "./types";
 import "./observatory.css";
 
-const HMMScene = lazy(() => import("./HMMScene")),
-  SignalScene = lazy(() => import("./SignalScene"));
+const ObservatoryStage = lazy(() => import("./ObservatoryStage"));
 const CUTOFF = "2026-10-03T04:15:00Z";
 type Kind = "hmm" | "signal";
 
@@ -50,7 +49,9 @@ export default function ObservatoryPage() {
     [manifestError, setManifestError] = useState<string | null>(null);
   const [methodOpen, setMethodOpen] = useState(false),
     [showFps, setShowFps] = useState(false),
-    [metrics, setMetrics] = useState<Metrics | null>(null);
+    [fps, setFps] = useState<number | null>(null),
+    [, setMetrics] = useState<Metrics | null>(null),
+    [labelsRoot, setLabelsRoot] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     fetch("/artifacts/observatory/manifest.json", { signal: controller.signal })
@@ -195,6 +196,18 @@ export default function ObservatoryPage() {
           </div>
         </header>
         <main className="obs-stage">
+          <Suspense fallback={<div className="obs-status">Initializing model geometry…</div>}>
+            <ObservatoryStage
+              kind={kind}
+              trace={trace}
+              index={index}
+              reduced={reduced}
+              labelsRoot={labelsRoot}
+              onMetrics={setMetrics}
+              onFps={setFps}
+            />
+          </Suspense>
+          <div className="obs-labels" ref={setLabelsRoot} />
           {error ? (
             <div className="obs-status" role="alert">
               <div>
@@ -202,18 +215,12 @@ export default function ObservatoryPage() {
                 {error}
               </div>
             </div>
-          ) : !trace ? (
-            <div className="obs-status" role="status">
-              {stream.loading ? "Verifying model evidence…" : "Loading checked replay manifest…"}
-            </div>
           ) : (
-            <Suspense fallback={<div className="obs-status">Initializing model geometry…</div>}>
-              {trace.kind === "hmm" ? (
-                <HMMScene trace={trace} index={index} reduced={reduced} onMetrics={setMetrics} />
-              ) : (
-                <SignalScene trace={trace} index={index} reduced={reduced} onMetrics={setMetrics} />
-              )}
-            </Suspense>
+            !trace && (
+              <div className="obs-status" role="status">
+                {stream.loading ? "Verifying model evidence…" : "Loading checked replay manifest…"}
+              </div>
+            )
           )}
           <section className="obs-hud obs-title">
             <h1>{title}</h1>
@@ -222,9 +229,7 @@ export default function ObservatoryPage() {
           <div className="obs-hud obs-hint">Drag to orbit · scroll to zoom · hover to inspect</div>
           {showFps && (
             <div className="obs-hud obs-fps">
-              {metrics
-                ? `${metrics.median.toFixed(0)} fps · p5 ${metrics.p5.toFixed(0)}`
-                : "measuring"}
+              {fps == null ? "measuring" : `${Math.round(fps)} fps`}
             </div>
           )}
         </main>

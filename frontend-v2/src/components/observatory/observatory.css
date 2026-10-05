@@ -176,6 +176,66 @@
 .obs-gl:active {
   cursor: grabbing;
 }
+/* projected scene labels */
+.obs-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.observatory .lb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--obs-muted);
+  font: 500 10.5px/1.35 var(--obs-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow:
+    0 0 6px #000,
+    0 0 12px #000;
+  will-change: transform;
+}
+.observatory .lb small {
+  display: block;
+  color: var(--obs-faint);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.observatory .lb.state {
+  font-size: 11.5px;
+}
+.observatory .lb.axis {
+  color: var(--obs-faint);
+  font-size: 10px;
+}
+/* lower-case so ρ never renders as a capital P */
+.observatory .lb.rho {
+  color: var(--obs-faint);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.observatory .lb.feat {
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.observatory .lb .auc {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
+.observatory .lb.dim {
+  opacity: 0.35;
+}
+.observatory .lb.today {
+  color: var(--obs-fg);
+}
 .obs-hud {
   position: absolute;
   z-index: 2;
@@ -541,6 +601,9 @@
   }
   .obs-hint,
   .obs-fps {
+    display: none;
+  }
+  .observatory .lb small {
     display: none;
   }
   .obs-readout {

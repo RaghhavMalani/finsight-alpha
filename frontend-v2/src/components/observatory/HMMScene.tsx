@@ -1,30 +1,23 @@
-import { useMemo, useState } from "react";
-import { SceneLabel as Text } from "./SceneLabel";
-import { GlowCurves } from "./GlowCurves";
+import { useMemo, useRef, useState } from "react";
+import { Vector3, type Group } from "three";
+import { StaticCurves } from "./GlowCurves";
 import { NodeCloud } from "./NodeCloud";
-import { SceneFrame, type Metrics } from "./SceneFrame";
-import {
-  FONT,
-  PALETTE,
-  decimal,
-  type Curve,
-  type HMMTrace,
-  type SceneNode,
-  type Vec3,
-} from "./types";
+import { useProjectedLabels, type LabelLayer, type LabelSpec } from "./SceneLabels";
+import { PALETTE, decimal, type Curve, type HMMTrace, type SceneNode, type Vec3 } from "./types";
 
 export default function HMMScene({
   trace,
   index,
   reduced,
-  onMetrics,
+  labels,
 }: {
   trace: HMMTrace;
   index: number;
   reduced: boolean;
-  onMetrics: (m: Metrics) => void;
+  labels: LabelLayer;
 }) {
   const [hover, setHover] = useState<number | null>(null);
+  const group = useRef<Group>(null);
   const frame = trace.frames[index];
   const topology = useMemo(() => {
     const centers: Vec3[] = Array.from({ length: trace.n_states }, (_, i) => {
@@ -148,45 +141,36 @@ export default function HMMScene({
       connections: [...posterior, ...transitions, ...means],
     };
   }, [trace, frame]);
+  const specs = useMemo<LabelSpec[]>(
+    () => [
+      ...topology.centers.map((center, i) => ({
+        pos: new Vector3(center[0], center[1] + 1.1, 0.2),
+        html: `State ${i} / ${trace.labels[i]}`,
+        cls: "state",
+        color: PALETTE[i],
+        pri: 3,
+      })),
+      {
+        pos: new Vector3(0, 0, -0.2),
+        html: `${trace.n_states} states / ${trace.fit_rows} fit rows`,
+        cls: "axis",
+        pri: 1,
+      },
+    ],
+    [topology, trace],
+  );
+  useProjectedLabels(labels, specs, group);
   return (
-    <SceneFrame
-      curves={topology.posterior.length + topology.transitions.length + topology.means.length}
-      nodes={topology.nodes.length}
-      hover={hover}
-      reduced={reduced}
-      onMetrics={onMetrics}
-    >
-      <GlowCurves
-        curves={topology.posterior}
-        hover={hover}
-        reduced={reduced}
-        head={index / trace.frames.length}
-      />
-      <GlowCurves curves={topology.means} hover={hover} reduced={reduced} />
-      <GlowCurves curves={topology.transitions} hover={hover} reduced={reduced} ribbons />
+    <group ref={group}>
+      <StaticCurves curves={topology.posterior} hover={hover} reduced={reduced} />
+      <StaticCurves curves={topology.means} hover={hover} reduced={reduced} />
+      <StaticCurves curves={topology.transitions} hover={hover} reduced={reduced} />
       <NodeCloud
         nodes={topology.nodes}
         connections={topology.connections}
         hover={hover}
         onHover={setHover}
       />
-      {topology.centers.map((center, i) => (
-        <Text
-          key={i}
-          font={FONT}
-          position={[center[0], center[1] + 1.1, 0.2]}
-          fontSize={0.16}
-          color={PALETTE[i]}
-          anchorX="center"
-          maxWidth={3}
-        >{`STATE ${i} / ${trace.labels[i].toUpperCase()}`}</Text>
-      ))}
-      <Text
-        font={FONT}
-        position={[0, 0, -0.2]}
-        fontSize={0.13}
-        color="#636C74"
-      >{`${trace.n_states} STATES / ${trace.fit_rows} FIT ROWS`}</Text>
-    </SceneFrame>
+    </group>
   );
 }
