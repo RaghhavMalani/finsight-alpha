@@ -28,6 +28,8 @@ dependencies = [
     "psycopg2-binary",
     "google-cloud-storage",
     "uvicorn",
+    "exchange-calendars>=4.13,<5",
+    "websocket-client>=1.8,<2",
 ]
 
 [tool.vercel]

@@ -15,6 +15,7 @@ from src.intelligence.snapshots import (
 )
 from src.regime_intelligence.contracts import Observation, PITDataset
 from src.dynamics.market_regime_inputs import utc
+from src.regime_intelligence.alpaca import AlpacaPITProvider  # provider-neutral load() contract
 
 
 class PITProvider(Protocol):

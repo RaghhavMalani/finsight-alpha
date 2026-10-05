@@ -45,8 +45,8 @@ def load_dataset(asset: str) -> PITDataset:
 
 def merge_publications(previous: PITDataset, incoming: PITDataset) -> PITDataset:
     """Retain original capture evidence on repeated fetches of the same vintage."""
-    if previous.model_dump(exclude={"observations"}) != incoming.model_dump(
-        exclude={"observations"}
+    if previous.model_dump(exclude={"observations", "factor_library"}) != incoming.model_dump(
+        exclude={"observations", "factor_library"}
     ):
         raise RegimeInputError("Append requires identical dataset definitions")
     rows = {}
@@ -67,9 +67,12 @@ def merge_publications(previous: PITDataset, incoming: PITDataset) -> PITDataset
                 )
         else:
             rows[identity] = row
-    return PITDataset.model_validate(
-        {**previous.model_dump(), "observations": list(rows.values())}
-    )
+    releases = {digest(r.model_dump(mode="json")): r for r in
+                [*previous.factor_library, *incoming.factor_library]}
+    return PITDataset.model_validate({
+        **previous.model_dump(), "observations": list(rows.values()),
+        "factor_library": list(releases.values()),
+    })
 
 
 def install_dataset(dataset: PITDataset, root: Path | None = None) -> dict:
@@ -97,8 +100,8 @@ def _install(dataset: PITDataset, root: Path) -> dict:
     document = dataset.model_dump(mode="json")
     if path.exists():
         previous = VersionedExportProvider(path).load().model_dump(mode="json")
-        if {k: v for k, v in previous.items() if k != "observations"} != {
-            k: v for k, v in document.items() if k != "observations"
+        if {k: v for k, v in previous.items() if k not in ("observations", "factor_library")} != {
+            k: v for k, v in document.items() if k not in ("observations", "factor_library")
         }:
             raise RegimeInputError("Dataset definitions cannot be silently changed")
         old_rows = {digest(row): row for row in previous["observations"]}
@@ -107,6 +110,10 @@ def _install(dataset: PITDataset, root: Path) -> dict:
             raise RegimeInputError(
                 "Import removes or rewrites historical publication evidence"
             )
+        if not {digest(r) for r in previous.get("factor_library", [])} <= {
+            digest(r) for r in document.get("factor_library", [])
+        }:
+            raise RegimeInputError("Import removes French release evidence")
     snapshot = SnapshotStore(root / "snapshots", register_metadata=False).record(
         "regime-pit-export",
         "local://publication-evidenced-export",
@@ -149,6 +156,45 @@ def lineage(payload: dict) -> list[dict]:
             }
         )
     return result
+
+
+def evidence_disclosure(payload: dict) -> dict:
+    market = [r for r in payload["observations"] if r["stream"] in ("daily", "intraday")]
+    quality = {r["quality"] for r in market}
+    mode = (
+        "MIXED" if "CONSERVATIVE_MARKET_TIME" in quality and len(quality) > 1
+        else "CONSERVATIVE_MARKET_TIME" if "CONSERVATIVE_MARKET_TIME" in quality
+        else "RECEIVE_TIMESTAMP_CAPTURED" if "RECEIVE_TIMESTAMP_CAPTURED" in quality
+        else "STRICT_PIT" if market else "UNAVAILABLE"
+    )
+    iex = any(r["source"] == "ALPACA_IEX" for r in market)
+    return {
+        "mode": mode,
+        "coverage": "IEX ONLY" if iex else "SOURCE_DEFINED",
+        "historical_receive_timing": "UNAVAILABLE" if "CONSERVATIVE_MARKET_TIME" in quality else "EVIDENCED",
+        "disclosure": (
+            "Historical market availability reconstructed conservatively; exact historical receive timestamp unavailable. "
+            if "CONSERVATIVE_MARKET_TIME" in quality else ""
+        ) + ("Coverage: IEX ONLY. Not consolidated US market volume, trades or liquidity." if iex else "See source definitions."),
+    }
+
+
+def factor_library_lineage(payload: dict) -> list[dict]:
+    rows = payload.get("factor_library", [])
+    return [
+        {
+            "family": family, "frequency": frequency,
+            "observations": len(selected),
+            "available_through": max(r["available_at"] for r in selected),
+            "quality": sorted({r["quality"] for r in selected}),
+            "sources": sorted({r["source_url"] for r in selected}),
+            "content_hashes": sorted({r["content_hash"] for r in selected}),
+            "factors": sorted({k for r in selected for k in r["values"]}),
+            "note": "Source library evidence; seven-factor neutrality remains incomplete. RMW/CMA are not QUAL/VOL/LIQ.",
+        }
+        for family, frequency in sorted({(r["family"], r["frequency"]) for r in rows})
+        for selected in [[r for r in rows if r["family"] == family and r["frequency"] == frequency]]
+    ]
 
 
 def transition_timeline(analysis: dict) -> list[dict]:
@@ -204,6 +250,8 @@ def _compute(payload: dict, as_of: str, version: str) -> dict:
         "analysis": analysis,
         "state_at": analysis["current"]["available_at"] if analysis else None,
         "provenance": lineage(payload),
+        "market_evidence": evidence_disclosure(payload),
+        "factor_library": factor_library_lineage(payload),
         "definitions": payload["definitions"],
         "attribution_target": target,
         "timeline": transition_timeline(analysis) if analysis else [],
@@ -358,6 +406,10 @@ def catalog() -> dict:
                     if r.stream == "daily"
                 }
             )
+            disclosure = evidence_disclosure({"observations": [
+                {"stream": r.stream, "source": r.source, "quality": r.quality}
+                for r in dataset.observations
+            ]})
             assets.append(
                 {
                     "asset": asset,
@@ -366,6 +418,8 @@ def catalog() -> dict:
                     "available": bool(cutoffs),
                     "reason": None if cutoffs else "No published daily price bars",
                     "cutoffs": cutoffs,
+                    "evidence_mode": disclosure["mode"],
+                    "coverage": disclosure["coverage"],
                 }
             )
         except (FileNotFoundError, ValueError, OSError) as error:
@@ -403,7 +457,8 @@ def catalog() -> dict:
         "provider_requirements": [
             "Versioned JSON/CSV exports require actual available_at and publication evidence",
             "ALFRED adapter requires FRED_API_KEY and original vintage history",
-            "Current-history Yahoo/Polygon/Alpaca bars alone cannot prove historical availability",
+            "Free Alpaca IEX history uses disclosed CONSERVATIVE_MARKET_TIME; exact receive timing is unavailable",
+            "Forward Alpaca IEX captures use RECEIVE_TIMESTAMP_CAPTURED; IEX is not consolidated US volume",
             "Factors/liquidity/events stay UNAVAILABLE until legitimate feeds are installed",
         ],
     }
