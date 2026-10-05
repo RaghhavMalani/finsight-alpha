@@ -15,6 +15,8 @@ export type LabelSpec = {
   dx?: number;
   dy?: number;
   align?: "left" | "right" | "center";
+  /** Which edge sits on the anchor; multi-line headers grow away from the scene. */
+  valign?: "top" | "middle" | "bottom";
   pri?: number;
 };
 type Slot = HTMLDivElement & {
@@ -112,16 +114,19 @@ export class LabelLayer {
     // Feature names on one column keep their order and never stack on each other.
     const feats = items.filter((it) => it.L.cls?.split(" ").includes("feat"));
     feats.sort((a, b) => a.y - b.y);
-    for (let k = 1; k < feats.length; k++) feats[k].y = Math.max(feats[k].y, feats[k - 1].y + 15);
+    // Spaced by their collision box (height + 4px), so a stacked list never hides its own rows.
+    for (let k = 1; k < feats.length; k++)
+      feats[k].y = Math.max(feats[k].y, feats[k - 1].y + (feats[k - 1].d._h ?? 14) + 4);
     items.sort((a, b) => (b.L.pri ?? 2) - (a.L.pri ?? 2));
     for (const { d, L, x, y } of items) {
       const w = d._w ?? 0,
         h = d._h ?? 0,
         pri = L.pri ?? 2;
-      const ox = L.align === "right" ? -w : L.align === "left" ? 0 : -w / 2;
+      const ox = L.align === "right" ? -w : L.align === "left" ? 0 : -w / 2,
+        oy = L.valign === "bottom" ? -h : L.valign === "top" ? 0 : -h / 2;
       const rect = (n: number): Rect => ({
         x: x + ox - 3,
-        y: y - h / 2 - 2 + n * (h + 2),
+        y: y + oy - 2 + n * (h + 2),
         w: w + 6,
         h: h + 4,
       });
@@ -138,7 +143,7 @@ export class LabelLayer {
       d._nudge = nudge;
       placed.push(rect(nudge));
       d.style.visibility = "visible";
-      d.style.transform = `translate(${(x + ox).toFixed(1)}px,${(y - h / 2 + nudge * (h + 2)).toFixed(1)}px)`;
+      d.style.transform = `translate(${(x + ox).toFixed(1)}px,${(y + oy + nudge * (h + 2)).toFixed(1)}px)`;
     }
   }
 

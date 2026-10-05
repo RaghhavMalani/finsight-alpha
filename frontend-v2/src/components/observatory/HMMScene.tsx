@@ -141,7 +141,6 @@ export default function HMMScene({
       mus: [] as Vector3[],
       transmat: [] as number[][],
       frame: view.frames.length - 1,
-      labelKey: "",
     };
   }, [view]);
   useEffect(

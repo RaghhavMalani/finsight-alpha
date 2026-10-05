@@ -196,6 +196,8 @@ export type CameraFit = {
   direction: [number, number, number];
   target: [number, number, number];
   factor: number;
+  /** Extra distance when the free stage is narrower than 600px, so side labels stay on screen. */
+  narrow: number;
 };
 
 /**
@@ -220,7 +222,8 @@ function CameraRig({ fit }: { fit: CameraFit }) {
     camera.updateProjectionMatrix();
     const vf = MathUtils.degToRad(camera.fov) / 2,
       hf = Math.atan(Math.tan(vf) * ((w - panel) / h));
-    const dist = (fit.radius / Math.sin(Math.min(vf, hf))) * fit.factor;
+    const dist =
+      (fit.radius / Math.sin(Math.min(vf, hf))) * fit.factor * (w - panel < 600 ? fit.narrow : 1);
     if (!controls) return;
     controls.minDistance = dist * 0.45;
     controls.maxDistance = dist * 2;

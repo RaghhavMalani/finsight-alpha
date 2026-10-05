@@ -95,6 +95,11 @@ export type SignalTrace = TraceBase & {
   inference: { date: string; included_in_labeled_rows: boolean };
   importance_semantics: string;
   split_contract: string;
+  /** Feature family names in display order, and each feature's family (exporter-assigned). */
+  families?: string[];
+  family?: string[];
+  /** Spearman ρ of final-stage importances between consecutive folds. */
+  rho?: (number | null)[];
 };
 export type ModelTrace = HMMTrace | SignalTrace;
 export type TraceRequest = { kind: "hmm" | "signal"; ticker: string; asOf: string };
@@ -103,28 +108,7 @@ export type Manifest = {
   as_of: string;
   artifacts: Record<string, { url: string; sha256: string; input_hash: string }>;
 };
-export type Vec3 = [number, number, number];
-export type SceneNode = {
-  id: number;
-  position: Vec3;
-  color: string;
-  radius: number;
-  label: string;
-  values: string[];
-};
-export type Curve = {
-  start: Vec3;
-  end: Vec3;
-  control: Vec3;
-  color: string;
-  weight: number;
-  from: number;
-  to: number;
-  group?: number;
-  stage?: number;
-};
 export const PALETTE = ["#42C98B", "#F0A929", "#5CA9E6", "#F06464", "#A98CF0", "#A7B0B7"];
-export const FONT = "/fonts/jetbrains-mono-latin-400-normal.woff";
 export const decimal = (x: number | null, digits = 3) =>
   x == null ? "UNAVAILABLE" : x.toFixed(digits);
 

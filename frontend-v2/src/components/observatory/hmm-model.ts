@@ -104,5 +104,6 @@ export function hmmFit(view: HMMView): CameraFit {
     direction: [0.85, 0.42, 1.25],
     target: [0, 0, 0],
     factor: 0.92,
+    narrow: 1.12,
   };
 }

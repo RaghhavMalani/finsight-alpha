@@ -13,11 +13,14 @@ export const sigma = (v: number, digits = 1) =>
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const month = (d: string) => MONTHS[Number(d.slice(5, 7)) - 1];
-/** "Jun–Dec 2023" within a year, else "Oct 2023 – May 2024". Dates are ISO strings. */
-export function monthRange(a: string, b: string) {
+/**
+ * "Jun–Dec 2023" within a year, else "Oct 2023 – May 2024". Dates are ISO strings. `wrap` breaks
+ * a cross-year range onto two lines so it fits a fold column.
+ */
+export function monthRange(a: string, b: string, wrap = false) {
   return a.slice(0, 4) === b.slice(0, 4)
     ? `${month(a)}–${month(b)} ${a.slice(0, 4)}`
-    : `${month(a)} ${a.slice(0, 4)} – ${month(b)} ${b.slice(0, 4)}`;
+    : `${month(a)} ${a.slice(0, 4)} –${wrap ? "<br>" : " "}${month(b)} ${b.slice(0, 4)}`;
 }
 
 /** mulberry32: the reference's fixed-seed stream, so clouds and strands are reproducible. */

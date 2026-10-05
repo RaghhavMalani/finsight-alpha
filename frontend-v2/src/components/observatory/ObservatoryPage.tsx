@@ -5,6 +5,7 @@ import { API_BASE } from "@/lib/api";
 import { HMMReadout } from "./HMMReadout";
 import { MethodDrawer, type SourceMode } from "./MethodDrawer";
 import { byOrder, regimeStates } from "./regime-palette";
+import { FAMILY_COLORS } from "./signal-model";
 import type { Metrics } from "./SceneFrame";
 import { SignalReadout } from "./SignalReadout";
 import { Timeline } from "./Timeline";
@@ -236,6 +237,16 @@ export default function ObservatoryPage() {
                 <span key={st.index}>
                   <i style={{ background: st.color, color: st.color }} />
                   {st.name}
+                </span>
+              ))}
+            </div>
+          )}
+          {trace?.kind === "signal" && trace.families && (
+            <div className="obs-hud obs-legend">
+              {trace.families.map((name) => (
+                <span key={name}>
+                  <i style={{ background: FAMILY_COLORS[name], color: FAMILY_COLORS[name] }} />
+                  {name}
                 </span>
               ))}
             </div>
