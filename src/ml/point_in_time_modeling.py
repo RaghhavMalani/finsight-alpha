@@ -47,6 +47,32 @@ def _score_key(row: dict[str, Any]) -> tuple[float, float, float]:
     return (-roc_auc, brier, -f1_score)
 
 
+def signal_selection_split(development, feature_cols, target_col, *, validation_size=0.2,
+                           horizon=1, embargo=0):
+    """The production selection boundary, also used by Observatory folds."""
+    return walk_forward.time_series_train_test_split(
+        development, feature_cols, target_col, test_size=validation_size,
+        target_horizon=horizon, embargo=embargo,
+    )
+
+
+def build_signal_splits(df, feature_cols, target_col, *, test_size=0.2,
+                        validation_size=0.2, horizon=1, embargo=0):
+    """Keep the final holdout outside all model-family selection."""
+    x_train, x_test, y_train, y_test = walk_forward.time_series_train_test_split(
+        df, feature_cols, target_col, test_size=test_size,
+        target_horizon=horizon, embargo=embargo,
+    )
+    development = df.loc[x_train.index]
+    x_fit, x_validation, y_fit, y_validation = signal_selection_split(
+        development, feature_cols, target_col, validation_size=validation_size,
+        horizon=horizon, embargo=embargo,
+    )
+    return dict(X_train=x_train, X_test=x_test, y_train=y_train, y_test=y_test,
+                development=development, X_fit=x_fit, X_validation=x_validation,
+                y_fit=y_fit, y_validation=y_validation)
+
+
 def train_point_in_time_signal_suite(
     df: pd.DataFrame,
     feature_cols: list[str],
@@ -69,25 +95,14 @@ def train_point_in_time_signal_suite(
     if horizon < 1:
         raise ValueError("horizon must be positive.")
 
-    X_train, X_test, y_train, y_test = walk_forward.time_series_train_test_split(
-        df,
-        feature_cols,
-        target_col,
-        test_size=test_size,
-        target_horizon=horizon,
-        embargo=embargo,
+    splits = build_signal_splits(
+        df, feature_cols, target_col, test_size=test_size,
+        validation_size=validation_size, horizon=horizon, embargo=embargo,
     )
-    development = df.loc[X_train.index]
-    X_fit, X_validation, y_fit, y_validation = (
-        walk_forward.time_series_train_test_split(
-            development,
-            feature_cols,
-            target_col,
-            test_size=validation_size,
-            target_horizon=horizon,
-            embargo=embargo,
-        )
-    )
+    X_train, X_test, y_train, y_test = (splits[k] for k in
+                                    ("X_train", "X_test", "y_train", "y_test"))
+    X_fit, X_validation, y_fit, y_validation = (splits[k] for k in
+                                              ("X_fit", "X_validation", "y_fit", "y_validation"))
 
     candidate_names = ["logistic_regression", "random_forest", "gradient_boosting"]
     if getattr(models, "HAS_XGB", False):

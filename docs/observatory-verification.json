@@ -1,0 +1,292 @@
+{
+  "schema_version": "observatory-verification/1",
+  "recorded_at": "2026-10-05T15:15:04.352Z",
+  "mode": "Nitro Vercel production output, local preview",
+  "benchmark_method": "After scene load, six consecutive five-second hover windows. Per-window median and p5, all positive frame intervals included. Geometry identities checked before/after hover. Bloom enabled.",
+  "benchmarks": {
+    "hmm": {
+      "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "geometryStable": true,
+      "metrics": {
+        "calls": 20,
+        "curves": 1088,
+        "frames": 670,
+        "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "hover": true,
+        "median": 133.33333333333334,
+        "nodes": 326,
+        "p5": 116.27907025098412,
+        "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+      },
+      "samples": [
+        {
+          "calls": 20,
+          "curves": 1088,
+          "frames": 673,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 133.33333333333334,
+          "nodes": 326,
+          "p5": 117.6470588235294,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 20,
+          "curves": 1088,
+          "frames": 672,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 133.33333333333334,
+          "nodes": 326,
+          "p5": 116.27906944508037,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 20,
+          "curves": 1088,
+          "frames": 672,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 133.33333333333334,
+          "nodes": 326,
+          "p5": 116.27906944508037,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 20,
+          "curves": 1088,
+          "frames": 672,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 133.33333333333334,
+          "nodes": 326,
+          "p5": 116.27907025098412,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 20,
+          "curves": 1088,
+          "frames": 673,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 133.33333333333334,
+          "nodes": 326,
+          "p5": 116.27907025098412,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 20,
+          "curves": 1088,
+          "frames": 670,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 133.33333333333334,
+          "nodes": 326,
+          "p5": 116.27907025098412,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        }
+      ],
+      "tooltip": "STATE 0 · Sideways / Choppy\nEM ITERATION 28\nSELF TRANSITION 0.735\nlog_return MEAN -0.124 · VAR 1.566\nabs_return MEAN 0.488 · VAR 0.916\nsquared_return MEAN 0.191 · VAR 0.311\nrolling_return_5 MEAN -0.313 · VAR 1.184"
+    },
+    "signal": {
+      "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "geometryStable": true,
+      "metrics": {
+        "calls": 29,
+        "curves": 5000,
+        "frames": 536,
+        "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "hover": true,
+        "median": 107.52688227175068,
+        "nodes": 573,
+        "p5": 91.7431194667272,
+        "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+      },
+      "samples": [
+        {
+          "calls": 29,
+          "curves": 5000,
+          "frames": 533,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 107.52688158259996,
+          "nodes": 573,
+          "p5": 93.45794402935564,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 29,
+          "curves": 5000,
+          "frames": 538,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 108.6956523147558,
+          "nodes": 573,
+          "p5": 91.7431194667272,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 29,
+          "curves": 5000,
+          "frames": 533,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 107.52688158259996,
+          "nodes": 573,
+          "p5": 91.7431194667272,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 29,
+          "curves": 5000,
+          "frames": 532,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 107.52688158259996,
+          "nodes": 573,
+          "p5": 91.7431194667272,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 29,
+          "curves": 5000,
+          "frames": 535,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 107.52688158259996,
+          "nodes": 573,
+          "p5": 91.7431194667272,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        },
+        {
+          "calls": 29,
+          "curves": 5000,
+          "frames": 536,
+          "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+          "hover": true,
+          "median": 107.52688227175068,
+          "nodes": 573,
+          "p5": 91.7431194667272,
+          "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+        }
+      ],
+      "tooltip": "simple_return\nFIT FEATURE\nPURGE 1 ROWS · EMBARGO 0 ROWS\nFOLD 5 · STAGE 100\nCUMULATIVE IMPORTANCE 0.00966"
+    }
+  },
+  "idle": {
+    "hmm": {
+      "calls": 20,
+      "curves": 1088,
+      "frames": 674,
+      "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "hover": false,
+      "median": 135.13513557052335,
+      "nodes": 326,
+      "p5": 119.04761854077684,
+      "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+    },
+    "signal": {
+      "calls": 29,
+      "curves": 5000,
+      "frames": 531,
+      "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "hover": false,
+      "median": 106.38297899323064,
+      "nodes": 573,
+      "p5": 92.5925930014036,
+      "viewport": "1473×880 canvas · 2560×1440 viewport · DPR 1"
+    }
+  },
+  "checks": {
+    "reduced-motion": {
+      "cameraStable": true,
+      "playDisabled": true,
+      "pulseUniforms": [
+        0,
+        0,
+        0
+      ],
+      "staticLabel": true
+    },
+    "holdout-check": {
+      "footer": "REPLAY · SPY · IEX_ONLY · CONSERVATIVE_MARKET_TIME · FOLD 1/5 · STAGE 51/100 · VALIDATION AUC 0.535 · HOLDOUT LOCKED",
+      "holdoutAucHidden": true,
+      "locked": true
+    },
+    "live-check": {
+      "framesMatch": true,
+      "inputHashMatches": true,
+      "maxLikelihoodDifference": 0,
+      "quality": "CONSERVATIVE_MARKET_TIME",
+      "source": [
+        "ALPACA_IEX"
+      ]
+    },
+    "bloom-fallback": {
+      "bloomUnavailable": true,
+      "geometryPreserved": true,
+      "holdoutShown": true
+    },
+    "corrupt-artifact": {
+      "canvasHidden": true,
+      "text": "RESEARCH INSTRUMENT / 007\nModel Observatory.\n\nWatch the fit. Inspect the evidence.\n\nPOINT-IN-TIME BOUNDED\nREAL SPY / QQQ / IWM EVIDENCE\n01 HMM REGIMES\n02 SIGNAL FOREST\nTICKER\nSPY\nQQQ\nIWM\nSOURCE\nCHECKED REPLAY\nLIVE MODEL RUN\nAS_OF (UTC)\nOBS.HMM\nHMM REGIME OBSERVATORY\nREPLAY\nEVIDENCE CHECK\nAS OF · 2026-10-03T04:15:00Z\nTRACE UNAVAILABLE\n\nReplay artifact SHA-256 mismatch\n\nLIVE MODEL RUN computes on installed evidence. The market collector is stopped. Historical posterior states and validation scores do not certify alpha."
+    },
+    "lazy-check": {
+      "normalPageRendered": true,
+      "observatoryChunks": [],
+      "title": "Command Center — FinSight Forge",
+      "url": "http://127.0.0.1:4174/forge?node=1"
+    },
+    "manifest-check": {
+      "canvasHidden": true,
+      "manifestRejected": true
+    }
+  },
+  "mobile": [
+    {
+      "canvas": true,
+      "canvasBounds": {
+        "bottom": 858.6875,
+        "height": 420,
+        "left": 13,
+        "right": 377,
+        "top": 438.6875,
+        "width": 364,
+        "x": 13,
+        "y": 438.6875
+      },
+      "scene": "hmm",
+      "scrollWidth": 390,
+      "width": 390
+    },
+    {
+      "canvas": true,
+      "canvasBounds": {
+        "bottom": 858.6875,
+        "height": 420,
+        "left": 13,
+        "right": 377,
+        "top": 438.6875,
+        "width": 364,
+        "x": 13,
+        "y": 438.6875
+      },
+      "scene": "signal",
+      "scrollWidth": 390,
+      "width": 390
+    }
+  ],
+  "test_results": {
+    "frontend_build": "PASS",
+    "full_frontend_lint": "PASS",
+    "typescript": "PASS",
+    "artifact_checks_passed": 63,
+    "backend_full_suite": {
+      "passed": 695,
+      "failed": 16,
+      "warnings": 21,
+      "duration_seconds": 1828.27,
+      "limitation": "Existing tests/sabotage/test_sandbox_nasty.py cases return TIMEOUT with a 0.5-second process budget on Windows. First failure reproduced on untouched prerequisite checkout. Sandbox source/tests unchanged from main."
+    }
+  }
+}

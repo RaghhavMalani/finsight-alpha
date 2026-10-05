@@ -13,6 +13,7 @@ import { Route as WorldsRouteImport } from './routes/worlds'
 import { Route as TerminalRouteImport } from './routes/terminal'
 import { Route as RunsRouteImport } from './routes/runs'
 import { Route as RiskRouteImport } from './routes/risk'
+import { Route as ObservatoryRouteImport } from './routes/observatory'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LegacyTerminalRouteImport } from './routes/legacy-terminal'
 import { Route as ForgeRouteImport } from './routes/forge'
@@ -44,6 +45,11 @@ const RunsRoute = RunsRouteImport.update({
 const RiskRoute = RiskRouteImport.update({
   id: '/risk',
   path: '/risk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObservatoryRoute = ObservatoryRouteImport.update({
+  id: '/observatory',
+  path: '/observatory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
+  '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/terminal': typeof TerminalRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
+  '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/terminal': typeof TerminalRoute
   '/worlds': typeof WorldsRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
+  '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/terminal': typeof TerminalRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/forge'
     | '/legacy-terminal'
     | '/login'
+    | '/observatory'
     | '/risk'
     | '/runs'
     | '/terminal'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/forge'
     | '/legacy-terminal'
     | '/login'
+    | '/observatory'
     | '/risk'
     | '/terminal'
     | '/worlds'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/forge'
     | '/legacy-terminal'
     | '/login'
+    | '/observatory'
     | '/risk'
     | '/runs'
     | '/terminal'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   ForgeRoute: typeof ForgeRoute
   LegacyTerminalRoute: typeof LegacyTerminalRoute
   LoginRoute: typeof LoginRoute
+  ObservatoryRoute: typeof ObservatoryRoute
   RiskRoute: typeof RiskRoute
   RunsRoute: typeof RunsRouteWithChildren
   TerminalRoute: typeof TerminalRoute
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/risk'
       fullPath: '/risk'
       preLoaderRoute: typeof RiskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/observatory': {
+      id: '/observatory'
+      path: '/observatory'
+      fullPath: '/observatory'
+      preLoaderRoute: typeof ObservatoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgeRoute: ForgeRoute,
   LegacyTerminalRoute: LegacyTerminalRoute,
   LoginRoute: LoginRoute,
+  ObservatoryRoute: ObservatoryRoute,
   RiskRoute: RiskRoute,
   RunsRoute: RunsRouteWithChildren,
   TerminalRoute: TerminalRoute,

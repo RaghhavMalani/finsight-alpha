@@ -11,7 +11,7 @@ import math
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from src import regime
 from src import config
@@ -30,6 +30,26 @@ def _f(v: Any) -> Optional[float]:
         return x if math.isfinite(x) else None
     except (TypeError, ValueError):
         return None
+
+
+@router.get("/hmm/trace")
+def hmm_optimization_trace(request: Request, ticker: str = Query(...),
+                           as_of: str = Query(...), n_states: int = Query(..., ge=2, le=6),
+                           source: str = Query(...)):
+    from src.observatory.inputs import pit_prices
+    from src.observatory.traces import cached, hmm_trace
+    from src.regime_intelligence.service import load_dataset
+    ticker = ticker.upper()
+    try:
+        dataset = load_dataset(ticker)
+        _, provenance = pit_prices(ticker, as_of, source, dataset=dataset)
+        key = (getattr(request.state, "organization_id", None), "hmm", ticker,
+               provenance["input_hash"], provenance["as_of"], n_states, source)
+        return cached(key, lambda: hmm_trace(ticker, as_of, n_states, source, dataset=dataset))
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Installed PIT evidence unavailable") from exc
+    except (ValueError, ImportError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.get("/{ticker}")

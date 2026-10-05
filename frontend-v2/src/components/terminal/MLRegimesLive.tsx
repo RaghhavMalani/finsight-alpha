@@ -1,6 +1,7 @@
 import { Fragment, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { Link } from "@tanstack/react-router";
 
 type NullableNumber = number | null | undefined;
 type CurrentRegime = {
@@ -54,7 +55,15 @@ function pct(value: NullableNumber, digits = 1) {
   return value == null || !Number.isFinite(value) ? "—" : `${(value * 100).toFixed(digits)}%`;
 }
 
-function Metric({ label, value, tone = "text-foreground" }: { label: string; value: string; tone?: string }) {
+function Metric({
+  label,
+  value,
+  tone = "text-foreground",
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
   return (
     <div className="border border-divider bg-raised px-3 py-2">
       <div className="mono-caps text-[8px] text-faint">{label}</div>
@@ -64,7 +73,10 @@ function Metric({ label, value, tone = "text-foreground" }: { label: string; val
 }
 
 function RegimeChart({ data, colors }: { data: RegimePayload; colors: Map<number, string> }) {
-  const points = data.timeline.filter((point): point is typeof point & { close: number } => point.close != null && Number.isFinite(point.close));
+  const points = data.timeline.filter(
+    (point): point is typeof point & { close: number } =>
+      point.close != null && Number.isFinite(point.close),
+  );
   if (points.length < 2) {
     return <div className="p-4 text-[10px] text-faint">No regime timeline returned.</div>;
   }
@@ -84,7 +96,8 @@ function RegimeChart({ data, colors }: { data: RegimePayload; colors: Map<number
   const spans: Array<{ start: number; end: number; state: number | null }> = [];
   points.forEach((point, index) => {
     const previous = spans[spans.length - 1];
-    if (!previous || previous.state !== point.state) spans.push({ start: index, end: index, state: point.state });
+    if (!previous || previous.state !== point.state)
+      spans.push({ start: index, end: index, state: point.state });
     else previous.end = index;
   });
 
@@ -92,9 +105,16 @@ function RegimeChart({ data, colors }: { data: RegimePayload; colors: Map<number
     <div className="overflow-hidden border border-divider bg-panel">
       <div className="mono-caps flex flex-wrap items-center gap-3 border-b border-divider px-3 py-1.5 text-[9px]">
         <span className="text-primary">REGIME TIMELINE · {points.length} OBSERVATIONS</span>
-        <span className="ml-auto text-faint">{points[0].date} → {points[points.length - 1].date}</span>
+        <span className="ml-auto text-faint">
+          {points[0].date} → {points[points.length - 1].date}
+        </span>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-48 w-full" preserveAspectRatio="none" aria-label="Historical price with detected regime ribbon">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-48 w-full"
+        preserveAspectRatio="none"
+        aria-label="Historical price with detected regime ribbon"
+      >
         {spans.map((span, index) => (
           <rect
             key={`${span.start}-${index}`}
@@ -102,17 +122,48 @@ function RegimeChart({ data, colors }: { data: RegimePayload; colors: Map<number
             y={pad + plotHeight + 4}
             width={Math.max(1, x(span.end) - x(span.start) + width / points.length)}
             height={ribbonHeight}
-            fill={span.state == null ? "#636C74" : colors.get(span.state) ?? "#636C74"}
+            fill={span.state == null ? "#636C74" : (colors.get(span.state) ?? "#636C74")}
             opacity="0.9"
           />
         ))}
-        <polyline points={line} fill="none" stroke="#E7EAEC" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        <polyline
+          points={line}
+          fill="none"
+          stroke="#E7EAEC"
+          strokeWidth="1.2"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
     </div>
   );
 }
 
 export function MLRegimesLive({ symbol }: { symbol: string }) {
+  const supported = ["SPY", "QQQ", "IWM"].includes(symbol);
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mono-caps flex flex-wrap items-center justify-between gap-2 border-b border-divider px-3 py-2 text-[10px]">
+        <span className="text-faint">LEGACY YFINANCE REGIMES</span>
+        {supported ? (
+          <Link
+            className="text-info hover:text-foreground"
+            to="/observatory"
+            search={{ ticker: symbol as "SPY" | "QQQ" | "IWM", scene: "hmm" }}
+          >
+            OPEN PIT MODEL OBSERVATORY ↗
+          </Link>
+        ) : (
+          <span className="text-faint">PIT OBSERVATORY / SPY, QQQ, IWM ONLY</span>
+        )}
+      </div>
+      <div className="min-h-0 flex-1">
+        <LegacyRegimesOutput symbol={symbol} />
+      </div>
+    </div>
+  );
+}
+
+function LegacyRegimesOutput({ symbol }: { symbol: string }) {
   const query = useQuery({
     queryKey: ["regime-live", symbol],
     queryFn: () => api<RegimePayload>(`/regime/${encodeURIComponent(symbol)}?model=hmm&n_states=4`),
@@ -127,7 +178,8 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
       if (Number.isFinite(parsed)) map.set(parsed, PALETTE[index % PALETTE.length]);
     });
     query.data?.timeline.forEach((point) => {
-      if (point.state != null && !map.has(point.state)) map.set(point.state, PALETTE[map.size % PALETTE.length]);
+      if (point.state != null && !map.has(point.state))
+        map.set(point.state, PALETTE[map.size % PALETTE.length]);
     });
     return map;
   }, [query.data]);
@@ -138,7 +190,8 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
         <div className="border border-divider bg-panel p-5 text-center">
           <div className="mono-caps text-[11px] text-primary">FITTING HMM REGIMES · {symbol}</div>
           <div className="mt-2 max-w-md text-[11px] leading-relaxed text-muted-foreground">
-            Fetching historical prices and fitting the backend hidden-state model. Results are cached for 30 minutes.
+            Fetching historical prices and fitting the backend hidden-state model. Results are
+            cached for 30 minutes.
           </div>
         </div>
       </div>
@@ -146,14 +199,22 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
   }
 
   if (query.isError || !query.data) {
-    const message = query.error instanceof Error ? query.error.message : "The regime endpoint did not return a result.";
+    const message =
+      query.error instanceof Error
+        ? query.error.message
+        : "The regime endpoint did not return a result.";
     return (
       <div className="flex h-full items-center justify-center p-6">
         <div className="max-w-lg border border-down/50 bg-down/5 p-5">
           <div className="mono-caps text-[11px] text-down">REAL REGIME MODEL UNAVAILABLE</div>
           <div className="mt-2 text-[11px] leading-relaxed text-muted-foreground">{message}</div>
-          <div className="mt-2 text-[10px] text-faint">No deterministic client-side regime is substituted.</div>
-          <button className="mono-caps interactive mt-4 border border-border px-3 py-1 text-[9px] text-primary" onClick={() => query.refetch()}>
+          <div className="mt-2 text-[10px] text-faint">
+            No deterministic client-side regime is substituted.
+          </div>
+          <button
+            className="mono-caps interactive mt-4 border border-border px-3 py-1 text-[9px] text-primary"
+            onClick={() => query.refetch()}
+          >
             RETRY MODEL RUN
           </button>
         </div>
@@ -166,7 +227,11 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
   const duration = asNumber(data.current.current_regime_duration);
   const switches = asNumber(data.current.recent_switches_20d);
   const risk = text(data.current.current_regime_risk_level);
-  const riskTone = /high|elevated/i.test(risk) ? "text-down" : /low/i.test(risk) ? "text-up" : "text-primary";
+  const riskTone = /high|elevated/i.test(risk)
+    ? "text-down"
+    : /low/i.test(risk)
+      ? "text-up"
+      : "text-primary";
 
   return (
     <div className="h-full overflow-y-auto p-3">
@@ -181,7 +246,9 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
       <div className="grid gap-3 xl:grid-cols-[300px_1fr]">
         <div className="border border-divider bg-panel p-4">
           <div className="mono-caps text-[9px] text-faint">CURRENT DETECTED REGIME</div>
-          <div className="mt-2 font-mono text-xl text-foreground">{text(data.current.current_regime)}</div>
+          <div className="mt-2 font-mono text-xl text-foreground">
+            {text(data.current.current_regime)}
+          </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Metric label="PROBABILITY" value={pct(probability)} />
             <Metric label="DURATION" value={duration == null ? "—" : `${duration.toFixed(0)}D`} />
@@ -198,8 +265,14 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
         {Object.entries(data.labels).map(([state, label], index) => {
           const parsed = Number(state);
           return (
-            <span key={state} className="mono-caps flex items-center gap-1.5 border border-divider px-2 py-1 text-[9px] text-muted-foreground">
-              <span className="inline-block h-2 w-3" style={{ background: colors.get(parsed) ?? PALETTE[index % PALETTE.length] }} />
+            <span
+              key={state}
+              className="mono-caps flex items-center gap-1.5 border border-divider px-2 py-1 text-[9px] text-muted-foreground"
+            >
+              <span
+                className="inline-block h-2 w-3"
+                style={{ background: colors.get(parsed) ?? PALETTE[index % PALETTE.length] }}
+              />
               STATE {state} · {label}
             </span>
           );
@@ -208,22 +281,42 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_1.25fr]">
         <div className="overflow-x-auto border border-divider bg-panel">
-          <div className="mono-caps border-b border-divider px-3 py-1.5 text-[9px] text-primary">EMPIRICAL TRANSITION MATRIX · P(ROW → COL)</div>
+          <div className="mono-caps border-b border-divider px-3 py-1.5 text-[9px] text-primary">
+            EMPIRICAL TRANSITION MATRIX · P(ROW → COL)
+          </div>
           {data.transition_matrix.states.length === 0 ? (
             <div className="p-4 text-[10px] text-faint">No transition matrix returned.</div>
           ) : (
             <div className="p-3">
-              <div className="grid" style={{ gridTemplateColumns: `90px repeat(${data.transition_matrix.states.length}, minmax(54px, 1fr))` }}>
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `90px repeat(${data.transition_matrix.states.length}, minmax(54px, 1fr))`,
+                }}
+              >
                 <span />
-                {data.transition_matrix.states.map((state) => <span key={state} className="mono-caps px-1 py-1 text-center text-[8px] text-faint">S{state}</span>)}
+                {data.transition_matrix.states.map((state) => (
+                  <span
+                    key={state}
+                    className="mono-caps px-1 py-1 text-center text-[8px] text-faint"
+                  >
+                    S{state}
+                  </span>
+                ))}
                 {data.transition_matrix.states.map((row, rowIndex) => (
                   <Fragment key={row}>
-                    <span className="mono-caps flex items-center text-[8px] text-faint">STATE {row}</span>
+                    <span className="mono-caps flex items-center text-[8px] text-faint">
+                      STATE {row}
+                    </span>
                     {data.transition_matrix.states.map((column, columnIndex) => {
                       const value = data.transition_matrix.matrix[rowIndex]?.[columnIndex] ?? null;
                       const alpha = value == null ? 0 : Math.max(0.08, Math.min(0.95, value));
                       return (
-                        <div key={column} className="m-px px-1 py-2 text-center font-mono text-[9px] tabular-nums text-foreground" style={{ background: `rgba(240,169,41,${alpha})` }}>
+                        <div
+                          key={column}
+                          className="m-px px-1 py-2 text-center font-mono text-[9px] tabular-nums text-foreground"
+                          style={{ background: `rgba(240,169,41,${alpha})` }}
+                        >
                           {pct(value, 0)}
                         </div>
                       );
@@ -236,19 +329,40 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
         </div>
 
         <div className="overflow-x-auto border border-divider bg-panel">
-          <div className="mono-caps border-b border-divider px-3 py-1.5 text-[9px] text-primary">OBSERVED PERFORMANCE BY REGIME</div>
+          <div className="mono-caps border-b border-divider px-3 py-1.5 text-[9px] text-primary">
+            OBSERVED PERFORMANCE BY REGIME
+          </div>
           <table className="w-full min-w-[650px] text-left">
             <thead className="mono-caps text-[8px] text-faint">
-              <tr>{["REGIME", "DAYS", "ANN. RETURN", "ANN. VOL", "SHARPE-LIKE", "MAX DD", "POS. DAYS"].map((label) => <th key={label} className="px-2 py-2 font-normal">{label}</th>)}</tr>
+              <tr>
+                {[
+                  "REGIME",
+                  "DAYS",
+                  "ANN. RETURN",
+                  "ANN. VOL",
+                  "SHARPE-LIKE",
+                  "MAX DD",
+                  "POS. DAYS",
+                ].map((label) => (
+                  <th key={label} className="px-2 py-2 font-normal">
+                    {label}
+                  </th>
+                ))}
+              </tr>
             </thead>
             <tbody className="font-mono text-[9px] tabular-nums">
               {data.performance.map((row, index) => (
-                <tr key={`${row.regime_label ?? "regime"}-${index}`} className="border-t border-divider">
+                <tr
+                  key={`${row.regime_label ?? "regime"}-${index}`}
+                  className="border-t border-divider"
+                >
                   <td className="px-2 py-2 text-foreground">{row.regime_label ?? "—"}</td>
                   <td className="px-2 py-2">{row.count == null ? "—" : row.count.toFixed(0)}</td>
                   <td className="px-2 py-2">{pct(row.annualized_return)}</td>
                   <td className="px-2 py-2">{pct(row.annualized_volatility)}</td>
-                  <td className="px-2 py-2">{row.sharpe_like_ratio == null ? "—" : row.sharpe_like_ratio.toFixed(2)}</td>
+                  <td className="px-2 py-2">
+                    {row.sharpe_like_ratio == null ? "—" : row.sharpe_like_ratio.toFixed(2)}
+                  </td>
                   <td className="px-2 py-2 text-down">{pct(row.max_drawdown)}</td>
                   <td className="px-2 py-2">{pct(row.positive_day_rate)}</td>
                 </tr>
@@ -259,7 +373,8 @@ export function MLRegimesLive({ symbol }: { symbol: string }) {
       </div>
 
       <div className="mono-caps mt-3 border-l-2 border-primary bg-primary/5 px-3 py-2 text-[9px] text-muted-foreground">
-        RESEARCH OUTPUT · STATES ARE FIT FROM HISTORICAL PRICE FEATURES AND CAN CHANGE WHEN THE MODEL IS REFIT
+        RESEARCH OUTPUT · STATES ARE FIT FROM HISTORICAL PRICE FEATURES AND CAN CHANGE WHEN THE
+        MODEL IS REFIT
       </div>
     </div>
   );
