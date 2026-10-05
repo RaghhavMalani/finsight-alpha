@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, model_validator
+from backend.routes.market_regime import router as market_regime_router
 
 from src.dynamics.hawkes_identifiability import HawkesIdentifiabilityError
 from src.dynamics.hawkes_boundary import BoundaryEvidenceError
@@ -48,6 +49,8 @@ from src.dynamics import (
 )
 
 router = APIRouter(prefix="/dynamics", tags=["dynamics lab"])
+
+router.include_router(market_regime_router)
 
 
 class DynamicsObservation(BaseModel):

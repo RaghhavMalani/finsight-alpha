@@ -10,6 +10,7 @@ import { fetchEvidenceCompleteReplication } from "@/dynamics/replication-contrac
 import { fetchHawkesCertification } from "@/dynamics/hawkes-contracts";
 import { fetchHawkesIdentifiability } from "@/dynamics/hawkes-identifiability-contracts";
 import { fetchHawkesBoundary } from "@/dynamics/hawkes-boundary-contracts";
+import { fetchMarketRegime, fetchRegimeCatalog } from "@/dynamics/market-regime-contracts";
 
 export const referenceDynamicsQuery = queryOptions({
   queryKey: ["dynamics", "theory-certification", "d0.2.1-reference-1"],
@@ -82,3 +83,17 @@ export const hawkesBoundaryQuery = queryOptions({
   queryFn: fetchHawkesBoundary,
   staleTime: Number.POSITIVE_INFINITY,
 });
+
+export const marketRegimeCatalogQuery = queryOptions({
+  queryKey: ["dynamics", "market-regime-catalog"],
+  queryFn: fetchRegimeCatalog,
+  staleTime: 60_000,
+});
+
+export const marketRegimeQuery = (world: string, asOf?: string) =>
+  queryOptions({
+    queryKey: ["dynamics", "market-regime-intelligence", "d0.4.2", world, asOf ?? "latest"],
+    queryFn: () => fetchMarketRegime(world, asOf),
+    staleTime: world === "pit-local" ? 30_000 : Number.POSITIVE_INFINITY,
+    retry: false,
+  });

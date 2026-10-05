@@ -31,7 +31,11 @@ const BoundaryStructureMicroscope = lazy(() =>
   })),
 );
 
-type ProgramKey = "mean-reversion" | "nonlinear" | "event-dynamics";
+const MarketRegimeLab = lazy(() =>
+  import("@/dynamics/MarketRegimeLab").then((module) => ({ default: module.MarketRegimeLab })),
+);
+
+type ProgramKey = "mean-reversion" | "nonlinear" | "event-dynamics" | "market-regime";
 type MilestoneKey =
   | "d0.2.1"
   | "d0.3"
@@ -44,7 +48,8 @@ type MilestoneKey =
   | "d0.3.4"
   | "d0.4"
   | "d0.4.1"
-  | "d0.4.1.1";
+  | "d0.4.1.1"
+  | "d0.4.2";
 
 type Selection = { program: ProgramKey; milestone: MilestoneKey };
 
@@ -54,6 +59,12 @@ const PROGRAMS: Array<{
   summary: string;
   milestones: Array<{ key: MilestoneKey; label: string; result: string }>;
 }> = [
+  {
+    key: "market-regime",
+    label: "Market regime intelligence",
+    summary: "Integrated PIT product analytics",
+    milestones: [{ key: "d0.4.2", label: "D0.4.2", result: "Vol / factors / momentum / fracture" }],
+  },
   {
     key: "mean-reversion",
     label: "Mean reversion",
@@ -87,7 +98,7 @@ const PROGRAMS: Array<{
   },
 ];
 
-const DEFAULT_SELECTION: Selection = { program: "event-dynamics", milestone: "d0.4.1.1" };
+const DEFAULT_SELECTION: Selection = { program: "market-regime", milestone: "d0.4.2" };
 
 function validSelection(program: string | null, milestone: string | null): Selection {
   const match = PROGRAMS.find((candidate) => candidate.key === program);
@@ -151,12 +162,12 @@ export function DynamicsNavigator() {
               FinSight Forge / Dynamics research program
             </div>
             <h1 className="mt-2 max-w-4xl text-balance text-2xl font-semibold tracking-[-0.03em] text-[#E8ECEF] sm:text-3xl">
-              Every milestone keeps its evidence, boundary, and result separate.
+              Market research, with inspectable evidence.
             </h1>
             <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]">
-              Navigate the frozen experiment lineage. D0.4.1.1 decomposes boundary and structural
-              failures on matched synthetic timestamps. Both event parents stay frozen; market and
-              causal claims remain ineligible.
+              D0.4.2 integrates five PIT analytics modules and aggregate event diagnostics. The
+              historical experiment lineage stays separately addressable. Experimental composites
+              remain ineligible for market and causal claims.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -239,6 +250,14 @@ function MilestoneSurface({ selection }: { selection: Selection }) {
   });
   const hawkesIdentifiability = useQuery({ ...hawkesIdentifiabilityQuery, enabled: is("d0.4.1") });
   const hawkesBoundary = useQuery({ ...hawkesBoundaryQuery, enabled: is("d0.4.1.1") });
+
+  if (selection.program === "market-regime") {
+    return (
+      <Suspense fallback={<LoadingState label="Market Regime Intelligence" />}>
+        <MarketRegimeLab />
+      </Suspense>
+    );
+  }
 
   if (selection.program === "mean-reversion") {
     return <DynamicsLab baseOnly embedded />;

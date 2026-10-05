@@ -54,6 +54,12 @@ jobs:
           python scripts/verify_dynamics_d0_4.py
           python scripts/verify_dynamics_d0_4_1.py
           python scripts/verify_dynamics_d0_4_1_1.py
+          python scripts/verify_dynamics_d0_4_2.py
+      - name: Verify release authorship and legal attribution
+        run: |
+          git config --local user.name "Raghhav Malani"
+          git config --local user.email "96712854+RaghhavMalani@users.noreply.github.com"
+          python scripts/verify_release_authorship.py
       - name: Verify agent-eval anti-gaming contracts
         run: pytest -q tests/test_agent_eval_metrics.py tests/sabotage
       - run: pytest -q
@@ -80,6 +86,9 @@ jobs:
       - run: npx tsc --noEmit
       - run: node scripts/verify-hawkes-identifiability.mjs
       - run: node scripts/verify-hawkes-boundary.mjs
+      - run: npx eslint src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts
+      - run: npx prettier --check src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts scripts/verify-market-regime.mjs
+      - run: node scripts/verify-market-regime.mjs
       - run: npm run build
 
   truth-contract:
