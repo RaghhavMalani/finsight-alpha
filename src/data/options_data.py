@@ -45,6 +45,32 @@ class OptionChain:
 # ---------------------------------------------------------------------------
 # Live data (yfinance)
 # ---------------------------------------------------------------------------
+# Maturities (days) a surface should span. Liquid names list weekly or even daily
+# expiries, so "the first N" would cover only the next few days.
+SURFACE_TARGET_DAYS = (7, 14, 30, 60, 90, 180, 270, 365)
+
+
+def spread_expiries(expiries: list[str], today: date, max_expiries: int = 8) -> list[str]:
+    """Pick listed expiries spread across the term structure, nearest first.
+
+    For each target maturity in :data:`SURFACE_TARGET_DAYS` take the listed
+    expiry closest to it, drop duplicates (a short listing collapses onto the
+    expiries it has) and keep at most ``max_expiries``.
+    """
+    dated = []
+    for raw in expiries:
+        try:
+            days = (pd.to_datetime(raw).date() - today).days
+        except (TypeError, ValueError):
+            continue
+        if days > 0:
+            dated.append((days, raw))
+    if not dated:
+        return []
+    chosen = {min(dated, key=lambda d: abs(d[0] - target)) for target in SURFACE_TARGET_DAYS}
+    return [raw for _, raw in sorted(chosen)][:max_expiries]
+
+
 def fetch_option_chain(
     ticker: str,
     max_expiries: int = 8,
@@ -59,7 +85,8 @@ def fetch_option_chain(
         many non-US single names do not - in that case this returns ``None`` and
         the caller should fall back to :func:`generate_synthetic_chain`.
     max_expiries:
-        Cap on the number of expiries pulled (nearest first) to keep it fast.
+        Cap on the number of expiries pulled, chosen by :func:`spread_expiries`
+        to span about a week to a year rather than the next few listings.
     moneyness_band:
         Keep only strikes within +/- this fraction of spot (e.g. 0.30 = +/-30%),
         where the surface is liquid and IVs are well-behaved.
@@ -80,12 +107,11 @@ def fetch_option_chain(
         if not spot or spot <= 0:
             return None
 
-        expiries = list(getattr(tk, "options", []) or [])
+        today = date.today()
+        expiries = spread_expiries(list(getattr(tk, "options", []) or []), today, max_expiries)
         if not expiries:
             return None
-        expiries = expiries[:max_expiries]
 
-        today = date.today()
         rows = []
         for exp in expiries:
             try:
