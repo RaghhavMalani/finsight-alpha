@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { validateManifest, validateTrace } from "../src/components/observatory/types.ts";
+import { REGIME_COLORS, regimeStates } from "../src/components/observatory/regime-palette.ts";
+import {
+  manifestTickers,
+  validateManifest,
+  validateTrace,
+} from "../src/components/observatory/types.ts";
+
+// Usage: node scripts/verify-observatory.mjs [--url http://localhost:5173]
+// Without --url only the artifact checks run; with it, a browser also checks label overlap.
+const urlFlag = process.argv.indexOf("--url");
+const baseUrl = urlFlag > 0 ? process.argv[urlFlag + 1]?.replace(/\/$/, "") : null;
 
 const root = new URL("../public/", import.meta.url);
 const manifest = validateManifest(
@@ -108,4 +118,80 @@ for (const [key, entry] of Object.entries(manifest.artifacts)) {
   }
   count++;
 }
-console.log(`${count} artifact integrity and evidence sabotage checks passed`);
+
+// Regime colours follow the label, never the state index; repeated labels are told apart.
+for (const ticker of manifestTickers(manifest)) {
+  const trace = JSON.parse(
+    readFileSync(new URL(manifest.artifacts[`${ticker}:hmm`].url.slice(1), root)),
+  );
+  const states = regimeStates(trace);
+  for (const s of states) {
+    const base = REGIME_COLORS[s.label];
+    if (states.filter((t) => t.label === s.label).length === 1)
+      assert.equal(s.color, base, `${ticker} state ${s.index} colour`);
+  }
+  assert.equal(new Set(states.map((s) => s.name)).size, states.length, `${ticker} names unique`);
+  count++;
+}
+{
+  const trace = JSON.parse(readFileSync(new URL(manifest.artifacts["QQQ:hmm"].url.slice(1), root)));
+  const names = Object.fromEntries(regimeStates(trace).map((s) => [s.index, s.name]));
+  // State 1 is calmer on short/medium/long realized vol; state 2 is the choppier one.
+  assert.equal(names[1], "Sideways / Choppy · calmer");
+  assert.equal(names[2], "Sideways / Choppy · choppier");
+  count++;
+}
+console.log(`${count} artifact integrity, evidence sabotage and palette checks passed`);
+
+/** No two visible scene labels may intersect, at common desktop widths, in either scene. */
+if (baseUrl) {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  let views = 0;
+  try {
+    for (const width of [1366, 1440, 1920]) {
+      const page = await browser.newPage({ viewport: { width, height: 860 } });
+      for (const ticker of manifestTickers(manifest))
+        for (const scene of ["hmm", "signal"]) {
+          await page.goto(`${baseUrl}/observatory?scene=${scene}&ticker=${ticker}`, {
+            waitUntil: "load",
+          });
+          await page.waitForFunction(
+            () =>
+              [...document.querySelectorAll(".observatory .lb")].some(
+                (d) => !d.hidden && getComputedStyle(d).visibility === "visible",
+              ),
+            null,
+            { timeout: 60000 },
+          );
+          await page.waitForTimeout(1500);
+          // The regime scene auto-rotates and the feature scene sways: sample several frames.
+          for (let sample = 0; sample < 6; sample++) {
+            const boxes = await page.evaluate(() =>
+              [...document.querySelectorAll(".observatory .lb")]
+                .filter((d) => !d.hidden && getComputedStyle(d).visibility === "visible")
+                .map((d) => {
+                  const r = d.getBoundingClientRect();
+                  return { text: d.textContent, x: r.x, y: r.y, w: r.width, h: r.height };
+                }),
+            );
+            assert.ok(boxes.length > 0, `${ticker} ${scene} ${width}: no labels`);
+            for (let i = 0; i < boxes.length; i++)
+              for (let j = i + 1; j < boxes.length; j++) {
+                const a = boxes[i],
+                  b = boxes[j];
+                const hit =
+                  a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+                assert.ok(!hit, `${ticker} ${scene} @${width}px: "${a.text}" overlaps "${b.text}"`);
+              }
+            await page.waitForTimeout(500);
+          }
+          views++;
+        }
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
+  console.log(`${views} scene views checked: no visible labels overlap at 1366, 1440 or 1920px`);
+}

@@ -14,6 +14,8 @@ from src.ml.point_in_time_modeling import build_signal_splits
 from src.ml.walk_forward import time_series_train_test_split
 from src.observatory import traces
 from src.observatory.adapters import adapter_for
+from src.observatory.evidence import (FAMILIES, feature_family, fold_rho, selection_suppressed,
+                                      selection_verdict)
 from src.observatory.inputs import pit_prices
 from src.regime_intelligence.contracts import Observation, PITDataset
 
@@ -84,6 +86,19 @@ def test_signal_trace_exact_splits_stage_importance_and_future_append(evidence):
     assert not trace["inference"]["included_in_labeled_rows"]
     assert pd.Timestamp(trace["holdout"]["training_target_information_end"]) < pd.Timestamp(trace["holdout"]["feature_start"])
     assert adapter_for("xgboost") is None and adapter_for("lightgbm") is None
+    # Exporter-computed evidence: every column has a family, ρ joins consecutive folds and the
+    # verdict follows from the trace's own interval and validation scores.
+    assert trace["schema_version"] == "model-observatory/2"
+    assert trace["families"] == list(FAMILIES)
+    assert trace["family"] == [feature_family(c) for c in trace["feature_names"]]
+    assert trace["rho"] == fold_rho(trace["folds"]) and len(trace["rho"]) == len(trace["folds"]) - 1
+    aucs = [row["validation_auc"] for row in trace["selection"]]
+    interval = trace["holdout"]["auc_ci95"]
+    assert (interval is None) == (trace["holdout"]["auc"] is None)
+    assert interval is None or (interval["seed"] == 42 and interval["resamples"] == 2000
+                                and interval["low"] <= interval["high"])
+    assert (trace["verdict"], trace["verdict_reason"]) == selection_verdict(interval, aucs)
+    assert trace["suppressed"] == selection_suppressed(aucs)
 
 
 def test_sabotage_training_information_cannot_enter_validation(evidence):
