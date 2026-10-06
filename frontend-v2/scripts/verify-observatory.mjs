@@ -146,7 +146,14 @@ console.log(`${count} artifact integrity, evidence sabotage and palette checks p
 /** No two visible scene labels may intersect, at common desktop widths, in either scene. */
 if (baseUrl) {
   const { chromium } = await import("playwright");
-  const browser = await chromium.launch();
+  // CI runners have no GPU, and Chromium no longer falls back to SwiftShader WebGL on its own.
+  // OBS_SOFTWARE_GL=1 forces software rendering locally to reproduce the CI environment.
+  const browser = await chromium.launch({
+    args: [
+      "--enable-unsafe-swiftshader",
+      ...(process.env.OBS_SOFTWARE_GL ? ["--use-angle=swiftshader"] : []),
+    ],
+  });
   let views = 0;
   try {
     for (const width of [1366, 1440, 1920]) {
