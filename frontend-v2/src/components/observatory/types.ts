@@ -13,7 +13,7 @@ export type Provenance = {
   raw_snapshot_ids: string[];
 };
 export type TraceBase = {
-  schema_version: "model-observatory/1";
+  schema_version: "model-observatory/2";
   ticker: string;
   as_of: string;
   seed: number;
@@ -43,6 +43,8 @@ export type HMMTrace = TraceBase & {
   semantics: string;
   feature_start: string;
   latest_feature: string;
+  /** EM stops when the log-likelihood gain falls below this. */
+  tolerance?: number;
 };
 export type Stage = {
   fold: number;
@@ -91,11 +93,37 @@ export type SignalTrace = TraceBase & {
     indices: number[];
     training_target_information_end: string;
     visible_after_selection: boolean;
+    /** Percentile bootstrap of holdout AUC over resampled holdout rows. */
+    auc_ci95: AucInterval | null;
   };
   inference: { date: string; included_in_labeled_rows: boolean };
   importance_semantics: string;
   split_contract: string;
+  /** Feature family names in display order, and each feature's family (exporter-assigned). */
+  families: string[];
+  family: string[];
+  /** Spearman ρ of final-stage importances between consecutive folds. */
+  rho: (number | null)[];
+  /** Every family's validation AUC ≤ 0.5: picking the best of them would be selection on noise. */
+  suppressed: boolean;
+  verdict: Verdict;
+  verdict_reason: VerdictReason;
 };
+export type AucInterval = {
+  low: number;
+  high: number;
+  resamples: number;
+  valid_resamples: number;
+  seed: number;
+};
+export type Verdict = "edge" | "none" | "inconclusive";
+export type VerdictReason =
+  | "holdout_ci_above_chance"
+  | "validation_at_or_below_chance"
+  | "holdout_ci_below_chance"
+  | "holdout_ci_spans_chance"
+  | "validation_edge_too_small"
+  | "holdout_auc_unavailable";
 export type ModelTrace = HMMTrace | SignalTrace;
 export type TraceRequest = { kind: "hmm" | "signal"; ticker: string; asOf: string };
 export type Manifest = {
@@ -103,30 +131,33 @@ export type Manifest = {
   as_of: string;
   artifacts: Record<string, { url: string; sha256: string; input_hash: string }>;
 };
-export type Vec3 = [number, number, number];
-export type SceneNode = {
-  id: number;
-  position: Vec3;
-  color: string;
-  radius: number;
-  label: string;
-  values: string[];
-};
-export type Curve = {
-  start: Vec3;
-  end: Vec3;
-  control: Vec3;
-  color: string;
-  weight: number;
-  from: number;
-  to: number;
-  group?: number;
-  stage?: number;
-};
-export const PALETTE = ["#42C98B", "#F0A929", "#5CA9E6", "#F06464", "#A98CF0", "#A7B0B7"];
-export const FONT = "/fonts/jetbrains-mono-latin-400-normal.woff";
-export const decimal = (x: number | null, digits = 3) =>
-  x == null ? "UNAVAILABLE" : x.toFixed(digits);
+
+/**
+ * The exporter's verdict rule (src/observatory/evidence.py), restated so a trace whose verdict
+ * disagrees with its own numbers is rejected:
+ * edge when the holdout CI's lower bound > 0.5 and the best validation AUC > 0.52; none when
+ * the CI's upper bound < 0.5 or every validation AUC ≤ 0.5; inconclusive otherwise.
+ */
+export function selectionVerdict(
+  ci: AucInterval | null,
+  validationAucs: (number | null)[],
+): [Verdict, VerdictReason] {
+  const values = validationAucs.filter((a): a is number => a != null);
+  if (values.length && values.every((a) => a <= 0.5))
+    return ["none", "validation_at_or_below_chance"];
+  if (!ci) return ["inconclusive", "holdout_auc_unavailable"];
+  if (ci.high < 0.5) return ["none", "holdout_ci_below_chance"];
+  if (ci.low > 0.5)
+    return values.length && Math.max(...values) > 0.52
+      ? ["edge", "holdout_ci_above_chance"]
+      : ["inconclusive", "validation_edge_too_small"];
+  return ["inconclusive", "holdout_ci_spans_chance"];
+}
+
+/** Tickers the manifest declares, in manifest order. Each has a checked HMM and signal replay. */
+export function manifestTickers(manifest: Manifest) {
+  return [...new Set(Object.keys(manifest.artifacts).map((key) => key.split(":")[0]))];
+}
 
 /** Missing checksums must never turn a replay into an unchecked live trace. */
 export function validateManifest(value: unknown): Manifest {
@@ -138,10 +169,14 @@ export function validateManifest(value: unknown): Manifest {
     !manifest ||
     manifest.schema_version !== "model-observatory-manifest/1" ||
     !Number.isFinite(Date.parse(manifest.as_of)) ||
-    !manifest.artifacts
+    !manifest.artifacts ||
+    typeof manifest.artifacts !== "object"
   )
     fail();
-  for (const ticker of ["SPY", "QQQ", "IWM"])
+  const keys = Object.keys(manifest.artifacts);
+  if (!keys.length || keys.some((key) => !/^[A-Z]{1,6}:(hmm|signal)$/.test(key))) fail();
+  // Every declared ticker must carry both scenes, so a missing half can't be silently skipped.
+  for (const ticker of manifestTickers(manifest))
     for (const kind of ["hmm", "signal"]) {
       const entry = manifest.artifacts[`${ticker}:${kind}`];
       if (
@@ -171,7 +206,7 @@ export function validateTrace(value: unknown, request: TraceRequest): ModelTrace
   if (
     !trace ||
     trace.seed !== 42 ||
-    trace.schema_version !== "model-observatory/1" ||
+    trace.schema_version !== "model-observatory/2" ||
     trace.kind !== request.kind ||
     trace.ticker !== request.ticker ||
     Date.parse(trace.as_of) !== Date.parse(request.asOf) ||
@@ -250,6 +285,37 @@ export function validateTrace(value: unknown, request: TraceRequest): ModelTrace
       !trace.holdout.visible_after_selection ||
       Date.parse(trace.holdout.training_target_information_end) >=
         Date.parse(trace.holdout.feature_start)
+    )
+      fail();
+    const ci = trace.holdout.auc_ci95,
+      aucs = trace.selection.map((s) => s.validation_auc),
+      known = aucs.filter((a): a is number => a != null),
+      [verdict, reason] = selectionVerdict(ci ?? null, aucs);
+    if (
+      !Array.isArray(trace.families) ||
+      !trace.families.length ||
+      new Set(trace.families).size !== trace.families.length ||
+      !Array.isArray(trace.family) ||
+      trace.family.length !== trace.feature_names.length ||
+      trace.family.some((f) => !trace.families.includes(f)) ||
+      !Array.isArray(trace.rho) ||
+      trace.rho.length !== trace.folds.length - 1 ||
+      trace.rho.some((r) => r !== null && (!finite(r) || r < -1 || r > 1)) ||
+      ci === undefined ||
+      (ci === null) !== (trace.holdout.auc === null) ||
+      (ci !== null &&
+        (![ci.low, ci.high].every(finite) ||
+          ci.low < 0 ||
+          ci.high > 1 ||
+          ci.low > ci.high ||
+          !Number.isInteger(ci.resamples) ||
+          !Number.isInteger(ci.valid_resamples) ||
+          ci.valid_resamples < 1 ||
+          ci.valid_resamples > ci.resamples ||
+          ci.seed !== 42)) ||
+      trace.suppressed !== (known.length > 0 && known.every((a) => a <= 0.5)) ||
+      trace.verdict !== verdict ||
+      trace.verdict_reason !== reason
     )
       fail();
     const holdout = new Set(trace.holdout.indices);
