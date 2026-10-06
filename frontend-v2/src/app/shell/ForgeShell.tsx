@@ -1,20 +1,102 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { ForgeCommandPalette } from "@/app/command/ForgeCommandPalette";
+import "./shell.css";
 
-const NAV_ITEMS = [
-  { key: "F2", label: "Center", to: "/forge" },
-  { key: "F3", label: "Runs", to: "/runs" },
-  { key: "F4", label: "Bench", to: "/bench" },
-  { key: "F5", label: "Worlds", to: "/worlds" },
-  { key: "F6", label: "Artifacts", to: "/artifacts" },
-  { key: "F7", label: "Observatory", to: "/observatory" },
-] as const;
+type NavItem = {
+  key: string;
+  label: string;
+  to: string;
+  /** Path prefix that marks the item active, when it differs from `to`. */
+  match?: string;
+  search?: Record<string, unknown>;
+};
+const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Forge",
+    items: [
+      { key: "F2", label: "Center", to: "/forge", search: { run: undefined, node: 1 } },
+      { key: "F3", label: "Runs", to: "/runs" },
+      { key: "F4", label: "Bench", to: "/bench" },
+      { key: "F5", label: "Worlds", to: "/worlds" },
+      { key: "F6", label: "Artifacts", to: "/artifacts" },
+    ],
+  },
+  {
+    title: "Models",
+    items: [
+      {
+        key: "F7",
+        label: "Observatory",
+        to: "/observatory",
+        search: { scene: "hmm", ticker: "SPY" },
+      },
+      {
+        key: "F8",
+        label: "Neural",
+        to: "/observatory",
+        match: "neural",
+        search: { scene: "neural", ticker: "SPY" },
+      },
+    ],
+  },
+  {
+    title: "World",
+    items: [
+      { key: "F9", label: "God's Eye", to: "/globe" },
+      { key: "", label: "Dynamics", to: "/dynamics" },
+      { key: "", label: "Risk", to: "/risk" },
+    ],
+  },
+];
+const ALL = NAV_GROUPS.flatMap((g) => g.items);
+
+/** Live UTC time, rendered only after mount so server and client markup agree. */
+function UtcClock() {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <span className="shell-clock" aria-label="UTC time">
+      {now ? now.toISOString().slice(11, 19) : "--:--:--"}
+      <small>UTC</small>
+    </span>
+  );
+}
+
+/** The FinSight mark: three layers of units, wired, pulsing toward the output. */
+function Mark() {
+  return (
+    <svg className="shell-mark" viewBox="0 0 32 32" aria-hidden="true">
+      <g className="w">
+        {[8, 16, 24].flatMap((y1) =>
+          [11, 21].map((y2) => <line key={`a${y1}${y2}`} x1="6" y1={y1} x2="16" y2={y2} />),
+        )}
+        {[11, 21].map((y) => (
+          <line key={`b${y}`} x1="16" y1={y} x2="26" y2="16" />
+        ))}
+      </g>
+      {[8, 16, 24].map((y) => (
+        <circle key={`i${y}`} cx="6" cy={y} r="2" className="n" />
+      ))}
+      {[11, 21].map((y) => (
+        <circle key={`h${y}`} cx="16" cy={y} r="2.2" className="n h" />
+      ))}
+      <circle cx="26" cy="16" r="2.8" className="n o" />
+    </svg>
+  );
+}
 
 /** `bleed` gives the page the whole viewport below the nav: no gutters, no footer. */
 export function ForgeShell({ children, bleed = false }: { children: ReactNode; bleed?: boolean }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const scene = useRouterState({
+    select: (state) => (state.location.search as { scene?: string }).scene,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,105 +114,84 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
         setPaletteOpen(true);
         return;
       }
-      const destination = NAV_ITEMS.find((item) => item.key === event.key)?.to;
-      if (destination) {
+      const item = ALL.find((entry) => entry.key && entry.key === event.key);
+      if (item) {
         event.preventDefault();
-        void navigate({ to: destination });
+        void navigate({ to: item.to, search: item.search as never });
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [navigate]);
 
+  const isActive = (item: NavItem) => {
+    if (item.to === "/observatory")
+      return (
+        pathname.startsWith("/observatory") && (item.match === "neural") === (scene === "neural")
+      );
+    return item.to === "/forge" ? pathname === item.to : pathname.startsWith(item.to);
+  };
+
   return (
-    <div
-      className={`bg-[#07090B] text-[#E6E8EB] ${bleed ? "flex h-dvh flex-col max-[900px]:h-auto max-[900px]:min-h-dvh" : "min-h-dvh"}`}
-    >
-      <a
-        href="#forge-main"
-        className="fixed left-3 top-3 z-[60] -translate-y-20 border border-[#FFB000] bg-[#080a0d] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#FFB000] transition-transform focus:translate-y-0"
-      >
+    <div className={`shell ${bleed ? "shell-bleed" : ""}`}>
+      <a href="#forge-main" className="shell-skip">
         Skip to evidence
       </a>
-      <header className="sticky top-0 z-40 border-b border-[#1D232B] bg-[#07090B]/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1800px] items-center gap-4 px-3 sm:px-5">
-          <Link
-            to="/forge"
-            search={{ run: undefined, node: 1 }}
-            className="group flex shrink-0 items-center gap-2 py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]"
-          >
-            <span className="grid size-7 place-items-center border border-[#FFB000] font-mono text-[10px] font-semibold text-[#FFB000]">
-              F
-            </span>
-            <span className="hidden text-xs font-semibold tracking-[0.03em] text-[#E6E8EB] sm:block">
-              FinSight <span className="text-[#FFB000]">Forge</span>
-            </span>
-          </Link>
-          <nav aria-label="Forge primary" className="min-w-0 flex-1 overflow-x-auto">
-            <div className="flex min-w-max items-stretch">
-              <button
-                type="button"
-                onClick={() => setPaletteOpen(true)}
-                className="flex items-center gap-2 border-x border-[#1D232B] px-3 py-4 text-left hover:bg-[#0B0E11] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000]"
-              >
-                <kbd className="font-mono text-[8px] text-[#93A0AD]">F1</kbd>
-                <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#c6ccd2]">
-                  Command
-                </span>
-              </button>
-              {NAV_ITEMS.map((item) => {
-                const active =
-                  item.to === "/forge" ? pathname === item.to : pathname.startsWith(item.to);
+      {!bleed && <div className="shell-backdrop" aria-hidden="true" />}
+      <header className="shell-bar">
+        <Link to="/" className="shell-brand" aria-label="FinSight home">
+          <Mark />
+          <span>
+            FINSIGHT <b>FORGE</b>
+          </span>
+        </Link>
+        <nav aria-label="Primary" className="shell-nav">
+          <button type="button" className="shell-cmd" onClick={() => setPaletteOpen(true)}>
+            <kbd>F1</kbd>Command
+          </button>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} className="shell-group" role="group" aria-label={group.title}>
+              <span className="shell-group-title" aria-hidden="true">
+                {group.title}
+              </span>
+              {group.items.map((item) => {
+                const active = isActive(item);
                 return (
                   <Link
-                    key={item.to}
+                    key={item.label}
                     to={item.to}
+                    search={item.search as never}
                     aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-2 border-r border-[#1D232B] px-3 py-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${
-                      active ? "bg-[#111820] text-[#FFB000]" : "text-[#c6ccd2] hover:bg-[#0B0E11]"
-                    }`}
+                    className="shell-link"
                   >
-                    <kbd className="font-mono text-[8px] text-[#93A0AD]">{item.key}</kbd>
-                    <span className="font-mono text-[9px] uppercase tracking-[0.1em]">
-                      {item.label}
-                    </span>
+                    {item.key && <kbd>{item.key}</kbd>}
+                    {item.label}
                   </Link>
                 );
               })}
             </div>
-          </nav>
-          <Link
-            to="/legacy-terminal"
-            className="hidden shrink-0 border border-[#29313a] px-2 py-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#7B8490] hover:border-[#59636e] hover:text-[#c6ccd2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] lg:block"
-          >
-            Legacy terminal
-          </Link>
+          ))}
+        </nav>
+        <div className="shell-right">
+          <UtcClock />
           <button
             type="button"
+            className="shell-k"
             onClick={() => setPaletteOpen(true)}
-            className="hidden shrink-0 items-center gap-2 border border-[#29313a] px-2.5 py-1.5 font-mono text-[8px] text-[#9ba5af] hover:border-[#FFB000] hover:text-[#FFB000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] sm:flex"
+            aria-label="Open command palette"
           >
             <span aria-hidden="true">⌘</span>K
           </button>
         </div>
+        <i className="shell-signal" aria-hidden="true" />
       </header>
-      <main
-        id="forge-main"
-        tabIndex={-1}
-        className={
-          bleed
-            ? "flex min-h-0 w-full flex-1 flex-col outline-none"
-            : "mx-auto w-full max-w-[1800px] px-3 py-4 outline-none sm:px-5 sm:py-5"
-        }
-      >
+      <main id="forge-main" tabIndex={-1} className={bleed ? "shell-main-bleed" : "shell-main"}>
         {children}
       </main>
       {!bleed && (
-        <footer className="border-t border-[#1D232B] px-4 py-3">
-          <div className="mx-auto flex max-w-[1760px] flex-wrap items-center justify-between gap-2 font-mono text-[8px] uppercase tracking-[0.12em] text-[#93A0AD]">
-            <span>Observer Foundation · read-only</span>
-            <span>Unknown schemas fail closed</span>
-          </div>
+        <footer className="shell-foot">
+          <span>Observer foundation · read-only</span>
+          <span>Unknown schemas fail closed</span>
         </footer>
       )}
       <ForgeCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

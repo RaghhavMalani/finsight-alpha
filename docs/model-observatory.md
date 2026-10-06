@@ -1,6 +1,6 @@
 # Model Observatory
 
-`/observatory` exposes two read-only research scenes: **Regime space** (HMM optimization) and **Feature flow** (the signal model's walk-forward folds). Forge F7, the command palette, and the SPY/QQQ/IWM legacy regime panel link to it. Scene/ticker choices are bookmarkable; the ticker list is whatever `manifest.json` declares, each ticker with both a checked HMM and a checked signal replay. The default is a checked replay of actual installed evidence, bounded at **2026-10-03T04:15:00Z**.
+`/observatory` exposes three research scenes: **Regime space** (HMM optimization), **Feature flow** (the signal model's walk-forward folds) and **Neural net** (a network you can edit and train). F7 (F8 for the neural scene), the command palette and the landing page link to it. Scene/ticker choices are bookmarkable; the ticker list is whatever `manifest.json` declares, each ticker with both a checked HMM and a checked signal replay. The default is a checked replay of actual installed evidence, bounded at **2026-10-03T04:15:00Z**.
 
 The visual spec is [`observatory-reference.html`](observatory-reference.html), a single-file three.js page built from `spy-*.json`; [`observatory-redesign.md`](observatory-redesign.md) is the change list that came with it.
 
@@ -65,6 +65,64 @@ The interval is a percentile bootstrap of the holdout AUC (2,000 resamples, seed
 | IWM | Inconclusive (CI spans chance) | 0.546 | 0.471–0.616 | 0.542–0.607 | 0.84–0.86 |
 
 SPY evaluates XGBoost on the holdout while the traced family is gradient boosting (final validation AUC 0.481); these remain separate values.
+
+### Neural net
+
+```text
+POST /ml/neural/trace  {"ticker":"SPY","as_of":"2026-10-03T04:15:00Z","source":"real",
+                        "architecture":{"hidden":[32,16],"activation":"relu","epochs":60},
+                        "families":["Returns & momentum","Volatility","Geo events"]}
+```
+
+`src/ml/neural.py` is a deterministic numpy multilayer perceptron: He (Xavier for tanh)
+initialization, inverted dropout, L2 on weights, Adam, a sigmoid output and binary cross-entropy.
+Architectures are validated with fixed bounds (1–4 hidden layers of 2–64 units, relu/tanh/gelu/silu,
+5–200 epochs, batch 16–256, learning rate 1e-4–0.1, dropout ≤ 0.6, L2 ≤ 0.1); unknown fields fail.
+`src/observatory/neural.py` trains it on the production split from `build_signal_splits` (fit rows,
+purged validation slice, untouched holdout) with inputs standardized on fit rows only. The reported
+network is the final epoch: no epoch is chosen on validation, and the lowest-validation-loss epoch is
+marked on the loss curve only as information.
+
+Each trace records every epoch's train/validation loss and AUC and layer weight norms, up to 25
+weight snapshots (epoch 0 included) with unit mean activation and active fraction on validation
+rows, gradient × input attribution normalized to one and summed by family, the scaler and its hash,
+and a forward pass on the latest admitted row, labelled as not a forecast.
+
+**The holdout stays sealed for edited networks.** The endpoint never opens it. The validation AUC
+gets a bootstrap interval and a status (above, below or spanning chance). `export_observatory.py
+--neural` evaluates the one preregistered architecture (the defaults) after a refit on all
+development rows and applies the same verdict rule as the signal scene. `validateTrace` rejects a
+sealed holdout carrying a score, a verdict that disagrees with its interval, holdout indices inside
+fit or validation rows, and Geo events inputs without the USGS catalog disclosure.
+
+The scene draws layers as columns, units as glows and every weight as a curve: cyan positive,
+magenta negative, lit by |w| relative to the largest in its layer (the strongest 2,000 per layer
+pair when a layer is larger). Scrubbing interpolates between snapshots; hidden units fade to grey
+when they stop activating. Hover shows real values: attribution and the latest row for inputs,
+mean activation, active share, bias and incoming weight norm for hidden units.
+
+The editor on the left trains three ways:
+
+- **Lab.** `neural/mlp.ts` is a TypeScript port of the same algorithm, run in a Web Worker on
+  seeded synthetic worlds (`neural/world.ts`): a nonlinear momentum × volatility interaction, a
+  geo shock driven by a self-exciting quake stream, a linear drift, or a null world with no rule.
+  The planted rule is standardized, so the slider is its signal-to-noise ratio, and the readout
+  shows the ground-truth AUC ceiling. Every epoch streams into the scene. The holdout opens on
+  request after a development refit, and each opening is counted. Lab numbers are not market
+  evidence and the UI says so.
+- **Replay.** A `TICKER:neural` manifest entry, checked by SHA-256 like the other scenes. None is
+  installed yet; run the exporter with `--neural` on installed evidence.
+- **Live.** The editor's specification sent to `POST /ml/neural/trace`.
+
+The readout counts how many networks have been scored on the same validation slice, because the
+best of many is an optimistic estimate.
+
+`node scripts/verify-neural.mjs` (in CI) validates a simulated backend trace fixture and 19
+sabotaged copies, checks the TypeScript network's gradients against finite differences, and
+trains lab worlds: the planted rule must be found, the null world must not read above chance, and
+the geo world's network must lean on Geo events. `tests/test_neural.py` covers the Python side,
+including gradient checks, bounds, determinism, future-append invariance, exact split indices,
+the sealed holdout, geo admission lag and the endpoint contract.
 
 ## Rendering and artifacts
 

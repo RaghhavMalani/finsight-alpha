@@ -616,8 +616,14 @@ export default function GlobeScene({
   onLook,
   onSatellites,
   labelsRoot,
+  interactive = true,
+  view = [24, 150, 3.7],
 }: {
   labelsRoot: HTMLElement | null;
+  /** False on the landing page: no zoom, so the page keeps its scroll. */
+  interactive?: boolean;
+  /** Opening latitude, longitude and distance in globe radii. */
+  view?: [number, number, number];
   land: LandData | null;
   quakes: Quake[];
   tles: Tle[];
@@ -637,7 +643,7 @@ export default function GlobeScene({
   const controls = useRef<OrbitControlsImpl>(null);
   const iss = useMemo(() => new Vector3(), []);
   // Open over the western Pacific: Tokyo, Seoul, Hsinchu and Shenzhen and the Ring of Fire.
-  const start = useMemo(() => toVec(24, 150, R * 3.7), []);
+  const start = useMemo(() => toVec(view[0], view[1], R * view[2]), [view]);
   return (
     <Canvas
       dpr={[1, 2]}
@@ -653,6 +659,7 @@ export default function GlobeScene({
         ref={controls}
         makeDefault
         enablePan={false}
+        enableZoom={interactive}
         enableDamping
         dampingFactor={0.07}
         rotateSpeed={0.5}
