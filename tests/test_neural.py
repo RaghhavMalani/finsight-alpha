@@ -257,3 +257,14 @@ def test_frontend_contract_fixture_matches_the_trace_shape(evidence):
         trace["provenance"].pop(volatile)
     assert _shape(fixture) == _shape(trace)
     assert fixture["claims"] == trace["claims"] and fixture["layer_sizes"] == trace["layer_sizes"]
+
+
+def test_globe_and_backend_agree_on_geo_inputs():
+    """frontend-v2/scripts/verify-globe.mjs checks geoInputs against the same expected values."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "frontend-v2/scripts/fixtures"
+    feed = json.loads((root / "usgs-4.5-week.sample.geojson").read_text())
+    expected = json.loads((root / "geo-inputs.expected.json").read_text())
+    catalog = usgs.parse_catalog(json.dumps(usgs.build_catalog_payload(
+        feed["features"], query="fixture", min_magnitude=4.5)).encode())
+    assert np.allclose(usgs.inputs_at(catalog, expected["at"]), expected["inputs"])

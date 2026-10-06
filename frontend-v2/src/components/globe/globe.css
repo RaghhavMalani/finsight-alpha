@@ -1,0 +1,523 @@
+/* God's Eye: a full-bleed globe with a HUD over it and the neural link docked right. */
+.globe {
+  --ge-fg: #e7eaec;
+  --ge-muted: #9aa2a9;
+  --ge-faint: #5f676f;
+  --ge-line: rgba(63, 224, 255, 0.14);
+  --ge-cyan: #3fe0ff;
+  --ge-amber: #f0a929;
+  --ge-geo: #ffd166;
+  --ge-panel: rgba(4, 8, 11, 0.78);
+  --ge-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  flex: 1;
+  min-height: 0;
+  background: #000;
+  color: var(--ge-fg);
+  font:
+    13px/1.5 "Inter",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  color-scheme: dark;
+}
+.globe .mono {
+  font-family: var(--ge-mono);
+  font-variant-numeric: tabular-nums;
+}
+.globe :focus-visible {
+  outline: 1px solid var(--ge-amber);
+  outline-offset: 2px;
+}
+.ge-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+.ge-stage canvas {
+  cursor: grab;
+}
+.ge-stage canvas:active {
+  cursor: grabbing;
+}
+.ge-hud {
+  position: absolute;
+  z-index: 2;
+}
+.ge-status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ge-muted);
+  font: 11px var(--ge-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.ge-status.ge-warn {
+  inset: auto 24px 24px auto;
+  display: block;
+  max-width: 360px;
+  padding: 10px 12px;
+  border: 1px solid rgba(240, 100, 100, 0.5);
+  background: rgba(20, 4, 6, 0.8);
+  color: #f06464;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+/* projected hub and satellite names */
+.ge-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.globe .lb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font: 500 10.5px/1.3 var(--ge-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow:
+    0 0 6px #000,
+    0 0 12px #000;
+  will-change: transform;
+}
+.globe .lb.hub {
+  color: var(--ge-amber);
+}
+.globe .lb.sat {
+  color: #dff9ff;
+}
+/* targeting frame: four corner brackets and a centre reticle */
+.ge-frame {
+  position: absolute;
+  inset: 14px;
+  z-index: 1;
+  pointer-events: none;
+}
+.ge-frame i {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(63, 224, 255, 0.55);
+}
+.ge-frame i:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.ge-frame i:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-left: 0;
+  border-bottom: 0;
+}
+.ge-frame i:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-right: 0;
+  border-top: 0;
+}
+.ge-frame i:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-left: 0;
+  border-top: 0;
+}
+.ge-frame b {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1px solid rgba(63, 224, 255, 0.22);
+  border-radius: 50%;
+}
+.ge-frame b::before,
+.ge-frame b::after {
+  content: "";
+  position: absolute;
+  background: rgba(63, 224, 255, 0.35);
+}
+.ge-frame b::before {
+  left: 50%;
+  top: -10px;
+  bottom: -10px;
+  width: 1px;
+}
+.ge-frame b::after {
+  top: 50%;
+  left: -10px;
+  right: -10px;
+  height: 1px;
+}
+.ge-title {
+  top: 30px;
+  left: 34px;
+  max-width: 440px;
+  pointer-events: none;
+}
+.ge-eyebrow {
+  color: var(--ge-cyan);
+  font: 500 10px var(--ge-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ge-title,
+.ge-controls {
+  text-shadow:
+    0 0 8px #000,
+    0 0 18px #000;
+}
+.ge-title h1 {
+  margin: 6px 0 6px;
+  font:
+    600 22px/1.2 "Inter",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 18px rgba(63, 224, 255, 0.35);
+}
+.ge-title p {
+  margin: 0;
+  color: var(--ge-muted);
+  font-size: 13px;
+}
+.ge-readouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 12px;
+  color: var(--ge-cyan);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.ge-controls {
+  top: 30px;
+  right: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.ge-seg {
+  display: flex;
+  border: 1px solid var(--ge-line);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+}
+.ge-seg button {
+  padding: 5px 10px;
+  background: none;
+  border: 0;
+  border-right: 1px solid var(--ge-line);
+  color: var(--ge-muted);
+  font: 11px var(--ge-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.ge-seg button:last-child {
+  border-right: 0;
+}
+.ge-seg button:hover {
+  color: var(--ge-fg);
+}
+.ge-seg button[aria-checked="true"],
+.ge-seg button[aria-pressed="true"] {
+  background: rgba(63, 224, 255, 0.12);
+  color: var(--ge-cyan);
+}
+.ge-feeds {
+  display: flex;
+  gap: 6px;
+}
+.ge-chip {
+  padding: 3px 8px;
+  border: 1px solid var(--ge-line);
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--ge-muted);
+  font: 10.5px var(--ge-mono);
+  letter-spacing: 0.04em;
+}
+.ge-chip i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--ge-faint);
+  vertical-align: 1px;
+}
+.ge-chip.live i {
+  background: #42c98b;
+  box-shadow: 0 0 8px #42c98b;
+}
+.ge-chip.unavailable {
+  color: #f06464;
+  border-color: rgba(240, 100, 100, 0.4);
+}
+.ge-chip.unavailable i {
+  background: #f06464;
+}
+.ge-focus {
+  left: 34px;
+  bottom: 34px;
+  display: flex;
+  gap: 14px;
+  max-width: min(560px, calc(100% - 68px));
+  padding: 12px 14px;
+  border: 1px solid var(--ge-line);
+  border-left: 2px solid var(--ge-amber);
+  background: var(--ge-panel);
+  backdrop-filter: blur(10px);
+}
+.ge-mag {
+  font: 600 26px/1 var(--ge-mono);
+  text-shadow: 0 0 14px currentColor;
+}
+.ge-focus strong {
+  display: block;
+  font-weight: 600;
+}
+.ge-focus span {
+  display: block;
+  color: var(--ge-muted);
+  font-size: 12px;
+}
+.ge-focus .mono {
+  font-size: 11px;
+  color: var(--ge-cyan);
+}
+/* the docked neural link panel */
+.ge-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 20px 18px;
+  overflow: auto;
+  border-left: 1px solid var(--ge-line);
+  background: linear-gradient(180deg, rgba(63, 224, 255, 0.05), transparent 220px), #030607;
+  scrollbar-width: thin;
+}
+.ge-lead {
+  margin: -6px 0 0;
+  color: var(--ge-muted);
+  font-size: 12.5px;
+}
+.ge-neurons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ge-neuron {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 209, 102, 0.18);
+  border-radius: 3px;
+  background: rgba(255, 209, 102, 0.03);
+}
+.ge-neuron > i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ge-geo);
+  box-shadow: 0 0 calc(6px + 14px * var(--glow)) var(--ge-geo);
+  animation: ge-pulse 2.4s ease-in-out infinite;
+}
+.ge-neuron span {
+  display: block;
+  font-size: 12px;
+}
+.ge-neuron code {
+  color: var(--ge-faint);
+  font: 10px var(--ge-mono);
+}
+.ge-neuron b {
+  color: var(--ge-geo);
+  font-size: 16px;
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(255, 209, 102, 0.5);
+}
+@keyframes ge-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+.ge-rows > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(231, 234, 236, 0.06);
+  font-size: 11px;
+}
+.ge-rows span {
+  color: var(--ge-muted);
+}
+.ge-cta {
+  padding: 9px 12px;
+  border-radius: 3px;
+  background: var(--ge-amber);
+  color: #050607;
+  font: 600 11px var(--ge-mono);
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 0 0 24px -4px rgba(240, 169, 41, 0.7);
+}
+.ge-cta:hover {
+  filter: brightness(1.1);
+}
+.ge-fine {
+  margin: 0;
+  color: var(--ge-faint);
+  font-size: 11px;
+}
+.ge-fine a {
+  color: var(--ge-muted);
+}
+.ge-hubs {
+  display: grid;
+  gap: 5px;
+}
+.ge-hubs > div {
+  display: grid;
+  grid-template-columns: 116px 1fr 28px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.ge-hubs span {
+  color: var(--ge-muted);
+}
+.ge-hubs i {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(240, 169, 41, 0.12);
+  overflow: hidden;
+}
+.ge-hubs b {
+  display: block;
+  height: 100%;
+  background: var(--ge-amber);
+  box-shadow: 0 0 8px var(--ge-amber);
+}
+.ge-hubs em {
+  font-style: normal;
+  text-align: right;
+}
+.ge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ge-list button {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px;
+  background: none;
+  border: 0;
+  border-radius: 2px;
+  color: var(--ge-fg);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.ge-list button:hover {
+  background: rgba(63, 224, 255, 0.08);
+}
+.ge-list b {
+  color: #ff8a5b;
+  font-weight: 500;
+}
+.ge-list span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ge-muted);
+}
+.ge-list em {
+  color: var(--ge-faint);
+  font-style: normal;
+  font-size: 11px;
+}
+/* sensor modes tint the HUD to match the optics */
+.globe.sensor-nvg {
+  --ge-cyan: #7dff8a;
+  --ge-line: rgba(125, 255, 138, 0.18);
+}
+.globe.sensor-flir {
+  --ge-cyan: #e7eaec;
+  --ge-line: rgba(231, 234, 236, 0.18);
+}
+.globe.sensor-crt {
+  --ge-cyan: #ffd166;
+  --ge-line: rgba(255, 209, 102, 0.2);
+}
+@media (max-width: 1100px) {
+  .globe {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 72vh auto;
+    flex: none;
+  }
+  .ge-panel {
+    border-left: 0;
+    border-top: 1px solid var(--ge-line);
+  }
+}
+@media (max-width: 700px) {
+  .ge-title {
+    left: 20px;
+    right: 20px;
+    top: 20px;
+  }
+  .ge-title p {
+    display: none;
+  }
+  .ge-controls {
+    top: auto;
+    bottom: 20px;
+    right: 20px;
+    left: 20px;
+    align-items: stretch;
+  }
+  .ge-seg button {
+    flex: 1;
+    padding: 6px 4px;
+  }
+  .ge-focus {
+    left: 20px;
+    right: 20px;
+    bottom: 130px;
+    max-width: none;
+  }
+  .ge-frame {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ge-neuron > i {
+    animation: none;
+  }
+}

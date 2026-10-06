@@ -95,6 +95,7 @@ jobs:
       - run: node scripts/verify-regime-product.mjs
       - run: node scripts/verify-observatory.mjs
       - run: node scripts/verify-neural.mjs
+      - run: node scripts/verify-globe.mjs
       - run: npm run build
       - name: Install Chromium for the Observatory browser check
         run: npx playwright install --with-deps --only-shell chromium

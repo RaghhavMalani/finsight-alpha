@@ -14,6 +14,7 @@ import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as BenchRouteImport } from './routes/bench'
 import { Route as DynamicsRouteImport } from './routes/dynamics'
 import { Route as ForgeRouteImport } from './routes/forge'
+import { Route as GlobeRouteImport } from './routes/globe'
 import { Route as LegacyTerminalRouteImport } from './routes/legacy-terminal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ObservatoryRouteImport } from './routes/observatory'
@@ -50,6 +51,11 @@ const DynamicsRoute = DynamicsRouteImport.update({
 const ForgeRoute = ForgeRouteImport.update({
   id: '/forge',
   path: '/forge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GlobeRoute = GlobeRouteImport.update({
+  id: '/globe',
+  path: '/globe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegacyTerminalRoute = LegacyTerminalRouteImport.update({
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/bench': typeof BenchRouteWithChildren
   '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
+  '/globe': typeof GlobeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/artifacts': typeof ArtifactsRoute
   '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
+  '/globe': typeof GlobeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/bench': typeof BenchRouteWithChildren
   '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
+  '/globe': typeof GlobeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/bench'
     | '/dynamics'
     | '/forge'
+    | '/globe'
     | '/legacy-terminal'
     | '/login'
     | '/observatory'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/artifacts'
     | '/dynamics'
     | '/forge'
+    | '/globe'
     | '/legacy-terminal'
     | '/login'
     | '/observatory'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/bench'
     | '/dynamics'
     | '/forge'
+    | '/globe'
     | '/legacy-terminal'
     | '/login'
     | '/observatory'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   BenchRoute: typeof BenchRouteWithChildren
   DynamicsRoute: typeof DynamicsRoute
   ForgeRoute: typeof ForgeRoute
+  GlobeRoute: typeof GlobeRoute
   LegacyTerminalRoute: typeof LegacyTerminalRoute
   LoginRoute: typeof LoginRoute
   ObservatoryRoute: typeof ObservatoryRoute
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       path: '/forge'
       fullPath: '/forge'
       preLoaderRoute: typeof ForgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/globe': {
+      id: '/globe'
+      path: '/globe'
+      fullPath: '/globe'
+      preLoaderRoute: typeof GlobeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legacy-terminal': {
@@ -397,6 +417,7 @@ const rootRouteChildren: RootRouteChildren = {
   BenchRoute: BenchRouteWithChildren,
   DynamicsRoute: DynamicsRoute,
   ForgeRoute: ForgeRoute,
+  GlobeRoute: GlobeRoute,
   LegacyTerminalRoute: LegacyTerminalRoute,
   LoginRoute: LoginRoute,
   ObservatoryRoute: ObservatoryRoute,

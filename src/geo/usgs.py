@@ -155,6 +155,22 @@ def geo_features(available_at: pd.Series, catalog: Catalog, *, as_of: str | None
     return pd.DataFrame(out, columns=list(FEATURES), index=available_at.index)
 
 
+def inputs_at(catalog: Catalog, at) -> list[float]:
+    """The four inputs at one instant, without the 30-day coverage guard.
+
+    The God's Eye globe computes the same values from the live USGS feed
+    (frontend-v2/src/components/globe/geo-data.ts); a fixture test keeps the two in step.
+    """
+    at = pd.Timestamp(at).tz_convert("UTC")
+    events = catalog.events[catalog.events["time"] + LAG <= at]
+    week = events[events["time"] + LAG > at - pd.Timedelta(days=7)]
+    month = events[events["time"] + LAG > at - pd.Timedelta(days=30)]
+    return [float((week["mag"] >= 5.0).sum()),
+            float(week["mag"].max()) if len(week) else float(catalog.min_magnitude),
+            float(np.log10(seismic_energy_joules(month["mag"]).sum() + 1.0)),
+            float(near_hub(month).sum())]
+
+
 def build_catalog_payload(features: list[dict], *, query: str, min_magnitude: float,
                           retrieved_at: datetime | None = None) -> dict:
     """Normalize USGS FDSN GeoJSON features into the installed catalog format."""
