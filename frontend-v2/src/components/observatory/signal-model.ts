@@ -103,7 +103,7 @@ export function signalFit(view: SignalView): CameraFit {
     direction: [0.22, 0.08, 1],
     target: [-0.3, 0.55, 0],
     factor: 0.93,
-    narrow: 1.3,
+    narrow: 1,
   };
 }
 

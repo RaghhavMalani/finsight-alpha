@@ -16,6 +16,7 @@ import { esc, gauss, monthRange, rng } from "./format";
 import { GlowCurves } from "./GlowCurves";
 import { GlowPoints } from "./GlowPoints";
 import { pickNearest, showTip, useCanvasPointer } from "./pointer";
+import { PANEL } from "./SceneFrame";
 import type { LabelLayer, LabelSpec } from "./SceneLabels";
 import {
   aucTone,
@@ -131,6 +132,8 @@ export default function SignalScene({
       idx: -1,
       dirty: true,
       hover: null as number | null,
+      /** Phone-width stage: the legend and readout carry family and feature names instead. */
+      compact: false,
     };
   }, [view]);
   useEffect(
@@ -263,16 +266,17 @@ export default function SignalScene({
         pri: 3,
         html: `Fold ${fold.fold}<small>${monthRange(fold.validationStart, fold.validationEnd, true)}</small>`,
       });
+      const chip =
+        auc == null
+          ? "n/a"
+          : `<span class="auc" style="color:${TONE_VAR[aucTone(auc)]}">${auc.toFixed(3)}</span>`;
       list.push({
         pos: at(x, -HEIGHT / 2 - 0.3),
         cls: pending ? "dim" : "",
         valign: "top",
-        html:
-          pending || auc == null
-            ? pending
-              ? "Pending"
-              : "Val AUC<br>n/a"
-            : `Val AUC<br><span class="auc" style="color:${TONE_VAR[aucTone(auc)]}">${auc.toFixed(3)}</span>`,
+        // Narrow stages keep every chip and drop the repeated "Val AUC" header.
+        pri: sim.compact ? 3 : 2,
+        html: pending ? "Pending" : sim.compact ? chip : `Val AUC<br>${chip}`,
       });
       const rho = view.rho[k - 1];
       if (k > 0 && k <= f && rho != null) {
@@ -286,7 +290,7 @@ export default function SignalScene({
         });
       }
     });
-    {
+    if (!sim.compact) {
       const { family } = view;
       view.families.forEach((name, k) => {
         const slots = view.features
@@ -312,15 +316,16 @@ export default function SignalScene({
         .sort((a, b) => imp[b] - imp[a])
         .slice(0, 6);
     const named = sim.hover != null && !top.includes(sim.hover) ? [...top, sim.hover] : top;
-    for (const i of named)
-      list.push({
-        pos: at(X[L], sim.tgt[L][i]),
-        dx: 12,
-        align: "left",
-        cls: "feat",
-        color: familyColor(view, i),
-        html: esc(view.features[i]),
-      });
+    if (!sim.compact)
+      for (const i of named)
+        list.push({
+          pos: at(X[L], sim.tgt[L][i]),
+          dx: 12,
+          align: "left",
+          cls: "feat",
+          color: familyColor(view, i),
+          html: esc(view.features[i]),
+        });
     labels.set(list);
   }
 
@@ -337,6 +342,11 @@ export default function SignalScene({
   useFrame(({ camera, size, scene, clock }) => {
     const g = group.current;
     if (!g) return;
+    const compact = size.width - (size.width > 900 ? PANEL : 0) < 600;
+    if (compact !== sim.compact) {
+      sim.compact = compact;
+      if (sim.idx >= 0) setLabels();
+    }
     if (sim.idx !== index) {
       const first = sim.idx < 0;
       sim.idx = index;
