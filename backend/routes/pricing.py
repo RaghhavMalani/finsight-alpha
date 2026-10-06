@@ -133,10 +133,15 @@ def vol_surface(
     ticker: str,
     r: float = Query(0.05),
     q: float = Query(0.0),
+    allow_synthetic: bool = Query(
+        False, description="Return the parametric demo surface when no live chain exists"
+    ),
 ) -> Dict[str, Any]:
     """Implied volatility surface (strike x maturity -> IV%) for a 3D plot.
 
-    Uses live option chains when available, else a realistic synthetic surface.
+    Built from the live option chain. When none is available the chain helper
+    falls back to a synthetic surface; that is withheld (503) unless the caller
+    explicitly asks for it, so a demo surface is never mistaken for quotes.
     """
     from src.pricing.vol_surface import build_surface_for_ticker
 
@@ -144,7 +149,13 @@ def vol_surface(
         surf = build_surface_for_ticker(ticker, r=r, q=q, prefer_live=True)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Vol surface failed: {exc}") from exc
+    if surf.source == "synthetic" and not allow_synthetic:
+        raise HTTPException(
+            status_code=503,
+            detail="Live option chain unavailable; synthetic surface withheld.",
+        )
 
+    points = surf.points
     return {
         "ticker": ticker.upper(),
         "source": surf.source,
@@ -152,6 +163,17 @@ def vol_surface(
         "strikes": [float(x) for x in surf.strike_axis()],
         "maturities": [float(y) for y in surf.maturities],
         "iv": [[float(v * 100) for v in row] for row in surf.iv_grid],
+        # The grid is interpolated; these are the solved quotes it was built from.
+        "n_points": int(len(points)),
+        "points": [
+            {
+                "T": float(row["T"]),
+                "strike": float(row["strike"]),
+                "iv": float(row["iv"] * 100),
+                "type": str(row["option_type"]),
+            }
+            for _, row in points.iterrows()
+        ],
     }
 
 
