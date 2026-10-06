@@ -1,0 +1,21 @@
+{
+ "answer": "No language model is active, so here is the most relevant evidence retrieved for: \u201cWhat drove revenue growth?\u201d\n\n[1] Revenue increased 12% to $1,210 million, driven by higher unit volume.\n    \u2014 simf-10k-2024.htm (Page 41)\n\n[2] Supplier concentration is a principal risk to gross margin.\n    \u2014 simf-10k-2024.htm (Page 18)",
+ "citations": [
+  {
+   "label": "simf-10k-2024.htm (Page 41)",
+   "n": 1,
+   "page_number": 41,
+   "source_file": "simf-10k-2024.htm",
+   "text": "Revenue increased 12% to $1,210 million, driven by higher unit volume."
+  },
+  {
+   "label": "simf-10k-2024.htm (Page 18)",
+   "n": 2,
+   "page_number": 18,
+   "source_file": "simf-10k-2024.htm",
+   "text": "Supplier concentration is a principal risk to gross margin."
+  }
+ ],
+ "grounded": false,
+ "provider": "none"
+}

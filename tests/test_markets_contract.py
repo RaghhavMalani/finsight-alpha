@@ -63,3 +63,26 @@ def test_fundamentals_route_normalizes_as_of(monkeypatch) -> None:
     assert seen["as_of"] == "2023-06-30"
     fundamentals_route.fundamentals("aapl", as_of=None)
     assert seen["as_of"] is None
+
+
+def test_markets_fixtures_match_the_routes() -> None:
+    """The frontend's contract fixtures are what the routes return today.
+
+    Shapes are compared rather than bytes, so platform float noise can't fail it;
+    a renamed, dropped, added or retyped field can.
+    """
+    import json
+    from pathlib import Path
+
+    from scripts.export_markets_fixtures import OUT, build_payloads, shape
+
+    fresh = build_payloads()
+    on_disk = {
+        path.name.removesuffix(".simulated.json"): json.loads(path.read_text(encoding="utf-8"))
+        for path in Path(OUT).glob("*.simulated.json")
+    }
+    assert sorted(on_disk) == sorted(fresh), "run python scripts/export_markets_fixtures.py"
+    for name, payload in fresh.items():
+        assert shape(payload) == shape(on_disk[name]), (
+            f"{name} drifted; run python scripts/export_markets_fixtures.py"
+        )
