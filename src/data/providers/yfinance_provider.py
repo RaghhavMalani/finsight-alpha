@@ -6,6 +6,8 @@ data in the canonical schema defined by :class:`MarketDataProvider`.
 
 from __future__ import annotations
 
+import threading
+
 import pandas as pd
 import yfinance as yf
 
@@ -15,6 +17,13 @@ from src.utils.logging_utils import get_logger
 from .base import MarketDataProvider, ProviderError
 
 logger = get_logger(__name__)
+
+# yf.download collects results in module-level state (yfinance.shared) and resets
+# it on every call, so two downloads running at once in the API's thread pool can
+# return each other's rows: a full-history request comes back with a 540-day
+# window. Downloads are serialized; the in-process cache in MarketDataService
+# keeps repeat requests off this path.
+_DOWNLOAD_LOCK = threading.Lock()
 
 
 class YFinanceProvider(MarketDataProvider):
@@ -42,13 +51,14 @@ class YFinanceProvider(MarketDataProvider):
         logger.info("yfinance: downloading %s (%s -> %s)", ticker, start_date, end_date)
 
         try:
-            raw = yf.download(
-                tickers=ticker,
-                start=start_date,
-                end=end_date,
-                auto_adjust=True,
-                progress=False,
-            )
+            with _DOWNLOAD_LOCK:
+                raw = yf.download(
+                    tickers=ticker,
+                    start=start_date,
+                    end=end_date,
+                    auto_adjust=True,
+                    progress=False,
+                )
         except Exception as exc:  # uniform error type for all callers
             raise ProviderError(
                 f"yfinance failed to download '{ticker}': {exc}"
