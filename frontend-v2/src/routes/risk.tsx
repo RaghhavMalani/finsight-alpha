@@ -4,7 +4,7 @@ import { Panel } from "@/components/risk/Panel";
 import { RiskIntelligenceLab } from "@/components/risk/RiskIntelligenceLab";
 import { PaperBook } from "@/components/risk/PaperBook";
 import { RiskLiveCommandCenter } from "@/components/risk/RiskLiveCommandCenter";
-import { fmt } from "@/lib/market";
+import { fmt, unavailableInstrument } from "@/lib/market";
 import { subscribeDemoBookStatus, type DemoBookSync } from "@/lib/demoBook";
 import {
   getBook,
@@ -13,6 +13,8 @@ import {
   removeHedge,
   activeHedges,
   resetBook,
+  modelPut,
+  quotedMark,
   var1d,
   riskContributions,
   netGreeks,
@@ -100,6 +102,7 @@ function bookWith(book: Book, extra: Position[]): Book {
   }
   return {
     positions,
+    unpriced: book.unpriced,
     nav: book.nav,
     gross: long + Math.abs(short),
     net: long + short,
@@ -221,7 +224,9 @@ function RiskDeskPro() {
   useEffect(() => subscribeDemoBookStatus(setSync), []);
   const snapshot = useMemo(() => riskSnapshot(book), [book]);
   const activeCount = activeHedges().length;
+  // Risk is computed on priced positions only; unpriced holdings are listed, never valued.
   const hasPositions = book.positions.length > 0;
+  const unpriced = book.unpriced.length;
   const tabs: Array<{ key: ProTab; label: string; meta?: string }> = [
     { key: "COMMAND", label: "Live OS", meta: "LIVE" },
     { key: "OVERVIEW", label: "Overview", meta: snapshot.status },
@@ -263,7 +268,9 @@ function RiskDeskPro() {
                 }`}
               >
                 {!hasPositions
-                  ? "BOOK EMPTY"
+                  ? unpriced
+                    ? "UNPRICED"
+                    : "BOOK EMPTY"
                   : snapshot.status === "CLEAR"
                     ? "WITHIN LIMITS"
                     : snapshot.status === "WATCH"
@@ -311,8 +318,15 @@ function RiskDeskPro() {
                     ? "OFFLINE CACHE"
                     : "HYDRATING BOOK"}
             </span>{" "}
-            · {book.positions.length} authenticated positions · {money(book.gross)} real gross
-            exposure · signed correlation proxy · not broker margin
+            · {book.positions.length} priced positions
+            {unpriced > 0 && (
+              <span className="text-primary">
+                {" "}
+                · {unpriced} unpriced, excluded ({book.unpriced.map((p) => p.symbol).join(", ")})
+              </span>
+            )}{" "}
+            · {money(book.gross)} quoted gross exposure · signed correlation proxy · not broker
+            margin
           </span>
           <span>
             AS OF{" "}
@@ -328,6 +342,7 @@ function RiskDeskPro() {
         {!hasPositions && tab !== "COMMAND" && tab !== "INTELLIGENCE" && (
           <EmptyPortfolioGate
             section={tab}
+            unpriced={unpriced}
             onCommand={() => setTab("COMMAND")}
             onOpenBook={() => setBookOpen(true)}
           />
@@ -353,10 +368,12 @@ function RiskDeskPro() {
 
 function EmptyPortfolioGate({
   section,
+  unpriced,
   onCommand,
   onOpenBook,
 }: {
   section: ProTab;
+  unpriced: number;
   onCommand: () => void;
   onOpenBook: () => void;
 }) {
@@ -365,14 +382,16 @@ function EmptyPortfolioGate({
       <div className="absolute inset-y-0 left-0 w-1 bg-info" />
       <div className="grid items-center gap-6 lg:grid-cols-[1fr_auto]">
         <div>
-          <div className="mono-caps text-[8px] text-info">ZERO-POSITION GUARD · {section}</div>
+          <div className="mono-caps text-[8px] text-info">
+            {unpriced ? "UNPRICED-POSITION GUARD" : "ZERO-POSITION GUARD"} · {section}
+          </div>
           <h2 className="mt-3 font-serif text-3xl text-foreground">
             There is no portfolio risk to calculate yet.
           </h2>
           <p className="mt-3 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
-            VaR, exposure, stress, and hedge outputs stay locked until your authenticated paper book
-            contains a position. This prevents sample holdings or placeholder NAV from being
-            presented as your money.
+            {unpriced
+              ? `Your paper book holds ${unpriced} position${unpriced === 1 ? "" : "s"}, but the tape has not quoted ${unpriced === 1 ? "it" : "any of them"} yet. VaR, exposure, stress, and hedge outputs stay locked until a position has a live mark; no reference level or simulated price stands in for one.`
+              : "VaR, exposure, stress, and hedge outputs stay locked until your authenticated paper book contains a position. This prevents sample holdings or placeholder NAV from being presented as your money."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1420,6 +1439,12 @@ function RiskHedges({ book, snapshot }: { book: Book; snapshot: RiskSnapshot }) 
         }
       >
         <div className="divide-y divide-divider">
+          {quotedMark("SPY") == null && (
+            <div className="px-4 py-3 text-[10px] leading-relaxed text-muted-foreground">
+              Index hedges (ES beta, SPY tail puts) appear once the live tape quotes SPY; they are
+              never sized or priced from a reference level.
+            </div>
+          )}
           {scored.map((candidate, index) => {
             const isOn = active.has(candidate.id);
             const improvesVar = candidate.varReduction > 0;
@@ -1516,23 +1541,29 @@ function RiskHedges({ book, snapshot }: { book: Book; snapshot: RiskSnapshot }) 
   );
 }
 
+/** SPY's annual vol in the book's risk model; the tail hedge is priced with the same number. */
+const SPY_MODEL_VOL = unavailableInstrument("SPY").annualVol;
+
 function buildHedgeCandidates(book: Book, snapshot: RiskSnapshot): HedgeCandidate[] {
   const candidates: HedgeCandidate[] = [];
   const equityBeta = book.positions.reduce((sum, position) => {
     if (position.cls === "COMMODITY") return sum;
     return sum + (position.riskNotional ?? position.mv) * (position.beta ?? 1);
   }, 0);
+  // Index hedges are sized and priced from the live SPY quote; without one they are not offered.
+  const spy = quotedMark("SPY");
 
-  if (Math.abs(equityBeta) > 250_000) {
-    const contractNotional = 5_500 * 50;
+  if (spy != null && Math.abs(equityBeta) > 250_000) {
+    // E-mini level from SPY (the S&P 500 index is ~10 x SPY); ignores futures basis.
+    const level = spy * 10;
+    const contractNotional = level * 50;
     const qty = -Math.round(equityBeta / contractNotional);
     if (qty !== 0) {
       candidates.push({
         id: "BETA-ES",
         title: `${qty < 0 ? "Short" : "Long"} ${Math.abs(qty)} ES future${Math.abs(qty) === 1 ? "" : "s"}`,
         thesis: "Neutralizes broad equity beta while leaving single-name positions intact.",
-        tradeoff:
-          "Basis and roll risk; futures can raise gross notional even as correlated risk falls.",
+        tradeoff: `Basis and roll risk; futures can raise gross notional even as correlated risk falls. Level is the live SPY quote x 10 (${money(level)}), not a futures quote.`,
         premium: 0,
         positions: [
           {
@@ -1541,14 +1572,14 @@ function buildHedgeCandidates(book: Book, snapshot: RiskSnapshot): HedgeCandidat
             symbol: "ES",
             name: "E-mini S&P 500 beta hedge",
             qty,
-            entry: 5_500,
-            mark: 5_500,
+            entry: level,
+            mark: level,
             pnl: 0,
             mv: qty * contractNotional,
             gross: Math.abs(qty * contractNotional),
             sector: "Broad",
             beta: 1,
-            vol: 0.16,
+            vol: SPY_MODEL_VOL,
             riskNotional: qty * contractNotional,
             underlier: "SPY",
           },
@@ -1557,41 +1588,48 @@ function buildHedgeCandidates(book: Book, snapshot: RiskSnapshot): HedgeCandidat
     }
   }
 
-  candidates.push({
-    id: "TAIL-SPY",
-    title: "Buy 10 SPY 590 puts · 30D",
-    thesis:
-      "Adds convex downside protection to reduce gap risk and cushion the binding equity stress.",
-    tradeoff: "Premium decays daily; protection weakens if expiry passes before the shock.",
-    premium: 4_200,
-    positions: [
-      {
-        id: "HDG-TAIL-SPY",
-        cls: "OPTION",
-        symbol: "SPY P590 30D",
-        name: "SPY downside tail hedge",
-        qty: 10,
-        entry: 4.2,
-        mark: 4.2,
-        pnl: 0,
-        mv: 4_200,
-        gross: 4_200,
-        sector: "Options",
-        beta: 1,
-        vol: 0.16,
-        riskNotional: -214_200,
-        underlier: "SPY",
-        underlyingMark: 612,
-        optType: "P",
-        strike: 590,
-        daysToExpiry: 30,
-        delta: -350,
-        gamma: 45,
-        vega: 120,
-        theta: -35,
-      },
-    ],
-  });
+  if (spy != null) {
+    const contracts = 10,
+      shares = contracts * 100,
+      strike = 5 * Math.floor((spy * 0.965) / 5),
+      put = modelPut(spy, strike, 30 / 365, SPY_MODEL_VOL);
+    const premium = put.price * shares;
+    candidates.push({
+      id: "TAIL-SPY",
+      title: `Buy ${contracts} SPY ${strike} puts · 30D`,
+      thesis:
+        "Adds convex downside protection to reduce gap risk and cushion the binding equity stress.",
+      tradeoff: `Premium decays daily; protection weakens if expiry passes before the shock. Premium and Greeks are a Black-Scholes estimate at the book's ${(SPY_MODEL_VOL * 100).toFixed(0)}% SPY vol from the live SPY quote, not an option quote; market skew usually prices these puts higher.`,
+      premium,
+      positions: [
+        {
+          id: "HDG-TAIL-SPY",
+          cls: "OPTION",
+          symbol: `SPY P${strike} 30D`,
+          name: "SPY downside tail hedge (model-priced)",
+          qty: contracts,
+          entry: put.price,
+          mark: put.price,
+          pnl: 0,
+          mv: premium,
+          gross: premium,
+          sector: "Options",
+          beta: 1,
+          vol: SPY_MODEL_VOL,
+          riskNotional: put.delta * shares * spy,
+          underlier: "SPY",
+          underlyingMark: spy,
+          optType: "P",
+          strike,
+          daysToExpiry: 30,
+          delta: put.delta * shares,
+          gamma: put.gamma * shares,
+          vega: put.vega * shares,
+          theta: put.theta * shares,
+        },
+      ],
+    });
+  }
 
   const driver = snapshot.topDriver;
   if (driver) {

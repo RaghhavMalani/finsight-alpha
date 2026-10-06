@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookDrawer } from "@/components/risk/BookDrawer";
-import { COMMODITIES } from "@/lib/book";
+import { COMMODITIES, quoteSymbol } from "@/lib/book";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
 import { useLiveMarket } from "@/lib/live-market";
 import { TICKERS, unavailableInstrument, type Instrument } from "@/lib/market";
@@ -16,10 +16,15 @@ export function PaperBook({ onClose }: { onClose: () => void }) {
     Object.fromEntries(TICKERS.map((s) => [s, unavailableInstrument(s)])),
   );
   const symbols = useMemo(
-    // Commodity contracts are requested too: a quick-add books only if the tape quotes it.
+    // Tape symbols: futures by their continuous contract (GC -> GC=F). Commodity contracts are
+    // requested too, so a quick-add books only when the tape quotes it.
     () =>
       Array.from(
-        new Set([...positions.map((p) => p.symbol), ...Object.keys(COMMODITIES), ...TICKERS]),
+        new Set(
+          [...positions.map((p) => p.symbol), ...Object.keys(COMMODITIES), ...TICKERS].map(
+            quoteSymbol,
+          ),
+        ),
       ).slice(0, 30),
     [positions],
   );

@@ -337,6 +337,11 @@ export function unavailableInstrument(symbol: string): Instrument {
   };
 }
 
+/** True only for a provider quote; simulated and unavailable instruments carry no real price. */
+export function isQuoted(inst: Instrument | null | undefined): inst is Instrument {
+  return !!inst && (inst.dataSource === "FINNHUB" || inst.dataSource === "YFINANCE_EOD");
+}
+
 export function seedInstrument(symbol: string): Instrument {
   return SESSION.instruments[symbol] ?? generateSession(symbol, SESSION.spyRet, null);
 }

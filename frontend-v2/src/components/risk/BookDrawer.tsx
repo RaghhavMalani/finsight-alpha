@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Instrument } from "@/lib/market";
-import { fmt, TICKERS } from "@/lib/market";
-import { COMMODITIES } from "@/lib/book";
+import { fmt, isQuoted, TICKERS } from "@/lib/market";
+import { COMMODITIES, quoteSymbol } from "@/lib/book";
 import {
   addDemoPosition,
   removeDemoPosition,
@@ -29,21 +29,30 @@ export function BookDrawer({
   const [sync, setSync] = useState<DemoBookSync>({ state: "loading" });
   useEffect(() => subscribeDemoBookStatus(setSync), []);
 
+  // A provider quote for a book symbol (futures via their continuous contract), else null.
+  const quoteOf = (sym: string) => {
+    const inst = instruments[quoteSymbol(sym)];
+    return isQuoted(inst) ? inst : null;
+  };
   const rows = useMemo(() => {
     return positions.map((p) => {
-      const inst = instruments[p.symbol];
-      const commodity = COMMODITIES[p.symbol];
-      const multiplier = commodity?.multiplier ?? 1;
-      const last = inst?.price ?? commodity?.spot ?? p.entry;
-      const prev = inst?.prevClose ?? p.entry;
-      const dayPnl = (last - prev) * p.qty * multiplier;
+      const inst = quoteOf(p.symbol);
+      const multiplier = COMMODITIES[p.symbol]?.multiplier ?? 1;
+      // Without a quote a position is unpriced: no last, P&L or weight is shown for it.
+      if (!inst) return { p, inst, last: null, dayPnl: null, unrl: null, mv: null };
+      const last = inst.price;
+      const dayPnl = (last - inst.prevClose) * p.qty * multiplier;
       const unrl = (last - p.entry) * p.qty * multiplier;
       const mv = last * p.qty * multiplier;
       return { p, inst, last, dayPnl, unrl, mv };
     });
+    // quoteOf reads only `instruments`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positions, instruments]);
 
-  const totalMV = rows.reduce((s, r) => s + Math.abs(r.mv), 0) || 1;
+  const unpricedCount = rows.filter((r) => r.mv == null).length;
+  const pricedMV = rows.reduce((s, r) => s + Math.abs(r.mv ?? 0), 0);
+  const totalMV = pricedMV || 1;
   const cls = (sym: string): "EQ" | "CX" | "CM" =>
     COMMODITIES[sym] ? "CM" : sym === "BTC-USD" ? "CX" : "EQ";
 
@@ -58,10 +67,9 @@ export function BookDrawer({
   function commitAdd(sym: string, forcedQty?: number) {
     const n = forcedQty ?? parseInt(qty, 10);
     if (!sym || isNaN(n) || n === 0) return;
-    const inst = instruments[sym];
     // A position needs a quoted entry price. COMMODITIES' static spot levels are reference
     // values, not quotes, so they never price a booking.
-    const entry = inst?.price;
+    const entry = quoteOf(sym)?.price;
     if (entry == null || !Number.isFinite(entry)) {
       toast.error(`No live quote for ${sym}; nothing was booked.`);
       return;
@@ -218,7 +226,7 @@ export function BookDrawer({
 
       <div className="max-h-[260px] overflow-y-auto divide-y divide-divider/60">
         {rows.map(({ p, last, dayPnl, unrl, mv }) => {
-          const w = Math.abs(mv) / totalMV;
+          const w = mv == null ? 0 : Math.abs(mv) / totalMV;
           const c = cls(p.symbol);
           const clsColor =
             c === "EQ"
@@ -256,13 +264,25 @@ export function BookDrawer({
                 <span className="text-right text-foreground">{p.qty}</span>
               )}
               <span className="text-right text-muted-foreground">{fmt(p.entry)}</span>
-              <span className="text-right text-foreground">{fmt(last)}</span>
-              <span className={`text-right ${dayPnl >= 0 ? "text-up" : "text-down"}`}>
-                {dayPnl >= 0 ? "+" : "−"}${fmt(Math.abs(dayPnl), 0)}
-              </span>
-              <span className={`text-right ${unrl >= 0 ? "text-up" : "text-down"}`}>
-                {unrl >= 0 ? "+" : "−"}${fmt(Math.abs(unrl), 0)}
-              </span>
+              {last == null || dayPnl == null || unrl == null ? (
+                <>
+                  <span className="text-right text-faint" title="No live quote yet">
+                    unpriced
+                  </span>
+                  <span className="text-right text-faint">—</span>
+                  <span className="text-right text-faint">—</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-right text-foreground">{fmt(last)}</span>
+                  <span className={`text-right ${dayPnl >= 0 ? "text-up" : "text-down"}`}>
+                    {dayPnl >= 0 ? "+" : "−"}${fmt(Math.abs(dayPnl), 0)}
+                  </span>
+                  <span className={`text-right ${unrl >= 0 ? "text-up" : "text-down"}`}>
+                    {unrl >= 0 ? "+" : "−"}${fmt(Math.abs(unrl), 0)}
+                  </span>
+                </>
+              )}
               <div className="relative h-1.5 bg-background">
                 <div
                   className={`absolute inset-y-0 left-0 ${short ? "bg-down/60" : "bg-primary/60"}`}
@@ -290,7 +310,10 @@ export function BookDrawer({
 
       <div className="mono-caps flex items-center justify-between border-t border-divider bg-panel/70 px-3 py-1 text-[9px] text-faint tabular-nums">
         <span>
-          NOTIONAL <span className="text-foreground">${fmt(totalMV, 0)}</span>
+          QUOTED NOTIONAL <span className="text-foreground">${fmt(pricedMV, 0)}</span>
+          {unpricedCount > 0 && (
+            <span className="text-primary"> · {unpricedCount} unpriced, excluded</span>
+          )}
         </span>
         <span className="text-primary/70">
           {sync.state === "synced" ? "server-persisted" : "offline cache"} · read by P&amp;L and
