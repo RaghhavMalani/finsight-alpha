@@ -5,6 +5,8 @@ import importlib.metadata
 import json
 from pathlib import Path
 
+from src.geo import usgs
+from src.observatory.neural import GEO_FAMILY, NEURAL_FAMILIES, neural_trace
 from src.observatory.traces import hmm_trace, signal_trace
 from src.regime_intelligence.service import load_dataset
 
@@ -14,6 +16,10 @@ def main():
     parser.add_argument("--as-of", required=True)
     parser.add_argument("--assets", nargs="+", default=["SPY", "QQQ", "IWM"])
     parser.add_argument("--output", type=Path, default=Path("frontend-v2/public/artifacts/observatory"))
+    parser.add_argument("--neural", action="store_true",
+                        help="Also export the preregistered network, evaluated once on the untouched holdout")
+    parser.add_argument("--neural-geo", action="store_true",
+                        help="Add the Geo events input family (needs scripts/fetch_usgs_catalog.py first)")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     manifest = {"schema_version": "model-observatory-manifest/1", "as_of": args.as_of,
@@ -25,11 +31,21 @@ def main():
         except importlib.metadata.PackageNotFoundError:
             manifest["software"][optional] = None
     benchmark = load_dataset("SPY")
+    catalog = usgs.load_catalog() if args.neural_geo else None
+    families = list(NEURAL_FAMILIES) if args.neural_geo else None
+    kinds = ("hmm", "signal", "neural") if args.neural or args.neural_geo else ("hmm", "signal")
     for ticker in args.assets:
         dataset = benchmark if ticker == "SPY" else load_dataset(ticker)
-        for kind in ("hmm", "signal"):
-            trace = hmm_trace(ticker, args.as_of, 4, "real", dataset=dataset) if kind == "hmm" else signal_trace(
-                ticker, args.as_of, "real", dataset=dataset, benchmark_dataset=benchmark)
+        for kind in kinds:
+            if kind == "hmm":
+                trace = hmm_trace(ticker, args.as_of, 4, "real", dataset=dataset)
+            elif kind == "signal":
+                trace = signal_trace(ticker, args.as_of, "real", dataset=dataset, benchmark_dataset=benchmark)
+            else:
+                # The default architecture is the preregistered one: the only network whose
+                # untouched holdout is ever opened.
+                trace = neural_trace(ticker, args.as_of, "real", None, families=families, dataset=dataset,
+                                     benchmark_dataset=benchmark, catalog=catalog, evaluate_holdout=True)
             raw = json.dumps(trace, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
             filename = f"{ticker.lower()}-{kind}.json"
             (args.output / filename).write_bytes(raw)
@@ -42,6 +58,13 @@ def main():
                 print(f"  verdict {trace['verdict']} ({trace['verdict_reason']}); holdout AUC "
                       f"{trace['holdout']['auc']} CI {ci and (round(ci['low'], 4), round(ci['high'], 4))}; "
                       f"suppressed {trace['suppressed']}; rho {trace['rho']}", flush=True)
+            if kind == "neural":
+                holdout = trace["holdout"]
+                print(f"  network {trace['layer_sizes']}; validation AUC {trace['validation']['auc']} "
+                      f"({trace['validation']['status']}); holdout AUC {holdout['auc']}; verdict "
+                      f"{holdout['verdict']} ({holdout['verdict_reason']})"
+                      + (f"; {GEO_FAMILY} {trace['family_attribution'].get(GEO_FAMILY)}" if catalog else ""),
+                      flush=True)
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
