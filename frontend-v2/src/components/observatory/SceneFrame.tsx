@@ -198,6 +198,8 @@ export type CameraFit = {
   factor: number;
   /** Extra distance when the free stage is narrower than 600px, so side labels stay on screen. */
   narrow: number;
+  /** Width of a panel docked over the stage's left edge (the network editor), if any. */
+  left?: number;
 };
 
 /**
@@ -213,8 +215,12 @@ function CameraRig({ fit }: { fit: CameraFit }) {
   useLayoutEffect(() => {
     if (!(camera instanceof PerspectiveCamera)) return;
     const { width: w, height: h } = size;
-    const panel = w > 900 ? PANEL : 0;
-    if (panel) camera.setViewOffset(w + panel, h, panel, 0, w, h);
+    const right = w > 900 ? PANEL : 0,
+      left = w > 1180 ? (fit.left ?? 0) : 0,
+      panel = right + left,
+      shift = right - left;
+    // Centre the scene in the free area between the docked panels.
+    if (shift) camera.setViewOffset(w + Math.abs(shift), h, Math.max(0, shift), 0, w, h);
     else {
       camera.clearViewOffset();
       camera.aspect = w / h;

@@ -4,7 +4,10 @@ const ObservatoryPage = lazy(() => import("@/components/observatory/ObservatoryP
 export const Route = createFileRoute("/observatory")({
   // Tickers are declared by the replay manifest; the page rejects any it does not list.
   validateSearch: (search: Record<string, unknown>) => ({
-    scene: search.scene === "signal" ? ("signal" as const) : ("hmm" as const),
+    scene:
+      search.scene === "signal" || search.scene === "neural"
+        ? (search.scene as "signal" | "neural")
+        : ("hmm" as const),
     ticker: /^[A-Z]{1,6}$/.test(String(search.ticker)) ? String(search.ticker) : "SPY",
   }),
   head: () => ({

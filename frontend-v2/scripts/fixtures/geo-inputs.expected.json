@@ -1,0 +1,6 @@
+{
+  "fixture": "usgs-4.5-week.sample.geojson",
+  "at": "2026-10-06T06:56:06Z",
+  "inputs": [37, 5.9, 14.422659120118558, 14],
+  "note": "Values src/geo/usgs.py inputs_at and geo-data.ts geoInputs must both produce from the fixture."
+}

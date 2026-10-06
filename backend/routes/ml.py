@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 
 from src.utils.logging_utils import get_logger
 
@@ -302,5 +303,49 @@ def signal_optimization_trace(request: Request, ticker: str = Query(...),
             embargo=embargo, dataset=dataset, benchmark_dataset=benchmark_dataset))
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Installed PIT evidence unavailable") from exc
+    except (ValueError, ImportError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class NeuralTraceRequest(BaseModel):
+    """A network to train on installed PIT evidence. The holdout is never returned here."""
+
+    ticker: str
+    as_of: str
+    source: str
+    horizon: int = Field(1, ge=1, le=5)
+    embargo: int = Field(0, ge=0, le=10)
+    families: Optional[List[str]] = None
+    architecture: Dict[str, Any] = Field(default_factory=dict)
+
+
+@router.post("/neural/trace")
+def neural_training_trace(request: Request, body: NeuralTraceRequest):
+    from src.geo import usgs
+    from src.ml.neural import Architecture
+    from src.observatory.inputs import pit_prices
+    from src.observatory.neural import GEO_FAMILY, neural_trace, parse_families
+    from src.observatory.traces import cached
+    from src.regime_intelligence.service import load_dataset
+    ticker = body.ticker.upper()
+    try:
+        architecture = Architecture.parse(body.architecture)
+        families = parse_families(body.families)
+        catalog = usgs.load_catalog() if GEO_FAMILY in families else None
+        dataset = load_dataset(ticker)
+        benchmark_dataset = dataset if ticker == "SPY" else load_dataset("SPY")
+        _, asset = pit_prices(ticker, body.as_of, body.source, dataset=dataset)
+        _, benchmark = pit_prices("SPY", body.as_of, body.source, dataset=benchmark_dataset)
+        key = (getattr(request.state, "organization_id", None), "neural", ticker,
+               asset["input_hash"], benchmark["input_hash"], asset["as_of"], body.source,
+               body.horizon, body.embargo, tuple(families),
+               tuple(sorted((k, str(v)) for k, v in architecture.as_dict().items())),
+               catalog.sha256 if catalog else None)
+        return cached(key, lambda: neural_trace(
+            ticker, body.as_of, body.source, architecture.as_dict(), families=families,
+            horizon=body.horizon, embargo=body.embargo, dataset=dataset,
+            benchmark_dataset=benchmark_dataset, catalog=catalog))
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Installed PIT or USGS evidence unavailable") from exc
     except (ValueError, ImportError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

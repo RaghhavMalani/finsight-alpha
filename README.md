@@ -163,7 +163,8 @@ The product surface makes evidence inspectable without moving calculations into 
 - FastAPI routes for market data, pricing, risk, portfolio, research, factors, regimes, machine learning, strategies, paper execution, and agent context
 - React 19 with TanStack Router and TanStack Query
 - Tailwind CSS 4 and focused Three.js visualizations
-- Live risk command center, terminal panels, correlation graph, options views, Monte Carlo surfaces, dependency analysis, replay controls, and command workflows
+- Command-deck shell with grouped F-key navigation (Forge, Models, World) and a command palette; the pre-Forge legacy terminal has been retired, and its paper book now opens inside the risk desk
+- Model Observatory (regime space, feature flow, neural net), the God's Eye globe, the Dynamics Lab and the live risk command center
 - Session authentication, organization resolution, role-aware access, and structured error correlation
 
 ## Agent evaluation contract
@@ -286,6 +287,12 @@ Open `/observatory` or use Forge **F7** for the HMM Regime Observatory and Signa
 
 The HMM shows EM optimization of one cutoff-bounded fit. The forest shares the production signal suite's chronological purge/embargo splits and keeps its untouched holdout apart from candidate validation. Stage traces are explicit adapters; unsupported families remain unavailable. See the [model, provenance, performance and verification guide](docs/model-observatory.md).
 
+The **Neural net** scene (**F8**) draws a multilayer perceptron as it trains, every weight a curve coloured by sign, and puts an editor beside it: layers and widths, activation, dropout, L2, learning rate, epochs, batch size, seed and input families. Networks train three ways: in the browser on seeded synthetic worlds with a known planted rule (or none), from a checked replay, or on installed PIT evidence through `POST /ml/neural/trace`. Edited networks are scored on validation only; the untouched holdout opens once for the preregistered architecture, and lab openings are counted.
+
+## God's Eye
+
+Open `/globe` (**F9**) for a globe of live public signals adapted from [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view): USGS earthquakes, CelesTrak satellites propagated with SGP4, and the eight market hubs whose 1,000 km radius defines the near-hub input. Its FLIR, CRT and NVG sensor looks are ported shaders. The neural link panel computes the network's four **Geo events** inputs from the live feed with the backend's one-day admission rule, and a fixture test holds the browser and Python calculations equal. See [the integration guide](docs/gods-eye-integration.md) for how the pieces connect and how to add a layer or an input.
+
 ## Verification strategy
 
 Verification operates at multiple levels because one green test class cannot establish research validity.
@@ -322,13 +329,16 @@ Negative controls are release evidence. They demonstrate that the evaluator reje
 
 ### Frontend verification
 
-Validate the observer terminal:
+Validate the observer frontend:
 
 ```bash
 cd frontend-v2
 npm ci
 npm run lint
 npm run build
+node scripts/verify-observatory.mjs   # replay integrity, evidence sabotage, palette
+node scripts/verify-neural.mjs        # neural trace contract, gradients, lab worlds
+node scripts/verify-globe.mjs         # USGS/TLE parsing, geo-input parity with Python
 ```
 
 ### Frozen research verifiers

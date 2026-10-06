@@ -1,8 +1,9 @@
-// FinSight book — multi-asset simulated portfolio.
-// The authenticated paper book is authoritative; market marks can be refreshed
-// from the live tape without fabricating any holdings.
+// FinSight book — the authenticated paper book, valued only at quoted marks.
+// Holdings come from the paper book and marks from the live tape. A position the
+// tape has not quoted is reported as unpriced and left out of every total: no
+// static reference level or simulated price ever stands in for a quote.
 
-import { seedInstrument, TICKERS } from "./market";
+import { unavailableInstrument } from "./market";
 import { getDemoBook, subscribeDemoBook } from "./demoBook";
 
 export type AssetClass = "EQUITY" | "COMMODITY" | "OPTION";
@@ -40,6 +41,7 @@ export type CommodityCfg = {
   name: string;
   contractSize: number;
   multiplier: number; // $ per unit
+  /** Static reference level for orientation only; never a mark, entry or P&L input. */
   spot: number;
   vol: number; // annualized
   curveShape: "contango" | "backwardation" | "flat";
@@ -117,34 +119,9 @@ export const COMMODITY_QUOTES: Record<string, string> = {
   W: "ZW=F",
 };
 
-export function futuresCurve(sym: string): { month: number; label: string; price: number }[] {
-  const c = COMMODITIES[sym];
-  if (!c) return [];
-  const months = 12;
-  const now = new Date();
-  const monthNames = [
-    "JAN",
-    "FEB",
-    "MAR",
-    "APR",
-    "MAY",
-    "JUN",
-    "JUL",
-    "AUG",
-    "SEP",
-    "OCT",
-    "NOV",
-    "DEC",
-  ];
-  return Array.from({ length: months }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() + i + 1, 1);
-    const label = `${monthNames[d.getMonth()]}${String(d.getFullYear()).slice(-2)}`;
-    const drift = (c.slope / 100) * (i + 1);
-    // small curvature so it's not linear
-    const curv = Math.sin(i / 3) * (Math.abs(c.slope) / 100) * 0.25;
-    const price = c.spot * (1 + drift + curv);
-    return { month: i, label, price };
-  });
+/** The tape symbol that quotes a book symbol (futures use their continuous contract). */
+export function quoteSymbol(symbol: string): string {
+  return COMMODITY_QUOTES[symbol] ?? symbol;
 }
 
 // ─── Build book ──────────────────────────────────────────────────────
@@ -170,8 +147,19 @@ const COMMODITY_SECTOR: Record<string, string> = {
   W: "Agri",
 };
 
+/** A held position the tape has not quoted: shown, but in no total or risk number. */
+export type UnpricedPosition = {
+  symbol: string;
+  name: string;
+  cls: AssetClass;
+  qty: number;
+  entry: number;
+};
+
 export type Book = {
+  /** Positions valued at a quoted mark; every total and risk number reads these only. */
   positions: Position[];
+  unpriced: UnpricedPosition[];
   nav: number;
   gross: number;
   net: number;
@@ -182,60 +170,54 @@ export type Book = {
 };
 let marketMarks = new Map<string, number>();
 
-function buildPositions(): Position[] {
-  const out: Position[] = [];
-  const insts: Record<string, ReturnType<typeof seedInstrument>> = {};
-  for (const s of TICKERS) insts[s] = seedInstrument(s);
+function buildPositions(): { priced: Position[]; unpriced: UnpricedPosition[] } {
+  const priced: Position[] = [];
+  const unpriced: UnpricedPosition[] = [];
 
   // The authenticated paper book is authoritative. Empty means empty: never
   // inject sample equities, futures, or options into a user's risk totals.
   for (const position of getDemoBook()) {
+    const mark = marketMarks.get(position.symbol);
     const commodity = COMMODITIES[position.symbol];
-    if (commodity) {
-      const mark = marketMarks.get(position.symbol) ?? commodity.spot;
-      const mv = position.qty * mark * commodity.multiplier;
-      out.push({
-        id: `CM-${position.symbol}`,
-        cls: "COMMODITY",
+    // Name, beta and vol are model parameters; only the mark has to be a quote.
+    const reference = commodity ? null : unavailableInstrument(position.symbol);
+    const name = commodity?.name ?? reference!.name;
+    const cls: AssetClass = commodity ? "COMMODITY" : "EQUITY";
+    if (mark == null) {
+      unpriced.push({
         symbol: position.symbol,
-        name: commodity.name,
+        name,
+        cls,
         qty: position.qty,
         entry: position.entry,
-        mark,
-        pnl: (mark - position.entry) * position.qty * commodity.multiplier,
-        mv,
-        gross: Math.abs(mv),
-        sector: COMMODITY_SECTOR[position.symbol] ?? "Commodities",
-        beta: 0.15,
-        vol: commodity.vol,
       });
       continue;
     }
-
-    const inst = insts[position.symbol] ?? seedInstrument(position.symbol);
-    const mark = marketMarks.get(position.symbol) ?? inst.price;
-    const mv = position.qty * mark;
-    out.push({
-      id: `EQ-${position.symbol}`,
-      cls: "EQUITY",
+    const multiplier = commodity?.multiplier ?? 1;
+    const mv = position.qty * mark * multiplier;
+    priced.push({
+      id: `${commodity ? "CM" : "EQ"}-${position.symbol}`,
+      cls,
       symbol: position.symbol,
-      name: inst.name,
+      name,
       qty: position.qty,
       entry: position.entry,
       mark,
-      pnl: (mark - position.entry) * position.qty,
+      pnl: (mark - position.entry) * position.qty * multiplier,
       mv,
       gross: Math.abs(mv),
-      sector: EQUITY_SECTORS[position.symbol] ?? "Other",
-      beta: inst.beta,
-      vol: inst.annualVol,
+      sector: commodity
+        ? (COMMODITY_SECTOR[position.symbol] ?? "Commodities")
+        : (EQUITY_SECTORS[position.symbol] ?? "Other"),
+      beta: commodity ? 0.15 : reference!.beta,
+      vol: commodity ? commodity.vol : reference!.annualVol,
     });
   }
 
-  return out;
+  return { priced, unpriced };
 }
 
-function summarize(positions: Position[]): Book {
+function summarize(positions: Position[], unpriced: UnpricedPosition[]): Book {
   let long = 0,
     short = 0,
     pnlDay = 0,
@@ -257,8 +239,10 @@ function summarize(positions: Position[]): Book {
   const net = long + short;
   return {
     positions,
+    unpriced,
     // Cost-basis capital is the only defensible NAV proxy until broker cash is
-    // connected. Empty books report zero instead of a fabricated $10M NAV.
+    // connected. Empty books report zero instead of a fabricated $10M NAV, and
+    // unpriced positions add nothing because their P&L is unknown.
     nav: positions.length ? Math.max(0, investedCapital + pnlDay) : 0,
     gross,
     net,
@@ -271,7 +255,12 @@ function summarize(positions: Position[]): Book {
 
 // ─── Live book with hedge overlays ────────────────────────────────────
 type HedgeOverlay = { id: string; positions: Position[] };
-let baseBook = summarize(buildPositions());
+function buildBook(): Book {
+  const { priced, unpriced } = buildPositions();
+  return summarize(priced, unpriced);
+}
+
+let baseBook = buildBook();
 let overlays: HedgeOverlay[] = [];
 
 type Sub = (b: Book) => void;
@@ -281,7 +270,7 @@ export function getBook(): Book {
   if (!overlays.length) return baseBook;
   const all = [...baseBook.positions];
   for (const o of overlays) all.push(...o.positions);
-  return summarize(all);
+  return summarize(all, baseBook.unpriced);
 }
 
 export function subscribe(fn: Sub) {
@@ -309,9 +298,44 @@ export function activeHedges(): string[] {
 }
 
 export function resetBook() {
-  baseBook = summarize(buildPositions());
+  baseBook = buildBook();
   overlays = [];
   emit();
+}
+
+/** The latest tape mark for a symbol, held or not; null when the tape has not quoted it. */
+export function quotedMark(symbol: string): number | null {
+  return marketMarks.get(symbol) ?? null;
+}
+
+const normCdf = (x: number) => {
+  // Abramowitz–Stegun 7.1.26 via erf, |error| < 1.5e-7.
+  const z = Math.abs(x) / Math.SQRT2,
+    t = 1 / (1 + 0.3275911 * z);
+  const erf =
+    1 -
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
+      t *
+      Math.exp(-z * z);
+  return 0.5 * (1 + Math.sign(x) * erf);
+};
+
+/**
+ * Black–Scholes European put with zero rates and dividends, per share: price, delta, gamma,
+ * vega per vol point and theta per calendar day. A model estimate, never a quote.
+ */
+export function modelPut(spot: number, strike: number, years: number, vol: number) {
+  const sd = vol * Math.sqrt(years),
+    d1 = (Math.log(spot / strike) + 0.5 * vol * vol * years) / sd,
+    d2 = d1 - sd,
+    pdf = Math.exp(-0.5 * d1 * d1) / Math.sqrt(2 * Math.PI);
+  return {
+    price: strike * normCdf(-d2) - spot * normCdf(-d1),
+    delta: normCdf(d1) - 1,
+    gamma: pdf / (spot * sd),
+    vega: (spot * pdf * Math.sqrt(years)) / 100,
+    theta: -(spot * pdf * vol) / (2 * Math.sqrt(years)) / 365,
+  };
 }
 
 /** Refresh marks for existing paper-book symbols without changing positions. */
@@ -326,12 +350,12 @@ export function updateBookMarks(next: Record<string, number>) {
   }
   if (!changed) return;
   marketMarks = updated;
-  baseBook = summarize(buildPositions());
+  baseBook = buildBook();
   emit();
 }
 // Rebuild base book whenever the shared demo book changes so RISK follows edits.
 subscribeDemoBook(() => {
-  baseBook = summarize(buildPositions());
+  baseBook = buildBook();
   emit();
 });
 
@@ -737,53 +761,4 @@ export function stress(
   });
   const total = byPos.reduce((a, b) => a + b.pnl, 0);
   return { total, byPos };
-}
-
-// ─── Trade volumes (turnover) ────────────────────────────────────────
-export function tradeVolumes(days: number): { t: number; turnover: number; trades: number }[] {
-  const now = Date.now();
-  const rng = mulberry32(9);
-  const out: { t: number; turnover: number; trades: number }[] = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const base = 1_800_000 + boxMuller(rng) * 500_000 + Math.sin(i / 5) * 400_000;
-    const spike = rng() < 0.08 ? 2_500_000 * rng() : 0;
-    out.push({
-      t: now - i * 86_400_000,
-      turnover: Math.max(200_000, base + spike),
-      trades: 40 + Math.floor(rng() * 60),
-    });
-  }
-  return out;
-}
-
-export function largestTrades(): {
-  time: string;
-  sym: string;
-  side: "BUY" | "SELL";
-  qty: number;
-  px: number;
-  notional: number;
-}[] {
-  const now = Date.now();
-  const rng = mulberry32(21);
-  const insts: Record<string, ReturnType<typeof seedInstrument>> = {};
-  for (const s of TICKERS) insts[s] = seedInstrument(s);
-  const rows = [];
-  for (let i = 0; i < 8; i++) {
-    const sym = TICKERS[Math.floor(rng() * TICKERS.length)];
-    const inst = insts[sym];
-    const qty = Math.round(500 + rng() * 4500);
-    const side: "BUY" | "SELL" = rng() > 0.5 ? "BUY" : "SELL";
-    const px = inst.price * (1 + (rng() - 0.5) * 0.002);
-    const t = new Date(now - i * 12 * 60000);
-    rows.push({
-      time: `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`,
-      sym,
-      side,
-      qty,
-      px,
-      notional: qty * px,
-    });
-  }
-  return rows.sort((a, b) => b.notional - a.notional);
 }

@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 
 import { api, type TapeItem } from "@/lib/api";
-import { COMMODITY_QUOTES, updateBookMarks, type Book } from "@/lib/book";
+import { COMMODITY_QUOTES, quoteSymbol, updateBookMarks, type Book } from "@/lib/book";
 
 type TapePayload = { items: TapeItem[]; live: boolean };
 type NewsRecord = {
@@ -198,16 +197,23 @@ function strategyDeck(items: TapeItem[], book: Book) {
   ].sort((a, b) => b.score - a.score);
 }
 
-export function RiskLiveCommandCenter({ book }: { book: Book }) {
+export function RiskLiveCommandCenter({
+  book,
+  onOpenBook,
+}: {
+  book: Book;
+  onOpenBook: () => void;
+}) {
   const marketSymbols = useMemo(
     () =>
       Array.from(
         new Set([
           ...BASE_MARKET_SYMBOLS,
-          ...book.positions.map((position) => COMMODITY_QUOTES[position.symbol] ?? position.symbol),
+          // Unpriced holdings are requested too: they enter the book once the tape quotes them.
+          ...[...book.positions, ...book.unpriced].map((position) => quoteSymbol(position.symbol)),
         ]),
       ),
-    [book.positions],
+    [book.positions, book.unpriced],
   );
   const symbolKey = marketSymbols.join(",");
   const tape = useQuery({
@@ -227,14 +233,17 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
 
   const items = useMemo(() => tape.data?.items ?? [], [tape.data?.items]);
   useEffect(() => {
-    const heldSymbols = new Set(book.positions.map((position) => position.symbol));
+    const heldSymbols = new Set(
+      [...book.positions, ...book.unpriced].map((position) => position.symbol),
+    );
     const marks: Record<string, number> = {};
     for (const item of items) {
       const bookSymbol = COMMODITY_BOOK_SYMBOL[item.ticker] ?? item.ticker;
-      if (heldSymbols.has(bookSymbol)) marks[bookSymbol] = item.last;
+      // SPY is kept even when not held: the index hedges are sized and priced from it.
+      if (heldSymbols.has(bookSymbol) || bookSymbol === "SPY") marks[bookSymbol] = item.last;
     }
     if (Object.keys(marks).length) updateBookMarks(marks);
-  }, [book.positions, items]);
+  }, [book.positions, book.unpriced, items]);
   const markets = useMemo(() => itemMap(items), [items]);
   const regime = useMemo(() => regimeOf(items), [items]);
   const strategies = useMemo(() => strategyDeck(items, book), [items, book]);
@@ -242,7 +251,9 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
   const commodities = Object.keys(COMMODITY_META)
     .map((symbol) => markets.get(symbol))
     .filter((item): item is TapeItem => Boolean(item));
-  const empty = book.positions.length === 0;
+  const unpriced = book.unpriced.length;
+  // Empty means nothing is held; holdings without a quote are unpriced, not empty.
+  const empty = book.positions.length === 0 && unpriced === 0;
   const liveCount = items.filter((item) => item.live).length;
 
   return (
@@ -282,7 +293,11 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
               <HeroMetric
                 label="BOOK STATE"
                 value={empty ? "EMPTY" : `${book.positions.length} POS`}
-                detail={empty ? "$0 EXPOSURE" : `$${compact(book.gross)} GROSS`}
+                detail={
+                  empty
+                    ? "$0 EXPOSURE"
+                    : `$${compact(book.gross)} GROSS${unpriced ? ` · ${unpriced} UNPRICED` : ""}`
+                }
                 tone={empty ? "info" : "primary"}
               />
               <HeroMetric
@@ -310,6 +325,24 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
         </div>
       </section>
 
+      {unpriced > 0 && (
+        <section className="risk-rise relative overflow-hidden border border-primary/45 bg-primary/[.04] p-5">
+          <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
+          <div className="mono-caps text-[8px] text-primary">
+            PORTFOLIO TRUTH · {unpriced} UNPRICED POSITION{unpriced === 1 ? "" : "S"}
+          </div>
+          <div className="mt-2 font-serif text-2xl text-foreground">
+            {book.unpriced.map((position) => position.symbol).join(", ")}{" "}
+            {unpriced === 1 ? "is" : "are"} held but not yet quoted.
+          </div>
+          <div className="mt-2 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
+            Until the tape quotes {unpriced === 1 ? "it" : "them"},{" "}
+            {unpriced === 1 ? "it stays" : "they stay"} out of NAV, P&amp;L, VaR, exposure and
+            stress. No reference level or simulated price is used in place of a quote.
+          </div>
+        </section>
+      )}
+
       {empty && (
         <section className="risk-rise relative overflow-hidden border border-info/45 bg-info/[.045] p-5">
           <div className="absolute inset-y-0 left-0 w-1 bg-info risk-edge-pulse" />
@@ -325,12 +358,13 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
                 market intelligence remains active without changing your exposure.
               </div>
             </div>
-            <Link
-              to="/terminal"
+            <button
+              type="button"
+              onClick={onOpenBook}
               className="mono-caps interactive border border-info bg-info px-5 py-3 text-[9px] text-background shadow-[0_0_32px_rgba(69,185,211,.16)] hover:brightness-110"
             >
               OPEN PAPER BOOK · ADD POSITIONS →
-            </Link>
+            </button>
           </div>
         </section>
       )}

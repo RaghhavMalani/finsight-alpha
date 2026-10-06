@@ -124,8 +124,120 @@ export type VerdictReason =
   | "holdout_ci_spans_chance"
   | "validation_edge_too_small"
   | "holdout_auc_unavailable";
-export type ModelTrace = HMMTrace | SignalTrace;
-export type TraceRequest = { kind: "hmm" | "signal"; ticker: string; asOf: string };
+export type NeuralEpochRow = {
+  epoch: number;
+  train_loss: number;
+  train_auc: number | null;
+  val_loss: number;
+  val_auc: number | null;
+  weight_norm: number[];
+};
+export type NeuralSnapshot = {
+  epoch: number;
+  weights: number[][][];
+  biases: number[][];
+  mean_activation: number[][];
+  active_fraction: number[][];
+};
+export type NeuralArchitecture = {
+  hidden: number[];
+  activation: "relu" | "tanh" | "gelu" | "silu";
+  dropout: number;
+  l2: number;
+  learning_rate: number;
+  epochs: number;
+  batch_size: number;
+  seed: number;
+};
+/** A network trained by the backend on installed PIT evidence (src/observatory/neural.py). */
+export type NeuralTrace = TraceBase & {
+  kind: "neural";
+  horizon: number;
+  embargo: number;
+  architecture: NeuralArchitecture;
+  layer_sizes: number[];
+  parameter_count: number;
+  families: string[];
+  family: string[];
+  scaler: { mean: number[]; scale: number[] };
+  scaler_hash: string;
+  epochs: NeuralEpochRow[];
+  snapshot_epochs: number[];
+  snapshots: NeuralSnapshot[];
+  best_val_loss_epoch: number;
+  fit: {
+    fit_start: string;
+    fit_end: string;
+    fit_rows: number;
+    training_target_information_end: string;
+    fit_indices: number[];
+  };
+  validation: {
+    start: string;
+    end: string;
+    feature_start: string;
+    rows: number;
+    indices: number[];
+    auc: number | null;
+    auc_ci95: AucInterval | null;
+    loss: number;
+    status: "above_chance" | "below_chance" | "spans_chance" | "unavailable";
+  };
+  holdout: {
+    sealed: boolean;
+    note: string | null;
+    rows: number;
+    start: string;
+    end: string;
+    feature_start: string;
+    training_target_information_end: string;
+    indices: number[];
+    auc: number | null;
+    auc_ci95: AucInterval | null;
+    verdict: Verdict | null;
+    verdict_reason: VerdictReason | null;
+  };
+  attribution: number[];
+  family_attribution: Record<string, number>;
+  probe: {
+    date: string;
+    input: number[];
+    activations: number[][];
+    output: number;
+    included_in_labeled_rows: boolean;
+  };
+  geo_provenance: {
+    source: string;
+    query: string;
+    retrieved_at: string;
+    sha256: string;
+    events: number;
+    min_magnitude: number;
+    quality: "RETROSPECTIVE_CATALOG";
+    lag_hours: number;
+    disclosure: string;
+  } | null;
+  semantics: string;
+  split_contract: string;
+};
+export type ModelTrace = HMMTrace | SignalTrace | NeuralTrace;
+export type TraceRequest = { kind: "hmm" | "signal" | "neural"; ticker: string; asOf: string };
+/** Input families a network may use; the first five are the signal model's. */
+export const NEURAL_FAMILIES = [
+  "Returns & momentum",
+  "Trend & levels",
+  "Volatility",
+  "Volume",
+  "Cross-asset",
+  "Geo events",
+] as const;
+/** Epochs whose weights a trace keeps: up to 25, evenly spaced, epoch 0 included. */
+export function snapshotEpochList(epochs: number) {
+  const n = Math.min(epochs + 1, 25),
+    set = new Set<number>();
+  for (let i = 0; i < n; i++) set.add(Math.round((epochs * i) / (n - 1)));
+  return [...set].sort((a, b) => a - b);
+}
 export type Manifest = {
   schema_version: string;
   as_of: string;
@@ -174,11 +286,13 @@ export function validateManifest(value: unknown): Manifest {
   )
     fail();
   const keys = Object.keys(manifest.artifacts);
-  if (!keys.length || keys.some((key) => !/^[A-Z]{1,6}:(hmm|signal)$/.test(key))) fail();
+  if (!keys.length || keys.some((key) => !/^[A-Z]{1,6}:(hmm|signal|neural)$/.test(key))) fail();
   // Every declared ticker must carry both scenes, so a missing half can't be silently skipped.
+  // A neural replay is optional, but when declared it is checked exactly like the others.
   for (const ticker of manifestTickers(manifest))
-    for (const kind of ["hmm", "signal"]) {
+    for (const kind of ["hmm", "signal", "neural"]) {
       const entry = manifest.artifacts[`${ticker}:${kind}`];
+      if (kind === "neural" && !entry) continue;
       if (
         !entry ||
         entry.url !== `/artifacts/observatory/${ticker.toLowerCase()}-${kind}.json` ||
@@ -205,7 +319,9 @@ export function validateTrace(value: unknown, request: TraceRequest): ModelTrace
     Math.abs(v.reduce((a, b) => a + b, 0) - 1) < 0.001;
   if (
     !trace ||
-    trace.seed !== 42 ||
+    (trace.kind === "neural"
+      ? !Number.isInteger(trace.seed) || trace.seed !== trace.architecture?.seed
+      : trace.seed !== 42) ||
     trace.schema_version !== "model-observatory/2" ||
     trace.kind !== request.kind ||
     trace.ticker !== request.ticker ||
@@ -273,6 +389,8 @@ export function validateTrace(value: unknown, request: TraceRequest): ModelTrace
       )
         fail();
     });
+  } else if (trace.kind === "neural") {
+    validateNeural(trace, fail, finite, vector, atCutoff);
   } else {
     if (
       !trace.folds.length ||
@@ -352,4 +470,139 @@ export function validateTrace(value: unknown, request: TraceRequest): ModelTrace
     });
   }
   return trace;
+}
+
+/** Shapes, split boundaries, sealed-holdout and verdict rules of a backend neural trace. */
+function validateNeural(
+  trace: NeuralTrace,
+  fail: () => never,
+  finite: (x: number) => boolean,
+  vector: (v: number[], size: number) => boolean,
+  atCutoff: (date: string) => boolean,
+) {
+  const a = trace.architecture,
+    sizes = trace.layer_sizes,
+    nf = trace.feature_names.length;
+  if (
+    !a ||
+    !Array.isArray(a.hidden) ||
+    a.hidden.length < 1 ||
+    a.hidden.length > 4 ||
+    a.hidden.some((w) => !Number.isInteger(w) || w < 2 || w > 64) ||
+    !["relu", "tanh", "gelu", "silu"].includes(a.activation) ||
+    !Number.isInteger(a.epochs) ||
+    a.epochs < 5 ||
+    a.epochs > 200 ||
+    !Array.isArray(sizes) ||
+    sizes.join() !== [nf, ...a.hidden, 1].join() ||
+    trace.parameter_count !== sizes.slice(1).reduce((n, out, l) => n + sizes[l] * out + out, 0) ||
+    !/^[a-f0-9]{64}$/.test(trace.scaler_hash) ||
+    !vector(trace.scaler.mean, nf) ||
+    !vector(trace.scaler.scale, nf) ||
+    trace.scaler.scale.some((x) => x <= 0)
+  )
+    fail();
+  const known = NEURAL_FAMILIES as readonly string[];
+  if (
+    !Array.isArray(trace.families) ||
+    !trace.families.length ||
+    trace.families.some((f) => !known.includes(f)) ||
+    trace.families.join() !== known.filter((f) => trace.families.includes(f)).join() ||
+    trace.family.length !== nf ||
+    trace.family.some((f) => !trace.families.includes(f)) ||
+    !vector(trace.attribution, nf) ||
+    trace.attribution.some((x) => x < 0) ||
+    Math.abs(trace.attribution.reduce((s, x) => s + x, 0) - 1) > 1e-3 ||
+    // Exported JSON sorts keys, so compare the family set, not the order.
+    Object.keys(trace.family_attribution).sort().join() !== [...trace.families].sort().join() ||
+    Object.values(trace.family_attribution).some((x) => !finite(x) || x < 0)
+  )
+    fail();
+  const geo = trace.families.includes("Geo events");
+  if (
+    geo !== (trace.geo_provenance !== null) ||
+    (geo &&
+      (trace.geo_provenance!.quality !== "RETROSPECTIVE_CATALOG" ||
+        !/^[a-f0-9]{64}$/.test(trace.geo_provenance!.sha256) ||
+        (trace.provenance as Provenance & { geo_catalog_hash?: string }).geo_catalog_hash !==
+          trace.geo_provenance!.sha256))
+  )
+    fail();
+  trace.epochs.forEach((e, i) => {
+    if (
+      e.epoch !== i + 1 ||
+      ![e.train_loss, e.val_loss].every(finite) ||
+      (e.val_auc !== null && !finite(e.val_auc)) ||
+      !vector(e.weight_norm, sizes.length - 1)
+    )
+      fail();
+  });
+  if (
+    trace.epochs.length !== a.epochs ||
+    trace.snapshot_epochs.join() !== snapshotEpochList(a.epochs).join() ||
+    trace.snapshots.map((s) => s.epoch).join() !== trace.snapshot_epochs.join() ||
+    !trace.epochs.some((e) => e.epoch === trace.best_val_loss_epoch)
+  )
+    fail();
+  for (const s of trace.snapshots)
+    if (
+      s.weights.length !== sizes.length - 1 ||
+      s.weights.some(
+        (w, l) => w.length !== sizes[l] || !w.every((row) => vector(row, sizes[l + 1])),
+      ) ||
+      s.biases.some((b, l) => !vector(b, sizes[l + 1])) ||
+      s.mean_activation.length !== a.hidden.length ||
+      s.mean_activation.some((m, l) => !vector(m, a.hidden[l])) ||
+      s.active_fraction.some((m, l) => !vector(m, a.hidden[l]) || m.some((x) => x < 0 || x > 1))
+    )
+      fail();
+  const v = trace.validation,
+    h = trace.holdout,
+    holdout = new Set(h.indices);
+  const status = !v.auc_ci95
+    ? "unavailable"
+    : v.auc_ci95.low > 0.5
+      ? "above_chance"
+      : v.auc_ci95.high < 0.5
+        ? "below_chance"
+        : "spans_chance";
+  if (
+    v.status !== status ||
+    (v.auc === null) !== (v.auc_ci95 === null) ||
+    v.rows !== v.indices.length ||
+    trace.fit.fit_rows !== trace.fit.fit_indices.length ||
+    [...trace.fit.fit_indices, ...v.indices].some((i) => holdout.has(i)) ||
+    ![
+      trace.fit.fit_start,
+      trace.fit.fit_end,
+      trace.fit.training_target_information_end,
+      v.start,
+      v.end,
+      v.feature_start,
+      h.start,
+      h.end,
+      h.feature_start,
+      h.training_target_information_end,
+      trace.probe.date,
+    ].every(atCutoff) ||
+    Date.parse(trace.fit.training_target_information_end) >= Date.parse(v.feature_start) ||
+    Date.parse(h.training_target_information_end) >= Date.parse(h.feature_start) ||
+    trace.probe.included_in_labeled_rows ||
+    !vector(trace.probe.input, nf) ||
+    !finite(trace.probe.output) ||
+    h.rows !== h.indices.length
+  )
+    fail();
+  if (h.sealed) {
+    if (h.auc !== null || h.auc_ci95 !== null || h.verdict !== null || h.verdict_reason !== null)
+      fail();
+  } else {
+    const [verdict, reason] = selectionVerdict(h.auc_ci95, [v.auc]);
+    if (
+      (h.auc === null) !== (h.auc_ci95 === null) ||
+      h.verdict !== verdict ||
+      h.verdict_reason !== reason
+    )
+      fail();
+  }
 }

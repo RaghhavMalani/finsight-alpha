@@ -1,6 +1,8 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import HMMScene from "./HMMScene";
 import { hmmFit, type HMMView } from "./hmm-model";
+import NeuralScene from "./NeuralScene";
+import { neuralFit, type NeuralView } from "./neural-model";
 import { SceneFrame, type CameraFit } from "./SceneFrame";
 import { LabelLayer } from "./SceneLabels";
 import SignalScene from "./SignalScene";
@@ -23,15 +25,20 @@ function ObservatoryStage({
   kind,
   hmm,
   signal,
+  neural,
+  editorWidth = 0,
   index,
   reduced,
   labelsRoot,
   tip,
   onFps,
 }: {
-  kind: "hmm" | "signal";
+  kind: "hmm" | "signal" | "neural";
   hmm: HMMView | null;
   signal: SignalView | null;
+  neural?: NeuralView | null;
+  /** Width of the network editor docked over the stage's left edge. */
+  editorWidth?: number;
   index: number;
   reduced: boolean;
   labelsRoot: HTMLElement | null;
@@ -40,15 +47,28 @@ function ObservatoryStage({
   onFps?: (fps: number) => void;
 }) {
   const labels = useMemo(
-    () => (labelsRoot ? new LabelLayer(labelsRoot, ".obs-title, .obs-legend") : null),
+    () =>
+      labelsRoot
+        ? new LabelLayer(labelsRoot, ".obs-title, .obs-legend, .nn-editor, .nn-reopen")
+        : null,
     [labelsRoot],
   );
   useEffect(() => () => labels?.dispose(), [labels]);
   // While the next trace loads, hold the last framing instead of jumping to a default.
   const [held, setHeld] = useState(IDLE_FIT);
+  const neuralKey = neural?.structureKey;
   const traceFit = useMemo(
-    () => (hmm ? hmmFit(hmm) : signal ? signalFit(signal) : null),
-    [hmm, signal],
+    () =>
+      hmm
+        ? hmmFit(hmm)
+        : signal
+          ? signalFit(signal)
+          : neural
+            ? neuralFit(neural, editorWidth)
+            : null,
+    // A neural run refits the camera only when its shape changes, not on every epoch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hmm, signal, neuralKey, editorWidth],
   );
   const fit = traceFit ?? held;
   useEffect(() => {
@@ -58,7 +78,7 @@ function ObservatoryStage({
     <SceneFrame
       fit={fit}
       autoRotate={kind === "hmm" && !reduced}
-      bloom={kind === "hmm" ? 0.85 : 0.55}
+      bloom={kind === "hmm" ? 0.85 : kind === "neural" ? 0.5 : 0.55}
       onFps={onFps}
     >
       {labels && hmm && (
@@ -66,6 +86,9 @@ function ObservatoryStage({
       )}
       {labels && signal && (
         <SignalScene view={signal} index={index} reduced={reduced} labels={labels} tip={tip} />
+      )}
+      {labels && neural && (
+        <NeuralScene view={neural} epoch={index} reduced={reduced} labels={labels} tip={tip} />
       )}
     </SceneFrame>
   );

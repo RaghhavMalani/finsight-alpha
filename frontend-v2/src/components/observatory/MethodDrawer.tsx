@@ -19,7 +19,7 @@ export function MethodDrawer({
 }: {
   open: boolean;
   onClose: () => void;
-  kind: "hmm" | "signal";
+  kind: "hmm" | "signal" | "neural";
   trace: ModelTrace | null;
   hash: string | null;
   url: string | null;
@@ -35,28 +35,63 @@ export function MethodDrawer({
   }, [open]);
   const p = trace?.provenance;
   const rows: [string, string][] = !trace
-    ? []
-    : trace.kind === "hmm"
+    ? kind === "neural"
       ? [
-          ["What it shows", trace.semantics],
           [
-            "Axes",
-            "State means on rolling_return_20, realized_vol_20 and drawdown_from_252_high, scaled to standard deviations by the fit's own scaler.",
+            "Lab",
+            "Lab worlds are generated in your browser from a seed. Each plants one known rule (or none) between synthetic features and the next day's direction, so you can see whether a network finds it, misses it, or invents an edge in noise. Lab numbers are not market evidence.",
           ],
           [
-            "Clouds",
-            "Samples from each state's diagonal Gaussian on those three features. Density follows the stationary share of time in each state.",
+            "Network",
+            "Dense layers trained with Adam on binary cross-entropy, inputs standardized on fit rows only, inverted dropout and L2 on weights. The model shown is the final epoch; no epoch is chosen on validation.",
+          ],
+          [
+            "Split",
+            "The production shape: an outer chronological 20% holdout, a 20% validation slice of the development rows, and a one-row purge before each boundary. The holdout stays sealed until you open it, and every opening is counted.",
           ],
         ]
-      : [
-          ["Importance", trace.importance_semantics],
+      : []
+    : trace.kind === "neural"
+      ? [
+          ["What it shows", trace.semantics],
           ["Split", trace.split_contract],
           ["Horizon / embargo", `${trace.horizon} day / ${trace.embargo} rows`],
           [
-            "Model shown",
-            `Gradient boosting is the only family with a stage-by-stage trace. The holdout model is ${trace.selected_model}.`,
+            "Holdout",
+            trace.holdout.sealed
+              ? (trace.holdout.note ?? "Sealed.")
+              : "Evaluated once for the preregistered architecture after refitting on all development rows.",
           ],
-        ];
+          ...(trace.geo_provenance
+            ? ([
+                [
+                  "Geo events",
+                  `${trace.geo_provenance.disclosure} ${trace.geo_provenance.events.toLocaleString()} USGS events ≥ M${trace.geo_provenance.min_magnitude}, retrieved ${trace.geo_provenance.retrieved_at}.`,
+                ],
+              ] as [string, string][])
+            : []),
+        ]
+      : trace.kind === "hmm"
+        ? [
+            ["What it shows", trace.semantics],
+            [
+              "Axes",
+              "State means on rolling_return_20, realized_vol_20 and drawdown_from_252_high, scaled to standard deviations by the fit's own scaler.",
+            ],
+            [
+              "Clouds",
+              "Samples from each state's diagonal Gaussian on those three features. Density follows the stationary share of time in each state.",
+            ],
+          ]
+        : [
+            ["Importance", trace.importance_semantics],
+            ["Split", trace.split_contract],
+            ["Horizon / embargo", `${trace.horizon} day / ${trace.embargo} rows`],
+            [
+              "Model shown",
+              `Gradient boosting is the only family with a stage-by-stage trace. The holdout model is ${trace.selected_model}.`,
+            ],
+          ];
   const validCutoff = !!draftCutoff && Number.isFinite(Date.parse(draftCutoff + "Z"));
   return (
     <aside
@@ -68,7 +103,13 @@ export function MethodDrawer({
       <button ref={close} type="button" className="obs-ghost" onClick={onClose}>
         Close
       </button>
-      <h2>{kind === "hmm" ? "Regime space · method" : "Feature flow · method"}</h2>
+      <h2>
+        {kind === "hmm"
+          ? "Regime space · method"
+          : kind === "neural"
+            ? "Neural net · method"
+            : "Feature flow · method"}
+      </h2>
       {rows.map(([k, v]) => (
         <div key={k}>
           <div className="obs-k">{k}</div>
@@ -154,10 +195,16 @@ export function MethodDrawer({
             <dd>{p.observations.toLocaleString()}</dd>
             <dt>price basis</dt>
             <dd>{p.price_basis}</dd>
-            {trace.kind === "hmm" && (
+            {(trace.kind === "hmm" || trace.kind === "neural") && (
               <>
                 <dt>scaler sha256</dt>
                 <dd>{trace.scaler_hash}</dd>
+              </>
+            )}
+            {trace.kind === "neural" && trace.geo_provenance && (
+              <>
+                <dt>USGS catalog sha256</dt>
+                <dd>{trace.geo_provenance.sha256}</dd>
               </>
             )}
           </dl>
