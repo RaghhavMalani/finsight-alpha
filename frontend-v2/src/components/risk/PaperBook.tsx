@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookDrawer } from "@/components/risk/BookDrawer";
+import { COMMODITIES } from "@/lib/book";
 import { subscribeDemoBook, type DemoPosition } from "@/lib/demoBook";
 import { useLiveMarket } from "@/lib/live-market";
 import { TICKERS, unavailableInstrument, type Instrument } from "@/lib/market";
 
 /**
  * The paper book editor as a modal over the risk desk. Quotes come from the authenticated
- * tape; a symbol without a quote cannot be booked.
+ * tape; a symbol without a quote, commodities included, cannot be booked.
  */
 export function PaperBook({ onClose }: { onClose: () => void }) {
   const [positions, setPositions] = useState<DemoPosition[]>([]);
@@ -15,7 +16,11 @@ export function PaperBook({ onClose }: { onClose: () => void }) {
     Object.fromEntries(TICKERS.map((s) => [s, unavailableInstrument(s)])),
   );
   const symbols = useMemo(
-    () => Array.from(new Set([...TICKERS, ...positions.map((p) => p.symbol)])).slice(0, 30),
+    // Commodity contracts are requested too: a quick-add books only if the tape quotes it.
+    () =>
+      Array.from(
+        new Set([...positions.map((p) => p.symbol), ...Object.keys(COMMODITIES), ...TICKERS]),
+      ).slice(0, 30),
     [positions],
   );
   useLiveMarket(setInstruments, symbols);
