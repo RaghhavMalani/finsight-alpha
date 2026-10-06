@@ -27,11 +27,19 @@ type Slot = HTMLDivElement & {
   _w?: number;
   _h?: number;
   _nudge?: number;
+  _vis?: string;
+  _tf?: string;
 };
 type Rect = { x: number; y: number; w: number; h: number };
 
 const NUDGES = [0, -1, 1, -2, 2];
 const tmp = new Vector3();
+/** Style writes only when the value changes; untouched labels cost the compositor nothing. */
+function show(d: Slot, visible: boolean, transform?: string) {
+  const vis = visible ? "visible" : "hidden";
+  if (d._vis !== vis) d.style.visibility = d._vis = vis;
+  if (transform && d._tf !== transform) d.style.transform = d._tf = transform;
+}
 const hits = (r: Rect, q: Rect) =>
   r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y;
 
@@ -42,12 +50,16 @@ const hits = (r: Rect, q: Rect) =>
  */
 export class LabelLayer {
   private pool: Slot[] = [];
+  private blocked: Rect[] = [];
+  private measured = "";
+  private frame = 0;
   constructor(
     private root: HTMLElement,
     private obstacles = "",
   ) {}
 
   set(list: LabelSpec[]) {
+    this.measured = "";
     while (this.pool.length < list.length) {
       const d = document.createElement("div") as Slot;
       d.className = "lb";
@@ -77,16 +89,29 @@ export class LabelLayer {
     });
   }
 
-  place(group: Object3D, camera: Camera, width: number, height: number) {
-    const placed: Rect[] = [];
-    if (this.obstacles && this.root.parentElement) {
-      const origin = this.root.getBoundingClientRect();
-      for (const el of this.root.parentElement.querySelectorAll<HTMLElement>(this.obstacles)) {
-        const r = el.getBoundingClientRect();
-        if (r.width && r.height)
-          placed.push({ x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height });
-      }
+  /** Obstacle rects, re-measured when content or size changes rather than every frame. */
+  private measureObstacles(width: number, height: number) {
+    const key = `${width}x${height}`;
+    if (this.measured === key && this.frame++ % 30) return;
+    this.measured = key;
+    this.blocked = [];
+    if (!this.obstacles || !this.root.parentElement) return;
+    const origin = this.root.getBoundingClientRect();
+    for (const el of this.root.parentElement.querySelectorAll<HTMLElement>(this.obstacles)) {
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height)
+        this.blocked.push({
+          x: r.left - origin.left,
+          y: r.top - origin.top,
+          w: r.width,
+          h: r.height,
+        });
     }
+  }
+
+  place(group: Object3D, camera: Camera, width: number, height: number) {
+    this.measureObstacles(width, height);
+    const placed: Rect[] = [...this.blocked];
     const items: { d: Slot; L: LabelSpec; x: number; y: number }[] = [];
     for (const d of this.pool) {
       const L = d._L;
@@ -95,7 +120,7 @@ export class LabelLayer {
       group.localToWorld(tmp);
       tmp.project(camera);
       if (tmp.z > 1) {
-        d.style.visibility = "hidden";
+        show(d, false);
         continue;
       }
       const sized = `${d._cls}|${d._html}`;
@@ -135,15 +160,18 @@ export class LabelLayer {
       let nudge = tries.find((n) => !placed.some((q) => hits(rect(n), q)));
       if (nudge === undefined) {
         if (pri < 3) {
-          d.style.visibility = "hidden";
+          show(d, false);
           continue;
         }
         nudge = 0;
       }
       d._nudge = nudge;
       placed.push(rect(nudge));
-      d.style.visibility = "visible";
-      d.style.transform = `translate(${(x + ox).toFixed(1)}px,${(y + oy + nudge * (h + 2)).toFixed(1)}px)`;
+      show(
+        d,
+        true,
+        `translate(${(x + ox).toFixed(1)}px,${(y + oy + nudge * (h + 2)).toFixed(1)}px)`,
+      );
     }
   }
 

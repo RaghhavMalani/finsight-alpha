@@ -6,7 +6,6 @@ import { HMMReadout, HMMStatus } from "./HMMReadout";
 import { hmmView, paintRegimeRibbon } from "./hmm-model";
 import { MethodDrawer, type SourceMode } from "./MethodDrawer";
 import { byOrder } from "./regime-palette";
-import type { Metrics } from "./SceneFrame";
 import { FAMILY_COLORS, paintAucRibbon, signalView } from "./signal-model";
 import { SignalReadout, SignalStatus } from "./SignalReadout";
 import { Timeline } from "./Timeline";
@@ -53,7 +52,6 @@ export default function ObservatoryPage() {
   const [methodOpen, setMethodOpen] = useState(false),
     [showFps, setShowFps] = useState(false),
     [fps, setFps] = useState<number | null>(null),
-    [, setMetrics] = useState<Metrics | null>(null),
     [labelsRoot, setLabelsRoot] = useState<HTMLDivElement | null>(null),
     [tip, setTip] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -215,8 +213,7 @@ export default function ObservatoryPage() {
               reduced={reduced}
               labelsRoot={labelsRoot}
               tip={tip}
-              onMetrics={setMetrics}
-              onFps={setFps}
+              onFps={showFps ? setFps : undefined}
             />
           </Suspense>
           <div className="obs-labels" ref={setLabelsRoot} />

@@ -28,7 +28,12 @@ export default function BloomLayer({ strength }: { strength: number }) {
   useEffect(() => {
     composer.setPixelRatio(dpr);
     composer.setSize(size.width, size.height);
-  }, [composer, dpr, size.width, size.height]);
+    // The blur chain is capped at 1440 device pixels wide. At a 1440px stage it matches the
+    // reference exactly; on larger or high-DPI canvases the glow keeps the same apparent size
+    // while costing a fraction (the full-size chain held integrated GPUs at 1440p under 60fps).
+    const scale = Math.min(1, 1440 / (size.width * dpr));
+    bloom.setSize(size.width * dpr * scale, size.height * dpr * scale);
+  }, [composer, bloom, dpr, size.width, size.height]);
   useEffect(() => {
     bloom.strength = strength;
   }, [bloom, strength]);

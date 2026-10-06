@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import HMMScene from "./HMMScene";
 import { hmmFit, type HMMView } from "./hmm-model";
-import { SceneFrame, type CameraFit, type Metrics } from "./SceneFrame";
+import { SceneFrame, type CameraFit } from "./SceneFrame";
 import { LabelLayer } from "./SceneLabels";
 import SignalScene from "./SignalScene";
 import { signalFit, type SignalView } from "./signal-model";
@@ -19,7 +19,7 @@ const IDLE_FIT: CameraFit = {
  * The WebGL stage. The canvas stays mounted while the ticker or source changes; the scene
  * inside it unmounts as soon as its trace is no longer the verified one being shown.
  */
-export default function ObservatoryStage({
+function ObservatoryStage({
   kind,
   hmm,
   signal,
@@ -27,7 +27,6 @@ export default function ObservatoryStage({
   reduced,
   labelsRoot,
   tip,
-  onMetrics,
   onFps,
 }: {
   kind: "hmm" | "signal";
@@ -37,8 +36,8 @@ export default function ObservatoryStage({
   reduced: boolean;
   labelsRoot: HTMLElement | null;
   tip: HTMLElement | null;
-  onMetrics: (m: Metrics) => void;
-  onFps: (fps: number) => void;
+  /** Only while the D-key readout is open, so frame timing never re-renders the page. */
+  onFps?: (fps: number) => void;
 }) {
   const labels = useMemo(
     () => (labelsRoot ? new LabelLayer(labelsRoot, ".obs-title, .obs-legend") : null),
@@ -60,7 +59,6 @@ export default function ObservatoryStage({
       fit={fit}
       autoRotate={kind === "hmm" && !reduced}
       bloom={kind === "hmm" ? 0.85 : 0.55}
-      onMetrics={onMetrics}
       onFps={onFps}
     >
       {labels && hmm && (
@@ -72,3 +70,5 @@ export default function ObservatoryStage({
     </SceneFrame>
   );
 }
+
+export default memo(ObservatoryStage);

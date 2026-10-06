@@ -88,8 +88,8 @@ function Monitor({
   onMetrics,
   onFps,
 }: {
-  onMetrics: (m: Metrics) => void;
-  onFps: (fps: number) => void;
+  onMetrics?: (m: Metrics) => void;
+  onFps?: (fps: number) => void;
 }) {
   const { gl, size, scene, camera } = useThree();
   const samples = useRef<number[]>([]),
@@ -154,7 +154,7 @@ function Monitor({
     second.current.frames++;
     second.current.time += delta;
     if (second.current.time >= 1) {
-      onFps(second.current.frames / second.current.time);
+      onFps?.(second.current.frames / second.current.time);
       second.current = { frames: 0, time: 0 };
     }
     if (elapsed.current < 5) return;
@@ -182,7 +182,7 @@ function Monitor({
     };
     window.__observatoryMetrics = metric;
     window.__observatorySamples?.push(metric);
-    onMetrics(metric);
+    onMetrics?.(metric);
     samples.current = [];
     elapsed.current = 0;
   });
@@ -284,8 +284,8 @@ export function SceneFrame({
   fit: CameraFit;
   autoRotate: boolean;
   bloom: number;
-  onMetrics: (m: Metrics) => void;
-  onFps: (fps: number) => void;
+  onMetrics?: (m: Metrics) => void;
+  onFps?: (fps: number) => void;
 }) {
   const [bloomFailed, setBloomFailed] = useState(false);
   return (
@@ -293,7 +293,8 @@ export function SceneFrame({
       <CanvasBoundary>
         <Canvas
           dpr={[1, 2]}
-          gl={{ antialias: true, powerPreference: "high-performance" }}
+          // Opaque like the reference: a transparent canvas costs a full-screen blend per frame.
+          gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
           camera={{ fov: 38, near: 0.1, far: 400, position: [0, 0, 30], manual: true }}
           onCreated={({ gl }) => {
             gl.toneMapping = ACESFilmicToneMapping;

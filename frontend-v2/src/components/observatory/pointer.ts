@@ -65,16 +65,23 @@ export function showTip(
 ) {
   if (!tip) return;
   if (html == null) {
-    tip.style.opacity = "0";
+    if (tip.dataset.shown === "1") {
+      tip.style.opacity = "0";
+      tip.dataset.shown = "0";
+    }
     return;
   }
   if (tip.dataset.html !== html) {
     tip.innerHTML = html;
     tip.dataset.html = html;
   }
-  tip.style.opacity = "1";
+  if (tip.dataset.shown !== "1") {
+    tip.style.opacity = "1";
+    tip.dataset.shown = "1";
+  }
   const panel = width > 900 ? PANEL : 0,
     tw = tip.offsetWidth;
   const left = x + 16 + tw > width - panel ? x - 16 - tw : x + 16;
-  tip.style.transform = `translate(${left.toFixed(1)}px,${(y - 10).toFixed(1)}px)`;
+  const transform = `translate(${left.toFixed(1)}px,${(y - 10).toFixed(1)}px)`;
+  if (tip.style.transform !== transform) tip.style.transform = transform;
 }
