@@ -141,7 +141,8 @@ export function verdictLead(trace: SignalTrace) {
 
 /** What fold-to-fold rank stability says, given the verdict. */
 export function stabilityNote(trace: SignalTrace) {
-  const rho = trace.rho.filter((r): r is number => r != null);
+  // Judge the same two-decimal values the sentence prints.
+  const rho = trace.rho.filter((r): r is number => r != null).map((r) => Math.round(r * 100) / 100);
   if (!rho.length) return null;
   const lo = Math.min(...rho),
     hi = Math.max(...rho),
