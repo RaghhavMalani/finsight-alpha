@@ -198,7 +198,8 @@ function strategyDeck(items: TapeItem[], book: Book) {
   ].sort((a, b) => b.score - a.score);
 }
 
-export function RiskLiveCommandCenter({ book }: { book: Book }) {
+/** `loaded` is false for the placeholder book used on the server and the first client render. */
+export function RiskLiveCommandCenter({ book, loaded }: { book: Book; loaded: boolean }) {
   const marketSymbols = useMemo(
     () =>
       Array.from(
@@ -213,6 +214,8 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
   const tape = useQuery({
     queryKey: ["risk-live-tape", symbolKey],
     queryFn: () => api<TapePayload>(`/tape?symbols=${encodeURIComponent(symbolKey)}`),
+    // Held symbols are unknown until the book loads; don't fetch a tape that is about to change.
+    enabled: loaded,
     refetchInterval: 30_000,
     staleTime: 15_000,
     retry: 1,
@@ -281,14 +284,16 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
             <div className="mt-6 grid grid-cols-2 gap-px bg-divider sm:grid-cols-4">
               <HeroMetric
                 label="BOOK STATE"
-                value={empty ? "EMPTY" : `${book.positions.length} POS`}
-                detail={empty ? "$0 EXPOSURE" : `$${compact(book.gross)} GROSS`}
+                value={!loaded ? "—" : empty ? "EMPTY" : `${book.positions.length} POS`}
+                detail={
+                  !loaded ? "LOADING" : empty ? "$0 EXPOSURE" : `$${compact(book.gross)} GROSS`
+                }
                 tone={empty ? "info" : "primary"}
               />
               <HeroMetric
                 label="DATA NODES"
                 value={`${items.length}/${marketSymbols.length}`}
-                detail={tape.isFetching ? "REFRESHING" : "CONNECTED"}
+                detail={tape.isFetching || !loaded ? "REFRESHING" : "CONNECTED"}
                 tone="up"
               />
               <HeroMetric
@@ -310,7 +315,7 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
         </div>
       </section>
 
-      {empty && (
+      {loaded && empty && (
         <section className="risk-rise relative overflow-hidden border border-info/45 bg-info/[.045] p-5">
           <div className="absolute inset-y-0 left-0 w-1 bg-info risk-edge-pulse" />
           <div className="grid items-center gap-5 lg:grid-cols-[1fr_auto]">

@@ -6,7 +6,6 @@ import { RiskLiveCommandCenter } from "@/components/risk/RiskLiveCommandCenter";
 import { fmt } from "@/lib/market";
 import { subscribeDemoBookStatus, type DemoBookSync } from "@/lib/demoBook";
 import {
-  getBook,
   subscribe,
   applyHedge,
   removeHedge,
@@ -211,19 +210,34 @@ function riskSnapshot(book: Book) {
 
 type RiskSnapshot = ReturnType<typeof riskSnapshot>;
 
+// The server has no browser storage (the paper book's offline cache) and renders in its own
+// timezone, so it and the first client render both use this placeholder; the real book is
+// filled in by the subscription after mount.
+const PENDING_BOOK: Book = {
+  positions: [],
+  nav: 0,
+  gross: 0,
+  net: 0,
+  long: 0,
+  short: 0,
+  pnlDay: 0,
+  updatedAt: 0,
+};
+
 function RiskDeskPro() {
   const [tab, setTab] = useState<ProTab>("COMMAND");
-  const [book, setBook] = useState<Book>(getBook);
+  const [book, setBook] = useState<Book>(PENDING_BOOK);
   const [sync, setSync] = useState<DemoBookSync>({ state: "loading" });
   useEffect(() => subscribe(setBook), []);
   useEffect(() => subscribeDemoBookStatus(setSync), []);
+  const loaded = book !== PENDING_BOOK;
   const snapshot = useMemo(() => riskSnapshot(book), [book]);
   const activeCount = activeHedges().length;
   const hasPositions = book.positions.length > 0;
   const tabs: Array<{ key: ProTab; label: string; meta?: string }> = [
     { key: "COMMAND", label: "Live OS", meta: "LIVE" },
-    { key: "OVERVIEW", label: "Overview", meta: snapshot.status },
-    { key: "EXPOSURES", label: "Exposures", meta: String(book.positions.length) },
+    { key: "OVERVIEW", label: "Overview", meta: loaded ? snapshot.status : "—" },
+    { key: "EXPOSURES", label: "Exposures", meta: loaded ? String(book.positions.length) : "—" },
     { key: "STRESS", label: "Stress", meta: String(snapshot.scenarios.length) },
     { key: "INTELLIGENCE", label: "Intelligence", meta: "LIVE" },
     { key: "HEDGES", label: "Hedges", meta: String(activeCount) },
@@ -247,26 +261,30 @@ function RiskDeskPro() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <HeaderStat label="NAV" value={money(book.nav)} />
+              <HeaderStat label="NAV" value={loaded ? money(book.nav) : "—"} />
               <HeaderStat
                 label="OPEN P&L"
-                value={signedMoney(book.pnlDay)}
-                tone={book.pnlDay >= 0 ? "text-up" : "text-down"}
+                value={loaded ? signedMoney(book.pnlDay) : "—"}
+                tone={!loaded ? undefined : book.pnlDay >= 0 ? "text-up" : "text-down"}
               />
               <div
                 className={`mono-caps border px-2.5 py-1 text-[9px] ${
-                  hasPositions
-                    ? `${toneBorder(snapshot.status)} ${toneText(snapshot.status)}`
-                    : "border-info/45 bg-info/5 text-info"
+                  !loaded
+                    ? "border-border text-faint"
+                    : hasPositions
+                      ? `${toneBorder(snapshot.status)} ${toneText(snapshot.status)}`
+                      : "border-info/45 bg-info/5 text-info"
                 }`}
               >
-                {!hasPositions
-                  ? "BOOK EMPTY"
-                  : snapshot.status === "CLEAR"
-                    ? "WITHIN LIMITS"
-                    : snapshot.status === "WATCH"
-                      ? "LIMIT WATCH"
-                      : "LIMIT BREACH"}
+                {!loaded
+                  ? "LOADING BOOK"
+                  : !hasPositions
+                    ? "BOOK EMPTY"
+                    : snapshot.status === "CLEAR"
+                      ? "WITHIN LIMITS"
+                      : snapshot.status === "WATCH"
+                        ? "LIMIT WATCH"
+                        : "LIMIT BREACH"}
               </div>
               <Link
                 to="/terminal"
@@ -308,18 +326,21 @@ function RiskDeskPro() {
                     ? "OFFLINE CACHE"
                     : "HYDRATING BOOK"}
             </span>{" "}
-            · {book.positions.length} authenticated positions · {money(book.gross)} real gross
-            exposure · signed correlation proxy · not broker margin
+            · {loaded ? book.positions.length : "—"} authenticated positions ·{" "}
+            {loaded ? money(book.gross) : "—"} real gross exposure · signed correlation proxy · not
+            broker margin
           </span>
           <span>
             AS OF{" "}
-            {new Date(book.updatedAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {loaded
+              ? new Date(book.updatedAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—"}
           </span>
         </div>
-        {tab === "COMMAND" && <RiskLiveCommandCenter book={book} />}
+        {tab === "COMMAND" && <RiskLiveCommandCenter book={book} loaded={loaded} />}
         {!hasPositions && tab !== "COMMAND" && tab !== "INTELLIGENCE" && (
           <EmptyPortfolioGate section={tab} onCommand={() => setTab("COMMAND")} />
         )}
