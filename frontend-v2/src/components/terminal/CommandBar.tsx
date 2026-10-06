@@ -45,7 +45,9 @@ export function CommandBar({
     const parsed = parseCommand(raw);
     if (!parsed) {
       const nearest = nearestCommand(raw);
-      setError(`No function '${raw.toUpperCase()}'. Closest match: ${nearest.code} — ${nearest.label}. Enter to run it.`);
+      setError(
+        `No function '${raw.toUpperCase()}'. Closest match: ${nearest.code} — ${nearest.label}. Enter to run it.`,
+      );
       wrapRef.current?.classList.remove("animate-shake");
       void wrapRef.current?.offsetWidth;
       wrapRef.current?.classList.add("animate-shake");
@@ -142,4 +144,3 @@ export function CommandBar({
     </div>
   );
 }
-

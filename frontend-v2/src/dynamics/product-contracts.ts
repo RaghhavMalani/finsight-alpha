@@ -13,6 +13,8 @@ export type ProductAsset = {
   available: boolean;
   reason: string | null;
   cutoffs: string[];
+  evidence_mode?: string;
+  coverage?: string;
 };
 export type ProductCatalog = {
   schema_version: string;
@@ -59,6 +61,23 @@ export type ProductSnapshot = {
   timeline: Transition[];
   cache_identity: { input_hash: string; as_of: string; asset: string; analytics_version: string };
   note: string;
+  market_evidence?: {
+    mode: string;
+    coverage: string;
+    historical_receive_timing: string;
+    disclosure: string;
+  };
+  factor_library?: {
+    family: string;
+    frequency: string;
+    observations: number;
+    available_through: string;
+    quality: string[];
+    sources: string[];
+    content_hashes: string[];
+    factors: string[];
+    note: string;
+  }[];
 };
 export type ProductComparison = {
   schema_version: string;
@@ -281,11 +300,53 @@ export function adaptProductSnapshot(value: unknown): ProductSnapshot {
           !(
             (r.scope === "SYNTHETIC" && q === "SYNTHETIC") ||
             (r.scope === "REAL_PIT" && q === "PUBLICATION_TIMESTAMP") ||
+            (r.scope === "REAL_PIT" && p.stream === "factors" && q === "CAPTURE_ONLY") ||
+            (r.scope === "REAL_PIT" &&
+              ["daily", "intraday"].includes(p.stream as string) &&
+              ["CONSERVATIVE_MARKET_TIME", "RECEIVE_TIMESTAMP_CAPTURED"].includes(q)) ||
             (r.scope === "REAL_PIT" && p.stream === "macro" && q === "CONSERVATIVE_VINTAGE_DAY")
           ),
       )
     )
       fail("publication quality");
+    if (
+      quality.some((q) => ["CONSERVATIVE_MARKET_TIME", "RECEIVE_TIMESTAMP_CAPTURED"].includes(q))
+    ) {
+      const disclosure = object(r.market_evidence);
+      if (
+        sources.some((s) => s !== "ALPACA_IEX") ||
+        disclosure.coverage !== "IEX ONLY" ||
+        typeof disclosure.disclosure !== "string" ||
+        !disclosure.disclosure.includes("Not consolidated US market") ||
+        (quality.includes("CONSERVATIVE_MARKET_TIME") &&
+          (disclosure.historical_receive_timing !== "UNAVAILABLE" ||
+            !["CONSERVATIVE_MARKET_TIME", "MIXED"].includes(disclosure.mode as string))) ||
+        (quality.includes("RECEIVE_TIMESTAMP_CAPTURED") &&
+          !["RECEIVE_TIMESTAMP_CAPTURED", "MIXED"].includes(disclosure.mode as string))
+      )
+        fail("free IEX evidence disclosure");
+    }
+  }
+  if (r.factor_library !== undefined) {
+    if (!Array.isArray(r.factor_library)) fail("factor source library");
+    for (const release of r.factor_library as unknown[]) {
+      const f = object(release);
+      if (
+        !["FF3", "FF5", "MOM"].includes(f.family as string) ||
+        !["daily", "monthly"].includes(f.frequency as string) ||
+        timestamp(f.available_through) > cutoff ||
+        number(f.observations) < 1 ||
+        typeof f.note !== "string"
+      )
+        fail("French vintage lineage");
+      strings(f.content_hashes).forEach(hash);
+      strings(f.sources);
+      strings(f.factors);
+      if (
+        strings(f.quality).some((q) => !["CAPTURE_ONLY", "CONSERVATIVE_RELEASE_MONTH"].includes(q))
+      )
+        fail("French release quality");
+    }
   }
   if (!Array.isArray(r.timeline) || r.timeline.length !== (analysis?.timeline.length ?? 0))
     fail("timeline length");

@@ -9,8 +9,20 @@ type Row = {
   atm: boolean;
   itmC: boolean;
   itmP: boolean;
-  cbid: number; cask: number; civ: number; cdelta: number; cvol: number; coi: number; cunusual: number;
-  pbid: number; pask: number; piv: number; pdelta: number; pvol: number; poi: number; punusual: number;
+  cbid: number;
+  cask: number;
+  civ: number;
+  cdelta: number;
+  cvol: number;
+  coi: number;
+  cunusual: number;
+  pbid: number;
+  pask: number;
+  piv: number;
+  pdelta: number;
+  pvol: number;
+  poi: number;
+  punusual: number;
 };
 
 type MarketLeg = {
@@ -37,23 +49,19 @@ type MarketChainPayload = {
 };
 
 function quotedBid(leg: MarketLeg): number {
-  return leg.bid && leg.bid > 0 ? leg.bid : leg.last ?? 0;
+  return leg.bid && leg.bid > 0 ? leg.bid : (leg.last ?? 0);
 }
 
 function quotedAsk(leg: MarketLeg): number {
-  return leg.ask && leg.ask > 0 ? leg.ask : leg.last ?? quotedBid(leg);
+  return leg.ask && leg.ask > 0 ? leg.ask : (leg.last ?? quotedBid(leg));
 }
 
-function marketRows(
-  payload: MarketChainPayload | undefined,
-  range: "±5" | "±10" | "±20",
-): Row[] {
+function marketRows(payload: MarketChainPayload | undefined, range: "±5" | "±10" | "±20"): Row[] {
   if (!payload?.rows.length) return [];
   const half = range === "±5" ? 5 : range === "±10" ? 10 : 20;
   const center = payload.rows.reduce(
     (best, row, index) =>
-      Math.abs(row.strike - payload.spot) <
-      Math.abs(payload.rows[best].strike - payload.spot)
+      Math.abs(row.strike - payload.spot) < Math.abs(payload.rows[best].strike - payload.spot)
         ? index
         : best,
     0,
@@ -61,7 +69,9 @@ function marketRows(
   const start = Math.max(0, Math.min(center - half, payload.rows.length - (half * 2 + 1)));
   return payload.rows.slice(start, start + half * 2 + 1).map(({ strike: k, call, put }) => ({
     k,
-    atm: Math.abs(k - payload.spot) === Math.min(...payload.rows.map((row) => Math.abs(row.strike - payload.spot))),
+    atm:
+      Math.abs(k - payload.spot) ===
+      Math.min(...payload.rows.map((row) => Math.abs(row.strike - payload.spot))),
     itmC: call.in_the_money,
     itmP: put.in_the_money,
     cbid: quotedBid(call),
@@ -81,7 +91,12 @@ function marketRows(
   }));
 }
 
-function buildRows(spot: number, symbol: string, expiry: "7D" | "30D" | "60D" | "90D", range: "±5" | "±10" | "±20"): Row[] {
+function buildRows(
+  spot: number,
+  symbol: string,
+  expiry: "7D" | "30D" | "60D" | "90D",
+  range: "±5" | "±10" | "±20",
+): Row[] {
   const annualVol = annualVolOf(symbol);
   const atmIvPct = annualVol * 100;
   const ivMul = expiry === "7D" ? 0.85 : expiry === "30D" ? 1 : expiry === "60D" ? 1.08 : 1.15;
@@ -99,12 +114,23 @@ function buildRows(spot: number, symbol: string, expiry: "7D" | "30D" | "60D" | 
     const civSkew = -moneyness * 40;
     const civ = Math.max(6, (atmIvPct + civSkew + moneyness * moneyness * 200) * ivMul);
     const piv = Math.max(6, (atmIvPct - civSkew * 0.6 + moneyness * moneyness * 200) * ivMul);
-    const cbid = Math.max(0.05, Math.max(0, spot - k) + spot * 0.01 * (1 - Math.abs(moneyness) * 3));
+    const cbid = Math.max(
+      0.05,
+      Math.max(0, spot - k) + spot * 0.01 * (1 - Math.abs(moneyness) * 3),
+    );
     const cask = cbid + Math.max(0.02, spot * 0.0006);
-    const pbid = Math.max(0.05, Math.max(0, k - spot) + spot * 0.01 * (1 - Math.abs(moneyness) * 3));
+    const pbid = Math.max(
+      0.05,
+      Math.max(0, k - spot) + spot * 0.01 * (1 - Math.abs(moneyness) * 3),
+    );
     const pask = pbid + Math.max(0.02, spot * 0.0006);
-    const cdelta = k < spot ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4) : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4);
-    const pdelta = -(k > spot ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4) : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4));
+    const cdelta =
+      k < spot
+        ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4)
+        : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4);
+    const pdelta = -(k > spot
+      ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4)
+      : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4));
     // Volume/OI base: peak ATM, decays with distance; big-round strikes get walls
     const distDecay = Math.exp(-moneyness * moneyness * 25);
     const roundBonus = Math.abs(k - Math.round(k / (step * 2)) * (step * 2)) < 0.001 ? 1.6 : 1;
@@ -113,18 +139,36 @@ function buildRows(spot: number, symbol: string, expiry: "7D" | "30D" | "60D" | 
     const pbaseVol = 4500 * distDecay * roundBonus * (0.6 + rand(idx * 13));
     const pbaseOI = 11000 * distDecay * roundBonus * (0.8 + rand(idx * 17));
     // Unusual: rare boost
-    const cunusual = rand(idx * 19) > 0.85 && Math.abs(moneyness) < 0.12 ? 3 + rand(idx * 23) * 2 : 1;
-    const punusual = rand(idx * 29) > 0.85 && Math.abs(moneyness) < 0.12 ? 3 + rand(idx * 31) * 2 : 1;
+    const cunusual =
+      rand(idx * 19) > 0.85 && Math.abs(moneyness) < 0.12 ? 3 + rand(idx * 23) * 2 : 1;
+    const punusual =
+      rand(idx * 29) > 0.85 && Math.abs(moneyness) < 0.12 ? 3 + rand(idx * 31) * 2 : 1;
     return {
-      k, atm: Math.abs(k - spot) < spot * 0.005, itmC: k < spot, itmP: k > spot,
-      cbid, cask, civ, cdelta, cvol: cbaseVol * cunusual, coi: cbaseOI, cunusual,
-      pbid, pask, piv, pdelta, pvol: pbaseVol * punusual, poi: pbaseOI, punusual,
+      k,
+      atm: Math.abs(k - spot) < spot * 0.005,
+      itmC: k < spot,
+      itmP: k > spot,
+      cbid,
+      cask,
+      civ,
+      cdelta,
+      cvol: cbaseVol * cunusual,
+      coi: cbaseOI,
+      cunusual,
+      pbid,
+      pask,
+      piv,
+      pdelta,
+      pvol: pbaseVol * punusual,
+      poi: pbaseOI,
+      punusual,
     };
   });
 }
 
 function findWalls(rows: Row[]): { callWall: Row | null; putWall: Row | null } {
-  let callWall: Row | null = null, putWall: Row | null = null;
+  let callWall: Row | null = null,
+    putWall: Row | null = null;
   for (const r of rows) {
     if (!callWall || r.coi > callWall.coi) callWall = r;
     if (!putWall || r.poi > putWall.poi) putWall = r;
@@ -134,14 +178,18 @@ function findWalls(rows: Row[]): { callWall: Row | null; putWall: Row | null } {
 
 function computeMaxPain(rows: Row[]): number {
   if (!rows.length) return 0;
-  let bestK = rows[0].k, bestPain = Infinity;
+  let bestK = rows[0].k,
+    bestPain = Infinity;
   for (const t of rows) {
     let pain = 0;
     for (const r of rows) {
       if (r.k < t.k) pain += (t.k - r.k) * r.coi;
       else pain += (r.k - t.k) * r.poi;
     }
-    if (pain < bestPain) { bestPain = pain; bestK = t.k; }
+    if (pain < bestPain) {
+      bestPain = pain;
+      bestK = t.k;
+    }
   }
   return bestK;
 }
@@ -178,16 +226,25 @@ export function OptionsChain({
   const rows = useMemo(() => marketRows(chain.data, range), [chain.data, range]);
   const { callWall, putWall } = useMemo(() => findWalls(rows), [rows]);
   const maxPain = useMemo(() => computeMaxPain(rows), [rows]);
-  const maxVol = useMemo(() => Math.max(1, ...rows.map((row) => Math.max(row.cvol, row.pvol))), [rows]);
-  const maxOI = useMemo(() => Math.max(1, ...rows.map((row) => Math.max(row.coi, row.poi))), [rows]);
+  const maxVol = useMemo(
+    () => Math.max(1, ...rows.map((row) => Math.max(row.cvol, row.pvol))),
+    [rows],
+  );
+  const maxOI = useMemo(
+    () => Math.max(1, ...rows.map((row) => Math.max(row.coi, row.poi))),
+    [rows],
+  );
   const atmRow = rows.reduce<Row | null>(
-    (best, row) => !best || Math.abs(row.k - marketSpot) < Math.abs(best.k - marketSpot) ? row : best,
+    (best, row) =>
+      !best || Math.abs(row.k - marketSpot) < Math.abs(best.k - marketSpot) ? row : best,
     null,
   );
   const atmIvs = [atmRow?.civ, atmRow?.piv].filter(
     (value): value is number => typeof value === "number" && value > 0,
   );
-  const atmIvPct = atmIvs.length ? atmIvs.reduce((sum, value) => sum + value, 0) / atmIvs.length : 0;
+  const atmIvPct = atmIvs.length
+    ? atmIvs.reduce((sum, value) => sum + value, 0) / atmIvs.length
+    : 0;
   const days = chain.data?.days ?? targetDays;
   const emPct = (atmIvPct / 100) * Math.sqrt(days / 365) * 100;
   const emDollar = marketSpot * (emPct / 100);
@@ -199,8 +256,18 @@ export function OptionsChain({
   function addLeg(k: number, kind: "call" | "put", side: "buy" | "sell") {
     const row = rows.find((r) => r.k === k);
     if (!row) return;
-    const premium = kind === "call" ? (side === "buy" ? row.cask : row.cbid) : side === "buy" ? row.pask : row.pbid;
-    setLegs((prev) => [...prev, { kind, side, strike: k, premium, iv: kind === "call" ? row.civ : row.piv }]);
+    const premium =
+      kind === "call"
+        ? side === "buy"
+          ? row.cask
+          : row.cbid
+        : side === "buy"
+          ? row.pask
+          : row.pbid;
+    setLegs((prev) => [
+      ...prev,
+      { kind, side, strike: k, premium, iv: kind === "call" ? row.civ : row.piv },
+    ]);
   }
 
   function toggleEm() {
@@ -208,7 +275,11 @@ export function OptionsChain({
   }
 
   if (chain.isPending) {
-    return <div className="mono-caps grid h-full place-items-center text-[11px] text-faint">LOADING YAHOO MARKET CHAIN…</div>;
+    return (
+      <div className="mono-caps grid h-full place-items-center text-[11px] text-faint">
+        LOADING YAHOO MARKET CHAIN…
+      </div>
+    );
   }
   if (chain.isError) {
     const message = chain.error instanceof Error ? chain.error.message : "Provider request failed";
@@ -217,13 +288,19 @@ export function OptionsChain({
         <div>
           <div className="mono-caps text-[11px] text-down">REAL OPTION CHAIN UNAVAILABLE</div>
           <div className="mt-2 max-w-lg font-mono text-[11px] text-muted-foreground">{message}</div>
-          <div className="mono-caps mt-3 text-[9px] text-faint">NO SYNTHETIC FALLBACK IS BEING SHOWN</div>
+          <div className="mono-caps mt-3 text-[9px] text-faint">
+            NO SYNTHETIC FALLBACK IS BEING SHOWN
+          </div>
         </div>
       </div>
     );
   }
   if (!rows.length) {
-    return <div className="mono-caps grid h-full place-items-center text-[11px] text-faint">NO PAIRED CALL/PUT QUOTES IN RANGE</div>;
+    return (
+      <div className="mono-caps grid h-full place-items-center text-[11px] text-faint">
+        NO PAIRED CALL/PUT QUOTES IN RANGE
+      </div>
+    );
   }
 
   return (
@@ -232,15 +309,29 @@ export function OptionsChain({
       <div className="mono-caps flex flex-wrap items-center justify-between gap-2 border-b border-divider bg-panel px-3 py-1.5 text-[10px]">
         <div className="flex items-center gap-3">
           <span className="text-muted-foreground">{symbol}</span>
-          <span className="text-primary">YAHOO MARKET · EXP {chain.data?.expiry} · {chain.data?.days}D</span>
+          <span className="text-primary">
+            YAHOO MARKET · EXP {chain.data?.expiry} · {chain.data?.days}D
+          </span>
           <div className="flex gap-0.5">
             {(["7D", "30D", "60D", "90D"] as const).map((e) => (
-              <button key={e} onClick={() => setExpiry(e)} className={`interactive border px-1.5 py-0.5 text-[9px] ${expiry === e ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>{e}</button>
+              <button
+                key={e}
+                onClick={() => setExpiry(e)}
+                className={`interactive border px-1.5 py-0.5 text-[9px] ${expiry === e ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+              >
+                {e}
+              </button>
             ))}
           </div>
           <div className="flex gap-0.5">
             {(["±5", "±10", "±20"] as const).map((r) => (
-              <button key={r} onClick={() => setRange(r)} className={`interactive border px-1.5 py-0.5 text-[9px] ${range === r ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>{r}</button>
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`interactive border px-1.5 py-0.5 text-[9px] ${range === r ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+              >
+                {r}
+              </button>
             ))}
           </div>
         </div>
@@ -254,29 +345,50 @@ export function OptionsChain({
             onClick={toggleEm}
             className={`interactive border px-1.5 py-0.5 text-[9px] ${emOnChart ? "border-primary bg-primary/10 text-primary" : "border-border text-faint hover:text-foreground"}`}
             title="Draw the expected-move cone on the MK chart"
-          >EM CONE {emOnChart ? "◉" : "○"}</button>
+          >
+            EM CONE {emOnChart ? "◉" : "○"}
+          </button>
           <button
             onClick={() => setShowSmile((s) => !s)}
             className={`interactive border px-1.5 py-0.5 text-[9px] ${showSmile ? "border-primary bg-primary/10 text-primary" : "border-border text-faint hover:text-foreground"}`}
             title="Toggle IV smile — IV vs strike for the selected expiry"
-          >IV SMILE {showSmile ? "◉" : "○"}</button>
-          <span title="Max pain — strike minimizing option-writer P&L"><span className="text-faint">MAX PAIN </span><span className="text-primary">{fmt(maxPain)}</span></span>
-          <span title="Put/Call volume ratio"><span className="text-faint">P/C </span><span className={pcr > 1 ? "text-down" : "text-up"}>{pcr.toFixed(2)}</span></span>
-          <span title="Average reported call/put IV nearest spot"><span className="text-faint">ATM IV </span><span className="text-primary">{atmIvPct.toFixed(1)}%</span></span>
-          <button onClick={() => setShowBuilder((s) => !s)} className={`interactive border px-1.5 py-0.5 text-[9px] ${showBuilder ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>STRATEGY {showBuilder ? "◀" : "▶"}</button>
+          >
+            IV SMILE {showSmile ? "◉" : "○"}
+          </button>
+          <span title="Max pain — strike minimizing option-writer P&L">
+            <span className="text-faint">MAX PAIN </span>
+            <span className="text-primary">{fmt(maxPain)}</span>
+          </span>
+          <span title="Put/Call volume ratio">
+            <span className="text-faint">P/C </span>
+            <span className={pcr > 1 ? "text-down" : "text-up"}>{pcr.toFixed(2)}</span>
+          </span>
+          <span title="Average reported call/put IV nearest spot">
+            <span className="text-faint">ATM IV </span>
+            <span className="text-primary">{atmIvPct.toFixed(1)}%</span>
+          </span>
+          <button
+            onClick={() => setShowBuilder((s) => !s)}
+            className={`interactive border px-1.5 py-0.5 text-[9px] ${showBuilder ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+          >
+            STRATEGY {showBuilder ? "◀" : "▶"}
+          </button>
         </div>
       </div>
 
-      {showSmile && (
-        <IVSmileStrip spot={marketSpot} rows={rows} expiry={expiry} />
-      )}
+      {showSmile && <IVSmileStrip spot={marketSpot} rows={rows} expiry={expiry} />}
 
-      <div className="grid flex-1 overflow-hidden" style={{ gridTemplateColumns: showBuilder ? "1fr 340px" : "1fr 0px" }}>
+      <div
+        className="grid flex-1 overflow-hidden"
+        style={{ gridTemplateColumns: showBuilder ? "1fr 340px" : "1fr 0px" }}
+      >
         {/* Chain */}
         <div className="flex flex-col overflow-hidden">
           <div className="mono-caps grid grid-cols-[1fr_auto_1fr] gap-1 border-b border-divider bg-panel px-3 py-1 text-[9px] text-faint tabular-nums">
             <span className="grid grid-cols-[1fr_36px_36px_36px_36px_36px] text-right">
-              <span className="text-left text-primary" title="Volume · today total contracts">VOL</span>
+              <span className="text-left text-primary" title="Volume · today total contracts">
+                VOL
+              </span>
               <span title="Open interest — outstanding contracts">OI</span>
               <span title="Delta — probability finishing ITM">Δ</span>
               <span title="Implied volatility (%)">IV</span>
@@ -290,7 +402,9 @@ export function OptionsChain({
               <span title="Implied volatility (%)">IV</span>
               <span title="Delta">Δ</span>
               <span title="Open interest">OI</span>
-              <span className="text-left text-primary" title="Volume">VOL</span>
+              <span className="text-left text-primary" title="Volume">
+                VOL
+              </span>
             </span>
           </div>
           <div className="flex-1 overflow-y-auto font-mono text-[11px] tabular-nums">
@@ -309,47 +423,130 @@ export function OptionsChain({
                   style={{ minHeight: 24 }}
                 >
                   {/* CALL side */}
-                  <div className={`grid grid-cols-[1fr_36px_36px_36px_36px_36px] text-right ${r.itmC ? "bg-primary/5" : ""}`}>
+                  <div
+                    className={`grid grid-cols-[1fr_36px_36px_36px_36px_36px] text-right ${r.itmC ? "bg-primary/5" : ""}`}
+                  >
                     <div className="relative text-left">
                       {/* Volume heat bar */}
-                      <div className="absolute inset-y-0 left-0" style={{ width: `${cVolPct * 100}%`, background: `rgba(253,231,37,${0.08 + cVolPct * 0.25})` }} />
+                      <div
+                        className="absolute inset-y-0 left-0"
+                        style={{
+                          width: `${cVolPct * 100}%`,
+                          background: `rgba(253,231,37,${0.08 + cVolPct * 0.25})`,
+                        }}
+                      />
                       <span className="relative">
-                        {r.cunusual > 1 && <span title={`${r.cunusual.toFixed(1)}× avg volume at this strike today`} className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />}
-                        <span className={r.cunusual > 1 ? "text-primary" : "text-foreground"}>{Math.round(r.cvol).toLocaleString()}</span>
+                        {r.cunusual > 1 && (
+                          <span
+                            title={`${r.cunusual.toFixed(1)}× avg volume at this strike today`}
+                            className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary"
+                          />
+                        )}
+                        <span className={r.cunusual > 1 ? "text-primary" : "text-foreground"}>
+                          {Math.round(r.cvol).toLocaleString()}
+                        </span>
                       </span>
                     </div>
                     <div className="relative">
-                      <div className="absolute inset-y-0 right-0" style={{ width: `${cOIPct * 100}%`, background: `rgba(66,201,139,${0.08 + cOIPct * 0.20})` }} />
-                      <span className="relative text-muted-foreground">{Math.round(r.coi).toLocaleString()}</span>
+                      <div
+                        className="absolute inset-y-0 right-0"
+                        style={{
+                          width: `${cOIPct * 100}%`,
+                          background: `rgba(66,201,139,${0.08 + cOIPct * 0.2})`,
+                        }}
+                      />
+                      <span className="relative text-muted-foreground">
+                        {Math.round(r.coi).toLocaleString()}
+                      </span>
                     </div>
                     <span className="text-foreground">{r.cdelta.toFixed(2)}</span>
                     <span className="text-muted-foreground">{r.civ.toFixed(1)}</span>
-                    <button title="Add SELL CALL at bid" onClick={() => addLeg(r.k, "call", "sell")} className="text-up hover:underline">{fmt(r.cbid)}</button>
-                    <button title="Add BUY CALL at ask" onClick={() => addLeg(r.k, "call", "buy")} className="text-down hover:underline">{fmt(r.cask)}</button>
+                    <button
+                      title="Add SELL CALL at bid"
+                      onClick={() => addLeg(r.k, "call", "sell")}
+                      className="text-up hover:underline"
+                    >
+                      {fmt(r.cbid)}
+                    </button>
+                    <button
+                      title="Add BUY CALL at ask"
+                      onClick={() => addLeg(r.k, "call", "buy")}
+                      className="text-down hover:underline"
+                    >
+                      {fmt(r.cask)}
+                    </button>
                   </div>
 
                   {/* Strike */}
                   <div className="w-14 text-center">
-                    <span className={`${r.atm ? "text-primary" : "text-foreground"} ${isMaxPain ? "border-b border-primary/60" : ""}`} title={isMaxPain ? "MAX PAIN" : undefined}>{fmt(r.k)}</span>
-                    {isCallWall && <span title="CALL WALL — resistance" className="ml-1 text-[8px] text-primary">◀C</span>}
-                    {isPutWall && <span title="PUT WALL — support" className="ml-1 text-[8px] text-info">◀P</span>}
+                    <span
+                      className={`${r.atm ? "text-primary" : "text-foreground"} ${isMaxPain ? "border-b border-primary/60" : ""}`}
+                      title={isMaxPain ? "MAX PAIN" : undefined}
+                    >
+                      {fmt(r.k)}
+                    </span>
+                    {isCallWall && (
+                      <span title="CALL WALL — resistance" className="ml-1 text-[8px] text-primary">
+                        ◀C
+                      </span>
+                    )}
+                    {isPutWall && (
+                      <span title="PUT WALL — support" className="ml-1 text-[8px] text-info">
+                        ◀P
+                      </span>
+                    )}
                   </div>
 
                   {/* PUT side */}
-                  <div className={`grid grid-cols-[36px_36px_36px_36px_36px_1fr] text-right ${r.itmP ? "bg-primary/5" : ""}`}>
-                    <button title="Add SELL PUT" onClick={() => addLeg(r.k, "put", "sell")} className="text-up hover:underline">{fmt(r.pbid)}</button>
-                    <button title="Add BUY PUT" onClick={() => addLeg(r.k, "put", "buy")} className="text-down hover:underline">{fmt(r.pask)}</button>
+                  <div
+                    className={`grid grid-cols-[36px_36px_36px_36px_36px_1fr] text-right ${r.itmP ? "bg-primary/5" : ""}`}
+                  >
+                    <button
+                      title="Add SELL PUT"
+                      onClick={() => addLeg(r.k, "put", "sell")}
+                      className="text-up hover:underline"
+                    >
+                      {fmt(r.pbid)}
+                    </button>
+                    <button
+                      title="Add BUY PUT"
+                      onClick={() => addLeg(r.k, "put", "buy")}
+                      className="text-down hover:underline"
+                    >
+                      {fmt(r.pask)}
+                    </button>
                     <span className="text-muted-foreground">{r.piv.toFixed(1)}</span>
                     <span className="text-foreground">{r.pdelta.toFixed(2)}</span>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0" style={{ width: `${pOIPct * 100}%`, background: `rgba(240,100,100,${0.08 + pOIPct * 0.20})` }} />
-                      <span className="relative text-muted-foreground">{Math.round(r.poi).toLocaleString()}</span>
+                      <div
+                        className="absolute inset-y-0 left-0"
+                        style={{
+                          width: `${pOIPct * 100}%`,
+                          background: `rgba(240,100,100,${0.08 + pOIPct * 0.2})`,
+                        }}
+                      />
+                      <span className="relative text-muted-foreground">
+                        {Math.round(r.poi).toLocaleString()}
+                      </span>
                     </div>
                     <div className="relative text-left">
-                      <div className="absolute inset-y-0 right-0" style={{ width: `${pVolPct * 100}%`, background: `rgba(253,231,37,${0.08 + pVolPct * 0.25})` }} />
+                      <div
+                        className="absolute inset-y-0 right-0"
+                        style={{
+                          width: `${pVolPct * 100}%`,
+                          background: `rgba(253,231,37,${0.08 + pVolPct * 0.25})`,
+                        }}
+                      />
                       <span className="relative">
-                        {r.punusual > 1 && <span title={`${r.punusual.toFixed(1)}× avg volume`} className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />}
-                        <span className={r.punusual > 1 ? "text-primary" : "text-foreground"}>{Math.round(r.pvol).toLocaleString()}</span>
+                        {r.punusual > 1 && (
+                          <span
+                            title={`${r.punusual.toFixed(1)}× avg volume`}
+                            className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary"
+                          />
+                        )}
+                        <span className={r.punusual > 1 ? "text-primary" : "text-foreground"}>
+                          {Math.round(r.pvol).toLocaleString()}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -375,13 +572,25 @@ export function OptionsChain({
                 const short = rows.find((r) => r.k === atm + step * 2) ?? long;
                 setLegs([
                   { kind: "call", side: "buy", strike: long.k, premium: long.cask, iv: long.civ },
-                  { kind: "call", side: "sell", strike: short.k, premium: short.cbid, iv: short.civ },
+                  {
+                    kind: "call",
+                    side: "sell",
+                    strike: short.k,
+                    premium: short.cbid,
+                    iv: short.civ,
+                  },
                 ]);
               } else if (bias === "BEAR") {
                 const short = rows.find((r) => r.k === atm - step * 2) ?? rows[0];
                 const long = rows.find((r) => r.k === atm)!;
                 setLegs([
-                  { kind: "put", side: "sell", strike: short.k, premium: short.pbid, iv: short.piv },
+                  {
+                    kind: "put",
+                    side: "sell",
+                    strike: short.k,
+                    premium: short.pbid,
+                    iv: short.piv,
+                  },
                   { kind: "put", side: "buy", strike: long.k, premium: long.pask, iv: long.piv },
                 ]);
               } else if (bias === "NEUTRAL") {
@@ -392,9 +601,27 @@ export function OptionsChain({
                 const wingC = rows.find((r) => r.k === atm + step * 4) ?? rows[rows.length - 1];
                 setLegs([
                   { kind: "put", side: "buy", strike: wingP.k, premium: wingP.pask, iv: wingP.piv },
-                  { kind: "put", side: "sell", strike: bodyP.k, premium: bodyP.pbid, iv: bodyP.piv },
-                  { kind: "call", side: "sell", strike: bodyC.k, premium: bodyC.cbid, iv: bodyC.civ },
-                  { kind: "call", side: "buy", strike: wingC.k, premium: wingC.cask, iv: wingC.civ },
+                  {
+                    kind: "put",
+                    side: "sell",
+                    strike: bodyP.k,
+                    premium: bodyP.pbid,
+                    iv: bodyP.piv,
+                  },
+                  {
+                    kind: "call",
+                    side: "sell",
+                    strike: bodyC.k,
+                    premium: bodyC.cbid,
+                    iv: bodyC.civ,
+                  },
+                  {
+                    kind: "call",
+                    side: "buy",
+                    strike: wingC.k,
+                    premium: wingC.cask,
+                    iv: wingC.civ,
+                  },
                 ]);
               } else if (bias === "VOL") {
                 // long straddle
@@ -413,34 +640,70 @@ export function OptionsChain({
 }
 
 function IVSmileStrip({ spot, rows, expiry }: { spot: number; rows: Row[]; expiry: string }) {
-  const W = 900, H = 90, PAD = 12;
-  const iw = W - PAD * 2, ih = H - PAD * 2;
-  const kMin = rows[0].k, kMax = rows[rows.length - 1].k;
+  const W = 900,
+    H = 90,
+    PAD = 12;
+  const iw = W - PAD * 2,
+    ih = H - PAD * 2;
+  const kMin = rows[0].k,
+    kMax = rows[rows.length - 1].k;
   const ivs = rows.flatMap((r) => [r.civ, r.piv]);
   const yMin = Math.min(...ivs) * 0.95;
   const yMax = Math.max(...ivs) * 1.05;
   const xAt = (k: number) => PAD + ((k - kMin) / (kMax - kMin || 1)) * iw;
   const yAt = (v: number) => PAD + ih - ((v - yMin) / (yMax - yMin || 1)) * ih;
   const callPts = rows.map((r) => `${xAt(r.k)},${yAt(r.civ)}`).join(" ");
-  const putPts  = rows.map((r) => `${xAt(r.k)},${yAt(r.piv)}`).join(" ");
+  const putPts = rows.map((r) => `${xAt(r.k)},${yAt(r.piv)}`).join(" ");
   return (
     <div className="border-b border-divider bg-panel/80 px-3 py-2">
       <div className="mono-caps mb-1 flex items-center gap-3 text-[9px] text-faint">
         <span className="text-primary">IV SMILE · {expiry}</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-[2px] w-3 bg-up" /> calls</span>
-        <span className="flex items-center gap-1"><span className="inline-block h-[2px] w-3 bg-down" /> puts</span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-[2px] w-3 bg-up" /> calls
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-[2px] w-3 bg-down" /> puts
+        </span>
         <span className="ml-auto">spot {fmt(spot)}</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full" preserveAspectRatio="none">
         {[0.25, 0.5, 0.75].map((t) => (
-          <line key={t} x1={PAD} x2={W-PAD} y1={PAD + ih*t} y2={PAD + ih*t} stroke="#171B1F" strokeWidth={0.5} />
+          <line
+            key={t}
+            x1={PAD}
+            x2={W - PAD}
+            y1={PAD + ih * t}
+            y2={PAD + ih * t}
+            stroke="#171B1F"
+            strokeWidth={0.5}
+          />
         ))}
-        <line x1={xAt(spot)} x2={xAt(spot)} y1={PAD} y2={H-PAD} stroke="#F0A929" strokeOpacity={0.5} strokeDasharray="3 3" strokeWidth={0.75} vectorEffect="non-scaling-stroke" />
-        <polyline points={callPts} fill="none" stroke="#42C98B" strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
-        <polyline points={putPts}  fill="none" stroke="#F06464" strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
+        <line
+          x1={xAt(spot)}
+          x2={xAt(spot)}
+          y1={PAD}
+          y2={H - PAD}
+          stroke="#F0A929"
+          strokeOpacity={0.5}
+          strokeDasharray="3 3"
+          strokeWidth={0.75}
+          vectorEffect="non-scaling-stroke"
+        />
+        <polyline
+          points={callPts}
+          fill="none"
+          stroke="#42C98B"
+          strokeWidth={1.4}
+          vectorEffect="non-scaling-stroke"
+        />
+        <polyline
+          points={putPts}
+          fill="none"
+          stroke="#F06464"
+          strokeWidth={1.4}
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
     </div>
   );
 }
-
-

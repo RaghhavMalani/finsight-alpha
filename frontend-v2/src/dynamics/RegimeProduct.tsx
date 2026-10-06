@@ -46,8 +46,8 @@ export function RegimeProduct() {
           <StatusMark status="ABSTAIN" label="NO MARKET / CAUSAL / ALPHA CLAIM" />
         </div>
         <p className="max-w-3xl text-xs leading-6 text-[#9DABB5]">
-          Inspect the latest installed evidence, replay what was published at a historical cutoff,
-          or compare two complete snapshots. Analytics remain frozen at D0.4.2. This is not a live
+          Inspect the latest installed evidence, replay inputs admitted at a historical cutoff, or
+          compare two complete snapshots. Analytics remain frozen at D0.4.2. This is not a live
           execution terminal.
         </p>
         <label className="grid max-w-lg gap-2 text-xs">
@@ -65,18 +65,26 @@ export function RegimeProduct() {
                 source: "real",
                 scope: "REAL_PIT",
                 available: false,
+                evidence_mode: "UNAVAILABLE",
+                coverage: "UNAVAILABLE",
               }))
             ).map((a) => (
               <option key={`${a.asset}:${a.source}`} value={`${a.asset}:${a.source}`}>
                 {a.asset} /{" "}
                 {a.scope === "SYNTHETIC"
                   ? `${a.source} — SYNTHETIC, not market history`
-                  : "publication-evidenced input"}
+                  : `${a.evidence_mode ?? "SOURCE_DEFINED"} / ${a.coverage ?? "source definitions"}`}
                 {a.available ? "" : " — UNAVAILABLE"}
               </option>
             ))}
           </select>
         </label>
+        {entry?.evidence_mode === "CONSERVATIVE_MARKET_TIME" || entry?.evidence_mode === "MIXED" ? (
+          <p className="max-w-3xl border border-[#776040] p-3 text-xs leading-5 text-[#E6CFA4]">
+            Historical market availability reconstructed conservatively; exact historical receive
+            timestamp unavailable. Coverage: IEX ONLY. Not consolidated US market volume.
+          </p>
+        ) : null}
         {entry?.scope === "SYNTHETIC" ? (
           <p className="border border-[#79612E] bg-[#1C170C] p-3 text-xs text-[#F0DCA1]">
             SYNTHETIC DEMO — NOT SPY, QQQ OR IWM. No real-market evidence is being displayed.
@@ -163,7 +171,7 @@ function ProductWorkspace({ entry }: { entry: ProductAsset }) {
         </div>
         {mode === "NOW" ? (
           <p className="text-[#A6B4BD]">
-            NOW = latest publication in the installed dataset, not wall-clock market coverage.{" "}
+            NOW = latest admitted evidence in the installed dataset, not wall-clock market coverage.{" "}
             <button
               className={`${button} ml-2 mt-2`}
               disabled={!entry.available}
@@ -311,6 +319,14 @@ function Provenance({ value }: { value: ProductSnapshot }) {
         ))}
       </dl>
       <p className="leading-5 text-[#A6B8C4]">{value.note}</p>
+      {value.market_evidence ? (
+        <div className="space-y-2 border border-[#776040] p-3 text-[#E6CFA4]" role="note">
+          <strong className="break-words">
+            {value.market_evidence.mode} / {value.market_evidence.coverage}
+          </strong>
+          <p className="leading-5">{value.market_evidence.disclosure}</p>
+        </div>
+      ) : null}
       <details>
         <summary className="cursor-pointer text-[#DFE5E9]">
           Sources, publication evidence, revisions and quality
@@ -352,6 +368,30 @@ function Provenance({ value }: { value: ProductSnapshot }) {
           </dl>
         </div>
       </details>
+      {value.factor_library?.length ? (
+        <details>
+          <summary className="cursor-pointer text-[#DFE5E9]">French factor release library</summary>
+          <p className="mt-2 leading-5 text-[#B0C0CB]">
+            Archive vintages and current captures are separate. Monthly archives are not daily
+            regressors. QUAL, VOL and LIQ remain unavailable; RMW and CMA are separate FF5 factors.
+          </p>
+          {value.factor_library.map((f) => (
+            <div
+              key={`${f.family}:${f.frequency}`}
+              className="mt-3 space-y-1 border-t border-[#293A45] pt-2"
+            >
+              <strong>
+                {f.family} / {f.frequency} / {f.observations} source observations
+              </strong>
+              <p className="break-words leading-5">
+                {f.quality.join("; ")} · {f.factors.join(" / ")}
+              </p>
+              <p className="break-all">Available through {f.available_through}</p>
+              <p className="leading-5">{f.note}</p>
+            </div>
+          ))}
+        </details>
+      ) : null}
     </section>
   );
 }

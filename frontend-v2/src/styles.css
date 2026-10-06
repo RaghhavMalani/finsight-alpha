@@ -63,6 +63,10 @@
   --muted: #11141A;
   --muted-foreground: #9AA2A9;
   --faint: #636C74;
+  --glow-cyan: #3FE0FF;
+  --glow-magenta: #FF4FD8;
+  --glow-violet: #A98CF0;
+  --scene-bg: #000000;
 }
 
 @layer base {

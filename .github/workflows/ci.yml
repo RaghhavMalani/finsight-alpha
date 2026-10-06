@@ -78,6 +78,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend-v2/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npx eslint src/components/terminal/StockIntelligencePanel.tsx src/components/terminal/MonteCarloPanel.tsx
       - run: npx eslint src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
       - run: npx prettier --check src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
@@ -92,7 +93,15 @@ jobs:
       - run: npx eslint src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx
       - run: npx prettier --check src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx scripts/verify-regime-product.mjs
       - run: node scripts/verify-regime-product.mjs
+      - run: node scripts/verify-observatory.mjs
       - run: npm run build
+      - name: Install Chromium for the Observatory browser check
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Observatory scene labels never overlap (production preview, software WebGL)
+        run: |
+          node scripts/preview-built.mjs &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:4174/observatory && break; sleep 1; done
+          node scripts/verify-observatory.mjs --url http://127.0.0.1:4174
 
   truth-contract:
     runs-on: ubuntu-latest

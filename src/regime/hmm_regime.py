@@ -11,6 +11,53 @@ def is_hmmlearn_available() -> bool:
     except ImportError:
         return False
 
+
+def trace_hmm_fit(feature_df, feature_cols, *, n_states=4, max_iter=100,
+                  tol=0.01, random_state=42):
+    """EM iterations of ONE bounded fit; posterior labels are retrospective."""
+    from hmmlearn.hmm import GaussianHMM
+    from threadpoolctl import threadpool_limits
+    from src.dynamics.market_regime_inputs import digest
+    from src.regime.regime_labeling import summarize_regime_states, label_regime_states
+
+    scaler = StandardScaler()
+    x = scaler.fit_transform(feature_df[feature_cols])
+    if not np.isfinite(x).all():
+        raise ValueError("HMM features must be finite")
+    model = GaussianHMM(n_components=n_states, covariance_type="full", n_iter=1,
+                        init_params="stmc", params="stmc", random_state=random_state)
+    frames = []
+    with threadpool_limits(limits=1):
+        for iteration in range(1, max_iter + 1):
+            model.fit(x)
+            model.init_params = ""
+            likelihood = float(model.score(x))
+            delta = likelihood - frames[-1]["loglik"] if frames else None
+            converged = delta is not None and abs(delta) < tol
+            frames.append({
+                "iteration": iteration, "loglik": likelihood,
+                "means": model.means_.tolist(),
+                "covariance_diagonal": np.diagonal(model.covars_, axis1=1, axis2=2).tolist(),
+                "transmat": model.transmat_.tolist(),
+                "posterior_tail": model.predict_proba(x)[-250:].tolist(),
+                "convergence_delta": delta, "converged": converged,
+            })
+            if converged:
+                break
+        labeled = feature_df.copy()
+        labeled["hmm_state"] = model.predict(x)
+    labels = label_regime_states(summarize_regime_states(labeled, "hmm_state"))
+    scaler_params = {"mean": scaler.mean_.tolist(), "scale": scaler.scale_.tolist(),
+                     "variance": scaler.var_.tolist(), "features": list(feature_cols)}
+    return {
+        "frames": frames, "labels": {str(i): labels.get(i, f"State {i}") for i in range(n_states)},
+        "dates_tail": [d.isoformat() for d in pd.to_datetime(feature_df["Date"].tail(250), utc=True)],
+        "feature_names": list(feature_cols), "scaler": scaler_params,
+        "scaler_hash": digest(scaler_params), "converged": frames[-1]["converged"],
+        "max_iter": max_iter, "tolerance": tol,
+        "semantics": "EM optimization of one PIT-bounded fit. Tail particles are posterior states under this fit, not contemporaneously known historical regimes.",
+    }
+
 def train_hmm_regime_model(
     feature_df: pd.DataFrame,
     feature_cols: List[str],

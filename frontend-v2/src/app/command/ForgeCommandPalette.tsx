@@ -8,6 +8,12 @@ const COMMANDS = [
   { id: "worlds", label: "Open Worlds", hint: "World references", to: "/worlds" },
   { id: "artifacts", label: "Open Artifacts", hint: "Bound evidence", to: "/artifacts" },
   {
+    id: "observatory",
+    label: "Open Model Observatory",
+    hint: "HMM and GBM training traces",
+    to: "/observatory",
+  },
+  {
     id: "reality",
     label: "Open Reality Ladder",
     hint: "Frozen v0.2.4.1 artifact",
@@ -79,6 +85,9 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
         break;
       case "artifacts":
         void navigate({ to: "/artifacts" });
+        break;
+      case "observatory":
+        void navigate({ to: "/observatory", search: { scene: "hmm", ticker: "SPY" } });
         break;
       case "reality":
         void navigate({

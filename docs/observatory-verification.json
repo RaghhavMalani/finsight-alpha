@@ -1,0 +1,169 @@
+{
+  "schema_version": "observatory-verification/2",
+  "recorded_at": "2026-10-06T02:54:45+00:00",
+  "mode": "Nitro Vercel production output, local preview (scripts/preview-built.mjs)",
+  "benchmark_method": "Headed Chromium with ANGLE/D3D11, 2560x1440 viewport, DPR 1. After 6s load, requestAnimationFrame ticks counted over three 5s windows idle, then one 5s window during replay. The reference page was measured with the same counter. --force_low_power_gpu selects the integrated GPU.",
+  "frame_rate": {
+    "integrated_intel_uhd": {
+      "app regime space": {
+        "idle_fps": [
+          67.6,
+          67.4,
+          68.0
+        ],
+        "playing_fps": [
+          64.4
+        ],
+        "canvas": "2560x1251",
+        "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      },
+      "app feature flow": {
+        "idle_fps": [
+          67.0,
+          67.2,
+          67.2
+        ],
+        "playing_fps": [
+          62.0
+        ],
+        "canvas": "2560x1251",
+        "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      },
+      "reference regime space": {
+        "idle_fps": [
+          59.4,
+          59.4,
+          58.2
+        ],
+        "playing_fps": [
+          57.6
+        ],
+        "canvas": "2544x1303",
+        "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      },
+      "reference feature flow": {
+        "idle_fps": [
+          58.0,
+          58.4,
+          58.4
+        ],
+        "playing_fps": [
+          52.4
+        ],
+        "canvas": "2544x1303",
+        "gpu": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A78B) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      }
+    },
+    "discrete_rtx_4060": {
+      "app regime space": {
+        "idle_fps": [
+          240.2,
+          240.2,
+          240.8
+        ],
+        "playing_fps": [
+          240.2
+        ],
+        "canvas": "2560x1251",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028E0) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      },
+      "app feature flow": {
+        "idle_fps": [
+          240.6,
+          240.6,
+          240.8
+        ],
+        "playing_fps": [
+          237.8
+        ],
+        "canvas": "2560x1251",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028E0) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+      }
+    }
+  },
+  "label_overlap": "verify-observatory.mjs --url: 18 scene views (SPY/QQQ/IWM x regime/feature x 1366/1440/1920px), 6 samples each across rotation and sway; no visible .lb labels intersect.",
+  "checks": {
+    "hover_hmm": {
+      "hover": 3,
+      "tooltip": [
+        "Stress / Selloff",
+        "20d return −2.0σ",
+        "20d vol +2.5σ",
+        "drawdown −2.0σ",
+        "stays next day 94.6%",
+        "most likely exit → Recovery 5.4%"
+      ],
+      "tooltip_opacity": "1"
+    },
+    "verdict_SPY": {
+      "verdict": "none",
+      "title": "No predictive edge",
+      "lead": "Every model family scored at or below a coin flip on validation, and the untouched holdout came in at 0.463 (95% CI 0.396–0.532).",
+      "suppressed_note": true,
+      "chip": "Replay · fee4a2fb…554d"
+    },
+    "verdict_QQQ": {
+      "verdict": "none",
+      "title": "No predictive edge",
+      "lead": "Every model family scored at or below a coin flip on validation, and the untouched holdout came in at 0.558 (95% CI 0.491–0.623).",
+      "suppressed_note": true,
+      "chip": "Replay · be291798…a0b4"
+    },
+    "verdict_IWM": {
+      "verdict": "inconclusive",
+      "title": "Inconclusive",
+      "lead": "The best family reached 0.607 on validation, but the holdout's 95% interval (0.471–0.616) still includes a coin flip.",
+      "suppressed_note": false,
+      "chip": "Replay · 31796bb0…015a"
+    },
+    "method_drawer": {
+      "open": true,
+      "has_trace_sha": true,
+      "closes_on_escape": true
+    },
+    "fps_toggle": {
+      "visible_after_d": true,
+      "text": "60 fps"
+    },
+    "reduced_motion": {
+      "motion_uniforms": [
+        0
+      ],
+      "camera_stable": true,
+      "play_disabled": true,
+      "scrub_status": "EM 4 / 28 · LL −3012.4"
+    },
+    "mobile_400": {
+      "stage": [
+        201.5,
+        769.09375,
+        400
+      ],
+      "timeline": [
+        769.09375,
+        881.09375,
+        400
+      ],
+      "readout": [
+        897.09375,
+        1702.6875,
+        368
+      ],
+      "readout_below_timeline": true,
+      "page_scrolls": true
+    }
+  },
+  "test_results": {
+    "frontend_build": "PASS",
+    "full_frontend_lint": "PASS",
+    "typescript": "PASS",
+    "verify_observatory_artifact_checks": 94,
+    "label_overlap_views": 18,
+    "observatory_pytest": "20 passed",
+    "backend_full_suite": {
+      "passed": 711,
+      "failed": 16,
+      "failed_note": "All 16 are tests/sabotage/test_sandbox_nasty.py wall-clock TIMEOUTs; the same 16 fail on the untouched base commit d7ccafb."
+    }
+  }
+}

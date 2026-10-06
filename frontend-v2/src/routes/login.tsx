@@ -13,12 +13,7 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-const BOOT = [
-  "FINSIGHT/OS v2.0",
-  "AUTHENTICATING LINK…",
-  "MARKET DATA … OK",
-  "SESSION KEY … OK",
-];
+const BOOT = ["FINSIGHT/OS v2.0", "AUTHENTICATING LINK…", "MARKET DATA … OK", "SESSION KEY … OK"];
 
 function Login() {
   const navigate = useNavigate();
@@ -70,10 +65,7 @@ function Login() {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-4">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(240,169,41,0.06),transparent_60%)]" />
-      <div
-        ref={cardRef}
-        className="panel relative w-full max-w-md p-8 amber-glow"
-      >
+      <div ref={cardRef} className="panel relative w-full max-w-md p-8 amber-glow">
         <div className="mono-caps mb-6 flex items-center justify-between text-[10px] text-primary">
           <span>FINSIGHT · SESSION</span>
           <span className="flex items-center gap-2 text-muted-foreground">
@@ -99,7 +91,10 @@ function Login() {
         {ready && (
           <form onSubmit={submit} className="space-y-5 animate-fade-in">
             <div>
-              <label className="mono-caps mb-2 block text-[10px] text-muted-foreground" htmlFor="email">
+              <label
+                className="mono-caps mb-2 block text-[10px] text-muted-foreground"
+                htmlFor="email"
+              >
                 Email
               </label>
               <input
@@ -113,7 +108,10 @@ function Login() {
               />
             </div>
             <div>
-              <label className="mono-caps mb-2 block text-[10px] text-muted-foreground" htmlFor="password">
+              <label
+                className="mono-caps mb-2 block text-[10px] text-muted-foreground"
+                htmlFor="password"
+              >
                 Password
               </label>
               <input
@@ -136,18 +134,26 @@ function Login() {
               disabled={submitting}
               className="mono-caps flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
             >
-              {submitting ? "Opening desk…" : mode === "login" ? "Enter the desk →" : "Create account →"}
+              {submitting
+                ? "Opening desk…"
+                : mode === "login"
+                  ? "Enter the desk →"
+                  : "Create account →"}
             </button>
             <div className="mono-caps flex items-center justify-between text-[10px] text-faint">
-              <Link to="/" className="hover:text-foreground">← Landing</Link>
+              <Link to="/" className="hover:text-foreground">
+                ← Landing
+              </Link>
               <button
                 type="button"
                 onClick={() => {
-                  setMode((value) => value === "login" ? "register" : "login");
+                  setMode((value) => (value === "login" ? "register" : "login"));
                   setError(null);
                 }}
                 className="hover:text-primary"
-              >{mode === "login" ? "Create account" : "Use existing account"}</button>
+              >
+                {mode === "login" ? "Create account" : "Use existing account"}
+              </button>
             </div>
           </form>
         )}
@@ -155,4 +161,3 @@ function Login() {
     </div>
   );
 }
-

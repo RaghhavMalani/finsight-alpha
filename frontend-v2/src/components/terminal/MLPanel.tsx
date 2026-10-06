@@ -16,7 +16,9 @@ export function MLPanel({ symbol }: { symbol: string; book: string[] }) {
             key={t}
             onClick={() => setTab(t)}
             className={`interactive border px-2 py-1 ${tab === t ? "border-primary bg-primary/10 text-primary" : "border-border text-faint hover:text-foreground"}`}
-          >{t}</button>
+          >
+            {t}
+          </button>
         ))}
         <span className="ml-auto text-[9px] text-faint">API · YFINANCE · TRAINED ON DEMAND</span>
       </div>
@@ -27,4 +29,3 @@ export function MLPanel({ symbol }: { symbol: string; book: string[] }) {
     </div>
   );
 }
-

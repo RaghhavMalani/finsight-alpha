@@ -86,7 +86,7 @@ def ml_signal(
         ticker.upper(),
         benchmark.upper(),
         horizon,
-        as_of_context.iso,
+        as_of_context.isoformat,
     )
     now = time.time()
     with _cache_lock:
@@ -221,7 +221,7 @@ def ml_signal(
         "n_features": len(feature_cols),
         "truth": {
             "state": "MODELLED",
-            "as_of": as_of_context.iso,
+            "as_of": as_of_context.isoformat,
             "signal_date": timing["signal_date"],
             "feature_cutoff": f"{timing['signal_date']}T23:59:59Z",
             "executable_from": f"{executable_from}T00:00:00Z",
@@ -281,3 +281,26 @@ def ml_signal(
     with _cache_lock:
         _cache[key] = (now, payload)
     return payload
+
+
+@router.get("/trace")
+def signal_optimization_trace(request: Request, ticker: str = Query(...),
+                              as_of: str = Query(...), source: str = Query(...),
+                              horizon: int = Query(1, ge=1, le=5), embargo: int = Query(0, ge=0, le=10)):
+    from src.observatory.inputs import pit_prices
+    from src.observatory.traces import cached, signal_trace
+    from src.regime_intelligence.service import load_dataset
+    ticker = ticker.upper()
+    try:
+        dataset = load_dataset(ticker)
+        benchmark_dataset = dataset if ticker == "SPY" else load_dataset("SPY")
+        _, asset = pit_prices(ticker, as_of, source, dataset=dataset)
+        _, benchmark = pit_prices("SPY", as_of, source, dataset=benchmark_dataset)
+        key = (getattr(request.state, "organization_id", None), "signal", ticker,
+               asset["input_hash"], benchmark["input_hash"], asset["as_of"], source, horizon, embargo)
+        return cached(key, lambda: signal_trace(ticker, as_of, source, horizon=horizon,
+            embargo=embargo, dataset=dataset, benchmark_dataset=benchmark_dataset))
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Installed PIT evidence unavailable") from exc
+    except (ValueError, ImportError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

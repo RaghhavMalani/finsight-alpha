@@ -59,7 +59,9 @@ export function PriceChart({
   const key = `${instrument.symbol}|${tf}`;
   const drawings = drawStore.get(key) ?? [];
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const quote = useQuery({
     queryKey: ["quote-history", instrument.symbol],
     queryFn: () => api<Quote>(`/quote/${encodeURIComponent(instrument.symbol)}`),
@@ -74,7 +76,6 @@ export function PriceChart({
     retry: 1,
   });
   const historicalSource = quote.data ? "YFINANCE" : quote.isError ? "UNAVAILABLE" : "LOADING";
-
 
   // The API currently provides session snapshots plus real daily history.
   const baseTicks: Tick[] = useMemo(() => {
@@ -111,7 +112,14 @@ export function PriceChart({
       const min = Math.min(...all, -0.1);
       const max = Math.max(...all, 0.1);
       const pad = (max - min) * 0.1;
-      return { mode: "compare" as const, min: min - pad, max: max + pad, aPct, bPct, transform: (v: number) => v };
+      return {
+        mode: "compare" as const,
+        min: min - pad,
+        max: max + pad,
+        aPct,
+        bPct,
+        transform: (v: number) => v,
+      };
     }
     const prices = history.map((h) => transform(h.p));
     const min = Math.min(...prices);
@@ -124,15 +132,29 @@ export function PriceChart({
 
   const priceCoords = useMemo(() => {
     if (view.mode === "compare") {
-      return view.aPct.map((v, i) => ({ x: (i / (view.aPct.length - 1)) * 1000, y: yScale(v), p: history[i].p, t: history[i].t }));
+      return view.aPct.map((v, i) => ({
+        x: (i / (view.aPct.length - 1)) * 1000,
+        y: yScale(v),
+        p: history[i].p,
+        t: history[i].t,
+      }));
     }
-    return history.map((x, i) => ({ x: (i / (history.length - 1)) * 1000, y: yPrice(x.p), p: x.p, t: x.t }));
+    return history.map((x, i) => ({
+      x: (i / (history.length - 1)) * 1000,
+      y: yPrice(x.p),
+      p: x.p,
+      t: x.t,
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [history, view]);
 
   const cmpCoords = useMemo(() => {
     if (view.mode !== "compare" || !cmpHistory) return null;
-    return view.bPct.map((v, i) => ({ x: (i / (view.bPct.length - 1)) * 1000, y: yScale(v), p: cmpHistory[i].p }));
+    return view.bPct.map((v, i) => ({
+      x: (i / (view.bPct.length - 1)) * 1000,
+      y: yScale(v),
+      p: cmpHistory[i].p,
+    }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cmpHistory, view]);
 
@@ -154,30 +176,36 @@ export function PriceChart({
   const up = changePct >= 0;
 
   const maxVol = useMemo(() => Math.max(...history.map((h) => h.v || 0), 1), [history]);
-  const volBars = showVolume && !isCompare
-    ? history.map((h, i) => {
-        const x = (i / (history.length - 1)) * 1000;
-        const vh = ((h.v || 0) / maxVol) * 36;
-        return { x, y: 300 - vh, h: vh, up: i > 0 ? h.p >= history[i - 1].p : true };
-      })
-    : [];
+  const volBars =
+    showVolume && !isCompare
+      ? history.map((h, i) => {
+          const x = (i / (history.length - 1)) * 1000;
+          const vh = ((h.v || 0) / maxVol) * 36;
+          return { x, y: 300 - vh, h: vh, up: i > 0 ? h.p >= history[i - 1].p : true };
+        })
+      : [];
 
   const hiY = view.mode === "price" ? yPrice(instrument.sessionHigh) : null;
   const loY = view.mode === "price" ? yPrice(instrument.sessionLow) : null;
-  const vwapY = view.mode === "price" && tf === "1D" && instrument.vwapSource !== "UNAVAILABLE" ? yPrice(instrument.vwap) : null;
+  const vwapY =
+    view.mode === "price" && tf === "1D" && instrument.vwapSource !== "UNAVAILABLE"
+      ? yPrice(instrument.vwap)
+      : null;
 
   const hoverStats = useMemo(() => {
     if (hover == null || !priceCoords[hover]) return null;
     const i = hover;
     const win = history.slice(Math.max(0, i - 3), i + 1);
-    const O = win[0].p, C = history[i].p;
+    const O = win[0].p,
+      C = history[i].p;
     const H = Math.max(...win.map((x) => x.p));
     const L = Math.min(...win.map((x) => x.p));
     const chg = ((C - first) / first) * 100;
     const d = new Date(history[i].t);
-    const time = tf === "1D"
-      ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
-      : `${d.getMonth() + 1}/${d.getDate()}`;
+    const time =
+      tf === "1D"
+        ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+        : `${d.getMonth() + 1}/${d.getDate()}`;
     return { O, H, L, C, chg, time };
   }, [hover, history, priceCoords, first, tf]);
 
@@ -195,7 +223,10 @@ export function PriceChart({
     if (!priceCoords.length) return;
     const p = svgPoint(e);
     if (!p) return;
-    const idx = Math.max(0, Math.min(priceCoords.length - 1, Math.round((p.x / 1000) * (priceCoords.length - 1))));
+    const idx = Math.max(
+      0,
+      Math.min(priceCoords.length - 1, Math.round((p.x / 1000) * (priceCoords.length - 1))),
+    );
     setHover(idx);
   }
 
@@ -203,7 +234,10 @@ export function PriceChart({
     if (!drawMode) return;
     const p = svgPoint(e);
     if (!p) return;
-    if (!pending) { setPending(p); return; }
+    if (!pending) {
+      setPending(p);
+      return;
+    }
     const arr = drawStore.get(key) ?? [];
     arr.push({ kind: drawMode, x1: pending.x, y1: pending.y, x2: p.x, y2: p.y });
     drawStore.set(key, arr);
@@ -211,14 +245,20 @@ export function PriceChart({
     setDrawTick((n) => n + 1);
   }
 
-  function clearDrawings() { drawStore.set(key, []); setPending(null); setDrawTick((n) => n + 1); }
+  function clearDrawings() {
+    drawStore.set(key, []);
+    setPending(null);
+    setDrawTick((n) => n + 1);
+  }
 
   const hoverPt = hover != null ? priceCoords[hover] : null;
 
   const relPerf = useMemo(() => {
     if (!isCompare || !cmpHistory || !compareTo) return null;
-    const aRet = ((history[history.length - 1].p - instrument.prevClose) / instrument.prevClose) * 100;
-    const bRet = ((cmpHistory[cmpHistory.length - 1].p - compareTo.prevClose) / compareTo.prevClose) * 100;
+    const aRet =
+      ((history[history.length - 1].p - instrument.prevClose) / instrument.prevClose) * 100;
+    const bRet =
+      ((cmpHistory[cmpHistory.length - 1].p - compareTo.prevClose) / compareTo.prevClose) * 100;
     return aRet - bRet;
   }, [isCompare, compareTo, cmpHistory, history, instrument.prevClose]);
 
@@ -228,7 +268,10 @@ export function PriceChart({
     return (
       <div className="mono-caps flex h-full min-h-64 flex-col items-center justify-center border border-down/30 bg-down/5 px-6 text-center text-[10px]">
         <div className="text-down">MARKET DATA · UNAVAILABLE</div>
-        <div className="mt-2 max-w-lg text-faint">The quote provider returned no validated snapshot. No simulated or static price chart is being shown.</div>
+        <div className="mt-2 max-w-lg text-faint">
+          The quote provider returned no validated snapshot. No simulated or static price chart is
+          being shown.
+        </div>
         <div className="mt-2 text-faint">SOURCE · UNAVAILABLE · AS OF · UNAVAILABLE</div>
       </div>
     );
@@ -240,7 +283,10 @@ export function PriceChart({
         <div>
           <div className="mono-caps text-[10px] text-muted-foreground">
             {instrument.name}
-            <span className="ml-2 text-primary">· {tf === "1D" ? instrument.dataSource : historicalSource} · {tf === "1D" ? "SESSION SNAPSHOT" : "DAILY CLOSES"}</span>
+            <span className="ml-2 text-primary">
+              · {tf === "1D" ? instrument.dataSource : historicalSource} ·{" "}
+              {tf === "1D" ? "SESSION SNAPSHOT" : "DAILY CLOSES"}
+            </span>
             {compareTo && <span className="ml-2 text-info">· vs {compareTo.symbol}</span>}
           </div>
           <div className="mt-1 flex items-baseline gap-4 font-mono text-4xl tabular-nums text-foreground">
@@ -251,15 +297,36 @@ export function PriceChart({
           </div>
         </div>
         <div className="mono-caps flex items-center gap-3 text-[10px] text-muted-foreground">
-          <div className="tabular-nums text-right"><div className="text-faint">OPEN</div><div className="font-mono text-foreground">{fmt(instrument.open)}</div></div>
-          <div className="tabular-nums text-right"><div className="text-faint">HIGH</div><div className="font-mono text-foreground">{fmt(instrument.sessionHigh)}</div></div>
-          <div className="tabular-nums text-right"><div className="text-faint">LOW</div><div className="font-mono text-foreground">{fmt(instrument.sessionLow)}</div></div>
-          <div className="tabular-nums text-right"><div className="text-faint">VWAP</div><div className="font-mono text-foreground">{instrument.vwapSource === "UNAVAILABLE" ? "—" : fmt(instrument.vwap)}</div></div>
-          <div className="tabular-nums text-right"><div className="text-faint">VOL</div><div className="font-mono text-foreground">{instrument.volume > 0 ? `${(instrument.volume / 1_000_000).toFixed(1)}M` : "—"}</div></div>
+          <div className="tabular-nums text-right">
+            <div className="text-faint">OPEN</div>
+            <div className="font-mono text-foreground">{fmt(instrument.open)}</div>
+          </div>
+          <div className="tabular-nums text-right">
+            <div className="text-faint">HIGH</div>
+            <div className="font-mono text-foreground">{fmt(instrument.sessionHigh)}</div>
+          </div>
+          <div className="tabular-nums text-right">
+            <div className="text-faint">LOW</div>
+            <div className="font-mono text-foreground">{fmt(instrument.sessionLow)}</div>
+          </div>
+          <div className="tabular-nums text-right">
+            <div className="text-faint">VWAP</div>
+            <div className="font-mono text-foreground">
+              {instrument.vwapSource === "UNAVAILABLE" ? "—" : fmt(instrument.vwap)}
+            </div>
+          </div>
+          <div className="tabular-nums text-right">
+            <div className="text-faint">VOL</div>
+            <div className="font-mono text-foreground">
+              {instrument.volume > 0 ? `${(instrument.volume / 1_000_000).toFixed(1)}M` : "—"}
+            </div>
+          </div>
           {compareTo && relPerf !== null && (
             <div className="border-l border-divider pl-3 tabular-nums text-right">
               <div className="text-faint">RELATIVE</div>
-              <div className={`font-mono ${relPerf >= 0 ? "text-up" : "text-down"}`}>{fmtPct(relPerf)}</div>
+              <div className={`font-mono ${relPerf >= 0 ? "text-up" : "text-down"}`}>
+                {fmtPct(relPerf)}
+              </div>
             </div>
           )}
         </div>
@@ -269,25 +336,87 @@ export function PriceChart({
       <div className="mono-caps flex flex-wrap items-center gap-1 border-y border-divider bg-panel/60 px-3 py-1.5 text-[9px]">
         <div className="flex items-center gap-1 pr-2">
           {(["LINE", "AREA"] as Series[]).map((s) => (
-            <button key={s} onClick={() => setSeries(s)} className={`border px-1.5 py-0.5 transition ${series === s ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>{s}</button>
+            <button
+              key={s}
+              onClick={() => setSeries(s)}
+              className={`border px-1.5 py-0.5 transition ${series === s ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+            >
+              {s}
+            </button>
           ))}
         </div>
         <div className="flex items-center gap-1 border-l border-divider pl-2 pr-2">
           {(["1D", "1W", "1M", "1Y"] as TF[]).map((t) => (
-            <button key={t} onClick={() => setTf(t)} className={`border px-1.5 py-0.5 transition ${tf === t ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>{t}</button>
+            <button
+              key={t}
+              onClick={() => setTf(t)}
+              className={`border px-1.5 py-0.5 transition ${tf === t ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+            >
+              {t}
+            </button>
           ))}
         </div>
-        <button onClick={() => setLogScale((v) => !v)} className={`border px-1.5 py-0.5 transition ${logScale ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`} title="Logarithmic scale">LOG</button>
-        <button disabled={instrument.vwapSource === "UNAVAILABLE"} onClick={() => setShowVwap((v) => !v)} className={`border px-1.5 py-0.5 transition ${instrument.vwapSource === "UNAVAILABLE" ? "cursor-not-allowed border-border text-faint/40" : showVwap ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`} title={instrument.vwapSource === "UNAVAILABLE" ? "VWAP is not supplied by the current quote feed" : undefined}>VWAP</button>
+        <button
+          onClick={() => setLogScale((v) => !v)}
+          className={`border px-1.5 py-0.5 transition ${logScale ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+          title="Logarithmic scale"
+        >
+          LOG
+        </button>
+        <button
+          disabled={instrument.vwapSource === "UNAVAILABLE"}
+          onClick={() => setShowVwap((v) => !v)}
+          className={`border px-1.5 py-0.5 transition ${instrument.vwapSource === "UNAVAILABLE" ? "cursor-not-allowed border-border text-faint/40" : showVwap ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+          title={
+            instrument.vwapSource === "UNAVAILABLE"
+              ? "VWAP is not supplied by the current quote feed"
+              : undefined
+          }
+        >
+          VWAP
+        </button>
         <div className="flex items-center gap-1 border-l border-divider pl-2">
-          <button onClick={() => { setDrawMode(drawMode === "trend" ? null : "trend"); setPending(null); }} className={`border px-1.5 py-0.5 transition ${drawMode === "trend" ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>TREND</button>
-          <button onClick={() => { setDrawMode(drawMode === "fib" ? null : "fib"); setPending(null); }} className={`border px-1.5 py-0.5 transition ${drawMode === "fib" ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}>FIB</button>
-          {drawings.length > 0 && <button onClick={clearDrawings} className="border border-border px-1.5 py-0.5 text-faint hover:text-down">✕ CLR</button>}
+          <button
+            onClick={() => {
+              setDrawMode(drawMode === "trend" ? null : "trend");
+              setPending(null);
+            }}
+            className={`border px-1.5 py-0.5 transition ${drawMode === "trend" ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+          >
+            TREND
+          </button>
+          <button
+            onClick={() => {
+              setDrawMode(drawMode === "fib" ? null : "fib");
+              setPending(null);
+            }}
+            className={`border px-1.5 py-0.5 transition ${drawMode === "fib" ? "border-primary text-primary" : "border-border text-faint hover:text-foreground"}`}
+          >
+            FIB
+          </button>
+          {drawings.length > 0 && (
+            <button
+              onClick={clearDrawings}
+              className="border border-border px-1.5 py-0.5 text-faint hover:text-down"
+            >
+              ✕ CLR
+            </button>
+          )}
         </div>
         {onAddCompare && !compareTo && (
-          <button onClick={onAddCompare} className="ml-auto border border-border px-1.5 py-0.5 text-faint hover:border-primary hover:text-primary" title="Compare vs…">+ CMP</button>
+          <button
+            onClick={onAddCompare}
+            className="ml-auto border border-border px-1.5 py-0.5 text-faint hover:border-primary hover:text-primary"
+            title="Compare vs…"
+          >
+            + CMP
+          </button>
         )}
-        {drawMode && <span className="ml-2 text-primary">{pending ? "Click second point…" : "Click first point…"}</span>}
+        {drawMode && (
+          <span className="ml-2 text-primary">
+            {pending ? "Click second point…" : "Click first point…"}
+          </span>
+        )}
       </div>
 
       <div className="relative flex-1 px-2 pb-2">
@@ -307,51 +436,168 @@ export function PriceChart({
             </linearGradient>
           </defs>
           {[0.2, 0.4, 0.6, 0.8].map((t) => (
-            <line key={t} x1="0" x2="1000" y1={260 * t} y2={260 * t} stroke="#171B1F" strokeWidth={1} />
+            <line
+              key={t}
+              x1="0"
+              x2="1000"
+              y1={260 * t}
+              y2={260 * t}
+              stroke="#171B1F"
+              strokeWidth={1}
+            />
           ))}
           {showHiLo && view.mode === "price" && hiY != null && (
             <>
-              <line x1="0" x2="1000" y1={hiY} y2={hiY} stroke="#42C98B" strokeOpacity={0.35} strokeDasharray="4 4" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-              <text x="8" y={hiY - 2} className="mono-caps" fontSize="9" fill="#42C98B" opacity="0.7">H {fmt(instrument.sessionHigh)}</text>
+              <line
+                x1="0"
+                x2="1000"
+                y1={hiY}
+                y2={hiY}
+                stroke="#42C98B"
+                strokeOpacity={0.35}
+                strokeDasharray="4 4"
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+              />
+              <text
+                x="8"
+                y={hiY - 2}
+                className="mono-caps"
+                fontSize="9"
+                fill="#42C98B"
+                opacity="0.7"
+              >
+                H {fmt(instrument.sessionHigh)}
+              </text>
             </>
           )}
           {showHiLo && view.mode === "price" && loY != null && (
             <>
-              <line x1="0" x2="1000" y1={loY} y2={loY} stroke="#F06464" strokeOpacity={0.35} strokeDasharray="4 4" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-              <text x="8" y={loY - 2} className="mono-caps" fontSize="9" fill="#F06464" opacity="0.7">L {fmt(instrument.sessionLow)}</text>
+              <line
+                x1="0"
+                x2="1000"
+                y1={loY}
+                y2={loY}
+                stroke="#F06464"
+                strokeOpacity={0.35}
+                strokeDasharray="4 4"
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+              />
+              <text
+                x="8"
+                y={loY - 2}
+                className="mono-caps"
+                fontSize="9"
+                fill="#F06464"
+                opacity="0.7"
+              >
+                L {fmt(instrument.sessionLow)}
+              </text>
             </>
           )}
           {showVwap && view.mode === "price" && vwapY != null && (
             <>
-              <line x1="0" x2="1000" y1={vwapY} y2={vwapY} stroke="#3B8BFF" strokeOpacity={0.55} strokeDasharray="2 3" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-              <text x="992" textAnchor="end" y={vwapY - 2} className="mono-caps" fontSize="9" fill="#3B8BFF" opacity="0.8">VWAP {fmt(instrument.vwap)}</text>
+              <line
+                x1="0"
+                x2="1000"
+                y1={vwapY}
+                y2={vwapY}
+                stroke="#3B8BFF"
+                strokeOpacity={0.55}
+                strokeDasharray="2 3"
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+              />
+              <text
+                x="992"
+                textAnchor="end"
+                y={vwapY - 2}
+                className="mono-caps"
+                fontSize="9"
+                fill="#3B8BFF"
+                opacity="0.8"
+              >
+                VWAP {fmt(instrument.vwap)}
+              </text>
             </>
           )}
-          {expectedMovePct != null && view.mode === "price" && (() => {
-            const upP = instrument.price * (1 + expectedMovePct / 100);
-            const dnP = instrument.price * (1 - expectedMovePct / 100);
-            const yU = yPrice(upP), yD = yPrice(dnP);
-            const yMid = yPrice(instrument.price);
-            return (
-              <g>
-                <defs>
-                  <linearGradient id="emCone" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#F0A929" stopOpacity="0" />
-                    <stop offset="100%" stopColor="#F0A929" stopOpacity="0.18" />
-                  </linearGradient>
-                </defs>
-                <polygon points={`0,${yMid} 1000,${yU} 1000,${yD}`} fill="url(#emCone)" />
-                <line x1="0" x2="1000" y1={yU} y2={yU} stroke="#F0A929" strokeOpacity={0.5} strokeDasharray="4 4" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-                <line x1="0" x2="1000" y1={yD} y2={yD} stroke="#F0A929" strokeOpacity={0.5} strokeDasharray="4 4" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-                <text x="992" textAnchor="end" y={yU - 2} className="mono-caps" fontSize="9" fill="#F0A929" opacity="0.85">EM +{expectedMovePct.toFixed(1)}% · {fmt(upP)}</text>
-                <text x="992" textAnchor="end" y={yD + 10} className="mono-caps" fontSize="9" fill="#F0A929" opacity="0.85">EM −{expectedMovePct.toFixed(1)}% · {fmt(dnP)}</text>
-              </g>
-            );
-          })()}
-          
+          {expectedMovePct != null &&
+            view.mode === "price" &&
+            (() => {
+              const upP = instrument.price * (1 + expectedMovePct / 100);
+              const dnP = instrument.price * (1 - expectedMovePct / 100);
+              const yU = yPrice(upP),
+                yD = yPrice(dnP);
+              const yMid = yPrice(instrument.price);
+              return (
+                <g>
+                  <defs>
+                    <linearGradient id="emCone" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#F0A929" stopOpacity="0" />
+                      <stop offset="100%" stopColor="#F0A929" stopOpacity="0.18" />
+                    </linearGradient>
+                  </defs>
+                  <polygon points={`0,${yMid} 1000,${yU} 1000,${yD}`} fill="url(#emCone)" />
+                  <line
+                    x1="0"
+                    x2="1000"
+                    y1={yU}
+                    y2={yU}
+                    stroke="#F0A929"
+                    strokeOpacity={0.5}
+                    strokeDasharray="4 4"
+                    strokeWidth={1}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <line
+                    x1="0"
+                    x2="1000"
+                    y1={yD}
+                    y2={yD}
+                    stroke="#F0A929"
+                    strokeOpacity={0.5}
+                    strokeDasharray="4 4"
+                    strokeWidth={1}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <text
+                    x="992"
+                    textAnchor="end"
+                    y={yU - 2}
+                    className="mono-caps"
+                    fontSize="9"
+                    fill="#F0A929"
+                    opacity="0.85"
+                  >
+                    EM +{expectedMovePct.toFixed(1)}% · {fmt(upP)}
+                  </text>
+                  <text
+                    x="992"
+                    textAnchor="end"
+                    y={yD + 10}
+                    className="mono-caps"
+                    fontSize="9"
+                    fill="#F0A929"
+                    opacity="0.85"
+                  >
+                    EM −{expectedMovePct.toFixed(1)}% · {fmt(dnP)}
+                  </text>
+                </g>
+              );
+            })()}
+
           {/* Volume bars */}
           {volBars.map((b, i) => (
-            <rect key={i} x={b.x - 1.5} y={b.y} width={2.5} height={b.h} fill={b.up ? "#42C98B" : "#F06464"} opacity="0.25" />
+            <rect
+              key={i}
+              x={b.x - 1.5}
+              y={b.y}
+              width={2.5}
+              height={b.h}
+              fill={b.up ? "#42C98B" : "#F06464"}
+              opacity="0.25"
+            />
           ))}
 
           {/* Series */}
@@ -366,41 +612,116 @@ export function PriceChart({
               strokeWidth={1.5}
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
-              style={mounted ? { strokeDasharray: 3000, strokeDashoffset: 0, animation: "draw-in 800ms cubic-bezier(0.16,1,0.3,1) both" } : undefined}
+              style={
+                mounted
+                  ? {
+                      strokeDasharray: 3000,
+                      strokeDashoffset: 0,
+                      animation: "draw-in 800ms cubic-bezier(0.16,1,0.3,1) both",
+                    }
+                  : undefined
+              }
             />
           )}
-          {series === "CANDLES" && candles.map((c, i) => {
-            const x = (i / Math.max(1, candles.length - 1)) * 1000;
-            const cw = Math.max(2, 900 / candles.length);
-            const yO = yPrice(c.o), yC = yPrice(c.c), yH = yPrice(c.h), yL = yPrice(c.l);
-            const bull = c.c >= c.o;
-            const color = bull ? "#42C98B" : "#F06464";
-            const bodyTop = Math.min(yO, yC), bodyH = Math.max(1, Math.abs(yC - yO));
-            return (
-              <g key={i}>
-                <line x1={x} x2={x} y1={yH} y2={yL} stroke={color} strokeWidth={0.75} vectorEffect="non-scaling-stroke" />
-                <rect x={x - cw / 2} y={bodyTop} width={cw} height={bodyH} fill={color} opacity="0.85" />
-              </g>
-            );
-          })}
+          {series === "CANDLES" &&
+            candles.map((c, i) => {
+              const x = (i / Math.max(1, candles.length - 1)) * 1000;
+              const cw = Math.max(2, 900 / candles.length);
+              const yO = yPrice(c.o),
+                yC = yPrice(c.c),
+                yH = yPrice(c.h),
+                yL = yPrice(c.l);
+              const bull = c.c >= c.o;
+              const color = bull ? "#42C98B" : "#F06464";
+              const bodyTop = Math.min(yO, yC),
+                bodyH = Math.max(1, Math.abs(yC - yO));
+              return (
+                <g key={i}>
+                  <line
+                    x1={x}
+                    x2={x}
+                    y1={yH}
+                    y2={yL}
+                    stroke={color}
+                    strokeWidth={0.75}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <rect
+                    x={x - cw / 2}
+                    y={bodyTop}
+                    width={cw}
+                    height={bodyH}
+                    fill={color}
+                    opacity="0.85"
+                  />
+                </g>
+              );
+            })}
           {compareTo && cmpPts && series !== "CANDLES" && (
-            <polyline points={cmpPts} fill="none" stroke="#3B8BFF" strokeWidth={1.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" style={mounted ? { strokeDasharray: 3000, strokeDashoffset: 0, animation: "draw-in 900ms cubic-bezier(0.16,1,0.3,1) both" } : undefined} />
+            <polyline
+              points={cmpPts}
+              fill="none"
+              stroke="#3B8BFF"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              style={
+                mounted
+                  ? {
+                      strokeDasharray: 3000,
+                      strokeDashoffset: 0,
+                      animation: "draw-in 900ms cubic-bezier(0.16,1,0.3,1) both",
+                    }
+                  : undefined
+              }
+            />
           )}
 
           {/* Drawings */}
           {drawings.map((d, i) => {
             if (d.kind === "trend") {
-              return <line key={i} x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2} stroke="#F0A929" strokeWidth={1} vectorEffect="non-scaling-stroke" />;
+              return (
+                <line
+                  key={i}
+                  x1={d.x1}
+                  y1={d.y1}
+                  x2={d.x2}
+                  y2={d.y2}
+                  stroke="#F0A929"
+                  strokeWidth={1}
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
             }
-            const top = Math.min(d.y1, d.y2), bot = Math.max(d.y1, d.y2);
+            const top = Math.min(d.y1, d.y2),
+              bot = Math.max(d.y1, d.y2);
             return (
               <g key={i} opacity="0.85">
                 {FIB_LEVELS.map((lv, j) => {
                   const y = top + (bot - top) * lv;
                   return (
                     <g key={j}>
-                      <line x1={Math.min(d.x1, d.x2)} x2={Math.max(d.x1, d.x2)} y1={y} y2={y} stroke="#F0A929" strokeOpacity={0.55} strokeDasharray="3 3" strokeWidth={0.75} vectorEffect="non-scaling-stroke" />
-                      <text x={Math.max(d.x1, d.x2) + 4} y={y + 3} fontSize="8" fill="#F0A929" opacity="0.7" className="mono-caps">{(lv * 100).toFixed(1)}%</text>
+                      <line
+                        x1={Math.min(d.x1, d.x2)}
+                        x2={Math.max(d.x1, d.x2)}
+                        y1={y}
+                        y2={y}
+                        stroke="#F0A929"
+                        strokeOpacity={0.55}
+                        strokeDasharray="3 3"
+                        strokeWidth={0.75}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      <text
+                        x={Math.max(d.x1, d.x2) + 4}
+                        y={y + 3}
+                        fontSize="8"
+                        fill="#F0A929"
+                        opacity="0.7"
+                        className="mono-caps"
+                      >
+                        {(lv * 100).toFixed(1)}%
+                      </text>
                     </g>
                   );
                 })}
@@ -413,26 +734,64 @@ export function PriceChart({
 
           {hoverPt && !drawMode && (
             <g>
-              <line x1={hoverPt.x} x2={hoverPt.x} y1={0} y2={260} stroke="#F0A929" strokeOpacity={0.45} strokeWidth={1} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
-              <line x1={0} x2={1000} y1={hoverPt.y} y2={hoverPt.y} stroke="#F0A929" strokeOpacity={0.35} strokeWidth={1} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
-              <circle cx={hoverPt.x} cy={hoverPt.y} r={4} fill="#F0A929" stroke="#050607" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+              <line
+                x1={hoverPt.x}
+                x2={hoverPt.x}
+                y1={0}
+                y2={260}
+                stroke="#F0A929"
+                strokeOpacity={0.45}
+                strokeWidth={1}
+                strokeDasharray="3 3"
+                vectorEffect="non-scaling-stroke"
+              />
+              <line
+                x1={0}
+                x2={1000}
+                y1={hoverPt.y}
+                y2={hoverPt.y}
+                stroke="#F0A929"
+                strokeOpacity={0.35}
+                strokeWidth={1}
+                strokeDasharray="3 3"
+                vectorEffect="non-scaling-stroke"
+              />
+              <circle
+                cx={hoverPt.x}
+                cy={hoverPt.y}
+                r={4}
+                fill="#F0A929"
+                stroke="#050607"
+                strokeWidth={1.5}
+                vectorEffect="non-scaling-stroke"
+              />
             </g>
           )}
         </svg>
         {hoverStats && (
           <div className="mono-caps pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 border border-primary/60 bg-panel/95 px-3 py-1.5 text-[10px] amber-glow tabular-nums">
             <span className="text-primary">{hoverStats.time}</span>
-            <span className="ml-3 text-faint">O</span>{" "}<span className="text-foreground">{fmt(hoverStats.O)}</span>
-            <span className="ml-2 text-faint">H</span>{" "}<span className="text-up">{fmt(hoverStats.H)}</span>
-            <span className="ml-2 text-faint">L</span>{" "}<span className="text-down">{fmt(hoverStats.L)}</span>
-            <span className="ml-2 text-faint">C</span>{" "}<span className="text-foreground">{fmt(hoverStats.C)}</span>
-            <span className={`ml-3 ${hoverStats.chg >= 0 ? "text-up" : "text-down"}`}>{fmtPct(hoverStats.chg)}</span>
+            <span className="ml-3 text-faint">O</span>{" "}
+            <span className="text-foreground">{fmt(hoverStats.O)}</span>
+            <span className="ml-2 text-faint">H</span>{" "}
+            <span className="text-up">{fmt(hoverStats.H)}</span>
+            <span className="ml-2 text-faint">L</span>{" "}
+            <span className="text-down">{fmt(hoverStats.L)}</span>
+            <span className="ml-2 text-faint">C</span>{" "}
+            <span className="text-foreground">{fmt(hoverStats.C)}</span>
+            <span className={`ml-3 ${hoverStats.chg >= 0 ? "text-up" : "text-down"}`}>
+              {fmtPct(hoverStats.chg)}
+            </span>
           </div>
         )}
         {compareTo && (
           <div className="mono-caps pointer-events-none absolute bottom-2 left-3 flex items-center gap-3 text-[10px]">
-            <span className="flex items-center gap-1"><span className="inline-block h-[2px] w-4 bg-primary" /> {instrument.symbol}</span>
-            <span className="flex items-center gap-1"><span className="inline-block h-[2px] w-4 bg-info" /> {compareTo.symbol}</span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-[2px] w-4 bg-primary" /> {instrument.symbol}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-[2px] w-4 bg-info" /> {compareTo.symbol}
+            </span>
             <span className="text-faint">· normalized %</span>
           </div>
         )}
@@ -443,4 +802,3 @@ export function PriceChart({
     </div>
   );
 }
-

@@ -18,7 +18,10 @@ function seed(): number[] {
   // Deterministic bootstrap (avoids SSR/client hydration mismatch); ticks below randomize live.
   return GICS.map((name, i) => {
     let h = 2166136261 ^ i;
-    for (let k = 0; k < name.length; k++) { h ^= name.charCodeAt(k); h = (h * 16777619) >>> 0; }
+    for (let k = 0; k < name.length; k++) {
+      h ^= name.charCodeAt(k);
+      h = (h * 16777619) >>> 0;
+    }
     const r = ((h >>> 0) % 10000) / 10000;
     return (r - 0.5) * 2.4;
   });
@@ -28,11 +31,14 @@ export function SectorsStrip() {
   const [vals, setVals] = useState<number[]>(() => seed());
   useEffect(() => {
     const id = setInterval(() => {
-      setVals((prev) => prev.map((v) => {
-        const u = Math.random(), w = Math.random();
-        const z = Math.sqrt(-2 * Math.log(Math.max(u, 1e-9))) * Math.cos(2 * Math.PI * w);
-        return Math.max(-3.5, Math.min(3.5, v + z * 0.05));
-      }));
+      setVals((prev) =>
+        prev.map((v) => {
+          const u = Math.random(),
+            w = Math.random();
+          const z = Math.sqrt(-2 * Math.log(Math.max(u, 1e-9))) * Math.cos(2 * Math.PI * w);
+          return Math.max(-3.5, Math.min(3.5, v + z * 0.05));
+        }),
+      );
     }, 2600);
     return () => clearInterval(id);
   }, []);
@@ -62,7 +68,9 @@ export function SectorsStrip() {
               />
               <div className="absolute inset-y-0 left-1/2 w-px bg-border" />
             </div>
-            <span className={`text-right font-mono text-[10px] tabular-nums ${up ? "text-up" : "text-down"}`}>
+            <span
+              className={`text-right font-mono text-[10px] tabular-nums ${up ? "text-up" : "text-down"}`}
+            >
               {up ? "▲" : "▼"} {Math.abs(v).toFixed(2)}%
             </span>
           </div>
@@ -71,4 +79,3 @@ export function SectorsStrip() {
     </div>
   );
 }
-

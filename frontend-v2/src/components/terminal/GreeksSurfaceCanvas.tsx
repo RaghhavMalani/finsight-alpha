@@ -14,7 +14,9 @@ function GreeksMesh({
   symbol: string;
   spot: number;
   greek: Greek;
-  onHover: (info: { strike: number; expiry: number; val: number; point: THREE.Vector3 } | null) => void;
+  onHover: (
+    info: { strike: number; expiry: number; val: number; point: THREE.Vector3 } | null,
+  ) => void;
 }) {
   const surface = useMemo(() => generateGreeksSurface(symbol, spot, greek), [symbol, spot, greek]);
   const size = 6;
@@ -83,39 +85,112 @@ function GreeksMesh({
         <meshBasicMaterial color="#0A0C0E" />
       </mesh>
       <mesh geometry={geometry} onPointerMove={handleMove} onPointerOut={() => onHover(null)}>
-        <meshStandardMaterial vertexColors side={THREE.DoubleSide} roughness={0.7} metalness={0.1} />
+        <meshStandardMaterial
+          vertexColors
+          side={THREE.DoubleSide}
+          roughness={0.7}
+          metalness={0.1}
+        />
       </mesh>
       <lineSegments geometry={wireGeometry}>
         <lineBasicMaterial color="#F0A929" transparent opacity={0.22} />
       </lineSegments>
-      <Line points={[[-size, 0, size], [size, 0, size]]} color="#636C74" lineWidth={1} />
-      <Line points={[[-size, 0, size], [-size, 0, -size]]} color="#636C74" lineWidth={1} />
-      <Line points={[[-size, 0, size], [-size, heightScale, size]]} color="#636C74" lineWidth={1} />
-      <Text position={[0, -0.4, size + 0.6]} fontSize={0.35} color="#F0A929" anchorX="center">STRIKE</Text>
-      <Text position={[-size - 0.6, -0.4, 0]} rotation={[0, Math.PI / 2, 0]} fontSize={0.35} color="#F0A929" anchorX="center">EXPIRY</Text>
-      <Text position={[-size - 0.4, heightScale + 0.4, size]} fontSize={0.35} color="#F0A929" anchorX="center">{greek}</Text>
+      <Line
+        points={[
+          [-size, 0, size],
+          [size, 0, size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
+      <Line
+        points={[
+          [-size, 0, size],
+          [-size, 0, -size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
+      <Line
+        points={[
+          [-size, 0, size],
+          [-size, heightScale, size],
+        ]}
+        color="#636C74"
+        lineWidth={1}
+      />
+      <Text position={[0, -0.4, size + 0.6]} fontSize={0.35} color="#F0A929" anchorX="center">
+        STRIKE
+      </Text>
+      <Text
+        position={[-size - 0.6, -0.4, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        fontSize={0.35}
+        color="#F0A929"
+        anchorX="center"
+      >
+        EXPIRY
+      </Text>
+      <Text
+        position={[-size - 0.4, heightScale + 0.4, size]}
+        fontSize={0.35}
+        color="#F0A929"
+        anchorX="center"
+      >
+        {greek}
+      </Text>
       {[0, 0.5, 1].map((t) => (
-        <Text key={t} position={[-size - 0.1, t * heightScale, size + 0.15]} fontSize={0.22} color="#9AA2A9" anchorX="right">
+        <Text
+          key={t}
+          position={[-size - 0.1, t * heightScale, size + 0.15]}
+          fontSize={0.22}
+          color="#9AA2A9"
+          anchorX="right"
+        >
           {(surface.min + range(surface) * t).toFixed(greek === "GAMMA" ? 4 : 2)}
         </Text>
       ))}
     </group>
   );
 }
-function range(s: { min: number; max: number }) { return s.max - s.min || 1; }
+function range(s: { min: number; max: number }) {
+  return s.max - s.min || 1;
+}
 
-function ScreenTracker({ point, onScreen }: { point: THREE.Vector3 | null; onScreen: (s: { x: number; y: number } | null) => void }) {
+function ScreenTracker({
+  point,
+  onScreen,
+}: {
+  point: THREE.Vector3 | null;
+  onScreen: (s: { x: number; y: number } | null) => void;
+}) {
   const { camera, size } = useThree();
   useFrame(() => {
-    if (!point) { onScreen(null); return; }
+    if (!point) {
+      onScreen(null);
+      return;
+    }
     const v = point.clone().project(camera);
     onScreen({ x: (v.x * 0.5 + 0.5) * size.width, y: (-v.y * 0.5 + 0.5) * size.height });
   });
   return null;
 }
 
-export default function GreeksSurfaceCanvas({ symbol, spot, greek }: { symbol: string; spot: number; greek: Greek }) {
-  const [hover, setHover] = useState<{ strike: number; expiry: number; val: number; point: THREE.Vector3 } | null>(null);
+export default function GreeksSurfaceCanvas({
+  symbol,
+  spot,
+  greek,
+}: {
+  symbol: string;
+  spot: number;
+  greek: Greek;
+}) {
+  const [hover, setHover] = useState<{
+    strike: number;
+    expiry: number;
+    val: number;
+    point: THREE.Vector3;
+  } | null>(null);
   const [screen, setScreen] = useState<{ x: number; y: number } | null>(null);
   return (
     <div className="relative h-full w-full">
@@ -130,7 +205,13 @@ export default function GreeksSurfaceCanvas({ symbol, spot, greek }: { symbol: s
         <directionalLight position={[-6, 6, -4]} intensity={0.5} color="#45B9D3" />
         <GreeksMesh symbol={symbol} spot={spot} greek={greek} onHover={setHover} />
         <ScreenTracker point={hover?.point ?? null} onScreen={setScreen} />
-        <OrbitControls enablePan={false} minDistance={9} maxDistance={26} minPolarAngle={0.2} maxPolarAngle={Math.PI / 2 - 0.08} />
+        <OrbitControls
+          enablePan={false}
+          minDistance={9}
+          maxDistance={26}
+          minPolarAngle={0.2}
+          maxPolarAngle={Math.PI / 2 - 0.08}
+        />
       </Canvas>
       {hover && screen && (
         <div
@@ -139,10 +220,11 @@ export default function GreeksSurfaceCanvas({ symbol, spot, greek }: { symbol: s
         >
           <div className="mono-caps text-[9px] text-primary">STRIKE {hover.strike.toFixed(2)}</div>
           <div className="mono-caps text-[9px] text-muted-foreground">EXPIRY {hover.expiry}d</div>
-          <div className="mono-caps text-[9px] text-info">{greek} {hover.val.toFixed(greek === "GAMMA" ? 4 : 3)}</div>
+          <div className="mono-caps text-[9px] text-info">
+            {greek} {hover.val.toFixed(greek === "GAMMA" ? 4 : 3)}
+          </div>
         </div>
       )}
     </div>
   );
 }
-

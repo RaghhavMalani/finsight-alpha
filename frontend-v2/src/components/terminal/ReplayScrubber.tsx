@@ -10,12 +10,14 @@ export function ReplayScrubber({
   const [speed, setSpeed] = useState<1 | 4 | 16>(4);
   const raf = useRef<number | null>(null);
   const last = useRef(0);
+  const callback = useRef(onReplay);
+  useEffect(() => {
+    callback.current = onReplay;
+  }, [onReplay]);
 
   useEffect(() => {
-    onReplay(t);
-     
+    callback.current(t);
   }, [t]);
-
   useEffect(() => {
     if (!playing) return;
     function step(now: number) {
@@ -52,6 +54,7 @@ export function ReplayScrubber({
     <div className="mono-caps flex items-center gap-2 border-t border-divider bg-panel px-3 py-1.5 text-[9px] text-muted-foreground">
       <span className={t !== null ? "text-info" : "text-primary"}>REPLAY</span>
       <button
+        aria-label={playing ? "Pause replay" : "Play replay"}
         onClick={() => {
           if (t === null) setT(0);
           setPlaying((p) => !p);
@@ -73,6 +76,7 @@ export function ReplayScrubber({
       ))}
       <div className="relative flex-1">
         <input
+          aria-label="Session replay time"
           type="range"
           min={0}
           max={1000}
@@ -85,7 +89,7 @@ export function ReplayScrubber({
           className="w-full accent-[color:var(--info)]"
         />
       </div>
-      <span className="font-mono text-[10px] text-foreground w-12 text-right">
+      <span className="font-mono text-[10px] text-foreground whitespace-nowrap text-right">
         {t === null ? "16:00" : fmtSession(t)}
       </span>
       <button
@@ -101,4 +105,3 @@ export function ReplayScrubber({
     </div>
   );
 }
-

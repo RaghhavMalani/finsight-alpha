@@ -57,7 +57,9 @@ export function KeyboardOverlay({ open, onClose }: { open: boolean; onClose: () 
                   <kbd className="mono-caps border border-border bg-raised px-2 py-0.5 text-[10px] text-foreground">
                     {k}
                   </kbd>
-                  <span className="font-mono text-[10px] text-muted-foreground text-right">{v}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground text-right">
+                    {v}
+                  </span>
                 </div>
               ))}
             </div>
@@ -67,4 +69,3 @@ export function KeyboardOverlay({ open, onClose }: { open: boolean; onClose: () 
     </div>
   );
 }
-

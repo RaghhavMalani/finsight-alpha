@@ -19,7 +19,11 @@ export function DepthLadder({ instrument }: { instrument: Instrument }) {
       </div>
       <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4 font-mono text-[12px]">
         <QuoteMetric label="LAST" value={fmt(instrument.price)} />
-        <QuoteMetric label="CHANGE" value={fmtPct(instrument.changePct)} tone={instrument.changePct >= 0 ? "up" : "down"} />
+        <QuoteMetric
+          label="CHANGE"
+          value={fmtPct(instrument.changePct)}
+          tone={instrument.changePct >= 0 ? "up" : "down"}
+        />
         <QuoteMetric label="OPEN" value={fmt(instrument.open)} />
         <QuoteMetric label="PREV CLOSE" value={fmt(instrument.prevClose)} />
         <QuoteMetric label="DAY HIGH" value={fmt(instrument.sessionHigh)} />
@@ -34,7 +38,10 @@ export function DepthLadder({ instrument }: { instrument: Instrument }) {
           <span>{fmt(instrument.sessionHigh)}</span>
         </div>
         <div className="relative h-2 bg-divider">
-          <div className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-primary" style={{ left: `${rangePosition}%` }} />
+          <div
+            className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-primary"
+            style={{ left: `${rangePosition}%` }}
+          />
         </div>
       </div>
       <div className="mono-caps mt-auto border border-info/30 bg-info/5 p-3 text-[9px] leading-relaxed text-info">
@@ -56,7 +63,11 @@ function QuoteMetric({
   return (
     <div>
       <div className="mono-caps text-[9px] text-faint">{label}</div>
-      <div className={tone === "up" ? "text-up" : tone === "down" ? "text-down" : "text-foreground"}>{value}</div>
+      <div
+        className={tone === "up" ? "text-up" : tone === "down" ? "text-down" : "text-foreground"}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -92,17 +103,31 @@ export function SectorHeatmap() {
       SECTOR_ETFS.flatMap((sector) => {
         const quote = tape.data?.items.find((item) => item.ticker === sector.symbol);
         return quote
-          ? [{ ...sector, value: quote.change_pct * 100, source: quote.source ?? (quote.live ? "FINNHUB" : "YFINANCE_EOD") }]
+          ? [
+              {
+                ...sector,
+                value: quote.change_pct * 100,
+                source: quote.source ?? (quote.live ? "FINNHUB" : "YFINANCE_EOD"),
+              },
+            ]
           : [];
       }),
     [tape.data],
   );
 
   if (tape.isPending) {
-    return <div className="mono-caps grid h-full place-items-center text-[10px] text-faint">LOADING REAL SECTOR ETF QUOTES…</div>;
+    return (
+      <div className="mono-caps grid h-full place-items-center text-[10px] text-faint">
+        LOADING REAL SECTOR ETF QUOTES…
+      </div>
+    );
   }
   if (tape.isError || !cells.length) {
-    return <div className="mono-caps grid h-full place-items-center text-[10px] text-down">SECTOR ETF DATA UNAVAILABLE</div>;
+    return (
+      <div className="mono-caps grid h-full place-items-center text-[10px] text-down">
+        SECTOR ETF DATA UNAVAILABLE
+      </div>
+    );
   }
 
   return (
@@ -131,4 +156,3 @@ export function SectorHeatmap() {
     </div>
   );
 }
-

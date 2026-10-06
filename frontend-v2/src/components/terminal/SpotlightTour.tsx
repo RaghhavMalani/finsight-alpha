@@ -46,10 +46,18 @@ export function SpotlightTour() {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
       if (localStorage.getItem(KEY) !== "done") {
-        timeout = setTimeout(() => { setOpen(true); setI(0); }, 900);
+        timeout = setTimeout(() => {
+          setOpen(true);
+          setI(0);
+        }, 900);
       }
-    } catch { /* ignore */ }
-    function replay() { setI(0); setOpen(true); }
+    } catch {
+      /* ignore */
+    }
+    function replay() {
+      setI(0);
+      setOpen(true);
+    }
     window.addEventListener("finsight:tour-replay", replay);
     return () => {
       if (timeout) clearTimeout(timeout);
@@ -77,7 +85,9 @@ export function SpotlightTour() {
   function done() {
     try {
       localStorage.setItem(KEY, "done");
-    } catch {}
+    } catch {
+      // Storage can be unavailable; the tour still closes for this visit.
+    }
     setOpen(false);
   }
 
@@ -98,8 +108,10 @@ export function SpotlightTour() {
 
   return (
     <div className="fixed inset-0 z-[95] pointer-events-none">
-      <svg className="absolute inset-0 h-full w-full pointer-events-none" style={{ pointerEvents: "none" }}>
-
+      <svg
+        className="absolute inset-0 h-full w-full pointer-events-none"
+        style={{ pointerEvents: "none" }}
+      >
         <defs>
           <mask id="tour-mask">
             <rect width="100%" height="100%" fill="white" />
@@ -119,7 +131,13 @@ export function SpotlightTour() {
             strokeWidth={1.5}
             strokeDasharray="6 4"
           >
-            <animate attributeName="stroke-dashoffset" from="0" to="20" dur="1.2s" repeatCount="indefinite" />
+            <animate
+              attributeName="stroke-dashoffset"
+              from="0"
+              to="20"
+              dur="1.2s"
+              repeatCount="indefinite"
+            />
           </rect>
         )}
       </svg>
@@ -151,4 +169,3 @@ export function SpotlightTour() {
     </div>
   );
 }
-

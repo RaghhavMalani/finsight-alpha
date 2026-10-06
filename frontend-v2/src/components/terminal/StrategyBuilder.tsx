@@ -24,7 +24,11 @@ const BIAS_STRUCTURES: Record<Bias, string> = {
 };
 
 export function StrategyBuilder({
-  spot, symbol, legs, setLegs, suggestOnBias,
+  spot,
+  symbol,
+  legs,
+  setLegs,
+  suggestOnBias,
 }: {
   spot: number;
   symbol: string;
@@ -53,9 +57,14 @@ export function StrategyBuilder({
   const netDelta = legs.reduce((s, l) => {
     const sign = l.side === "buy" ? 1 : -1;
     const moneyness = (spot - l.strike) / spot;
-    const rawDelta = l.kind === "call"
-      ? (l.strike < spot ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4) : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4))
-      : -(l.strike > spot ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4) : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4));
+    const rawDelta =
+      l.kind === "call"
+        ? l.strike < spot
+          ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4)
+          : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4)
+        : -(l.strike > spot
+            ? Math.min(0.98, 0.55 + Math.abs(moneyness) * 4)
+            : Math.max(0.02, 0.5 - Math.abs(moneyness) * 4));
     return s + sign * rawDelta;
   }, 0);
   const netVega = legs.reduce((s, l) => s + (l.side === "buy" ? 1 : -1) * 0.15, 0);
@@ -63,13 +72,18 @@ export function StrategyBuilder({
   // Breakevens
   const breakevens: number[] = [];
   for (let i = 1; i < curve.length; i++) {
-    if ((curve[i - 1].pnl < 0 && curve[i].pnl >= 0) || (curve[i - 1].pnl > 0 && curve[i].pnl <= 0)) {
+    if (
+      (curve[i - 1].pnl < 0 && curve[i].pnl >= 0) ||
+      (curve[i - 1].pnl > 0 && curve[i].pnl <= 0)
+    ) {
       const t = -curve[i - 1].pnl / (curve[i].pnl - curve[i - 1].pnl);
       breakevens.push(curve[i - 1].S + t * (curve[i].S - curve[i - 1].S));
     }
   }
 
-  const W = 320, H = 160, padY = 12;
+  const W = 320,
+    H = 160,
+    padY = 12;
   const yMin = Math.min(...curve.map((p) => p.pnl)) - 0.5;
   const yMax = Math.max(...curve.map((p) => p.pnl)) + 0.5;
   const yScale = (v: number) => H - padY - ((v - yMin) / (yMax - yMin || 1)) * (H - padY * 2);
@@ -84,13 +98,22 @@ export function StrategyBuilder({
     <div className="flex h-full flex-col overflow-hidden border-l border-divider bg-panel/40">
       <div className="mono-caps flex items-center justify-between border-b border-divider bg-panel px-3 py-1.5 text-[10px]">
         <span className="text-primary">STRATEGY BUILDER · {symbol}</span>
-        <button onClick={() => setLegs([])} className="interactive border border-border px-1.5 py-0.5 text-[9px] text-faint hover:text-down">CLEAR</button>
+        <button
+          onClick={() => setLegs([])}
+          className="interactive border border-border px-1.5 py-0.5 text-[9px] text-faint hover:text-down"
+        >
+          CLEAR
+        </button>
       </div>
       <div className="border-b border-divider px-3 py-2">
         <div className="mono-caps mb-1 text-[9px] text-faint">BIAS</div>
         <div className="flex gap-1">
           {(["BULL", "BEAR", "NEUTRAL", "VOL"] as Bias[]).map((b) => (
-            <button key={b} onClick={() => suggestOnBias(b)} className="interactive flex-1 border border-border bg-raised px-1.5 py-1 text-[9px] mono-caps text-foreground hover:border-primary hover:text-primary">
+            <button
+              key={b}
+              onClick={() => suggestOnBias(b)}
+              className="interactive flex-1 border border-border bg-raised px-1.5 py-1 text-[9px] mono-caps text-foreground hover:border-primary hover:text-primary"
+            >
               {b}
             </button>
           ))}
@@ -105,35 +128,104 @@ export function StrategyBuilder({
             NET {netCost >= 0 ? "DR" : "CR"} {fmt(Math.abs(netCost))}
           </span>
         </div>
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none" style={{ height: 160 }}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full"
+          preserveAspectRatio="none"
+          style={{ height: 160 }}
+        >
           {/* Grid */}
-          <line x1="0" x2={W} y1={zeroY} y2={zeroY} stroke="#636C74" strokeWidth={0.75} strokeDasharray="2 3" />
-          <line x1={spotX} x2={spotX} y1="0" y2={H} stroke="#F0A929" strokeOpacity={0.4} strokeDasharray="3 3" strokeWidth={0.75} />
+          <line
+            x1="0"
+            x2={W}
+            y1={zeroY}
+            y2={zeroY}
+            stroke="#636C74"
+            strokeWidth={0.75}
+            strokeDasharray="2 3"
+          />
+          <line
+            x1={spotX}
+            x2={spotX}
+            y1="0"
+            y2={H}
+            stroke="#F0A929"
+            strokeOpacity={0.4}
+            strokeDasharray="3 3"
+            strokeWidth={0.75}
+          />
           {/* Profit fill */}
           <polygon points={`0,${zeroY} ${pathAbove} ${W},${zeroY}`} fill="#42C98B" opacity={0.16} />
           <polygon points={`0,${zeroY} ${pathBelow} ${W},${zeroY}`} fill="#F06464" opacity={0.16} />
           {/* Curve */}
           {legs.length > 0 && (
-            <polyline points={line} fill="none" stroke="#F0A929" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+            <polyline
+              points={line}
+              fill="none"
+              stroke="#F0A929"
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
+            />
           )}
           {/* Breakevens */}
           {breakevens.map((be, i) => (
             <g key={i}>
-              <line x1={xScale(be)} x2={xScale(be)} y1="0" y2={H} stroke="#45B9D3" strokeOpacity={0.5} strokeDasharray="2 2" strokeWidth={0.75} />
-              <text x={xScale(be)} y={12} fontSize="8" fill="#45B9D3" textAnchor="middle" className="mono-caps">BE {be.toFixed(1)}</text>
+              <line
+                x1={xScale(be)}
+                x2={xScale(be)}
+                y1="0"
+                y2={H}
+                stroke="#45B9D3"
+                strokeOpacity={0.5}
+                strokeDasharray="2 2"
+                strokeWidth={0.75}
+              />
+              <text
+                x={xScale(be)}
+                y={12}
+                fontSize="8"
+                fill="#45B9D3"
+                textAnchor="middle"
+                className="mono-caps"
+              >
+                BE {be.toFixed(1)}
+              </text>
             </g>
           ))}
           {/* Spot marker */}
-          <text x={spotX + 3} y={H - 4} fontSize="8" fill="#F0A929" className="mono-caps">SPOT {spot.toFixed(2)}</text>
+          <text x={spotX + 3} y={H - 4} fontSize="8" fill="#F0A929" className="mono-caps">
+            SPOT {spot.toFixed(2)}
+          </text>
           {legs.length === 0 && (
-            <text x={W / 2} y={H / 2} textAnchor="middle" fill="#636C74" fontSize="10" className="mono-caps">Pick a bias or click chain rows</text>
+            <text
+              x={W / 2}
+              y={H / 2}
+              textAnchor="middle"
+              fill="#636C74"
+              fontSize="10"
+              className="mono-caps"
+            >
+              Pick a bias or click chain rows
+            </text>
           )}
         </svg>
         <div className="mono-caps mt-1 grid grid-cols-4 gap-2 text-[9px] tabular-nums">
-          <div><span className="text-faint">MAX P </span><span className="text-up">{maxProfit === Infinity ? "∞" : fmt(maxProfit)}</span></div>
-          <div><span className="text-faint">MAX L </span><span className="text-down">{maxLoss === -Infinity ? "-∞" : fmt(maxLoss)}</span></div>
-          <div><span className="text-faint">Δ </span><span className="text-foreground">{netDelta.toFixed(2)}</span></div>
-          <div><span className="text-faint">V </span><span className="text-foreground">{netVega.toFixed(2)}</span></div>
+          <div>
+            <span className="text-faint">MAX P </span>
+            <span className="text-up">{maxProfit === Infinity ? "∞" : fmt(maxProfit)}</span>
+          </div>
+          <div>
+            <span className="text-faint">MAX L </span>
+            <span className="text-down">{maxLoss === -Infinity ? "-∞" : fmt(maxLoss)}</span>
+          </div>
+          <div>
+            <span className="text-faint">Δ </span>
+            <span className="text-foreground">{netDelta.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-faint">V </span>
+            <span className="text-foreground">{netVega.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
@@ -146,12 +238,22 @@ export function StrategyBuilder({
           </div>
         )}
         {legs.map((l, i) => (
-          <div key={i} className="mono-caps mb-1 flex items-center justify-between border border-divider bg-raised px-2 py-1 text-[10px] tabular-nums">
-            <span className={l.side === "buy" ? "text-up" : "text-down"}>{l.side.toUpperCase()}</span>
+          <div
+            key={i}
+            className="mono-caps mb-1 flex items-center justify-between border border-divider bg-raised px-2 py-1 text-[10px] tabular-nums"
+          >
+            <span className={l.side === "buy" ? "text-up" : "text-down"}>
+              {l.side.toUpperCase()}
+            </span>
             <span className="text-foreground">{l.kind.toUpperCase()}</span>
             <span className="text-primary">{fmt(l.strike)}</span>
             <span className="text-muted-foreground">@ {fmt(l.premium)}</span>
-            <button onClick={() => setLegs(legs.filter((_, j) => j !== i))} className="text-faint hover:text-down">✕</button>
+            <button
+              onClick={() => setLegs(legs.filter((_, j) => j !== i))}
+              className="text-faint hover:text-down"
+            >
+              ✕
+            </button>
           </div>
         ))}
       </div>
@@ -159,15 +261,18 @@ export function StrategyBuilder({
         <div className="mono-caps border-t border-divider bg-panel px-3 py-2 text-[9px]">
           <div className="text-faint">STRUCTURE</div>
           <div className="mt-0.5 text-[10px] text-foreground">
-            {legs.length === 2 && legs[0].kind === "call" && legs[1].kind === "call" ? BIAS_STRUCTURES.BULL
-              : legs.length === 2 && legs[0].kind === "put" && legs[1].kind === "put" ? BIAS_STRUCTURES.BEAR
-              : legs.length === 4 ? BIAS_STRUCTURES.NEUTRAL
-              : legs.length === 2 && legs[0].strike === legs[1].strike ? BIAS_STRUCTURES.VOL
-              : "Custom multi-leg"}
+            {legs.length === 2 && legs[0].kind === "call" && legs[1].kind === "call"
+              ? BIAS_STRUCTURES.BULL
+              : legs.length === 2 && legs[0].kind === "put" && legs[1].kind === "put"
+                ? BIAS_STRUCTURES.BEAR
+                : legs.length === 4
+                  ? BIAS_STRUCTURES.NEUTRAL
+                  : legs.length === 2 && legs[0].strike === legs[1].strike
+                    ? BIAS_STRUCTURES.VOL
+                    : "Custom multi-leg"}
           </div>
         </div>
       )}
     </div>
   );
 }
-

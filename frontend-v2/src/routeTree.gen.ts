@@ -9,66 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorldsRouteImport } from './routes/worlds'
-import { Route as TerminalRouteImport } from './routes/terminal'
-import { Route as RunsRouteImport } from './routes/runs'
-import { Route as RiskRouteImport } from './routes/risk'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as LegacyTerminalRouteImport } from './routes/legacy-terminal'
-import { Route as ForgeRouteImport } from './routes/forge'
-import { Route as DynamicsRouteImport } from './routes/dynamics'
-import { Route as BenchRouteImport } from './routes/bench'
-import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as RunsIndexRouteImport } from './routes/runs.index'
+import { Route as ArtifactsRouteImport } from './routes/artifacts'
+import { Route as BenchRouteImport } from './routes/bench'
+import { Route as DynamicsRouteImport } from './routes/dynamics'
+import { Route as ForgeRouteImport } from './routes/forge'
+import { Route as LegacyTerminalRouteImport } from './routes/legacy-terminal'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ObservatoryRouteImport } from './routes/observatory'
+import { Route as RiskRouteImport } from './routes/risk'
+import { Route as RunsRouteImport } from './routes/runs'
+import { Route as TerminalRouteImport } from './routes/terminal'
+import { Route as WorldsRouteImport } from './routes/worlds'
 import { Route as BenchIndexRouteImport } from './routes/bench.index'
-import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
-import { Route as RealityArtifactIdRouteImport } from './routes/reality.$artifactId'
 import { Route as BenchBenchmarkIdRouteImport } from './routes/bench.$benchmarkId'
+import { Route as RealityArtifactIdRouteImport } from './routes/reality.$artifactId'
+import { Route as RunsIndexRouteImport } from './routes/runs.index'
+import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
 
-const WorldsRoute = WorldsRouteImport.update({
-  id: '/worlds',
-  path: '/worlds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TerminalRoute = TerminalRouteImport.update({
-  id: '/terminal',
-  path: '/terminal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RunsRoute = RunsRouteImport.update({
-  id: '/runs',
-  path: '/runs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RiskRoute = RiskRouteImport.update({
-  id: '/risk',
-  path: '/risk',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LegacyTerminalRoute = LegacyTerminalRouteImport.update({
-  id: '/legacy-terminal',
-  path: '/legacy-terminal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForgeRoute = ForgeRouteImport.update({
-  id: '/forge',
-  path: '/forge',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DynamicsRoute = DynamicsRouteImport.update({
-  id: '/dynamics',
-  path: '/dynamics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchRoute = BenchRouteImport.update({
-  id: '/bench',
-  path: '/bench',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArtifactsRoute = ArtifactsRouteImport.update({
@@ -76,9 +37,69 @@ const ArtifactsRoute = ArtifactsRouteImport.update({
   path: '/artifacts',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const BenchRoute = BenchRouteImport.update({
+  id: '/bench',
+  path: '/bench',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DynamicsRoute = DynamicsRouteImport.update({
+  id: '/dynamics',
+  path: '/dynamics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgeRoute = ForgeRouteImport.update({
+  id: '/forge',
+  path: '/forge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegacyTerminalRoute = LegacyTerminalRouteImport.update({
+  id: '/legacy-terminal',
+  path: '/legacy-terminal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObservatoryRoute = ObservatoryRouteImport.update({
+  id: '/observatory',
+  path: '/observatory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiskRoute = RiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RunsRoute = RunsRouteImport.update({
+  id: '/runs',
+  path: '/runs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TerminalRoute = TerminalRouteImport.update({
+  id: '/terminal',
+  path: '/terminal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorldsRoute = WorldsRouteImport.update({
+  id: '/worlds',
+  path: '/worlds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BenchIndexRoute = BenchIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => BenchRoute,
+} as any)
+const BenchBenchmarkIdRoute = BenchBenchmarkIdRouteImport.update({
+  id: '/$benchmarkId',
+  path: '/$benchmarkId',
+  getParentRoute: () => BenchRoute,
+} as any)
+const RealityArtifactIdRoute = RealityArtifactIdRouteImport.update({
+  id: '/reality/$artifactId',
+  path: '/reality/$artifactId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RunsIndexRoute = RunsIndexRouteImport.update({
@@ -86,25 +107,10 @@ const RunsIndexRoute = RunsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => RunsRoute,
 } as any)
-const BenchIndexRoute = BenchIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BenchRoute,
-} as any)
 const RunsRunIdRoute = RunsRunIdRouteImport.update({
   id: '/$runId',
   path: '/$runId',
   getParentRoute: () => RunsRoute,
-} as any)
-const RealityArtifactIdRoute = RealityArtifactIdRouteImport.update({
-  id: '/reality/$artifactId',
-  path: '/reality/$artifactId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BenchBenchmarkIdRoute = BenchBenchmarkIdRouteImport.update({
-  id: '/$benchmarkId',
-  path: '/$benchmarkId',
-  getParentRoute: () => BenchRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
+  '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/terminal': typeof TerminalRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
+  '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/terminal': typeof TerminalRoute
   '/worlds': typeof WorldsRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/forge': typeof ForgeRoute
   '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
+  '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/terminal': typeof TerminalRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/forge'
     | '/legacy-terminal'
     | '/login'
+    | '/observatory'
     | '/risk'
     | '/runs'
     | '/terminal'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/forge'
     | '/legacy-terminal'
     | '/login'
+    | '/observatory'
     | '/risk'
     | '/terminal'
     | '/worlds'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/forge'
     | '/legacy-terminal'
     | '/login'
+    | '/observatory'
     | '/risk'
     | '/runs'
     | '/terminal'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   ForgeRoute: typeof ForgeRoute
   LegacyTerminalRoute: typeof LegacyTerminalRoute
   LoginRoute: typeof LoginRoute
+  ObservatoryRoute: typeof ObservatoryRoute
   RiskRoute: typeof RiskRoute
   RunsRoute: typeof RunsRouteWithChildren
   TerminalRoute: typeof TerminalRoute
@@ -232,67 +245,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/worlds': {
-      id: '/worlds'
-      path: '/worlds'
-      fullPath: '/worlds'
-      preLoaderRoute: typeof WorldsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terminal': {
-      id: '/terminal'
-      path: '/terminal'
-      fullPath: '/terminal'
-      preLoaderRoute: typeof TerminalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/runs': {
-      id: '/runs'
-      path: '/runs'
-      fullPath: '/runs'
-      preLoaderRoute: typeof RunsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/risk': {
-      id: '/risk'
-      path: '/risk'
-      fullPath: '/risk'
-      preLoaderRoute: typeof RiskRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/legacy-terminal': {
-      id: '/legacy-terminal'
-      path: '/legacy-terminal'
-      fullPath: '/legacy-terminal'
-      preLoaderRoute: typeof LegacyTerminalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forge': {
-      id: '/forge'
-      path: '/forge'
-      fullPath: '/forge'
-      preLoaderRoute: typeof ForgeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dynamics': {
-      id: '/dynamics'
-      path: '/dynamics'
-      fullPath: '/dynamics'
-      preLoaderRoute: typeof DynamicsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bench': {
-      id: '/bench'
-      path: '/bench'
-      fullPath: '/bench'
-      preLoaderRoute: typeof BenchRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/artifacts': {
@@ -302,11 +259,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtifactsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/bench': {
+      id: '/bench'
+      path: '/bench'
+      fullPath: '/bench'
+      preLoaderRoute: typeof BenchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dynamics': {
+      id: '/dynamics'
+      path: '/dynamics'
+      fullPath: '/dynamics'
+      preLoaderRoute: typeof DynamicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forge': {
+      id: '/forge'
+      path: '/forge'
+      fullPath: '/forge'
+      preLoaderRoute: typeof ForgeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legacy-terminal': {
+      id: '/legacy-terminal'
+      path: '/legacy-terminal'
+      fullPath: '/legacy-terminal'
+      preLoaderRoute: typeof LegacyTerminalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/observatory': {
+      id: '/observatory'
+      path: '/observatory'
+      fullPath: '/observatory'
+      preLoaderRoute: typeof ObservatoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/risk': {
+      id: '/risk'
+      path: '/risk'
+      fullPath: '/risk'
+      preLoaderRoute: typeof RiskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runs': {
+      id: '/runs'
+      path: '/runs'
+      fullPath: '/runs'
+      preLoaderRoute: typeof RunsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terminal': {
+      id: '/terminal'
+      path: '/terminal'
+      fullPath: '/terminal'
+      preLoaderRoute: typeof TerminalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/worlds': {
+      id: '/worlds'
+      path: '/worlds'
+      fullPath: '/worlds'
+      preLoaderRoute: typeof WorldsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bench/': {
+      id: '/bench/'
       path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      fullPath: '/bench/'
+      preLoaderRoute: typeof BenchIndexRouteImport
+      parentRoute: typeof BenchRoute
+    }
+    '/bench/$benchmarkId': {
+      id: '/bench/$benchmarkId'
+      path: '/$benchmarkId'
+      fullPath: '/bench/$benchmarkId'
+      preLoaderRoute: typeof BenchBenchmarkIdRouteImport
+      parentRoute: typeof BenchRoute
+    }
+    '/reality/$artifactId': {
+      id: '/reality/$artifactId'
+      path: '/reality/$artifactId'
+      fullPath: '/reality/$artifactId'
+      preLoaderRoute: typeof RealityArtifactIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/runs/': {
@@ -316,33 +357,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RunsIndexRouteImport
       parentRoute: typeof RunsRoute
     }
-    '/bench/': {
-      id: '/bench/'
-      path: '/'
-      fullPath: '/bench/'
-      preLoaderRoute: typeof BenchIndexRouteImport
-      parentRoute: typeof BenchRoute
-    }
     '/runs/$runId': {
       id: '/runs/$runId'
       path: '/$runId'
       fullPath: '/runs/$runId'
       preLoaderRoute: typeof RunsRunIdRouteImport
       parentRoute: typeof RunsRoute
-    }
-    '/reality/$artifactId': {
-      id: '/reality/$artifactId'
-      path: '/reality/$artifactId'
-      fullPath: '/reality/$artifactId'
-      preLoaderRoute: typeof RealityArtifactIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bench/$benchmarkId': {
-      id: '/bench/$benchmarkId'
-      path: '/$benchmarkId'
-      fullPath: '/bench/$benchmarkId'
-      preLoaderRoute: typeof BenchBenchmarkIdRouteImport
-      parentRoute: typeof BenchRoute
     }
   }
 }
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgeRoute: ForgeRoute,
   LegacyTerminalRoute: LegacyTerminalRoute,
   LoginRoute: LoginRoute,
+  ObservatoryRoute: ObservatoryRoute,
   RiskRoute: RiskRoute,
   RunsRoute: RunsRouteWithChildren,
   TerminalRoute: TerminalRoute,

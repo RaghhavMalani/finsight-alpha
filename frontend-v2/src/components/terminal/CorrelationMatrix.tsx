@@ -20,14 +20,18 @@ export function CorrelationMatrix({ symbols }: { symbols: string[] }) {
             <tr>
               <th className="p-1" />
               {symbols.map((s) => (
-                <th key={s} className="mono-caps p-1 text-[9px] text-muted-foreground">{s}</th>
+                <th key={s} className="mono-caps p-1 text-[9px] text-muted-foreground">
+                  {s}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {m.map((row, i) => (
               <tr key={i}>
-                <th className="mono-caps p-1 text-[9px] text-muted-foreground text-right">{symbols[i]}</th>
+                <th className="mono-caps p-1 text-[9px] text-muted-foreground text-right">
+                  {symbols[i]}
+                </th>
                 {row.map((v, j) => (
                   <td
                     key={j}
@@ -35,7 +39,8 @@ export function CorrelationMatrix({ symbols }: { symbols: string[] }) {
                     style={{
                       background: viridis(v),
                       color: v > 0.55 ? "#050607" : "#E7EAEC",
-                      outline: hover && hover.i === i && hover.j === j ? "2px solid #F0A929" : "none",
+                      outline:
+                        hover && hover.i === i && hover.j === j ? "2px solid #F0A929" : "none",
                     }}
                     onMouseEnter={() => setHover({ i, j })}
                     onMouseLeave={() => setHover(null)}
@@ -50,12 +55,14 @@ export function CorrelationMatrix({ symbols }: { symbols: string[] }) {
       </div>
       <div className="mono-caps mt-4 flex items-center gap-2 text-[9px] text-faint">
         <span>-1</span>
-        <div className="h-2 flex-1" style={{
-          background: `linear-gradient(90deg, ${viridis(0)}, ${viridis(0.25)}, ${viridis(0.5)}, ${viridis(0.75)}, ${viridis(1)})`
-        }} />
+        <div
+          className="h-2 flex-1"
+          style={{
+            background: `linear-gradient(90deg, ${viridis(0)}, ${viridis(0.25)}, ${viridis(0.5)}, ${viridis(0.75)}, ${viridis(1)})`,
+          }}
+        />
         <span>+1</span>
       </div>
     </div>
   );
 }
-

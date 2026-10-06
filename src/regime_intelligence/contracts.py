@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from src.dynamics.market_regime_inputs import RegimeInputError, RegimeWorld, utc, digest
+from src.dynamics.market_regime_inputs import Bar, RegimeInputError, RegimeWorld, utc, digest
 
 STREAMS = ("daily", "intraday", "factors", "macro", "events")
 ASSETS = ("SPY", "QQQ", "IWM")
@@ -21,7 +21,11 @@ class Observation(BaseModel):
     as_of: datetime
     source: str = Field(min_length=1)
     revision: str = Field(min_length=1)
-    quality: Literal["PUBLICATION_TIMESTAMP", "CONSERVATIVE_VINTAGE_DAY"]
+    quality: Literal[
+        "PUBLICATION_TIMESTAMP", "CONSERVATIVE_VINTAGE_DAY",
+        "CONSERVATIVE_MARKET_TIME", "RECEIVE_TIMESTAMP_CAPTURED",
+        "CAPTURE_ONLY",
+    ]
     publication_evidence: str = Field(min_length=1)
     values: dict
 
@@ -37,7 +41,45 @@ class Observation(BaseModel):
             raise RegimeInputError(
                 "Day-granular vintage quality is only supported for macro"
             )
+        if self.quality in ("CONSERVATIVE_MARKET_TIME", "RECEIVE_TIMESTAMP_CAPTURED"):
+            if self.stream not in ("daily", "intraday") or self.source != "ALPACA_IEX":
+                raise RegimeInputError("Alpaca market evidence requires ALPACA_IEX bars")
+        if self.quality == "CAPTURE_ONLY" and self.stream != "factors":
+            raise RegimeInputError("Capture-only factor evidence requires the factors stream")
+        if self.quality == "CAPTURE_ONLY" and self.available_at != self.as_of:
+            raise RegimeInputError("Capture-only factor evidence cannot be backdated")
         digest(self.values)
+        return self
+
+
+class FactorRelease(BaseModel):
+    """Source-library evidence; FF5 RMW/CMA never become QUAL/VOL/LIQ."""
+
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    family: Literal["FF3", "FF5", "MOM"]
+    frequency: Literal["daily", "monthly"]
+    observed_at: datetime
+    available_at: datetime
+    as_of: datetime
+    source: str
+    source_url: str
+    content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    release_identity: str
+    quality: Literal["CONSERVATIVE_RELEASE_MONTH", "CAPTURE_ONLY"]
+    values: dict[str, float]
+
+    @model_validator(mode="after")
+    def evidence(self):
+        self.observed_at, self.available_at, self.as_of = (
+            utc(self.observed_at), utc(self.available_at), utc(self.as_of)
+        )
+        if not self.observed_at <= self.available_at <= self.as_of:
+            raise RegimeInputError("Invalid French release availability")
+        if self.quality == "CAPTURE_ONLY" and self.available_at != self.as_of:
+            raise RegimeInputError("A current French capture cannot be backdated")
+        allowed = {"MKT", "SMB", "HML", "RF", "RMW", "CMA", "MOM"}
+        if not self.values or set(self.values) - allowed:
+            raise RegimeInputError("Unknown French library factor")
         return self
 
 
@@ -53,6 +95,7 @@ class PITDataset(BaseModel):
     annual_sessions: int = Field(default=252, ge=1, le=366)
     definitions: dict[str, str]
     observations: list[Observation] = Field(max_length=120000)
+    factor_library: list[FactorRelease] = Field(default_factory=list, max_length=120000)
 
     @model_validator(mode="after")
     def unique(self):
@@ -95,6 +138,10 @@ class PITDataset(BaseModel):
                     "liquidity"
                 ):
                     raise RegimeInputError("Liquidity requires an explicit definition")
+                Bar.model_validate({
+                    "observed_at": row.observed_at, "available_at": row.available_at,
+                    **{k: v for k, v in values.items() if k not in ("open", "high", "low")},
+                })
             if row.stream == "factors" and not self.definitions.get("factors"):
                 raise RegimeInputError(
                     "Factor construction and return units must be documented"
@@ -121,6 +168,10 @@ class PITDataset(BaseModel):
                     )
         # Validate the complete adapter boundary BEFORE accepting an import,
         # including stream sizes, optional fields, and publication ordering.
+        for stream in ("daily", "intraday"):
+            bars = sorted((r for r in self.observations if r.stream == stream), key=lambda r: r.observed_at)
+            if any(a.available_at > b.available_at for a, b in zip(bars, bars[1:])):
+                raise RegimeInputError(stream + " bar publication order must be monotone")
         RegimeWorld.model_validate(_world_fields(self))
         return self
 
@@ -128,7 +179,11 @@ class PITDataset(BaseModel):
 def visible_payload(dataset: PITDataset, cutoff: datetime | str) -> dict:
     """Identity includes ONLY visible rows; future append cannot evict old replay."""
     cutoff = utc(cutoff)
-    metadata = dataset.model_dump(mode="json", exclude={"observations"})
+    metadata = dataset.model_dump(mode="json", exclude={"observations", "factor_library"})
+    metadata["factor_library"] = [
+        r.model_dump(mode="json") for r in dataset.factor_library
+        if r.observed_at <= cutoff and r.available_at <= cutoff
+    ]
     rows = [
         r
         for r in dataset.observations
@@ -160,6 +215,10 @@ def _world_fields(dataset: PITDataset) -> dict:
         )
     for rows in streams.values():
         rows.sort(key=lambda r: (r["observed_at"], r["available_at"]))
+    # Keep the frozen engine's bounded input contract, while retaining the full
+    # provider history for older replays. Windowing happens AFTER PIT filtering.
+    if dataset.definitions.get("analytics_daily_window") == "2000":
+        streams["daily"] = streams["daily"][-2000:]
     # Asset-only input: published buy-and-hold returns are the attribution target.
     # Never mix asset returns into a separately supplied strategy series.
     if not any(r.get("strategy_return") is not None for r in streams["daily"]):
@@ -175,7 +234,7 @@ def _world_fields(dataset: PITDataset) -> dict:
         "source": "Publication-evidenced provider inputs; see per-stream lineage",
         "revision": digest(dataset.model_dump(mode="json")),
         **dataset.model_dump(
-            exclude={"schema_version", "asset", "observations", "definitions"}
+            exclude={"schema_version", "asset", "observations", "definitions", "factor_library"}
         ),
         **streams,
     }

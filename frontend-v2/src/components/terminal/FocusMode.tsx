@@ -39,7 +39,9 @@ export function FocusMode({
   useEffect(() => {
     if (!instrument) return;
     setTyped("");
-    const full = BRIEFS[instrument.symbol] ?? `${instrument.symbol} — session flow is balanced. Awaiting a directional catalyst; positioning suggests dealers are neutral gamma.`;
+    const full =
+      BRIEFS[instrument.symbol] ??
+      `${instrument.symbol} — session flow is balanced. Awaiting a directional catalyst; positioning suggests dealers are neutral gamma.`;
     let i = 0;
     const id = setInterval(() => {
       i += 2;
@@ -143,7 +145,11 @@ export function FocusMode({
             <StatCard label="MKT CAP" value={`$${(Number(fund.mktCap) / 1000).toFixed(1)}B`} />
             <StatCard label="P/E" value={fund.pe} />
             <StatCard label="BETA" value={fund.beta} />
-            <StatCard label="IV RANK" value={`${fund.ivRank}`} accent={fund.ivRank > 60 ? "up" : fund.ivRank < 30 ? "down" : undefined} />
+            <StatCard
+              label="IV RANK"
+              value={`${fund.ivRank}`}
+              accent={fund.ivRank > 60 ? "up" : fund.ivRank < 30 ? "down" : undefined}
+            />
             <div className="col-span-2 border border-divider bg-raised p-3">
               <div className="mono-caps text-[9px] text-faint">52W RANGE</div>
               <div className="mt-2 relative h-1 bg-background">
@@ -161,7 +167,7 @@ export function FocusMode({
               <div className="mono-caps mb-2 text-[9px] text-primary">OPTIONS SNAPSHOT</div>
               <div className="grid grid-cols-3 gap-2 font-mono text-[11px]">
                 <MiniStat k="ATM IV" v={`${(fund.ivRank * 0.5 + 18).toFixed(1)}%`} />
-                <MiniStat k="25Δ SKEW" v={`+${(2 + (fund.ivRank / 50)).toFixed(1)}v`} />
+                <MiniStat k="25Δ SKEW" v={`+${(2 + fund.ivRank / 50).toFixed(1)}v`} />
                 <MiniStat k="P/C RATIO" v={(0.6 + (100 - fund.ivRank) / 100).toFixed(2)} />
               </div>
             </div>
@@ -178,7 +184,15 @@ export function FocusMode({
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent?: "up" | "down" }) {
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: "up" | "down";
+}) {
   const color = accent === "up" ? "text-up" : accent === "down" ? "text-down" : "text-foreground";
   return (
     <div className="border border-divider bg-raised p-3">
@@ -196,4 +210,3 @@ function MiniStat({ k, v }: { k: string; v: string }) {
     </div>
   );
 }
-

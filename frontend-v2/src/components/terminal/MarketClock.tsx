@@ -44,11 +44,7 @@ function getMarketState(): { state: State; label: string } {
   const ss = until % 60;
   const t = `${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
   const label =
-    state === "OPEN"
-      ? `closes in ${t}`
-      : state === "PRE"
-        ? `opens in ${t}`
-        : `opens in ${t}`;
+    state === "OPEN" ? `closes in ${t}` : state === "PRE" ? `opens in ${t}` : `opens in ${t}`;
   return { state, label };
 }
 
@@ -70,16 +66,15 @@ export function MarketClock() {
     );
   }
   const { state, label } = getMarketState();
-  const color =
-    state === "OPEN" ? "text-up" : state === "PRE" ? "text-primary" : "text-faint";
-  const dot =
-    state === "OPEN" ? "bg-up" : state === "PRE" ? "bg-primary" : "bg-faint";
+  const color = state === "OPEN" ? "text-up" : state === "PRE" ? "text-primary" : "text-faint";
+  const dot = state === "OPEN" ? "bg-up" : state === "PRE" ? "bg-primary" : "bg-faint";
   return (
     <span className="mono-caps flex items-center gap-2 text-[10px]" title="NYSE session · ET">
-      <span className={`h-1.5 w-1.5 rounded-full ${dot} ${state === "OPEN" ? "animate-pulse-live" : ""}`} />
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${dot} ${state === "OPEN" ? "animate-pulse-live" : ""}`}
+      />
       <span className={color}>{state}</span>
       <span className="text-muted-foreground">· {label}</span>
     </span>
   );
 }
-

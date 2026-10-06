@@ -244,4 +244,68 @@ const missing = structuredClone(catalog);
 missing.assets.shift();
 assert.throws(() => adapter.adaptProductCatalog(missing), /failed closed/);
 assertions++;
+// Free-market evidence must remain distinct even when the state is unavailable.
+const iex = {
+  ...structuredClone(full),
+  asset: "SPY",
+  scope: "REAL_PIT",
+  status: "UNAVAILABLE",
+  analysis: null,
+  reason: "Contract fixture",
+  state_at: null,
+  timeline: [],
+  attribution_target: "ASSET_BUY_AND_HOLD_RETURN",
+  cache_identity: { ...full.cache_identity, asset: "SPY" },
+  market_evidence: {
+    mode: "CONSERVATIVE_MARKET_TIME",
+    coverage: "IEX ONLY",
+    historical_receive_timing: "UNAVAILABLE",
+    disclosure: "Historical receive timestamp unavailable. Not consolidated US market volume.",
+  },
+  factor_library: [],
+  provenance: ["daily", "intraday", "factors", "macro", "events"].map((stream) => ({
+    stream,
+    status: stream === "daily" ? "AVAILABLE" : "UNAVAILABLE",
+    observations: stream === "daily" ? 1 : 0,
+    sources: stream === "daily" ? ["ALPACA_IEX"] : [],
+    revisions: stream === "daily" ? ["test"] : [],
+    quality: stream === "daily" ? ["CONSERVATIVE_MARKET_TIME"] : [],
+    available_through: stream === "daily" ? full.as_of : null,
+    source_as_of: stream === "daily" ? full.as_of : null,
+    publication_evidence: stream === "daily" ? ["test"] : [],
+  })),
+};
+assert.equal(adapter.adaptProductSnapshot(iex).market_evidence.mode, "CONSERVATIVE_MARKET_TIME");
+assertions++;
+for (const mutate of [
+  (v) => {
+    delete v.market_evidence;
+  },
+  (v) => {
+    v.market_evidence.coverage = "CONSOLIDATED US MARKET";
+  },
+  (v) => {
+    v.market_evidence.mode = "STRICT_PIT";
+  },
+  (v) => {
+    v.market_evidence.historical_receive_timing = "EVIDENCED";
+  },
+  (v) => {
+    v.provenance[0].sources = ["ALPACA_SIP"];
+  },
+]) {
+  const value = structuredClone(iex);
+  mutate(value);
+  assert.throws(() => adapter.adaptProductSnapshot(value), /failed closed/);
+  assertions++;
+}
+const captured = structuredClone(iex);
+captured.provenance[0].quality = ["RECEIVE_TIMESTAMP_CAPTURED"];
+captured.market_evidence.mode = "RECEIVE_TIMESTAMP_CAPTURED";
+captured.market_evidence.historical_receive_timing = "EVIDENCED";
+assert.equal(
+  adapter.adaptProductSnapshot(captured).market_evidence.mode,
+  "RECEIVE_TIMESTAMP_CAPTURED",
+);
+assertions++;
 console.log("Market Regime product contract assertions passed:", assertions);

@@ -280,6 +280,12 @@ The v1 integration retains `observed_at`, `available_at`, source, revision, qual
 
 Read the [D0.4.2 implementation, formulas, data contract, and evidence boundaries](docs/dynamics-lab-d0-4-2.md). Normal analytics follow focused correctness, PIT/leakage, numerical control, artifact/API, and UI checks in one product iteration; novel high-risk claims still require appropriate independent research validation.
 
+## Model Observatory
+
+Open `/observatory` or use Forge **F7** for the HMM Regime Observatory and Signal Model Forest. Both visualize real SPY/QQQ/IWM model traces, with checked SHA-256 replays for production and authenticated backend model runs on installed PIT evidence. Historical inputs expose `IEX_ONLY · CONSERVATIVE_MARKET_TIME`; a running model is distinct from a running market collector.
+
+The HMM shows EM optimization of one cutoff-bounded fit. The forest shares the production signal suite's chronological purge/embargo splits and keeps its untouched holdout apart from candidate validation. Stage traces are explicit adapters; unsupported families remain unavailable. See the [model, provenance, performance and verification guide](docs/model-observatory.md).
+
 ## Verification strategy
 
 Verification operates at multiple levels because one green test class cannot establish research validity.
