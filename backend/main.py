@@ -114,16 +114,6 @@ async def _unhandled_exception(request: Request, exc: Exception) -> JSONResponse
     )
 
 
-# CORS: allow browser frontends to call the API.
-# In production, replace "*" with the specific dashboard origin(s).
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=config.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Accept", "X-FinSight-Organization"],
-)
-
 # Paths reachable WITHOUT a session (login flow, health probes, login page).
 _PUBLIC_PATHS = {"/login", "/health", "/health/ready", "/favicon.ico"}
 _PUBLIC_PREFIXES = ("/auth/",)
@@ -159,6 +149,18 @@ async def _auth_gate(request: Request, call_next):
     if "text/html" in accept:
         return RedirectResponse(url="/login", status_code=303)
     return JSONResponse({"detail": "Authentication required."}, status_code=401)
+
+
+# CORS: allow browser frontends to call the API. Added after the auth gate so it
+# wraps it: a 401 or 403 from the gate then carries CORS headers, and a
+# cross-origin page can read "sign in" instead of seeing a network failure.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "X-FinSight-Organization"],
+)
 
 
 # Register routers.
