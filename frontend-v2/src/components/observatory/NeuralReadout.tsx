@@ -2,6 +2,7 @@ import { aucScale, aucTone, TONE_VAR, VERDICT_TITLE } from "./signal-model";
 import { epochRow, NEURAL_FAMILY_COLORS, type NeuralView } from "./neural-model";
 import type { AucInterval, Verdict } from "./types";
 import type { HoldoutResult } from "./neural/lab";
+import { GEO_FAMILY, GEO_NEGATIVE_CONTROL } from "./neural/world";
 
 type Validation = {
   auc: number | null;
@@ -282,8 +283,8 @@ export function NeuralReadout({
           <div className="obs-k">What the network leans on · |gradient × input|</div>
           <div className="obs-attr">
             {families.map(([name, share]) => (
-              <div key={name}>
-                <span>{name}</span>
+              <div key={name} title={name === GEO_FAMILY ? GEO_NEGATIVE_CONTROL : undefined}>
+                <span>{name === GEO_FAMILY ? `${name} (control)` : name}</span>
                 <i>
                   <b
                     style={{
@@ -296,6 +297,17 @@ export function NeuralReadout({
               </div>
             ))}
           </div>
+          {families.some(([name]) => name === GEO_FAMILY) && (
+            <p
+              className={!lab && families[0][0] === GEO_FAMILY ? "obs-geo-warn" : "obs-suppressed"}
+            >
+              {lab
+                ? "Geo events are synthetic in the lab. On real data they are an exogenous negative control."
+                : families[0][0] === GEO_FAMILY
+                  ? "Leans most on a negative control: earthquakes shouldn't predict next-day direction. Treat any edge as overfitting."
+                  : GEO_NEGATIVE_CONTROL}
+            </p>
+          )}
         </div>
       )}
       <div className="obs-rows">

@@ -9,7 +9,15 @@ import {
   Network,
   mat,
 } from "../src/components/observatory/neural/mlp.ts";
-import { LAB_FEATURES, makeWorld, splitWorld } from "../src/components/observatory/neural/world.ts";
+import {
+  defaultFamilies,
+  GEO_FAMILY,
+  GEO_NEGATIVE_CONTROL,
+  LAB_FEATURES,
+  makeWorld,
+  splitWorld,
+  WORLDS,
+} from "../src/components/observatory/neural/world.ts";
 
 // Usage: node scripts/verify-neural.mjs
 // Checks the neural trace validator against a simulated backend trace and its sabotage, the
@@ -160,5 +168,19 @@ check(() => {
   const top = Object.entries(geo.family_attribution).sort((a, b) => b[1] - a[1])[0][0];
   assert.equal(top, "Geo events", "the geo world's network leans on geo inputs");
 });
+
+// Geo events are an exogenous negative control on real data: opt-in there, labelled everywhere.
+check(() => assert.ok(defaultFamilies("lab").includes(GEO_FAMILY), "lab worlds include geo"));
+check(() => assert.ok(!defaultFamilies("live").includes(GEO_FAMILY), "live runs leave geo off"));
+check(() => assert.ok(!defaultFamilies("replay").includes(GEO_FAMILY)));
+check(() =>
+  assert.deepEqual(
+    defaultFamilies("live"),
+    families.filter((f) => f !== GEO_FAMILY),
+    "only the control is dropped",
+  ),
+);
+check(() => assert.match(GEO_NEGATIVE_CONTROL, /negative control/));
+check(() => assert.match(WORLDS.geo.rule, /synthetic planted signal.*negative control/));
 
 console.log(`${count} neural contract, gradient and lab checks passed`);
