@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Panel } from "@/components/terminal/Panel";
+import { Panel } from "@/components/risk/Panel";
 import { RiskIntelligenceLab } from "@/components/risk/RiskIntelligenceLab";
+import { PaperBook } from "@/components/risk/PaperBook";
 import { RiskLiveCommandCenter } from "@/components/risk/RiskLiveCommandCenter";
 import { fmt } from "@/lib/market";
 import { subscribeDemoBookStatus, type DemoBookSync } from "@/lib/demoBook";
@@ -215,6 +216,7 @@ function RiskDeskPro() {
   const [tab, setTab] = useState<ProTab>("COMMAND");
   const [book, setBook] = useState<Book>(getBook);
   const [sync, setSync] = useState<DemoBookSync>({ state: "loading" });
+  const [bookOpen, setBookOpen] = useState(false);
   useEffect(() => subscribe(setBook), []);
   useEffect(() => subscribeDemoBookStatus(setSync), []);
   const snapshot = useMemo(() => riskSnapshot(book), [book]);
@@ -268,12 +270,13 @@ function RiskDeskPro() {
                       ? "LIMIT WATCH"
                       : "LIMIT BREACH"}
               </div>
-              <Link
-                to="/terminal"
+              <button
+                type="button"
+                onClick={() => setBookOpen(true)}
                 className="mono-caps hidden text-[9px] text-muted-foreground hover:text-primary sm:block"
               >
-                ← Terminal
-              </Link>
+                Paper book
+              </button>
             </div>
           </div>
           <nav className="flex gap-1 overflow-x-auto" aria-label="Risk desk sections">
@@ -319,9 +322,15 @@ function RiskDeskPro() {
             })}
           </span>
         </div>
-        {tab === "COMMAND" && <RiskLiveCommandCenter book={book} />}
+        {tab === "COMMAND" && (
+          <RiskLiveCommandCenter book={book} onOpenBook={() => setBookOpen(true)} />
+        )}
         {!hasPositions && tab !== "COMMAND" && tab !== "INTELLIGENCE" && (
-          <EmptyPortfolioGate section={tab} onCommand={() => setTab("COMMAND")} />
+          <EmptyPortfolioGate
+            section={tab}
+            onCommand={() => setTab("COMMAND")}
+            onOpenBook={() => setBookOpen(true)}
+          />
         )}
         {hasPositions && tab === "OVERVIEW" && (
           <RiskOverview book={book} snapshot={snapshot} onNavigate={setTab} />
@@ -337,11 +346,20 @@ function RiskDeskPro() {
         )}
         {hasPositions && tab === "HEDGES" && <RiskHedges book={book} snapshot={snapshot} />}
       </main>
+      {bookOpen && <PaperBook onClose={() => setBookOpen(false)} />}
     </div>
   );
 }
 
-function EmptyPortfolioGate({ section, onCommand }: { section: ProTab; onCommand: () => void }) {
+function EmptyPortfolioGate({
+  section,
+  onCommand,
+  onOpenBook,
+}: {
+  section: ProTab;
+  onCommand: () => void;
+  onOpenBook: () => void;
+}) {
   return (
     <section className="relative overflow-hidden border border-info/40 bg-panel p-6">
       <div className="absolute inset-y-0 left-0 w-1 bg-info" />
@@ -364,12 +382,13 @@ function EmptyPortfolioGate({ section, onCommand }: { section: ProTab; onCommand
           >
             OPEN LIVE RISK OS
           </button>
-          <Link
-            to="/terminal"
+          <button
+            type="button"
+            onClick={onOpenBook}
             className="mono-caps interactive border border-info/55 px-4 py-2.5 text-[8px] text-info"
           >
             ADD A POSITION →
-          </Link>
+          </button>
         </div>
       </div>
     </section>

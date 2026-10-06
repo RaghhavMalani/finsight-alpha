@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { Panel } from "@/components/terminal/Panel";
+import { Panel } from "@/components/risk/Panel";
 import { api } from "@/lib/api";
 
 type UniverseItem = {

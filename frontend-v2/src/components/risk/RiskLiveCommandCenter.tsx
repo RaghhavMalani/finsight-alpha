@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 
 import { api, type TapeItem } from "@/lib/api";
@@ -198,7 +197,13 @@ function strategyDeck(items: TapeItem[], book: Book) {
   ].sort((a, b) => b.score - a.score);
 }
 
-export function RiskLiveCommandCenter({ book }: { book: Book }) {
+export function RiskLiveCommandCenter({
+  book,
+  onOpenBook,
+}: {
+  book: Book;
+  onOpenBook: () => void;
+}) {
   const marketSymbols = useMemo(
     () =>
       Array.from(
@@ -325,12 +330,13 @@ export function RiskLiveCommandCenter({ book }: { book: Book }) {
                 market intelligence remains active without changing your exposure.
               </div>
             </div>
-            <Link
-              to="/terminal"
+            <button
+              type="button"
+              onClick={onOpenBook}
               className="mono-caps interactive border border-info bg-info px-5 py-3 text-[9px] text-background shadow-[0_0_32px_rgba(69,185,211,.16)] hover:brightness-110"
             >
               OPEN PAPER BOOK · ADD POSITIONS →
-            </Link>
+            </button>
           </div>
         </section>
       )}

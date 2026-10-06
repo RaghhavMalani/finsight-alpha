@@ -15,12 +15,10 @@ import { Route as BenchRouteImport } from './routes/bench'
 import { Route as DynamicsRouteImport } from './routes/dynamics'
 import { Route as ForgeRouteImport } from './routes/forge'
 import { Route as GlobeRouteImport } from './routes/globe'
-import { Route as LegacyTerminalRouteImport } from './routes/legacy-terminal'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ObservatoryRouteImport } from './routes/observatory'
 import { Route as RiskRouteImport } from './routes/risk'
 import { Route as RunsRouteImport } from './routes/runs'
-import { Route as TerminalRouteImport } from './routes/terminal'
 import { Route as WorldsRouteImport } from './routes/worlds'
 import { Route as BenchIndexRouteImport } from './routes/bench.index'
 import { Route as BenchBenchmarkIdRouteImport } from './routes/bench.$benchmarkId'
@@ -58,11 +56,6 @@ const GlobeRoute = GlobeRouteImport.update({
   path: '/globe',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LegacyTerminalRoute = LegacyTerminalRouteImport.update({
-  id: '/legacy-terminal',
-  path: '/legacy-terminal',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -81,11 +74,6 @@ const RiskRoute = RiskRouteImport.update({
 const RunsRoute = RunsRouteImport.update({
   id: '/runs',
   path: '/runs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TerminalRoute = TerminalRouteImport.update({
-  id: '/terminal',
-  path: '/terminal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorldsRoute = WorldsRouteImport.update({
@@ -126,12 +114,10 @@ export interface FileRoutesByFullPath {
   '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
-  '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
-  '/terminal': typeof TerminalRoute
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
   '/reality/$artifactId': typeof RealityArtifactIdRoute
@@ -145,11 +131,9 @@ export interface FileRoutesByTo {
   '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
-  '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
-  '/terminal': typeof TerminalRoute
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
   '/reality/$artifactId': typeof RealityArtifactIdRoute
@@ -165,12 +149,10 @@ export interface FileRoutesById {
   '/dynamics': typeof DynamicsRoute
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
-  '/legacy-terminal': typeof LegacyTerminalRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
-  '/terminal': typeof TerminalRoute
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
   '/reality/$artifactId': typeof RealityArtifactIdRoute
@@ -187,12 +169,10 @@ export interface FileRouteTypes {
     | '/dynamics'
     | '/forge'
     | '/globe'
-    | '/legacy-terminal'
     | '/login'
     | '/observatory'
     | '/risk'
     | '/runs'
-    | '/terminal'
     | '/worlds'
     | '/bench/$benchmarkId'
     | '/reality/$artifactId'
@@ -206,11 +186,9 @@ export interface FileRouteTypes {
     | '/dynamics'
     | '/forge'
     | '/globe'
-    | '/legacy-terminal'
     | '/login'
     | '/observatory'
     | '/risk'
-    | '/terminal'
     | '/worlds'
     | '/bench/$benchmarkId'
     | '/reality/$artifactId'
@@ -225,12 +203,10 @@ export interface FileRouteTypes {
     | '/dynamics'
     | '/forge'
     | '/globe'
-    | '/legacy-terminal'
     | '/login'
     | '/observatory'
     | '/risk'
     | '/runs'
-    | '/terminal'
     | '/worlds'
     | '/bench/$benchmarkId'
     | '/reality/$artifactId'
@@ -246,12 +222,10 @@ export interface RootRouteChildren {
   DynamicsRoute: typeof DynamicsRoute
   ForgeRoute: typeof ForgeRoute
   GlobeRoute: typeof GlobeRoute
-  LegacyTerminalRoute: typeof LegacyTerminalRoute
   LoginRoute: typeof LoginRoute
   ObservatoryRoute: typeof ObservatoryRoute
   RiskRoute: typeof RiskRoute
   RunsRoute: typeof RunsRouteWithChildren
-  TerminalRoute: typeof TerminalRoute
   WorldsRoute: typeof WorldsRoute
   RealityArtifactIdRoute: typeof RealityArtifactIdRoute
 }
@@ -300,13 +274,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GlobeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/legacy-terminal': {
-      id: '/legacy-terminal'
-      path: '/legacy-terminal'
-      fullPath: '/legacy-terminal'
-      preLoaderRoute: typeof LegacyTerminalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -333,13 +300,6 @@ declare module '@tanstack/react-router' {
       path: '/runs'
       fullPath: '/runs'
       preLoaderRoute: typeof RunsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terminal': {
-      id: '/terminal'
-      path: '/terminal'
-      fullPath: '/terminal'
-      preLoaderRoute: typeof TerminalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/worlds': {
@@ -418,12 +378,10 @@ const rootRouteChildren: RootRouteChildren = {
   DynamicsRoute: DynamicsRoute,
   ForgeRoute: ForgeRoute,
   GlobeRoute: GlobeRoute,
-  LegacyTerminalRoute: LegacyTerminalRoute,
   LoginRoute: LoginRoute,
   ObservatoryRoute: ObservatoryRoute,
   RiskRoute: RiskRoute,
   RunsRoute: RunsRouteWithChildren,
-  TerminalRoute: TerminalRoute,
   WorldsRoute: WorldsRoute,
   RealityArtifactIdRoute: RealityArtifactIdRoute,
 }

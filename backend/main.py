@@ -201,7 +201,8 @@ FRONTEND_URL = os.getenv(
 
 @app.get("/terminal", include_in_schema=False)
 def terminal() -> RedirectResponse:
-    return RedirectResponse(url=f"{FRONTEND_URL}/terminal", status_code=307)
+    # The legacy terminal is retired; old links land on the Model Observatory.
+    return RedirectResponse(url=f"{FRONTEND_URL}/observatory", status_code=307)
 
 
 @app.get("/risk", include_in_schema=False)

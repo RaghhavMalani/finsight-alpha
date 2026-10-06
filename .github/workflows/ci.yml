@@ -79,7 +79,6 @@ jobs:
           cache-dependency-path: frontend-v2/package-lock.json
       - run: npm ci
       - run: npm run lint
-      - run: npx eslint src/components/terminal/StockIntelligencePanel.tsx src/components/terminal/MonteCarloPanel.tsx
       - run: npx eslint src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
       - run: npx prettier --check src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
       - run: npx eslint src/dynamics/BoundaryStructureMicroscope.tsx src/dynamics/hawkes-boundary-contracts.ts

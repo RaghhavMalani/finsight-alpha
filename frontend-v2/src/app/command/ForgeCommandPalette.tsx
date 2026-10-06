@@ -10,7 +10,7 @@ const COMMANDS = [
   {
     id: "observatory",
     label: "Open Model Observatory",
-    hint: "HMM and GBM training traces",
+    hint: "HMM, GBM and neural training traces",
     to: "/observatory",
   },
   {
@@ -20,11 +20,24 @@ const COMMANDS = [
     to: "/reality/forge-v0.2.4.1",
   },
   {
-    id: "legacy",
-    label: "Open Legacy Terminal",
-    hint: "Market and quant workspace",
-    to: "/legacy-terminal",
+    id: "neural",
+    label: "Open Neural Lab",
+    hint: "Edit and train a network, epoch by epoch",
+    to: "/observatory",
   },
+  {
+    id: "globe",
+    label: "Open God's Eye",
+    hint: "Live quakes, satellites and market hubs",
+    to: "/globe",
+  },
+  {
+    id: "dynamics",
+    label: "Open Dynamics Lab",
+    hint: "Regime and event-process research",
+    to: "/dynamics",
+  },
+  { id: "risk", label: "Open Risk Desk", hint: "Paper book, stress and hedges", to: "/risk" },
 ] as const;
 
 export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -96,8 +109,17 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
           search: { checkpoint: undefined, metric: "sharpe" },
         });
         break;
-      case "legacy":
-        void navigate({ to: "/legacy-terminal" });
+      case "neural":
+        void navigate({ to: "/observatory", search: { scene: "neural", ticker: "SPY" } });
+        break;
+      case "globe":
+        void navigate({ to: "/globe" });
+        break;
+      case "dynamics":
+        void navigate({ to: "/dynamics" });
+        break;
+      case "risk":
+        void navigate({ to: "/risk" });
         break;
     }
   };

@@ -59,7 +59,12 @@ export function BookDrawer({
     const n = forcedQty ?? parseInt(qty, 10);
     if (!sym || isNaN(n) || n === 0) return;
     const inst = instruments[sym];
-    const entry = inst?.price ?? COMMODITIES[sym]?.spot ?? 100;
+    const entry = inst?.price ?? COMMODITIES[sym]?.spot;
+    // A position needs a real entry price; without a quote there is nothing honest to book.
+    if (entry == null || !Number.isFinite(entry)) {
+      toast.error(`No live quote for ${sym}; nothing was booked.`);
+      return;
+    }
     addDemoPosition({ symbol: sym, qty: n, entry: +entry.toFixed(2) });
     toast.success(`+ ${sym} × ${n} @ ${fmt(entry)}`);
     setQ("");

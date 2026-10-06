@@ -51,7 +51,7 @@ function Login() {
         method: "POST",
         body: JSON.stringify({ email, password: pass }),
       });
-      await navigate({ to: "/terminal" });
+      await navigate({ to: "/forge", search: { run: undefined, node: 1 } });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed.");
       cardRef.current?.classList.remove("animate-shake");
