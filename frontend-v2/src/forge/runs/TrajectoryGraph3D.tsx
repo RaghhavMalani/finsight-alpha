@@ -6,6 +6,17 @@ import { formatNodeCost, formatNodeLatency } from "@/forge/runs/trajectory-model
 
 type Point = readonly [number, number, number];
 
+function cameraForCount(count: number): {
+  position: [number, number, number];
+  fov: number;
+  near: number;
+  far: number;
+} {
+  if (count <= 4) return { position: [3.6, 4.2, 8.2], fov: 38, near: 0.1, far: 100 };
+  if (count <= 8) return { position: [4.8, 5.2, 11], fov: 43, near: 0.1, far: 100 };
+  return { position: [6.2, 6.6, 14.5], fov: 48, near: 0.1, far: 140 };
+}
+
 function pointForNode(
   node: TrajectoryNode,
   index: number,
@@ -69,12 +80,12 @@ function TraceNode({
           type="button"
           onClick={() => onSelect(node.sequence)}
           aria-pressed={selected}
-          className={`min-w-28 border bg-[#080b0e]/95 px-2 py-1.5 text-left font-mono text-[8px] uppercase tracking-[0.08em] backdrop-blur-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
+          className={`min-w-28 border bg-[#080b0e]/95 px-2 py-1.5 text-left font-mono text-[9px] uppercase tracking-[0.08em] backdrop-blur-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
             selected ? "border-[#FFB000] text-[#FFB000]" : "border-[#35404a] text-[#d9dee2]"
           }`}
         >
           <span className="block font-semibold">{node.label}</span>
-          <span className="mt-1 block text-[7px] text-[#7f8993]">
+          <span className="mt-1 block text-[8px] text-[#8F99A3]">
             {node.tokens.toLocaleString()} tok · {formatNodeCost(node.cost)} ·{" "}
             {formatNodeLatency(node.latency)}
           </span>
@@ -107,7 +118,15 @@ function TraceScene({
       <color attach="background" args={["#07090B"]} />
       <ambientLight intensity={0.72} />
       <directionalLight position={[4, 7, 5]} intensity={2.2} color="#dce7ee" />
-      <gridHelper args={[18, 18, "#303842", "#171d23"]} position={[0, -0.95, -1.4]} />
+      <gridHelper
+        args={[
+          Math.max(12, model.nodes.length * 2.6),
+          Math.max(12, model.nodes.length * 2),
+          "#303842",
+          "#171d23",
+        ]}
+        position={[0, -0.95, -1.4]}
+      />
       {model.edges.map((edge) => {
         const source = points.get(edge.source);
         const target = points.get(edge.target);
@@ -152,9 +171,13 @@ export default function TrajectoryGraph3D({
   reducedMotion: boolean;
 }) {
   return (
-    <div className="relative h-[420px] min-h-[360px]" data-testid="trajectory-3d">
+    <div
+      className="relative min-h-[320px]"
+      style={{ height: model.nodes.length <= 4 ? 340 : model.nodes.length <= 8 ? 420 : 500 }}
+      data-testid="trajectory-3d"
+    >
       <Canvas
-        camera={{ position: [4.6, 5.2, 10.5], fov: 44, near: 0.1, far: 100 }}
+        camera={cameraForCount(model.nodes.length)}
         dpr={[1, 1.5]}
         frameloop="demand"
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
@@ -166,10 +189,10 @@ export default function TrajectoryGraph3D({
           reducedMotion={reducedMotion}
         />
       </Canvas>
-      <div className="pointer-events-none absolute bottom-3 left-3 border border-[#29313a] bg-[#080b0e]/90 px-2 py-1.5 font-mono text-[7px] uppercase tracking-[0.1em] text-[#7f8993]">
+      <div className="pointer-events-none absolute bottom-3 left-3 border border-[#29313a] bg-[#080b0e]/90 px-2 py-1.5 font-mono text-[8px] uppercase tracking-[0.1em] text-[#7f8993]">
         X progression · Y experiment depth · Z cumulative elapsed
       </div>
-      <div className="pointer-events-none absolute bottom-3 right-3 text-right font-mono text-[7px] uppercase leading-4 tracking-[0.08em] text-[#65707c]">
+      <div className="pointer-events-none absolute bottom-3 right-3 text-right font-mono text-[8px] uppercase leading-4 tracking-[0.08em] text-[#65707c]">
         Size / tokens
         <br />
         Brightness / cost

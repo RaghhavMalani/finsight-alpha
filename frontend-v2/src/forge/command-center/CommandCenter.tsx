@@ -129,7 +129,7 @@ export function CommandCenter({
             <Link
               to="/runs/$runId"
               params={{ runId: detail.data.runId }}
-              search={{ node: selectedNode.sequence, tab: "action" }}
+              search={{ node: selectedNode.sequence, tab: "action", replay: true, speed: 1 }}
               className="flex min-h-12 items-center justify-center bg-[#0B0E11] px-3 font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-[#FFB000] hover:bg-[#111820] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000]"
             >
               Replay →

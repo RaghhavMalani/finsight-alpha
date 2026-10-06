@@ -364,6 +364,7 @@ def get_reality_ladder(artifact_id: str) -> dict[str, Any]:
     aggregate = document["aggregate"]
     design = document.get("design")
     task = document.get("task")
+    certification = document.get("certification_source")
     design_metric = design.get("primary_metric") if isinstance(design, dict) else None
     task_metric = task.get("primary_metric") if isinstance(task, dict) else None
     if (
@@ -390,8 +391,17 @@ def get_reality_ladder(artifact_id: str) -> dict[str, Any]:
             "largest_degradation": aggregate["largest_degradation"],
             "regime_matrix": aggregate["regime_matrix"],
         },
+        "certification": {
+            "schema_version": certification.get("schema_version"),
+            "system_release_eligible": certification.get("system_release_eligible"),
+            "engines": certification.get("certified_engines", []),
+        }
+        if isinstance(certification, dict)
+        else None,
         "bindings": {
-            "certification_artifact_hash": document.get("certification", {}).get("artifact_hash")
+            "certification_artifact_hash": certification.get("artifact_hash")
+            if isinstance(certification, dict)
+            else None
         },
     }
 

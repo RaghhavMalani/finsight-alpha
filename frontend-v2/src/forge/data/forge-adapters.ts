@@ -654,18 +654,48 @@ export function adaptRun(value: unknown): RunDetail {
 }
 
 const CHECKPOINT_LABELS: Record<string, string> = {
-  L0_ANALYTICAL: "Mathematical",
-  L1_VECTORBT: "Vectorized",
-  L2_NAUTILUS: "Event replay",
-  L3_FEES_SLIPPAGE: "Costs",
+  L0_ANALYTICAL: "Analytical reference",
+  L1_VECTORBT: "VectorBT screen",
+  L2_NAUTILUS: "Nautilus event replay",
+  L3_FEES_SLIPPAGE: "Fees + slippage",
   L3_LATENCY: "Latency",
-  L4_COUNTERFACTUAL_STRESS: "Stress",
+  L4_COUNTERFACTUAL_STRESS: "Counterfactual stress",
 };
 
 export function adaptReality(value: unknown): RealityDetail {
   const root = projection(value);
   const artifact = binding(root);
   const aggregate = object(root.aggregate, "aggregate");
+  const certificationValue = root.certification;
+  const certifications = new Map<
+    string,
+    Readonly<{ certificationLevel: string; certificationHash: string }>
+  >();
+  let certificationSchemaVersion: string | null = null;
+  let systemReleaseEligible: boolean | null = null;
+
+  if (certificationValue !== null && certificationValue !== undefined) {
+    const certification = object(certificationValue, "certification");
+    certificationSchemaVersion = text(certification.schema_version, "certification.schema_version");
+    systemReleaseEligible = boolean(
+      certification.system_release_eligible,
+      "certification.system_release_eligible",
+    );
+    list(certification.engines, "certification.engines").forEach((entry, index) => {
+      const engine = object(entry, `certification.engines[${index}]`);
+      certifications.set(text(engine.engine, `certification.engines[${index}].engine`), {
+        certificationLevel: text(
+          engine.certification_level,
+          `certification.engines[${index}].certification_level`,
+        ),
+        certificationHash: text(
+          engine.certification_hash,
+          `certification.engines[${index}].certification_hash`,
+        ),
+      });
+    });
+  }
+
   const checkpoints = list(aggregate.checkpoints, "aggregate.checkpoints").map(
     (entry, index): RealityCheckpoint => {
       const checkpoint = object(entry, `aggregate.checkpoints[${index}]`);
@@ -676,16 +706,17 @@ export function adaptReality(value: unknown): RealityDetail {
       );
       const engine = text(checkpoint.engine, `aggregate.checkpoints[${index}].engine`);
       const values = object(checkpoint.metrics, `aggregate.checkpoints[${index}].metrics`);
+      const engineCertification = certifications.get(engine);
       const epistemicType: EpistemicType = realityLevel.includes("COUNTERFACTUAL")
         ? "COUNTERFACTUAL"
         : "COMPUTED";
-      const extra = { engine, method: realityLevel };
-      const path = `/aggregate/checkpoints/${index}`;
-      return {
-        id,
-        label: CHECKPOINT_LABELS[id] ?? id,
-        realityLevel,
+      const extra = {
         engine,
+        method: realityLevel,
+        certificationLevel: engineCertification?.certificationLevel ?? null,
+      };
+      const path = `/aggregate/checkpoints/${index}`;
+      const metrics: RealityCheckpoint["metrics"] = {
         sharpe: metric(artifact, {
           id: `${id}-sharpe`,
           label: "Sharpe",
@@ -696,16 +727,55 @@ export function adaptReality(value: unknown): RealityDetail {
           epistemicType,
           extra,
         }),
+        return: metric(artifact, {
+          id: `${id}-return`,
+          label: "Net return",
+          value: number(values.net_return, `${path}/metrics/net_return`) * 100,
+          unit: "PERCENT",
+          precision: 4,
+          fieldPath: `${path}/metrics/net_return`,
+          epistemicType,
+          extra,
+        }),
         maxDrawdown: metric(artifact, {
           id: `${id}-drawdown`,
           label: "Max drawdown",
-          value: values.max_drawdown,
-          unit: "RATIO",
+          value: number(values.max_drawdown, `${path}/metrics/max_drawdown`) * 100,
+          unit: "PERCENT",
           precision: 4,
           fieldPath: `${path}/metrics/max_drawdown`,
           epistemicType,
           extra,
         }),
+        turnover: metric(artifact, {
+          id: `${id}-turnover`,
+          label: "Turnover",
+          value: values.turnover,
+          unit: "RATIO",
+          precision: 4,
+          fieldPath: `${path}/metrics/turnover`,
+          epistemicType,
+          extra,
+        }),
+        fees: metric(artifact, {
+          id: `${id}-fees`,
+          label: "Fees",
+          value: values.fees,
+          unit: "USD",
+          precision: 2,
+          fieldPath: `${path}/metrics/fees`,
+          epistemicType,
+          extra,
+        }),
+      };
+      return {
+        id,
+        label: CHECKPOINT_LABELS[id] ?? id,
+        realityLevel,
+        engine,
+        certificationLevel: engineCertification?.certificationLevel ?? null,
+        certificationHash: engineCertification?.certificationHash ?? null,
+        metrics,
         slippage: metric(artifact, {
           id: `${id}-slippage`,
           label: "Slippage",
@@ -739,12 +809,92 @@ export function adaptReality(value: unknown): RealityDetail {
       };
     },
   );
+
+  const decomposition = object(aggregate.decomposition, "aggregate.decomposition");
+  const decompositionMetric = (
+    key: string,
+    label: string,
+    epistemicType: EpistemicType = "COMPUTED",
+  ) =>
+    metric(artifact, {
+      id: key.replaceAll("_", "-"),
+      label,
+      value: decomposition[key],
+      unit: "NUMBER",
+      precision: 4,
+      fieldPath: `/aggregate/decomposition/${key}`,
+      epistemicType,
+      extra: { method: "SIGNED_SHARPE_CHANGE" },
+    });
+
+  const regimes = list(aggregate.regime_matrix, "aggregate.regime_matrix").map((entry, index) => {
+    const regime = object(entry, `aggregate.regime_matrix[${index}]`);
+    const id = text(regime.regime, `aggregate.regime_matrix[${index}].regime`);
+    const sharpes = object(regime.sharpe, `aggregate.regime_matrix[${index}].sharpe`);
+    const sharpeByCheckpoint = Object.fromEntries(
+      Object.entries(sharpes).map(([checkpointId, value]) => [
+        checkpointId,
+        metric(artifact, {
+          id: `${id}-${checkpointId}-sharpe`,
+          label: `${id.replaceAll("_", " ")} Sharpe`,
+          value,
+          unit: "NUMBER",
+          precision: 4,
+          fieldPath: `/aggregate/regime_matrix/${index}/sharpe/${checkpointId}`,
+          epistemicType: checkpointId.includes("COUNTERFACTUAL") ? "COUNTERFACTUAL" : "COMPUTED",
+          extra: { method: id },
+        }),
+      ]),
+    ) as Readonly<Record<string, ResearchMetric>>;
+    return {
+      id,
+      label: id
+        .toLowerCase()
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" "),
+      seeds: metric(artifact, {
+        id: `${id}-seeds`,
+        label: "Seeds",
+        value: regime.seeds,
+        unit: "COUNT",
+        precision: 0,
+        fieldPath: `/aggregate/regime_matrix/${index}/seeds`,
+        extra: { method: id },
+      }),
+      alphaSurvival: metric(artifact, {
+        id: `${id}-alpha-survival`,
+        label: "Alpha survival",
+        value:
+          number(
+            regime.alpha_survival_ratio,
+            `aggregate.regime_matrix[${index}].alpha_survival_ratio`,
+          ) * 100,
+        unit: "PERCENT",
+        precision: 1,
+        fieldPath: `/aggregate/regime_matrix/${index}/alpha_survival_ratio`,
+        epistemicType: "COUNTERFACTUAL",
+        extra: { method: id },
+      }),
+      sharpeByCheckpoint,
+    };
+  });
+
   const largest = object(aggregate.largest_degradation, "aggregate.largest_degradation");
   const bindings = object(root.bindings, "bindings");
   return {
     binding: artifact,
     primaryMetric: text(root.primary_metric, "primary_metric"),
     checkpoints,
+    regimes,
+    decomposition: {
+      convention: text(aggregate.decomposition_convention, "aggregate.decomposition_convention"),
+      idealizationGap: decompositionMetric("idealization_gap", "Idealization gap"),
+      modelSemanticDecay: decompositionMetric("model_semantic_decay", "Model semantic decay"),
+      feeDecay: decompositionMetric("fee_decay", "Fees + spread decay"),
+      latencyDecay: decompositionMetric("latency_decay", "Latency decay"),
+      stressDecay: decompositionMetric("stress_decay", "Stress decay", "COUNTERFACTUAL"),
+    },
     alphaSurvival: metric(artifact, {
       id: "alpha-survival",
       label: "Alpha survival",
@@ -772,9 +922,10 @@ export function adaptReality(value: unknown): RealityDetail {
       bindings.certification_artifact_hash,
       "bindings.certification_artifact_hash",
     ),
+    certificationSchemaVersion,
+    systemReleaseEligible,
   };
 }
-
 export function adaptWorldIndex(value: unknown): WorldIndex {
   const root = projection(value);
   const artifact: ArtifactBinding = {

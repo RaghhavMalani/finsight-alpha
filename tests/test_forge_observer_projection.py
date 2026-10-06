@@ -73,6 +73,18 @@ def test_reality_ladder_projection_matches_bound_artifact() -> None:
     assert len(checkpoints) == 6
     assert checkpoints[0]["metrics"]["sharpe"] == pytest.approx(4.799068370892)
     assert checkpoints[-1]["metrics"]["sharpe"] == pytest.approx(0.344925004504)
+    assert projection["aggregate"]["decomposition"]["stress_decay"] == pytest.approx(
+        -3.384313796367
+    )
+    assert len(projection["aggregate"]["regime_matrix"]) == 3
+    assert projection["certification"]["system_release_eligible"] is True
+    assert {
+        (item["engine"], item["certification_level"])
+        for item in projection["certification"]["engines"]
+    } == {("vectorbt", "C4"), ("nautilus", "C4")}
+    assert projection["bindings"]["certification_artifact_hash"] == (
+        "9ee9dabbadaa0e260e942d9c304c3c5dd0571e49470d8e8a4f35a0151c3f3166"
+    )
 
 
 def test_unknown_or_missing_schema_fails_closed() -> None:

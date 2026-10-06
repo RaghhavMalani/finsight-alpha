@@ -163,17 +163,39 @@ export type RealityCheckpoint = Readonly<{
   label: string;
   realityLevel: string;
   engine: string;
-  sharpe: ResearchMetric;
-  maxDrawdown: ResearchMetric;
+  certificationLevel: string | null;
+  certificationHash: string | null;
+  metrics: Readonly<Record<RealityMetricId, ResearchMetric>>;
   slippage: ResearchMetric;
   latencyCost: ResearchMetric;
   runtime: ResearchMetric;
+}>;
+
+export type RealityMetricId = "sharpe" | "return" | "maxDrawdown" | "turnover" | "fees";
+
+export type RealityRegime = Readonly<{
+  id: string;
+  label: string;
+  seeds: ResearchMetric;
+  alphaSurvival: ResearchMetric;
+  sharpeByCheckpoint: Readonly<Record<string, ResearchMetric>>;
+}>;
+
+export type RealityDecomposition = Readonly<{
+  convention: string;
+  idealizationGap: ResearchMetric;
+  modelSemanticDecay: ResearchMetric;
+  feeDecay: ResearchMetric;
+  latencyDecay: ResearchMetric;
+  stressDecay: ResearchMetric;
 }>;
 
 export type RealityDetail = Readonly<{
   binding: ArtifactBinding;
   primaryMetric: string;
   checkpoints: readonly RealityCheckpoint[];
+  regimes: readonly RealityRegime[];
+  decomposition: RealityDecomposition;
   alphaSurvival: ResearchMetric;
   finding: string;
   largestDegradation: Readonly<{
@@ -182,6 +204,8 @@ export type RealityDetail = Readonly<{
     change: ResearchMetric;
   }>;
   certificationArtifactHash: string | null;
+  certificationSchemaVersion: string | null;
+  systemReleaseEligible: boolean | null;
 }>;
 
 export type WorldReference = Readonly<{

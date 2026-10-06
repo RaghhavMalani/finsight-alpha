@@ -32,12 +32,12 @@ export function TrajectoryExplorer({
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1D232B] px-3 py-2">
         <div className="flex min-w-0 items-center gap-3">
           <h2 className="text-[12px] font-medium text-[#dce0e4]">Trajectory graph</h2>
-          <span className="hidden font-mono text-[7px] uppercase tracking-[0.1em] text-[#59636e] sm:inline">
+          <span className="hidden font-mono text-[8px] uppercase tracking-[0.1em] text-[#65707C] sm:inline">
             artifact-backed execution trace
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-3 font-mono text-[7px] uppercase tracking-[0.08em] text-[#65707c] lg:flex">
+          <div className="hidden items-center gap-3 font-mono text-[8px] uppercase tracking-[0.08em] text-[#71808C] lg:flex">
             <span className="text-[#FFB000]">● cost</span>
             <span className="text-[#52A8FF]">■ computed</span>
             <span className="text-[#35C78A]">— verified</span>
@@ -51,7 +51,7 @@ export function TrajectoryExplorer({
                 onPointerEnter={item === "3D" ? () => void loadTrajectoryGraph3D() : undefined}
                 onFocus={item === "3D" ? () => void loadTrajectoryGraph3D() : undefined}
                 aria-pressed={view === item}
-                className={`px-2.5 py-1.5 font-mono text-[8px] font-semibold tracking-[0.1em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
+                className={`px-2.5 py-1.5 font-mono text-[9px] font-semibold tracking-[0.1em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
                   view === item
                     ? "bg-[#FFB000] text-[#07090B]"
                     : "text-[#8b949e] hover:bg-[#111820] hover:text-[#dce0e4]"
@@ -70,7 +70,10 @@ export function TrajectoryExplorer({
         <Suspense
           fallback={
             <div
-              className="grid h-[420px] place-items-center font-mono text-[9px] uppercase tracking-[0.12em] text-[#65707c]"
+              className="grid place-items-center font-mono text-[10px] uppercase tracking-[0.12em] text-[#71808C]"
+              style={{
+                height: model.nodes.length <= 4 ? 340 : model.nodes.length <= 8 ? 420 : 500,
+              }}
               role="status"
             >
               Loading spatial trace…

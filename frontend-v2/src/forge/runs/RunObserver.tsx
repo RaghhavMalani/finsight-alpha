@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
 import type { RunDetail } from "@/forge/contracts/observer";
 import { runQuery } from "@/forge/data/forge-queries";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { TrajectoryEvidenceInspector } from "@/forge/runs/TrajectoryEvidenceInspector";
+import { ReplayControls, type ReplaySpeed } from "@/forge/runs/ReplayControls";
 import { TrajectoryExplorer } from "@/forge/runs/TrajectoryExplorer";
 import { buildTrajectoryViewModel } from "@/forge/runs/trajectory-model";
 import {
@@ -21,13 +23,26 @@ export function RunObserver({
   runId,
   node,
   tab,
+  replayActive,
+  replaySpeed,
 }: {
   runId: string;
   node: number;
   tab: ObserverTab;
+  replayActive: boolean;
+  replaySpeed: ReplaySpeed;
 }) {
   const query = useQuery(runQuery(runId));
   const navigate = useNavigate();
+  const [reducedMotion, setReducedMotion] = useState(true);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   if (query.isPending) {
     return (
@@ -64,13 +79,25 @@ export function RunObserver({
     );
   }
 
-  const selectNode = (sequence: number) => {
+  const updateReplayLocation = (
+    sequence: number,
+    nextTab: ObserverTab = "action",
+    active: boolean = replayActive,
+    speed: ReplaySpeed = replaySpeed,
+  ) => {
     void navigate({
       to: "/runs/$runId",
       params: { runId },
-      search: { node: sequence, tab: "action" },
+      search: {
+        node: sequence,
+        tab: nextTab,
+        replay: active ? true : undefined,
+        speed: active ? speed : undefined,
+      },
     });
   };
+
+  const selectNode = (sequence: number) => updateReplayLocation(sequence);
 
   return (
     <ForgeShell>
@@ -81,6 +108,12 @@ export function RunObserver({
         meta={
           <div className="flex flex-wrap gap-2">
             <StatusMark status={verdictStatus(run.decision?.verdict)} />
+            {replayActive ? (
+              <StatusMark
+                status="INFO"
+                label={`REPLAY ${selectedNode.sequence}/${trajectory.nodes.length}`}
+              />
+            ) : null}
             <StatusMark
               status={run.verifiedResearchSuccess ? "PASS" : "INFO"}
               label={run.verifiedResearchSuccess ? "VERIFIED RESEARCH" : "OBSERVED"}
@@ -102,6 +135,18 @@ export function RunObserver({
             selectedSequence={selectedNode.sequence}
             onSelect={selectNode}
           />
+          <ReplayControls
+            nodes={trajectory.nodes}
+            currentSequence={selectedNode.sequence}
+            active={replayActive}
+            speed={replaySpeed}
+            reducedMotion={reducedMotion}
+            onActivate={() =>
+              updateReplayLocation(selectedNode.sequence, "action", true, replaySpeed)
+            }
+            onStep={(sequence) => updateReplayLocation(sequence, "action", true, replaySpeed)}
+            onSpeed={(speed) => updateReplayLocation(selectedNode.sequence, "action", true, speed)}
+          />
           <div className="grid grid-cols-3 gap-px border-t border-[#1D232B] bg-[#1D232B]">
             <ResearchValue metric={run.usage.tokens} className="bg-[#0B0E11] p-3" />
             <ResearchValue metric={run.usage.cost} className="bg-[#0B0E11] p-3" />
@@ -116,7 +161,12 @@ export function RunObserver({
                 key={item}
                 to="/runs/$runId"
                 params={{ runId }}
-                search={{ node: selectedNode.sequence, tab: item }}
+                search={{
+                  node: selectedNode.sequence,
+                  tab: item,
+                  replay: replayActive ? true : undefined,
+                  speed: replayActive ? replaySpeed : undefined,
+                }}
                 aria-current={tab === item ? "page" : undefined}
                 className={`border-r border-[#1D232B] px-3 py-2.5 font-mono text-[8px] uppercase tracking-[0.1em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${
                   tab === item

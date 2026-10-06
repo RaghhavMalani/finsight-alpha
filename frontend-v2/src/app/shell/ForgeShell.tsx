@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { key: "F4", label: "Bench", to: "/bench" },
   { key: "F5", label: "Worlds", to: "/worlds" },
   { key: "F6", label: "Artifacts", to: "/artifacts" },
+  { key: "F7", label: "Dynamics", to: "/dynamics" },
 ] as const;
 
 export function ForgeShell({ children }: { children: ReactNode }) {

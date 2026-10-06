@@ -44,7 +44,7 @@ export function ResearchValue({
   return (
     <div className={`min-w-0 ${className}`}>
       <div className={compact ? "sr-only" : "text-[11px] text-[#7B8490]"}>{metric.label}</div>
-      <div className="flex items-baseline gap-2">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <output className="font-mono text-[15px] font-medium tabular-nums text-[#E6E8EB]">
           {formatMetric(metric)}
         </output>

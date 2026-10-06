@@ -8,6 +8,12 @@ const COMMANDS = [
   { id: "worlds", label: "Open Worlds", hint: "World references", to: "/worlds" },
   { id: "artifacts", label: "Open Artifacts", hint: "Bound evidence", to: "/artifacts" },
   {
+    id: "dynamics",
+    label: "Open Dynamics Lab",
+    hint: "Falsifiable scientific models",
+    to: "/dynamics",
+  },
+  {
     id: "reality",
     label: "Open Reality Ladder",
     hint: "Frozen v0.2.4.1 artifact",
@@ -79,6 +85,9 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
         break;
       case "artifacts":
         void navigate({ to: "/artifacts" });
+        break;
+      case "dynamics":
+        void navigate({ to: "/dynamics" });
         break;
       case "reality":
         void navigate({
@@ -178,7 +187,7 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
               setQuery(event.target.value);
               setActiveIndex(0);
             }}
-            placeholder="Open runs, bench, reality, worlds, artifacts…"
+            placeholder="Open runs, bench, reality, worlds, dynamics…"
             className="w-full bg-transparent font-mono text-sm text-[#E6E8EB] outline-none placeholder:text-[#48515C]"
           />
         </label>
