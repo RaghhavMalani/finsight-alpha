@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readHistoricalObservatory } from "./historical-observatory.mjs";
 import { readFileSync } from "node:fs";
 import { validateManifest, validateTrace } from "../src/components/observatory/types.ts";
 import { openLabHoldout, trainLab } from "../src/components/observatory/neural/lab.ts";
@@ -68,7 +69,9 @@ reject("feature start after cutoff", (x) => (x.validation.feature_start = "2099-
 
 /* 2. A manifest may declare a neural replay, and must check it like any other. */
 const manifest = JSON.parse(
-  readFileSync(new URL("./fixtures/artifacts/observatory/manifest.json", import.meta.url)),
+  readHistoricalObservatory(
+    new URL("./fixtures/artifacts/observatory/manifest.json", import.meta.url),
+  ),
 );
 check(() => {
   const copy = structuredClone(manifest);

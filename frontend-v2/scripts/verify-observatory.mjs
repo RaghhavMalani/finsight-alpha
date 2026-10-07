@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readHistoricalObservatory as readFileSync } from "./historical-observatory.mjs";
 import { REGIME_COLORS, regimeStates } from "../src/components/observatory/regime-palette.ts";
 import {
   manifestTickers,
@@ -13,7 +13,7 @@ import {
 const urlFlag = process.argv.indexOf("--url");
 const baseUrl = urlFlag > 0 ? process.argv[urlFlag + 1]?.replace(/\/$/, "") : null;
 
-// Preserved real trace bytes are test-only until an explicit public publication grant exists.
+// Historical real trace bytes remain test-only; current public/repository payloads are removed.
 const root = new URL("./fixtures/", import.meta.url);
 const manifest = validateManifest(
   JSON.parse(readFileSync(new URL("artifacts/observatory/manifest.json", root))),
