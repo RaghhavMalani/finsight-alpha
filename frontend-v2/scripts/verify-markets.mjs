@@ -351,8 +351,27 @@ if (baseUrl) {
     },
   };
 
-  const settle = (page) =>
-    page.waitForFunction(() => !document.querySelector(".mk-loading"), null, { timeout: 30000 });
+  // Wait for no loading line; on timeout, say where and what was still loading.
+  const settle = (page, where) =>
+    page
+      .waitForFunction(() => !document.querySelector(".mk-loading"), null, { timeout: 45000 })
+      .catch(async () => {
+        const stuck = await page.$$eval(".mk-loading", (els) => els.map((e) => e.textContent));
+        assert.fail(`${where}: still loading after 45 s: ${JSON.stringify(stuck)}`);
+      });
+  // The screens are lazy routes streamed from the server: their markup can be on the page
+  // before React owns it, and a click on it then is lost. Wait for the panel's React fiber.
+  const hydrated = (page, where) =>
+    page
+      .waitForFunction(
+        () => {
+          const el = document.querySelector(".mk-panel");
+          return !!el && Object.keys(el).some((k) => k.startsWith("__reactFiber"));
+        },
+        null,
+        { timeout: 45000 },
+      )
+      .catch(() => assert.fail(`${where}: the screen never hydrated`));
   const layout = (page) =>
     page.evaluate(() => {
       const tooSmall = [];
@@ -383,7 +402,28 @@ if (baseUrl) {
         const page = await browser.newPage({ viewport: { width, height: 900 } });
         const errors = [];
         page.on("pageerror", (e) => errors.push(e.message));
-        page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+        // A resource failure logs a URL-less console line; third-party hosts (web fonts) can
+        // flake, so judge resource loads by URL and fail only on the app's own origin.
+        page.on(
+          "console",
+          (m) =>
+            m.type() === "error" &&
+            !m.text().startsWith("Failed to load resource") &&
+            errors.push(m.text()),
+        );
+        page.on(
+          "requestfailed",
+          (r) =>
+            new URL(r.url()).origin === appOrigin &&
+            errors.push(`${r.failure()?.errorText} ${r.url()}`),
+        );
+        page.on(
+          "response",
+          (r) =>
+            new URL(r.url()).origin === appOrigin &&
+            r.status() >= 400 &&
+            errors.push(`${r.status()} ${r.url()}`),
+        );
         await page.route(
           (url) => Boolean(isApi(url)),
           (route) => {
@@ -394,11 +434,12 @@ if (baseUrl) {
             return route.fulfill({ json: payload });
           },
         );
+        const where = `${screen} @${width}`;
         await page.goto(`${baseUrl}/markets/${screen}?ticker=SIMF`, { waitUntil: "load" });
-        await page.waitForSelector(".mk-panel");
-        await settle(page);
+        await hydrated(page, where);
+        await settle(page, where);
         if (spec.act) await spec.act(page);
-        await settle(page);
+        await settle(page, where);
         // Actions start requests; wait for what they render rather than racing the spinner.
         for (const selector of spec.expect)
           await page
@@ -406,12 +447,12 @@ if (baseUrl) {
             .first()
             .waitFor({ state: "visible", timeout: 30000 })
             .catch(() => assert.fail(`${screen} @${width}: ${selector} not rendered`));
-        await settle(page);
+        await settle(page, where);
         const l = await layout(page);
         assert.deepEqual(l.unavailable, [], `${screen} @${width}: unexpected unavailable state`);
         assert.ok(l.overflow <= 0, `${screen} @${width}: page overflows by ${l.overflow}px`);
         assert.deepEqual(l.tooSmall, [], `${screen} @${width}: text below 11px`);
-        assert.deepEqual(errors, [], `${screen} @${width}: console errors`);
+        assert.deepEqual(errors, [], `${screen} @${width}: console or app-origin request errors`);
         await page.close();
         views++;
       }
@@ -429,12 +470,14 @@ if (baseUrl) {
             (url) => Boolean(isApi(url)),
             (route) => route.fulfill({ status, json: { detail: "Provider down for this check." } }),
           );
+          const where = `${screen} @${width} ${status}`;
           await page.goto(`${baseUrl}/markets/${screen}?ticker=SIMF`, { waitUntil: "load" });
-          await page.waitForSelector(".mk-panel");
+          await hydrated(page, where);
           if (screen === "research") {
             await page.getByRole("button", { name: "Index latest filing" }).click();
+            await page.locator(".mk-unavailable").first().waitFor({ timeout: 30000 });
           }
-          await settle(page);
+          await settle(page, where);
           const l = await layout(page);
           assert.ok(l.panels > 0, `${screen} @${width} ${status}: blank page`);
           assert.ok(
