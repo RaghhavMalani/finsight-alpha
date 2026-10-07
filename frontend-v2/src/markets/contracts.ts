@@ -285,8 +285,14 @@ export function atmQuote(chain: MarketChain): { strike: number; iv: Num } {
   const row = chain.rows.reduce((best, r) =>
     Math.abs(r.strike - chain.spot) < Math.abs(best.strike - chain.spot) ? r : best,
   );
-  const ivs = [row.call.iv, row.put.iv].filter((v): v is number => v != null && v > 0);
+  // Below 1% is Yahoo's no-market placeholder (the route drops it too), never a quoted vol.
+  const ivs = [row.call.iv, row.put.iv].filter((v): v is number => v != null && v >= 0.01);
   return { strike: row.strike, iv: ivs.length ? ivs.reduce((a, b) => a + b) / ivs.length : null };
+}
+
+/** Strikes with a two-sided quote on either leg; zero outside market hours on Yahoo. */
+export function twoSidedCount(chain: MarketChain): number {
+  return chain.rows.filter((r) => mid(r.call) != null || mid(r.put) != null).length;
 }
 
 export type VolSurface = {

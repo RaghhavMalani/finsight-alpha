@@ -1,7 +1,7 @@
 import { useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { HeatGrid, LineChart } from "./charts";
-import { atmQuote, type MarketChain, type StrategyLeg } from "./contracts";
+import { atmQuote, twoSidedCount, type MarketChain, type StrategyLeg } from "./contracts";
 import { int, money, num, pct, stamp } from "./format";
 import {
   useMarketChain,
@@ -24,7 +24,7 @@ export default function OptionsScreen() {
   return (
     <div className="mk-grid">
       <ChainPanel ticker={ticker} days={days} setDays={setDays} chain={chain} />
-      <PricerAndStrategy key={ticker} chain={chain.data ?? null} />
+      <PricerAndStrategy key={ticker} ticker={ticker} chain={chain.data ?? null} />
       <SurfacePanel ticker={ticker} />
       <TheoreticalPanel ticker={ticker} />
     </div>
@@ -90,7 +90,16 @@ function ChainPanel({
       ) : chain.isError ? (
         <Unavailable what="Option chain" error={chain.error} retry={() => void chain.refetch()} />
       ) : (
-        <ChainTable data={chain.data} atm={atm} />
+        <>
+          {twoSidedCount(chain.data) === 0 && (
+            <p className="mk-line mk-caution">
+              <b>No two-sided quotes right now.</b> Yahoo reports no bid or ask for this expiry, as
+              it does outside US market hours, so only last trades are shown and implied vols and
+              deltas are unavailable.
+            </p>
+          )}
+          <ChainTable data={chain.data} atm={atm} />
+        </>
       )}
       <Note>
         Δ is Black-Scholes delta at each contract's own implied vol, r 5% and no dividend (assumed).
@@ -157,10 +166,12 @@ function ChainTable({ data, atm }: { data: MarketChain; atm: number | null }) {
 
 function legCells(leg: MarketChain["rows"][number]["call"]) {
   const cls = leg.in_the_money ? "mk-itm" : undefined;
+  const noMarket = !leg.bid && !leg.ask;
   return (
     <>
-      <td className={cls}>{num(leg.bid)}</td>
-      <td className={cls}>{num(leg.ask)}</td>
+      {/* No bid and no ask is no market, not a price of zero. */}
+      <td className={cls}>{noMarket ? "—" : num(leg.bid)}</td>
+      <td className={cls}>{noMarket ? "—" : num(leg.ask)}</td>
       <td className={cls}>{num(leg.last)}</td>
       <td className={cls}>{pct(leg.iv, 1)}</td>
       <td className={cls}>{num(leg.delta)}</td>
@@ -189,27 +200,36 @@ function parseDraft(d: Draft): PricerInput | string {
   return { S, K, T: days / 365, r, q, sigma, type: d.type };
 }
 
-function PricerAndStrategy({ chain }: { chain: MarketChain | null }) {
+function PricerAndStrategy({ ticker, chain }: { ticker: string; chain: MarketChain | null }) {
   const [draft, setDraft] = useState<Draft>(BLANK);
   const [touched, setTouched] = useState(false);
   const [input, setInput] = useState<PricerInput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [volSource, setVolSource] = useState<"quoted" | "realized" | "none" | null>(null);
+
+  // Without a quoted ATM vol (e.g. off-hours), fall back to the ticker's realized vol, labelled.
+  const quotedIv = chain ? atmQuote(chain).iv : null;
+  const theo = useTheoreticalChain(ticker, !!chain && quotedIv == null);
+  const realized = theo.data?.sigma ?? null;
 
   // Prefill once from the quoted chain: spot, the ATM strike, its IV and the expiry.
   useEffect(() => {
     if (!chain || touched) return;
+    if (quotedIv == null && theo.isPending && theo.fetchStatus !== "idle") return;
     const atm = atmQuote(chain);
+    const vol = quotedIv ?? realized;
     const next: Draft = {
       ...BLANK,
       S: chain.spot.toFixed(2),
       K: String(atm.strike),
       days: String(chain.days),
-      sigma: atm.iv ? (atm.iv * 100).toFixed(1) : "",
+      sigma: vol ? (vol * 100).toFixed(1) : "",
     };
     setDraft(next);
+    setVolSource(quotedIv != null ? "quoted" : realized != null ? "realized" : "none");
     const parsed = parseDraft(next);
     setInput(typeof parsed === "string" ? null : parsed);
-  }, [chain, touched]);
+  }, [chain, touched, quotedIv, realized, theo.isPending, theo.fetchStatus]);
 
   const set = (k: keyof Draft, v: string) => {
     setTouched(true);
@@ -254,6 +274,18 @@ function PricerAndStrategy({ chain }: { chain: MarketChain | null }) {
         {error && (
           <p className="mk-line mk-field-error" role="alert">
             {error}
+          </p>
+        )}
+        {!touched && volSource === "realized" && (
+          <p className="mk-line mk-caution">
+            <b>No quoted implied vol at the money.</b> Vol is prefilled with {ticker}&apos;s
+            realized volatility ({pct(realized, 1)}, from daily closes), not a market quote. Edit it
+            to price at another vol.
+          </p>
+        )}
+        {!touched && volSource === "none" && (
+          <p className="mk-line mk-caution">
+            <b>No quoted implied vol at the money and no realized vol.</b> Enter a vol to price.
           </p>
         )}
         {!chain && !touched && !input && (

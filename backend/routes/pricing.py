@@ -16,6 +16,10 @@ router = APIRouter(tags=["pricing"])
 _market_chain_cache: dict[tuple[str, int, float], tuple[float, Dict[str, Any]]] = {}
 _market_chain_lock = threading.Lock()
 _MARKET_CHAIN_TTL = 180.0
+# Outside US market hours Yahoo reports bid = ask = 0 and impliedVolatility = 1e-05
+# for every contract. No listed equity option trades below 1% vol, so anything
+# under that is a placeholder, not a quote.
+_MIN_QUOTED_IV = 0.01
 
 
 
@@ -221,6 +225,8 @@ def _market_option_leg(row: Any, spot: float, strike: float, T: float,
     from src.pricing import black_scholes
 
     iv = _f(row.get("impliedVolatility"))
+    if iv is not None and iv < _MIN_QUOTED_IV:
+        iv = None  # Yahoo's placeholder when there is no two-sided market (e.g. off-hours)
     delta = None
     if iv and iv > 0:
         try:

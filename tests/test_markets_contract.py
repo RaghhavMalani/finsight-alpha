@@ -86,3 +86,39 @@ def test_markets_fixtures_match_the_routes() -> None:
         assert shape(payload) == shape(on_disk[name]), (
             f"{name} drifted; run python scripts/export_markets_fixtures.py"
         )
+
+
+def test_market_chain_drops_yahoo_off_hours_placeholder_ivs(monkeypatch) -> None:
+    """Off-hours Yahoo quotes carry IV 1e-05 and no bid or ask; that is not a 0% vol."""
+    from datetime import date, timedelta
+    from types import SimpleNamespace
+
+    import pandas as pd
+
+    expiry = (date.today() + timedelta(days=30)).isoformat()
+
+    def leg(strike, iv):
+        return {"strike": strike, "contractSymbol": f"SPY{strike}", "lastPrice": 12.0,
+                "bid": 0.0, "ask": 0.0, "impliedVolatility": iv, "volume": 1.0,
+                "openInterest": 0.0, "inTheMoney": strike < 500, "lastTradeDate": None}
+
+    class OffHours:
+        def __init__(self, symbol):
+            self.fast_info = {"last_price": 500.0}
+            self.options = (expiry,)
+
+        def option_chain(self, _expiry):
+            rows = [leg(495.0, 1e-05), leg(500.0, 1e-05), leg(505.0, 0.18)]
+            return SimpleNamespace(calls=pd.DataFrame(rows), puts=pd.DataFrame(rows))
+
+    monkeypatch.setattr("yfinance.Ticker", OffHours)
+    pricing._market_chain_cache.clear()
+    chain = pricing.market_option_chain("ZZOFF", target_days=30, moneyness_band=0.3, r=0.05, q=0.0)
+    by_strike = {row["strike"]: row for row in chain["rows"]}
+    for strike in (495.0, 500.0):
+        assert by_strike[strike]["call"]["iv"] is None
+        assert by_strike[strike]["call"]["delta"] is None
+        assert by_strike[strike]["call"]["bid"] == 0.0  # reported as-is: no bid
+    assert by_strike[505.0]["call"]["iv"] == 0.18
+    assert by_strike[505.0]["call"]["delta"] is not None
+    pricing._market_chain_cache.clear()

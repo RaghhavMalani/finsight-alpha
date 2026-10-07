@@ -21,6 +21,7 @@ import {
   mid,
   normalizeTicker,
   parityGap,
+  twoSidedCount,
 } from "../src/markets/contracts.ts";
 import {
   bandPath,
@@ -209,6 +210,17 @@ check(() => {
 const chain = adaptMarketChain(fixtures["options-market-chain"]);
 check(() => assert.deepEqual(atmQuote(chain).strike, 500));
 check(() => assert.ok(atmQuote(chain).iv > 0));
+check(() => assert.equal(twoSidedCount(chain), chain.rows.length));
+// Off-hours Yahoo: no bid, no ask, IV placeholder 1e-05 (the route nulls it; the adapter must
+// not treat a stray one as a 0% vol either).
+const offHours = adaptMarketChain(
+  mutated("options-market-chain", (x) => {
+    for (const row of x.rows)
+      for (const leg of [row.call, row.put]) Object.assign(leg, { bid: 0, ask: 0, iv: 1e-5 });
+  }),
+);
+check(() => assert.equal(twoSidedCount(offHours), 0));
+check(() => assert.equal(atmQuote(offHours).iv, null, "a placeholder IV is not a quoted vol"));
 check(() => assert.equal(mid({ bid: 1, ask: 1.2 }), 1.1));
 check(() => assert.equal(mid({ bid: 0, ask: 1.2 }), null, "one-sided quote has no mid"));
 check(() => assert.equal(mid({ bid: 1.3, ask: 1.2 }), null, "crossed quote has no mid"));
