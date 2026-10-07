@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pandas as pd
 
@@ -60,6 +60,11 @@ def _cached(key: tuple, ttl: float, now: float) -> pd.DataFrame | None:
 
 
 def _remember(key: tuple, now: float, df: pd.DataFrame) -> None:
+    # When the provider answered; cache hits keep it, so a route can say how old
+    # the frame it serves really is.
+    df.attrs["fetched_at"] = datetime.fromtimestamp(now, timezone.utc).isoformat(
+        timespec="seconds"
+    )
     with _cache_lock:
         if len(_cache) >= _MAX_CACHE_ENTRIES:  # drop oldest entries
             for old_key, _ in sorted(_cache.items(), key=lambda kv: kv[1][0])[:32]:

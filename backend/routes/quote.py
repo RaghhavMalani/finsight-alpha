@@ -1,15 +1,16 @@
-"""Quote route: rich price + analytics payload powering the terminal Overview."""
+"""Quote routes: OHLCV candles for the Markets Overview, plus the price + analytics payload."""
 
 from __future__ import annotations
 
 import math
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
+from backend.routes.tape import _SYMBOL_RE
 from src import config
 from src.analytics import (
     calculate_drawdown,
@@ -21,6 +22,19 @@ from src.data.market_data import MarketDataService
 from src.data.providers import ProviderError
 
 router = APIRouter(prefix="/quote", tags=["quote"])
+
+BAR_RANGES = ("1D", "5D", "1M", "3M", "6M", "YTD", "1Y", "5Y")
+# Intraday ranges: the provider's latest period at a fixed bar interval.
+_INTRADAY = {"1D": ("1d", "5m"), "5D": ("5d", "30m")}
+# Daily ranges trim one cached daily frame; 5Y aggregates it into weeks.
+_LOOKBACK = {
+    "1M": pd.DateOffset(months=1),
+    "3M": pd.DateOffset(months=3),
+    "6M": pd.DateOffset(months=6),
+    "1Y": pd.DateOffset(years=1),
+    "5Y": pd.DateOffset(years=5),
+}
+_PRICES = ["Open", "High", "Low", "Close"]
 
 
 def _f(value: Any) -> Optional[float]:
@@ -44,6 +58,118 @@ def _rsi(close: pd.Series, period: int = 14) -> Optional[float]:
     rs = up / down.replace(0, np.nan)
     rsi = 100 - 100 / (1 + rs)
     return _f(rsi.iloc[-1]) if len(rsi) else None
+
+
+def _clean_bars(frame: pd.DataFrame) -> pd.DataFrame:
+    """Bars in time order with all four prices finite; a missing volume stays missing."""
+    out = frame.sort_values("Date").reset_index(drop=True)
+    prices = out[_PRICES].apply(pd.to_numeric, errors="coerce")
+    keep = np.isfinite(prices.to_numpy(dtype=float)).all(axis=1)
+    out = out.loc[keep].copy()
+    out[_PRICES] = prices.loc[keep]
+    volume = out["Volume"] if "Volume" in out else pd.Series(np.nan, index=out.index)
+    out["Volume"] = pd.to_numeric(volume, errors="coerce")
+    return out.reset_index(drop=True)
+
+
+def weekly_bars(daily: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate daily bars into Monday-to-Sunday weeks.
+
+    Open is the week's first open, high and low its extremes, close its last
+    close, and volume the sum (missing when no day reported one). Each week is
+    labelled with the date of its first session.
+    """
+    g = daily.groupby(daily["Date"].dt.to_period("W-SUN"), sort=True)
+    return pd.DataFrame(
+        {
+            "Date": g["Date"].first(),
+            "Open": g["Open"].first(),
+            "High": g["High"].max(),
+            "Low": g["Low"].min(),
+            "Close": g["Close"].last(),
+            "Volume": g["Volume"].sum(min_count=1),
+        }
+    ).reset_index(drop=True)
+
+
+@router.get("/bars/{ticker}")
+def get_bars(ticker: str, range_: str = Query("1D", alias="range")) -> Dict[str, Any]:
+    """OHLCV candles for one chart range, with source, interval and timezone.
+
+    1D and 5D are 5- and 30-minute regular-session bars, 1M to 1Y daily bars,
+    and 5Y weekly bars aggregated from the daily ones. Prices are adjusted for
+    splits and dividends. Nothing is synthesized: a provider failure is a 502
+    and no bars a 404.
+    """
+    symbol = ticker.strip().upper()
+    if not _SYMBOL_RE.fullmatch(symbol):
+        raise HTTPException(status_code=422, detail=f"'{ticker}' is not a ticker symbol.")
+    if range_ not in BAR_RANGES:
+        raise HTTPException(
+            status_code=422, detail=f"range must be one of {', '.join(BAR_RANGES)}."
+        )
+
+    service = MarketDataService("yfinance")
+    intraday = range_ in _INTRADAY
+    today = date.today()
+    try:
+        if intraday:
+            period, interval = _INTRADAY[range_]
+            frame = service.get_intraday(symbol, period, interval)
+        else:
+            interval = "1wk" if range_ == "5Y" else "1d"
+            # One five-year frame serves every daily range. The end is exclusive,
+            # so tomorrow keeps today's bar when the provider already has one.
+            frame = service.get_data(
+                symbol,
+                (today - timedelta(days=5 * 366 + 14)).isoformat(),
+                (today + timedelta(days=1)).isoformat(),
+            )
+    except ProviderError as exc:
+        raise HTTPException(status_code=502, detail=f"Price bars unavailable: {exc}") from exc
+
+    fetched_at = frame.attrs.get("fetched_at")
+    source = str(frame["Provider"].iloc[0]).upper() if len(frame) else "UNKNOWN"
+    bars = _clean_bars(frame)
+    if not intraday and len(bars):
+        days = pd.to_datetime(bars["Date"])
+        # Daily bars are exchange trading dates; keep the wall date if a zone came with them.
+        bars["Date"] = days.dt.tz_localize(None) if days.dt.tz is not None else days
+        if range_ == "5Y":
+            bars = weekly_bars(bars)
+        start = (
+            pd.Timestamp(today.year, 1, 1)
+            if range_ == "YTD"
+            else pd.Timestamp(today) - _LOOKBACK[range_]
+        )
+        bars = bars[bars["Date"] >= start]
+    if bars.empty:
+        raise HTTPException(
+            status_code=404, detail=f"No {interval} bars for '{symbol}' over {range_}."
+        )
+
+    tz = bars["Date"].dt.tz if intraday else None
+    return {
+        "ticker": symbol,
+        "range": range_,
+        "interval": interval,
+        "intraday": intraday,
+        "source": source,
+        "adjusted": "splits_and_dividends",
+        "timezone": str(tz) if tz is not None else None,
+        "fetched_at": fetched_at,
+        "bars": [
+            {
+                "t": row.Date.isoformat() if intraday else row.Date.strftime("%Y-%m-%d"),
+                "o": _f(row.Open),
+                "h": _f(row.High),
+                "l": _f(row.Low),
+                "c": _f(row.Close),
+                "v": _f(row.Volume),
+            }
+            for row in bars.itertuples(index=False)
+        ],
+    }
 
 
 @router.get("/live/{ticker}")
