@@ -1,5 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { WORKSPACES } from "@/app/workspaces";
+import { parseCommand } from "./mnemonics";
+import { setCurrentTicker, useCurrentTicker } from "@/replay/mode";
 
 const MARKET_SCREENS = {
   "markets-overview": "/markets",
@@ -11,10 +14,16 @@ const MARKET_SCREENS = {
 } as const;
 
 const COMMANDS = [
+  ...WORKSPACES.map((w) => ({
+    id: `workspace:${w.id}`,
+    label: `${w.key} · ${w.label}`,
+    hint: w.command,
+    to: w.to,
+  })),
   {
     id: "markets-overview",
     label: "Open Markets · Overview",
-    hint: "Quotes, candlesticks, volume and watchlist",
+    hint: "Weekly derived Replay or sourced local Live quotes",
     to: "/markets",
   },
   {
@@ -73,7 +82,7 @@ const COMMANDS = [
   {
     id: "globe",
     label: "Open God's Eye",
-    hint: "Live quakes, satellites and market hubs",
+    hint: "Checked World snapshot or local Live feeds",
     to: "/globe",
   },
   {
@@ -87,19 +96,40 @@ const COMMANDS = [
 
 export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const currentTicker = useCurrentTicker();
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const mnemonic = useMemo(() => {
+    try {
+      return query.trim() ? parseCommand(query, currentTicker) : null;
+    } catch {
+      return null;
+    }
+  }, [query, currentTicker]);
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) return COMMANDS;
-    return COMMANDS.filter((command) =>
+    const pages = COMMANDS.filter((command) =>
       `${command.label} ${command.hint}`.toLowerCase().includes(normalized),
     );
-  }, [query]);
+    return mnemonic
+      ? [
+          {
+            id: "mnemonic",
+            label: `GO · ${query.trim().toUpperCase()}`,
+            hint: mnemonic.instrument
+              ? `${mnemonic.instrument.exchange} · ${mnemonic.instrument.currency}`
+              : "Open workspace",
+            to: mnemonic.to,
+          },
+          ...pages,
+        ]
+      : pages;
+  }, [query, mnemonic]);
 
   useEffect(() => {
     if (!open) return;
@@ -117,11 +147,25 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
   if (!open) return null;
 
   const execute = (id: (typeof COMMANDS)[number]["id"]) => {
+    if (id === "mnemonic" && mnemonic) {
+      if (mnemonic.instrument) setCurrentTicker(mnemonic.instrument.providerSymbol);
+      onClose();
+      void navigate({ to: mnemonic.to, search: mnemonic.search as never });
+      return;
+    }
+    if (id.startsWith("workspace:")) {
+      const workspace = WORKSPACES.find((w) => `workspace:${w.id}` === id);
+      if (workspace) {
+        onClose();
+        void navigate({ to: workspace.to, search: { ticker: currentTicker } as never });
+      }
+      return;
+    }
     onClose();
     if (id in MARKET_SCREENS) {
       void navigate({
         to: MARKET_SCREENS[id as keyof typeof MARKET_SCREENS],
-        search: { ticker: "SPY" },
+        search: { ticker: currentTicker },
       });
       return;
     }
@@ -188,7 +232,7 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
         role="dialog"
         aria-modal="true"
         aria-labelledby="forge-command-title"
-        className="w-full max-w-2xl border border-[#3b4651] bg-[#080a0d] shadow-[0_28px_90px_rgba(0,0,0,0.6)]"
+        className="w-full max-w-2xl border border-[#3b4651] bg-[#0B0D10] shadow-[0_28px_90px_rgba(0,0,0,0.6)]"
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
@@ -231,16 +275,18 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
           <div>
             <div
               id="forge-command-title"
-              className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#FFB000]"
+              className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#F0A929]"
             >
-              Forge command
+              Terminal command
             </div>
-            <p className="mt-1 text-xs text-[#65707c]">Navigation only in Observer Foundation</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Choose a workspace or enter a ticker command. F5 and F7 stay with your browser.
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="border border-[#29313a] px-2 py-1 font-mono text-[9px] uppercase text-[#9ba5af] hover:border-[#FFB000] hover:text-[#FFB000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]"
+            className="border border-[#29313a] px-2 py-1 font-mono text-[9px] uppercase text-[#9ba5af] hover:border-[#F0A929] hover:text-[#F0A929] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F0A929]"
           >
             Esc
           </button>
@@ -261,7 +307,7 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
               setQuery(event.target.value);
               setActiveIndex(0);
             }}
-            placeholder="Open runs, bench, reality, worlds, artifacts…"
+            placeholder="RELIANCE IN DES · SPY REG · FACT · EXEC"
             className="w-full bg-transparent font-mono text-sm text-[#E6E8EB] outline-none placeholder:text-[#48515C]"
           />
         </label>
@@ -285,7 +331,7 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
               type="button"
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => execute(command.id)}
-              className={`flex w-full items-center justify-between gap-5 px-3 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${
+              className={`flex w-full items-center justify-between gap-5 px-3 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F0A929] ${
                 index === activeIndex ? "bg-[#111820]" : "hover:bg-[#0d1217]"
               }`}
             >
@@ -295,7 +341,7 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
           ))}
           {results.length === 0 && (
             <p className="px-3 py-8 text-center text-sm text-[#7B8490]">
-              No known destination. Observer Foundation does not infer commands.
+              Unknown command. Use TICKER [US/UN/UQ/UP/IN/IS/IB] FUNCTION, or choose a workspace.
             </p>
           )}
         </div>

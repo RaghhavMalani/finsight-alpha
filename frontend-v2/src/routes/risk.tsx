@@ -24,6 +24,9 @@ import {
   type Position,
 } from "@/lib/book";
 import { toast } from "sonner";
+import { useDataMode } from "@/replay/mode";
+import { WorkspacePlaceholder } from "@/app/WorkspacePlaceholder";
+import { ForgeShell } from "@/app/shell/ForgeShell";
 
 export const Route = createFileRoute("/risk")({
   head: () => ({
@@ -36,8 +39,19 @@ export const Route = createFileRoute("/risk")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: RiskDeskPro,
+  component: RiskWorkspace,
 });
+
+function RiskWorkspace() {
+  const mode = useDataMode();
+  return mode === "replay" ? (
+    <WorkspacePlaceholder workspace="risk" />
+  ) : (
+    <ForgeShell>
+      <RiskDeskPro />
+    </ForgeShell>
+  );
+}
 
 // Decision-first Risk Desk built around limits, drivers, stress losses, and executable actions.
 type ProTab = "COMMAND" | "OVERVIEW" | "EXPOSURES" | "STRESS" | "INTELLIGENCE" | "HEDGES";

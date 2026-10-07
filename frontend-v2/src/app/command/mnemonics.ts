@@ -24,7 +24,7 @@ export function parseCommand(text: string, currentTicker = "SPY"): CommandTarget
   if (["GO", "<GO>"].includes(tokens.at(-1) ?? "")) tokens.pop();
   if (!tokens.length) throw new Error("Enter a ticker and function, for example RELIANCE IN DES.");
   const workspace = WORKSPACES.find(
-    (w) => tokens.length === 1 && [w.command, w.label].includes(tokens[0]),
+    (w) => tokens.length === 1 && (w.command === tokens[0] || w.label === tokens[0]),
   );
   if (workspace) return { to: workspace.to, search: { ticker: currentTicker } };
   if (tokens.length < 2 || tokens.length > 3)

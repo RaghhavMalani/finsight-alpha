@@ -12,12 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as BenchRouteImport } from './routes/bench'
+import { Route as DataRouteImport } from './routes/data'
 import { Route as DynamicsRouteImport } from './routes/dynamics'
+import { Route as ExecutionRouteImport } from './routes/execution'
+import { Route as FactorsRouteImport } from './routes/factors'
 import { Route as ForgeRouteImport } from './routes/forge'
 import { Route as GlobeRouteImport } from './routes/globe'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as ObservatoryRouteImport } from './routes/observatory'
+import { Route as ResearchRouteImport } from './routes/research'
 import { Route as RiskRouteImport } from './routes/risk'
 import { Route as RunsRouteImport } from './routes/runs'
 import { Route as WorldsRouteImport } from './routes/worlds'
@@ -49,9 +53,24 @@ const BenchRoute = BenchRouteImport.update({
   path: '/bench',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DataRoute = DataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DynamicsRoute = DynamicsRouteImport.update({
   id: '/dynamics',
   path: '/dynamics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExecutionRoute = ExecutionRouteImport.update({
+  id: '/execution',
+  path: '/execution',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FactorsRoute = FactorsRouteImport.update({
+  id: '/factors',
+  path: '/factors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgeRoute = ForgeRouteImport.update({
@@ -77,6 +96,11 @@ const MarketsRoute = MarketsRouteImport.update({
 const ObservatoryRoute = ObservatoryRouteImport.update({
   id: '/observatory',
   path: '/observatory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchRoute = ResearchRouteImport.update({
+  id: '/research',
+  path: '/research',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RiskRoute = RiskRouteImport.update({
@@ -159,12 +183,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
   '/bench': typeof BenchRouteWithChildren
+  '/data': typeof DataRoute
   '/dynamics': typeof DynamicsRoute
+  '/execution': typeof ExecutionRoute
+  '/factors': typeof FactorsRoute
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRouteWithChildren
   '/observatory': typeof ObservatoryRoute
+  '/research': typeof ResearchRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/worlds': typeof WorldsRoute
@@ -184,11 +212,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
+  '/data': typeof DataRoute
   '/dynamics': typeof DynamicsRoute
+  '/execution': typeof ExecutionRoute
+  '/factors': typeof FactorsRoute
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
+  '/research': typeof ResearchRoute
   '/risk': typeof RiskRoute
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
@@ -209,12 +241,16 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
   '/bench': typeof BenchRouteWithChildren
+  '/data': typeof DataRoute
   '/dynamics': typeof DynamicsRoute
+  '/execution': typeof ExecutionRoute
+  '/factors': typeof FactorsRoute
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRouteWithChildren
   '/observatory': typeof ObservatoryRoute
+  '/research': typeof ResearchRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/worlds': typeof WorldsRoute
@@ -237,12 +273,16 @@ export interface FileRouteTypes {
     | '/'
     | '/artifacts'
     | '/bench'
+    | '/data'
     | '/dynamics'
+    | '/execution'
+    | '/factors'
     | '/forge'
     | '/globe'
     | '/login'
     | '/markets'
     | '/observatory'
+    | '/research'
     | '/risk'
     | '/runs'
     | '/worlds'
@@ -262,11 +302,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/artifacts'
+    | '/data'
     | '/dynamics'
+    | '/execution'
+    | '/factors'
     | '/forge'
     | '/globe'
     | '/login'
     | '/observatory'
+    | '/research'
     | '/risk'
     | '/worlds'
     | '/bench/$benchmarkId'
@@ -286,12 +330,16 @@ export interface FileRouteTypes {
     | '/'
     | '/artifacts'
     | '/bench'
+    | '/data'
     | '/dynamics'
+    | '/execution'
+    | '/factors'
     | '/forge'
     | '/globe'
     | '/login'
     | '/markets'
     | '/observatory'
+    | '/research'
     | '/risk'
     | '/runs'
     | '/worlds'
@@ -313,12 +361,16 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArtifactsRoute: typeof ArtifactsRoute
   BenchRoute: typeof BenchRouteWithChildren
+  DataRoute: typeof DataRoute
   DynamicsRoute: typeof DynamicsRoute
+  ExecutionRoute: typeof ExecutionRoute
+  FactorsRoute: typeof FactorsRoute
   ForgeRoute: typeof ForgeRoute
   GlobeRoute: typeof GlobeRoute
   LoginRoute: typeof LoginRoute
   MarketsRoute: typeof MarketsRouteWithChildren
   ObservatoryRoute: typeof ObservatoryRoute
+  ResearchRoute: typeof ResearchRoute
   RiskRoute: typeof RiskRoute
   RunsRoute: typeof RunsRouteWithChildren
   WorldsRoute: typeof WorldsRoute
@@ -348,11 +400,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BenchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/data': {
+      id: '/data'
+      path: '/data'
+      fullPath: '/data'
+      preLoaderRoute: typeof DataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dynamics': {
       id: '/dynamics'
       path: '/dynamics'
       fullPath: '/dynamics'
       preLoaderRoute: typeof DynamicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/execution': {
+      id: '/execution'
+      path: '/execution'
+      fullPath: '/execution'
+      preLoaderRoute: typeof ExecutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/factors': {
+      id: '/factors'
+      path: '/factors'
+      fullPath: '/factors'
+      preLoaderRoute: typeof FactorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forge': {
@@ -388,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/observatory'
       fullPath: '/observatory'
       preLoaderRoute: typeof ObservatoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research': {
+      id: '/research'
+      path: '/research'
+      fullPath: '/research'
+      preLoaderRoute: typeof ResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/risk': {
@@ -549,12 +629,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArtifactsRoute: ArtifactsRoute,
   BenchRoute: BenchRouteWithChildren,
+  DataRoute: DataRoute,
   DynamicsRoute: DynamicsRoute,
+  ExecutionRoute: ExecutionRoute,
+  FactorsRoute: FactorsRoute,
   ForgeRoute: ForgeRoute,
   GlobeRoute: GlobeRoute,
   LoginRoute: LoginRoute,
   MarketsRoute: MarketsRouteWithChildren,
   ObservatoryRoute: ObservatoryRoute,
+  ResearchRoute: ResearchRoute,
   RiskRoute: RiskRoute,
   RunsRoute: RunsRouteWithChildren,
   WorldsRoute: WorldsRoute,
