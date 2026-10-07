@@ -41,24 +41,48 @@ function post<T>(path: string, body: unknown, adapt: (v: unknown) => T) {
 }
 
 export function useBars(ticker: string, range: BarRange) {
-  return useQuery({ ...common, queryKey: ["markets", "bars", ticker, range],
-    queryFn: ({ signal }) => api<unknown>(`/quote/bars/${enc(ticker)}?${qs({ range })}`, { signal }).then((v) => adaptBars(v, { ticker, range })),
-    refetchInterval: range === "1D" || range === "5D" ? 60_000 : false });
+  return useQuery({
+    ...common,
+    queryKey: ["markets", "bars", ticker, range],
+    queryFn: ({ signal }) =>
+      api<unknown>(`/quote/bars/${enc(ticker)}?${qs({ range })}`, { signal }).then((v) =>
+        adaptBars(v, { ticker, range }),
+      ),
+    refetchInterval: range === "1D" || range === "5D" ? 60_000 : false,
+  });
 }
 export function useQuotes(tickers: string[]) {
   const symbols = [...new Set(tickers)];
-  return useQuery({ ...common, staleTime: 20_000, refetchInterval: 30_000,
+  return useQuery({
+    ...common,
+    staleTime: 20_000,
+    refetchInterval: 30_000,
     queryKey: ["markets", "quotes", symbols],
     queryFn: async ({ signal }) => {
       // The tape accepts 30 symbols. A full watchlist plus a new current symbol needs two batches.
-      const batches = await Promise.all([symbols.slice(0, 30), symbols.slice(30)].filter((b) => b.length).map((batch) =>
-        api<unknown>(`/tape?${qs({ symbols: batch.join(",") })}`, { signal }).then((v) => adaptQuotes(v, batch))));
+      const batches = await Promise.all(
+        [symbols.slice(0, 30), symbols.slice(30)]
+          .filter((b) => b.length)
+          .map((batch) =>
+            api<unknown>(`/tape?${qs({ symbols: batch.join(",") })}`, { signal }).then((v) =>
+              adaptQuotes(v, batch),
+            ),
+          ),
+      );
       return Object.assign({}, ...batches) as ReturnType<typeof adaptQuotes>;
-    } });
+    },
+  });
 }
 export function useTickerSearch(query: string) {
-  return useQuery({ ...common, queryKey: ["markets", "search", query], enabled: query.trim().length > 0,
-    queryFn: ({ signal }) => api<unknown>(`/assets/search?${qs({ q: query.trim(), limit: 8 })}`, { signal }).then(adaptSearch) });
+  return useQuery({
+    ...common,
+    queryKey: ["markets", "search", query],
+    enabled: query.trim().length > 0,
+    queryFn: ({ signal }) =>
+      api<unknown>(`/assets/search?${qs({ q: query.trim(), limit: 8 })}`, { signal }).then(
+        adaptSearch,
+      ),
+  });
 }
 
 // ---------------------------------------------------------------- options

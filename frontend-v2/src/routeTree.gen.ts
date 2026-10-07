@@ -24,6 +24,7 @@ import { Route as WorldsRouteImport } from './routes/worlds'
 import { Route as BenchIndexRouteImport } from './routes/bench.index'
 import { Route as BenchBenchmarkIdRouteImport } from './routes/bench.$benchmarkId'
 import { Route as MarketsIndexRouteImport } from './routes/markets.index'
+import { Route as MarketsTickerRouteImport } from './routes/markets.$ticker'
 import { Route as MarketsBacktestRouteImport } from './routes/markets.backtest'
 import { Route as MarketsFundamentalsRouteImport } from './routes/markets.fundamentals'
 import { Route as MarketsOptionsRouteImport } from './routes/markets.options'
@@ -108,6 +109,11 @@ const MarketsIndexRoute = MarketsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MarketsRoute,
 } as any)
+const MarketsTickerRoute = MarketsTickerRouteImport.update({
+  id: '/$ticker',
+  path: '/$ticker',
+  getParentRoute: () => MarketsRoute,
+} as any)
 const MarketsBacktestRoute = MarketsBacktestRouteImport.update({
   id: '/backtest',
   path: '/backtest',
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/runs': typeof RunsRouteWithChildren
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
+  '/markets/$ticker': typeof MarketsTickerRoute
   '/markets/backtest': typeof MarketsBacktestRoute
   '/markets/fundamentals': typeof MarketsFundamentalsRoute
   '/markets/options': typeof MarketsOptionsRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/risk': typeof RiskRoute
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
+  '/markets/$ticker': typeof MarketsTickerRoute
   '/markets/backtest': typeof MarketsBacktestRoute
   '/markets/fundamentals': typeof MarketsFundamentalsRoute
   '/markets/options': typeof MarketsOptionsRoute
@@ -211,6 +219,7 @@ export interface FileRoutesById {
   '/runs': typeof RunsRouteWithChildren
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
+  '/markets/$ticker': typeof MarketsTickerRoute
   '/markets/backtest': typeof MarketsBacktestRoute
   '/markets/fundamentals': typeof MarketsFundamentalsRoute
   '/markets/options': typeof MarketsOptionsRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
     | '/runs'
     | '/worlds'
     | '/bench/$benchmarkId'
+    | '/markets/$ticker'
     | '/markets/backtest'
     | '/markets/fundamentals'
     | '/markets/options'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/risk'
     | '/worlds'
     | '/bench/$benchmarkId'
+    | '/markets/$ticker'
     | '/markets/backtest'
     | '/markets/fundamentals'
     | '/markets/options'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/runs'
     | '/worlds'
     | '/bench/$benchmarkId'
+    | '/markets/$ticker'
     | '/markets/backtest'
     | '/markets/fundamentals'
     | '/markets/options'
@@ -420,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketsIndexRouteImport
       parentRoute: typeof MarketsRoute
     }
+    '/markets/$ticker': {
+      id: '/markets/$ticker'
+      path: '/$ticker'
+      fullPath: '/markets/$ticker'
+      preLoaderRoute: typeof MarketsTickerRouteImport
+      parentRoute: typeof MarketsRoute
+    }
     '/markets/backtest': {
       id: '/markets/backtest'
       path: '/backtest'
@@ -492,6 +511,7 @@ const BenchRouteChildren: BenchRouteChildren = {
 const BenchRouteWithChildren = BenchRoute._addFileChildren(BenchRouteChildren)
 
 interface MarketsRouteChildren {
+  MarketsTickerRoute: typeof MarketsTickerRoute
   MarketsBacktestRoute: typeof MarketsBacktestRoute
   MarketsFundamentalsRoute: typeof MarketsFundamentalsRoute
   MarketsOptionsRoute: typeof MarketsOptionsRoute
@@ -501,6 +521,7 @@ interface MarketsRouteChildren {
 }
 
 const MarketsRouteChildren: MarketsRouteChildren = {
+  MarketsTickerRoute: MarketsTickerRoute,
   MarketsBacktestRoute: MarketsBacktestRoute,
   MarketsFundamentalsRoute: MarketsFundamentalsRoute,
   MarketsOptionsRoute: MarketsOptionsRoute,

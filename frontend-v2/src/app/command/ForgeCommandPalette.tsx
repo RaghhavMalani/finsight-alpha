@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const MARKET_SCREENS = {
+  "markets-overview": "/markets",
   "markets-options": "/markets/options",
   "markets-risk": "/markets/risk",
   "markets-backtest": "/markets/backtest",
@@ -10,6 +11,12 @@ const MARKET_SCREENS = {
 } as const;
 
 const COMMANDS = [
+  {
+    id: "markets-overview",
+    label: "Open Markets · Overview",
+    hint: "Quotes, candlesticks, volume and watchlist",
+    to: "/markets",
+  },
   {
     id: "markets-options",
     label: "Open Markets · Options",

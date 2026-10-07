@@ -20,7 +20,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       {
         key: "",
         label: "Desk",
-        to: "/markets/options",
+        to: "/markets",
         prefix: "/markets",
         search: { ticker: "SPY" },
       },

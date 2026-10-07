@@ -18,11 +18,27 @@ import { barTime, compactNum, num } from "./format";
 
 type Num = number | null;
 
-export function CandleChart({ bars, timezone, label }: { bars: Candle[]; timezone: string | null; label: string }) {
+export function CandleChart({
+  bars,
+  timezone,
+  label,
+}: {
+  bars: Candle[];
+  timezone: string | null;
+  label: string;
+}) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const height = 350, left = 64, right = width - 12, priceBottom = 245, volumeTop = 270, volumeBottom = 320;
-  const limits = extent(bars.map((b) => b.l), bars.map((b) => b.h));
+  const height = 350,
+    left = 64,
+    right = width - 12,
+    priceBottom = 245,
+    volumeTop = 270,
+    volumeBottom = 320;
+  const limits = extent(
+    bars.map((b) => b.l),
+    bars.map((b) => b.h),
+  );
   if (!limits || !bars.length) return <p className="mk-line">No candles to plot.</p>;
   const [lo, hi] = pad(limits);
   const sy = linearScale([lo, hi], [priceBottom, 12]);
@@ -32,32 +48,96 @@ export function CandleChart({ bars, timezone, label }: { bars: Candle[]; timezon
   const selected = bars[hover ?? bars.length - 1];
   return (
     <figure className="mk-chart mk-candles" ref={ref}>
-      <svg width={width} height={height} role="img" aria-label={label}
-        onPointerMove={(e) => setHover(band.nearest(e.clientX - e.currentTarget.getBoundingClientRect().left))}
-        onPointerLeave={() => setHover(null)}>
-        {niceTicks(lo, hi, 4).map((t) => <g key={t}>
-          <line x1={left} x2={right} y1={sy(t)} y2={sy(t)} className="mk-gridline" />
-          <text x={left - 6} y={sy(t)} dy="0.32em" textAnchor="end" className="mk-tick">{num(t)}</text>
-        </g>)}
-        <line x1={left} x2={right} y1={volumeTop - 10} y2={volumeTop - 10} className="mk-gridline" />
-        <text x={left - 6} y={volumeTop + 10} textAnchor="end" className="mk-tick">Vol</text>
-        <text x={left - 6} y={volumeBottom} textAnchor="end" className="mk-tick">{compactNum(volumeMax)}</text>
-        {bars.map((bar, i) => {
-          const shape = candleGeometry(bar, sy), x = band.center(i), color = shape.up ? "var(--up)" : "var(--down)";
-          return <g key={bar.t}>
-            <line x1={x} x2={x} y1={shape.wickTop} y2={shape.wickBottom} stroke={color} />
-            <rect x={x - band.width / 2} y={shape.top} width={band.width} height={shape.height} fill={color} />
-            {bar.v != null && <rect x={x - band.width / 2} y={sv(bar.v)} width={band.width} height={volumeBottom - sv(bar.v)} fill={color} opacity={0.45} />}
-          </g>;
-        })}
-        {labelIndices(bars.length, Math.max(2, Math.floor((right - left) / 120))).map((i, j, indices) => (
-          <text key={i} x={band.center(i)} y={height - 9} textAnchor={j === 0 ? "start" : j === indices.length - 1 ? "end" : "middle"} className="mk-tick">{barTime(bars[i].t, timezone)}</text>
+      <svg
+        width={width}
+        height={height}
+        role="img"
+        aria-label={label}
+        onPointerMove={(e) =>
+          setHover(band.nearest(e.clientX - e.currentTarget.getBoundingClientRect().left))
+        }
+        onPointerLeave={() => setHover(null)}
+      >
+        {niceTicks(lo, hi, 4).map((t) => (
+          <g key={t}>
+            <line x1={left} x2={right} y1={sy(t)} y2={sy(t)} className="mk-gridline" />
+            <text x={left - 6} y={sy(t)} dy="0.32em" textAnchor="end" className="mk-tick">
+              {num(t)}
+            </text>
+          </g>
         ))}
-        {hover != null && <line x1={band.center(hover)} x2={band.center(hover)} y1={12} y2={volumeBottom} className="mk-cursor" />}
+        <line
+          x1={left}
+          x2={right}
+          y1={volumeTop - 10}
+          y2={volumeTop - 10}
+          className="mk-gridline"
+        />
+        <text x={left - 6} y={volumeTop + 10} textAnchor="end" className="mk-tick">
+          Vol
+        </text>
+        <text x={left - 6} y={volumeBottom} textAnchor="end" className="mk-tick">
+          {compactNum(volumeMax)}
+        </text>
+        {bars.map((bar, i) => {
+          const shape = candleGeometry(bar, sy),
+            x = band.center(i),
+            color = shape.up ? "var(--up)" : "var(--down)";
+          return (
+            <g key={bar.t}>
+              <line x1={x} x2={x} y1={shape.wickTop} y2={shape.wickBottom} stroke={color} />
+              <rect
+                x={x - band.width / 2}
+                y={shape.top}
+                width={band.width}
+                height={shape.height}
+                fill={color}
+              />
+              {bar.v != null && (
+                <rect
+                  x={x - band.width / 2}
+                  y={sv(bar.v)}
+                  width={band.width}
+                  height={volumeBottom - sv(bar.v)}
+                  fill={color}
+                  opacity={0.45}
+                />
+              )}
+            </g>
+          );
+        })}
+        {labelIndices(bars.length, Math.max(2, Math.floor((right - left) / 120))).map(
+          (i, j, indices) => (
+            <text
+              key={i}
+              x={band.center(i)}
+              y={height - 9}
+              textAnchor={j === 0 ? "start" : j === indices.length - 1 ? "end" : "middle"}
+              className="mk-tick"
+            >
+              {barTime(bars[i].t, timezone)}
+            </text>
+          ),
+        )}
+        {hover != null && (
+          <line
+            x1={band.center(hover)}
+            x2={band.center(hover)}
+            y1={12}
+            y2={volumeBottom}
+            className="mk-cursor"
+          />
+        )}
       </svg>
       <figcaption className="mk-legend" aria-live="off">
-        <span className="mk-legend-x">{selected.t.slice(0, 10)} {selected.t.includes("T") && barTime(selected.t, timezone)}</span>
-        <span>O {num(selected.o)}</span><span>H {num(selected.h)}</span><span>L {num(selected.l)}</span><span>C {num(selected.c)}</span><span>Vol {compactNum(selected.v)}</span>
+        <span className="mk-legend-x">
+          {selected.t.slice(0, 10)} {selected.t.includes("T") && barTime(selected.t, timezone)}
+        </span>
+        <span>O {num(selected.o)}</span>
+        <span>H {num(selected.h)}</span>
+        <span>L {num(selected.l)}</span>
+        <span>C {num(selected.c)}</span>
+        <span>Vol {compactNum(selected.v)}</span>
       </figcaption>
     </figure>
   );

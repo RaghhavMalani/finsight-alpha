@@ -5,15 +5,27 @@ const DASH = "—";
 
 export function compactNum(v: Num): string {
   if (v == null || !Number.isFinite(v)) return DASH;
-  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(v);
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(
+    v,
+  );
 }
 export function barTime(t: string, timezone: string | null): string {
   if (!t.includes("T")) return t;
   const d = new Date(t);
   if (Number.isNaN(d.getTime())) return t;
   const zone = timezone ?? "UTC";
-  const time = new Intl.DateTimeFormat("en-GB", { timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
-  const label = zone === "America/New_York" ? "ET" : zone === "Asia/Kolkata" || zone === "Asia/Calcutta" ? "IST" : zone;
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: zone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(d);
+  const label =
+    zone === "America/New_York"
+      ? "ET"
+      : zone === "Asia/Kolkata" || zone === "Asia/Calcutta"
+        ? "IST"
+        : zone;
   return `${time} ${label}`;
 }
 
