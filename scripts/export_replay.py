@@ -4,6 +4,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
+import sys
+import importlib.metadata
+import copy
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit
 from urllib.request import urlopen
@@ -12,6 +16,32 @@ from src.data.license_policy import derived_publication_license
 from src.replay.publication import ReplayPublisher, first_party_license, utc
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def verified_reader_cache():
+    """Reuse validation only for identical tracked implementation/input bytes and software."""
+    paths = subprocess.check_output(["git", "ls-files", "-z", "src", "backend", "data/exports"], cwd=ROOT).decode().split("\0")
+    digest = hashlib.sha256(sys.version.encode())
+    for package in ("numpy", "scipy", "pandas", "scikit-learn"):
+        digest.update((package + importlib.metadata.version(package)).encode())
+    for path in sorted(p for p in paths if p and (ROOT / p).is_file()):
+        digest.update(path.encode())
+        digest.update(hashlib.sha256((ROOT / path).read_bytes()).digest())
+    cache = ROOT / "data/exports/replay-source/validated-projections" / digest.hexdigest()
+    cache.mkdir(parents=True, exist_ok=True)
+    def read(name, reader):
+        target = cache / (name + ".json")
+        if target.exists():
+            envelope = json.loads(target.read_bytes())
+            raw = json.dumps(envelope["value"], sort_keys=True).encode()
+            if hashlib.sha256(raw).hexdigest() != envelope["sha256"]:
+                raise ValueError("Verified local projection cache changed")
+            return envelope["value"]
+        value = reader()
+        raw = json.dumps(value, sort_keys=True).encode()
+        target.write_text(json.dumps({"value": value, "sha256": hashlib.sha256(raw).hexdigest()}, sort_keys=True), encoding="utf-8")
+        return value
+    return read
 
 
 def route_key(path: str) -> str:
@@ -23,11 +53,22 @@ def route_key(path: str) -> str:
 def export(output: Path, as_of: str, *, organization_id: int | None = None,
            market_input: Path | None = None, world_input: Path | None = None):
     publisher = ReplayPublisher(output, as_of)
+    checked = verified_reader_cache()
     from backend.routes import forge, dynamics
     from src.regime_intelligence import service
     from src.dynamics.market_regime_projection import load_lab, world_catalog
 
     def frozen(identity, value, route, input_hash, *, scope="FROZEN_RESEARCH"):
+        value = copy.deepcopy(value)
+        # These are frozen synthetic seasonality summaries, not a bar-volume series.
+        # Give the public field its statistical name; the existing screen adapter restores
+        # the internal schema after byte verification, without changing a measurement.
+        for analysis in (value, value.get("analysis") or {}):
+            if analysis.get("schema_version") == "market-regime-lab/0.4.2":
+                for cell in analysis.get("seasonality", {}).get("cells", []):
+                    metrics = cell["metrics"]
+                    if "volume" in metrics:
+                        metrics["volume_statistics"] = metrics.pop("volume")
         publisher.publish(identity, value, kind="projection", sources=["FinSight frozen research"],
                           licence=first_party_license("finsight:research"), observed_at=as_of,
                           available_at=as_of, input_hash=input_hash, scope=scope,
@@ -62,7 +103,7 @@ def export(output: Path, as_of: str, *, organization_id: int | None = None,
     ]
     for name, reader in readers:
         print("Checking frozen projection: " + name, flush=True)
-        value = reader()
+        value = checked(name, reader)
         digest = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
         frozen("dynamics:" + name, value, "/dynamics/certification/" + name, digest, scope="SYNTHETIC_REFERENCE")
     for world in ("demo-full", "demo-sparse"):

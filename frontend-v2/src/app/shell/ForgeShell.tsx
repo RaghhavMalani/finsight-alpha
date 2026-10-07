@@ -26,6 +26,7 @@ const AGENT_PAGES = [
 export function ForgeShell({ children, bleed = false }: { children: ReactNode; bleed?: boolean }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [cutoff, setCutoff] = useState<string | null>(null);
+  const [liveAllowed, setLiveAllowed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const search = useRouterState({ select: (s) => s.location.search as { ticker?: string } });
   const params = useParams({ strict: false }) as { ticker?: string };
@@ -36,6 +37,9 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
   const mode = useDataMode();
   const client = useQueryClient();
   const navigate = useNavigate();
+  useEffect(() => {
+    setLiveAllowed(localLiveAllowed());
+  }, []);
   useEffect(() => {
     setCurrentTicker(ticker);
   }, [ticker]);
@@ -145,7 +149,7 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
             <button
               type="button"
               aria-pressed={mode === "live"}
-              disabled={!localLiveAllowed()}
+              disabled={!liveAllowed}
               title="Local installation with configured backend credentials"
               onClick={() => void changeDataMode("live", client)}
             >

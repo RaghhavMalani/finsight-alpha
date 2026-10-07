@@ -60,7 +60,33 @@ export async function readReplayRoute(path: string) {
   const manifest = await loadReplayManifest();
   const key = canonicalRoute(path);
   const id = manifest.routes[key];
-  if (id) return readReplayArtifact(id);
+  if (id) {
+    const value = await readReplayArtifact(id);
+    // Compatibility with the unchanged frozen seasonality screen's internal contract.
+    // Public bytes contain a statistical summary, never a raw bar-volume field.
+    if (
+      manifest.artifacts[id].scope === "SYNTHETIC_REFERENCE" &&
+      value &&
+      typeof value === "object"
+    ) {
+      const root = value as {
+        schema_version?: string;
+        analysis?: unknown;
+        seasonality?: { cells: { metrics: Record<string, unknown> }[] };
+      };
+      for (const analysis of [root, root.analysis as typeof root]) {
+        if (analysis?.schema_version === "market-regime-lab/0.4.2") {
+          for (const cell of analysis.seasonality?.cells ?? []) {
+            if ("volume_statistics" in cell.metrics) {
+              cell.metrics.volume = cell.metrics.volume_statistics;
+              delete cell.metrics.volume_statistics;
+            }
+          }
+        }
+      }
+    }
+    return value;
+  }
   const url = new URL(key, "https://replay.invalid");
   if (
     url.pathname === "/forge/runs" &&

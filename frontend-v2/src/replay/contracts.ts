@@ -84,8 +84,8 @@ export function assertDerivedPayload(value: unknown, path = "root"): void {
       forbidden.has(normalized) ||
       (["high", "low"].includes(normalized) &&
         !/(?:ci\d*|interval)(?:\.[^.]+)?$/.test(path) &&
-          !path.endsWith(".known_graph_condition_groups") &&
-          !/^root\.summary\.epistemic_states\[\d+\]\.counts$/.test(path))
+        !path.endsWith(".known_graph_condition_groups") &&
+        !/^root\.summary\.epistemic_states\[\d+\]\.counts$/.test(path))
     )
       fail(`Raw price field ${path}.${key} is forbidden in Replay.`);
     assertDerivedPayload(child, `${path}.${key}`);
@@ -93,6 +93,7 @@ export function assertDerivedPayload(value: unknown, path = "root"): void {
 }
 
 export function validateReplayManifest(value: unknown): ReplayManifest {
+  assertDerivedPayload(value);
   if (!value || typeof value !== "object" || Array.isArray(value))
     fail("Replay manifest is malformed.");
   const m = value as ReplayManifest;
@@ -202,6 +203,23 @@ export type MarketReplay = {
 export function validateMarketReplay(value: unknown, ticker: string, cutoff: string): MarketReplay {
   assertDerivedPayload(value);
   const p = value as MarketReplay;
+  if (!p || Object.keys(p).sort().join() !== "as_of,method,schema_version,ticker,weeks")
+    fail("Unknown Market Replay field.");
+  if (
+    p.method &&
+    Object.keys(p.method).some(
+      (k) =>
+        ![
+          "granularity",
+          "base",
+          "volatility_window_sessions",
+          "annualization_sessions",
+          "regime_semantics",
+          "hmm",
+        ].includes(k),
+    )
+  )
+    fail("Unknown Market methodology field.");
   if (
     !p ||
     p.schema_version !== "market-replay/1" ||

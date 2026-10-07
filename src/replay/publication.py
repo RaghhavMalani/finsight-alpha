@@ -27,7 +27,9 @@ def assert_derived(value: Any, path: str = "root") -> None:
         for key, child in value.items():
             normalized = re.sub(r"[_ -]", "", key.lower())
             # HIGH/LOW here are preregistered graph-condition counts, not bar extremes.
-            interval = bool(re.search(r"(?:ci\d*|interval)(?:\.[^.]+)?$", path)) or path.endswith(".known_graph_condition_groups")
+            interval = (bool(re.search(r"(?:ci\d*|interval)(?:\.[^.]+)?$", path))
+                        or path.endswith(".known_graph_condition_groups")
+                        or bool(re.fullmatch(r"root\.summary\.epistemic_states\[\d+\]\.counts", path)))
             if normalized in RAW_FIELDS or normalized in {"high", "low"} and not interval:
                 raise ValueError(f"Raw price field: {path}.{key}")
             assert_derived(child, f"{path}.{key}")

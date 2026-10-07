@@ -44,7 +44,7 @@ export function InstrumentPanel({
 }) {
   return (
     <section className={`min-w-0 border border-[#1D232B] bg-[#0B0E11] ${className}`}>
-      <header className="flex min-h-10 items-center justify-between gap-3 border-b border-[#1D232B] px-3 py-2">
+      <header className="flex min-h-10 flex-wrap items-center justify-between gap-3 border-b border-[#1D232B] px-3 py-2">
         <h2 className="text-sm font-medium tracking-[-0.01em] text-[#dce0e4]">{title}</h2>
         {code && (
           <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-[#59636e]">
