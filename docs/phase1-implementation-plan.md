@@ -59,7 +59,7 @@ Enable Live only on loopback with explicit local configuration and the existing 
 Publication sources:
 
 1. Existing frozen Forge exports, projected through `backend/routes/forge.py`; preserve source bytes, verifier decisions and canonical values. Public projections allow-list derived metrics, recorded conclusions, hashes and provenance. Do not ship arbitrary tool payloads or raw provider requests/responses.
-2. The six already published HMM/signal traces for SPY, QQQ and IWM, keeping their existing bytes/hashes and false market/alpha/causal claim flags. Move their manifest entries into the shared manifest and retire the Observatory-specific manifest.
+2. The six historical HMM/signal traces for SPY, QQQ and IWM are unavailable in public Replay because no anonymous `publish_derived` grant exists. Remove their payloads from the current tree and retire the Observatory-specific manifest. Tests read the byte-identical existing Git objects; they do not republish the vendor payloads. False market/alpha/causal claim flags remain unchanged.
 3. Existing validated real regime snapshots when the operator has installed the inputs. The current product universe is SPY/QQQ/IWM and no real input installation was found in this checkout or the root checkout. Missing India or real-regime results are labelled unavailable. Frozen reference certifications may remain accessible as explicitly labelled reference experiments; do not present synthetic worlds as real market evidence.
 4. God's Eye: capture genuine public-source evidence and publish a compact, attributed derived event summary (counts, hub aggregates and normalized map records) at a fixed cutoff. Satellite motion uses the recorded epoch in Replay. If a source is unavailable or redistribution cannot be established, publish an unavailable entry, not a fabricated feed. Keep Natural Earth geography bundled locally.
 
@@ -99,17 +99,17 @@ All paths below are relative to the implementation worktree. Additions are propo
 4. **Connect existing workspaces to verified Replay**
    - Change Forge data client/query plumbing, Dynamics query/fetch boundaries, Observatory Page/training loader/neural mode controls, God's Eye feeds/page and the landing manifest reader.
    - Add Replay/Live identity to affected query keys; gate local execution/mutations before any request.
-   - Remove `frontend-v2/public/artifacts/observatory/manifest.json` once all readers/exporters use the shared manifest. Keep the six trace payload files unchanged.
+   - Remove `frontend-v2/public/artifacts/observatory/manifest.json` once all readers/exporters use the shared manifest. Remove the six unlicensed trace payloads from the current tree; preserve existing Git history and read its exact bytes for tests.
 5. **India-aware Market and honest coverage**
    - Change Markets contracts/search/query/format/Overview and route search validation; add a Replay Overview component if it keeps raw/derived contracts distinct.
    - Change `backend/routes/assets.py` only as needed for verified normalized instrument metadata. Reuse quote providers for local India VIX.
    - Gate `frontend-v2/src/routes/risk.tsx` to its approved Replay/Live behavior before it mounts local book queries.
 6. **Agents visual composition — deferred to Phase 1b**
-   - Leave `frontend-v2/src/forge/command-center/CommandCenter.tsx`, shared surface primitives and related pane styles unchanged in 1a. In 1b, match the actual reference while retaining the trajectory/evidence models and contracts.
+   - Leave `frontend-v2/src/forge/command-center/CommandCenter.tsx` and Agents composition unchanged in 1a. Three small responsive/accessibility fixes let a panel header wrap, keep closed provenance popovers hidden, and contain the Reality table's positioned content within its scroll region. In 1b, match the actual reference while retaining the trajectory/evidence models and contracts.
 7. **Release checks and documentation**
    - Add `frontend-v2/scripts/verify-replay.mjs`, a reusable Phase 1 capture script, and `.github/workflows/ci.yml` steps.
    - Update existing affected verifier scripts for the intentional navigation/mode behavior changes without weakening contract assertions.
-   - Add `docs/ui/phase1-terminal.md`, 1440/390 screenshots and the postable finding/walkthrough. Retain this implementation plan with the final PR.
+   - Add `docs/phase1a-terminal.md`, 1440/390 screenshots and the postable finding/walkthrough. Retain this implementation plan with the final PR.
 
 ## Verification and completion
 
