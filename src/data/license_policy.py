@@ -214,6 +214,27 @@ class LicenseAccessDenied(PermissionError):
     """Raised when a response would expose evidence outside a tenant grant."""
 
 
+def derived_publication_license(
+    dataset_key: str, organization_id: int | None, *, at: datetime | None = None
+) -> dict[str, Any]:
+    """Display/training grants never imply permission for anonymous publication."""
+    if dataset_key == "usgs:comcat":
+        return {"status": "PUBLIC_DOMAIN", "permitted_uses": ["publish_derived"],
+                "dataset_key": dataset_key, "valid_through": None,
+                "terms_url": "https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits"}
+    if not dataset_key or organization_id is None:
+        return {"status": UNVERIFIED, "permitted_uses": [], "dataset_key": dataset_key,
+                "valid_through": None}
+    grant = resolve_dataset_licenses(organization_id, {dataset_key}, at=at).get(
+        dataset_key, {"status": UNVERIFIED, "permitted_uses": []}
+    )
+    allowed = grant.get("status") == ACTIVE and "publish_derived" in grant.get("permitted_uses", [])
+    return {"status": ACTIVE if allowed else (
+                "NOT_GRANTED" if grant.get("status") == ACTIVE else grant.get("status", UNVERIFIED)),
+            "permitted_uses": ["publish_derived"] if allowed else [],
+            "dataset_key": dataset_key, "valid_through": grant.get("ends_at")}
+
+
 def require_lineage_licenses(
     payload: dict[str, Any], organization_id: int, *, permitted_use: str = "display"
 ) -> dict[str, Any]:
