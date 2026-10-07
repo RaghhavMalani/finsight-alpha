@@ -52,3 +52,155 @@ for (const w of WORKSPACES) assert.equal(activeWorkspace(w.to), w.id);
 for (const p of ["/runs/a", "/bench/a", "/worlds", "/artifacts", "/reality/a"])
   assert.equal(activeWorkspace(p), "agents");
 console.log(`Shell: ${count + 23} command, exchange, currency and workspace checks passed.`);
+
+const urlIndex = process.argv.indexOf("--url");
+if (urlIndex > 0) {
+  const base = process.argv[urlIndex + 1].replace(/\/$/, "");
+  const { chromium, firefox } = await import("playwright");
+  const headed = process.argv.includes("--headed");
+  for (const [name, launch] of [
+    ["Chrome", () => chromium.launch({ channel: "chrome", headless: !headed })],
+    ["Edge", () => chromium.launch({ channel: "msedge", headless: !headed })],
+    [
+      "Firefox",
+      () =>
+        firefox.launch({
+          headless: !headed,
+          firefoxUserPrefs: { "accessibility.warn_on_browsewithcaret": false },
+        }),
+    ],
+  ]) {
+    const browser = await launch();
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    try {
+      for (const w of WORKSPACES) {
+        if (process.argv.includes("--debug")) console.log(`${name}: testing ${w.key}`);
+        await page.goto(`${base}/data?ticker=RELIANCE.NS`);
+        await page.getByRole("button", { name: "Open command palette" }).waitFor();
+        // A visible SSR button does not prove hydration; exercise a React state update first.
+        await page.getByRole("button", { name: "Open command palette" }).click();
+        await page.getByRole("dialog").waitFor();
+        await page.keyboard.press("Escape");
+        await page.getByRole("dialog").waitFor({ state: "hidden" });
+        // Exercise the actual browser keyboard path, then inspect the final handled event.
+        await page.evaluate(() => {
+          document.activeElement?.blur();
+          window.addEventListener(
+            "keydown",
+            (e) => {
+              const record = () =>
+                sessionStorage.setItem(
+                  "key-check",
+                  JSON.stringify({ key: e.key, prevented: e.defaultPrevented }),
+                );
+              record();
+              setTimeout(record, 0);
+            },
+            { once: true },
+          );
+        });
+        const dialogs = [];
+        const onDialog = async (d) => {
+          dialogs.push(d.message());
+          await d.dismiss();
+        };
+        page.on("dialog", onDialog);
+        await page.keyboard.press(w.key);
+        if (FUNCTION_KEYS.includes(w.key)) {
+          await page
+            .locator(`.shell[data-workspace="${w.id}"]`)
+            .waitFor({ timeout: 15000 })
+            .catch(async (error) => {
+              console.error(
+                `${name} ${w.key}: ${page.url()} event=${await page.evaluate(() => sessionStorage.getItem("key-check"))}`,
+              );
+              throw error;
+            });
+          const event = JSON.parse(await page.evaluate(() => sessionStorage.getItem("key-check")));
+          assert.deepEqual(
+            event,
+            { key: w.key, prevented: true },
+            `${name} did not release ${w.key}`,
+          );
+          assert.ok(
+            await page.evaluate(() => document.hasFocus()),
+            `${name} retained ${w.key} outside the document`,
+          );
+        } else {
+          await page.waitForTimeout(200);
+          assert.match(
+            page.url(),
+            /\/data\?ticker=RELIANCE.NS/,
+            `${name}: reserved ${w.key} navigated a workspace`,
+          );
+          const event = JSON.parse(await page.evaluate(() => sessionStorage.getItem("key-check")));
+          assert.deepEqual(
+            event,
+            { key: w.key, prevented: false },
+            `${name}: ${w.key} was captured`,
+          );
+        }
+        page.off("dialog", onDialog);
+      }
+      // All captured keys remain native while editing; contenteditable, textarea and select too.
+      await page.goto(`${base}/data`);
+      await page.getByLabel("Command", { exact: true }).waitFor();
+      for (const selector of [
+        "#terminal-command",
+        "textarea",
+        "select",
+        "[contenteditable='true']",
+      ]) {
+        if (selector.startsWith("#")) await page.locator(selector).focus();
+        else
+          await page.evaluate((tag) => {
+            const el = document.createElement(tag === "[contenteditable='true']" ? "div" : tag);
+            if (tag.startsWith("[")) el.contentEditable = "true";
+            document.body.append(el);
+            el.focus();
+          }, selector);
+        for (const key of FUNCTION_KEYS) {
+          const handled = await page.evaluate((key) => {
+            const e = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+            document.activeElement.dispatchEvent(e);
+            return e.defaultPrevented;
+          }, key);
+          assert.equal(
+            handled,
+            false,
+            `${name}: ${key} intercepted text-field focus (${selector})`,
+          );
+        }
+      }
+      for (const [command, workspace] of [
+        ["RELIANCE IN DES", "market"],
+        ["SPY US GP", "market"],
+        ["RELIANCE IB DES", "market"],
+        ["FACT", "factors"],
+        ["EXEC", "execution"],
+      ]) {
+        await page.getByLabel("Command", { exact: true }).fill(command);
+        await page.getByLabel("Command", { exact: true }).press("Enter");
+        await page.locator(`.shell[data-workspace="${workspace}"]`).waitFor();
+      }
+      for (const label of ["FACTORS", "EXECUTION"]) {
+        await page
+          .getByRole("navigation", { name: "Workspaces" })
+          .getByText(label, { exact: true })
+          .click();
+        await page.locator(`.shell[data-workspace="${label.toLowerCase()}"]`).waitFor();
+        await page.keyboard.press("Control+k");
+        await page.getByRole("dialog").getByRole("combobox").fill(label);
+        await page
+          .getByRole("option")
+          .filter({ hasText: `F${label === "FACTORS" ? "5" : "7"} · ${label}` })
+          .click();
+      }
+      console.log(
+        `${name}: F1–F10, native F5/F7, field focus, command line, FACTORS/EXECUTION bar and palette passed.`,
+      );
+    } finally {
+      await browser.close();
+    }
+  }
+}
