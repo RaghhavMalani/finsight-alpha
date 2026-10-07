@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -75,7 +76,7 @@ def get_quote(
 ) -> Dict[str, Any]:
     """Price series + overlays (SMA), drawdown, rolling vol, periods, RSI, 52w range."""
     start = start or config.DEFAULT_START_DATE
-    end = end or config.DEFAULT_END_DATE
+    end = end or date.today().isoformat()
 
     # Cache the raw price frame on disk (6h) so repeat loads are instant and we
     # stop hammering yfinance (also helps avoid rate-limit collisions).

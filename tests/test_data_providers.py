@@ -169,3 +169,24 @@ def test_concurrent_yfinance_downloads_keep_their_own_window(monkeypatch) -> Non
     with ThreadPoolExecutor(len(starts)) as pool:
         for start, first in pool.map(fetch, starts):
             assert first == pd.Timestamp(start)
+
+
+def test_default_end_date_is_read_on_each_call(monkeypatch) -> None:
+    """A server left running must not keep asking for data up to the day it started."""
+    import src.data.market_data as market_data
+
+    seen = []
+
+    class _Recording(_FakeProvider):
+        def get_historical_data(self, ticker, start_date=None, end_date=None):  # type: ignore[override]
+            seen.append(end_date)
+            return super().get_historical_data(ticker, start_date, end_date)
+
+    market_data.clear_price_cache()
+    service = MarketDataService(_Recording())
+    for day in ("2026-10-06", "2026-10-07"):
+        monkeypatch.setattr(market_data, "_today", lambda day=day: day)
+        service.get_data("ENDT")
+        service.get_multiple(["ENDT"])  # served from the cache for the same day
+    assert seen == ["2026-10-06", "2026-10-07"]
+    market_data.clear_price_cache()

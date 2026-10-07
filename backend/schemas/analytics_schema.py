@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from pydantic import BaseModel, Field
 
 from src import config
@@ -24,7 +26,9 @@ class CorrelationRequest(BaseModel):
 
     tickers: list[str] = Field(..., description="At least two symbols.")
     start_date: str = Field(config.DEFAULT_START_DATE, description="ISO start date.")
-    end_date: str = Field(config.DEFAULT_END_DATE, description="ISO end date.")
+    end_date: str = Field(
+        default_factory=lambda: date.today().isoformat(), description="ISO end date."
+    )
 
     model_config = {
         "json_schema_extra": {

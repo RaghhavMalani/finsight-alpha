@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import date
 
 import pandas as pd
 
@@ -47,6 +48,15 @@ def clear_price_cache() -> None:
         _cache.clear()
 
 
+def _today() -> str:
+    """Today's ISO date, read on every call.
+
+    ``config.DEFAULT_END_DATE`` is fixed when the process imports it, so a server
+    left running would keep asking for data up to the day it started.
+    """
+    return date.today().isoformat()
+
+
 class MarketDataService:
     """Fetch and combine market data through a pluggable provider.
 
@@ -69,16 +79,19 @@ class MarketDataService:
         self,
         ticker: str,
         start_date: str = config.DEFAULT_START_DATE,
-        end_date: str = config.DEFAULT_END_DATE,
+        end_date: str | None = None,
     ) -> pd.DataFrame:
         """Download cleaned OHLCV data for a single ticker.
 
         The returned frame includes a ``Provider`` column recording which source
         produced the data (useful for auditing once multiple providers are live).
 
+        ``end_date`` (exclusive) defaults to today at the time of the call.
+
         Results are cached in-process for 15 minutes per (provider, ticker,
         window), so repeated calls from the terminal are served from memory.
         """
+        end_date = end_date or _today()
         key = (self.provider.name, ticker.upper(), str(start_date), str(end_date))
         now = time.time()
         with _cache_lock:
@@ -101,7 +114,7 @@ class MarketDataService:
         self,
         tickers: list[str],
         start_date: str = config.DEFAULT_START_DATE,
-        end_date: str = config.DEFAULT_END_DATE,
+        end_date: str | None = None,
         skip_errors: bool = True,
     ) -> pd.DataFrame:
         """Download several tickers and return one combined, tidy DataFrame.
@@ -145,7 +158,7 @@ class MarketDataService:
 def download_stock_data(
     ticker: str,
     start_date: str = config.DEFAULT_START_DATE,
-    end_date: str = config.DEFAULT_END_DATE,
+    end_date: str | None = None,
 ) -> pd.DataFrame:
     """Backwards-compatible single-ticker download (Phase 1A API).
 

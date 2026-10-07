@@ -6,6 +6,7 @@ them for validation, serialization, and the auto-generated OpenAPI docs.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -18,7 +19,9 @@ class MarketDataFetchRequest(BaseModel):
 
     tickers: list[str] = Field(..., description="Symbols to fetch, e.g. ['AAPL'].")
     start_date: str = Field(config.DEFAULT_START_DATE, description="ISO start date.")
-    end_date: str = Field(config.DEFAULT_END_DATE, description="ISO end date.")
+    end_date: str = Field(
+        default_factory=lambda: date.today().isoformat(), description="ISO end date."
+    )
     provider: str = Field("yfinance", description="Data provider name.")
     save_local: bool = Field(True, description="Save raw + processed CSV locally.")
     upload_bigquery: bool = Field(
