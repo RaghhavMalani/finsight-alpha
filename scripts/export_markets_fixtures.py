@@ -4,8 +4,11 @@ Each fixture is the JSON a Markets endpoint returns, produced by calling the
 route function itself with its data sources replaced by seeded stand-ins:
 
 * price history: geometric random walks per ticker sharing one market factor;
+* the Overview's candles and quotes: a seeded five-year daily walk and 5- or
+  30-minute sessions ending on the frozen date, and a Finnhub stub that, like
+  the free tier, has no NSE quotes;
 * the Yahoo option chain: Black-Scholes prices off a fixed smile, frozen clock;
-* EDGAR company facts and the RAG index: small hand-written stubs.
+* Yahoo symbol search, EDGAR company facts and the RAG index: small stubs.
 
 None of it is market data, which is why every file is named ``*.simulated.json``.
 The frontend's ``scripts/verify-markets.mjs`` runs its adapters on these files,
@@ -72,6 +75,136 @@ class _Service:
 
     def get_data(self, ticker: str, start: Any = None, *args: Any, **kwargs: Any) -> pd.DataFrame:
         return _history(ticker, start)
+
+
+# The Overview's default watchlist (DEFAULT_WATCHLIST in frontend-v2/src/markets/
+# contracts.ts); verify-markets checks the tape fixtures quote every one of them.
+WATCHLIST = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "RELIANCE.NS"]
+TAPE_SYMBOLS = ",".join(["SIMF", *WATCHLIST])
+FETCHED_AT = f"{TODAY.isoformat()}T21:00:00+00:00"
+_SESSION_MINUTES = 390  # 09:30-16:00 New York
+
+
+def _seed(*parts: str) -> np.random.Generator:
+    return np.random.default_rng(zlib.crc32(":".join(parts).upper().encode()))
+
+
+def _daily_to_today(ticker: str) -> pd.DataFrame:
+    """Five and a quarter years of seeded daily bars whose last session is TODAY."""
+    dates = pd.bdate_range(end=TODAY, periods=1370)
+    rng = _seed(ticker, "daily")
+    close = (60.0 + zlib.crc32(ticker.encode()) % 400) * np.exp(
+        np.cumsum(rng.normal(0.0003, 0.012, len(dates)))
+    )
+    open_ = np.concatenate([[close[0]], close[:-1]]) * np.exp(rng.normal(0.0, 0.003, len(dates)))
+    wick = np.abs(rng.normal(0.0, 0.006, len(dates)))
+    return pd.DataFrame(
+        {
+            "Date": dates,
+            "Open": open_,
+            "High": np.maximum(open_, close) * (1 + wick),
+            "Low": np.minimum(open_, close) * (1 - wick),
+            "Close": close,
+            "Volume": rng.integers(1_000_000, 9_000_000, len(dates)).astype(float),
+            "Ticker": ticker,
+            "Provider": PROVIDER,
+        }
+    )
+
+
+def _sessions(ticker: str, period: str, interval: str) -> pd.DataFrame:
+    """Seeded regular-session bars for the latest 1 or 5 sessions up to TODAY."""
+    step = {"5m": 5, "30m": 30}[interval]
+    days = pd.bdate_range(end=TODAY, periods={"1d": 1, "5d": 5}[period])
+    times = [
+        pd.Timestamp(f"{day.date()} 09:30", tz="America/New_York") + pd.Timedelta(minutes=step * i)
+        for day in days
+        for i in range(_SESSION_MINUTES // step)
+    ]
+    daily = _daily_to_today(ticker)
+    prev = float(daily.loc[daily["Date"] < days[0], "Close"].iloc[-1])
+    rng = _seed(ticker, period, interval)
+    close = prev * np.exp(np.cumsum(rng.normal(0.0, 0.0012 * math.sqrt(step / 5), len(times))))
+    open_ = np.concatenate([[prev], close[:-1]])
+    wick = np.abs(rng.normal(0.0, 0.0008, len(times)))
+    return pd.DataFrame(
+        {
+            "Date": pd.DatetimeIndex(times),
+            "Open": open_,
+            "High": np.maximum(open_, close) * (1 + wick),
+            "Low": np.minimum(open_, close) * (1 - wick),
+            "Close": close,
+            "Volume": rng.integers(20_000, 400_000, len(times)).astype(float),
+            "Ticker": ticker,
+            "Provider": PROVIDER,
+        }
+    )
+
+
+class _OverviewService:
+    """MarketDataService for the Overview's routes: daily and intraday bars to TODAY."""
+
+    def __init__(self, provider: str = "yfinance") -> None:
+        self.provider = provider
+
+    @staticmethod
+    def _stamped(frame: pd.DataFrame) -> pd.DataFrame:
+        frame.attrs["fetched_at"] = FETCHED_AT
+        return frame
+
+    def get_data(self, ticker: str, *args: Any, **kwargs: Any) -> pd.DataFrame:
+        return self._stamped(_daily_to_today(ticker))
+
+    def get_intraday(self, ticker: str, period: str, interval: str) -> pd.DataFrame:
+        return self._stamped(_sessions(ticker, period, interval))
+
+
+def _finnhub_quote(ticker: str, timeout: float = 6.0) -> Dict[str, Any]:
+    """Finnhub's /quote, normalized as finnhub_provider returns it; no NSE, as on the free tier."""
+    from src.data.providers.finnhub_provider import FinnhubError
+
+    if ticker.upper().endswith((".NS", ".BO")):
+        raise FinnhubError(f"No live quote for '{ticker}'.")
+    daily = _daily_to_today(ticker.upper())
+    prev, last = float(daily["Close"].iloc[-2]), float(daily["Close"].iloc[-1])
+    return {
+        "ticker": ticker.upper(),
+        "price": last,
+        "change": last - prev,
+        "change_pct": last / prev - 1.0,
+        "high": float(daily["High"].iloc[-1]),
+        "low": float(daily["Low"].iloc[-1]),
+        "open": float(daily["Open"].iloc[-1]),
+        "prev_close": prev,
+        "ts": int(datetime(TODAY.year, TODAY.month, TODAY.day, 20, 59, 58, tzinfo=timezone.utc).timestamp()),
+    }
+
+
+class _YahooSearch:
+    """Just enough of ``yfinance.Search`` for /assets/search."""
+
+    QUOTES = [
+        {"symbol": "SIMF", "shortname": "Simulated Fixture Corp", "exchange": "NMS", "quoteType": "EQUITY"},
+        {"symbol": "SIMF.NS", "longname": "Simulated Fixture India Ltd", "exchange": "NSI", "quoteType": "EQUITY"},
+        {"symbol": "SIMX", "shortname": "Simulated Index ETF", "exchange": "PCX", "quoteType": "ETF"},
+        {"symbol": "SIMFX", "shortname": "Simulated Mutual Fund", "exchange": "NAS", "quoteType": "MUTUALFUND"},
+        {"symbol": "SIMF.L", "shortname": "Simulated Fixture plc", "exchange": "LSE", "quoteType": "EQUITY"},
+    ]
+
+    def __init__(self, query: str, max_results: int = 8, news_count: int = 0) -> None:
+        self.quotes = [q for q in self.QUOTES if query.upper() in q["symbol"]][:max_results]
+
+
+def _tape(live: bool) -> Dict[str, Any]:
+    from backend.routes import tape
+
+    tape._live_cache.clear()
+    with patch("src.data.providers.finnhub_provider.finnhub_available", lambda: live), patch(
+        "src.data.providers.finnhub_provider.get_live_quote", _finnhub_quote
+    ):
+        payload = tape.tape(TAPE_SYMBOLS)
+    tape._live_cache.clear()
+    return payload
 
 
 class _FrozenDate(date):
@@ -213,12 +346,19 @@ def build_payloads() -> Dict[str, Any]:
     import src.data.fundamentals as fundamentals_data
     import src.data.market_data as market_data
     import src.rag.ingest as rag_ingest
-    from backend.routes import backtest, factors, fundamentals, portfolio, pricing, research, risk
+    from backend.routes import assets, backtest, factors, fundamentals, portfolio, pricing, quote, research, risk
     from src.rag import edgar
     from src.rag.rag_answer import generate_grounded_answer
 
     request = SimpleNamespace(state=SimpleNamespace(organization_id=1, user_id=1))
     calls: Dict[str, Callable[[], Any]] = {
+        "quote-bars-1d": lambda: quote.get_bars("SIMF", range_="1D"),
+        "quote-bars-5d": lambda: quote.get_bars("SIMF", range_="5D"),
+        "quote-bars-1y": lambda: quote.get_bars("SIMF", range_="1Y"),
+        "quote-bars-5y": lambda: quote.get_bars("SIMF", range_="5Y"),
+        "tape": lambda: _tape(False),
+        "tape-live": lambda: _tape(True),
+        "assets-search": lambda: assets.search_assets("sim", market="ALL", limit=12),
         "options-price-call": lambda: pricing.option_price(
             S=100.0, K=105.0, T=0.25, r=0.05, sigma=0.2, q=0.01, type="call"),
         "options-price-put": lambda: pricing.option_price(
@@ -261,6 +401,10 @@ def build_payloads() -> Dict[str, Any]:
             stack.enter_context(patch(target, _Service))
         stack.enter_context(patch("backend.routes.pricing.date", _FrozenDate))
         stack.enter_context(patch("backend.routes.pricing.datetime", _FrozenDatetime))
+        stack.enter_context(patch("backend.routes.quote.date", _FrozenDate))
+        stack.enter_context(patch("backend.routes.quote.MarketDataService", _OverviewService))
+        stack.enter_context(patch("backend.routes.tape.MarketDataService", _OverviewService))
+        stack.enter_context(patch("yfinance.Search", _YahooSearch))
         stack.enter_context(patch("yfinance.Ticker", _YahooTicker))
         stack.enter_context(patch.object(fundamentals_data, "get_cik", lambda t: "0000000000"))
         stack.enter_context(patch.object(fundamentals_data, "fetch_companyfacts", lambda c: _companyfacts()))

@@ -1,0 +1,96 @@
+{
+ "items": [
+  {
+   "change_pct": -0.01715206946,
+   "high": 436.8577625,
+   "last": 428.3107716,
+   "live": false,
+   "low": 427.9820428,
+   "open": 436.522731,
+   "prev_close": 435.7853929,
+   "quote_ts": "2026-01-02T00:00:00",
+   "source": "YFINANCE_EOD",
+   "ticker": "SIMF",
+   "volume": 6156933.0
+  },
+  {
+   "change_pct": 0.00394905741,
+   "high": 332.4592966,
+   "last": 331.7290546,
+   "live": false,
+   "low": 329.1575359,
+   "open": 329.8837157,
+   "prev_close": 330.4241905,
+   "quote_ts": "2026-01-02T00:00:00",
+   "source": "YFINANCE_EOD",
+   "ticker": "SPY",
+   "volume": 2557494.0
+  },
+  {
+   "change_pct": 0.005593879917,
+   "high": 293.4693275,
+   "last": 291.0895275,
+   "live": false,
+   "low": 289.0474292,
+   "open": 291.4248766,
+   "prev_close": 289.4702656,
+   "quote_ts": "2026-01-02T00:00:00",
+   "source": "YFINANCE_EOD",
+   "ticker": "QQQ",
+   "volume": 6133335.0
+  },
+  {
+   "change_pct": 0.009930684328,
+   "high": 189.4337081,
+   "last": 188.7630058,
+   "live": false,
+   "low": 186.3543177,
+   "open": 187.0188227,
+   "prev_close": 186.9068925,
+   "quote_ts": "2026-01-02T00:00:00",
+   "source": "YFINANCE_EOD",
+   "ticker": "AAPL",
+   "volume": 6926376.0
+  },
+  {
+   "change_pct": 0.00112183039,
+   "high": 148.3472503,
+   "last": 147.0826696,
+   "live": false,
+   "low": 145.3625672,
+   "open": 146.6231976,
+   "prev_close": 146.9178526,
+   "quote_ts": "2026-01-02T00:00:00",
+   "source": "YFINANCE_EOD",
+   "ticker": "MSFT",
+   "volume": 8223015.0
+  },
+  {
+   "change_pct": 0.02852461256,
+   "high": 245.4444662,
+   "last": 245.3343388,
+   "live": false,
+   "low": 239.1293048,
+   "open": 239.236695,
+   "prev_close": 238.5303529,
+   "quote_ts": "2026-01-02T00:00:00",
+   "source": "YFINANCE_EOD",
+   "ticker": "NVDA",
+   "volume": 2490589.0
+  },
+  {
+   "change_pct": -0.01036084849,
+   "high": 567.7418186,
+   "last": 559.9262672,
+   "live": false,
+   "low": 559.5288538,
+   "open": 567.3391438,
+   "prev_close": 565.7883142,
+   "quote_ts": "2026-01-02T00:00:00",
+   "source": "YFINANCE_EOD",
+   "ticker": "RELIANCE.NS",
+   "volume": 4150583.0
+  }
+ ],
+ "live": false
+}
