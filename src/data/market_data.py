@@ -37,6 +37,9 @@ DataDownloadError = ProviderError
 # EOD data doesn't change intraday; 15 minutes is a safe freshness window.
 # ---------------------------------------------------------------------------
 _CACHE_TTL_SECONDS = 900
+# Intraday bars move every few minutes; a minute keeps a chart from re-asking
+# Yahoo on every render without serving a stale session.
+_INTRADAY_TTL_SECONDS = 60
 _cache: dict[tuple, tuple[float, pd.DataFrame]] = {}
 _cache_lock = threading.Lock()
 _MAX_CACHE_ENTRIES = 256
@@ -46,6 +49,22 @@ def clear_price_cache() -> None:
     """Drop all cached frames (mainly for tests)."""
     with _cache_lock:
         _cache.clear()
+
+
+def _cached(key: tuple, ttl: float, now: float) -> pd.DataFrame | None:
+    with _cache_lock:
+        hit = _cache.get(key)
+        if hit is not None and now - hit[0] < ttl:
+            return hit[1].copy()
+    return None
+
+
+def _remember(key: tuple, now: float, df: pd.DataFrame) -> None:
+    with _cache_lock:
+        if len(_cache) >= _MAX_CACHE_ENTRIES:  # drop oldest entries
+            for old_key, _ in sorted(_cache.items(), key=lambda kv: kv[1][0])[:32]:
+                _cache.pop(old_key, None)
+        _cache[key] = (now, df.copy())
 
 
 def _today() -> str:
@@ -94,20 +113,30 @@ class MarketDataService:
         end_date = end_date or _today()
         key = (self.provider.name, ticker.upper(), str(start_date), str(end_date))
         now = time.time()
-        with _cache_lock:
-            hit = _cache.get(key)
-            if hit is not None and now - hit[0] < _CACHE_TTL_SECONDS:
-                return hit[1].copy()
+        hit = _cached(key, _CACHE_TTL_SECONDS, now)
+        if hit is not None:
+            return hit
 
         df = self.provider.get_historical_data(ticker, start_date, end_date)
         df = df.copy()
         df["Provider"] = self.provider.name
+        _remember(key, now, df)
+        return df
 
-        with _cache_lock:
-            if len(_cache) >= _MAX_CACHE_ENTRIES:  # drop oldest entries
-                for old_key, _ in sorted(_cache.items(), key=lambda kv: kv[1][0])[:32]:
-                    _cache.pop(old_key, None)
-            _cache[key] = (now, df.copy())
+    def get_intraday(self, ticker: str, period: str, interval: str) -> pd.DataFrame:
+        """Intraday OHLCV bars for the latest ``period``, cached for a minute.
+
+        Same schema as :meth:`get_data`, with timezone-aware ``Date`` bar starts.
+        """
+        key = ("intraday", self.provider.name, ticker.upper(), period, interval)
+        now = time.time()
+        hit = _cached(key, _INTRADAY_TTL_SECONDS, now)
+        if hit is not None:
+            return hit
+
+        df = self.provider.get_intraday_data(ticker, period, interval).copy()
+        df["Provider"] = self.provider.name
+        _remember(key, now, df)
         return df
 
     def get_multiple(

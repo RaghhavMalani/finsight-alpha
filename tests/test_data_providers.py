@@ -190,3 +190,90 @@ def test_default_end_date_is_read_on_each_call(monkeypatch) -> None:
         service.get_multiple(["ENDT"])  # served from the cache for the same day
     assert seen == ["2026-10-06", "2026-10-07"]
     market_data.clear_price_cache()
+
+
+def test_providers_without_intraday_bars_say_so() -> None:
+    with pytest.raises(ProviderError, match="intraday"):
+        _FakeProvider().get_intraday_data("AAPL", "1d", "5m")
+
+
+def test_yfinance_intraday_bars_take_the_download_lock(monkeypatch) -> None:
+    """Ticker.history writes the shared state yf.download resets, so it is serialized too."""
+    from src.data.providers import yfinance_provider
+
+    calls = []
+
+    class _Ticker:
+        def __init__(self, symbol):
+            self.symbol = symbol
+
+        def history(self, period, interval, auto_adjust, prepost):
+            calls.append((self.symbol, period, interval, auto_adjust, prepost))
+            assert yfinance_provider._DOWNLOAD_LOCK.locked(), "history ran outside the lock"
+            index = pd.date_range(
+                "2026-10-06 09:30", periods=3, freq="5min", tz="America/New_York"
+            ).rename("Datetime")
+            return pd.DataFrame(
+                {
+                    "Open": [1.0, 2.0, 3.0],
+                    "High": [1.5, 2.5, 3.5],
+                    "Low": [0.5, 1.5, 2.5],
+                    "Close": [1.2, None, 3.2],
+                    "Volume": [10, 20, 30],
+                    "Dividends": 0.0,
+                    "Stock Splits": 0.0,
+                },
+                index=index,
+            )
+
+    monkeypatch.setattr(yfinance_provider.yf, "Ticker", _Ticker)
+    df = yfinance_provider.YFinanceProvider().get_intraday_data("SPY", "1d", "5m")
+
+    assert calls == [("SPY", "1d", "5m", True, False)]
+    assert list(df.columns) == STANDARD_COLUMNS
+    assert len(df) == 2, "a bar without a close is dropped"
+    assert str(df["Date"].dt.tz) == "America/New_York"
+
+
+def test_yfinance_intraday_without_bars_raises(monkeypatch) -> None:
+    from src.data.providers import yfinance_provider
+
+    class _Empty:
+        def __init__(self, symbol):
+            pass
+
+        def history(self, **kwargs):
+            return pd.DataFrame()
+
+    monkeypatch.setattr(yfinance_provider.yf, "Ticker", _Empty)
+    with pytest.raises(ProviderError, match="no 5m bars"):
+        yfinance_provider.YFinanceProvider().get_intraday_data("ZZZZ", "1d", "5m")
+
+
+def test_intraday_bars_are_cached_for_a_minute(monkeypatch) -> None:
+    import src.data.market_data as market_data
+
+    calls = []
+
+    class _Intraday(_FakeProvider):
+        def get_intraday_data(self, ticker, period, interval):
+            calls.append((ticker, period, interval))
+            return self.get_historical_data(ticker)
+
+    from types import SimpleNamespace
+
+    clock = [1_000.0]
+    monkeypatch.setattr(market_data, "time", SimpleNamespace(time=lambda: clock[0]))
+    market_data.clear_price_cache()
+    service = MarketDataService(_Intraday())
+
+    first = service.get_intraday("INTR", "1d", "5m")
+    clock[0] += 59
+    service.get_intraday("INTR", "1d", "5m")
+    service.get_intraday("INTR", "5d", "30m")  # a different window is its own entry
+    clock[0] += 2
+    service.get_intraday("INTR", "1d", "5m")
+
+    assert calls == [("INTR", "1d", "5m"), ("INTR", "5d", "30m"), ("INTR", "1d", "5m")]
+    assert (first["Provider"] == "fake").all()
+    market_data.clear_price_cache()

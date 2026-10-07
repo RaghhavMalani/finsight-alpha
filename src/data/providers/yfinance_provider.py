@@ -92,3 +92,37 @@ class YFinanceProvider(MarketDataProvider):
 
         logger.info("yfinance: %s rows for %s", len(df), ticker)
         return df
+
+    def get_intraday_data(self, ticker: str, period: str, interval: str) -> pd.DataFrame:
+        """Regular-session intraday bars, adjusted the same way as the daily series.
+
+        ``Ticker.history`` records failures in the ``yfinance.shared`` state that
+        ``yf.download`` resets, so it takes the download lock as well.
+
+        Raises
+        ------
+        ProviderError
+            On network/library failure, or if Yahoo returns no bars.
+        """
+        self._validate_ticker(ticker)
+        logger.info("yfinance: %s bars for %s over %s", interval, ticker, period)
+        try:
+            with _DOWNLOAD_LOCK:
+                raw = yf.Ticker(ticker).history(
+                    period=period, interval=interval, auto_adjust=True, prepost=False
+                )
+        except Exception as exc:
+            raise ProviderError(
+                f"yfinance failed to load {interval} bars for '{ticker}': {exc}"
+            ) from exc
+
+        if raw is None or raw.empty:
+            raise ProviderError(f"yfinance returned no {interval} bars for '{ticker}'.")
+
+        # The index is "Datetime" for intraday bars; it becomes the canonical Date.
+        df = raw.reset_index()
+        df = df.rename(columns={df.columns[0]: "Date"})
+        df = self._standardize(df, ticker)
+        if df.empty:
+            raise ProviderError(f"{interval} bars for '{ticker}' were empty after cleaning.")
+        return df
