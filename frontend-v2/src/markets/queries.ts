@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "@/lib/api";
+import { INSTRUMENTS } from "./instruments";
+import { getDataMode } from "@/replay/mode";
 import {
   adaptBacktest,
   adaptBars,
@@ -79,9 +81,24 @@ export function useTickerSearch(query: string) {
     queryKey: ["markets", "search", query],
     enabled: query.trim().length > 0,
     queryFn: ({ signal }) =>
-      api<unknown>(`/assets/search?${qs({ q: query.trim(), limit: 8 })}`, { signal }).then(
-        adaptSearch,
-      ),
+      (getDataMode() === "replay"
+        ? Promise.resolve({
+            items: INSTRUMENTS.filter((i) =>
+              `${i.symbol} ${i.providerSymbol} ${i.name}`
+                .toLowerCase()
+                .includes(query.trim().toLowerCase()),
+            )
+              .slice(0, 8)
+              .map((i) => ({
+                symbol: i.providerSymbol,
+                name: i.name,
+                exchange: i.exchange,
+                market: i.market,
+                type: "Reference instrument",
+              })),
+          })
+        : api<unknown>(`/assets/search?${qs({ q: query.trim(), limit: 8 })}`, { signal })
+      ).then(adaptSearch),
   });
 }
 

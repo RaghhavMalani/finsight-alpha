@@ -12,6 +12,8 @@ import { ForgeShell } from "@/app/shell/ForgeShell";
 import { normalizeTicker, overviewTarget, parseBarRange } from "@/markets/contracts";
 import TickerSearch from "@/markets/TickerSearch";
 import "@/markets/markets.css";
+import { useDataMode } from "@/replay/mode";
+import { lookupInstrument } from "@/markets/instruments";
 
 const MARKET_TABS = [
   { key: "1", to: "/markets", label: "Overview" },
@@ -25,6 +27,7 @@ const MARKET_TABS = [
 export const Route = createFileRoute("/markets")({
   validateSearch: (search: Record<string, unknown> & SearchSchemaInput) => ({
     ticker: normalizeTicker(String(search.ticker ?? "")) ?? "SPY",
+    view: search.view === "graph" ? "graph" : undefined,
     range:
       search.range === undefined || parseBarRange(search.range) === "1D"
         ? undefined
@@ -45,6 +48,7 @@ export const Route = createFileRoute("/markets")({
 });
 
 function MarketsLayout() {
+  const mode = useDataMode();
   const search = Route.useSearch();
   const params = useParams({ strict: false });
   const ticker = normalizeTicker(params.ticker ?? "") ?? search.ticker;
@@ -80,8 +84,9 @@ function MarketsLayout() {
             <p className="mk-eyebrow">Markets · quant desk</p>
             <h1>{ticker}</h1>
             <p className="mk-lede">
-              Quotes, charts, options, risk, backtests and filings research for one ticker. Every
-              number comes from the API with its source. Nothing is filled in when a source is down.
+              {mode === "replay"
+                ? "Weekly relative performance, drawdown, realized volatility and checked regime evidence. Public series require publication permission; raw prices stay local."
+                : "Quotes, candles and local research with source and timestamp. Nothing is filled in when a source is down."}
             </p>
           </div>
           <TickerSearch key={ticker} ticker={ticker} onPick={pick} />
@@ -104,7 +109,18 @@ function MarketsLayout() {
             </Link>
           ))}
         </nav>
-        <Outlet />
+        {mode === "replay" && !overview ? (
+          <p className="mk-line" role="status">
+            {MARKET_TABS.find((tab) => tab.to === pathname)?.label} Replay unavailable: no
+            publication-licensed derived artifact is installed.
+            {pathname === "/markets/fundamentals" && lookupInstrument(ticker)?.market === "INDIA"
+              ? " Point-in-time Indian fundamentals coverage is limited."
+              : ""}{" "}
+            Use configured local Live for available sources.
+          </p>
+        ) : (
+          <Outlet />
+        )}
       </div>
     </ForgeShell>
   );

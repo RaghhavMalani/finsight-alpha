@@ -89,7 +89,10 @@ export function lookupInstrument(symbol: string): Instrument | undefined {
   const upper = symbol.trim().toUpperCase();
   return (
     INSTRUMENTS.find((i) => i.providerSymbol === upper) ??
-    INSTRUMENTS.find((i) => i.symbol === upper)
+    INSTRUMENTS.find((i) => i.symbol === upper) ??
+    (/^[A-Z0-9][A-Z0-9.-]{0,21}\.NS$/.test(upper)
+      ? instrument(upper.slice(0, -3), "NSE provider symbol; coverage unavailable", "IS", upper)
+      : undefined)
   );
 }
 
