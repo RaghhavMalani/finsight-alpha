@@ -49,6 +49,18 @@ def test_fundamentals_route_rejects_a_bad_as_of() -> None:
     assert caught.value.status_code == 422
 
 
+def test_search_source_failure_is_reported(monkeypatch) -> None:
+    from backend.routes import assets
+
+    def unavailable(*args, **kwargs):
+        raise RuntimeError("provider down")
+
+    monkeypatch.setattr("yfinance.Search", unavailable)
+    with pytest.raises(HTTPException) as caught:
+        assets.search_assets("SPY", market="ALL", limit=8)
+    assert caught.value.status_code == 503
+
+
 def test_fundamentals_route_normalizes_as_of(monkeypatch) -> None:
     seen = {}
 

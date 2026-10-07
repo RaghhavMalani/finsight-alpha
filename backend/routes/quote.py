@@ -128,6 +128,8 @@ def get_bars(ticker: str, range_: str = Query("1D", alias="range")) -> Dict[str,
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=f"Price bars unavailable: {exc}") from exc
 
+    if frame.empty:
+        raise HTTPException(status_code=404, detail=f"No bars for '{symbol}' over {range_}.")
     fetched_at = frame.attrs.get("fetched_at")
     source = str(frame["Provider"].iloc[0]).upper() if len(frame) else "UNKNOWN"
     bars = _clean_bars(frame)

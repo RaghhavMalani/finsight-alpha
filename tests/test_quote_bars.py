@@ -204,3 +204,10 @@ def test_bad_symbol_and_unknown_range_are_422(service) -> None:
             quote.get_bars(ticker, range_)
         assert caught.value.status_code == 422
     assert service.calls == [], "nothing is fetched for a request that can't be served"
+
+
+def test_empty_provider_frame_is_404(service) -> None:
+    service.intraday = pd.DataFrame()
+    with pytest.raises(HTTPException) as caught:
+        quote.get_bars("SPY", "1D")
+    assert caught.value.status_code == 404
