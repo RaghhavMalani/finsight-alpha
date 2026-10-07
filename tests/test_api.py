@@ -50,6 +50,16 @@ def test_health_llm_requires_authentication() -> None:
     assert resp.status_code == 401
 
 
+def test_cross_origin_401_is_readable_by_the_browser() -> None:
+    """The auth gate's 401 carries CORS headers, so a page can show "sign in"."""
+    origin = config.CORS_ORIGINS[0]
+    with TestClient(app) as anonymous_client:
+        resp = anonymous_client.get("/fundamentals/AAPL", headers={"Origin": origin})
+    assert resp.status_code == 401
+    assert resp.headers.get("access-control-allow-origin") == origin
+    assert resp.headers.get("access-control-allow-credentials") == "true"
+
+
 def test_health_llm_is_passive_by_default(monkeypatch) -> None:
     from src.rag import llm_client
 

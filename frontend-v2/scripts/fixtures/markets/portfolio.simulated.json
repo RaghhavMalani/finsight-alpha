@@ -1,0 +1,67 @@
+{
+ "contributions": [
+  {
+   "pct_contribution": 0.5314287995,
+   "ticker": "SIMF",
+   "vol_contribution": 0.1035847322,
+   "weight": 0.5
+  },
+  {
+   "pct_contribution": 0.2518771511,
+   "ticker": "SPY",
+   "vol_contribution": 0.04909524526,
+   "weight": 0.3
+  },
+  {
+   "pct_contribution": 0.2166940494,
+   "ticker": "IWM",
+   "vol_contribution": 0.04223744572,
+   "weight": 0.2
+  }
+ ],
+ "correlation": {
+  "matrix": [
+   [
+    1.0,
+    0.811,
+    0.687
+   ],
+   [
+    0.811,
+    1.0,
+    0.839
+   ],
+   [
+    0.687,
+    0.839,
+    1.0
+   ]
+  ],
+  "tickers": [
+   "SIMF",
+   "SPY",
+   "IWM"
+  ]
+ },
+ "metrics": {
+  "annual_return": 0.05108722514,
+  "annual_vol": 0.1949174232,
+  "cumulative_return": 0.05489693398,
+  "cvar95": 0.0243473288,
+  "max_drawdown": -0.1898260711,
+  "parametric_var": 0.01999384425,
+  "sharpe": 0.2620967602,
+  "var95": 0.01933318173
+ },
+ "n_days": 419,
+ "tickers": [
+  "SIMF",
+  "SPY",
+  "IWM"
+ ],
+ "weights": {
+  "IWM": 0.2,
+  "SIMF": 0.5,
+  "SPY": 0.3
+ }
+}

@@ -48,6 +48,15 @@ Hubs are New York, San Francisco Bay, Los Angeles, Tokyo, Hsinchu, Seoul, Shenzh
 City: exchange and semiconductor-supply locations whose disruption reaches US large-cap earnings.
 The globe draws each hub's 1,000 km circle so the near-hub input is visible.
 
+### An exogenous negative control
+
+Earthquakes should not predict next-day SPY direction. Geo events are wired in to test the
+pipeline's honesty, not to find edge: if a model finds edge there, it is treated as overfitting.
+So the family is opt-in on real data. Live runs start without it, the editor tags it "negative
+control", and the readout warns when a Live or Replay network leans on it more than on any other
+family. The lab keeps it on by default, because its worlds are synthetic and the *Geo shock*
+world plants a rule there to check that a network can find a known effect.
+
 ### Timing rule
 
 An event enters a row only when `event time + 1 day <= row available_at`. USGS posts M5+ events
@@ -82,9 +91,9 @@ the Neural net scene, tick **Geo events** in the editor and train: in the lab on
 (the *Geo shock* world plants a rule on its geo channel), or live on installed evidence.
 
 The readout's attribution bar for Geo events is the honest answer to "does the network use it".
-In the lab's geo-shock world it should lead; on real evidence, expect it near the others and a
-validation interval that spans chance. Either way the verdict comes from the holdout rule, not
-from the attribution.
+In the lab's geo-shock world it should lead. On real evidence it is a negative control: expect
+it near the others and a validation interval that spans chance, and read a leading Geo bar as
+overfitting. Either way the verdict comes from the holdout rule, not from the attribution.
 
 ## Extending
 

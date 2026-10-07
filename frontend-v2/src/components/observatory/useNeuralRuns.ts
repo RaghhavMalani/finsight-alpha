@@ -10,7 +10,13 @@ import {
   type EpochRow,
   type Snapshot,
 } from "./neural/mlp";
-import { DEFAULT_WORLD, LAB_FEATURES, WORLDS, type WorldSpec } from "./neural/world";
+import {
+  DEFAULT_WORLD,
+  defaultFamilies,
+  LAB_FEATURES,
+  WORLDS,
+  type WorldSpec,
+} from "./neural/world";
 import { snapshotEpochList, validateTrace, type Manifest, type NeuralTrace } from "./types";
 
 export type TrainerMessage =
@@ -65,7 +71,12 @@ export function useNeuralRuns({
 }) {
   const [source, setSource] = useState<NeuralSource>("lab");
   const [architecture, setArchitecture] = useState<Architecture>(DEFAULT_ARCHITECTURE);
-  const [families, setFamilies] = useState<string[]>(LAB_FAMILIES);
+  // Lab and real runs keep separate input choices: real runs start without the Geo events
+  // negative control, and switching sources never carries a synthetic-world choice over.
+  const [labFamilies, setLabFamilies] = useState<string[]>(() => defaultFamilies("lab"));
+  const [realFamilies, setRealFamilies] = useState<string[]>(() => defaultFamilies("live"));
+  const families = source === "lab" ? labFamilies : realFamilies;
+  const setFamilies = source === "lab" ? setLabFamilies : setRealFamilies;
   const [world, setWorld] = useState<WorldSpec>(DEFAULT_WORLD);
   const [lab, setLab] = useState<{
     runId: number;

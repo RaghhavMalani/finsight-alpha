@@ -16,12 +16,19 @@ import { Route as DynamicsRouteImport } from './routes/dynamics'
 import { Route as ForgeRouteImport } from './routes/forge'
 import { Route as GlobeRouteImport } from './routes/globe'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as ObservatoryRouteImport } from './routes/observatory'
 import { Route as RiskRouteImport } from './routes/risk'
 import { Route as RunsRouteImport } from './routes/runs'
 import { Route as WorldsRouteImport } from './routes/worlds'
 import { Route as BenchIndexRouteImport } from './routes/bench.index'
 import { Route as BenchBenchmarkIdRouteImport } from './routes/bench.$benchmarkId'
+import { Route as MarketsIndexRouteImport } from './routes/markets.index'
+import { Route as MarketsBacktestRouteImport } from './routes/markets.backtest'
+import { Route as MarketsFundamentalsRouteImport } from './routes/markets.fundamentals'
+import { Route as MarketsOptionsRouteImport } from './routes/markets.options'
+import { Route as MarketsResearchRouteImport } from './routes/markets.research'
+import { Route as MarketsRiskRouteImport } from './routes/markets.risk'
 import { Route as RealityArtifactIdRouteImport } from './routes/reality.$artifactId'
 import { Route as RunsIndexRouteImport } from './routes/runs.index'
 import { Route as RunsRunIdRouteImport } from './routes/runs.$runId'
@@ -61,6 +68,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketsRoute = MarketsRouteImport.update({
+  id: '/markets',
+  path: '/markets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ObservatoryRoute = ObservatoryRouteImport.update({
   id: '/observatory',
   path: '/observatory',
@@ -91,6 +103,36 @@ const BenchBenchmarkIdRoute = BenchBenchmarkIdRouteImport.update({
   path: '/$benchmarkId',
   getParentRoute: () => BenchRoute,
 } as any)
+const MarketsIndexRoute = MarketsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MarketsRoute,
+} as any)
+const MarketsBacktestRoute = MarketsBacktestRouteImport.update({
+  id: '/backtest',
+  path: '/backtest',
+  getParentRoute: () => MarketsRoute,
+} as any)
+const MarketsFundamentalsRoute = MarketsFundamentalsRouteImport.update({
+  id: '/fundamentals',
+  path: '/fundamentals',
+  getParentRoute: () => MarketsRoute,
+} as any)
+const MarketsOptionsRoute = MarketsOptionsRouteImport.update({
+  id: '/options',
+  path: '/options',
+  getParentRoute: () => MarketsRoute,
+} as any)
+const MarketsResearchRoute = MarketsResearchRouteImport.update({
+  id: '/research',
+  path: '/research',
+  getParentRoute: () => MarketsRoute,
+} as any)
+const MarketsRiskRoute = MarketsRiskRouteImport.update({
+  id: '/risk',
+  path: '/risk',
+  getParentRoute: () => MarketsRoute,
+} as any)
 const RealityArtifactIdRoute = RealityArtifactIdRouteImport.update({
   id: '/reality/$artifactId',
   path: '/reality/$artifactId',
@@ -115,14 +157,21 @@ export interface FileRoutesByFullPath {
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
   '/login': typeof LoginRoute
+  '/markets': typeof MarketsRouteWithChildren
   '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
+  '/markets/backtest': typeof MarketsBacktestRoute
+  '/markets/fundamentals': typeof MarketsFundamentalsRoute
+  '/markets/options': typeof MarketsOptionsRoute
+  '/markets/research': typeof MarketsResearchRoute
+  '/markets/risk': typeof MarketsRiskRoute
   '/reality/$artifactId': typeof RealityArtifactIdRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/bench/': typeof BenchIndexRoute
+  '/markets/': typeof MarketsIndexRoute
   '/runs/': typeof RunsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -136,9 +185,15 @@ export interface FileRoutesByTo {
   '/risk': typeof RiskRoute
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
+  '/markets/backtest': typeof MarketsBacktestRoute
+  '/markets/fundamentals': typeof MarketsFundamentalsRoute
+  '/markets/options': typeof MarketsOptionsRoute
+  '/markets/research': typeof MarketsResearchRoute
+  '/markets/risk': typeof MarketsRiskRoute
   '/reality/$artifactId': typeof RealityArtifactIdRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/bench': typeof BenchIndexRoute
+  '/markets': typeof MarketsIndexRoute
   '/runs': typeof RunsIndexRoute
 }
 export interface FileRoutesById {
@@ -150,14 +205,21 @@ export interface FileRoutesById {
   '/forge': typeof ForgeRoute
   '/globe': typeof GlobeRoute
   '/login': typeof LoginRoute
+  '/markets': typeof MarketsRouteWithChildren
   '/observatory': typeof ObservatoryRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
   '/worlds': typeof WorldsRoute
   '/bench/$benchmarkId': typeof BenchBenchmarkIdRoute
+  '/markets/backtest': typeof MarketsBacktestRoute
+  '/markets/fundamentals': typeof MarketsFundamentalsRoute
+  '/markets/options': typeof MarketsOptionsRoute
+  '/markets/research': typeof MarketsResearchRoute
+  '/markets/risk': typeof MarketsRiskRoute
   '/reality/$artifactId': typeof RealityArtifactIdRoute
   '/runs/$runId': typeof RunsRunIdRoute
   '/bench/': typeof BenchIndexRoute
+  '/markets/': typeof MarketsIndexRoute
   '/runs/': typeof RunsIndexRoute
 }
 export interface FileRouteTypes {
@@ -170,14 +232,21 @@ export interface FileRouteTypes {
     | '/forge'
     | '/globe'
     | '/login'
+    | '/markets'
     | '/observatory'
     | '/risk'
     | '/runs'
     | '/worlds'
     | '/bench/$benchmarkId'
+    | '/markets/backtest'
+    | '/markets/fundamentals'
+    | '/markets/options'
+    | '/markets/research'
+    | '/markets/risk'
     | '/reality/$artifactId'
     | '/runs/$runId'
     | '/bench/'
+    | '/markets/'
     | '/runs/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -191,9 +260,15 @@ export interface FileRouteTypes {
     | '/risk'
     | '/worlds'
     | '/bench/$benchmarkId'
+    | '/markets/backtest'
+    | '/markets/fundamentals'
+    | '/markets/options'
+    | '/markets/research'
+    | '/markets/risk'
     | '/reality/$artifactId'
     | '/runs/$runId'
     | '/bench'
+    | '/markets'
     | '/runs'
   id:
     | '__root__'
@@ -204,14 +279,21 @@ export interface FileRouteTypes {
     | '/forge'
     | '/globe'
     | '/login'
+    | '/markets'
     | '/observatory'
     | '/risk'
     | '/runs'
     | '/worlds'
     | '/bench/$benchmarkId'
+    | '/markets/backtest'
+    | '/markets/fundamentals'
+    | '/markets/options'
+    | '/markets/research'
+    | '/markets/risk'
     | '/reality/$artifactId'
     | '/runs/$runId'
     | '/bench/'
+    | '/markets/'
     | '/runs/'
   fileRoutesById: FileRoutesById
 }
@@ -223,6 +305,7 @@ export interface RootRouteChildren {
   ForgeRoute: typeof ForgeRoute
   GlobeRoute: typeof GlobeRoute
   LoginRoute: typeof LoginRoute
+  MarketsRoute: typeof MarketsRouteWithChildren
   ObservatoryRoute: typeof ObservatoryRoute
   RiskRoute: typeof RiskRoute
   RunsRoute: typeof RunsRouteWithChildren
@@ -281,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/markets': {
+      id: '/markets'
+      path: '/markets'
+      fullPath: '/markets'
+      preLoaderRoute: typeof MarketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/observatory': {
       id: '/observatory'
       path: '/observatory'
@@ -323,6 +413,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BenchBenchmarkIdRouteImport
       parentRoute: typeof BenchRoute
     }
+    '/markets/': {
+      id: '/markets/'
+      path: '/'
+      fullPath: '/markets/'
+      preLoaderRoute: typeof MarketsIndexRouteImport
+      parentRoute: typeof MarketsRoute
+    }
+    '/markets/backtest': {
+      id: '/markets/backtest'
+      path: '/backtest'
+      fullPath: '/markets/backtest'
+      preLoaderRoute: typeof MarketsBacktestRouteImport
+      parentRoute: typeof MarketsRoute
+    }
+    '/markets/fundamentals': {
+      id: '/markets/fundamentals'
+      path: '/fundamentals'
+      fullPath: '/markets/fundamentals'
+      preLoaderRoute: typeof MarketsFundamentalsRouteImport
+      parentRoute: typeof MarketsRoute
+    }
+    '/markets/options': {
+      id: '/markets/options'
+      path: '/options'
+      fullPath: '/markets/options'
+      preLoaderRoute: typeof MarketsOptionsRouteImport
+      parentRoute: typeof MarketsRoute
+    }
+    '/markets/research': {
+      id: '/markets/research'
+      path: '/research'
+      fullPath: '/markets/research'
+      preLoaderRoute: typeof MarketsResearchRouteImport
+      parentRoute: typeof MarketsRoute
+    }
+    '/markets/risk': {
+      id: '/markets/risk'
+      path: '/risk'
+      fullPath: '/markets/risk'
+      preLoaderRoute: typeof MarketsRiskRouteImport
+      parentRoute: typeof MarketsRoute
+    }
     '/reality/$artifactId': {
       id: '/reality/$artifactId'
       path: '/reality/$artifactId'
@@ -359,6 +491,27 @@ const BenchRouteChildren: BenchRouteChildren = {
 
 const BenchRouteWithChildren = BenchRoute._addFileChildren(BenchRouteChildren)
 
+interface MarketsRouteChildren {
+  MarketsBacktestRoute: typeof MarketsBacktestRoute
+  MarketsFundamentalsRoute: typeof MarketsFundamentalsRoute
+  MarketsOptionsRoute: typeof MarketsOptionsRoute
+  MarketsResearchRoute: typeof MarketsResearchRoute
+  MarketsRiskRoute: typeof MarketsRiskRoute
+  MarketsIndexRoute: typeof MarketsIndexRoute
+}
+
+const MarketsRouteChildren: MarketsRouteChildren = {
+  MarketsBacktestRoute: MarketsBacktestRoute,
+  MarketsFundamentalsRoute: MarketsFundamentalsRoute,
+  MarketsOptionsRoute: MarketsOptionsRoute,
+  MarketsResearchRoute: MarketsResearchRoute,
+  MarketsRiskRoute: MarketsRiskRoute,
+  MarketsIndexRoute: MarketsIndexRoute,
+}
+
+const MarketsRouteWithChildren =
+  MarketsRoute._addFileChildren(MarketsRouteChildren)
+
 interface RunsRouteChildren {
   RunsRunIdRoute: typeof RunsRunIdRoute
   RunsIndexRoute: typeof RunsIndexRoute
@@ -379,6 +532,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgeRoute: ForgeRoute,
   GlobeRoute: GlobeRoute,
   LoginRoute: LoginRoute,
+  MarketsRoute: MarketsRouteWithChildren,
   ObservatoryRoute: ObservatoryRoute,
   RiskRoute: RiskRoute,
   RunsRoute: RunsRouteWithChildren,

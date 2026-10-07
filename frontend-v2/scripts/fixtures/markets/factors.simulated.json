@@ -1,0 +1,32 @@
+{
+ "alpha_annual": 0.009700492909,
+ "exposures": [
+  {
+   "beta": 0.8827404376,
+   "factor": "Market"
+  },
+  {
+   "beta": 0.01685463832,
+   "factor": "Size"
+  },
+  {
+   "beta": 0.03866904181,
+   "factor": "Value"
+  },
+  {
+   "beta": 0.08042420695,
+   "factor": "Momentum"
+  },
+  {
+   "beta": -0.05031846726,
+   "factor": "Quality"
+  },
+  {
+   "beta": 0.05080180383,
+   "factor": "Low Vol"
+  }
+ ],
+ "n_days": 419,
+ "r2": 0.6626379569,
+ "ticker": "SIMF"
+}

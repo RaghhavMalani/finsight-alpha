@@ -95,6 +95,7 @@ jobs:
       - run: node scripts/verify-observatory.mjs
       - run: node scripts/verify-neural.mjs
       - run: node scripts/verify-globe.mjs
+      - run: node scripts/verify-markets.mjs
       - run: npm run build
       - name: Install Chromium for the Observatory browser check
         run: npx playwright install --with-deps --only-shell chromium
@@ -103,6 +104,11 @@ jobs:
           node scripts/preview-built.mjs &
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:4174/observatory && break; sleep 1; done
           node scripts/verify-observatory.mjs --url http://127.0.0.1:4174
+      - name: Markets screens render data, failure and signed-out states at 1440 and 390 px
+        run: |
+          curl -sf -o /dev/null http://127.0.0.1:4174/markets/options || (node scripts/preview-built.mjs &)
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:4174/markets/options && break; sleep 1; done
+          node scripts/verify-markets.mjs --url http://127.0.0.1:4174
 
   truth-contract:
     runs-on: ubuntu-latest

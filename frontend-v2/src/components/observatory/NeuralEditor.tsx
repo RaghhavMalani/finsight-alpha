@@ -1,6 +1,13 @@
 import { NEURAL_FAMILY_COLORS, type NeuralSource } from "./neural-model";
 import { ACTIVATIONS, architectureErrors, LIMITS, type Architecture } from "./neural/mlp";
-import { LAB_FEATURES, WORLDS, type WorldKind, type WorldSpec } from "./neural/world";
+import {
+  GEO_FAMILY,
+  GEO_NEGATIVE_CONTROL,
+  LAB_FEATURES,
+  WORLDS,
+  type WorldKind,
+  type WorldSpec,
+} from "./neural/world";
 import { NEURAL_FAMILIES } from "./types";
 
 const SOURCES: [NeuralSource, string, string][] = [
@@ -290,7 +297,11 @@ export function NeuralEditor({
           {NEURAL_FAMILIES.map((f) => {
             const on = families.includes(f);
             return (
-              <label key={f} style={{ ["--c" as string]: NEURAL_FAMILY_COLORS[f] }}>
+              <label
+                key={f}
+                style={{ ["--c" as string]: NEURAL_FAMILY_COLORS[f] }}
+                title={f === GEO_FAMILY ? GEO_NEGATIVE_CONTROL : undefined}
+              >
                 <input
                   type="checkbox"
                   checked={on}
@@ -303,10 +314,18 @@ export function NeuralEditor({
                   }
                 />
                 {f}
+                {f === GEO_FAMILY && <em className="nn-control">negative control</em>}
               </label>
             );
           })}
         </div>
+        {families.includes(GEO_FAMILY) && (
+          <p className="nn-control-note">
+            {source === "lab"
+              ? "Geo events here are synthetic. On real data they are an exogenous negative control: earthquakes shouldn't predict next-day direction, so edge found there is treated as overfitting."
+              : GEO_NEGATIVE_CONTROL}
+          </p>
+        )}
       </fieldset>
       {errors.length > 0 && <p className="obs-suppressed">{errors[0]}</p>}
       {!families.length && <p className="obs-suppressed">Choose at least one input family.</p>}

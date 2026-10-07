@@ -108,3 +108,22 @@ def test_empty_chain_raises():
     chain.data = chain.data.iloc[0:0]  # wipe rows
     with pytest.raises(ValueError):
         build_vol_surface(chain)
+
+
+def test_spread_expiries_spans_the_term_structure():
+    from datetime import date, timedelta
+
+    from src.data.options_data import spread_expiries
+
+    today = date(2026, 1, 2)
+    # A daily-listing ETF: every day for a month, then monthlies out to two years.
+    listed = [(today + timedelta(days=d)).isoformat() for d in range(0, 31)]
+    listed += [(today + timedelta(days=d)).isoformat() for d in (45, 63, 91, 182, 273, 364, 728)]
+    chosen = spread_expiries(listed, today, max_expiries=8)
+    days = [(date.fromisoformat(x) - today).days for x in chosen]
+    assert days == [7, 14, 30, 63, 91, 182, 273, 364]
+    assert spread_expiries(listed, today, max_expiries=3) == chosen[:3]
+    # A short listing collapses onto what it has; expired and unparsable dates drop out.
+    short = [today.isoformat(), "not-a-date", (today + timedelta(days=21)).isoformat()]
+    assert spread_expiries(short, today) == [(today + timedelta(days=21)).isoformat()]
+    assert spread_expiries([], today) == []

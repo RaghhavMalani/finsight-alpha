@@ -136,3 +136,36 @@ def test_market_data_service_multiple_raises_when_not_skipping() -> None:
     service = MarketDataService(_FakeProvider())
     with pytest.raises(ProviderError):
         service.get_multiple(["AAPL", "BAD"], skip_errors=False)
+
+
+def test_concurrent_yfinance_downloads_keep_their_own_window(monkeypatch) -> None:
+    """yf.download shares module state, so overlapping calls must not interleave."""
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    from src.data.providers import yfinance_provider
+
+    shared = {}  # stands in for yfinance.shared, reset by every download
+
+    def fake_download(tickers, start, end, auto_adjust, progress):
+        shared.clear()
+        shared[tickers] = start
+        time.sleep(0.02)  # another thread's download would reset `shared` here
+        dates = pd.bdate_range(shared.get(tickers, "2000-01-03"), periods=5)
+        return pd.DataFrame(
+            {"Open": 1.0, "High": 1.0, "Low": 1.0, "Close": 1.0, "Volume": 1.0}, index=dates
+        ).rename_axis("Date")
+
+    monkeypatch.setattr(yfinance_provider.yf, "download", fake_download)
+    provider = yfinance_provider.YFinanceProvider()
+    starts = ["2018-01-02", "2024-06-03"] * 6
+    barrier = threading.Barrier(len(starts))
+
+    def fetch(start):
+        barrier.wait()
+        return start, provider.get_historical_data("SPY", start, None)["Date"].min()
+
+    with ThreadPoolExecutor(len(starts)) as pool:
+        for start, first in pool.map(fetch, starts):
+            assert first == pd.Timestamp(start)

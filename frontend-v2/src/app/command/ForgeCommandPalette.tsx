@@ -1,7 +1,45 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+const MARKET_SCREENS = {
+  "markets-options": "/markets/options",
+  "markets-risk": "/markets/risk",
+  "markets-backtest": "/markets/backtest",
+  "markets-fundamentals": "/markets/fundamentals",
+  "markets-research": "/markets/research",
+} as const;
+
 const COMMANDS = [
+  {
+    id: "markets-options",
+    label: "Open Markets · Options",
+    hint: "Quoted chain, pricer, payoff, IV surface",
+    to: "/markets/options",
+  },
+  {
+    id: "markets-risk",
+    label: "Open Markets · Risk",
+    hint: "VaR, stress, Monte Carlo, factors, portfolio",
+    to: "/markets/risk",
+  },
+  {
+    id: "markets-backtest",
+    label: "Open Markets · Backtest",
+    hint: "Indicator strategies against buy and hold",
+    to: "/markets/backtest",
+  },
+  {
+    id: "markets-fundamentals",
+    label: "Open Markets · Fundamentals",
+    hint: "EDGAR statements as of a date",
+    to: "/markets/fundamentals",
+  },
+  {
+    id: "markets-research",
+    label: "Open Markets · Research",
+    hint: "Ask a company's 10-K and 10-Q",
+    to: "/markets/research",
+  },
   { id: "center", label: "Open Command Center", hint: "Forge overview", to: "/forge" },
   { id: "runs", label: "Open Runs", hint: "Immutable trajectories", to: "/runs" },
   { id: "bench", label: "Open Bench", hint: "Frozen v0.2.5 baseline", to: "/bench" },
@@ -37,7 +75,7 @@ const COMMANDS = [
     hint: "Regime and event-process research",
     to: "/dynamics",
   },
-  { id: "risk", label: "Open Risk Desk", hint: "Paper book, stress and hedges", to: "/risk" },
+  { id: "risk", label: "Open Paper Book", hint: "Positions, stress and hedges", to: "/risk" },
 ] as const;
 
 export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -73,6 +111,13 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
 
   const execute = (id: (typeof COMMANDS)[number]["id"]) => {
     onClose();
+    if (id in MARKET_SCREENS) {
+      void navigate({
+        to: MARKET_SCREENS[id as keyof typeof MARKET_SCREENS],
+        search: { ticker: "SPY" },
+      });
+      return;
+    }
     switch (id) {
       case "center":
         void navigate({ to: "/forge", search: { run: undefined, node: 1 } });

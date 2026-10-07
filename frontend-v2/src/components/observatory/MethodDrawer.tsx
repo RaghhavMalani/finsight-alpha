@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { ModelTrace } from "./types";
+import { GEO_NEGATIVE_CONTROL } from "./neural/world";
 
 export type SourceMode = "replay" | "live";
 
@@ -66,7 +67,7 @@ export function MethodDrawer({
             ? ([
                 [
                   "Geo events",
-                  `${trace.geo_provenance.disclosure} ${trace.geo_provenance.events.toLocaleString()} USGS events ≥ M${trace.geo_provenance.min_magnitude}, retrieved ${trace.geo_provenance.retrieved_at}.`,
+                  `${GEO_NEGATIVE_CONTROL} ${trace.geo_provenance.disclosure} ${trace.geo_provenance.events.toLocaleString()} USGS events ≥ M${trace.geo_provenance.min_magnitude}, retrieved ${trace.geo_provenance.retrieved_at}.`,
                 ],
               ] as [string, string][])
             : []),

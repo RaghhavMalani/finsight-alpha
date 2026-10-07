@@ -7,11 +7,26 @@ type NavItem = {
   key: string;
   label: string;
   to: string;
-  /** Path prefix that marks the item active, when it differs from `to`. */
+  /** Scene that marks an Observatory item active. */
   match?: string;
+  /** Path prefix that marks the item active, when it differs from `to`. */
+  prefix?: string;
   search?: Record<string, unknown>;
 };
 const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Markets",
+    items: [
+      {
+        key: "",
+        label: "Desk",
+        to: "/markets/options",
+        prefix: "/markets",
+        search: { ticker: "SPY" },
+      },
+      { key: "", label: "Book", to: "/risk" },
+    ],
+  },
   {
     title: "Forge",
     items: [
@@ -45,7 +60,6 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { key: "F9", label: "God's Eye", to: "/globe" },
       { key: "", label: "Dynamics", to: "/dynamics" },
-      { key: "", label: "Risk", to: "/risk" },
     ],
   },
 ];
@@ -129,6 +143,7 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
       return (
         pathname.startsWith("/observatory") && (item.match === "neural") === (scene === "neural")
       );
+    if (item.prefix) return pathname.startsWith(item.prefix);
     return item.to === "/forge" ? pathname === item.to : pathname.startsWith(item.to);
   };
 

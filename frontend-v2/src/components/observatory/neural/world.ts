@@ -14,7 +14,7 @@ export const WORLDS = {
   },
   geo: {
     label: "Geo shock",
-    rule: "large near-hub seismic energy precedes down days, scaled by volatility",
+    rule: "large near-hub seismic energy precedes down days, scaled by volatility (a synthetic planted signal; on real data Geo events are a negative control)",
   },
   linear: {
     label: "Linear drift",
@@ -28,6 +28,20 @@ export const WORLDS = {
 export type WorldKind = keyof typeof WORLDS;
 export type WorldSpec = { kind: WorldKind; strength: number; seed: number; days: number };
 export const DEFAULT_WORLD: WorldSpec = { kind: "interaction", strength: 1, seed: 7, days: 1600 };
+
+/** The earthquake inputs. On real data they are a negative control, never a signal. */
+export const GEO_FAMILY = "Geo events";
+export const GEO_NEGATIVE_CONTROL =
+  "Exogenous negative control: earthquakes shouldn't predict next-day direction. Edge found here is treated as overfitting.";
+
+/**
+ * Families a new run starts with. Lab worlds are synthetic, so every family is on (the Geo shock
+ * world plants its rule there). On real data the negative control is opt-in.
+ */
+export function defaultFamilies(source: "lab" | "replay" | "live"): string[] {
+  const all = LAB_FEATURES.map(([f]) => f);
+  return source === "lab" ? all : all.filter((f) => f !== GEO_FAMILY);
+}
 
 /** Feature families and synthetic feature names, in the backend's family order. */
 export const LAB_FEATURES: [string, string[]][] = [
