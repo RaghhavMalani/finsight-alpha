@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { normalizeTicker } from "@/markets/contracts";
 const ObservatoryPage = lazy(() => import("@/components/observatory/ObservatoryPage"));
 export const Route = createFileRoute("/observatory")({
   // Tickers are declared by the replay manifest; the page rejects any it does not list.
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/observatory")({
       search.scene === "signal" || search.scene === "neural"
         ? (search.scene as "signal" | "neural")
         : ("hmm" as const),
-    ticker: /^[A-Z]{1,6}$/.test(String(search.ticker)) ? String(search.ticker) : "SPY",
+    ticker: normalizeTicker(String(search.ticker ?? "")) ?? "SPY",
   }),
   head: () => ({
     meta: [

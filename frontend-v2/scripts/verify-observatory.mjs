@@ -13,7 +13,8 @@ import {
 const urlFlag = process.argv.indexOf("--url");
 const baseUrl = urlFlag > 0 ? process.argv[urlFlag + 1]?.replace(/\/$/, "") : null;
 
-const root = new URL("../public/", import.meta.url);
+// Preserved real trace bytes are test-only until an explicit public publication grant exists.
+const root = new URL("./fixtures/", import.meta.url);
 const manifest = validateManifest(
   JSON.parse(readFileSync(new URL("artifacts/observatory/manifest.json", root))),
 );
@@ -158,6 +159,43 @@ if (baseUrl) {
   try {
     for (const width of [1366, 1440, 1920]) {
       const page = await browser.newPage({ viewport: { width, height: 860 } });
+      const shared = {
+        schema_version: "terminal-replay/1",
+        as_of: manifest.as_of,
+        routes: {},
+        claims: {
+          market_claim_eligible: false,
+          causal_claim_eligible: false,
+          validated_alpha: false,
+        },
+        artifacts: {},
+      };
+      for (const [id, e] of Object.entries(manifest.artifacts))
+        shared.artifacts[`observatory:${id}`] = {
+          ...e,
+          status: "AVAILABLE",
+          kind: "observatory-trace",
+          scope: "TEST_ONLY",
+          as_of: manifest.as_of,
+          observed_at: manifest.as_of,
+          available_at: manifest.as_of,
+          sources: ["ALPACA_IEX · preserved test fixture"],
+          licence: {
+            status: "ACTIVE",
+            permitted_uses: ["publish_derived"],
+            dataset_key: "test:observatory",
+            valid_through: null,
+          },
+          reason: null,
+        };
+      // Explicit test-only permission envelope; production Replay is verified separately without mocking.
+      await page.route("**/replay-manifest.json", (route) => route.fulfill({ json: shared }));
+      await page.route("**/artifacts/observatory/*.json", (route) =>
+        route.fulfill({
+          contentType: "application/json",
+          body: readFileSync(new URL(new URL(route.request().url()).pathname.slice(1), root)),
+        }),
+      );
       for (const ticker of manifestTickers(manifest))
         for (const scene of ["hmm", "signal"]) {
           await page.goto(`${baseUrl}/observatory?scene=${scene}&ticker=${ticker}`, {

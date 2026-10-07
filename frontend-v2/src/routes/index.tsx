@@ -5,6 +5,9 @@ import type { Quake, Tle } from "@/components/globe/geo-data";
 import { loadLand, type LandData } from "@/components/globe/land";
 import { useReducedMotion } from "@/components/observatory/useReducedMotion";
 import "@/components/landing/landing.css";
+import { loadReplayManifest } from "@/replay/client";
+import { useDataMode } from "@/replay/mode";
+import type { ReplayManifest } from "@/replay/contracts";
 
 const GlobeScene = lazy(() => import("@/components/globe/GlobeScene"));
 
@@ -22,8 +25,6 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
-type Manifest = { as_of: string; artifacts: Record<string, unknown> };
-
 const INSTRUMENTS: {
   to: string;
   search?: Record<string, unknown>;
@@ -36,7 +37,7 @@ const INSTRUMENTS: {
   {
     to: "/observatory",
     search: { scene: "hmm", ticker: "SPY" },
-    code: "F7",
+    code: "F8",
     title: "Model Observatory",
     body: "An HMM's EM fit and a boosted forest's walk-forward folds, replayed from checked artifacts whose bytes are hashed before a single line is drawn.",
     tone: "#39E6B5",
@@ -53,7 +54,7 @@ const INSTRUMENTS: {
   },
   {
     to: "/globe",
-    code: "F9",
+    code: "F2",
     title: "God's Eye",
     body: "Live earthquakes and satellites over the market hubs, computed into the network's Geo events inputs with the same one-day rule the backend uses.",
     tone: "#3FE0FF",
@@ -62,7 +63,7 @@ const INSTRUMENTS: {
   {
     to: "/forge",
     search: { run: undefined, node: 1 },
-    code: "F2",
+    code: "F9",
     title: "Forge Command Center",
     body: "Coding-agent research runs, frozen benchmarks and Reality Ladder evidence, every claim graded by an independent verifier.",
     tone: "#F0A929",
@@ -70,7 +71,7 @@ const INSTRUMENTS: {
   },
   {
     to: "/dynamics",
-    code: "DYN",
+    code: "F4",
     title: "Dynamics Lab",
     body: "Hawkes event processes, regime landscapes and preregistered failure decompositions, with their limits printed beside the result.",
     tone: "#B88CFF",
@@ -78,7 +79,7 @@ const INSTRUMENTS: {
   },
   {
     to: "/risk",
-    code: "RSK",
+    code: "F3",
     title: "Risk Desk",
     body: "Your paper book, stress scenarios and hedges. An empty book reads as zero risk, never as an injected sample portfolio.",
     tone: "#FF8A5B",
@@ -106,26 +107,29 @@ const CONTRACT: [string, string][] = [
 ];
 
 function Landing() {
+  const mode = useDataMode();
   const reduced = useReducedMotion();
   const quakes = useFeed<Quake[]>(loadQuakes, [], 5 * 60_000);
   const sats = useFeed<Tle[]>(loadSatellites, [], 2 * 3600_000);
   const [land, setLand] = useState<LandData | null>(null);
   const [now, setNow] = useState(0);
-  const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [manifest, setManifest] = useState<ReplayManifest | null>(null);
   useEffect(() => {
-    setNow(Date.now());
     void loadLand().then(setLand);
-    fetch("/artifacts/observatory/manifest.json")
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setManifest)
+    loadReplayManifest()
+      .then((m) => {
+        setManifest(m);
+        setNow(mode === "replay" ? Date.parse(m.as_of) : Date.now());
+      })
       .catch(() => setManifest(null));
-  }, []);
+  }, [mode]);
   const noop = useCallback(() => undefined, []);
   const latest = quakes.data[0];
   const strip = [
     manifest &&
-      `Observatory · ${Object.keys(manifest.artifacts).length} checked replays · cutoff ${manifest.as_of.slice(0, 10)}`,
-    quakes.status === "live" && `USGS · ${quakes.data.length} M4.5+ events in 30 days`,
+      `Replay · ${Object.values(manifest.artifacts).filter((e) => e.status === "AVAILABLE").length} declared derived artifacts · cutoff ${manifest.as_of.slice(0, 10)}`,
+    ["live", "replay"].includes(quakes.status) &&
+      `USGS · ${quakes.data.length} M4.5+ recorded events`,
     latest && `Latest · M${latest.mag.toFixed(1)} ${latest.place ?? ""}`,
     sats.status === "live" && `CelesTrak · ${sats.data.length} satellites propagated`,
     "Neural lab · trains in your browser, nothing uploaded",

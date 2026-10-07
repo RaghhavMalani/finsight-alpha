@@ -68,7 +68,7 @@ reject("feature start after cutoff", (x) => (x.validation.feature_start = "2099-
 
 /* 2. A manifest may declare a neural replay, and must check it like any other. */
 const manifest = JSON.parse(
-  readFileSync(new URL("../public/artifacts/observatory/manifest.json", import.meta.url)),
+  readFileSync(new URL("./fixtures/artifacts/observatory/manifest.json", import.meta.url)),
 );
 check(() => {
   const copy = structuredClone(manifest);

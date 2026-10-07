@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { validateTrace, type ModelTrace, type TraceRequest } from "./types";
+import { getDataMode, localLiveAllowed } from "@/replay/mode";
+import { loadReplayManifest, readReplayArtifact } from "@/replay/client";
 
 export async function artifactHash(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (b) =>
@@ -45,6 +47,10 @@ export function useTrainingStream(
           loading: false,
         });
     };
+    if (!expectedSha && (getDataMode() !== "live" || !localLiveAllowed())) {
+      reject(new Error("Unchecked model runs require configured local Live mode."));
+      return () => abort.abort();
+    }
     if (/^wss?:/.test(url)) {
       if (!["localhost", "127.0.0.1"].includes(new URL(url).hostname)) {
         reject(new Error("WebSocket traces are supported only on local installations"));
@@ -68,6 +74,19 @@ export function useTrainingStream(
       }
     } else {
       void (async () => {
+        if (expectedSha) {
+          const manifest = await loadReplayManifest();
+          const listed = Object.entries(manifest.artifacts).find(
+            ([, entry]) =>
+              entry.status === "AVAILABLE" &&
+              entry.url === url &&
+              entry.sha256 === expectedSha &&
+              entry.input_hash === expectedInputHash,
+          );
+          if (!listed) throw new Error("Trace is not in the checked publication manifest.");
+          accept(await readReplayArtifact(listed[0]), expectedSha);
+          return;
+        }
         const response = await fetch(url, { signal: abort.signal, credentials: "include" });
         if (!response.ok) {
           const body = await response.json().catch(() => null);

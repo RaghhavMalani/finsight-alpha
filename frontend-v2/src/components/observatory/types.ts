@@ -241,7 +241,7 @@ export function snapshotEpochList(epochs: number) {
 export type Manifest = {
   schema_version: string;
   as_of: string;
-  artifacts: Record<string, { url: string; sha256: string; input_hash: string }>;
+  artifacts: Record<string, { url: string; sha256: string; input_hash: string; as_of?: string }>;
 };
 
 /**

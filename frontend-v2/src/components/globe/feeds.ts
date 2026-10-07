@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { CELESTRAK_GROUPS, normalizeEarthquakes, parseTle, USGS_MONTH_FEED } from "./geo-data";
 import type { Quake, Tle } from "./geo-data";
+import { localLiveAllowed, useDataMode } from "@/replay/mode";
+import { loadReplayManifest, readReplayArtifact } from "@/replay/client";
 
 export type Feed<T> = {
   data: T;
-  status: "loading" | "live" | "unavailable";
+  status: "loading" | "live" | "replay" | "unavailable";
   at: number | null;
   note: string | null;
 };
@@ -15,6 +17,7 @@ export function useFeed<T>(
   empty: T,
   every: number,
 ) {
+  const mode = useDataMode();
   const [feed, setFeed] = useState<Feed<T>>({
     data: empty,
     status: "loading",
@@ -25,8 +28,22 @@ export function useFeed<T>(
     let alive = true;
     const controller = new AbortController();
     const run = () =>
-      load(controller.signal)
-        .then(({ data, note }) => alive && setFeed({ data, status: "live", at: Date.now(), note }))
+      (mode === "replay"
+        ? loadRecordedFeed(load)
+        : localLiveAllowed()
+          ? load(controller.signal)
+          : Promise.reject(new Error("Live feeds require local Live mode."))
+      )
+        .then(
+          (result) =>
+            alive &&
+            setFeed({
+              data: result.data,
+              status: mode === "replay" ? "replay" : "live",
+              at: "at" in result && typeof result.at === "number" ? result.at : Date.now(),
+              note: result.note,
+            }),
+        )
         .catch(
           (e: unknown) =>
             alive &&
@@ -37,16 +54,57 @@ export function useFeed<T>(
             })),
         );
     void run();
-    const timer = setInterval(run, every);
+    const timer = mode === "live" ? setInterval(run, every) : null;
     return () => {
       alive = false;
       controller.abort();
-      clearInterval(timer);
+      if (timer) clearInterval(timer);
     };
     // The loader is a module-level function; polling restarts only on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mode]);
   return feed;
+}
+
+async function loadRecordedFeed<T>(
+  load: (signal: AbortSignal) => Promise<{ data: T; note: string | null }>,
+) {
+  const manifest = await loadReplayManifest();
+  const id = (load as unknown) === loadQuakes ? "world:quakes" : "world:satellites";
+  const entry = manifest.artifacts[id];
+  if (!entry || entry.status !== "AVAILABLE")
+    throw new Error(entry?.reason ?? "No checked World snapshot installed.");
+  const value = (await readReplayArtifact(id)) as {
+    schema_version: string;
+    as_of: string;
+    events: Quake[];
+  };
+  if (
+    id !== "world:quakes" ||
+    value.schema_version !== "world-replay/1" ||
+    value.as_of !== entry.as_of ||
+    !Array.isArray(value.events)
+  )
+    throw new Error("Malformed World snapshot.");
+  const seen = new Set<string>();
+  for (const q of value.events) {
+    if (
+      typeof q.stableId !== "string" ||
+      seen.has(q.stableId) ||
+      ![q.lon, q.lat, q.depthKm, q.mag, q.time].every(Number.isFinite) ||
+      Math.abs(q.lon) > 180 ||
+      Math.abs(q.lat) > 90 ||
+      q.mag < 4.5 ||
+      q.time > Date.parse(value.as_of)
+    )
+      throw new Error("Invalid recorded earthquake.");
+    seen.add(q.stableId);
+  }
+  return {
+    data: value.events as T,
+    note: `Recorded ${entry.as_of} · ${entry.sources.join(", ")} · ${entry.licence.status}`,
+    at: Date.parse(entry.as_of),
+  };
 }
 
 export async function loadQuakes(signal: AbortSignal) {
