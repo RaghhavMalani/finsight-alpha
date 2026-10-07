@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import date, datetime, timezone
 
 import pandas as pd
 
@@ -36,6 +37,9 @@ DataDownloadError = ProviderError
 # EOD data doesn't change intraday; 15 minutes is a safe freshness window.
 # ---------------------------------------------------------------------------
 _CACHE_TTL_SECONDS = 900
+# Intraday bars move every few minutes; a minute keeps a chart from re-asking
+# Yahoo on every render without serving a stale session.
+_INTRADAY_TTL_SECONDS = 60
 _cache: dict[tuple, tuple[float, pd.DataFrame]] = {}
 _cache_lock = threading.Lock()
 _MAX_CACHE_ENTRIES = 256
@@ -45,6 +49,36 @@ def clear_price_cache() -> None:
     """Drop all cached frames (mainly for tests)."""
     with _cache_lock:
         _cache.clear()
+
+
+def _cached(key: tuple, ttl: float, now: float) -> pd.DataFrame | None:
+    with _cache_lock:
+        hit = _cache.get(key)
+        if hit is not None and now - hit[0] < ttl:
+            return hit[1].copy()
+    return None
+
+
+def _remember(key: tuple, now: float, df: pd.DataFrame) -> None:
+    # When the provider answered; cache hits keep it, so a route can say how old
+    # the frame it serves really is.
+    df.attrs["fetched_at"] = datetime.fromtimestamp(now, timezone.utc).isoformat(
+        timespec="seconds"
+    )
+    with _cache_lock:
+        if len(_cache) >= _MAX_CACHE_ENTRIES:  # drop oldest entries
+            for old_key, _ in sorted(_cache.items(), key=lambda kv: kv[1][0])[:32]:
+                _cache.pop(old_key, None)
+        _cache[key] = (now, df.copy())
+
+
+def _today() -> str:
+    """Today's ISO date, read on every call.
+
+    ``config.DEFAULT_END_DATE`` is fixed when the process imports it, so a server
+    left running would keep asking for data up to the day it started.
+    """
+    return date.today().isoformat()
 
 
 class MarketDataService:
@@ -69,39 +103,52 @@ class MarketDataService:
         self,
         ticker: str,
         start_date: str = config.DEFAULT_START_DATE,
-        end_date: str = config.DEFAULT_END_DATE,
+        end_date: str | None = None,
     ) -> pd.DataFrame:
         """Download cleaned OHLCV data for a single ticker.
 
         The returned frame includes a ``Provider`` column recording which source
         produced the data (useful for auditing once multiple providers are live).
 
+        ``end_date`` (exclusive) defaults to today at the time of the call.
+
         Results are cached in-process for 15 minutes per (provider, ticker,
         window), so repeated calls from the terminal are served from memory.
         """
+        end_date = end_date or _today()
         key = (self.provider.name, ticker.upper(), str(start_date), str(end_date))
         now = time.time()
-        with _cache_lock:
-            hit = _cache.get(key)
-            if hit is not None and now - hit[0] < _CACHE_TTL_SECONDS:
-                return hit[1].copy()
+        hit = _cached(key, _CACHE_TTL_SECONDS, now)
+        if hit is not None:
+            return hit
 
         df = self.provider.get_historical_data(ticker, start_date, end_date)
         df = df.copy()
         df["Provider"] = self.provider.name
+        _remember(key, now, df)
+        return df
 
-        with _cache_lock:
-            if len(_cache) >= _MAX_CACHE_ENTRIES:  # drop oldest entries
-                for old_key, _ in sorted(_cache.items(), key=lambda kv: kv[1][0])[:32]:
-                    _cache.pop(old_key, None)
-            _cache[key] = (now, df.copy())
+    def get_intraday(self, ticker: str, period: str, interval: str) -> pd.DataFrame:
+        """Intraday OHLCV bars for the latest ``period``, cached for a minute.
+
+        Same schema as :meth:`get_data`, with timezone-aware ``Date`` bar starts.
+        """
+        key = ("intraday", self.provider.name, ticker.upper(), period, interval)
+        now = time.time()
+        hit = _cached(key, _INTRADAY_TTL_SECONDS, now)
+        if hit is not None:
+            return hit
+
+        df = self.provider.get_intraday_data(ticker, period, interval).copy()
+        df["Provider"] = self.provider.name
+        _remember(key, now, df)
         return df
 
     def get_multiple(
         self,
         tickers: list[str],
         start_date: str = config.DEFAULT_START_DATE,
-        end_date: str = config.DEFAULT_END_DATE,
+        end_date: str | None = None,
         skip_errors: bool = True,
     ) -> pd.DataFrame:
         """Download several tickers and return one combined, tidy DataFrame.
@@ -145,7 +192,7 @@ class MarketDataService:
 def download_stock_data(
     ticker: str,
     start_date: str = config.DEFAULT_START_DATE,
-    end_date: str = config.DEFAULT_END_DATE,
+    end_date: str | None = None,
 ) -> pd.DataFrame:
     """Backwards-compatible single-ticker download (Phase 1A API).
 

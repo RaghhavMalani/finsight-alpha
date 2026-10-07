@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import {
   adaptBacktest,
+  adaptBars,
+  adaptQuotes,
+  adaptSearch,
+  DEFAULT_WATCHLIST,
+  overviewTarget,
+  parseWatchlist,
   adaptFactors,
   adaptFundamentals,
   adaptMarketChain,
@@ -25,6 +31,8 @@ import {
 } from "../src/markets/contracts.ts";
 import {
   bandPath,
+  bandScale,
+  candleGeometry,
   extent,
   labelIndices,
   labelRows,
@@ -35,7 +43,7 @@ import {
   quantile,
   unit,
 } from "../src/markets/chart-math.ts";
-import { num, pct, stamp } from "../src/markets/format.ts";
+import { barTime, compactNum, num, pct, stamp } from "../src/markets/format.ts";
 
 // Usage: node scripts/verify-markets.mjs [--url http://127.0.0.1:4174]
 // Without --url the contract and math checks run against the simulated fixtures that
@@ -66,6 +74,13 @@ const mutated = (name, mutate) => {
 
 // ------------------------------------------------ every adapter accepts what its route returns
 const ADAPTERS = {
+  "quote-bars-1d": (v) => adaptBars(v, { ticker: "SIMF", range: "1D" }),
+  "quote-bars-5d": (v) => adaptBars(v, { ticker: "SIMF", range: "5D" }),
+  "quote-bars-1y": (v) => adaptBars(v, { ticker: "SIMF", range: "1Y" }),
+  "quote-bars-5y": (v) => adaptBars(v, { ticker: "SIMF", range: "5Y" }),
+  tape: (v) => adaptQuotes(v, ["SIMF", ...DEFAULT_WATCHLIST]),
+  "tape-live": (v) => adaptQuotes(v, ["SIMF", ...DEFAULT_WATCHLIST]),
+  "assets-search": adaptSearch,
   "options-price-call": adaptOptionPrice,
   "options-price-put": adaptOptionPrice,
   "options-strategy": adaptStrategy,
@@ -92,6 +107,109 @@ assert.deepEqual(
 );
 
 // ------------------------------------------------ and refuses anything else
+const intradayAdapter = ADAPTERS["quote-bars-1d"];
+rejects(
+  intradayAdapter,
+  mutated("quote-bars-1d", (x) => (x.bars[0].c = "12")),
+);
+rejects(
+  intradayAdapter,
+  mutated("quote-bars-1d", (x) => x.bars.reverse()),
+);
+rejects(
+  intradayAdapter,
+  mutated("quote-bars-1d", (x) => (x.ticker = "QQQ")),
+);
+rejects(
+  intradayAdapter,
+  mutated("quote-bars-1d", (x) => (x.range = "5D")),
+);
+rejects(
+  intradayAdapter,
+  mutated("quote-bars-1d", (x) => (x.bars[0].t = x.bars[0].t.slice(0, 19))),
+);
+rejects(
+  intradayAdapter,
+  mutated("quote-bars-1d", (x) => (x.bars[0].h = x.bars[0].l - 1)),
+);
+rejects(
+  intradayAdapter,
+  mutated("quote-bars-1d", (x) => (x.bars[0].v = -1)),
+);
+rejects(
+  ADAPTERS.tape,
+  mutated("tape", (x) => delete x.items[0].last),
+);
+rejects(
+  adaptSearch,
+  mutated("assets-search", (x) => delete x.items[0].symbol),
+);
+check(() => {
+  const quotes = ADAPTERS["tape-live"](fixtures["tape-live"]);
+  assert.equal(quotes.SIMF.quote_ts, "2026-01-02T20:59:58.000Z");
+  assert.equal(quotes.SIMF.source, "FINNHUB");
+  assert.equal(quotes["RELIANCE.NS"].source, "YFINANCE_EOD");
+  assert.equal(quotes["RELIANCE.NS"].live, false);
+  for (const symbol of DEFAULT_WATCHLIST) assert.ok(ADAPTERS.tape(fixtures.tape)[symbol]);
+  assert.equal(adaptQuotes(fixtures.tape, ["MISSING"]).MISSING, null);
+});
+check(() => {
+  const days = fixtures["quote-bars-1y"].bars;
+  const weekStart = (t) => {
+    const d = new Date(`${t}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  };
+  let weeks = 0;
+  for (const weekly of fixtures["quote-bars-5y"].bars) {
+    if (weekly.t < days[0].t) continue;
+    const group = days.filter((b) => weekStart(b.t) === weekStart(weekly.t));
+    if (!group.length || group[0].t !== weekly.t) continue;
+    const expected = {
+      o: group[0].o,
+      h: Math.max(...group.map((b) => b.h)),
+      l: Math.min(...group.map((b) => b.l)),
+      c: group.at(-1).c,
+      v: group.reduce((sum, b) => sum + b.v, 0),
+    };
+    for (const field of ["o", "h", "l", "c", "v"])
+      assert.ok(
+        Math.abs(weekly[field] - expected[field]) <= Math.max(1, Math.abs(expected[field])) * 1e-8,
+        `${weekly.t} ${field}: weekly aggregation`,
+      );
+    weeks++;
+  }
+  assert.ok(weeks >= 50, "at least a year of overlapping weekly aggregates");
+});
+check(() =>
+  assert.deepEqual(parseWatchlist(["spy", "SPY", " reliance.ns ", "bad;", 5]), [
+    "SPY",
+    "RELIANCE.NS",
+  ]),
+);
+check(() => assert.equal(parseWatchlist(Array.from({ length: 35 }, (_, i) => `T${i}`)).length, 30));
+check(() => assert.deepEqual(parseWatchlist([]), []));
+check(() =>
+  assert.deepEqual(overviewTarget("RISK"), { to: "/markets", search: { ticker: "RISK" } }),
+);
+check(() => assert.equal(overviewTarget("BAJAJ-AUTO.NS").params.ticker, "BAJAJ-AUTO.NS"));
+check(() => assert.equal(normalizeTicker("BAJAJ-AUTO.NS"), "BAJAJ-AUTO.NS"));
+check(() => assert.equal(normalizeTicker("-BAD"), null));
+check(() => {
+  const scale = bandScale(4, 20, 100);
+  assert.equal(scale.center(0), 30);
+  assert.equal(scale.center(3), 90);
+  assert.equal(scale.nearest(-20), 0);
+  assert.equal(scale.nearest(200), 3);
+  const shape = candleGeometry({ o: 10, h: 12, l: 8, c: 11 }, (v) => 100 - v * 2);
+  assert.deepEqual(shape, { top: 78, height: 2, wickTop: 76, wickBottom: 84, up: true });
+  assert.equal(candleGeometry({ o: 10, h: 10, l: 10, c: 10 }, (v) => v).height, 1);
+});
+check(() => assert.equal(compactNum(null), "—"));
+check(() => assert.equal(compactNum(1200000), "1.2M"));
+check(() => assert.equal(barTime("2026-01-02T09:30:00-05:00", "America/New_York"), "09:30 ET"));
+check(() => assert.equal(barTime("2026-01-02T09:15:00+05:30", "Asia/Kolkata"), "09:15 IST"));
+check(() => assert.equal(barTime("2026-01-02", null), "2026-01-02"));
 rejects(
   adaptOptionPrice,
   mutated("options-price-call", (x) => delete x.price),
@@ -300,6 +418,25 @@ console.log(`${count} Markets contract, sabotage and chart-math checks passed`);
 if (baseUrl) {
   const { chromium } = await import("playwright");
   const API = [
+    [
+      /\/quote\/bars\//,
+      (u) => ({
+        ...fixtures[`quote-bars-${(u.searchParams.get("range") || "1D").toLowerCase()}`],
+        ticker: decodeURIComponent(u.pathname.split("/").at(-1)),
+      }),
+    ],
+    [
+      /\/tape/,
+      (u) => ({
+        ...fixtures["tape-live"],
+        items: (u.searchParams.get("symbols") || "SIMF").split(",").map((ticker) => ({
+          ...(fixtures["tape-live"].items.find((q) => q.ticker === ticker) ??
+            fixtures["tape-live"].items[0]),
+          ticker,
+        })),
+      }),
+    ],
+    [/\/assets\/search/, "assets-search"],
     [/\/options\/market-chain\//, "options-market-chain"],
     [
       /\/options\/price/,
@@ -325,6 +462,37 @@ if (baseUrl) {
 
   // Screen → what to do after load, and what must be on the page with data.
   const SCREENS = {
+    overview: {
+      path: "/markets/SIMF",
+      act: async (page) => {
+        await page.getByRole("radio", { name: "1Y", exact: true }).click();
+        await page.waitForURL(/range=1Y/);
+        await page.getByRole("radio", { name: "5Y", exact: true }).click();
+        await page.waitForURL(/range=5Y/);
+        await page.getByRole("combobox").fill("sim");
+        await page.getByRole("option", { name: /SIMF.NS/ }).waitFor();
+        await page.getByRole("combobox").press("ArrowDown");
+        await page.getByRole("combobox").press("ArrowDown");
+        await page.getByRole("combobox").press("Enter");
+        await page.waitForURL(/\/markets\/SIMF.NS/);
+        await page.getByRole("button", { name: "Add to watchlist", exact: true }).click();
+        await page
+          .locator(".mk-watch tbody")
+          .getByRole("link", { name: "SIMF.NS", exact: true })
+          .waitFor();
+        await page.reload();
+        await page.getByRole("button", { name: "Remove from watchlist", exact: true }).waitFor();
+        await page
+          .getByRole("button", { name: "Remove SIMF.NS from watchlist", exact: true })
+          .click();
+        await page.getByRole("button", { name: "Add to watchlist", exact: true }).waitFor();
+      },
+      expect: [".mk-quote .mk-kpis", ".mk-candles svg", ".mk-watch tbody tr"],
+    },
+    "overview-index": {
+      path: "/markets?ticker=SIMF",
+      expect: [".mk-quote .mk-kpis", ".mk-candles svg", ".mk-watch tbody tr"],
+    },
     options: {
       act: async (page) => {
         await page.getByRole("button", { name: "Load surface" }).click();
@@ -435,7 +603,9 @@ if (baseUrl) {
           },
         );
         const where = `${screen} @${width}`;
-        await page.goto(`${baseUrl}/markets/${screen}?ticker=SIMF`, { waitUntil: "load" });
+        await page.goto(`${baseUrl}${spec.path ?? `/markets/${screen}?ticker=SIMF`}`, {
+          waitUntil: "load",
+        });
         await hydrated(page, where);
         await settle(page, where);
         if (spec.act) await spec.act(page);
@@ -471,7 +641,9 @@ if (baseUrl) {
             (route) => route.fulfill({ status, json: { detail: "Provider down for this check." } }),
           );
           const where = `${screen} @${width} ${status}`;
-          await page.goto(`${baseUrl}/markets/${screen}?ticker=SIMF`, { waitUntil: "load" });
+          await page.goto(`${baseUrl}${SCREENS[screen].path ?? `/markets/${screen}?ticker=SIMF`}`, {
+            waitUntil: "load",
+          });
           await hydrated(page, where);
           if (screen === "research") {
             await page.getByRole("button", { name: "Index latest filing" }).click();
@@ -485,11 +657,40 @@ if (baseUrl) {
             `${screen} @${width} ${status}: ${JSON.stringify(l.unavailable)}`,
           );
           assert.ok(l.overflow <= 0, `${screen} @${width} ${status}: overflow ${l.overflow}px`);
+          assert.deepEqual(l.tooSmall, [], `${screen} @${width} ${status}: text below 11px`);
           assert.deepEqual(errors, [], `${screen} @${width} ${status}: page errors`);
           await page.close();
           views++;
         }
       }
+    }
+    // Direct links normalize casing, preserve ranges, handle reserved symbols and reject bad input.
+    for (const width of [1440, 390]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      await page.route(
+        (url) => Boolean(isApi(url)),
+        (route) => {
+          const url = new URL(route.request().url());
+          const [, source] = isApi(url);
+          const body = typeof source === "function" ? source(url) : source;
+          return route.fulfill({ json: typeof body === "string" ? fixtures[body] : body });
+        },
+      );
+      await page.goto(`${baseUrl}/markets/simf?range=5Y`);
+      await page.waitForURL(/\/markets\/SIMF\?range=5Y/);
+      await page.locator(".mk-candles svg").waitFor();
+      assert.equal(
+        await page.getByRole("radio", { name: "5Y", exact: true }).getAttribute("aria-checked"),
+        "true",
+      );
+      await page.goto(`${baseUrl}/markets?ticker=RISK`);
+      await page.getByRole("heading", { name: "RISK", exact: true }).waitFor();
+      await page.locator(".mk-candles svg").waitFor();
+      await page.goto(`${baseUrl}/markets/BAD%3B`);
+      await page.getByRole("alert").filter({ hasText: "Invalid ticker" }).waitFor();
+      assert.equal(await page.locator(".mk-candles").count(), 0);
+      await page.close();
+      views += 3;
     }
   } finally {
     await browser.close();

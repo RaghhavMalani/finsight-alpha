@@ -79,6 +79,16 @@ class MarketDataProvider(ABC):
         """
         raise NotImplementedError
 
+    def get_intraday_data(self, ticker: str, period: str, interval: str) -> pd.DataFrame:
+        """Return intraday OHLCV bars for the latest ``period`` at ``interval``.
+
+        ``period`` and ``interval`` use Yahoo's vocabulary (``"1d"``, ``"5d"``;
+        ``"5m"``, ``"30m"``). ``Date`` holds timezone-aware bar start times in
+        the exchange's zone. A provider without intraday data raises
+        :class:`ProviderError`; nothing is filled in from daily bars.
+        """
+        raise ProviderError(f"{self.name} does not provide intraday bars.")
+
     # -- shared helpers ----------------------------------------------------
     @staticmethod
     def _standardize(df: pd.DataFrame, ticker: str) -> pd.DataFrame:

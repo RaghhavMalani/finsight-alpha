@@ -1,0 +1,35 @@
+{
+ "coverage": "Yahoo-listed US \u00b7 NSE (.NS) \u00b7 BSE (.BO)",
+ "items": [
+  {
+   "exchange": "NMS",
+   "market": "US",
+   "name": "Simulated Fixture Corp",
+   "symbol": "SIMF",
+   "type": "EQUITY"
+  },
+  {
+   "exchange": "NSI",
+   "market": "INDIA",
+   "name": "Simulated Fixture India Ltd",
+   "symbol": "SIMF.NS",
+   "type": "EQUITY"
+  },
+  {
+   "exchange": "PCX",
+   "market": "US",
+   "name": "Simulated Index ETF",
+   "symbol": "SIMX",
+   "type": "ETF"
+  },
+  {
+   "exchange": "US",
+   "market": "US",
+   "name": "Direct symbol lookup",
+   "symbol": "SIM",
+   "type": "EQUITY"
+  }
+ ],
+ "market": "ALL",
+ "query": "sim"
+}

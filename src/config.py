@@ -36,6 +36,8 @@ DEFAULT_START_DATE: str = "2018-01-01"
 
 # The end date defaults to "today" so the dataset always extends to the latest
 # available bar. yfinance treats ``end`` as exclusive, which is fine for EOD data.
+# This is read once, at import: code that runs in a long-lived process (the API)
+# must take today's date when it is called instead, as MarketDataService does.
 DEFAULT_END_DATE: str = date.today().isoformat()
 
 # ---------------------------------------------------------------------------

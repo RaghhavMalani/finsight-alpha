@@ -54,6 +54,110 @@
   text-transform: uppercase;
 }
 
+/* Overview and instrument search share the desk's existing type and colour tokens. */
+.mk-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+@media (min-width: 1100px) {
+  .mk-overview-grid {
+    grid-template-columns: minmax(0, 1.7fr) minmax(360px, 1fr);
+  }
+}
+.mk-quote .mk-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+.mk-watch .mk-table {
+  width: 100%;
+}
+.mk-watch a {
+  color: var(--foreground);
+  text-decoration: none;
+  font-family: var(--font-mono);
+}
+.mk-watch a:hover {
+  color: var(--primary);
+}
+.mk-watch th:first-child {
+  text-align: left;
+}
+.mk-watch .mk-current th {
+  border-left: 2px solid var(--primary);
+}
+.mk-watch .mk-current {
+  background: var(--raised);
+}
+.mk-watch .mk-ghost {
+  padding: 3px 9px;
+}
+.mk-search {
+  max-width: 100%;
+}
+.mk-search label {
+  width: 100%;
+}
+.mk-search-field {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+}
+.mk-search-field input {
+  width: 100%;
+  min-width: 180px;
+}
+.mk-search-popup {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 360px;
+  max-width: min(360px, calc(100vw - 64px));
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 28px #0006;
+}
+@media (min-width: 700px) {
+  .mk-search-popup {
+    left: auto;
+    right: 0;
+  }
+}
+.mk-search-popup ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.mk-search-popup li {
+  display: grid;
+  gap: 2px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--divider);
+  cursor: pointer;
+}
+.mk-search-popup li:hover,
+.mk-search-popup li[aria-selected="true"] {
+  background: var(--raised);
+}
+.mk-search-popup b {
+  font: 13px var(--font-mono);
+  color: var(--primary);
+}
+.mk-search-popup span {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.mk-search-popup small,
+.mk-search-popup p {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.mk-search-popup p {
+  margin: 8px 12px;
+}
+
 /* Inputs and buttons share one look. */
 .mk input,
 .mk select,

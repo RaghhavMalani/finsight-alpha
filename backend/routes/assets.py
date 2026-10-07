@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from src import config
 from src.data.providers import AVAILABLE_PROVIDERS
@@ -58,8 +58,8 @@ def search_assets(
         quotes = (
             yf.Search(query, max_results=max(limit * 2, 16), news_count=0).quotes or []
         )
-    except Exception:
-        quotes = []
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Instrument search source unavailable. Enter a ticker directly.") from exc
 
     items: list[dict[str, str]] = []
     seen: set[str] = set()

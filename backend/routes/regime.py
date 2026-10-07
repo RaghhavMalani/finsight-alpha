@@ -63,9 +63,7 @@ def detect_regimes(
     """Run regime detection and return a JSON payload for charting."""
     try:
         df = MarketDataService("yfinance").get_data(
-            ticker,
-            start or config.DEFAULT_START_DATE,
-            end or config.DEFAULT_END_DATE,
+            ticker, start or config.DEFAULT_START_DATE, end
         )
     except ProviderError as exc:
         raise HTTPException(status_code=502, detail=f"Data fetch failed: {exc}") from exc
