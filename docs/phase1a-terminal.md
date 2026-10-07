@@ -48,7 +48,7 @@ Local Live requires `VITE_ENABLE_LOCAL_LIVE=true` and a loopback hostname, plus 
 
 Lint, TypeScript, production build and every `verify-*.mjs` contract check pass. The browser checks pass 50 unmocked Replay views at 1440/390, 48 local-Live Market data/error/signed-out views, and 18 historical Observatory trace layouts. Chrome, Edge and Firefox pass all function-key and field-focus checks. Replay sabotage checks cover changed bytes, denied sources, unsafe price fields, expired permission, future availability, public attempts to enable Live and delayed responses across a mode switch.
 
-The full Windows pytest run returned 768 passed and 16 failures: the existing sandbox sabotage tests time out during process startup against their 0.5-second deadline on this machine. The unchanged main baseline exhibits those same failures. The latest targeted Replay publication suite passes all 18 tests. CI runs the full suite on Linux; its result is reported in the PR.
+The full Windows pytest run returned 768 passed and 16 failures: the existing sandbox sabotage tests time out during process startup against their 0.5-second deadline on this machine. The unchanged main baseline exhibits those same failures. The latest targeted Replay publication suite passes all 18 tests. The full Linux CI suite passes all 789 tests, along with frozen-lineage, authorship and truth checks.
 
 ## Postable result
 

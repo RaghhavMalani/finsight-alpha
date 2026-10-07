@@ -80,6 +80,11 @@ if (urlIndex > 0) {
         // A visible SSR button does not prove hydration; exercise a React state update first.
         await page.getByRole("button", { name: "Open command palette" }).click();
         await page.getByRole("dialog").waitFor();
+        // Opening is committed before the palette's animation-frame focus effect runs.
+        // Escape belongs to the dialog only once its input actually receives focus.
+        await page.waitForFunction(
+          () => document.activeElement === document.querySelector('[role="dialog"] input'),
+        );
         await page.keyboard.press("Escape");
         await page.getByRole("dialog").waitFor({ state: "hidden" });
         // Exercise the actual browser keyboard path, then inspect the final handled event.
