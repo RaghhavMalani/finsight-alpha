@@ -45,7 +45,8 @@ export function CandleChart({
   const band = bandScale(bars.length, left, right);
   const volumeMax = Math.max(1, ...bars.map((b) => b.v ?? 0));
   const sv = linearScale([0, volumeMax], [volumeBottom, volumeTop]);
-  const selected = bars[hover ?? bars.length - 1];
+  const selectedIndex = Math.min(hover ?? bars.length - 1, bars.length - 1);
+  const selected = bars[selectedIndex];
   return (
     <figure className="mk-chart mk-candles" ref={ref}>
       <svg
@@ -121,8 +122,8 @@ export function CandleChart({
         )}
         {hover != null && (
           <line
-            x1={band.center(hover)}
-            x2={band.center(hover)}
+            x1={band.center(selectedIndex)}
+            x2={band.center(selectedIndex)}
             y1={12}
             y2={volumeBottom}
             className="mk-cursor"
