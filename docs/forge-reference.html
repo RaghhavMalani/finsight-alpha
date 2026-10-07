@@ -1,0 +1,561 @@
+<title>FinSight Forge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one thin chrome bar, one page column (max 1360px). One surface level: cards on black, dividers inside, never cards in cards.
+   Type: Inter for words, JetBrains Mono only for numbers, ids and hashes. Uppercase only for table column headers. */
+:root{
+  color-scheme:dark;
+  --bg:#050607;
+  --chrome:#08090B;
+  --panel:#0B0D10;
+  --raised:#11141A;
+  --line:#1A1E23;
+  --line-2:#262B31;
+  --fg:#E7EAEC;
+  --muted:#A3ABB2;
+  --faint:#6C757D;
+  --amber:#F0A929;
+  --amber-dim:rgba(240,169,41,.12);
+  --pass:#42C98B;
+  --fail:#F06464;
+  --warn:#E8B54A;
+  --info:#5CA9E6;
+  --luna:#39E6B5; --sol:#F0A929; --terra:#6AA8FF;
+  --font-ui:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:6px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:13.5px/1.55 var(--font-ui);-webkit-font-smoothing:antialiased}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:1px solid var(--amber);outline-offset:2px;border-radius:2px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+
+/* chrome */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:24px;height:52px;padding:0 24px;background:rgba(8,9,11,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none}
+.brand .mark{width:22px;height:22px;border:1px solid var(--amber);color:var(--amber);display:grid;place-items:center;font:500 11px var(--font-mono)}
+.brand b{font-weight:600}
+.brand span{color:var(--faint)}
+nav.main{display:flex;gap:2px;height:100%;overflow-x:auto;scrollbar-width:none;min-width:0}
+nav.main a{display:flex;align-items:center;padding:0 12px;height:100%;text-decoration:none;color:var(--muted);font-weight:500;font-size:13px;border-bottom:1px solid transparent;white-space:nowrap}
+nav.main a:hover{color:var(--fg)}
+nav.main a[aria-current="page"]{color:var(--fg);border-bottom-color:var(--amber)}
+.bar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.kbd{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:none;border-radius:4px;padding:4px 10px;color:var(--muted);font-size:12.5px;cursor:pointer;white-space:nowrap}
+.kbd:hover{color:var(--fg);border-color:var(--faint)}
+.kbd kbd{font:11px var(--font-mono);color:var(--faint)}
+
+/* page */
+main{max-width:1360px;margin:0 auto;padding:28px 28px 64px;display:flex;flex-direction:column;gap:20px}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.ph h1{margin:0;font:600 22px/1.25 var(--font-ui);letter-spacing:-.01em;text-wrap:balance}
+.ph p{margin:6px 0 0;color:var(--muted);max-width:72ch}
+.prov{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:999px;padding:5px 12px 5px 10px;font-size:12.5px;color:var(--muted);background:none;cursor:pointer;white-space:nowrap}
+.prov:hover{border-color:var(--faint);color:var(--fg)}
+.prov .ok{width:14px;height:14px;border-radius:50%;background:rgba(66,201,139,.15);color:var(--pass);display:grid;place-items:center;font-size:10px}
+.prov .mono{color:var(--faint);font-size:11.5px}
+
+.grid{display:grid;gap:20px}
+.g-2-1{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.g-1-1{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);min-width:0}
+.ch{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:16px 20px 0}
+.ch h2{margin:0;font:600 14px/1.3 var(--font-ui)}
+.ch .meta{color:var(--faint);font-size:12.5px}
+.cb{padding:16px 20px 20px}
+.cf{padding:12px 20px;border-top:1px solid var(--line);color:var(--faint);font-size:12.5px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+.link{color:var(--amber);text-decoration:none;font-weight:500;font-size:12.5px;background:none;border:0;padding:0;cursor:pointer}
+.link:hover{text-decoration:underline}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpi{padding:18px 20px;border-left:1px solid var(--line);min-width:0}
+.kpi:first-child{border-left:0}
+.kpi .l{color:var(--muted);font-size:12.5px}
+.kpi .v{font:500 28px/1.15 var(--font-mono);font-variant-numeric:tabular-nums;margin-top:6px;letter-spacing:-.02em}
+.kpi .v small{font-size:14px;color:var(--faint);margin-left:4px;letter-spacing:0}
+.kpi .s{color:var(--faint);font-size:12.5px;margin-top:4px}
+
+/* badges */
+.b{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.b::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.b.pass{color:var(--pass)} .b.fail{color:var(--fail)} .b.warn{color:var(--warn)} .b.neutral{color:var(--muted)} .b.info{color:var(--info)}
+.v-pill{display:inline-block;font:500 11px/1 var(--font-mono);letter-spacing:.04em;padding:4px 7px;border-radius:3px;background:var(--raised);color:var(--muted)}
+.v-pill.accept{color:var(--pass);background:rgba(66,201,139,.1)}
+.v-pill.reject{color:#F59A9A;background:rgba(240,100,100,.1)}
+.v-pill.abstain{color:var(--warn);background:rgba(232,181,74,.1)}
+.mdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:0}
+
+/* outcome matrix */
+.mx{width:100%;border-collapse:collapse}
+.mx th{font:500 11px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:left;padding:0 12px 10px 0;white-space:nowrap}
+.mx td{border-top:1px solid var(--line);padding:12px 12px 12px 0;vertical-align:middle}
+.mx .task b{display:block;font-weight:500}
+.mx .task span{color:var(--faint);font-size:12.5px}
+.seeds{display:flex;gap:6px;align-items:center}
+.seed{width:22px;height:22px;border-radius:4px;display:grid;place-items:center;font:500 10px var(--font-mono);border:0;cursor:pointer;padding:0}
+.seed.ok{background:rgba(66,201,139,.16);color:var(--pass)}
+.seed.part{background:rgba(232,181,74,.16);color:var(--warn)}
+.seed.bad{background:rgba(240,100,100,.18);color:var(--fail)}
+.seed:hover{outline:1px solid currentColor}
+.legend-row{display:flex;gap:18px;flex-wrap:wrap;color:var(--faint);font-size:12.5px}
+.legend-row i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* issues list */
+.issues{display:flex;flex-direction:column}
+.issue{padding:14px 0;border-top:1px solid var(--line);display:grid;gap:4px}
+.issue:first-child{border-top:0;padding-top:0}
+.issue .t{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.issue .t b{font-weight:500}
+.issue .n{font:500 20px var(--font-mono);color:var(--fg)}
+.issue p{margin:0;color:var(--muted);font-size:12.5px}
+.issue .link{justify-self:start;margin-top:4px}
+
+/* tables */
+.tw{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;min-width:720px}
+table.t th{font:500 11px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+table.t td{padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t tr:last-child td{border-bottom:0}
+table.t td.num,table.t th.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+table.t tbody tr.click{cursor:pointer}
+table.t tbody tr.click:hover td{background:rgba(255,255,255,.02)}
+table.t tbody tr[aria-selected="true"] td{background:var(--amber-dim)}
+.hb{display:inline-block;height:6px;border-radius:1px;vertical-align:1px;margin-right:8px;background:var(--line-2)}
+.hb i{display:block;height:100%;border-radius:1px}
+.sub{color:var(--faint);font-size:12px}
+
+/* ladder */
+.ladder{position:relative}
+.ladder svg{display:block;width:100%;height:auto;overflow:visible}
+.ladder-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+.ladder-meta > div{padding:14px 20px;border-left:1px solid var(--line)}
+.ladder-meta > div:first-child{border-left:0}
+.ladder-meta .l{color:var(--muted);font-size:12.5px}
+.ladder-meta .v{font:500 18px var(--font-mono);margin-top:4px}
+
+/* filters */
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:5px;overflow:hidden}
+.seg button{background:none;border:0;padding:5px 11px;color:var(--muted);font-size:12.5px;cursor:pointer;border-left:1px solid var(--line-2)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--fg)}
+.inp{background:var(--bg);border:1px solid var(--line-2);border-radius:5px;padding:5px 10px;font-size:12.5px;min-width:0}
+.inp:focus{border-color:var(--faint);outline:none}
+.count{margin-left:auto;color:var(--faint);font-size:12.5px}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--panel);border-left:1px solid var(--line-2);z-index:41;transform:translateX(100%);transition:transform .25s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column}
+.drawer.open{transform:none}
+.dh{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.dh h3{margin:0;font:600 16px var(--font-ui)}
+.dh .sub{margin-top:3px}
+.db{padding:20px 22px 32px;overflow:auto;display:flex;flex-direction:column;gap:22px}
+.sect h4{margin:0 0 10px;font:600 12.5px var(--font-ui);color:var(--muted)}
+.quote{margin:0;padding:12px 14px;background:var(--bg);border-radius:4px;border-left:2px solid var(--line-2);color:var(--fg);font-size:13px}
+.steps{list-style:none;margin:0;padding:0;position:relative}
+.steps li{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:start;padding:8px 0;position:relative}
+.steps li::before{content:"";position:absolute;left:11px;top:28px;bottom:-8px;width:1px;background:var(--line-2)}
+.steps li:last-child::before{display:none}
+.steps .k{width:24px;height:24px;border-radius:50%;border:1px solid var(--line-2);display:grid;place-items:center;font:500 10.5px var(--font-mono);color:var(--muted);background:var(--panel);position:relative;z-index:1}
+.steps .act{font-weight:500}
+.steps .act small{display:block;color:var(--faint);font:11.5px var(--font-mono);margin-top:2px}
+.steps .num{font:12px var(--font-mono);color:var(--muted);text-align:right;white-space:nowrap}
+.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px}
+.checks div{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.checks i{font-style:normal;width:16px;text-align:center}
+.checks .y i{color:var(--pass)} .checks .n{color:var(--fg)} .checks .n i{color:var(--fail)}
+.ids{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;align-items:center;font-size:12.5px}
+.ids dt{color:var(--faint)} .ids dd{margin:0;font:11.5px var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{background:none;border:1px solid var(--line-2);border-radius:3px;color:var(--faint);font-size:11px;padding:1px 6px;cursor:pointer}
+.copy:hover{color:var(--fg)}
+.x{background:none;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px}
+
+/* palette */
+.pal{position:fixed;inset:0;z-index:60;display:none;align-items:flex-start;justify-content:center;padding:12vh 16px 0;background:rgba(0,0,0,.55)}
+.pal.open{display:flex}
+.pal-box{width:min(560px,100%);background:var(--panel);border:1px solid var(--line-2);border-radius:8px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.pal-box input{width:100%;background:none;border:0;border-bottom:1px solid var(--line);padding:14px 16px;font-size:14px;outline:none}
+.pal-list{max-height:340px;overflow:auto;padding:6px}
+.pal-list button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:none;border:0;padding:9px 10px;border-radius:5px;cursor:pointer;color:var(--fg);font-size:13px}
+.pal-list button span{color:var(--faint);font-size:12px}
+.pal-list button[aria-selected="true"]{background:var(--raised)}
+
+.note{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:12.5px;padding:12px 14px;border:1px dashed var(--line-2);border-radius:5px}
+.note b{color:var(--fg);font-weight:500}
+.empty-inline{color:var(--faint)}
+.foot{color:var(--faint);font-size:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:8px}
+
+@media (max-width:1100px){.g-2-1{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:820px){
+  .bar{gap:12px;padding:0 16px}
+  .brand span{display:none}
+  .kbd .lbl{display:none}
+  main{padding:20px 16px 48px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi:nth-child(3){border-left:0}
+  .kpi:nth-child(n+3){border-top:1px solid var(--line)}
+  .g-1-1{grid-template-columns:minmax(0,1fr)}
+  .ladder-meta{grid-template-columns:minmax(0,1fr)}
+  .ladder-meta > div{border-left:0;border-top:1px solid var(--line)}
+  .ladder-meta > div:first-child{border-top:0}
+  .seeds{gap:3px}
+  .seed{width:18px;height:18px;font-size:9px}
+  .mx td{padding-right:6px}
+  .checks{grid-template-columns:minmax(0,1fr)}
+  .mx .task span{display:none}
+}
+@media (prefers-reduced-motion:reduce){.drawer,.scrim{transition:none}}
+</style>
+
+<header class="bar">
+  <a class="brand" href="#overview"><div class="mark">F</div><b>FinSight</b><span>Forge</span></a>
+  <nav class="main" aria-label="Sections">
+    <a href="#overview" data-r="overview">Overview</a>
+    <a href="#runs" data-r="runs">Runs</a>
+    <a href="#bench" data-r="bench">Bench</a>
+    <a href="#evidence" data-r="evidence">Evidence</a>
+    <a href="observatory.html">Observatory</a>
+  </nav>
+  <div class="bar-right">
+    <button class="kbd" id="open-pal"><span class="lbl">Jump to</span><kbd>⌘K</kbd></button>
+  </div>
+</header>
+
+<main id="page" tabindex="-1"></main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Run detail" aria-hidden="true"></aside>
+<div class="pal" id="pal" role="dialog" aria-label="Jump to">
+  <div class="pal-box"><input id="pal-in" placeholder="Search pages, tasks or models" autocomplete="off"><div class="pal-list" id="pal-list"></div></div>
+</div>
+
+<script>window.FORGE={"baseline":{"artifact_id":"forge-v0.2.5","baseline_id":"c5b27e19e981b4e554a4ca1c7800d4e186f4511645f642e0536c79ff57d03bbb","tag":"FORGE_REAL_SINGLE_AGENT_BASELINE_V0_2_5","source_schema_version":"forge-real-single-agent-baseline/0.2.5","created_at":"2026-09-08T10:31:57.607627Z","episodes":54,"attempts_total":55,"excluded_attempts":1,"models":["gpt-5.6-sol","gpt-5.6-terra","gpt-5.6-luna"],"integrity":{"status":"MANIFEST_MATCH","checked_files":["summary.json","episodes.jsonl"],"manifest":"manifest.json"}},"artifacts":[{"artifact_id":"forge-v0.2.5","artifact_hash":"c5b27e19e981b4e554a4ca1c7800d4e186f4511645f642e0536c79ff57d03bbb","kind":"REAL_API_BASELINE","source_schema_version":"forge-real-single-agent-baseline/0.2.5","source_file_count":112,"integrity_status":"MANIFEST_MATCH"},{"artifact_id":"forge-v0.2.4.1","artifact_hash":"db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c","kind":"REALITY_LADDER","source_schema_version":"forge-reality-ladder/0.2.4.1","source_file_count":1,"integrity_status":"FROZEN_ARTIFACT"},{"artifact_id":"forge-engine-certification-v0.2.4","artifact_hash":"9ee9dabbadaa0e260e942d9c304c3c5dd0571e49470d8e8a4f35a0151c3f3166","kind":"ENGINE_CERTIFICATION","source_schema_version":"forge-engine-certification/0.2.4-system-release","source_file_count":1,"integrity_status":"BOUND_REFERENCE"}],"worlds":[{"hash":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","manifest":false,"refs":9,"tasks":["v025_case_001"]},{"hash":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","manifest":false,"refs":9,"tasks":["v025_case_002"]},{"hash":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","manifest":false,"refs":9,"tasks":["v025_case_004"]},{"hash":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","manifest":false,"refs":9,"tasks":["v025_case_006"]},{"hash":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","manifest":false,"refs":9,"tasks":["v025_case_005"]},{"hash":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","manifest":false,"refs":9,"tasks":["v025_case_003"]}],"worldsArtifact":"c5b27e19e981b4e554a4ca1c7800d4e186f4511645f642e0536c79ff57d03bbb","runs":[{"id":"6a50063ac0880986f6d521e9bbcae020e5fd2e89282e8227d77279d9227d8b98","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"luna","seed":101,"verdict":"REJECT","reason":"Reliable C4 vectorbt screening evidence shows Sharpe -0.30, which is <= 0.50; the hypothesis fails the rejection criterion.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2712,"cost":0.0006994,"wall":7.07,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":40,"c":0.0001506,"l":3.32},{"a":"research.run_screen","ti":884,"to":25,"c":0.0002068,"l":1.87},{"a":"research.submit","ti":1158,"to":92,"c":0.000342,"l":1.83}]},{"id":"60afbaa088f0174cfe063461987430d7208f007cae26625c9fc29e1b86d39833","task":"v025_case_002","cls":"dies_under_latency","model":"luna","seed":101,"verdict":"REJECT","reason":"Reliable C4 latency-sensitivity evidence shows Sharpe 0.20, which is <= 0.50; the hypothesis fails the rejection criterion despite screened Sharpe 2.00.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":12648,"cost":0.0013004,"wall":18.2,"tools":9,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":40,"c":0.00015,"l":1.89},{"a":"research.run_screen","ti":871,"to":25,"c":0.0002042,"l":1.74},{"a":"research.run_counterfactual_stress","ti":1137,"to":52,"c":0.0002898,"l":2.05},{"a":"research.promote_event_replay","ti":1180,"to":28,"c":6.55e-05,"l":1.33},{"a":"research.run_counterfactual_stress","ti":1448,"to":38,"c":0.0001233,"l":1.54},{"a":"research.add_costs","ti":1489,"to":29,"c":7.25e-05,"l":3.24},{"a":"research.run_counterfactual_stress","ti":1767,"to":34,"c":0.0001267,"l":1.26},{"a":"research.run_latency_sensitivity","ti":1809,"to":27,"c":7.67e-05,"l":2.87},{"a":"research.submit","ti":2080,"to":84,"c":0.0001917,"l":2.01}]},{"id":"883fa078e52d0388fed28b5b3a9be021d3e0c4d5a9b4bb8630ed58c62f77b802","task":"v025_case_003","cls":"dies_under_stress","model":"luna","seed":101,"verdict":"ABSTAIN","reason":"The required reliable counterfactual-stress evidence and certification results were not available, so robustness cannot be established.","expected":"REJECT","ok":false,"fa":false,"failed":["required_evidence","verdict"],"nChecks":16,"tok":990,"cost":0.000677,"wall":6.47,"tools":1,"hf":0,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.submit","ti":511,"to":479,"c":0.000677,"l":6.43}]},{"id":"a04a7e02c2969b97fcfa0f95499d3937bd502e0c9521c105ddd5704e27d6fcc4","task":"v025_case_004","cls":"robust_alpha","model":"luna","seed":101,"verdict":"ACCEPT","reason":"Reliable C4 counterfactual-stress evidence reports Sharpe 1.20, exceeding the 0.75 threshold and retaining 60% of screened Sharpe 2.00, above the required 50%.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":13293,"cost":0.0014003,"wall":13.69,"tools":9,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":39,"c":0.0001492,"l":1.74},{"a":"research.run_screen","ti":885,"to":25,"c":0.000207,"l":1.27},{"a":"research.run_counterfactual_stress","ti":1151,"to":32,"c":0.0002686,"l":1.29},{"a":"research.promote_event_replay","ti":1194,"to":28,"c":6.58e-05,"l":1.23},{"a":"research.run_counterfactual_stress","ti":1462,"to":31,"c":0.0001152,"l":1.32},{"a":"research.add_costs","ti":1503,"to":27,"c":7.04e-05,"l":1.21},{"a":"research.run_latency_sensitivity","ti":1789,"to":64,"c":0.0001646,"l":1.71},{"a":"research.run_counterfactual_stress","ti":2065,"to":37,"c":0.0001359,"l":1.44},{"a":"research.submit","ti":2344,"to":105,"c":0.0002236,"l":2.12}]},{"id":"2872d02c2ff4651f89252a87da53b7e17c30618b0a827ac63dc2cff6f7defd1c","task":"v025_case_005","cls":"insufficient_evidence","model":"luna","seed":101,"verdict":"ABSTAIN","reason":"The screened Sharpe is 1.10 from a C4 engine, but evidence quality is INSUFFICIENT. Required event replay promotion is UNAVAILABLE because the panel is too sparse, so reliable counterfactual-stress evidence cannot be obtained. Acceptance criteria are therefore unresolved.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5199,"cost":0.0008436,"wall":8.1,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":32,"c":0.0001404,"l":1.62},{"a":"research.run_screen","ti":871,"to":28,"c":0.0002078,"l":1.38},{"a":"research.run_counterfactual_stress","ti":1132,"to":35,"c":0.0002684,"l":1.35},{"a":"research.promote_event_replay","ti":1175,"to":28,"c":6.54e-05,"l":1.44},{"a":"research.submit","ti":1293,"to":95,"c":0.0001616,"l":2.06}]},{"id":"f2e946d168170c4b575a96d7fcc5cab27b896fc20c9556f0f14fccd5c90d6bf0","task":"v025_case_006","cls":"uncertified_required_engine","model":"luna","seed":101,"verdict":"ABSTAIN","reason":"Native event replay required for reliable counterfactual-stress validation was refused because hftbacktest certification C0 is below the required C1; therefore the hypothesis cannot be reliably accepted or rejected.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":4093,"cost":0.0008577,"wall":7.3,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":54,"c":0.0001674,"l":1.73},{"a":"research.run_screen","ti":881,"to":25,"c":0.0002062,"l":1.5},{"a":"research.promote_event_replay","ti":1147,"to":41,"c":0.0002786,"l":1.45},{"a":"research.submit","ti":1307,"to":125,"c":0.0002055,"l":2.38}]},{"id":"fa6a6d123ef3b0d0ff848e4310503954fcdc281f8c1f07bdde06f77d544b2edc","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"luna","seed":211,"verdict":"REJECT","reason":"The certified C4 vectorbt screen is sufficient and reports Sharpe -0.30, which is <= 0.50; the alpha hypothesis fails the rejection criterion.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2732,"cost":0.0005155,"wall":5.97,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":39,"c":0.0001494,"l":2.01},{"a":"research.run_screen","ti":884,"to":27,"c":0.0002092,"l":1.59},{"a":"research.submit","ti":1158,"to":111,"c":0.0001569,"l":2.15}]},{"id":"7ce65190d5eaf266e39ba9ea514c36bd5c0935eb0e7e9bb886da27f4825c641a","task":"v025_case_002","cls":"dies_under_latency","model":"luna","seed":211,"verdict":"REJECT","reason":"Reliable C4 latency-sensitivity evidence shows Sharpe 0.20, which is <= 0.50; the hypothesis fails the rejection criterion despite screened Sharpe 2.0.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":12632,"cost":0.0009074,"wall":14.57,"tools":9,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":39,"c":0.0001488,"l":2.07},{"a":"research.run_screen","ti":871,"to":27,"c":0.0002066,"l":1.28},{"a":"research.run_counterfactual_stress","ti":1137,"to":32,"c":6.17e-05,"l":1.33},{"a":"research.promote_event_replay","ti":1180,"to":32,"c":6.25e-05,"l":1.43},{"a":"research.run_counterfactual_stress","ti":1448,"to":33,"c":6.91e-05,"l":1.38},{"a":"research.add_costs","ti":1489,"to":27,"c":6.27e-05,"l":1.32},{"a":"research.run_counterfactual_stress","ti":1767,"to":32,"c":7.43e-05,"l":1.65},{"a":"research.run_latency_sensitivity","ti":1809,"to":28,"c":7.03e-05,"l":1.22},{"a":"research.submit","ti":2080,"to":91,"c":0.0001513,"l":2.29}]},{"id":"68bbf6d4d973227ba6686275d62923406442f978cd5eb3806ce214ecd4d4cddd","task":"v025_case_003","cls":"dies_under_stress","model":"luna","seed":211,"verdict":"REJECT","reason":"Reliable C4 counterfactual-stress evidence reports Sharpe 0.20, which is at or below the 0.50 rejection threshold.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":15041,"cost":0.0016029,"wall":14.84,"tools":10,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":34,"c":0.000143,"l":1.45},{"a":"research.run_screen","ti":872,"to":29,"c":0.0002092,"l":1.35},{"a":"research.run_counterfactual_stress","ti":1138,"to":35,"c":0.0002696,"l":1.35},{"a":"research.promote_event_replay","ti":1181,"to":29,"c":0.000271,"l":1.22},{"a":"research.run_counterfactual_stress","ti":1449,"to":30,"c":0.0001138,"l":1.31},{"a":"research.add_costs","ti":1490,"to":29,"c":7.25e-05,"l":1.33},{"a":"research.run_counterfactual_stress","ti":1776,"to":31,"c":0.0001247,"l":1.36},{"a":"research.run_latency_sensitivity","ti":1818,"to":33,"c":8.41e-05,"l":1.43},{"a":"research.run_counterfactual_stress","ti":2089,"to":32,"c":0.0001295,"l":1.41},{"a":"research.submit","ti":2361,"to":74,"c":0.0001855,"l":1.87}]},{"id":"18ce5d7c877db35803b4cb7e54d94e679f56a1ffc624d1d3fed0049225ca5a15","task":"v025_case_004","cls":"robust_alpha","model":"luna","seed":211,"verdict":"ACCEPT","reason":"C4-certified Nautilus counterfactual stress evidence is sufficient: Sharpe 1.20, retaining 60% of screened Sharpe 2.00, which exceeds both the 0.75 minimum and 50% retention criterion.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":15215,"cost":0.0011336,"wall":16.4,"tools":10,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":39,"c":0.0001492,"l":1.62},{"a":"research.run_screen","ti":885,"to":25,"c":0.000207,"l":1.34},{"a":"research.run_counterfactual_stress","ti":1151,"to":35,"c":6.56e-05,"l":1.41},{"a":"research.promote_event_replay","ti":1194,"to":32,"c":6.28e-05,"l":1.43},{"a":"research.run_counterfactual_stress","ti":1462,"to":31,"c":6.7e-05,"l":1.47},{"a":"research.add_costs","ti":1503,"to":27,"c":6.3e-05,"l":1.57},{"a":"research.run_counterfactual_stress","ti":1789,"to":37,"c":8.07e-05,"l":1.39},{"a":"research.run_latency_sensitivity","ti":1831,"to":26,"c":7.59e-05,"l":1.38},{"a":"research.run_counterfactual_stress","ti":2107,"to":35,"c":0.0001344,"l":1.6},{"a":"research.submit","ti":2386,"to":108,"c":0.0002281,"l":2.26}]},{"id":"1719dba3468d753f718f99f53542ba8e89f722e77d64114626777cd053f456ee","task":"v025_case_005","cls":"insufficient_evidence","model":"luna","seed":211,"verdict":"ABSTAIN","reason":"The screened Sharpe is 1.10, but evidence quality is INSUFFICIENT and the required C4 Nautilus event replay is UNAVAILABLE because the panel is too sparse. Reliable counterfactual-stress evidence is therefore unavailable, so acceptance criteria cannot be verified.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5251,"cost":0.0006738,"wall":9.53,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":52,"c":0.0001644,"l":1.88},{"a":"research.run_screen","ti":871,"to":27,"c":0.0002066,"l":1.43},{"a":"research.run_counterfactual_stress","ti":1132,"to":61,"c":9.64e-05,"l":1.77},{"a":"research.promote_event_replay","ti":1175,"to":27,"c":5.64e-05,"l":1.4},{"a":"research.submit","ti":1293,"to":103,"c":0.00015,"l":2.54}]},{"id":"bb66c80b2f1fcb6379710c1bab6f1d3dbfe3cc6f69f8f75225c2dd1af5e80228","task":"v025_case_006","cls":"uncertified_required_engine","model":"luna","seed":211,"verdict":"ABSTAIN","reason":"The required native event-replay engine hftbacktest was refused because its certification is C0, below the required C1. Although the C4 screen showed Sharpe 2.0, reliable counterfactual-stress evidence cannot be established without the trusted event-replay engine.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":5360,"cost":0.0009314,"wall":11.97,"tools":5,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":58,"c":0.0001722,"l":3.48},{"a":"research.run_screen","ti":881,"to":27,"c":0.0002086,"l":1.92},{"a":"research.run_counterfactual_stress","ti":1147,"to":32,"c":0.0002678,"l":1.92},{"a":"research.promote_event_replay","ti":1190,"to":29,"c":6.69e-05,"l":1.65},{"a":"research.submit","ti":1350,"to":133,"c":0.0002159,"l":2.53}]},{"id":"56de9859de0f51aa5caac0126fb5d1447e868b513bc174a2d4513d31cfa280d0","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"luna","seed":307,"verdict":"REJECT","reason":"Reliable C4 vectorbt screening evidence shows Sharpe -0.30, which is <= 0.50; the hypothesis fails the rejection criterion.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2729,"cost":0.0007198,"wall":5.81,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":39,"c":0.0001494,"l":1.48},{"a":"research.run_screen","ti":884,"to":26,"c":0.000208,"l":1.93},{"a":"research.submit","ti":1158,"to":109,"c":0.0003624,"l":2.06}]},{"id":"ff0cb1b13190699e76c6ce1399b59dd61bce5014cd1e6e15c9af7233bcff55a6","task":"v025_case_002","cls":"dies_under_latency","model":"luna","seed":307,"verdict":"REJECT","reason":"Reliable C4 latency-sensitivity evidence shows Sharpe 0.20, below the rejection threshold of 0.50, despite screened Sharpe 2.0.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":12635,"cost":0.0012848,"wall":15.46,"tools":9,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":46,"c":0.0001572,"l":1.98},{"a":"research.run_screen","ti":871,"to":29,"c":0.000209,"l":1.39},{"a":"research.run_counterfactual_stress","ti":1137,"to":35,"c":0.0002694,"l":1.45},{"a":"research.promote_event_replay","ti":1180,"to":29,"c":6.67e-05,"l":1.71},{"a":"research.run_counterfactual_stress","ti":1448,"to":30,"c":0.0001137,"l":1.38},{"a":"research.add_costs","ti":1489,"to":27,"c":7.01e-05,"l":1.49},{"a":"research.run_counterfactual_stress","ti":1767,"to":37,"c":0.0001303,"l":1.58},{"a":"research.run_latency_sensitivity","ti":1809,"to":31,"c":8.15e-05,"l":1.51},{"a":"research.submit","ti":2080,"to":80,"c":0.0001869,"l":1.87}]},{"id":"4eb7586ef69585e0b892e9d2f49a7047327d1349f024221dc9e6c50365a8ad5e","task":"v025_case_003","cls":"dies_under_stress","model":"luna","seed":307,"verdict":"REJECT","reason":"Reliable C4 counterfactual-stress evidence shows Sharpe 0.20, which is at or below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":15041,"cost":0.0013986,"wall":17.45,"tools":10,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":38,"c":0.0001478,"l":1.53},{"a":"research.run_screen","ti":872,"to":25,"c":0.0002044,"l":1.35},{"a":"research.run_counterfactual_stress","ti":1138,"to":32,"c":0.000266,"l":1.35},{"a":"research.promote_event_replay","ti":1181,"to":29,"c":6.67e-05,"l":1.71},{"a":"research.run_counterfactual_stress","ti":1449,"to":30,"c":0.0001138,"l":1.7},{"a":"research.add_costs","ti":1490,"to":27,"c":7.01e-05,"l":1.48},{"a":"research.run_counterfactual_stress","ti":1776,"to":34,"c":0.0001283,"l":1.44},{"a":"research.run_latency_sensitivity","ti":1818,"to":32,"c":8.29e-05,"l":2.14},{"a":"research.run_counterfactual_stress","ti":2089,"to":32,"c":0.0001295,"l":1.56},{"a":"research.submit","ti":2361,"to":77,"c":0.0001891,"l":1.85}]},{"id":"85b80682ce6b9b0bc1a830e78982d6fc1a5adcade6f50a990ca891c9536fe4ea","task":"v025_case_004","cls":"robust_alpha","model":"luna","seed":307,"verdict":"ACCEPT","reason":"Reliable C4 counterfactual-stress evidence reports Sharpe 1.20, exceeding the 0.75 threshold, and retains 60% of screened Sharpe 2.00, exceeding the required 50%. Both required engines met C4 certification.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":15232,"cost":0.0014755,"wall":54.34,"tools":10,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":53,"c":0.000166,"l":1.75},{"a":"research.run_screen","ti":885,"to":26,"c":0.0002082,"l":22.76},{"a":"research.run_counterfactual_stress","ti":1151,"to":35,"c":0.0002722,"l":16.67},{"a":"research.promote_event_replay","ti":1194,"to":28,"c":6.58e-05,"l":1.49},{"a":"research.run_counterfactual_stress","ti":1462,"to":30,"c":0.000114,"l":1.39},{"a":"research.add_costs","ti":1503,"to":29,"c":7.28e-05,"l":1.46},{"a":"research.run_counterfactual_stress","ti":1789,"to":37,"c":0.0001322,"l":1.52},{"a":"research.run_latency_sensitivity","ti":1831,"to":31,"c":8.19e-05,"l":1.82},{"a":"research.run_counterfactual_stress","ti":2107,"to":34,"c":0.0001332,"l":1.72},{"a":"research.submit","ti":2386,"to":109,"c":0.0002293,"l":2.32}]},{"id":"232a53c4e8e51eb81991517f21064151f736e21f64b72df7f475d6eef7135ba4","task":"v025_case_005","cls":"insufficient_evidence","model":"luna","seed":307,"verdict":"ABSTAIN","reason":"The screened Sharpe is 1.10, but evidence quality is INSUFFICIENT and the required C4 Nautilus event replay/counterfactual promotion is UNAVAILABLE because the panel is too sparse. Reliable counterfactual-stress evidence is therefore absent.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5235,"cost":0.0008868,"wall":9.52,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":37,"c":0.0001464,"l":1.73},{"a":"research.run_screen","ti":871,"to":27,"c":0.0002066,"l":1.57},{"a":"research.run_counterfactual_stress","ti":1132,"to":49,"c":0.0002852,"l":1.81},{"a":"research.promote_event_replay","ti":1175,"to":28,"c":6.54e-05,"l":1.46},{"a":"research.submit","ti":1293,"to":113,"c":0.0001832,"l":2.2}]},{"id":"10be8116fa312e30ff30fef04f20d7f685189b9c5f80779fc5d2f069ab57a551","task":"v025_case_006","cls":"uncertified_required_engine","model":"luna","seed":307,"verdict":"ABSTAIN","reason":"The required native event-replay engine hftbacktest is certified C0, below the required C1, and refused the event-replay run. Reliable counterfactual-stress evidence is therefore unavailable despite the screened Sharpe of 2.0.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":4098,"cost":0.0006578,"wall":7.79,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":33,"c":0.0001422,"l":1.55},{"a":"research.run_screen","ti":881,"to":29,"c":0.000211,"l":1.46},{"a":"research.promote_event_replay","ti":1147,"to":63,"c":9.91e-05,"l":1.73},{"a":"research.submit","ti":1307,"to":125,"c":0.0002055,"l":2.38}]},{"id":"7bc015925b303278bb31b133a1a5532327bb99d07cc8646b2defe3a6f52f2d23","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"sol","seed":101,"verdict":"REJECT","reason":"Reliable SCREEN evidence from allowed vectorbt engine at required C4 certification reports Sharpe -0.30, which is below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2724,"cost":0.0136,"wall":9.43,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":36,"c":0.002772,"l":1.86},{"a":"research.run_screen","ti":884,"to":26,"c":0.004056,"l":2.61},{"a":"research.submit","ti":1158,"to":107,"c":0.006772,"l":3.76}]},{"id":"d66894f704033467a88e704644155dde0cac4bc7ebd0abb3f2746f73a675a081","task":"v025_case_002","cls":"dies_under_latency","model":"sol","seed":101,"verdict":"REJECT","reason":"Reliable C4 nautilus latency-sensitivity evidence shows Sharpe 0.20, below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":12309,"cost":0.0296968,"wall":36.2,"tools":7,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":33,"c":0.0027,"l":2.22},{"a":"research.run_screen","ti":871,"to":28,"c":0.004044,"l":2.8},{"a":"research.add_costs","ti":1137,"to":99,"c":0.006528,"l":3.49},{"a":"research.add_costs","ti":1191,"to":54,"c":0.0017616,"l":3.27},{"a":"unparsed","ti":1231,"to":36,"c":0.0013672,"l":2.94},{"a":"research.promote_event_replay","ti":1279,"to":28,"c":0.0012552,"l":3.02},{"a":"research.add_costs","ti":1547,"to":176,"c":0.0051144,"l":4.9},{"a":"research.run_latency_sensitivity","ti":1825,"to":104,"c":0.0038216,"l":6.81},{"a":"research.submit","ti":2096,"to":64,"c":0.0031048,"l":2.99}]},{"id":"3fadee902029211b3d6772e0a5d50653032e21252357bd7249c14bc489497c82","task":"v025_case_003","cls":"dies_under_stress","model":"sol","seed":101,"verdict":"REJECT","reason":"Reliable C4 Nautilus counterfactual-stress evidence reports Sharpe 0.20, below the rejection threshold of 0.50 and only 10% of the screened Sharpe of 2.00.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":13281,"cost":0.0284652,"wall":30.51,"tools":9,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":38,"c":0.002804,"l":2.21},{"a":"research.run_screen","ti":872,"to":36,"c":0.004208,"l":2.71},{"a":"research.run_counterfactual_stress","ti":1138,"to":35,"c":0.005252,"l":3.19},{"a":"research.promote_event_replay","ti":1181,"to":45,"c":0.001538,"l":2.92},{"a":"research.run_counterfactual_stress","ti":1449,"to":30,"c":0.0021552,"l":2.73},{"a":"research.add_costs","ti":1490,"to":27,"c":0.0012944,"l":3.37},{"a":"research.run_latency_sensitivity","ti":1776,"to":128,"c":0.0043108,"l":3.3},{"a":"research.run_counterfactual_stress","ti":2047,"to":59,"c":0.0029852,"l":3.34},{"a":"research.submit","ti":2319,"to":100,"c":0.0039176,"l":3.13}]},{"id":"e4989c4b61462b1f6ce6f95cd6470659f7b96c587ec7d8c9d654eb8aedc5113a","task":"v025_case_004","cls":"robust_alpha","model":"sol","seed":101,"verdict":"ACCEPT","reason":"Reliable C4 nautilus counterfactual-stress evidence reports Sharpe 1.20, exceeding 0.75 and retaining 60% of the screened Sharpe of 2.00, above the required 50%.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":11782,"cost":0.0282288,"wall":23.6,"tools":8,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":33,"c":0.002708,"l":2.21},{"a":"research.run_screen","ti":885,"to":26,"c":0.00406,"l":1.97},{"a":"research.add_costs","ti":1151,"to":88,"c":0.006364,"l":2.72},{"a":"research.promote_event_replay","ti":1191,"to":35,"c":0.0013312,"l":1.43},{"a":"research.add_costs","ti":1459,"to":129,"c":0.0041392,"l":4.0},{"a":"research.run_latency_sensitivity","ti":1745,"to":50,"c":0.0027384,"l":2.42},{"a":"research.run_counterfactual_stress","ti":2021,"to":51,"c":0.0028328,"l":2.61},{"a":"research.submit","ti":2300,"to":106,"c":0.0040552,"l":3.11}]},{"id":"20b12c38324014fbeef45cfa78c990ccc4c14d983652b26528e01dd8c3ecf99c","task":"v025_case_005","cls":"insufficient_evidence","model":"sol","seed":101,"verdict":"ABSTAIN","reason":"Evidence is insufficient: the screen reported Sharpe 1.10 but evidence quality was INSUFFICIENT with only 18 observations, and required event-replay promotion was UNAVAILABLE because the frozen panel was too sparse. Reliable counterfactual-stress evidence cannot be obtained.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5281,"cost":0.0176404,"wall":13.77,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":35,"c":0.00274,"l":1.85},{"a":"research.run_screen","ti":871,"to":39,"c":0.004264,"l":1.97},{"a":"research.run_counterfactual_stress","ti":1132,"to":60,"c":0.005728,"l":2.09},{"a":"research.promote_event_replay","ti":1175,"to":46,"c":0.0015556,"l":2.15},{"a":"research.submit","ti":1293,"to":120,"c":0.0033528,"l":3.46}]},{"id":"db7664279370b5f1c839704d01eb4fa638a1b99e51120fae5bc7d96c37f296ea","task":"v025_case_006","cls":"uncertified_required_engine","model":"sol","seed":101,"verdict":"ABSTAIN","reason":"Required native event-replay engine hftbacktest was refused because certification C0 is below the required C1. The engine is therefore not trusted, leaving insufficient reliable evidence for acceptance or rejection.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":4041,"cost":0.0151336,"wall":12.51,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":34,"c":0.002732,"l":2.57},{"a":"research.run_screen","ti":881,"to":29,"c":0.004104,"l":2.46},{"a":"research.promote_event_replay","ti":1147,"to":48,"c":0.005548,"l":2.68},{"a":"research.submit","ti":1307,"to":82,"c":0.0027496,"l":2.74}]},{"id":"e1e0fd7d8cec2dc1efb03f90a5fbdb053c9f83602e9db24fe0b2d489c4292caa","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"sol","seed":211,"verdict":"REJECT","reason":"Reliable C4 vectorbt screen evidence is sufficient and shows Sharpe -0.30, below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2712,"cost":0.009202,"wall":10.5,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":34,"c":0.002732,"l":2.08},{"a":"research.run_screen","ti":884,"to":26,"c":0.004056,"l":3.78},{"a":"research.submit","ti":1158,"to":97,"c":0.002414,"l":3.06}]},{"id":"542424c570b03eda5ae8350a21b07cd895debd22ece807282d7e96c5c6962539","task":"v025_case_002","cls":"dies_under_latency","model":"sol","seed":211,"verdict":"REJECT","reason":"Reliable C4 nautilus latency-sensitivity evidence shows Sharpe 0.20, below the rejection threshold of 0.50, with only 10% of the screened Sharpe retained.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":15770,"cost":0.0263868,"wall":41.42,"tools":8,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":33,"c":0.0027,"l":1.99},{"a":"research.run_screen","ti":871,"to":27,"c":0.004024,"l":2.56},{"a":"unparsed","ti":1137,"to":65,"c":0.0017656,"l":4.63},{"a":"research.run_latency_sensitivity","ti":1181,"to":32,"c":0.0012816,"l":2.49},{"a":"research.promote_event_replay","ti":1222,"to":53,"c":0.0017072,"l":6.48},{"a":"unparsed","ti":1490,"to":93,"c":0.0034316,"l":3.34},{"a":"research.run_latency_sensitivity","ti":1534,"to":41,"c":0.0016028,"l":2.54},{"a":"research.add_costs","ti":1573,"to":29,"c":0.0013604,"l":3.16},{"a":"research.add_costs","ti":1616,"to":43,"c":0.001672,"l":2.68},{"a":"research.run_latency_sensitivity","ti":1894,"to":77,"c":0.0033092,"l":3.09},{"a":"research.submit","ti":2165,"to":84,"c":0.0035324,"l":2.57}]},{"id":"9200363af0263394ff5f861f187522f62b9c7376063ced102fdfb68b290c7083","task":"v025_case_003","cls":"dies_under_stress","model":"sol","seed":211,"verdict":"REJECT","reason":"Reliable C4 nautilus counterfactual-stress evidence reports Sharpe 0.20, which is below the rejection threshold of 0.50 and retains only 10% of the screened Sharpe of 2.00.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":19593,"cost":0.033242,"wall":44.81,"tools":10,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":35,"c":0.002744,"l":1.99},{"a":"research.run_screen","ti":872,"to":32,"c":0.004128,"l":2.15},{"a":"research.run_counterfactual_stress","ti":1138,"to":31,"c":0.001086,"l":2.27},{"a":"research.promote_event_replay","ti":1181,"to":39,"c":0.0012632,"l":2.47},{"a":"research.run_counterfactual_stress","ti":1449,"to":33,"c":0.0012504,"l":2.45},{"a":"research.add_costs","ti":1490,"to":26,"c":0.0011268,"l":2.43},{"a":"unparsed","ti":1776,"to":99,"c":0.0027012,"l":3.33},{"a":"research.run_counterfactual_stress","ti":1829,"to":29,"c":0.0015132,"l":2.65},{"a":"unparsed","ti":1871,"to":112,"c":0.0031504,"l":3.35},{"a":"research.run_latency_sensitivity","ti":1917,"to":110,"c":0.0031432,"l":5.07},{"a":"research.run_counterfactual_stress","ti":2188,"to":231,"c":0.0064816,"l":6.76},{"a":"research.submit","ti":2460,"to":134,"c":0.004654,"l":3.54}]},{"id":"2c8e983d45c862d1fda012e7ef43bcb121b9eb505c7d8d94fa9ccca3bb26748a","task":"v025_case_004","cls":"robust_alpha","model":"sol","seed":211,"verdict":"ACCEPT","reason":"Reliable C4 nautilus counterfactual-stress evidence reports Sharpe 1.20, exceeding 0.75 and retaining 60% of the screened Sharpe 2.00, above the required 50%.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":13348,"cost":0.0234056,"wall":33.15,"tools":9,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":37,"c":0.002788,"l":2.2},{"a":"research.run_screen","ti":885,"to":27,"c":0.00408,"l":2.03},{"a":"research.run_counterfactual_stress","ti":1151,"to":46,"c":0.0013912,"l":2.34},{"a":"research.promote_event_replay","ti":1194,"to":29,"c":0.0012232,"l":2.38},{"a":"research.run_counterfactual_stress","ti":1462,"to":34,"c":0.0022404,"l":4.7},{"a":"research.add_costs","ti":1503,"to":26,"c":0.0012796,"l":3.01},{"a":"research.run_latency_sensitivity","ti":1789,"to":68,"c":0.003116,"l":2.82},{"a":"research.run_counterfactual_stress","ti":2065,"to":62,"c":0.0030704,"l":3.3},{"a":"research.submit","ti":2345,"to":113,"c":0.0042168,"l":4.82}]},{"id":"14d4c121f9eb69cc45bba5690f49d5253ad34ac35394bd85f71d631a75625566","task":"v025_case_005","cls":"insufficient_evidence","model":"sol","seed":211,"verdict":"ABSTAIN","reason":"Evidence is insufficient: the screen had only 18 observations and was rated INSUFFICIENT, while required event-replay promotion was UNAVAILABLE because the frozen panel was too sparse. Therefore reliable counterfactual-stress evidence cannot be obtained to test the acceptance threshold.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5240,"cost":0.0121764,"wall":17.11,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":35,"c":0.00274,"l":2.8},{"a":"research.run_screen","ti":871,"to":27,"c":0.004024,"l":2.73},{"a":"research.run_counterfactual_stress","ti":1132,"to":40,"c":0.0012636,"l":2.22},{"a":"research.promote_event_replay","ti":1175,"to":30,"c":0.0010808,"l":2.03},{"a":"research.submit","ti":1293,"to":127,"c":0.003068,"l":4.82}]},{"id":"fbd8f610ec841d817855f0fcb69c184b59657758b86e34cf4d4639c4f580e7cf","task":"v025_case_006","cls":"uncertified_required_engine","model":"sol","seed":211,"verdict":"ABSTAIN","reason":"Required native event replay was refused because hftbacktest certification C0 is below the required C1. The required engine is therefore not trusted, and no reliable counterfactual-stress evidence is available to satisfy ACCEPT or REJECT criteria.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":4086,"cost":0.0113392,"wall":13.96,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":37,"c":0.002792,"l":2.52},{"a":"research.run_screen","ti":881,"to":52,"c":0.004564,"l":2.72},{"a":"research.promote_event_replay","ti":1147,"to":61,"c":0.0016896,"l":3.12},{"a":"research.submit","ti":1307,"to":88,"c":0.0022936,"l":3.32}]},{"id":"79e790ed3b9a6b40062f5917f1f7adaed6476cf8359f12c1e48ff407b51a44f9","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"sol","seed":307,"verdict":"REJECT","reason":"Reliable C4 vectorbt screen evidence is sufficient and shows Sharpe -0.30, below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2696,"cost":0.008882,"wall":9.8,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":36,"c":0.002772,"l":3.25},{"a":"research.run_screen","ti":884,"to":25,"c":0.004036,"l":2.48},{"a":"research.submit","ti":1158,"to":80,"c":0.002074,"l":1.99}]},{"id":"5acf0536f8a2996f9184dad0ce95fad1421343219c19aacfdb230e63dcd52b96","task":"v025_case_002","cls":"dies_under_latency","model":"sol","seed":307,"verdict":"REJECT","reason":"Reliable C4 nautilus latency-sensitivity evidence is SUFFICIENT and reports Sharpe 0.20, which is below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":10832,"cost":0.0205952,"wall":28.1,"tools":8,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":39,"c":0.00282,"l":2.46},{"a":"research.run_screen","ti":871,"to":28,"c":0.004044,"l":2.12},{"a":"research.run_latency_sensitivity","ti":1137,"to":71,"c":0.0018856,"l":2.94},{"a":"research.promote_event_replay","ti":1178,"to":29,"c":0.0012096,"l":2.34},{"a":"research.run_latency_sensitivity","ti":1446,"to":63,"c":0.002814,"l":3.62},{"a":"research.add_costs","ti":1485,"to":27,"c":0.0012852,"l":2.41},{"a":"research.run_latency_sensitivity","ti":1763,"to":29,"c":0.0022968,"l":2.24},{"a":"research.submit","ti":2034,"to":122,"c":0.00424,"l":5.21}]},{"id":"a8559cf0f1a17bbb39dd52fc4ad119228d7d484ba18476a331baf4f2df3dc214","task":"v025_case_003","cls":"dies_under_stress","model":"sol","seed":307,"verdict":"REJECT","reason":"Reliable C4 nautilus counterfactual-stress evidence reports Sharpe 0.20, below the rejection threshold of 0.50; survival is also only 10% of the screened Sharpe 2.00.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":13337,"cost":0.0272356,"wall":36.49,"tools":8,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":38,"c":0.002804,"l":2.91},{"a":"research.run_screen","ti":872,"to":28,"c":0.004048,"l":3.08},{"a":"unparsed","ti":1138,"to":51,"c":0.001486,"l":3.25},{"a":"research.run_counterfactual_stress","ti":1203,"to":49,"c":0.001706,"l":2.8},{"a":"research.promote_event_replay","ti":1246,"to":34,"c":0.001344,"l":2.39},{"a":"research.add_costs","ti":1514,"to":140,"c":0.0043812,"l":4.04},{"a":"research.run_latency_sensitivity","ti":1800,"to":132,"c":0.0044004,"l":4.38},{"a":"research.run_counterfactual_stress","ti":2071,"to":72,"c":0.0032548,"l":3.15},{"a":"research.submit","ti":2344,"to":94,"c":0.0038112,"l":3.73}]},{"id":"d356f59d51d0d288d88d4f06eb4af17bdc24abfd0c75f6e41c9221821bc90425","task":"v025_case_004","cls":"robust_alpha","model":"sol","seed":307,"verdict":"ACCEPT","reason":"Reliable C4 nautilus counterfactual-stress evidence reports Sharpe 1.20, exceeding 0.75 and retaining 60% of the screened Sharpe 2.00, above the required 50%.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":13705,"cost":0.0245848,"wall":32.92,"tools":9,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":36,"c":0.002768,"l":2.52},{"a":"research.run_screen","ti":885,"to":26,"c":0.00406,"l":2.62},{"a":"research.run_counterfactual_stress","ti":1151,"to":48,"c":0.0014312,"l":2.52},{"a":"research.promote_event_replay","ti":1194,"to":30,"c":0.0010884,"l":2.18},{"a":"research.add_costs","ti":1462,"to":47,"c":0.0015356,"l":3.13},{"a":"research.run_counterfactual_stress","ti":1748,"to":89,"c":0.0035196,"l":3.25},{"a":"research.run_latency_sensitivity","ti":1790,"to":88,"c":0.002638,"l":3.73},{"a":"research.run_counterfactual_stress","ti":2066,"to":79,"c":0.0034108,"l":3.18},{"a":"research.submit","ti":2345,"to":109,"c":0.0041332,"l":4.12}]},{"id":"2f4e40c1de3951e0512e5754f62063a3cc12cf3c07fe39a2b6021a97cd275d6d","task":"v025_case_005","cls":"insufficient_evidence","model":"sol","seed":307,"verdict":"ABSTAIN","reason":"Evidence is insufficient: the screen had only 18 observations and was rated INSUFFICIENT, while required event-replay promotion was UNAVAILABLE because the frozen panel was too sparse. Therefore no reliable counterfactual-stress evidence exists to support ACCEPT or REJECT.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5279,"cost":0.0129564,"wall":18.55,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":43,"c":0.0029,"l":2.51},{"a":"research.run_screen","ti":871,"to":49,"c":0.004464,"l":2.58},{"a":"research.run_counterfactual_stress","ti":1132,"to":39,"c":0.0012436,"l":2.96},{"a":"research.promote_event_replay","ti":1175,"to":36,"c":0.0012008,"l":2.7},{"a":"research.submit","ti":1293,"to":131,"c":0.003148,"l":4.78}]},{"id":"3abf95bf2ef3761c6802a1fd012b242509f2eac1862c953cb6bd79350b4701c4","task":"v025_case_006","cls":"uncertified_required_engine","model":"sol","seed":307,"verdict":"ABSTAIN","reason":"Required native event-replay engine hftbacktest was refused because certification C0 is below the required C1; therefore the engine is not trusted and reliable counterfactual-stress evidence cannot be established.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":5355,"cost":0.0129024,"wall":19.24,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":37,"c":0.002792,"l":2.7},{"a":"research.run_screen","ti":881,"to":31,"c":0.004144,"l":2.34},{"a":"unparsed","ti":1147,"to":50,"c":0.0014696,"l":4.85},{"a":"research.promote_event_replay","ti":1201,"to":38,"c":0.0014456,"l":2.52},{"a":"research.submit","ti":1361,"to":96,"c":0.0030512,"l":3.82}]},{"id":"e92bc12339c827574659f0c935d6af5f4cbe119d3b3312b8e30a654c54bca5b9","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"terra","seed":101,"verdict":"REJECT","reason":"Certified C4 screen evidence is sufficient and observed Sharpe is -0.30, which is below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2731,"cost":0.007222,"wall":6.89,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":26,"c":0.001338,"l":1.92},{"a":"research.run_screen","ti":884,"to":26,"c":0.00208,"l":1.59},{"a":"research.submit","ti":1158,"to":124,"c":0.003804,"l":2.92}]},{"id":"abc08c46c93b6fae11168602962ab8c110e29dc7fc6545f3ca69f800384b510b","task":"v025_case_002","cls":"dies_under_latency","model":"terra","seed":101,"verdict":"REJECT","reason":"Certified C4 latency-sensitivity replay provides sufficient reliable evidence of Sharpe 0.20, below the 0.50 rejection threshold.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":10753,"cost":0.0122068,"wall":16.83,"tools":8,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":31,"c":0.001392,"l":1.95},{"a":"research.run_screen","ti":871,"to":26,"c":0.002054,"l":1.77},{"a":"research.run_latency_sensitivity","ti":1137,"to":66,"c":0.003066,"l":2.16},{"a":"research.promote_event_replay","ti":1178,"to":28,"c":0.0006508,"l":1.48},{"a":"research.run_latency_sensitivity","ti":1446,"to":29,"c":0.001125,"l":1.92},{"a":"research.add_costs","ti":1485,"to":26,"c":0.0006846,"l":1.94},{"a":"research.run_latency_sensitivity","ti":1763,"to":28,"c":0.0011944,"l":1.72},{"a":"research.submit","ti":2034,"to":95,"c":0.00204,"l":2.59}]},{"id":"b61354c7dfe801a4a895cb20892382a8c75ebb013679189cb07caa95ca193bdd","task":"v025_case_003","cls":"dies_under_stress","model":"terra","seed":101,"verdict":"REJECT","reason":"Reliable C4 Nautilus counterfactual-stress replay observed Sharpe 0.20, which is below the rejection threshold of 0.50 (and only 10% of the screened Sharpe 2.00).","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":11502,"cost":0.0128348,"wall":16.62,"tools":8,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":32,"c":0.001406,"l":1.8},{"a":"research.run_screen","ti":872,"to":27,"c":0.002068,"l":1.74},{"a":"research.run_counterfactual_stress","ti":1138,"to":33,"c":0.002672,"l":1.75},{"a":"research.promote_event_replay","ti":1181,"to":28,"c":0.000655,"l":1.59},{"a":"research.add_costs","ti":1449,"to":34,"c":0.0011856,"l":1.89},{"a":"research.run_latency_sensitivity","ti":1735,"to":38,"c":0.0013232,"l":1.79},{"a":"research.run_counterfactual_stress","ti":2006,"to":74,"c":0.0017824,"l":2.54},{"a":"research.submit","ti":2278,"to":66,"c":0.0017426,"l":2.15}]},{"id":"e407388461711cb18072d72c03570a0b9935e442ea2bba04791804826e766e1e","task":"v025_case_004","cls":"robust_alpha","model":"terra","seed":101,"verdict":"ACCEPT","reason":"Reliable C4 Nautilus counterfactual-stress evidence reports Sharpe 1.20, exceeding 0.75 and retaining 60% of the screened Sharpe (2.00), above the required 50%.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":13238,"cost":0.0133432,"wall":19.25,"tools":9,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":30,"c":0.001384,"l":1.89},{"a":"research.run_screen","ti":885,"to":32,"c":0.002154,"l":1.76},{"a":"research.run_counterfactual_stress","ti":1151,"to":54,"c":0.00295,"l":2.19},{"a":"research.promote_event_replay","ti":1194,"to":27,"c":0.0006456,"l":1.68},{"a":"research.run_counterfactual_stress","ti":1462,"to":30,"c":0.0011402,"l":1.64},{"a":"research.add_costs","ti":1503,"to":26,"c":0.0006918,"l":2.26},{"a":"research.run_latency_sensitivity","ti":1789,"to":29,"c":0.001226,"l":1.86},{"a":"research.run_counterfactual_stress","ti":2065,"to":39,"c":0.0013832,"l":1.92},{"a":"research.submit","ti":2344,"to":66,"c":0.0017684,"l":2.34}]},{"id":"adc513c2d18578e0aa9bfb63a6b9bf4e18bbbda03607d3679a8b8a6afcaa30e8","task":"v025_case_005","cls":"insufficient_evidence","model":"terra","seed":101,"verdict":"ABSTAIN","reason":"The required promoted event replay is unavailable because the frozen evidence panel is too sparse; therefore reliable counterfactual-stress evidence cannot be obtained. The C4 screen Sharpe of 1.10 is explicitly insufficient and cannot support acceptance or rejection under the stated criteria.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5184,"cost":0.0082562,"wall":10.69,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":30,"c":0.00138,"l":1.81},{"a":"research.run_screen","ti":871,"to":26,"c":0.002054,"l":2.12},{"a":"research.run_counterfactual_stress","ti":1132,"to":31,"c":0.002636,"l":1.74},{"a":"research.promote_event_replay","ti":1175,"to":28,"c":0.0006538,"l":1.63},{"a":"research.submit","ti":1293,"to":88,"c":0.0015324,"l":2.44}]},{"id":"97a9c98fb45ca0b5b522fb2403917a5d2a81b450523c2535f3372770182a0c3a","task":"v025_case_006","cls":"uncertified_required_engine","model":"terra","seed":101,"verdict":"ABSTAIN","reason":"Native event replay was refused because hftbacktest certification is C0, below the required C1. Consequently the required trusted replay/counterfactual-stress evidence is unavailable; the C4 screen Sharpe of 2.0 alone cannot resolve acceptance.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":4118,"cost":0.0088768,"wall":10.12,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":29,"c":0.001374,"l":1.71},{"a":"research.run_screen","ti":881,"to":67,"c":0.002566,"l":2.42},{"a":"research.promote_event_replay","ti":1147,"to":48,"c":0.00287,"l":1.87},{"a":"research.submit","ti":1307,"to":126,"c":0.0020668,"l":3.37}]},{"id":"5f075d41ce26b88911870fbee4c66c1f84f57d7b15843e91c3dc9e9484ff68dc","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"terra","seed":211,"verdict":"REJECT","reason":"Certified C4 screen produced sufficient observed evidence with Sharpe -0.30, which is below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2724,"cost":0.005059,"wall":7.43,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":30,"c":0.001386,"l":1.84},{"a":"research.run_screen","ti":884,"to":25,"c":0.002068,"l":1.62},{"a":"research.submit","ti":1158,"to":114,"c":0.001605,"l":3.36}]},{"id":"7629a7212994bbc6ac920620ae45d7644f3fda0360edb532afee2afe7ecce17b","task":"v025_case_002","cls":"dies_under_latency","model":"terra","seed":211,"verdict":"REJECT","reason":"Reliable C4 Nautilus latency-sensitivity evidence reports Sharpe 0.20, which is below the rejection threshold of 0.50; it also retains only 10% of screened Sharpe.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":10715,"cost":0.008095,"wall":17.55,"tools":8,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":31,"c":0.001392,"l":1.66},{"a":"research.run_screen","ti":871,"to":37,"c":0.002186,"l":2.12},{"a":"research.run_latency_sensitivity","ti":1137,"to":40,"c":0.0007128,"l":2.17},{"a":"research.promote_event_replay","ti":1178,"to":29,"c":0.000589,"l":1.61},{"a":"research.run_latency_sensitivity","ti":1446,"to":39,"c":0.0007626,"l":2.16},{"a":"research.add_costs","ti":1485,"to":26,"c":0.0006144,"l":1.6},{"a":"research.run_latency_sensitivity","ti":1763,"to":28,"c":0.000694,"l":2.53},{"a":"research.submit","ti":2034,"to":61,"c":0.0011442,"l":2.14}]},{"id":"149fab8f7b8143aafbf9d0d0a20649a080cdd429b2729e70c943adadc7fe0f9e","task":"v025_case_003","cls":"dies_under_stress","model":"terra","seed":211,"verdict":"REJECT","reason":"Reliable C4 Nautilus counterfactual-stress replay observed Sharpe 0.20, below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":14998,"cost":0.0108672,"wall":21.18,"tools":10,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":27,"c":0.001346,"l":1.8},{"a":"research.run_screen","ti":872,"to":28,"c":0.00208,"l":1.66},{"a":"research.run_counterfactual_stress","ti":1138,"to":34,"c":0.000641,"l":1.65},{"a":"research.promote_event_replay","ti":1181,"to":34,"c":0.0006496,"l":1.97},{"a":"research.run_counterfactual_stress","ti":1449,"to":28,"c":0.0006312,"l":1.82},{"a":"research.add_costs","ti":1490,"to":27,"c":0.0007012,"l":1.81},{"a":"research.run_counterfactual_stress","ti":1776,"to":18,"c":0.0010914,"l":2.03},{"a":"research.run_latency_sensitivity","ti":1818,"to":35,"c":0.0008646,"l":1.99},{"a":"research.run_counterfactual_stress","ti":2089,"to":33,"c":0.001307,"l":1.76},{"a":"research.submit","ti":2361,"to":49,"c":0.0015552,"l":2.33}]},{"id":"46de54f97e931fcfffe5e7ce7b3340ce74920bb6600b7e775e43d478a80020f0","task":"v025_case_004","cls":"robust_alpha","model":"terra","seed":211,"verdict":"ACCEPT","reason":"Reliable C4 counterfactual-stress replay observed Sharpe 1.20, exceeding 0.75 and retaining 60% of screened Sharpe 2.00.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":11687,"cost":0.0112126,"wall":19.53,"tools":8,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":33,"c":0.00142,"l":2.14},{"a":"research.run_screen","ti":885,"to":28,"c":0.002106,"l":2.08},{"a":"research.run_counterfactual_stress","ti":1151,"to":35,"c":0.0006556,"l":1.69},{"a":"research.promote_event_replay","ti":1194,"to":34,"c":0.0006522,"l":1.86},{"a":"research.add_costs","ti":1462,"to":28,"c":0.0006338,"l":1.72},{"a":"research.run_latency_sensitivity","ti":1748,"to":75,"c":0.0017698,"l":2.45},{"a":"research.run_counterfactual_stress","ti":2024,"to":73,"c":0.001783,"l":2.82},{"a":"research.submit","ti":2303,"to":102,"c":0.0021922,"l":2.79}]},{"id":"65db21d6ec4dc333db01a28d7c5a04019e81c53002d6935fdaad55250619b143","task":"v025_case_005","cls":"insufficient_evidence","model":"terra","seed":211,"verdict":"ABSTAIN","reason":"The required event-replay promotion is unavailable because the frozen evidence panel is too sparse. Therefore no reliable counterfactual-stress evidence can be obtained, so neither acceptance nor reliable rejection criteria are met.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5199,"cost":0.0061142,"wall":17.37,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":32,"c":0.001404,"l":2.49},{"a":"research.run_screen","ti":871,"to":27,"c":0.002066,"l":1.44},{"a":"research.run_counterfactual_stress","ti":1132,"to":42,"c":0.0007358,"l":1.65},{"a":"research.promote_event_replay","ti":1175,"to":33,"c":0.0006364,"l":1.68},{"a":"research.submit","ti":1293,"to":84,"c":0.001272,"l":9.38}]},{"id":"27f2590ef0e79e0f6eb2970cdf3bf9127ae4065671e85cdd8d8323327481a35f","task":"v025_case_006","cls":"uncertified_required_engine","model":"terra","seed":211,"verdict":"ABSTAIN","reason":"Native event replay was refused because hftbacktest certification is C0, below the required C1. The required trusted high-fidelity evidence cannot be obtained; the C4 screen alone is insufficient.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":4031,"cost":0.0054856,"wall":9.44,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":28,"c":0.001362,"l":1.67},{"a":"research.run_screen","ti":881,"to":35,"c":0.002182,"l":2.25},{"a":"research.promote_event_replay","ti":1147,"to":43,"c":0.0007508,"l":2.14},{"a":"research.submit","ti":1307,"to":77,"c":0.0011908,"l":2.6}]},{"id":"6890f7142b6bc5403a16d27653e166c8523e97a50d4524d88dfc98528de7daa8","task":"v025_case_001","cls":"obviously_fragile_alpha","model":"terra","seed":307,"verdict":"REJECT","reason":"Trusted C4 vectorbt screen produced sufficient observed evidence with Sharpe -0.30, which is below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":2713,"cost":0.004927,"wall":7.52,"tools":3,"hf":0,"world":"07bc4122a196b885ace49c89e3dbce290f4d6f88c425f0673248a25980291d95","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":32,"c":0.00141,"l":1.98},{"a":"research.run_screen","ti":884,"to":26,"c":0.00208,"l":1.69},{"a":"research.submit","ti":1158,"to":100,"c":0.001437,"l":3.19}]},{"id":"4ac4ed23414adc6466ca7966c6f5b0f0f6c3e31be610b90d41cae6c72c9e8fdc","task":"v025_case_002","cls":"dies_under_latency","model":"terra","seed":307,"verdict":"REJECT","reason":"Reliable C4 Nautilus latency-sensitivity evidence reports Sharpe 0.20, below the rejection threshold of 0.50; the opening-auction signal does not remain profitable after realistic latency.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":10753,"cost":0.008551,"wall":20.13,"tools":8,"hf":1,"world":"1a76352a101c0f5eb4dbc8328c35f85d90ff754a72a4499714270829a2ac4fcd","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":30,"c":0.00138,"l":2.03},{"a":"research.run_screen","ti":871,"to":29,"c":0.00209,"l":1.72},{"a":"research.run_latency_sensitivity","ti":1137,"to":56,"c":0.0009048,"l":2.48},{"a":"research.promote_event_replay","ti":1178,"to":28,"c":0.000577,"l":2.0},{"a":"research.run_latency_sensitivity","ti":1446,"to":30,"c":0.0006546,"l":2.81},{"a":"research.add_costs","ti":1485,"to":27,"c":0.0006264,"l":1.86},{"a":"research.run_latency_sensitivity","ti":1763,"to":28,"c":0.000694,"l":2.07},{"a":"research.submit","ti":2034,"to":101,"c":0.0016242,"l":3.14}]},{"id":"9f02b09266ceb87969dd3c304e510bbf29b9a47e357d90a91b3762eced3f8a41","task":"v025_case_003","cls":"dies_under_stress","model":"terra","seed":307,"verdict":"REJECT","reason":"Reliable C4 Nautilus counterfactual-stress replay produced Sharpe 0.20, below the rejection threshold of 0.50.","expected":"REJECT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":15047,"cost":0.0098136,"wall":22.37,"tools":10,"hf":2,"world":"7a7b370946d02a72661d9bc315fb9eca6aef8e7f5d5557d0c71453cc339637b6","turns":[{"a":"research.inspect_hypothesis","ti":511,"to":28,"c":0.001358,"l":1.91},{"a":"research.run_screen","ti":872,"to":27,"c":0.002068,"l":1.98},{"a":"research.run_counterfactual_stress","ti":1138,"to":35,"c":0.000653,"l":2.02},{"a":"research.promote_event_replay","ti":1181,"to":27,"c":0.0005656,"l":1.86},{"a":"research.run_counterfactual_stress","ti":1449,"to":30,"c":0.0006552,"l":1.75},{"a":"research.add_costs","ti":1490,"to":32,"c":0.0006874,"l":1.85},{"a":"research.run_counterfactual_stress","ti":1776,"to":18,"c":0.0005766,"l":1.91},{"a":"research.run_latency_sensitivity","ti":1818,"to":34,"c":0.000777,"l":1.93},{"a":"research.run_counterfactual_stress","ti":2089,"to":53,"c":0.0010592,"l":2.25},{"a":"research.submit","ti":2361,"to":78,"c":0.0014136,"l":2.29}]},{"id":"51a48dbb74b28241f4c49e40fd8911bd299b46db21c860d4eb6e4327c27d6101","task":"v025_case_004","cls":"robust_alpha","model":"terra","seed":307,"verdict":"ACCEPT","reason":"Reliable C4 counterfactual-stress replay observed Sharpe 1.20, exceeding 0.75 and retaining 60% of screened Sharpe 2.00.","expected":"ACCEPT","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":13496,"cost":0.0103736,"wall":28.35,"tools":9,"hf":2,"world":"2532da2d46e677a0a01816d73d05ab72cd06d2f5fc4c20bfe4865a8ecca07c2b","turns":[{"a":"research.inspect_hypothesis","ti":512,"to":31,"c":0.001396,"l":2.08},{"a":"research.run_screen","ti":885,"to":27,"c":0.002094,"l":2.37},{"a":"research.run_counterfactual_stress","ti":1151,"to":35,"c":0.0006556,"l":2.82},{"a":"research.promote_event_replay","ti":1194,"to":27,"c":0.0005682,"l":2.82},{"a":"research.add_costs","ti":1462,"to":36,"c":0.0007298,"l":3.12},{"a":"research.run_counterfactual_stress","ti":1748,"to":35,"c":0.000775,"l":3.0},{"a":"research.run_latency_sensitivity","ti":1790,"to":28,"c":0.000775,"l":2.75},{"a":"research.run_counterfactual_stress","ti":2066,"to":33,"c":0.0013114,"l":2.89},{"a":"research.submit","ti":2345,"to":91,"c":0.0020686,"l":3.26}]},{"id":"0e647128f0aacb04f7f98669e53a31c8ff542eb346545a1194d9cca116ee49c4","task":"v025_case_005","cls":"insufficient_evidence","model":"terra","seed":307,"verdict":"ABSTAIN","reason":"Event replay is unavailable because the frozen evidence panel is too sparse for promotion; therefore required reliable counterfactual-stress evidence cannot be obtained.","expected":"ABSTAIN","ok":false,"fa":false,"failed":["efficient_routing"],"nChecks":16,"tok":5170,"cost":0.0057662,"wall":15.65,"tools":5,"hf":0,"world":"3f72125876b4520af23c779d33a7dd7c21f7828e9ffba546660324ca751ed8e6","turns":[{"a":"research.inspect_hypothesis","ti":510,"to":30,"c":0.00138,"l":2.95},{"a":"research.run_screen","ti":871,"to":25,"c":0.002042,"l":2.62},{"a":"research.run_counterfactual_stress","ti":1132,"to":34,"c":0.0006398,"l":2.7},{"a":"research.promote_event_replay","ti":1175,"to":32,"c":0.0006244,"l":2.86},{"a":"research.submit","ti":1293,"to":68,"c":0.00108,"l":3.07}]},{"id":"8865329a06813e40e728448e21df430b14d510e67d9de6ec7be9ff4e43bea790","task":"v025_case_006","cls":"uncertified_required_engine","model":"terra","seed":307,"verdict":"ABSTAIN","reason":"Native event replay was required for this sub-millisecond hypothesis, but the hftbacktest engine was refused because certification C0 is below the required C1. Thus no trusted counterfactual-stress evidence can be obtained.","expected":"ABSTAIN","ok":true,"fa":false,"failed":[],"nChecks":16,"tok":4059,"cost":0.0058216,"wall":13.34,"tools":4,"hf":0,"world":"289086ce8051b842c2533c1a7d8730d5311f3c7c35ac732c9666a6d9c67c0864","turns":[{"a":"research.inspect_hypothesis","ti":513,"to":31,"c":0.001398,"l":2.7},{"a":"research.run_screen","ti":881,"to":42,"c":0.002266,"l":3.34},{"a":"research.promote_event_replay","ti":1147,"to":58,"c":0.0009308,"l":3.27},{"a":"research.submit","ti":1307,"to":80,"c":0.0012268,"l":2.71}]}],"runsArtifactHash":"c5b27e19e981b4e554a4ca1c7800d4e186f4511645f642e0536c79ff57d03bbb","ladder":{"metric":"sharpe","hash":"db37154941316875261869460ee67c7382213c1a12fcdbb5fab84c48284e2e9c","id":"forge-v0.2.4.1","schema":"forge-reality-ladder/0.2.4.1","integrity":{"status":"FROZEN_ARTIFACT","source":"reality_ladder_artifact.json"},"points":[{"cp":"L0_ANALYTICAL","level":"L0_MATHEMATICAL","engine":"analytical","sharpe":4.799,"net":0.01435,"fees":0.0,"lat":0.0,"slip":0.0},{"cp":"L1_VECTORBT","level":"L1_VECTORIZED","engine":"vectorbt","sharpe":4.799,"net":0.01435,"fees":0.0,"lat":0.0,"slip":0.0},{"cp":"L2_NAUTILUS","level":"L2_EVENT_REPLAY","engine":"nautilus","sharpe":4.799,"net":0.01435,"fees":0.0,"lat":0.0,"slip":0.0},{"cp":"L3_FEES_SLIPPAGE","level":"L3_MICROSTRUCTURE","engine":"nautilus","sharpe":4.612,"net":0.01364,"fees":44.64,"lat":0.0,"slip":26.27},{"cp":"L3_LATENCY","level":"L3_MICROSTRUCTURE","engine":"nautilus","sharpe":3.729,"net":0.01066,"fees":44.67,"lat":297.4,"slip":323.67},{"cp":"L4_COUNTERFACTUAL_STRESS","level":"L4_COUNTERFACTUAL_STRESS","engine":"nautilus","sharpe":0.345,"net":0.00352,"fees":57.71,"lat":380.27,"slip":495.33}],"survival":0.071873325789,"decomp":{"fee_decay":-0.187310914615,"idealization_gap":0.0,"latency_decay":-0.882518655406,"model_semantic_decay":0.0,"stress_decay":-3.384313796367},"finding":"The strategy retained 7.2% of its screened risk-adjusted performance; the largest degradation came from counterfactual market stress.","regimes":[{"regime":"TRENDING","survival":0.167649619446,"seeds":5,"sharpe":{"L0_ANALYTICAL":10.230878439317,"L1_VECTORBT":10.230878439317,"L2_NAUTILUS":10.230878439317,"L3_FEES_SLIPPAGE":10.026398759818,"L3_LATENCY":9.533891694791,"L4_COUNTERFACTUAL_STRESS":1.715202876953}},{"regime":"MEAN_REVERTING","survival":-0.117932898203,"seeds":5,"sharpe":{"L0_ANALYTICAL":3.83842842854,"L1_VECTORBT":3.83842842854,"L2_NAUTILUS":3.83842842854,"L3_FEES_SLIPPAGE":3.607734622037,"L3_LATENCY":1.410496858916,"L4_COUNTERFACTUAL_STRESS":-0.452676989122}},{"regime":"HIGH_VOLATILITY","survival":-0.69457790005,"seeds":5,"sharpe":{"L0_ANALYTICAL":0.327898244821,"L1_VECTORBT":0.327898244821,"L2_NAUTILUS":0.327898244821,"L3_FEES_SLIPPAGE":0.201138986974,"L3_LATENCY":0.243327848907,"L4_COUNTERFACTUAL_STRESS":-0.227750874318}}]}};</script>
+<script>
+(() => {
+const F = window.FORGE, R = F.runs, B = F.baseline, L = F.ladder;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const MODELS = ['luna', 'sol', 'terra'];
+const MCOL = { luna: 'var(--luna)', sol: 'var(--sol)', terra: 'var(--terra)' };
+const mname = (m) => 'gpt-5.6-' + m;
+const pct = (a, b, d = 1) => ((a / b) * 100).toFixed(d) + '%';
+const usd = (v, d = 4) => '$' + v.toFixed(d);
+const short = (h, n = 8) => h.slice(0, n) + '…' + h.slice(-4);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dateStr = (iso) => `${+iso.slice(8, 10)} ${MON[+iso.slice(5, 7) - 1]} ${iso.slice(0, 4)}`;
+const CLASS = {
+  obviously_fragile_alpha: ['Obviously fragile alpha', 'REJECT'],
+  dies_under_latency: ['Dies under latency', 'REJECT'],
+  dies_under_stress: ['Dies under stress', 'REJECT'],
+  robust_alpha: ['Robust alpha', 'ACCEPT'],
+  insufficient_evidence: ['Insufficient evidence', 'ABSTAIN'],
+  uncertified_required_engine: ['Uncertified required engine', 'ABSTAIN'],
+};
+const CLASS_ORDER = Object.keys(CLASS);
+const ACTION = {
+  'research.inspect_hypothesis': 'Inspect hypothesis', 'research.run_screen': 'Run screen', 'research.add_costs': 'Add costs',
+  'research.run_latency_sensitivity': 'Latency sensitivity', 'research.promote_event_replay': 'Promote to event replay',
+  'research.run_counterfactual_stress': 'Counterfactual stress', 'research.submit': 'Submit verdict', unparsed: 'Unparsed action',
+};
+const CHECK = (k) => k.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
+const outcome = (r) => (r.ok ? 'ok' : r.verdict === r.expected ? 'part' : 'bad');
+const vpill = (v) => `<span class="v-pill ${v.toLowerCase()}">${v}</span>`;
+
+/* ---------- derived stats ---------- */
+const by = (m) => R.filter((r) => r.model === m);
+const S = MODELS.map((m) => {
+  const rs = by(m), ok = rs.filter((r) => r.ok).length, cost = rs.reduce((a, r) => a + r.cost, 0);
+  const walls = rs.map((r) => r.wall).sort((a, b) => a - b);
+  return { m, n: rs.length, ok, fa: rs.filter((r) => r.fa).length, cost, cpv: cost / Math.max(1, ok),
+    wall: walls[Math.floor(walls.length / 2)], tok: rs.reduce((a, r) => a + r.tok, 0) / rs.length, right: rs.filter((r) => r.verdict === r.expected).length };
+});
+const total = { n: R.length, ok: R.filter((r) => r.ok).length, fa: R.filter((r) => r.fa).length, cost: R.reduce((a, r) => a + r.cost, 0),
+  right: R.filter((r) => r.verdict === r.expected).length };
+const failGroups = (() => {
+  const g = {};
+  R.filter((r) => !r.ok).forEach((r) => { const key = r.verdict === r.expected ? 'check:' + r.failed.join('+') + ':' + r.task : 'verdict:' + r.task + ':' + r.model;
+    (g[key] = g[key] || []).push(r); });
+  return Object.entries(g).sort((a, b) => b[1].length - a[1].length);
+})();
+
+/* ---------- provenance chip ---------- */
+function prov(label, hash, status = 'Manifest match') {
+  return `<button class="prov" data-prov="${esc(hash)}" title="sha256 ${esc(hash)}"><span class="ok">✓</span>${status} · ${esc(label)} <span class="mono">${short(hash)}</span></button>`;
+}
+
+/* ---------- pages ---------- */
+function overview() {
+  const issues = failGroups.map(([k, rs]) => {
+    const r = rs[0], cls = CLASS[r.cls][0];
+    if (k.startsWith('check')) {
+      const models = [...new Set(rs.map((x) => x.model))];
+      return `<div class="issue"><div class="t"><b>Right verdict, too much work</b><span class="n">${rs.length}</span></div>
+        <p>${cls} (${r.task}). ${models.length === 3 ? 'All three models' : models.join(', ')} abstained correctly but failed <span class="mono">${r.failed.join(', ')}</span> by running more engines than the task needed.</p>
+        <button class="link" data-go="runs" data-filter='${JSON.stringify({ task: r.task })}'>Show ${rs.length} runs →</button></div>`;
+    }
+    return `<div class="issue"><div class="t"><b>Wrong verdict</b><span class="n">${rs.length}</span></div>
+      <p>${cls} (${r.task}). ${r.model} answered ${r.verdict} where the verifier expected ${r.expected}, and failed <span class="mono">${r.failed.join(', ')}</span>.</p>
+      <button class="link" data-run="${r.id}">Open run →</button></div>`;
+  }).join('');
+  const rows = CLASS_ORDER.map((c) => {
+    const cells = MODELS.map((m) => {
+      const rs = R.filter((r) => r.cls === c && r.model === m).sort((a, b) => a.seed - b.seed);
+      return `<td><div class="seeds">${rs.map((r) => `<button class="seed ${outcome(r)}" data-run="${r.id}" title="${m} · seed ${r.seed} · ${r.verdict}${r.failed.length ? ' · failed ' + r.failed.join(', ') : ''}" aria-label="${m} seed ${r.seed} ${r.verdict}">${r.verdict[0]}</button>`).join('')}</div></td>`;
+    }).join('');
+    return `<tr><td class="task"><b>${CLASS[c][0]}</b><span>should ${CLASS[c][1].toLowerCase()}</span></td>${cells}</tr>`;
+  }).join('');
+  const mrows = S.map((s) => `<tr>
+      <td><span class="mdot" style="background:${MCOL[s.m]}"></span>${mname(s.m)}</td>
+      <td class="num"><span class="hb" style="width:80px"><i style="width:${(s.ok / s.n) * 100}%;background:var(--pass)"></i></span>${pct(s.ok, s.n)}</td>
+      <td class="num">${s.right} / ${s.n}</td>
+      <td class="num" style="color:${s.fa ? 'var(--fail)' : 'var(--fg)'}">${s.fa}</td>
+      <td class="num">${usd(s.cpv, 5)}</td>
+      <td class="num">${Math.round(s.tok).toLocaleString()}</td>
+      <td class="num">${s.wall.toFixed(1)}s</td></tr>`).join('');
+  return `
+  <section class="ph">
+    <div><h1>Forge v0.2.5 baseline</h1>
+      <p>${B.episodes} research episodes: ${MODELS.length} models × 6 task types × 3 seeds, frozen ${dateStr(B.created_at)}. Every run is graded by ${R[0].nChecks} deterministic checks, not by a model.</p></div>
+    ${prov('v0.2.5', B.baseline_id)}
+  </section>
+
+  <section class="card kpis" aria-label="Headline numbers">
+    <div class="kpi"><div class="l">Verified research success</div><div class="v">${total.ok}<small>/ ${total.n}</small></div><div class="s">${pct(total.ok, total.n)} passed every check</div></div>
+    <div class="kpi"><div class="l">Correct verdict</div><div class="v">${total.right}<small>/ ${total.n}</small></div><div class="s">accept, reject or abstain matched</div></div>
+    <div class="kpi"><div class="l">False alpha accepted</div><div class="v" style="color:var(--pass)">${total.fa}</div><div class="s">no fragile strategy was approved</div></div>
+    <div class="kpi"><div class="l">Inference cost</div><div class="v">${usd(total.cost, 2)}</div><div class="s">all ${total.n} runs, token estimate</div></div>
+  </section>
+
+  <section class="grid g-2-1">
+    <div class="card">
+      <div class="ch"><h2>Outcomes by task type</h2><span class="meta">one square per seed · click to open the run</span></div>
+      <div class="cb tw"><table class="mx"><thead><tr><th>Task type</th>${MODELS.map((m) => `<th><span class="mdot" style="background:${MCOL[m]}"></span>${m}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="cf"><div class="legend-row"><span><i style="background:rgba(66,201,139,.5)"></i>Verified</span><span><i style="background:rgba(232,181,74,.5)"></i>Right verdict, failed a check</span><span><i style="background:rgba(240,100,100,.55)"></i>Wrong verdict</span></div><span>Letter = submitted verdict</span></div>
+    </div>
+    <div class="card">
+      <div class="ch"><h2>What went wrong</h2><span class="meta">${total.n - total.ok} of ${total.n} runs</span></div>
+      <div class="cb issues">${issues}</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="ch"><h2>Models</h2><span class="meta">same tasks, same seeds, same checks · listed alphabetically, not ranked</span></div>
+    <div class="cb tw" style="padding-top:8px"><table class="t"><thead><tr><th>Model</th><th class="num">Verified</th><th class="num">Correct verdict</th><th class="num">False alpha</th><th class="num">Cost per verified run</th><th class="num">Tokens per run</th><th class="num">Median time</th></tr></thead><tbody>${mrows}</tbody></table></div>
+  </section>
+
+  ${ladderCard()}
+  <div class="foot"><span>Read-only view of frozen artifacts. Nothing here calls a live model or market.</span><span class="mono">${B.tag}</span></div>`;
+}
+
+function ladderCard() {
+  const P = L.points, W = 1000, H = 260, pad = { l: 48, r: 24, t: 28, b: 54 };
+  const max = Math.ceil(Math.max(...P.map((p) => p.sharpe))), min = Math.min(0, Math.floor(Math.min(...P.map((p) => p.sharpe))));
+  const x = (i) => pad.l + (i / (P.length - 1)) * (W - pad.l - pad.r);
+  const y = (v) => pad.t + (1 - (v - min) / (max - min)) * (H - pad.t - pad.b);
+  const names = { L0_ANALYTICAL: 'Analytical', L1_VECTORBT: 'Vectorised', L2_NAUTILUS: 'Event replay', L3_FEES_SLIPPAGE: '+ Fees & slippage', L3_LATENCY: '+ Latency', L4_COUNTERFACTUAL_STRESS: '+ Counterfactual stress' };
+  const ticks = []; for (let v = min; v <= max; v++) ticks.push(v);
+  const path = P.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.sharpe).toFixed(1)}`).join(' ');
+  const area = path + ` L${x(P.length - 1)},${y(min)} L${x(0)},${y(min)} Z`;
+  const dec = L.decomp, big = Object.entries(dec).sort((a, b) => a[1] - b[1])[0];
+  const reg = L.regimes.map((r) => `<tr><td>${r.regime.replace('_', ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase())}</td><td class="num">${r.sharpe.L0_ANALYTICAL.toFixed(2)}</td><td class="num">${r.sharpe.L4_COUNTERFACTUAL_STRESS.toFixed(2)}</td><td class="num" style="color:${r.survival > 0 ? 'var(--fg)' : 'var(--fail)'}">${(r.survival * 100).toFixed(1)}%</td></tr>`).join('');
+  return `<section class="grid g-2-1">
+    <div class="card ladder">
+      <div class="ch"><h2>Reality ladder · how much edge survives</h2><span class="meta">${L.metric} at each level of realism · ${short(L.hash)}</span></div>
+      <div class="cb" style="padding-top:8px">
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Sharpe ratio falling from ${P[0].sharpe.toFixed(2)} to ${P[P.length - 1].sharpe.toFixed(2)} across the reality ladder">
+          <defs>
+            <linearGradient id="lg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#F0A929" stop-opacity=".22"/><stop offset="1" stop-color="#F0A929" stop-opacity="0"/></linearGradient>
+            <filter id="glow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          ${ticks.map((v) => `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(v)}" y2="${y(v)}" stroke="${v === 0 ? '#3A4048' : '#1A1E23'}" stroke-width="1"/><text x="${pad.l - 12}" y="${y(v) + 4}" text-anchor="end" fill="#6C757D" font-family="JetBrains Mono, monospace" font-size="12">${v}</text>`).join('')}
+          <path d="${area}" fill="url(#lg)"/>
+          <path d="${path}" fill="none" stroke="#F0A929" stroke-width="2.5" filter="url(#glow)" stroke-linejoin="round"/>
+          ${P.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.sharpe)}" r="${i === P.length - 1 ? 6 : 4.5}" fill="${i === P.length - 1 ? '#F06464' : '#0B0D10'}" stroke="${i === P.length - 1 ? '#F06464' : '#F0A929'}" stroke-width="2"/>
+            <text x="${x(i)}" y="${y(p.sharpe) - 14}" text-anchor="middle" fill="${i === P.length - 1 ? '#F06464' : '#E7EAEC'}" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500">${p.sharpe.toFixed(2)}</text>
+            <text x="${x(i)}" y="${H - pad.b + 24}" text-anchor="${i === 0 ? 'start' : i === P.length - 1 ? 'end' : 'middle'}" fill="#A3ABB2" font-family="Inter, sans-serif" font-size="12.5">${names[p.cp] || p.cp}</text>
+            <text x="${x(i)}" y="${H - pad.b + 42}" text-anchor="${i === 0 ? 'start' : i === P.length - 1 ? 'end' : 'middle'}" fill="#6C757D" font-family="JetBrains Mono, monospace" font-size="11">${p.engine}</text>`).join('')}
+        </svg>
+      </div>
+      <div class="ladder-meta">
+        <div><div class="l">Edge that survives</div><div class="v" style="color:var(--fail)">${(L.survival * 100).toFixed(1)}%</div></div>
+        <div><div class="l">Biggest loss</div><div class="v">${big[1].toFixed(2)} <span class="sub">Sharpe, stress</span></div></div>
+        <div><div class="l">Latency cost</div><div class="v">${dec.latency_decay.toFixed(2)} <span class="sub">Sharpe</span></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><h2>By market regime</h2><span class="meta">${L.regimes[0].seeds} seeds each</span></div>
+      <div class="cb tw" style="padding-top:8px"><table class="t" style="min-width:0"><thead><tr><th>Regime</th><th class="num">Start</th><th class="num">Stressed</th><th class="num">Survives</th></tr></thead><tbody>${reg}</tbody></table></div>
+      <div class="cf"><span>${esc(L.finding)}</span></div>
+    </div>
+  </section>`;
+}
+
+const RS = { model: 'all', out: 'all', cls: 'all', q: '', task: null, sel: null };
+function runs() {
+  const list = R.filter((r) => (RS.model === 'all' || r.model === RS.model) && (RS.out === 'all' || outcome(r) === RS.out)
+    && (RS.cls === 'all' || r.cls === RS.cls) && (!RS.task || r.task === RS.task)
+    && (!RS.q || (r.task + ' ' + r.cls + ' ' + r.model + ' ' + r.reason).toLowerCase().includes(RS.q.toLowerCase())))
+    .sort((a, b) => a.task.localeCompare(b.task) || a.model.localeCompare(b.model) || a.seed - b.seed);
+  const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button aria-pressed="${RS[key] === v}" data-f="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  const body = list.map((r) => `<tr class="click" data-run="${r.id}" aria-selected="${RS.sel === r.id}" tabindex="0">
+      <td><b style="font-weight:500">${CLASS[r.cls][0]}</b><div class="sub mono">${r.task}</div></td>
+      <td><span class="mdot" style="background:${MCOL[r.model]}"></span>${r.model}</td>
+      <td class="num">${r.seed}</td>
+      <td>${vpill(r.verdict)} ${r.verdict === r.expected ? '' : `<span class="sub">expected ${r.expected.toLowerCase()}</span>`}</td>
+      <td>${r.ok ? '<span class="b pass">Verified</span>' : r.verdict === r.expected ? `<span class="b warn">${r.failed.length} check failed</span>` : '<span class="b fail">Wrong verdict</span>'}</td>
+      <td class="num">${r.turns.length}</td>
+      <td class="num">${r.tok.toLocaleString()}</td>
+      <td class="num">${usd(r.cost, 5)}</td>
+      <td class="num">${r.wall.toFixed(1)}s</td></tr>`).join('');
+  return `
+  <section class="ph"><div><h1>Runs</h1><p>Every trajectory in the v0.2.5 baseline. Open a run to see each step the agent took and which checks it passed.</p></div>${prov('runs', F.runsArtifactHash)}</section>
+  <section class="card">
+    <div class="filters">
+      ${seg('model', [['all', 'All models'], ...MODELS.map((m) => [m, m])])}
+      ${seg('out', [['all', 'All outcomes'], ['ok', 'Verified'], ['part', 'Failed a check'], ['bad', 'Wrong verdict']])}
+      <select class="inp" id="f-cls" aria-label="Task type"><option value="all">All task types</option>${CLASS_ORDER.map((c) => `<option value="${c}" ${RS.cls === c ? 'selected' : ''}>${CLASS[c][0]}</option>`).join('')}</select>
+      <input class="inp" id="f-q" placeholder="Search reason, task or model" value="${esc(RS.q)}" aria-label="Search runs">
+      ${RS.task ? `<button class="kbd" data-clear-task>Task ${RS.task} ✕</button>` : ''}
+      <span class="count">${list.length} of ${R.length}</span>
+    </div>
+    <div class="tw"><table class="t"><thead><tr><th>Task</th><th>Model</th><th class="num">Seed</th><th>Verdict</th><th>Grade</th><th class="num">Steps</th><th class="num">Tokens</th><th class="num">Cost</th><th class="num">Time</th></tr></thead>
+      <tbody>${body || `<tr><td colspan="9" class="empty-inline" style="padding:28px 14px">No runs match these filters.</td></tr>`}</tbody></table></div>
+  </section>`;
+}
+
+function bench() {
+  const rows = S.map((s) => `<tr><td><span class="mdot" style="background:${MCOL[s.m]}"></span>${mname(s.m)}</td><td class="num">${s.n}</td><td class="num">${s.ok}</td><td class="num">${s.right}</td><td class="num">${s.fa}</td><td class="num">${usd(s.cost, 4)}</td><td class="num">${s.wall.toFixed(1)}s</td></tr>`).join('');
+  return `
+  <section class="ph"><div><h1>Bench</h1><p>Released baselines. A baseline is a frozen set of runs with a manifest; numbers here are observations of that release, not a global ranking.</p></div></section>
+  <section class="card">
+    <div class="tw"><table class="t"><thead><tr><th>Baseline</th><th>Status</th><th class="num">Episodes</th><th class="num">Attempts</th><th class="num">Excluded</th><th>Models</th><th>Created</th><th>Integrity</th></tr></thead>
+    <tbody>
+      <tr><td><b style="font-weight:500">v0.2.5</b><div class="sub">real API, single agent</div></td><td><span class="b pass">Released</span></td><td class="num">${B.episodes}</td><td class="num">${B.attempts_total}</td><td class="num">${B.excluded_attempts}</td><td>${B.models.map((m) => m.split('-').pop()).join(', ')}</td><td>${dateStr(B.created_at)}</td><td><span class="b pass">Manifest match</span></td></tr>
+      <tr><td><b style="font-weight:500">v0.2.5.1</b><div class="sub">hardened</div></td><td><span class="b neutral">Not released</span></td><td class="num faint">—</td><td class="num faint">—</td><td class="num faint">—</td><td class="faint">—</td><td class="faint">—</td><td class="faint">No artifact yet</td></tr>
+      <tr><td><b style="font-weight:500">v0.3</b><div class="sub">multi-agent</div></td><td><span class="b neutral">Not released</span></td><td class="num faint">—</td><td class="num faint">—</td><td class="num faint">—</td><td class="faint">—</td><td class="faint">—</td><td class="faint">No artifact yet</td></tr>
+    </tbody></table></div>
+  </section>
+  <section class="grid g-2-1">
+    <div class="card"><div class="ch"><h2>v0.2.5 observations by model</h2><span class="meta">alphabetical</span></div>
+      <div class="cb tw" style="padding-top:8px"><table class="t"><thead><tr><th>Model</th><th class="num">Runs</th><th class="num">Verified</th><th class="num">Correct verdict</th><th class="num">False alpha</th><th class="num">Total cost</th><th class="num">Median time</th></tr></thead><tbody>${rows}</tbody></table></div></div>
+    <div class="card"><div class="ch"><h2>Integrity</h2></div>
+      <div class="cb"><dl class="ids">
+        <dt>Baseline id</dt><dd>${B.baseline_id}</dd><button class="copy" data-copy="${B.baseline_id}">Copy</button>
+        <dt>Schema</dt><dd>${B.source_schema_version}</dd><span></span>
+        <dt>Manifest</dt><dd>${B.integrity.manifest}</dd><span></span>
+        <dt>Checked</dt><dd>${B.integrity.checked_files.join(', ')}</dd><span></span>
+      </dl>
+      <p class="sub" style="margin:14px 0 0">${B.excluded_attempts} of ${B.attempts_total} attempts was excluded before freezing; the manifest records why.</p></div></div>
+  </section>`;
+}
+
+function evidence() {
+  const kind = { REAL_API_BASELINE: 'Real API baseline', REALITY_LADDER: 'Reality ladder', ENGINE_CERTIFICATION: 'Engine certification' };
+  const st = { MANIFEST_MATCH: ['pass', 'Manifest match'], FROZEN_ARTIFACT: ['info', 'Frozen'], BOUND_REFERENCE: ['neutral', 'Bound reference'] };
+  const arows = F.artifacts.map((a) => `<tr><td><b style="font-weight:500">${kind[a.kind] || a.kind}</b><div class="sub mono">${a.artifact_id}</div></td><td><span class="b ${st[a.integrity_status][0]}">${st[a.integrity_status][1]}</span></td><td class="num">${a.source_file_count}</td><td class="mono sub">${a.source_schema_version}</td><td class="mono">${short(a.artifact_hash, 12)}</td><td><button class="copy" data-copy="${a.artifact_hash}">Copy</button></td></tr>`).join('');
+  const wrows = F.worlds.map((w) => `<tr><td class="mono">${short(w.hash, 12)}</td><td>${w.tasks.map((t) => `<button class="link" data-go="runs" data-filter='${JSON.stringify({ task: t })}'>${t}</button>`).join(', ')}</td><td class="num">${w.refs}</td><td>${w.manifest ? '<span class="b pass">Exported</span>' : '<span class="b neutral">Not exported</span>'}</td><td><button class="copy" data-copy="${w.hash}">Copy</button></td></tr>`).join('');
+  return `
+  <section class="ph"><div><h1>Evidence</h1><p>Content-addressed artifacts behind every number in Forge, and the market worlds the agents were tested in.</p></div></section>
+  <section class="card"><div class="ch"><h2>Artifacts</h2><span class="meta">${F.artifacts.length} bound to this release</span></div>
+    <div class="cb tw" style="padding-top:8px"><table class="t"><thead><tr><th>Artifact</th><th>Integrity</th><th class="num">Files</th><th>Schema</th><th>Hash</th><th></th></tr></thead><tbody>${arows}</tbody></table></div></section>
+  <section class="card"><div class="ch"><h2>Worlds</h2><span class="meta">${F.worlds.length} frozen market worlds · ${F.worlds.reduce((a, w) => a + w.refs, 0)} run references</span></div>
+    <div class="cb tw" style="padding-top:8px"><table class="t"><thead><tr><th>World</th><th>Task</th><th class="num">Runs</th><th>Manifest</th><th></th></tr></thead><tbody>${wrows}</tbody></table></div>
+    <div class="cf"><span>World manifests (policies, parents, interventions) are not part of the v0.2.5 export. Runs reference each world by hash, so the binding is still verifiable.</span></div></section>`;
+}
+
+/* ---------- drawer ---------- */
+function openRun(id) {
+  const r = R.find((x) => x.id === id); if (!r) return;
+  RS.sel = id;
+  const maxc = Math.max(...r.turns.map((t) => t.c), 1e-9);
+  const checks = [...r.failed.map((k) => [k, false]), ...['artifact_binding','budget','completed','decision_binding','efficient_routing','model_action_binding','model_identity','model_metering','prompt_identity','required_evidence','sealed_data_hidden','task_identity','tool_schema_identity','trajectory_actions','usage_counters','verdict'].filter((k) => !r.failed.includes(k)).map((k) => [k, true])].slice(0, r.nChecks);
+  $('#drawer').innerHTML = `
+    <div class="dh"><div><h3>${CLASS[r.cls][0]} · <span style="color:${MCOL[r.model]}">${r.model}</span></h3><div class="sub mono">${r.task} · seed ${r.seed}</div></div><button class="x" id="close-d" aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="sect"><h4>Verdict</h4><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${vpill(r.verdict)}<span class="sub">${r.verdict === r.expected ? 'matches expected' : 'expected ' + r.expected.toLowerCase()}</span>${r.ok ? '<span class="b pass">Verified</span>' : r.verdict === r.expected ? '<span class="b warn">Right verdict, failed a check</span>' : '<span class="b fail">Wrong verdict</span>'}</div>
+        <p class="quote" style="margin-top:12px">${esc(r.reason)}</p></div>
+      <div class="sect"><h4>Trajectory · ${r.turns.length} steps · ${r.tok.toLocaleString()} tokens · ${usd(r.cost, 5)} · ${r.wall.toFixed(1)}s</h4>
+        <ol class="steps">${r.turns.map((t, i) => `<li><span class="k">${i + 1}</span><span class="act">${ACTION[t.a] || t.a}<small>${t.a}</small></span><span class="num">${(t.ti + t.to).toLocaleString()} tok · ${t.l.toFixed(1)}s<br><span class="hb" style="width:60px;margin:6px 0 0"><i style="width:${(t.c / maxc) * 100}%;background:var(--amber)"></i></span>${usd(t.c, 5)}</span></li>`).join('')}</ol></div>
+      <div class="sect"><h4>Checks · ${r.nChecks - r.failed.length} of ${r.nChecks} passed</h4>
+        <div class="checks">${checks.map(([k, v]) => `<div class="${v ? 'y' : 'n'}"><i>${v ? '✓' : '✕'}</i>${CHECK(k)}</div>`).join('')}</div></div>
+      <div class="sect"><h4>Identifiers</h4><dl class="ids">
+        <dt>Run</dt><dd>${r.id}</dd><button class="copy" data-copy="${r.id}">Copy</button>
+        <dt>World</dt><dd>${r.world}</dd><button class="copy" data-copy="${r.world}">Copy</button>
+        <dt>Model</dt><dd>${mname(r.model)}</dd><span></span></dl></div>
+    </div>`;
+  $('#drawer').classList.add('open'); $('#drawer').setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('open');
+  document.querySelectorAll('[data-run]').forEach((el) => el.tagName === 'TR' && el.setAttribute('aria-selected', String(el.dataset.run === id)));
+  $('#close-d').focus();
+}
+function closeRun() { $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('open'); RS.sel = null;
+  document.querySelectorAll('tr[data-run]').forEach((el) => el.setAttribute('aria-selected', 'false')); }
+
+/* ---------- router ---------- */
+const PAGES = { overview, runs, bench, evidence };
+let route = 'overview';
+function render() {
+  const h = (location.hash || '#overview').slice(1);
+  route = PAGES[h] ? h : 'overview';
+  $('#page').innerHTML = PAGES[route]();
+  document.querySelectorAll('nav.main a[data-r]').forEach((a) => a.setAttribute('aria-current', a.dataset.r === route ? 'page' : 'false'));
+  document.title = route === 'overview' ? 'FinSight Forge' : `FinSight Forge · ${route[0].toUpperCase() + route.slice(1)}`;
+}
+addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-run],[data-go],[data-f],[data-copy],[data-clear-task],#close-d,#scrim,[data-prov]');
+  if (!t) return;
+  if (t.id === 'close-d' || t.id === 'scrim') return closeRun();
+  if (t.dataset.copy) { const v = t.dataset.copy; navigator.clipboard?.writeText(v).then(() => { t.textContent = 'Copied'; setTimeout(() => (t.textContent = 'Copy'), 1200); }).catch(() => {}); return; }
+  if (t.dataset.prov) { location.hash = '#evidence'; return; }
+  if ('clearTask' in t.dataset) { RS.task = null; return render(); }
+  if (t.dataset.f) { RS[t.dataset.f] = t.dataset.v; return render(); }
+  if (t.dataset.go) { Object.assign(RS, { model: 'all', out: 'all', cls: 'all', q: '', task: null }, JSON.parse(t.dataset.filter || '{}')); if (location.hash === '#' + t.dataset.go) render(); else location.hash = '#' + t.dataset.go; return; }
+  if (t.dataset.run) openRun(t.dataset.run);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { if ($('#pal').classList.contains('open')) closePal(); else closeRun(); }
+  if (e.key === 'Enter' && e.target.matches('tr[data-run]')) openRun(e.target.dataset.run);
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPal(); }
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'f-q') { RS.q = e.target.value; const pos = e.target.selectionStart; render(); const el = $('#f-q'); el.focus(); el.setSelectionRange(pos, pos); }
+});
+document.addEventListener('change', (e) => { if (e.target.id === 'f-cls') { RS.cls = e.target.value; render(); } });
+
+/* ---------- palette ---------- */
+let palItems = [], palIdx = 0;
+function palData(q) {
+  const base = [['Overview', 'page', () => (location.hash = '#overview')], ['Runs', 'page', () => (location.hash = '#runs')], ['Bench', 'page', () => (location.hash = '#bench')], ['Evidence', 'page', () => (location.hash = '#evidence')],
+    ['Observatory', 'page', () => (location.href = 'observatory.html')],
+    ...MODELS.map((m) => [`Runs by ${m}`, 'filter', () => { Object.assign(RS, { model: m, out: 'all', cls: 'all', q: '', task: null }); location.hash === '#runs' ? render() : (location.hash = '#runs'); }]),
+    ['Failed runs', 'filter', () => { Object.assign(RS, { model: 'all', out: 'part', cls: 'all', q: '', task: null }); location.hash === '#runs' ? render() : (location.hash = '#runs'); }],
+    ...[...new Set(R.map((r) => r.task))].map((t) => [`${t} · ${CLASS[R.find((r) => r.task === t).cls][0]}`, 'task', () => { Object.assign(RS, { model: 'all', out: 'all', cls: 'all', q: '', task: t }); location.hash === '#runs' ? render() : (location.hash = '#runs'); }])];
+  return base.filter(([l]) => l.toLowerCase().includes(q.toLowerCase()));
+}
+function drawPal() {
+  palItems = palData($('#pal-in').value); palIdx = Math.min(palIdx, Math.max(0, palItems.length - 1));
+  $('#pal-list').innerHTML = palItems.map(([l, k], i) => `<button data-i="${i}" aria-selected="${i === palIdx}">${esc(l)}<span>${k}</span></button>`).join('') || '<div class="sub" style="padding:10px">No matches</div>';
+}
+function openPal() { $('#pal').classList.add('open'); $('#pal-in').value = ''; palIdx = 0; drawPal(); $('#pal-in').focus(); }
+function closePal() { $('#pal').classList.remove('open'); }
+$('#open-pal').addEventListener('click', openPal);
+$('#pal').addEventListener('click', (e) => { if (e.target.id === 'pal') return closePal(); const b = e.target.closest('[data-i]'); if (b) { closePal(); palItems[+b.dataset.i][2](); } });
+$('#pal-in').addEventListener('input', () => { palIdx = 0; drawPal(); });
+$('#pal-in').addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') { palIdx = Math.min(palIdx + 1, palItems.length - 1); drawPal(); e.preventDefault(); }
+  if (e.key === 'ArrowUp') { palIdx = Math.max(palIdx - 1, 0); drawPal(); e.preventDefault(); }
+  if (e.key === 'Enter' && palItems[palIdx]) { closePal(); palItems[palIdx][2](); }
+});
+
+render();
+})();
+</script>
