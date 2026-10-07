@@ -70,10 +70,109 @@ function sameLength(label: string, ...lists: unknown[][]) {
 
 // ---------------------------------------------------------------- tickers
 
-export const TICKER_PATTERN = /^[A-Z0-9.^=-]{1,12}$/;
+export const TICKER_PATTERN = /^[A-Z0-9^][A-Z0-9.^=-]{0,19}$/;
 export function normalizeTicker(raw: string): string | null {
   const t = raw.trim().toUpperCase();
   return TICKER_PATTERN.test(t) ? t : null;
+}
+
+export const BAR_RANGES = ["1D", "5D", "1M", "3M", "6M", "YTD", "1Y", "5Y"] as const;
+export type BarRange = (typeof BAR_RANGES)[number];
+export function parseBarRange(value: unknown): BarRange {
+  return BAR_RANGES.includes(value as BarRange) ? (value as BarRange) : "1D";
+}
+export const DEFAULT_WATCHLIST = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "RELIANCE.NS"];
+export function parseWatchlist(value: unknown): string[] {
+  if (!Array.isArray(value)) return [...DEFAULT_WATCHLIST];
+  return [...new Set(value.flatMap((v) => typeof v === "string" ? [normalizeTicker(v)] : []).filter((v): v is string => v != null))].slice(0, 30);
+}
+/** Static routes take precedence even when the symbol differs only in case. */
+export function overviewTarget(ticker: string) {
+  return ["OPTIONS", "RISK", "BACKTEST", "FUNDAMENTALS", "RESEARCH"].includes(ticker.toUpperCase())
+    ? { to: "/markets" as const, search: { ticker } }
+    : { to: "/markets/$ticker" as const, params: { ticker }, search: {} };
+}
+
+// ---------------------------------------------------------------- overview
+
+export type Candle = { t: string; o: number; h: number; l: number; c: number; v: Num };
+export type Bars = {
+  ticker: string; range: BarRange; interval: string; intraday: boolean; source: string;
+  adjusted: string; timezone: string | null; fetched_at: string | null; bars: Candle[];
+};
+const ZONED_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i;
+function validTime(t: string, intraday: boolean) {
+  return (intraday ? ZONED_TIME.test(t) : /^\d{4}-\d{2}-\d{2}$/.test(t)) && Number.isFinite(Date.parse(t));
+}
+export function adaptBars(value: unknown, expected: { ticker: string; range: BarRange }): Bars {
+  const o = obj(value, "Bars");
+  const ticker = str(o.ticker, "ticker"), range = str(o.range, "range");
+  if (ticker !== expected.ticker || range !== expected.range)
+    throw new MarketsContractError("Bars belong to a different ticker or range.");
+  const intraday = bool(o.intraday, "intraday"), interval = str(o.interval, "interval");
+  const requiredInterval = range === "1D" ? "5m" : range === "5D" ? "30m" : range === "5Y" ? "1wk" : "1d";
+  if (intraday !== ["1D", "5D"].includes(range) || interval !== requiredInterval)
+    throw new MarketsContractError("Bars have an unexpected interval.");
+  const timezone = optStr(o.timezone, "timezone");
+  if (intraday && !timezone) throw new MarketsContractError("Intraday bars need an exchange timezone.");
+  if (timezone) {
+    try { new Intl.DateTimeFormat("en-US", { timeZone: timezone }); }
+    catch { throw new MarketsContractError("Unknown exchange timezone."); }
+  }
+  const bars = arr(o.bars, "bars").map((value, i): Candle => {
+    const b = obj(value, `bars[${i}]`), t = str(b.t, "bar.t");
+    if (!validTime(t, intraday)) throw new MarketsContractError("Bar time is invalid or has no UTC offset.");
+    const candle = { t, o: num(b.o, "bar.o"), h: num(b.h, "bar.h"), l: num(b.l, "bar.l"), c: num(b.c, "bar.c"), v: numOrNull(b.v, "bar.v") };
+    if (candle.h < Math.max(candle.o, candle.c) || candle.l > Math.min(candle.o, candle.c) || (candle.v != null && candle.v < 0))
+      throw new MarketsContractError("Candle prices or volume are inconsistent.");
+    return candle;
+  });
+  if (!bars.length || bars.some((b, i) => i > 0 && Date.parse(b.t) <= Date.parse(bars[i - 1].t)))
+    throw new MarketsContractError("Bars must be non-empty and strictly ordered by time.");
+  const adjusted = str(o.adjusted, "adjusted");
+  if (adjusted !== "splits_and_dividends") throw new MarketsContractError("Unknown price adjustment.");
+  return { ticker, range: range as BarRange, interval, intraday, timezone, adjusted,
+    source: str(o.source, "source"), fetched_at: optStr(o.fetched_at, "fetched_at"), bars };
+}
+
+export type MarketQuote = {
+  ticker: string; last: number; change_pct: Num; open: Num; high: Num; low: Num;
+  prev_close: Num; volume: Num; quote_ts: string | null; source: string; live: boolean;
+};
+export function adaptQuotes(value: unknown, requested: readonly string[]): Record<string, MarketQuote | null> {
+  const o = obj(value, "Tape");
+  bool(o.live, "live");
+  const result: Record<string, MarketQuote | null> = Object.fromEntries(requested.map((t) => [t, null]));
+  for (const value of arr(o.items, "items")) {
+    const q = obj(value, "Quote"), ticker = str(q.ticker, "ticker");
+    let ts: string | null = null;
+    if (typeof q.quote_ts === "number") {
+      const epoch = num(q.quote_ts, "quote_ts");
+      if (!Number.isFinite(new Date(epoch * 1000).getTime())) throw new MarketsContractError("Invalid quote timestamp.");
+      ts = new Date(epoch * 1000).toISOString();
+    } else {
+      ts = optStr(q.quote_ts, "quote_ts");
+      if (ts && !Number.isFinite(Date.parse(ts))) throw new MarketsContractError("Invalid quote timestamp.");
+    }
+    const quote = { ticker, last: num(q.last, "last"), change_pct: numOrNull(q.change_pct, "change_pct"),
+      open: numOrNull(q.open, "open"), high: numOrNull(q.high, "high"), low: numOrNull(q.low, "low"),
+      prev_close: numOrNull(q.prev_close, "prev_close"), volume: numOrNull(q.volume, "volume"),
+      quote_ts: ts, source: str(q.source, "source"), live: bool(q.live, "quote.live") };
+    if (quote.live && (!ts || !ZONED_TIME.test(ts))) throw new MarketsContractError("Live quote needs a zoned timestamp.");
+    if (requested.includes(ticker)) {
+      if (result[ticker]) throw new MarketsContractError("Duplicate quote.");
+      result[ticker] = quote;
+    }
+  }
+  return result;
+}
+export type SearchItem = { symbol: string; name: string; exchange: string; market: string; type: string };
+export function adaptSearch(value: unknown): SearchItem[] {
+  return arr(obj(value, "Search").items, "items").map((value) => {
+    const o = obj(value, "Search item"), symbol = str(o.symbol, "symbol");
+    if (!normalizeTicker(symbol)) throw new MarketsContractError("Invalid search symbol.");
+    return { symbol, name: str(o.name, "name"), exchange: str(o.exchange, "exchange"), market: str(o.market, "market"), type: str(o.type, "type") };
+  });
 }
 
 // ---------------------------------------------------------------- options

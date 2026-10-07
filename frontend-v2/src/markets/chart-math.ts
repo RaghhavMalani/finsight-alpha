@@ -2,6 +2,17 @@
 
 export type Scale = ((v: number) => number) & { domain: [number, number] };
 
+/** Session bars get equal space; weekends and overnight gaps take no chart width. */
+export function bandScale(count: number, left: number, right: number) {
+  const step = (right - left) / Math.max(1, count);
+  return { center: (i: number) => left + (i + 0.5) * step, width: Math.max(0.5, step * 0.72),
+    nearest: (x: number) => Math.max(0, Math.min(count - 1, Math.floor((x - left) / step))) };
+}
+export function candleGeometry(bar: { o: number; h: number; l: number; c: number }, sy: (v: number) => number) {
+  return { top: Math.min(sy(bar.o), sy(bar.c)), height: Math.max(1, Math.abs(sy(bar.o) - sy(bar.c))),
+    wickTop: sy(bar.h), wickBottom: sy(bar.l), up: bar.c >= bar.o };
+}
+
 export function linearScale(domain: [number, number], range: [number, number]): Scale {
   const [d0, d1] = domain,
     [r0, r1] = range;
