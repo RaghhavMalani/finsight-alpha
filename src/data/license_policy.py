@@ -18,6 +18,29 @@ NOT_GRANTED = "NOT_GRANTED"
 NOT_REGISTERED = "NOT_REGISTERED"
 UNVERIFIED = "UNVERIFIED"
 
+# Narrow publication registrations for attributed research projections. These are
+# not raw-vendor-data licences or tenant display/training grants.
+PUBLIC_RESEARCH_SOURCES = {
+    "ken-french:daily-factors": {
+        "attribution": "Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "source_urls": ["https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html"],
+        "terms_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+        "basis": "Public research-return library; attributed derived research publication. No raw CRSP redistribution.",
+    },
+    "iima:daily-factors": {
+        "attribution": "Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.",
+        "source_urls": ["https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/"],
+        "terms_url": "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+        "basis": "Public research-factor library with requested citation; attributed derived research publication. No raw Prowess redistribution.",
+    },
+    "celestrak:gp": {
+        "attribution": "CelesTrak; USSPACECOM / 18th Space Defense Squadron; Space-Track.org.",
+        "source_urls": ["https://celestrak.org/", "https://www.space-track.org/documentation"],
+        "terms_url": "https://celestrak.org/usage-policy.php",
+        "basis": "USSPACECOM blanket approval for cited basic SSA redistribution; publish derived orbital snapshots only. Fetch needed groups at most once per two hours; stop on non-200.",
+    },
+}
+
 
 def _set_tenant(session: Any, organization_id: int) -> None:
     if session.bind and session.bind.dialect.name == "postgresql":
@@ -218,6 +241,10 @@ def derived_publication_license(
     dataset_key: str, organization_id: int | None, *, at: datetime | None = None
 ) -> dict[str, Any]:
     """Display/training grants never imply permission for anonymous publication."""
+    if dataset_key in PUBLIC_RESEARCH_SOURCES:
+        return {"status": ACTIVE, "permitted_uses": ["publish_derived"],
+                "dataset_key": dataset_key, "valid_through": None,
+                **PUBLIC_RESEARCH_SOURCES[dataset_key]}
     if dataset_key == "usgs:comcat":
         return {"status": "PUBLIC_DOMAIN", "permitted_uses": ["publish_derived"],
                 "dataset_key": dataset_key, "valid_through": None,

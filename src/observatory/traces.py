@@ -92,11 +92,11 @@ def signal_inputs(prices, benchmark, ticker, horizon):
     return clean, columns, inference
 
 
-def split_evidence(frame, x_fit, x_validation):
+def split_evidence(frame, x_fit, x_validation, *, feature_clock="available_at"):
     train = frame.loc[x_fit.index]
     validation = frame.loc[x_validation.index]
     information_end = pd.to_datetime(train["target_information_at"], utc=True).max()
-    feature_start = pd.to_datetime(validation["available_at"], utc=True).min()
+    feature_start = pd.to_datetime(validation[feature_clock], utc=True).min()
     if information_end >= feature_start:
         raise ValueError("Training target information crosses the validation/holdout feature boundary")
     return {
@@ -120,8 +120,16 @@ def signal_trace(ticker, as_of, source, *, horizon=1, embargo=0, dataset=None,
                   "benchmark_input_hash": benchmark_provenance["input_hash"],
                   "input_hash": digest([provenance["input_hash"], benchmark_provenance["input_hash"]])}
     frame, columns, inference = signal_inputs(prices, benchmark, ticker, horizon)
+    return prepared_signal_trace(ticker, frame, columns, inference, provenance,
+                                 source=source, horizon=horizon, embargo=embargo,
+                                 fold_count=fold_count)
+
+
+def prepared_signal_trace(ticker, frame, columns, inference, provenance, *, source,
+                          horizon=1, embargo=0, fold_count=5, feature_clock="available_at"):
+    """Shared selection/trace engine; callers declare their evidence clock."""
     split = build_signal_splits(frame, columns, "target_direction", horizon=horizon, embargo=embargo)
-    holdout_boundary = split_evidence(frame, split["X_train"], split["X_test"])
+    holdout_boundary = split_evidence(frame, split["X_train"], split["X_test"], feature_clock=feature_clock)
     development = split["development"]
     folds = []
     adapter = adapter_for("gradient_boosting")
@@ -130,7 +138,7 @@ def signal_trace(ticker, as_of, source, *, horizon=1, embargo=0, dataset=None,
             prefix = development.iloc[:max(100, int(len(development) * fraction))]
             x_fit, x_val, y_fit, y_val = signal_selection_split(
                 prefix, columns, "target_direction", horizon=horizon, embargo=embargo)
-            evidence = split_evidence(frame, x_fit, x_val)
+            evidence = split_evidence(frame, x_fit, x_val, feature_clock=feature_clock)
             if set(x_fit.index) & set(split["X_test"].index) or set(x_val.index) & set(split["X_test"].index):
                 raise ValueError("Untouched holdout entered model-selection stages")
             model = models.get_classification_model("gradient_boosting", random_state=42)
