@@ -96,6 +96,9 @@ export type RunSummary = Readonly<{
   decision: Readonly<{ verdict: string; reason: string }> | null;
   verifiedResearchSuccess: boolean;
   criticalGateFailure: boolean;
+  expectedVerdict: string;
+  verificationChecks: Readonly<Record<string, boolean>>;
+  falseAlphaAcceptance: boolean;
   usage: Readonly<{
     toolCalls: ResearchMetric;
     engineRuns: ResearchMetric;
@@ -174,6 +177,13 @@ export type RealityDetail = Readonly<{
   binding: ArtifactBinding;
   primaryMetric: string;
   checkpoints: readonly RealityCheckpoint[];
+  regimeMatrix: readonly Readonly<{
+    regime: string;
+    seeds: number;
+    start: number;
+    stressed: number;
+    survival: number;
+  }>[];
   alphaSurvival: ResearchMetric;
   finding: string;
   largestDegradation: Readonly<{

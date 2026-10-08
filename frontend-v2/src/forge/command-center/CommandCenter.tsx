@@ -1,17 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { BaselineDetail, ResearchMetric, RunSummary } from "@/forge/contracts/observer";
+import { useEffect, useRef, type ReactNode } from "react";
+import type {
+  BaselineDetail,
+  RealityDetail,
+  ResearchMetric,
+  RunSummary,
+} from "@/forge/contracts/observer";
 import { DEFAULT_BASELINE_ID, DEFAULT_REALITY_ID } from "@/forge/contracts/observer";
 import { baselineQuery, realityQuery, runQuery, runsQuery } from "@/forge/data/forge-queries";
-import { TrajectoryEvidenceInspector } from "@/forge/runs/TrajectoryEvidenceInspector";
-import { TrajectoryExplorer } from "@/forge/runs/TrajectoryExplorer";
-import { buildTrajectoryViewModel } from "@/forge/runs/trajectory-model";
 import {
   InstrumentPanel,
   LoadingState,
   StatusMark,
+  SurfaceHeader,
   UnavailableState,
 } from "@/forge/shared/SurfacePrimitives";
+import { assertRunPreview, buildAgentOverview, recordedOutcome } from "./overview-model";
 
 export function CommandCenter({
   selectedRunId,
@@ -23,22 +28,15 @@ export function CommandCenter({
   const baseline = useQuery(baselineQuery(DEFAULT_BASELINE_ID));
   const runs = useQuery(runsQuery());
   const reality = useQuery(realityQuery(DEFAULT_REALITY_ID));
-  const selectedSummary =
-    runs.data?.items.find((item) => item.runId === selectedRunId) ?? runs.data?.items[0];
-  const detail = useQuery({
-    ...runQuery(selectedSummary?.runId ?? ""),
-    enabled: Boolean(selectedSummary?.runId),
-  });
   const navigate = useNavigate();
-
-  if (baseline.isPending || runs.isPending || reality.isPending) {
-    return <LoadingState label="Forge Command Center" />;
-  }
+  const close = () => void navigate({ to: "/forge", search: { run: undefined, node: 1 } });
+  if (baseline.isPending || runs.isPending || reality.isPending)
+    return <LoadingState label="Agents overview" />;
   const failure = baseline.error ?? runs.error ?? reality.error;
   if (failure || !baseline.data || !runs.data || !reality.data) {
     return (
       <UnavailableState
-        title="Command Center projections could not be validated"
+        title="Agents projections could not be validated"
         error={failure}
         retry={() => {
           void baseline.refetch();
@@ -48,368 +46,631 @@ export function CommandCenter({
       />
     );
   }
-
-  if (!selectedSummary) {
-    return (
-      <UnavailableState
-        title="No admitted trajectories are present"
-        error={new Error("The frozen baseline contains no selectable run.")}
-      />
-    );
+  let overview: ReturnType<typeof buildAgentOverview>;
+  try {
+    overview = buildAgentOverview(baseline.data, runs.data);
+  } catch (error) {
+    return <UnavailableState title="Agents evidence is inconsistent" error={error} />;
   }
-
-  if (detail.isPending) {
-    return (
-      <div>
-        <CommandCenterHeader baseline={baseline.data} runCount={runs.data.matched} />
-        <div className="mt-3">
-          <LoadingState label="selected trajectory" />
-        </div>
-      </div>
-    );
+  const selected = runs.data.items.find((r) => r.runId === selectedRunId);
+  const groups = new Map<string, RunSummary[]>();
+  for (const run of overview.failures) {
+    const checks = Object.entries(run.verificationChecks)
+      .filter(([, passed]) => !passed)
+      .map(([name]) => name)
+      .sort();
+    const key = JSON.stringify([run.taskId, checks]);
+    groups.set(key, [...(groups.get(key) ?? []), run]);
   }
-
-  if (detail.error || !detail.data) {
-    return (
-      <UnavailableState
-        title="Selected trajectory could not be projected"
-        error={detail.error}
-        retry={() => void detail.refetch()}
-      />
-    );
-  }
-
-  const trajectory = buildTrajectoryViewModel(detail.data);
-  const selectedNode =
-    trajectory.nodes.find((node) => node.sequence === selectedNodeSequence) ?? trajectory.nodes[0];
-
-  if (!selectedNode) {
-    return (
-      <UnavailableState
-        title="Selected trajectory has no actions"
-        error={new Error("The frozen trajectory action list is empty.")}
-      />
-    );
-  }
-
-  const selectNode = (sequence: number) => {
-    void navigate({
-      to: "/forge",
-      search: { run: detail.data.runId, node: sequence },
-    });
-  };
-
   return (
-    <div>
-      <CommandCenterHeader baseline={baseline.data} runCount={runs.data.matched} />
-
-      <div className="mt-3 grid gap-3 xl:grid-cols-[13.5rem_minmax(32rem,1fr)_18.5rem]">
-        <InstrumentPanel title="Run index" code={`${runs.data.matched} TRAJECTORIES`}>
-          <CommandRunRail
-            runs={runs.data.items}
-            baseline={baseline.data}
-            selectedRunId={selectedSummary.runId}
-          />
-        </InstrumentPanel>
-
+    <>
+      <SurfaceHeader
+        eyebrow="Agents · recorded baseline"
+        title="Forge v0.2.5 baseline"
+        description={
+          runs.data.matched +
+          " research episodes across " +
+          overview.models.length +
+          " models. Deterministic verifier grades are recorded alongside every action."
+        }
+        meta={<Binding baseline={baseline.data} />}
+      />
+      <section className="agents-card agents-kpis" aria-label="Headline numbers">
+        <Kpi
+          label="Verified research success"
+          value={
+            <>
+              {overview.verified}
+              <small> / {runs.data.matched}</small>
+            </>
+          }
+          note={
+            formatMetric(baseline.data.overall.verifiedResearch) + " passed every recorded check"
+          }
+        />
+        <Kpi
+          label="Correct verdict"
+          value={
+            <>
+              {overview.correctVerdicts}
+              <small> / {runs.data.matched}</small>
+            </>
+          }
+          note="Matches the recorded verifier expectation"
+        />
+        <Kpi
+          label="False alpha accepted"
+          value={overview.falseAlpha}
+          note="Recorded decisions on synthetic research tasks"
+        />
+        <Kpi
+          label="Inference cost"
+          value={"$" + baseline.data.admittedCost.value.toFixed(2)}
+          note={
+            "Token estimate, not an invoice · " +
+            baseline.data.attempts.value +
+            " attempts, " +
+            baseline.data.excludedAttempts.value +
+            " excluded"
+          }
+        />
+      </section>
+      <div className="agents-grid">
         <InstrumentPanel
-          title={`${detail.data.model.replace("gpt-5.6-", "")} · ${detail.data.taskId}`}
-          code={detail.data.decision?.verdict ?? "NO DECISION"}
+          title="Outcomes by task type"
+          code="One square per seed · open the recorded run"
         >
-          <TrajectoryExplorer
-            model={trajectory}
-            selectedSequence={selectedNode.sequence}
-            onSelect={selectNode}
-          />
-          <div className="grid grid-cols-2 gap-px border-t border-[#1D232B] bg-[#1D232B] sm:grid-cols-5">
-            <RunMetric label="Tokens" value={detail.data.usage.tokens.value.toLocaleString()} />
-            <RunMetric label="Cost" value={formatMetric(detail.data.usage.cost)} tone="amber" />
-            <RunMetric label="Wall" value={formatMetric(detail.data.usage.wallSeconds)} />
-            <RunMetric label="Trajectory" value={`${detail.data.runId.slice(0, 8)}…`} />
-            <Link
-              to="/runs/$runId"
-              params={{ runId: detail.data.runId }}
-              search={{ node: selectedNode.sequence, tab: "action" }}
-              className="flex min-h-12 items-center justify-center bg-[#0B0E11] px-3 font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-[#FFB000] hover:bg-[#111820] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000]"
-            >
-              Replay →
-            </Link>
+          <div
+            className="agents-card-body agents-scroll"
+            role="region"
+            aria-label="Task outcome matrix"
+            tabIndex={0}
+          >
+            <table className="agents-table agents-matrix">
+              <thead>
+                <tr>
+                  <th scope="col">Task type</th>
+                  {overview.models.map((m) => (
+                    <th scope="col" key={m.id}>
+                      {m.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {overview.tasks.map((task) => {
+                  const taskRuns = runs.data.items.filter((r) => r.taskClass === task);
+                  const expectations = [...new Set(taskRuns.map((r) => r.expectedVerdict))];
+                  return (
+                    <tr key={task}>
+                      <th scope="row" className="agents-task">
+                        {words(task)}
+                        <small>
+                          {expectations.length === 1
+                            ? "Expected " + expectations[0].toLowerCase()
+                            : "Recorded expectations vary"}
+                        </small>
+                      </th>
+                      {overview.models.map((model) => (
+                        <td key={model.id}>
+                          <div className="agents-seeds">
+                            {taskRuns
+                              .filter((r) => r.model === model.id)
+                              .sort((a, b) => a.seed - b.seed)
+                              .map((run) => (
+                                <Link
+                                  key={run.runId}
+                                  to="/forge"
+                                  search={{ run: run.runId, node: 1 }}
+                                  className="agents-seed"
+                                  data-outcome={recordedOutcome(run)}
+                                  data-run-id={run.runId}
+                                  aria-label={
+                                    model.label +
+                                    " seed " +
+                                    run.seed +
+                                    " " +
+                                    run.decision?.verdict +
+                                    " " +
+                                    recordedOutcome(run)
+                                  }
+                                  title={
+                                    run.taskId +
+                                    " · seed " +
+                                    run.seed +
+                                    " · " +
+                                    run.decision?.verdict +
+                                    " · " +
+                                    recordedOutcome(run)
+                                  }
+                                >
+                                  {run.decision?.verdict === "ABSTAIN"
+                                    ? "Ø"
+                                    : (run.decision?.verdict.slice(0, 1) ?? "?")}
+                                </Link>
+                              ))}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="agents-card-foot">
+            <div className="agents-legend">
+              <StatusMark status="PASS" label="Verified" />
+              <StatusMark status="ABSTAIN" label="Right verdict, failed a check" />
+              <StatusMark status="FAIL" label="Wrong verdict" />
+            </div>
+            <span>A = accept · R = reject · Ø = abstain</span>
           </div>
         </InstrumentPanel>
-
-        <InstrumentPanel title="Evidence" code={selectedNode.label}>
-          <TrajectoryEvidenceInspector run={detail.data} node={selectedNode} compact />
-        </InstrumentPanel>
-      </div>
-
-      <DenseBaselineTable
-        baseline={baseline.data}
-        realityArtifactHash={reality.data.binding.artifactHash}
-      />
-    </div>
-  );
-}
-
-function CommandCenterHeader({
-  baseline,
-  runCount,
-}: {
-  baseline: BaselineDetail;
-  runCount: number;
-}) {
-  return (
-    <header className="border-y border-[#1D232B] bg-[#090c0f] px-3 py-2.5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-[#E6E8EB]">
-          Command Center <span className="text-[#59636e]">/</span>{" "}
-          <span className="text-[#FFB000]">v0.2.5</span> <span className="text-[#59636e]">/</span>{" "}
-          <span className="text-[#8b949e]">Read only</span>
-        </h1>
-        <div className="flex gap-2">
-          <StatusMark status="PASS" label={baseline.binding.integrityStatus} />
-          <StatusMark status="INFO" label="FROZEN" />
-        </div>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[8px] uppercase tracking-[0.1em] text-[#7f8993]">
-        <span>{runCount} episodes</span>
-        <span aria-hidden="true" className="text-[#303842]">
-          ·
-        </span>
-        <span>{baseline.models.length} models</span>
-        <span aria-hidden="true" className="text-[#303842]">
-          ·
-        </span>
-        <span className="text-[#35C78A]">manifest match</span>
-        <span aria-hidden="true" className="text-[#303842]">
-          ·
-        </span>
-        <span>node data is frozen evidence</span>
-      </div>
-    </header>
-  );
-}
-
-function CommandRunRail({
-  runs,
-  baseline,
-  selectedRunId,
-}: {
-  runs: readonly RunSummary[];
-  baseline: BaselineDetail;
-  selectedRunId: string;
-}) {
-  const selected = runs.find((run) => run.runId === selectedRunId);
-
-  return (
-    <div className="max-h-[548px] overflow-y-auto">
-      {baseline.models.map((model) => {
-        const modelRuns = runs.filter((run) => run.model === model.id);
-        const activeModel = selected?.model === model.id;
-        const counts = verdictCounts(modelRuns);
-        return (
-          <details
-            key={model.id}
-            open={activeModel}
-            className="border-b border-[#1D232B] last:border-b-0"
-          >
-            <summary
-              className={`cursor-pointer list-none px-3 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${activeModel ? "bg-[#10151a]" : "hover:bg-[#0e1216]"}`}
-            >
-              <span className="flex items-center justify-between gap-2">
-                <span
-                  className={`font-mono text-[9px] font-semibold uppercase tracking-[0.12em] ${activeModel ? "text-[#FFB000]" : "text-[#cfd5da]"}`}
-                >
-                  {model.label}
-                </span>
-                <span className="font-mono text-[8px] text-[#65707c]">{modelRuns.length}</span>
-              </span>
-              <span className="mt-2 grid grid-cols-3 gap-1 font-mono text-[7px] uppercase tracking-[0.06em] text-[#65707c]">
-                <span>A {counts.ACCEPT}</span>
-                <span>R {counts.REJECT}</span>
-                <span>Ø {counts.ABSTAIN}</span>
-              </span>
-            </summary>
-            <div className="border-t border-[#1D232B]">
-              {modelRuns.map((run) => {
-                const active = run.runId === selectedRunId;
+        <InstrumentPanel
+          title="What went wrong"
+          code={overview.failures.length + " of " + runs.data.matched + " runs"}
+        >
+          <div className="agents-card-body">
+            {[...groups.values()]
+              .sort((a, b) => b.length - a.length)
+              .map((group) => {
+                const first = group[0];
+                const failed = Object.entries(first.verificationChecks)
+                  .filter(([, passed]) => !passed)
+                  .map(([name]) => words(name).toLowerCase());
                 return (
-                  <Link
-                    key={run.runId}
-                    to="/forge"
-                    search={{ run: run.runId, node: 1 }}
-                    aria-current={active ? "true" : undefined}
-                    className={`relative block border-l-2 px-2.5 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${
-                      active
-                        ? "border-l-[#FFB000] bg-[#17160f]"
-                        : "border-l-transparent hover:bg-[#0e1216]"
-                    }`}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[8px] text-[#c8cfd5]">{run.taskId}</span>
-                      <span className={verdictTone(run.decision?.verdict)}>
-                        {run.decision?.verdict ?? "NONE"}
-                      </span>
-                    </span>
-                    <span className="mt-1 flex items-center justify-between gap-2 font-mono text-[7px] text-[#65707c]">
-                      <span>seed {run.seed}</span>
-                      {active ? (
-                        <span className="font-semibold uppercase tracking-[0.1em] text-[#FFB000]">
-                          selected
-                        </span>
-                      ) : (
-                        <span>{run.runId.slice(0, 7)}</span>
-                      )}
-                    </span>
-                  </Link>
+                  <article className="agents-issue" key={first.runId}>
+                    <header>
+                      <h3>
+                        {first.verificationChecks.verdict
+                          ? "Right verdict, failed a check"
+                          : "Verdict mismatch"}
+                      </h3>
+                      <span className="agents-mono">{group.length}</span>
+                    </header>
+                    <p>
+                      {words(first.taskClass)}. Failed: {failed.join(", ")}. These grades remain
+                      unverified.
+                    </p>
+                    <Link
+                      className="agents-link"
+                      to="/runs"
+                      search={{
+                        task: first.taskId,
+                        verified: "failed",
+                        model: undefined,
+                        verdict: undefined,
+                        taskClass: undefined,
+                        seed: undefined,
+                      }}
+                    >
+                      Show recorded runs →
+                    </Link>
+                  </article>
                 );
               })}
-            </div>
-          </details>
-        );
-      })}
-      <Link
-        to="/runs"
-        search={{
-          model: undefined,
-          verdict: undefined,
-          task: undefined,
-          taskClass: undefined,
-          seed: undefined,
-          verified: undefined,
-        }}
-        className="block border-t border-[#1D232B] px-3 py-3 font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-[#52A8FF] hover:bg-[#111820] hover:text-[#8ac8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000]"
-      >
-        Filter all runs →
-      </Link>
-    </div>
-  );
-}
-
-function DenseBaselineTable({
-  baseline,
-  realityArtifactHash,
-}: {
-  baseline: BaselineDetail;
-  realityArtifactHash: string;
-}) {
-  return (
-    <section className="mt-3 border border-[#1D232B] bg-[#0B0E11]">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1D232B] px-3 py-2">
-        <div>
-          <h2 className="text-[12px] font-medium text-[#dce0e4]">Baseline comparison</h2>
-          <div className="mt-0.5 font-mono text-[7px] uppercase tracking-[0.1em] text-[#59636e]">
-            {baseline.tag}
+            {overview.failures.length === 0 && (
+              <p className="agents-muted">Every admitted run passed its recorded checks.</p>
+            )}
           </div>
+        </InstrumentPanel>
+      </div>
+      <InstrumentPanel title="Models" code="Same tasks and seeds · alphabetical, not ranked">
+        <div
+          className="agents-card-body agents-scroll"
+          role="region"
+          aria-label="Model observations"
+          tabIndex={0}
+        >
+          <table className="agents-table">
+            <thead>
+              <tr>
+                <th scope="col">Model</th>
+                <th scope="col" className="agents-num">
+                  Verified
+                </th>
+                <th scope="col" className="agents-num">
+                  Correct verdict
+                </th>
+                <th scope="col" className="agents-num">
+                  False alpha
+                </th>
+                <th scope="col" className="agents-num">
+                  Cost / verified
+                </th>
+                <th scope="col" className="agents-num">
+                  Mean time
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {overview.models.map((model) => {
+                const modelRuns = runs.data.items.filter((r) => r.model === model.id);
+                return (
+                  <tr key={model.id}>
+                    <th scope="row">{model.id}</th>
+                    <td className="agents-num" title={model.verifiedResearch.provenance.fieldPath}>
+                      {formatMetric(model.verifiedResearch)}
+                    </td>
+                    <td className="agents-num">
+                      {modelRuns.filter((r) => r.verificationChecks.verdict).length} /{" "}
+                      {modelRuns.length}
+                    </td>
+                    <td className="agents-num">
+                      {modelRuns.filter((r) => r.falseAlphaAcceptance).length}
+                    </td>
+                    <td
+                      className="agents-num"
+                      title={model.costPerVerifiedFinding.provenance.fieldPath}
+                    >
+                      {formatMetric(model.costPerVerifiedFinding)}
+                    </td>
+                    <td className="agents-num" title={model.latency.provenance.fieldPath}>
+                      {formatMetric(model.latency)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="hidden font-mono text-[7px] uppercase tracking-[0.08em] text-[#59636e] md:inline">
-            Reality {realityArtifactHash.slice(0, 10)}…
+        <div className="agents-card-foot">
+          <span>
+            Recorded {new Date(baseline.data.createdAt).toISOString().slice(0, 10)} · model costs
+            are token estimates.
           </span>
           <Link
+            className="agents-link"
             to="/bench/$benchmarkId"
-            params={{ benchmarkId: DEFAULT_BASELINE_ID }}
+            params={{ benchmarkId: baseline.data.binding.artifactId }}
             search={{ model: undefined }}
-            className="font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-[#52A8FF] hover:text-[#8ac8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]"
           >
-            Open Bench →
+            Inspect baseline and provenance →
           </Link>
         </div>
-      </header>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] border-collapse text-left font-mono text-[9px] tabular-nums">
-          <thead className="bg-[#090c0f] uppercase tracking-[0.08em] text-[#65707c]">
-            <tr>
-              <th className="px-3 py-2 font-medium">Model</th>
-              <th className="px-3 py-2 text-right font-medium">Verified</th>
-              <th className="px-3 py-2 text-right font-medium">False α</th>
-              <th className="px-3 py-2 text-right font-medium">$ / verified</th>
-              <th className="px-3 py-2 text-right font-medium">Latency</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#171d23]">
-            {baseline.models.map((model) => (
-              <tr key={model.id} className="hover:bg-[#0e1216]">
-                <th className="px-3 py-2 font-semibold text-[#dce0e4]">{model.label}</th>
-                <MetricCell metric={model.verifiedResearch} tone="green" />
-                <MetricCell metric={model.falseAlpha} />
-                <MetricCell metric={model.costPerVerifiedFinding} tone="amber" />
-                <MetricCell metric={model.latency} />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+      </InstrumentPanel>
+      <RealityOverview reality={reality.data} />
+      <p className="agents-muted text-xs">
+        Read-only artifacts. Real API execution on synthetic tasks does not establish market alpha.{" "}
+        <Link className="agents-link" to="/artifacts">
+          Inspect source bindings →
+        </Link>
+      </p>
+      {selectedRunId && (
+        <RunPreview
+          key={selectedRunId}
+          runId={selectedRunId}
+          summary={selected}
+          node={selectedNodeSequence}
+          close={close}
+        />
+      )}
+    </>
   );
 }
 
-function MetricCell({
-  metric,
-  tone = "default",
-}: {
-  metric: ResearchMetric;
-  tone?: "default" | "green" | "amber";
-}) {
-  const color =
-    tone === "green" ? "text-[#35C78A]" : tone === "amber" ? "text-[#FFB000]" : "text-[#cbd1d6]";
+function Binding({ baseline }: { baseline: BaselineDetail }) {
   return (
-    <td
-      className={`px-3 py-2 text-right ${color}`}
-      title={`${metric.provenance.source} · ${metric.provenance.fieldPath}`}
-    >
-      {formatMetric(metric)}
-    </td>
+    <details className="agents-prov">
+      <summary>
+        <StatusMark status="PASS" label="Manifest match" /> · v0.2.5{" "}
+        <span className="agents-mono">{baseline.binding.artifactHash.slice(0, 8)}…</span>
+      </summary>
+      <p className="agents-mono">{baseline.binding.artifactHash}</p>
+      <p>{baseline.binding.sourceSchemaVersion}</p>
+    </details>
   );
 }
-
-function RunMetric({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "amber";
-}) {
+function Kpi({ label, value, note }: { label: string; value: ReactNode; note: string }) {
   return (
-    <div className="min-h-12 bg-[#0B0E11] px-3 py-2">
-      <div className="font-mono text-[7px] uppercase tracking-[0.1em] text-[#59636e]">{label}</div>
-      <div
-        className={`mt-1 truncate font-mono text-[9px] tabular-nums ${tone === "amber" ? "text-[#FFB000]" : "text-[#d8dde2]"}`}
-        title={value}
-      >
-        {value}
-      </div>
+    <div className="agents-kpi">
+      <div>{label}</div>
+      <output>{value}</output>
+      <p>{note}</p>
     </div>
   );
 }
-
-function formatMetric(metric: ResearchMetric): string {
-  const value = metric.value.toLocaleString("en-US", {
+function words(value: string) {
+  return value.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase());
+}
+function formatMetric(metric: ResearchMetric) {
+  const n = metric.value.toLocaleString("en-US", {
     minimumFractionDigits: metric.precision,
     maximumFractionDigits: metric.precision,
   });
-  if (metric.unit === "PERCENT") return `${value}%`;
-  if (metric.unit === "USD") return `$${value}`;
-  if (metric.unit === "SECONDS") return `${value}s`;
-  return value;
+  return metric.unit === "PERCENT"
+    ? n + "%"
+    : metric.unit === "USD"
+      ? "$" + n
+      : metric.unit === "SECONDS"
+        ? n + "s"
+        : n;
 }
 
-function verdictCounts(runs: readonly RunSummary[]) {
-  return runs.reduce(
-    (counts, run) => {
-      const verdict = run.decision?.verdict;
-      if (verdict === "ACCEPT" || verdict === "REJECT" || verdict === "ABSTAIN") {
-        counts[verdict] += 1;
-      }
-      return counts;
-    },
-    { ACCEPT: 0, REJECT: 0, ABSTAIN: 0 },
+function RealityOverview({ reality }: { reality: RealityDetail }) {
+  const points = reality.checkpoints;
+  const values = points.map((p) => p.sharpe.value);
+  const min = Math.min(0, ...values),
+    max = Math.max(...values),
+    span = max - min || 1;
+  const x = (i: number) => 48 + (i / Math.max(1, points.length - 1)) * 880;
+  const y = (v: number) => 24 + (1 - (v - min) / span) * 150;
+  const path = points.map((p, i) => (i ? "L" : "M") + x(i) + "," + y(p.sharpe.value)).join(" ");
+  return (
+    <div className="agents-grid">
+      <InstrumentPanel
+        title="Reality ladder · synthetic reference"
+        code="Counterfactual results · not market evidence"
+      >
+        <div className="agents-card-body">
+          <svg
+            className="agents-ladder"
+            viewBox="0 0 960 230"
+            role="img"
+            aria-label="Recorded synthetic reference Sharpe across increasing realism"
+          >
+            <line x1="48" x2="928" y1={y(0)} y2={y(0)} stroke="#262B31" />
+            <path d={path} fill="none" stroke="#F0A929" strokeWidth="2.5" strokeLinejoin="round" />
+            {points.map((p, i) => (
+              <g key={p.id}>
+                <circle
+                  cx={x(i)}
+                  cy={y(p.sharpe.value)}
+                  r="4.5"
+                  fill="#0B0D10"
+                  stroke={p.sharpe.value < 0 ? "#F06464" : "#F0A929"}
+                  strokeWidth="2"
+                />
+                <text
+                  x={x(i)}
+                  y={y(p.sharpe.value) - 12}
+                  textAnchor="middle"
+                  fill="#E7EAEC"
+                  fontFamily="JetBrains Mono, monospace"
+                  fontSize="13"
+                >
+                  {p.sharpe.value.toFixed(2)}
+                </text>
+                <text
+                  x={x(i)}
+                  y="200"
+                  textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}
+                  fill="#A3ABB2"
+                  fontFamily="Inter, sans-serif"
+                  fontSize="12"
+                >
+                  {p.label}
+                </text>
+              </g>
+            ))}
+          </svg>
+          <dl className="agents-ladder-key">
+            {points.map((p) => (
+              <div key={p.id}>
+                <dt>{p.label}</dt>
+                <dd className="agents-mono">{p.sharpe.value.toFixed(2)}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div className="agents-ladder-values">
+          <div>
+            <span className="agents-muted">Edge that survives</span>
+            <output className="agents-mono">{formatMetric(reality.alphaSurvival)}</output>
+          </div>
+          <div>
+            <span className="agents-muted">Biggest loss</span>
+            <output className="agents-mono">
+              {formatMetric(reality.largestDegradation.change)}
+            </output>
+            <span className="agents-faint">{reality.largestDegradation.label}</span>
+          </div>
+          <div>
+            <span className="agents-muted">Source artifact</span>
+            <output className="agents-mono">{reality.binding.artifactHash.slice(0, 12)}…</output>
+            <Link
+              className="agents-link"
+              to="/reality/$artifactId"
+              params={{ artifactId: reality.binding.artifactId }}
+              search={{ metric: "sharpe", checkpoint: undefined }}
+            >
+              Inspect recorded checkpoints →
+            </Link>
+          </div>
+        </div>
+        <div className="agents-card-foot">{reality.finding}</div>
+      </InstrumentPanel>
+      <InstrumentPanel title="By synthetic regime" code="Frozen reference experiment">
+        <div className="agents-card-body">
+          <table className="agents-table agents-regimes-table">
+            <thead>
+              <tr>
+                <th scope="col">Regime</th>
+                <th scope="col" className="agents-num">
+                  Start
+                </th>
+                <th scope="col" className="agents-num">
+                  Stressed
+                </th>
+                <th scope="col" className="agents-num">
+                  Survives
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {reality.regimeMatrix.map((row) => (
+                <tr key={row.regime}>
+                  <th scope="row">{words(row.regime.toLowerCase())}</th>
+                  <td className="agents-num">{row.start.toFixed(2)}</td>
+                  <td className="agents-num">{row.stressed.toFixed(2)}</td>
+                  <td className="agents-num">{row.survival.toFixed(1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="agents-muted mt-4">
+            Seed counts:{" "}
+            {reality.regimeMatrix
+              .map((row) => words(row.regime.toLowerCase()) + " " + row.seeds)
+              .join(" · ")}
+            . These reference results do not certify tradable market alpha.
+          </p>
+          <p className="agents-faint agents-mono mt-4 break-all">
+            Source: /aggregate/regime_matrix · {reality.binding.artifactHash}
+          </p>
+        </div>
+      </InstrumentPanel>
+    </div>
   );
 }
 
-function verdictTone(verdict?: string): string {
-  if (verdict === "ACCEPT") return "font-mono text-[7px] font-semibold text-[#35C78A]";
-  if (verdict === "REJECT") return "font-mono text-[7px] font-semibold text-[#FF5A57]";
-  return "font-mono text-[7px] font-semibold text-[#D8A43A]";
+function RunPreview({
+  runId,
+  summary,
+  node,
+  close,
+}: {
+  runId: string;
+  summary: RunSummary | undefined;
+  node: number;
+  close: () => void;
+}) {
+  const query = useQuery(runQuery(runId));
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  let error: unknown = query.error;
+  if (query.data && summary) {
+    try {
+      assertRunPreview(summary, query.data);
+    } catch (e) {
+      error = e;
+    }
+  }
+  if (!summary) error = new Error("This run is not in the admitted baseline.");
+  const run = error ? undefined : query.data;
+  return (
+    <dialog
+      ref={dialog}
+      className="agents-drawer"
+      aria-label="Recorded run detail"
+      onCancel={(e) => {
+        e.preventDefault();
+        close();
+      }}
+    >
+      <header className="agents-drawer-head">
+        <div>
+          <h2>
+            {summary
+              ? words(summary.taskClass) + " · " + summary.model.replace("gpt-5.6-", "")
+              : "Run unavailable"}
+          </h2>
+          <span className="agents-muted">
+            {summary?.taskId} · seed {summary?.seed} · recorded execution
+          </span>
+        </div>
+        <button
+          type="button"
+          className="agents-close"
+          onClick={close}
+          aria-label="Close run detail"
+          autoFocus
+        >
+          ×
+        </button>
+      </header>
+      <div className="agents-drawer-body">
+        {error ? (
+          <UnavailableState
+            title="Run detail could not be validated"
+            error={error}
+            retry={() => void query.refetch()}
+          />
+        ) : !run ? (
+          <LoadingState label="recorded run detail" />
+        ) : (
+          <>
+            <section>
+              <h3>Verdict · expected {summary?.expectedVerdict.toLowerCase()}</h3>
+              <StatusMark
+                status={(run.decision?.verdict as "ACCEPT" | "REJECT" | "ABSTAIN") ?? "INFO"}
+              />
+              <span className="ml-3">
+                <StatusMark
+                  status={run.verifiedResearchSuccess ? "PASS" : "ABSTAIN"}
+                  label={run.verifiedResearchSuccess ? "Verified" : "Unverified"}
+                />
+              </span>
+              <p className="agents-quote">
+                {run.decision?.reason ?? "No decision is bound to this run."}
+              </p>
+            </section>
+            <section>
+              <h3>Execution trace · {run.actions.length} actions</h3>
+              <p className="agents-muted agents-mono">
+                {formatMetric(run.usage.tokens)} tokens · {formatMetric(run.usage.cost)} ·{" "}
+                {formatMetric(run.usage.wallSeconds)}
+              </p>
+              <ol className="agents-steps">
+                {run.actions.map((action) => (
+                  <li key={action.sequence}>
+                    <span className="agents-step-number agents-mono">{action.sequence}</span>
+                    <div>
+                      <Link
+                        className="agents-link"
+                        to="/runs/$runId"
+                        params={{ runId }}
+                        search={{ node: action.sequence, tab: "action" }}
+                      >
+                        {words(action.tool.replace("research.", ""))}
+                      </Link>
+                      <small className="agents-mono">
+                        {action.tool} · {action.status}
+                        {action.engine ? " · " + action.engine : ""}
+                      </small>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+            <section>
+              <h3>
+                Checks · {Object.values(run.verificationChecks).filter(Boolean).length} of{" "}
+                {Object.keys(run.verificationChecks).length} passed
+              </h3>
+              <ul className="agents-checks">
+                {Object.entries(run.verificationChecks).map(([name, passed]) => (
+                  <li key={name} data-passed={passed}>
+                    <span
+                      style={{ color: passed ? "#42C98B" : "#F06464" }}
+                      aria-label={passed ? "Passed" : "Failed"}
+                    >
+                      {passed ? "✓" : "×"}
+                    </span>
+                    {words(name)}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section>
+              <h3>Identifiers</h3>
+              <p className="agents-mono break-all">{run.runId}</p>
+              <p className="agents-muted break-all">World: {run.worldHash}</p>
+            </section>
+            <Link
+              className="agents-link"
+              to="/runs/$runId"
+              params={{ runId }}
+              search={{ node, tab: "action" }}
+            >
+              Open full trajectory and evidence inspector →
+            </Link>
+          </>
+        )}
+      </div>
+    </dialog>
+  );
 }

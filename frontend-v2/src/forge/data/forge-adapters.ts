@@ -16,7 +16,7 @@ import {
   type RunSummary,
   type RunTurn,
   type WorldIndex,
-} from "@/forge/contracts/observer";
+} from "../contracts/observer.ts";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -360,9 +360,45 @@ function decision(value: unknown, label: string): RunSummary["decision"] {
   if (value === null || value === undefined) return null;
   const item = object(value, label);
   return {
-    verdict: text(item.verdict, `${label}.verdict`),
+    verdict: verdict(item.verdict, `${label}.verdict`),
     reason: text(item.reason, `${label}.reason`),
   };
+}
+
+function verdict(value: unknown, label: string): string {
+  const result = text(value, label);
+  if (!["ACCEPT", "REJECT", "ABSTAIN"].includes(result)) {
+    throw new ForgeContractError(`${label} has an unsupported verdict.`);
+  }
+  return result;
+}
+
+function verificationChecks(value: unknown): Readonly<Record<string, boolean>> {
+  const checks = object(value, "verification.checks");
+  if (!Object.keys(checks).length) throw new ForgeContractError("Verification checks are empty.");
+  return Object.fromEntries(
+    Object.entries(checks).map(([name, result]) => [name, boolean(result, `checks.${name}`)]),
+  );
+}
+
+function checkedVerification(value: JsonRecord, submitted: RunSummary["decision"]) {
+  const checks = verificationChecks(value.checks);
+  const expected = verdict(value.expected_verdict, "verification.expected_verdict");
+  const success = boolean(
+    value.verified_research_success,
+    "verification.verified_research_success",
+  );
+  const critical = boolean(value.critical_gate_failure, "verification.critical_gate_failure");
+  const falseAlpha = boolean(value.false_alpha_acceptance, "verification.false_alpha_acceptance");
+  if (
+    typeof checks.verdict !== "boolean" ||
+    checks.verdict !== (submitted?.verdict === expected) ||
+    success !== Object.values(checks).every(Boolean) ||
+    (success && (critical || falseAlpha))
+  ) {
+    throw new ForgeContractError("Recorded verification status contradicts its checks or verdict.");
+  }
+  return { checks, expected, success, critical, falseAlpha };
 }
 
 function runUsage(
@@ -430,6 +466,7 @@ function adaptRunSummary(entry: unknown, index: number, artifact: ArtifactBindin
   const worldHash = text(item.world_hash, `runs[${index}].world_hash`);
   const seed = number(item.seed, `runs[${index}].seed`);
   const verification = object(item.verification, `runs[${index}].verification`);
+  checkedVerification(verification, decision(item.decision, `runs[${index}].decision`));
   return {
     runId,
     taskId: text(item.task_id, `runs[${index}].task_id`),
@@ -448,6 +485,12 @@ function adaptRunSummary(entry: unknown, index: number, artifact: ArtifactBindin
     criticalGateFailure: boolean(
       verification.critical_gate_failure,
       `runs[${index}].verification.critical_gate_failure`,
+    ),
+    expectedVerdict: verdict(verification.expected_verdict, "verification.expected_verdict"),
+    verificationChecks: verificationChecks(verification.checks),
+    falseAlphaAcceptance: boolean(
+      verification.false_alpha_acceptance,
+      "verification.false_alpha_acceptance",
     ),
     usage: runUsage(artifact, item.usage, `/items/${index}/usage`, runId, worldHash, seed),
   };
@@ -622,6 +665,7 @@ export function adaptRun(value: unknown): RunDetail {
     };
   });
   const verification = object(root.verification, "verification");
+  checkedVerification(verification, decision(run.decision, "run.decision"));
   const checksValue = object(verification.checks, "verification.checks");
   const verificationChecks = Object.fromEntries(
     Object.entries(checksValue).map(([name, result]) => [name, boolean(result, `checks.${name}`)]),
@@ -745,6 +789,23 @@ export function adaptReality(value: unknown): RealityDetail {
     binding: artifact,
     primaryMetric: text(root.primary_metric, "primary_metric"),
     checkpoints,
+    regimeMatrix: list(aggregate.regime_matrix, "aggregate.regime_matrix").map((entry, index) => {
+      const row = object(entry, `aggregate.regime_matrix[${index}]`);
+      const sharpes = object(row.sharpe, "regime_matrix.sharpe");
+      const seeds = number(row.seeds, "regime_matrix.seeds");
+      if (!Number.isInteger(seeds) || seeds < 1)
+        throw new ForgeContractError("Invalid recorded regime seed count.");
+      return {
+        regime: text(row.regime, "regime_matrix.regime"),
+        seeds,
+        start: number(sharpes.L0_ANALYTICAL, "regime_matrix.sharpe.L0_ANALYTICAL"),
+        stressed: number(
+          sharpes.L4_COUNTERFACTUAL_STRESS,
+          "regime_matrix.sharpe.L4_COUNTERFACTUAL_STRESS",
+        ),
+        survival: number(row.alpha_survival_ratio, "regime_matrix.alpha_survival_ratio") * 100,
+      };
+    }),
     alphaSurvival: metric(artifact, {
       id: "alpha-survival",
       label: "Alpha survival",

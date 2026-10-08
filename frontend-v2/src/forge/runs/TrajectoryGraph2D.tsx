@@ -3,7 +3,7 @@ import type { TrajectoryNode, TrajectoryViewModel } from "@/forge/runs/trajector
 import { formatNodeCost, formatNodeLatency } from "@/forge/runs/trajectory-model";
 
 const NODE_WIDTH = 144;
-const NODE_HEIGHT = 118;
+const NODE_HEIGHT = 160;
 const STEP_X = 172;
 
 function nodePosition(node: TrajectoryNode, index: number) {
@@ -88,7 +88,7 @@ export function TrajectoryGraph2D({
                   onClick={() => onSelect(node.sequence)}
                   aria-pressed={active}
                   aria-label={`${node.label}, action ${node.sequence}, ${node.tokens} tokens, ${formatNodeCost(node.cost)}, ${formatNodeLatency(node.latency)}, verifier ${node.verifierState}`}
-                  className={`group relative h-[118px] w-full border bg-[#090c0f] p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:bg-[#0f1419] active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
+                  className={`group relative h-[160px] w-full border bg-[#090c0f] p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:bg-[#0f1419] active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
                     active
                       ? "border-[#FFB000] bg-[#13120e]"
                       : "border-[#303842] hover:border-[#59636e]"

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
 import type { RunDetail } from "@/forge/contracts/observer";
 import { runQuery } from "@/forge/data/forge-queries";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { AgentsShell } from "@/forge/shared/AgentsShell";
 import { TrajectoryEvidenceInspector } from "@/forge/runs/TrajectoryEvidenceInspector";
 import { TrajectoryExplorer } from "@/forge/runs/TrajectoryExplorer";
 import { buildTrajectoryViewModel } from "@/forge/runs/trajectory-model";
@@ -31,20 +31,20 @@ export function RunObserver({
 
   if (query.isPending) {
     return (
-      <ForgeShell>
+      <AgentsShell>
         <LoadingState label="run observer" />
-      </ForgeShell>
+      </AgentsShell>
     );
   }
   if (query.error || !query.data) {
     return (
-      <ForgeShell>
+      <AgentsShell>
         <UnavailableState
           title="Run projection could not be validated"
           error={query.error}
           retry={() => void query.refetch()}
         />
-      </ForgeShell>
+      </AgentsShell>
     );
   }
 
@@ -55,12 +55,12 @@ export function RunObserver({
 
   if (!selectedNode) {
     return (
-      <ForgeShell>
+      <AgentsShell>
         <UnavailableState
           title="Run has no observable actions"
           error={new Error("The frozen trajectory action list is empty.")}
         />
-      </ForgeShell>
+      </AgentsShell>
     );
   }
 
@@ -73,7 +73,7 @@ export function RunObserver({
   };
 
   return (
-    <ForgeShell>
+    <AgentsShell>
       <SurfaceHeader
         eyebrow={`Run · ${run.taskId} · ${run.taskClass.replaceAll("_", " ")}`}
         title={`${run.model.replace("gpt-5.6-", "")} · ${run.decision?.verdict ?? "trajectory"}`}
@@ -147,7 +147,7 @@ export function RunObserver({
         </div>
         <StatusMark status={verdictStatus(run.decision?.verdict)} />
       </section>
-    </ForgeShell>
+    </AgentsShell>
   );
 }
 

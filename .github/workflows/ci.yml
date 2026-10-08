@@ -103,6 +103,7 @@ jobs:
       - run: node scripts/verify-markets.mjs
       - run: node scripts/verify-shell.mjs
       - run: node scripts/verify-replay.mjs
+      - run: node scripts/verify-agents.mjs
       - run: npm run build
       - name: Install browsers for workspace and native-key checks
         run: |
@@ -120,6 +121,8 @@ jobs:
           node scripts/verify-markets.mjs --url http://127.0.0.1:4174
       - name: Unmocked public Replay has no failed requests or live-source traffic
         run: node scripts/verify-replay.mjs --url http://127.0.0.1:4174
+      - name: Agents reference views and recorded-grade sabotage checks
+        run: node scripts/verify-agents.mjs --url http://127.0.0.1:4174
       - name: Chrome, Edge and Firefox release the shell keys and preserve F5/F7
         run: node scripts/verify-shell.mjs --url http://127.0.0.1:4174
 

@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { ForgeContractError } from "@/forge/contracts/observer";
 import {
   adaptArtifactIndex,
   adaptBaseline,
@@ -25,7 +26,10 @@ export async function fetchRuns(filters: { model?: string; verdict?: string } = 
 }
 
 export async function fetchRun(runId: string) {
-  return adaptRun(await api<unknown>(`/forge/runs/${encodeURIComponent(runId)}`));
+  const run = adaptRun(await api<unknown>(`/forge/runs/${encodeURIComponent(runId)}`));
+  if (run.runId !== runId)
+    throw new ForgeContractError("Run identity does not match the requested trajectory.");
+  return run;
 }
 
 export async function fetchReality(artifactId: string) {

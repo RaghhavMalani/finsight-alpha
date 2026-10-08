@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
 import type { RealityCheckpoint, ResearchMetric } from "@/forge/contracts/observer";
 import { realityQuery } from "@/forge/data/forge-queries";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { AgentsShell } from "@/forge/shared/AgentsShell";
 import {
   InstrumentPanel,
   LoadingState,
@@ -32,19 +32,19 @@ export function RealityLadder({
   const query = useQuery(realityQuery(artifactId));
   if (query.isPending)
     return (
-      <ForgeShell>
+      <AgentsShell evidence="synthetic">
         <LoadingState label="Reality Ladder" />
-      </ForgeShell>
+      </AgentsShell>
     );
   if (query.error || !query.data) {
     return (
-      <ForgeShell>
+      <AgentsShell evidence="synthetic">
         <UnavailableState
           title="Reality Ladder could not be validated"
           error={query.error}
           retry={() => void query.refetch()}
         />
-      </ForgeShell>
+      </AgentsShell>
     );
   }
   const reality = query.data;
@@ -56,7 +56,7 @@ export function RealityLadder({
   const span = max - min || 1;
 
   return (
-    <ForgeShell>
+    <AgentsShell evidence="synthetic">
       <SurfaceHeader
         eyebrow="Reality Ladder · aggregate"
         title="Where alpha meets friction"
@@ -238,6 +238,6 @@ export function RealityLadder({
           </table>
         </div>
       </InstrumentPanel>
-    </ForgeShell>
+    </AgentsShell>
   );
 }
