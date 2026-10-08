@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { HashValue } from "@/epistemic/EpistemicValue";
 import { worldsQuery } from "@/forge/data/forge-queries";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { AgentsShell } from "@/forge/shared/AgentsShell";
 import {
   InstrumentPanel,
   LoadingState,
@@ -14,70 +13,82 @@ import {
 export function WorldIndex() {
   const query = useQuery(worldsQuery);
   return (
-    <ForgeShell>
+    <AgentsShell evidence="worlds">
       <SurfaceHeader
-        eyebrow="Point-in-time boundaries"
+        eyebrow="Agents · evidence bindings"
         title="Worlds"
-        description="World references observed in frozen v0.2.5 trajectories. The export does not include standalone world manifests, so as-of policies and fork relationships remain unavailable."
-        meta={<StatusMark status="INFO" label="REFERENCE INDEX" />}
+        description="Synthetic world references from the frozen v0.2.5 trajectories. Standalone world manifests are absent, so policies, interventions and parent relationships remain unavailable."
       />
-      <div className="mt-5">
-        {query.isPending ? (
-          <LoadingState label="world references" />
-        ) : query.error || !query.data ? (
-          <UnavailableState
-            title="World reference index unavailable"
-            error={query.error}
-            retry={() => void query.refetch()}
-          />
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {query.data.items.map((world) => (
-              <InstrumentPanel
-                key={world.worldHash}
-                title="Observed world reference"
-                code={world.manifestAvailable ? "MANIFEST" : "MANIFEST UNAVAILABLE"}
-              >
-                <div className="p-4">
-                  <HashValue label="world" value={world.worldHash} />
-                  <div className="mt-4 border border-dashed border-[#303842] bg-[#090b0e] p-3">
-                    <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#616A75]">
-                      UNAVAILABLE
-                    </div>
-                    <p className="mt-2 text-xs leading-5 text-[#737d87]">
-                      No world manifest is present in the frozen baseline export. No policy, parent,
-                      or intervention is inferred.
-                    </p>
-                  </div>
-                  <details className="mt-4 border-t border-[#1D232B] pt-3">
-                    <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.1em] text-[#52A8FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]">
-                      Referencing trajectories
-                    </summary>
-                    <ul className="mt-3 grid gap-2">
-                      {world.references.map((reference) => (
-                        <li
-                          key={reference.runId}
-                          className="flex items-center justify-between gap-3 border border-[#1D232B] p-2"
+      {query.isPending ? (
+        <LoadingState label="world references" />
+      ) : query.error || !query.data ? (
+        <UnavailableState
+          title="World reference index unavailable"
+          error={query.error}
+          retry={() => void query.refetch()}
+        />
+      ) : (
+        <InstrumentPanel
+          title="Referenced worlds"
+          code={query.data.items.length + " hashes bound to the release"}
+        >
+          <div className="agents-scroll" role="region" aria-label="World references" tabIndex={0}>
+            <table className="agents-table">
+              <thead>
+                <tr>
+                  <th scope="col">World hash</th>
+                  <th scope="col">Tasks</th>
+                  <th scope="col" className="agents-num">
+                    Run references
+                  </th>
+                  <th scope="col">Manifest</th>
+                  <th scope="col">Evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {query.data.items.map((w) => (
+                  <tr key={w.worldHash}>
+                    <td className="agents-mono" title={w.worldHash}>
+                      {w.worldHash.slice(0, 12)}…
+                    </td>
+                    <td>
+                      {[...new Set(w.references.map((r) => r.taskId))].map((task) => (
+                        <Link
+                          key={task}
+                          className="agents-link mr-3"
+                          to="/runs"
+                          search={{
+                            task,
+                            model: undefined,
+                            verdict: undefined,
+                            taskClass: undefined,
+                            seed: undefined,
+                            verified: undefined,
+                          }}
                         >
-                          <span className="text-xs text-[#8b949e]">{reference.taskId}</span>
-                          <Link
-                            to="/runs/$runId"
-                            params={{ runId: reference.runId }}
-                            search={{ node: 1, tab: "action" }}
-                            className="font-mono text-[8px] uppercase tracking-[0.1em] text-[#52A8FF] hover:text-[#8ac8ff] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]"
-                          >
-                            Open run
-                          </Link>
-                        </li>
+                          {task}
+                        </Link>
                       ))}
-                    </ul>
-                  </details>
-                </div>
-              </InstrumentPanel>
-            ))}
+                    </td>
+                    <td className="agents-num">{w.references.length}</td>
+                    <td>
+                      <StatusMark
+                        status="INFO"
+                        label={w.manifestAvailable ? "Exported" : "Not exported"}
+                      />
+                    </td>
+                    <td className="agents-muted">Synthetic task world</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
-    </ForgeShell>
+          <div className="agents-card-foot">
+            Run references bind a world by hash. They do not supply its missing manifest or
+            establish a real market result.
+          </div>
+        </InstrumentPanel>
+      )}
+    </AgentsShell>
   );
 }

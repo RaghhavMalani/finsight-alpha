@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { AgentsShell } from "@/forge/shared/AgentsShell";
 import { CommandCenter } from "@/forge/command-center/CommandCenter";
 
 export const Route = createFileRoute("/forge")({
@@ -23,8 +23,8 @@ export const Route = createFileRoute("/forge")({
 function ForgeRoute() {
   const { run, node } = Route.useSearch();
   return (
-    <ForgeShell>
+    <AgentsShell>
       <CommandCenter selectedRunId={run} selectedNodeSequence={node} />
-    </ForgeShell>
+    </AgentsShell>
   );
 }

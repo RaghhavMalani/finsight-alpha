@@ -1,3 +1,4 @@
+import { useRef, type RefObject } from "react";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import type { ThreeEvent } from "@react-three/fiber";
@@ -33,8 +34,10 @@ function TraceNode({
   maxCost,
   selected,
   onSelect,
+  portal,
 }: {
   node: TrajectoryNode;
+  portal: RefObject<HTMLDivElement>;
   position: Point;
   maxTokens: number;
   maxCost: number;
@@ -64,7 +67,13 @@ function TraceNode({
         <boxGeometry args={[size * 1.35, size, size]} />
         <meshBasicMaterial color={border} wireframe transparent opacity={selected ? 1 : 0.72} />
       </mesh>
-      <Html center position={[0, size * 0.95, 0]} distanceFactor={8} zIndexRange={[20, 0]}>
+      <Html
+        portal={portal}
+        center
+        position={[0, size * 0.95, 0]}
+        distanceFactor={8}
+        zIndexRange={[20, 0]}
+      >
         <button
           type="button"
           onClick={() => onSelect(node.sequence)}
@@ -89,8 +98,10 @@ function TraceScene({
   selectedSequence,
   onSelect,
   reducedMotion,
+  portal,
 }: {
   model: TrajectoryViewModel;
+  portal: RefObject<HTMLDivElement>;
   selectedSequence: number;
   onSelect: (sequence: number) => void;
   reducedMotion: boolean;
@@ -119,6 +130,7 @@ function TraceScene({
         <TraceNode
           key={node.id}
           node={node}
+          portal={portal}
           position={points.get(node.id) ?? [0, 0, 0]}
           maxTokens={model.maxTokens}
           maxCost={model.maxCost}
@@ -151,8 +163,11 @@ export default function TrajectoryGraph3D({
   onSelect: (sequence: number) => void;
   reducedMotion: boolean;
 }) {
+  // Keep Drei HTML labels in one stable portal. Changing its implicit Canvas
+  // event target recreates React roots while their earlier cleanup is pending.
+  const portal = useRef<HTMLDivElement>(null!);
   return (
-    <div className="relative h-[420px] min-h-[360px]" data-testid="trajectory-3d">
+    <div ref={portal} className="relative h-[420px] min-h-[360px]" data-testid="trajectory-3d">
       <Canvas
         camera={{ position: [4.6, 5.2, 10.5], fov: 44, near: 0.1, far: 100 }}
         dpr={[1, 1.5]}
@@ -164,6 +179,7 @@ export default function TrajectoryGraph3D({
           selectedSequence={selectedSequence}
           onSelect={onSelect}
           reducedMotion={reducedMotion}
+          portal={portal}
         />
       </Canvas>
       <div className="pointer-events-none absolute bottom-3 left-3 border border-[#29313a] bg-[#080b0e]/90 px-2 py-1.5 font-mono text-[7px] uppercase tracking-[0.1em] text-[#7f8993]">

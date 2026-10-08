@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
 import { baselineQuery } from "@/forge/data/forge-queries";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { AgentsShell } from "@/forge/shared/AgentsShell";
 import {
   InstrumentPanel,
   LoadingState,
@@ -21,19 +21,19 @@ export function BenchDetail({
   const query = useQuery(baselineQuery(benchmarkId));
   if (query.isPending)
     return (
-      <ForgeShell>
+      <AgentsShell>
         <LoadingState label="baseline detail" />
-      </ForgeShell>
+      </AgentsShell>
     );
   if (query.error || !query.data) {
     return (
-      <ForgeShell>
+      <AgentsShell>
         <UnavailableState
           title="Baseline could not be validated"
           error={query.error}
           retry={() => void query.refetch()}
         />
-      </ForgeShell>
+      </AgentsShell>
     );
   }
   const baseline = query.data;
@@ -42,7 +42,7 @@ export function BenchDetail({
     : baseline.models;
 
   return (
-    <ForgeShell>
+    <AgentsShell>
       <SurfaceHeader
         eyebrow={`Bench · ${baseline.tag}`}
         title="Real API model baseline"
@@ -51,7 +51,7 @@ export function BenchDetail({
       />
       <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.6fr)]">
         <InstrumentPanel title="Model observations" code="SUITE-SPECIFIC">
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[920px] border-collapse text-left">
               <caption className="sr-only">Frozen baseline metrics by model</caption>
               <thead>
@@ -153,7 +153,7 @@ export function BenchDetail({
           <UnavailableRelease label="v0.2.5.1 hardened" />
         </div>
       </div>
-    </ForgeShell>
+    </AgentsShell>
   );
 }
 

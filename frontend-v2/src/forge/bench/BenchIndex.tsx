@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { HashValue } from "@/epistemic/EpistemicValue";
 import { baselineIndexQuery } from "@/forge/data/forge-queries";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { AgentsShell } from "@/forge/shared/AgentsShell";
 import {
   InstrumentPanel,
   LoadingState,
@@ -14,67 +13,102 @@ import {
 export function BenchIndex() {
   const query = useQuery(baselineIndexQuery);
   return (
-    <ForgeShell>
+    <AgentsShell>
       <SurfaceHeader
-        eyebrow="Immutable baselines"
+        eyebrow="Agents · immutable baselines"
         title="Bench"
-        description="Versioned model and system observations. Bench presents release artifacts; it does not compute a global model ranking."
+        description="Released baselines are frozen sets of runs with manifests. These observations describe a release, rather than a global model ranking."
       />
-      <div className="mt-5">
-        {query.isPending ? (
-          <LoadingState label="baseline index" />
-        ) : query.error || !query.data ? (
-          <UnavailableState
-            title="Baseline index unavailable"
-            error={query.error}
-            retry={() => void query.refetch()}
-          />
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {query.data.map((baseline) => (
-              <InstrumentPanel
-                key={baseline.binding.artifactHash}
-                title={baseline.tag}
-                code="REAL API BASELINE"
-              >
-                <div className="p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <StatusMark status="PASS" label={baseline.binding.integrityStatus} />
-                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-[#65707c]">
-                      {baseline.models.map((model) => model.replace("gpt-5.6-", "")).join(" · ")}
-                    </span>
-                  </div>
-                  <div className="mt-4">
-                    <HashValue label="baseline" value={baseline.binding.artifactHash} />
-                  </div>
-                  <Link
-                    to="/bench/$benchmarkId"
-                    params={{ benchmarkId: baseline.binding.artifactId }}
-                    search={{ model: undefined }}
-                    className="mt-5 inline-flex border border-[#FFB000] px-3 py-2 font-mono text-[9px] uppercase tracking-[0.1em] text-[#FFB000] hover:bg-[#FFB000] hover:text-[#07090B] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]"
-                  >
-                    Inspect baseline
-                  </Link>
-                </div>
-              </InstrumentPanel>
-            ))}
-            <UnavailableRelease label="v0.2.5.1 hardened" />
-            <UnavailableRelease label="v0.3 multi-agent" />
+      {query.isPending ? (
+        <LoadingState label="baseline index" />
+      ) : query.error || !query.data ? (
+        <UnavailableState
+          title="Baseline index unavailable"
+          error={query.error}
+          retry={() => void query.refetch()}
+        />
+      ) : (
+        <InstrumentPanel title="Baselines" code="Manifest-bound releases">
+          <div className="agents-scroll" role="region" aria-label="Baseline releases" tabIndex={0}>
+            <table className="agents-table">
+              <thead>
+                <tr>
+                  <th scope="col">Baseline</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="agents-num">
+                    Episodes
+                  </th>
+                  <th scope="col" className="agents-num">
+                    Attempts
+                  </th>
+                  <th scope="col" className="agents-num">
+                    Excluded
+                  </th>
+                  <th scope="col">Models</th>
+                  <th scope="col">Created</th>
+                  <th scope="col">Integrity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {query.data.map((b) => (
+                  <tr key={b.binding.artifactHash}>
+                    <td>
+                      <Link
+                        className="agents-link"
+                        to="/bench/$benchmarkId"
+                        params={{ benchmarkId: b.binding.artifactId }}
+                        search={{ model: undefined }}
+                      >
+                        {b.binding.artifactId}
+                      </Link>
+                      <div className="agents-faint text-xs">
+                        Real API · single agent · synthetic tasks
+                      </div>
+                    </td>
+                    <td>
+                      <StatusMark status="PASS" label="Released" />
+                    </td>
+                    <td className="agents-num">{b.episodes}</td>
+                    <td className="agents-num">{b.attempts}</td>
+                    <td className="agents-num">{b.excludedAttempts}</td>
+                    <td>
+                      {b.models
+                        .map((m) => m.replace("gpt-5.6-", ""))
+                        .sort()
+                        .join(", ")}
+                    </td>
+                    <td className="agents-mono">{b.createdAt.slice(0, 10)}</td>
+                    <td>
+                      <StatusMark
+                        status={b.binding.integrityStatus === "MANIFEST_MATCH" ? "PASS" : "INFO"}
+                        label={b.binding.integrityStatus}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                {["v0.2.5.1 hardened", "v0.3 multi-agent"].map((label) => (
+                  <tr key={label}>
+                    <td>{label}</td>
+                    <td>
+                      <StatusMark status="INFO" label="Not released" />
+                    </td>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <td key={i} className="agents-faint">
+                        —
+                      </td>
+                    ))}
+                    <td className="agents-muted">No verified artifact loaded</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
-    </ForgeShell>
-  );
-}
-
-function UnavailableRelease({ label }: { label: string }) {
-  return (
-    <section className="border border-dashed border-[#303842] bg-[#090b0e] p-4">
-      <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#616A75]">
-        UNAVAILABLE
-      </div>
-      <h2 className="mt-2 text-base font-medium text-[#aab2ba]">{label}</h2>
-      <p className="mt-2 text-sm text-[#65707c]">No verified artifact is loaded.</p>
-    </section>
+          <div className="agents-card-foot">
+            A pending release has no evidence or measurements to show. Existing baseline hashes and
+            canonical values are preserved.
+          </div>
+        </InstrumentPanel>
+      )}
+    </AgentsShell>
   );
 }
