@@ -76,6 +76,8 @@ def load_factor_series(root: Path, country: str, as_of: str) -> FactorSeries:
                 release_identity="current-capture:" + meta["captured_at"],
                 quality="CAPTURE_ONLY", start=date(1926, 1, 1))
             for row in releases:
+                if row.frequency != "daily":
+                    continue
                 session = row.observed_at.astimezone(ZoneInfo("America/New_York")).date() - timedelta(days=1)
                 values = by_date.setdefault(session, {"Date": pd.Timestamp(session, tz="UTC")})
                 if any(key in values for key in row.values):
@@ -84,7 +86,8 @@ def load_factor_series(root: Path, country: str, as_of: str) -> FactorSeries:
         frame = pd.DataFrame([by_date[d] for d in sorted(by_date) if "MKT" in by_date[d]])
         identity, source, dataset_key = "US-MKT", "KENNETH_FRENCH", "ken-french:daily-factors"
         library_start = frame.Date.iloc[0].date().isoformat()
-        observed = releases[-1].observed_at.isoformat()
+        end = frame.Date.iloc[-1].date() + timedelta(days=1)
+        observed = datetime.combine(end, datetime.min.time(), ZoneInfo("America/New_York")).astimezone(timezone.utc).isoformat()
     elif country == "INDIA":
         name = "iima-daily.csv"
         raw, meta = checked_capture(root, name, SOURCE_URLS[name], as_of)

@@ -60,7 +60,7 @@ Local Live requires `VITE_ENABLE_LOCAL_LIVE=true` and a loopback hostname, plus 
 
 Lint, TypeScript, production build and every `verify-*.mjs` contract check are required. The expanded unmocked Replay check covers all workspaces, both countries' HMM and signal scenes, all four GP views and restored satellites at 1440/390, with zero live API requests, failed requests or viewport overflow. Checks also reject source substitution, backdated capture availability, historical-PIT relabelling and changed bytes. Existing local Live and historical Observatory contract/layout checks remain in place. Chrome, Edge and Firefox recheck function keys and text-field focus.
 
-The targeted factor/publication tests pass 25 checks, including unit conversion, missing first market return, duplicate/out-of-order sessions, malformed returns, causal feature-prefix invariance and horizon purges. The full Windows backend suite returns 780 passed and 16 failed, with only the existing 0.5-second sandbox subprocess startup timeouts previously reproduced on main. Tests are not weakened. Latest Linux CI results are recorded in PR #21's validation section.
+The targeted factor/publication tests pass 26 checks, including unit conversion, missing first market return, duplicate/out-of-order sessions, malformed returns, daily-only admission without monthly upsampling, causal feature-prefix invariance and horizon purges. The full Windows backend suite returns 780 passed and 16 failed, with only the existing 0.5-second sandbox subprocess startup timeouts previously reproduced on main. Tests are not weakened. Latest Linux CI results are recorded in PR #21's validation section.
 
 ## Postable result
 

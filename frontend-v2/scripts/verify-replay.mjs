@@ -280,6 +280,15 @@ if (flag > 0) {
             .waitFor();
           assert.equal(await page.locator(".ge-chip.replay").count(), 2);
         }
+        if (path === "/dynamics?ticker=IN-MKT") {
+          const panel = page.getByRole("region", { name: "Public factor regime evidence" });
+          await panel.getByText(/IN-MKT · market factor, not a ticker/).waitFor();
+          await panel.getByText(/fit has not converged/).waitFor();
+          await page.getByLabel("Regime evidence country").selectOption("US-MKT");
+          await page.waitForURL(/ticker=US-MKT/);
+          await page.locator(".shell-instrument").getByText("US-MKT", { exact: true }).waitFor();
+          await panel.getByText(/EM tolerance reached/).waitFor();
+        }
         if (
           process.argv.includes("--screenshots") &&
           [

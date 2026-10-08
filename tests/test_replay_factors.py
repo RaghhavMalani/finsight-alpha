@@ -50,6 +50,28 @@ def test_iima_percentage_units_missing_market_start_and_capture_clock(tmp_path):
         load_factor_series(tmp_path, "INDIA", CUTOFF)
 
 
+def test_french_daily_input_does_not_upsample_monthly_rows(tmp_path):
+    import io
+    import zipfile
+    for name, csv in [
+        ("french-ff3.zip", ",Mkt-RF,SMB,HML,RF\n19260701,1.0,2.0,3.0,0.01\n19260702,-0.5,1.0,2.0,0.01\n192607,10,20,30,1\n"),
+        ("french-mom.zip", ",Mom\n19260702,0.3\n192607,15\n"),
+    ]:
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("daily.csv", csv)
+        raw = buffer.getvalue()
+        (tmp_path / name).write_bytes(raw)
+        (tmp_path / (name + ".meta.json")).write_text(json.dumps({
+            "source_url": SOURCE_URLS[name], "captured_at": CUTOFF,
+            "sha256": hashlib.sha256(raw).hexdigest()}))
+    series = load_factor_series(tmp_path, "US", CUTOFF)
+    assert list(series.frame.MKT) == pytest.approx([.01, -.005])
+    assert series.provenance["market_end"] == "1926-07-02"
+    assert series.provenance["latest_observation"].startswith("1926-07-03")
+    assert len(series.frame) == 2
+
+
 @pytest.mark.parametrize("market", ["-100", "inf", "-inf"])
 def test_invalid_iima_returns_fail_closed(tmp_path, market):
     capture(tmp_path, f"Date,SMB,HML,WML,MF,RF\n1993-10-04,1,2,3,{market},0.02\n")

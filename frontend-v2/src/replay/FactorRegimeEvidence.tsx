@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { lookupInstrument } from "@/markets/instruments";
 import { loadReplayManifest, readReplayArtifact } from "./client";
 import { FACTOR_SERIES } from "./factor-series";
 import { SourceCredit } from "./SourceCredit";
@@ -27,7 +27,11 @@ type Evidence = {
 };
 export function FactorRegimeEvidence() {
   const search = useRouterState({ select: (s) => s.location.search as { ticker?: string } });
-  const [identity, setIdentity] = useState(search.ticker === "IN-MKT" ? "IN-MKT" : "US-MKT");
+  const navigate = useNavigate();
+  const identity =
+    search.ticker === "IN-MKT" || lookupInstrument(search.ticker ?? "")?.market === "INDIA"
+      ? "IN-MKT"
+      : "US-MKT";
   const mode = useDataMode();
   const manifest = useQuery({
     queryKey: ["replay", "manifest"],
@@ -74,7 +78,9 @@ export function FactorRegimeEvidence() {
             className="ml-2 border border-[#25313A] bg-[#050607] p-2"
             aria-label="Regime evidence country"
             value={identity}
-            onChange={(e) => setIdentity(e.target.value)}
+            onChange={(e) =>
+              void navigate({ to: "/dynamics", search: { ticker: e.target.value } as never })
+            }
           >
             {FACTOR_SERIES.map((s) => (
               <option key={s.id} value={s.id}>
