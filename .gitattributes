@@ -37,3 +37,6 @@ frontend-v2/public/artifacts/replay/** -text
 frontend-v2/public/replay-manifest.json -text
 frontend-v2/scripts/fixtures/artifacts/observatory/** -text
 frontend-v2/scripts/fixtures/market-weekly.TEST_ONLY.json -text
+
+# Research preregistration, calibration and execution receipts retain exact bytes.
+data/exports/research_os_v0_1/** -text

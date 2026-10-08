@@ -1,0 +1,18 @@
+{
+  "schema_version": "research-os/0.1",
+  "preregistration_commit": "4301093",
+  "computation_commit": "2e72e56",
+  "scientific_engine_gate": "CLOSED",
+  "files": {
+    "calibration-protocol.json": "5fa987415aef59c820acb44d394633560e90d9fc5b263da96dd99fccbd447922",
+    "calibration.json": "03b30c2521583178edaef72681066bde31b6d15c2f38213b58a45324510bbb98",
+    "flagship.json": "a645b6124441ec892112a3ec41546ed4516b7de5f25baf82320ae6ae7b8812c2",
+    "freeze-receipt.json": "95c1e0f830d90b7dc2ed3c696fcc9c5a74dbccb52f2eee7bba37f2a27f539878",
+    "identities.json": "7acd3b7e35bf12997b2672f79bd2c02c840c1a57c96a3631b00327dc1ffe347f",
+    "mutations.json": "a414336c8b1cfc9723dc5af8eb335fa51e338503da9cb9d9d72ec35bed552f18",
+    "paper-evidence.json": "ae546166a6ae4f5b03e6991318228f9bf1032c046ea1760642e68106242068c5",
+    "preregistration.json": "2a4b3d6c6d8cac215e16b84171a8f5b685d4815f9de717af1aae2ad8db5b85b0",
+    "repeatability.json": "97d290ece4ee183ae3c207d82bca1d297d1babbd5fc7bf473147a3ae5f4ddc69",
+    "tests.json": "711af34d447ec550378dda87aa2c328c15ed819e0a3e431d5f64488f6aea0bb9"
+  }
+}

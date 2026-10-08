@@ -1,0 +1,33 @@
+name: Research OS full frozen calibration verification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 3 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: test
+      FINSIGHT_DATA_DIR: /tmp/finsight-research-verification
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e . pytest httpx
+      - name: Recompute the unchanged 8000 null and 8000 planted worlds
+        run: python scripts/verify_research_os.py --full-calibration
+      - name: Exercise the fail-closed result and provenance contracts
+        run: pytest -q tests/research_os tests/sabotage/test_research_os_guards.py

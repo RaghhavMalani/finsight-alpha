@@ -1,0 +1,126 @@
+{
+  "started_protocol": "12 predeclared source mutations; isolated copies; baseline must pass, collection errors cannot count as kills",
+  "code_commit": "2e72e568cf5155adeba3a5cdc60f347c535ee0f9",
+  "generated_at": "2026-10-08T11:23:50.119881Z",
+  "mutants": [
+    {
+      "mutation": "baseline",
+      "file": null,
+      "source_edit_hash": "91a71ac56fb6c675757efe53d5295c830195edea21c2ea751bc4fb4e8a305a9d",
+      "test_count": 137,
+      "failures": 0,
+      "errors": 0,
+      "status": "BASELINE_PASS"
+    },
+    {
+      "mutation": "dataset_substitution",
+      "file": "runner.py",
+      "source_edit_hash": "81b6c9bfbf92451c64a612ed75229120daa244c07c08d55e9c5d709a8af43a7a",
+      "test_count": 12,
+      "failures": 1,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "seed_trial_parameter_omission",
+      "file": "runner.py",
+      "source_edit_hash": "f5f9f0015c5f7b0c875e989e8f59e26ba3d9fd9106e106397d2e23b4911d2f37",
+      "test_count": 12,
+      "failures": 4,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "split_test_substitution",
+      "file": "runner.py",
+      "source_edit_hash": "98303834cb4693dc354eaa05157df56cf14c84fee9a720e7c62c44290c6a32ec",
+      "test_count": 12,
+      "failures": 2,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "artifact_hash_substitution",
+      "file": "runner.py",
+      "source_edit_hash": "d18b2f3da00215b86b24672b56ec2d280b1e2e7808343dbac5936d6c3b3c71d0",
+      "test_count": 12,
+      "failures": 1,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "family_trial_omission",
+      "file": "multiple_testing.py",
+      "source_edit_hash": "e746ced3ef46723187ccf5aee51e6349bf66d7ca2af92aefa54ee07c81fdcf75",
+      "test_count": 71,
+      "failures": 1,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "cost_omission",
+      "file": "costs.py",
+      "source_edit_hash": "a231eb83b5c56abc8c9dd0365ea76b69cc5027d410ed40ec13d88345591d63dc",
+      "test_count": 14,
+      "failures": 1,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "future_signal_leakage",
+      "file": "momentum.py",
+      "source_edit_hash": "3400af629acdc20f672b97cff5ae0cc3e88b711b4806bc365d4c03816af21625",
+      "test_count": 14,
+      "failures": 1,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "hmm_future_path_leakage",
+      "file": "momentum.py",
+      "source_edit_hash": "7b7e8a34a19f163ebe574234c8658467a866e01ec13d8fdfd4be378a12048d07",
+      "test_count": 14,
+      "failures": 1,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "uncorrected_multiple_testing",
+      "file": "multiple_testing.py",
+      "source_edit_hash": "d9407b9f0fafae861b4a908f1293da4e3b79c9245ca32fb7fb6e1f2db36aa8d9",
+      "test_count": 71,
+      "failures": 6,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "sharpe_annualization_error",
+      "file": "sharpe.py",
+      "source_edit_hash": "43b4d83e744117c3c2c25ed9e7980cd0677ce60a8719f8674c2e9acfda8ff80b",
+      "test_count": 71,
+      "failures": 4,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "revised_vintage_masquerade",
+      "file": "contracts.py",
+      "source_edit_hash": "23a8f2085093de912d9d2cd9f13ed5a5cd23941c05c4bf3a4897de711fd901c8",
+      "test_count": 40,
+      "failures": 1,
+      "errors": 0,
+      "status": "KILLED"
+    },
+    {
+      "mutation": "target_as_feature",
+      "file": "contracts.py",
+      "source_edit_hash": "20a8c53fb58be19d4b092047c7f056a8d7ae291b74f44c04a6c80914c5ff0e95",
+      "test_count": 40,
+      "failures": 2,
+      "errors": 0,
+      "status": "KILLED"
+    }
+  ],
+  "killed": 12,
+  "total": 12
+}
