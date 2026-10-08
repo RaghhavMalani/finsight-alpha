@@ -1241,6 +1241,12 @@
   .obs-title p {
     display: none;
   }
+  .obs-title p.obs-factor-label {
+    display: block;
+    color: var(--obs-amber);
+    font: 10px/1.5 var(--obs-mono);
+    margin-bottom: 6px;
+  }
   .obs-legend {
     left: 16px;
     bottom: 12px;

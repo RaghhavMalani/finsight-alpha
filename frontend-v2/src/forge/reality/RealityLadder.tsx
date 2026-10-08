@@ -188,7 +188,7 @@ export function RealityLadder({
         code="SAME DATA · NON-CANVAS"
         className="mt-4"
       >
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[840px] border-collapse text-left">
             <caption className="sr-only">All Reality Ladder checkpoint values</caption>
             <thead>

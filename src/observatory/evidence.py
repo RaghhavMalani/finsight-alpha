@@ -18,9 +18,9 @@ _FAMILY_RULES = (
         r"^(benchmark_|asset_minus_benchmark|rolling_beta_|rolling_corr_|relative_momentum_)")),
     ("Volume", re.compile(r"volume")),
     ("Volatility", re.compile(
-        r"^(high_low_range|realized_vol_|volatility_|bollinger_width_|atr_|drawdown_from_|downside_vol_)")),
+        r"^(high_low_range|realized_vol_|volatility_|bollinger_width_|atr_|drawdown_from_|max_drawdown_|downside_vol_)")),
     ("Returns & momentum", re.compile(
-        r"^(simple_return|log_return|intraday_return|overnight_gap|momentum_)")),
+        r"^(simple_return|log_return|intraday_return|overnight_gap|momentum_|rolling_return_)")),
     ("Trend & levels", re.compile(
         r"^(close_position_in_range|sma_|ema_|price_to_|price_above_|rsi_|macd|"
         r"bollinger_(upper|lower|percent)|rolling_max_|distance_from_52w_|trend_regime_code)")),

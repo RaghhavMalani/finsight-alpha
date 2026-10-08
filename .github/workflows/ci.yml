@@ -66,12 +66,17 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      # Only loopback can enter Live. Required by the explicit, mocked local-Live contract checks.
+      VITE_ENABLE_LOCAL_LIVE: "true"
     defaults:
       run:
         working-directory: frontend-v2
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Read byte-identical historical traces for tests without republishing them.
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -96,9 +101,13 @@ jobs:
       - run: node scripts/verify-neural.mjs
       - run: node scripts/verify-globe.mjs
       - run: node scripts/verify-markets.mjs
+      - run: node scripts/verify-shell.mjs
+      - run: node scripts/verify-replay.mjs
       - run: npm run build
-      - name: Install Chromium for the Observatory and Markets browser checks
-        run: npx playwright install --with-deps --only-shell chromium
+      - name: Install browsers for workspace and native-key checks
+        run: |
+          npx playwright install --with-deps chromium firefox
+          npx playwright install chrome msedge
       - name: Observatory scene labels never overlap (production preview, software WebGL)
         run: |
           node scripts/preview-built.mjs &
@@ -109,6 +118,10 @@ jobs:
           curl -sf -o /dev/null http://127.0.0.1:4174/markets || (node scripts/preview-built.mjs &)
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:4174/markets && break; sleep 1; done
           node scripts/verify-markets.mjs --url http://127.0.0.1:4174
+      - name: Unmocked public Replay has no failed requests or live-source traffic
+        run: node scripts/verify-replay.mjs --url http://127.0.0.1:4174
+      - name: Chrome, Edge and Firefox release the shell keys and preserve F5/F7
+        run: node scripts/verify-shell.mjs --url http://127.0.0.1:4174
 
   truth-contract:
     runs-on: ubuntu-latest

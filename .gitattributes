@@ -31,3 +31,9 @@ eval/certification/forge_v0_2_4/** text eol=lf
 # that byte form on every platform without changing the canonical Git blobs.
 eval/dynamics/** text eol=crlf
 src/dynamics/** text eol=crlf
+
+# Replay and private trace hashes address exact JSON bytes on every platform.
+frontend-v2/public/artifacts/replay/** -text
+frontend-v2/public/replay-manifest.json -text
+frontend-v2/scripts/fixtures/artifacts/observatory/** -text
+frontend-v2/scripts/fixtures/market-weekly.TEST_ONLY.json -text

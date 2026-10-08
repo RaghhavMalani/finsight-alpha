@@ -11,8 +11,8 @@
 export const USGS_MONTH_FEED =
   "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson";
 export const CELESTRAK_GROUPS = {
-  stations: "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle",
-  visual: "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=tle",
+  stations: "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=json",
+  visual: "https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=json",
 } as const;
 
 /** The backend's hubs (src/geo/usgs.py HUBS) and its 1,000 km near-hub radius. */
@@ -89,6 +89,21 @@ export function normalizeEarthquakes(geojson: unknown, minMag = 4.5): Quake[] | 
 }
 
 export type Tle = { name: string; line1: string; line2: string };
+export type OrbitalPoint = { lat: number; lon: number; altitudeKm: number };
+export type RecordedSatellite = OrbitalPoint & {
+  id: string;
+  name: string;
+  epoch: string;
+  group: string;
+  trail: OrbitalPoint[];
+};
+export type Satellite =
+  | Tle
+  | RecordedSatellite
+  | {
+      name: string;
+      omm: import("satellite.js").OMMJsonObject;
+    };
 /** Three-line TLE text into entries; blocks whose lines are not TLE lines 1 and 2 are skipped. */
 export function parseTle(text: string): Tle[] {
   const lines = String(text)

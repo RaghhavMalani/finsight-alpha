@@ -15,7 +15,13 @@ import { SignalReadout, SignalStatus } from "./SignalReadout";
 import { Timeline } from "./Timeline";
 import { useReducedMotion } from "./useReducedMotion";
 import { useTrainingStream } from "./useTrainingStream";
-import { manifestTickers, validateManifest, type Manifest, type ModelTrace } from "./types";
+import { manifestTickers, type Manifest, type ModelTrace } from "./types";
+import { loadReplayManifest } from "@/replay/client";
+import { observatoryManifest } from "@/replay/observatory";
+import { changeDataMode, useDataMode } from "@/replay/mode";
+import { useQueryClient } from "@tanstack/react-query";
+import type { ReplayManifest } from "@/replay/contracts";
+import { FACTOR_SERIES, factorSeries } from "@/replay/factor-series";
 import "./observatory.css";
 
 const ObservatoryStage = lazy(() => import("./ObservatoryStage"));
@@ -53,11 +59,17 @@ export default function ObservatoryPage() {
   const navigate = useNavigate({ from: "/observatory" });
   const kind = search.scene,
     ticker = search.ticker;
+  const factor = factorSeries(ticker);
   const setKind = (scene: Kind) => void navigate({ search: { scene, ticker } });
   const setTicker = (next: string) => void navigate({ search: { scene: kind, ticker: next } });
   const reduced = useReducedMotion();
-  const [mode, setMode] = useState<SourceMode>("replay"),
-    [draftCutoff, setDraftCutoff] = useState(CUTOFF.slice(0, 16)),
+  const mode = useDataMode();
+  const queryClient = useQueryClient();
+  const setMode = (next: SourceMode) => {
+    void changeDataMode(next, queryClient);
+  };
+  const [sharedManifest, setSharedManifest] = useState<ReplayManifest | null>(null);
+  const [draftCutoff, setDraftCutoff] = useState(CUTOFF.slice(0, 16)),
     [cutoff, setCutoff] = useState(CUTOFF);
   const [manifest, setManifest] = useState<Manifest | null>(null),
     [manifestError, setManifestError] = useState<string | null>(null);
@@ -68,24 +80,32 @@ export default function ObservatoryPage() {
     [tip, setTip] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/artifacts/observatory/manifest.json", { signal: controller.signal })
-      .then((r) => {
-        if (!r.ok) throw new Error("Replay manifest unavailable");
-        return r.json();
-      })
+    loadReplayManifest()
       .then((value) => {
-        setManifest(validateManifest(value));
+        if (controller.signal.aborted) return;
+        setSharedManifest(value);
+        setManifest(observatoryManifest(value));
       })
       .catch((e) => {
         if (!controller.signal.aborted) setManifestError(e.message);
       });
     return () => controller.abort();
   }, []);
-  const tickers = manifest ? manifestTickers(manifest) : [ticker];
+  const tickers = [
+    ...new Set([
+      ticker,
+      ...FACTOR_SERIES.map((s) => s.id),
+      ...(manifest ? manifestTickers(manifest) : []),
+      "SPY",
+      "QQQ",
+      "IWM",
+      "RELIANCE.NS",
+    ]),
+  ];
   const neuralScene = kind === "neural";
   const artifact = neuralScene ? undefined : manifest?.artifacts[`${ticker}:${kind}`];
   const endpoint = kind === "hmm" ? "/regime/hmm/trace" : "/ml/trace";
-  const asOf = mode === "replay" ? (manifest?.as_of ?? CUTOFF) : cutoff;
+  const asOf = mode === "replay" ? (artifact?.as_of ?? manifest?.as_of ?? CUTOFF) : cutoff;
   const params = new URLSearchParams({
     ticker,
     as_of: asOf,
@@ -94,9 +114,11 @@ export default function ObservatoryPage() {
   });
   const url = neuralScene
     ? null
-    : mode === "replay"
-      ? (artifact?.url ?? null)
-      : `${API_BASE}${endpoint}?${params}`;
+    : mode === "live" && factor
+      ? null
+      : mode === "replay"
+        ? (artifact?.url ?? null)
+        : `${API_BASE}${endpoint}?${params}`;
   const stream = useTrainingStream(
     url,
     { kind: neuralScene ? "signal" : kind, ticker, asOf },
@@ -109,11 +131,16 @@ export default function ObservatoryPage() {
   const trace = neuralScene ? nn.trace : stream.data,
     error = neuralScene
       ? nn.error
-      : (stream.error ??
-        (mode === "replay"
-          ? (manifestError ??
-            (manifest && !artifact ? `No checked replay for ${ticker} in the manifest` : null))
-          : null));
+      : mode === "live" && factor
+        ? "Factor research is available in checked Replay. Enter a ticker for local Live model runs."
+        : (stream.error ??
+          (mode === "replay"
+            ? (manifestError ??
+              (manifest && !artifact
+                ? (sharedManifest?.artifacts[`observatory:${ticker}:${kind}`]?.reason ??
+                  `No publication-licensed replay for ${ticker} in the manifest`)
+                : null))
+            : null));
 
   // Scrub position and playback belong to one trace; a new trace starts at its final frame.
   const hmm = useMemo(
@@ -240,7 +267,9 @@ export default function ObservatoryPage() {
                 onChange={(e) => setTicker(e.target.value)}
               >
                 {tickers.map((t) => (
-                  <option key={t}>{t}</option>
+                  <option key={t} value={t}>
+                    {factorSeries(t)?.name ?? t}
+                  </option>
                 ))}
               </select>
             </label>
@@ -265,7 +294,7 @@ export default function ObservatoryPage() {
             </button>
           </div>
         </header>
-        <main className="obs-stage">
+        <div className="obs-stage">
           <Suspense
             fallback={
               neuralScene ? null : <div className="obs-status">Initializing model geometry…</div>
@@ -311,8 +340,19 @@ export default function ObservatoryPage() {
             )
           )}
           <section className="obs-hud obs-title">
+            {factor && (
+              <p className="obs-factor-label">
+                {factor.country} · market factor, not a ticker · {factor.source}
+              </p>
+            )}
             <h1>{title}</h1>
             <p>{lead}</p>
+            {factor && trace && (
+              <p>
+                {trace.provenance.market_start}–{trace.provenance.market_end} · one revised capture;
+                chronological research, no historical-vintage PIT claim.
+              </p>
+            )}
           </section>
           {hmm && (
             <div className="obs-hud obs-legend">
@@ -383,7 +423,7 @@ export default function ObservatoryPage() {
               {fps == null ? "measuring" : `${Math.round(fps)} fps`}
             </div>
           )}
-        </main>
+        </div>
         {(hmm || signal || neural) && (
           <aside className="obs-readout" aria-live="polite">
             {hmm && <HMMReadout view={hmm} index={index} />}
@@ -440,6 +480,11 @@ export default function ObservatoryPage() {
           onPlay={togglePlay}
         />
         <MethodDrawer
+          licence={
+            mode === "replay"
+              ? sharedManifest?.artifacts[`observatory:${ticker}:${kind}`]?.licence
+              : undefined
+          }
           open={methodOpen}
           onClose={() => setMethodOpen(false)}
           kind={kind}

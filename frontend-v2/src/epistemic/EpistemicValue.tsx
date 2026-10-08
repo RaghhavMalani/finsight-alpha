@@ -55,7 +55,7 @@ export function ResearchValue({
           <span aria-hidden="true">↳</span>
           provenance
         </summary>
-        <div className="absolute right-0 z-30 mt-1 w-[min(23rem,80vw)] border border-[#27303a] bg-[#0B0E11] p-3 text-left shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
+        <div className="absolute right-0 z-30 mt-1 hidden w-[min(23rem,80vw)] border border-[#27303a] bg-[#0B0E11] p-3 text-left shadow-[0_18px_48px_rgba(0,0,0,0.45)] group-open:block">
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 font-mono text-[9px] leading-relaxed">
             <ProvenanceRow label="Class" value={provenance.epistemicType} />
             <ProvenanceRow label="Source" value={provenance.source} />

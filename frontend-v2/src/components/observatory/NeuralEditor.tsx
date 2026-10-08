@@ -9,6 +9,7 @@ import {
   type WorldSpec,
 } from "./neural/world";
 import { NEURAL_FAMILIES } from "./types";
+import { useDataMode } from "@/replay/mode";
 
 const SOURCES: [NeuralSource, string, string][] = [
   ["lab", "Lab", "Synthetic worlds, trained in your browser"],
@@ -99,6 +100,7 @@ export function NeuralEditor({
   onTrain: () => void;
   onStop: () => void;
 }) {
+  const mode = useDataMode();
   const a = architecture,
     set = (patch: Partial<Architecture>) => onArchitecture({ ...a, ...patch });
   const errors = architectureErrors(a);
@@ -130,6 +132,7 @@ export function NeuralEditor({
             type="button"
             role="radio"
             aria-checked={source === key}
+            disabled={mode === "replay" && key !== "replay"}
             title={hint}
             onClick={() => onSource(key)}
           >

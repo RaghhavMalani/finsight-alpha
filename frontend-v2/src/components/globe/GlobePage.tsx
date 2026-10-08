@@ -16,13 +16,17 @@ import {
   USGS_MONTH_FEED,
   energyJoules,
   type Quake,
-  type Tle,
+  type Satellite,
 } from "./geo-data";
 import { loadQuakes, loadSatellites, useFeed, type Feed } from "./feeds";
 import { loadLand, type LandData } from "./land";
 import type { GlobeLayers } from "./GlobeScene";
 import { SENSORS, type SensorKind } from "./sensors";
 import "./globe.css";
+import { useDataMode } from "@/replay/mode";
+import { loadReplayManifest } from "@/replay/client";
+import type { ReplayManifest } from "@/replay/contracts";
+import { SourceCredit } from "@/replay/SourceCredit";
 
 const GlobeScene = lazy(() => import("./GlobeScene"));
 const ago = (ms: number) => {
@@ -36,9 +40,11 @@ const ago = (ms: number) => {
 const utc = (t: number) => new Date(t).toISOString().slice(0, 16).replace("T", " ") + "Z";
 
 export default function GlobePage() {
+  const mode = useDataMode();
   const reduced = useReducedMotion();
   const quakes = useFeed<Quake[]>(loadQuakes, [], 5 * 60_000);
-  const sats = useFeed<Tle[]>(loadSatellites, [], 2 * 3600_000);
+  const sats = useFeed<Satellite[]>(loadSatellites, [], 2 * 3600_000);
+  const [manifest, setManifest] = useState<ReplayManifest | null>(null);
   const [land, setLand] = useState<LandData | null>(null);
   // Times start unset so server and client render the same markup; the clock starts on mount.
   const [now, setNow] = useState(0);
@@ -54,6 +60,22 @@ export default function GlobePage() {
   const [labelsRoot, setLabelsRoot] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     void loadLand().then(setLand);
+    if (mode === "replay") {
+      let alive = true;
+      void loadReplayManifest()
+        .then((m) => {
+          if (alive) {
+            const t = Date.parse(m.artifacts["world:quakes"]?.as_of ?? m.as_of);
+            setManifest(m);
+            setNow(t);
+            setClock(t);
+          }
+        })
+        .catch(() => {});
+      return () => {
+        alive = false;
+      };
+    }
     setNow(Date.now());
     setClock(Date.now());
     const a = setInterval(() => setNow(Date.now()), 60_000),
@@ -62,7 +84,7 @@ export default function GlobePage() {
       clearInterval(a);
       clearInterval(b);
     };
-  }, []);
+  }, [mode]);
   const onPick = useCallback(
     (id: string | null, hover: boolean) =>
       setPick((p) => (hover ? { ...p, hover: id } : { ...p, selected: id ?? p.selected })),
@@ -132,8 +154,11 @@ export default function GlobePage() {
             <div className="ge-eyebrow">FinSight · God's Eye</div>
             <h1>The planet, as public signals</h1>
             <p>
-              Live USGS earthquakes and CelesTrak satellites over the eight market hubs the network
-              watches. Quakes become the neural net's Geo events inputs one day after they happen.
+              {mode === "replay"
+                ? "Checked USGS earthquakes and a frozen CelesTrak satellite snapshot over eight market hubs. Each layer records its own cutoff."
+                : "Live USGS earthquakes and CelesTrak satellites over eight market hubs."}{" "}
+              Quake aggregates use a one-day availability lag; hub proximity is descriptive, not a
+              company exposure map.
             </p>
             <div className="ge-readouts mono">
               <span>{clock ? utc(clock) : "—"}</span>
@@ -237,10 +262,34 @@ export default function GlobePage() {
           )}
         </div>
         <aside className="ge-panel" aria-label="Neural link">
+          {mode === "replay" && manifest && (
+            <details className="mb-5 text-xs leading-5">
+              <summary className="cursor-pointer">Sources, licences and recorded cutoffs</summary>
+              {["world:quakes", "world:satellites"].map((id) => {
+                const entry = manifest.artifacts[id];
+                return (
+                  entry && (
+                    <div key={id} className="mt-3">
+                      <p>
+                        {id === "world:quakes" ? "Earthquakes" : "Satellite orbital projection"} ·{" "}
+                        {entry.as_of}
+                      </p>
+                      <SourceCredit licence={entry.licence} />
+                      {entry.reason && <p>{entry.reason}</p>}
+                    </div>
+                  )
+                );
+              })}
+              <p className="mt-2">
+                Satellite positions and ten-minute trails are frozen SGP4 projections from recorded
+                OMM elements, for research visualization.
+              </p>
+            </details>
+          )}
           <div className="ge-eyebrow">Neural link · Geo events input layer</div>
           <p className="ge-lead">
             The same four values a network receives as its Geo events inputs, computed from this
-            live feed with the backend's rule: an event counts once it is a day old.
+            recorded or live events with the backend's rule: an event counts once it is a day old.
           </p>
           <div className="ge-neurons">
             {GEO_INPUTS.map(([name, label], i) => {
@@ -253,7 +302,11 @@ export default function GlobePage() {
                     <code>{name}</code>
                   </div>
                   <b className="mono">
-                    {quakes.status === "live" ? (i === 1 || i === 2 ? v.toFixed(2) : v) : "—"}
+                    {["live", "replay"].includes(quakes.status)
+                      ? i === 1 || i === 2
+                        ? v.toFixed(2)
+                        : v
+                      : "—"}
                   </b>
                 </div>
               );
@@ -281,8 +334,8 @@ export default function GlobePage() {
             Train a network on these inputs →
           </Link>
           <p className="ge-fine">
-            Live values are a window onto the feed, not a forecast. Networks train on the installed
-            USGS catalog with the same rule, and its revised magnitudes are disclosed as
+            These aggregates describe the recorded window, not a forecast. Networks train on the
+            installed USGS catalog with the same rule, and its revised magnitudes are disclosed as
             RETROSPECTIVE_CATALOG.
           </p>
           <div className="ge-eyebrow">Hub exposure · M4.5+ within 1,000 km, 30 days</div>

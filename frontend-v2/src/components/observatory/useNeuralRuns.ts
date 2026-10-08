@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE } from "@/lib/api";
-import { artifactHash } from "./useTrainingStream";
+import { localLiveAllowed, useDataMode } from "@/replay/mode";
+import { readReplayArtifact } from "@/replay/client";
 import { neuralView, type NeuralLike, type NeuralSource, type NeuralView } from "./neural-model";
 import type { NeuralSummary } from "./NeuralReadout";
 import type { HoldoutResult, LabRun } from "./neural/lab";
@@ -69,7 +70,11 @@ export function useNeuralRuns({
   ticker: string;
   cutoff: string;
 }) {
-  const [source, setSource] = useState<NeuralSource>("lab");
+  const mode = useDataMode();
+  const [source, updateSource] = useState<NeuralSource>(mode === "replay" ? "replay" : "live");
+  const setSource = (next: NeuralSource) => {
+    if (mode === "live" || next === "replay") updateSource(next);
+  };
   const [architecture, setArchitecture] = useState<Architecture>(DEFAULT_ARCHITECTURE);
   // Lab and real runs keep separate input choices: real runs start without the Geo events
   // negative control, and switching sources never carries a synthetic-world choice over.
@@ -193,7 +198,7 @@ export function useNeuralRuns({
 
   // Real runs: a checked replay declared by the manifest, or a live backend run.
   const replayEntry = manifest?.artifacts[`${ticker}:neural`];
-  const asOf = source === "replay" ? (manifest?.as_of ?? cutoff) : cutoff;
+  const asOf = source === "replay" ? (replayEntry?.as_of ?? manifest?.as_of ?? cutoff) : cutoff;
   const runReal = useCallback(async () => {
     const key = JSON.stringify([
       source,
@@ -207,16 +212,12 @@ export function useNeuralRuns({
         hash: string | null = null;
       if (source === "replay") {
         if (!replayEntry)
-          throw new Error(
-            `No checked neural replay for ${ticker}. Export one from installed evidence: python scripts/export_observatory.py --as-of ${asOf} --neural`,
-          );
-        const response = await fetch(replayEntry.url);
-        if (!response.ok) throw new Error("Neural replay unavailable");
-        const bytes = await response.arrayBuffer();
-        hash = await artifactHash(bytes);
-        if (hash !== replayEntry.sha256) throw new Error("Replay artifact SHA-256 mismatch");
-        value = JSON.parse(new TextDecoder().decode(bytes));
+          throw new Error(`No publication-licensed recorded neural trace for ${ticker}.`);
+        value = await readReplayArtifact(`observatory:${ticker}:neural`);
+        hash = replayEntry.sha256;
       } else {
+        if (mode !== "live" || !localLiveAllowed())
+          throw new Error("Training requires configured local Live mode.");
         const response = await fetch(`${API_BASE}/ml/neural/trace`, {
           method: "POST",
           credentials: "include",
@@ -264,7 +265,7 @@ export function useNeuralRuns({
         loading: false,
       });
     }
-  }, [source, ticker, asOf, architecture, families, replayEntry]);
+  }, [source, ticker, asOf, architecture, families, replayEntry, mode]);
 
   // Replays load as soon as they are selected; live runs wait for the Train button.
   useEffect(() => {

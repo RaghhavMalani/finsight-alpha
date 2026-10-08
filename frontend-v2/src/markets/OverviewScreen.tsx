@@ -5,6 +5,10 @@ import { compactNum, num, pct, stamp } from "./format";
 import { useBars, useQuotes } from "./queries";
 import { Chip, Kpis, Loading, Note, Panel, Unavailable } from "./ui";
 import { setWatchlist, toggleWatchlist, useWatchlist } from "./watchlist";
+import { useDataMode } from "@/replay/mode";
+import ReplayOverviewScreen from "./ReplayOverviewScreen";
+import { instrumentMoney, lookupInstrument } from "./instruments";
+import { factorSeries } from "@/replay/factor-series";
 
 function quoteSource(q: MarketQuote) {
   return q.source === "FINNHUB"
@@ -13,7 +17,28 @@ function quoteSource(q: MarketQuote) {
       ? "Yahoo · last daily bar"
       : q.source;
 }
-export default function OverviewScreen({
+export default function OverviewScreen(props: {
+  ticker: string;
+  range: BarRange;
+  onRange: (range: BarRange) => void;
+}) {
+  const mode = useDataMode();
+  if (mode === "live" && factorSeries(props.ticker))
+    return (
+      <Panel title="Market factor research">
+        <p className="mk-line">
+          These factor research scenes are recorded in Replay. Select Replay, or enter a ticker for
+          local Live prices.
+        </p>
+      </Panel>
+    );
+  return mode === "replay" ? (
+    <ReplayOverviewScreen ticker={props.ticker} />
+  ) : (
+    <LiveOverviewScreen {...props} />
+  );
+}
+function LiveOverviewScreen({
   ticker,
   range,
   onRange,
@@ -23,7 +48,10 @@ export default function OverviewScreen({
   onRange: (range: BarRange) => void;
 }) {
   const watchlist = useWatchlist();
-  const quotes = useQuotes([ticker, ...watchlist]);
+  const asset = lookupInstrument(ticker);
+  const mark = (v: number | null) =>
+    v == null ? "—" : asset ? instrumentMoney(v, asset.currency) : num(v);
+  const quotes = useQuotes([ticker, ...watchlist, "^INDIAVIX"]);
   const candles = useBars(ticker, range);
   const quote = quotes.data?.[ticker],
     data = candles.data;
@@ -61,17 +89,17 @@ export default function OverviewScreen({
         ) : (
           <Kpis
             items={[
-              { label: "Last", value: num(quote.last) },
+              { label: "Last", value: mark(quote.last) },
               {
                 label: "Change",
-                value: quote.prev_close == null ? "—" : num(quote.last - quote.prev_close),
+                value: quote.prev_close == null ? "—" : mark(quote.last - quote.prev_close),
                 tone,
               },
               { label: "Change %", value: pct(quote.change_pct, 2, true), tone },
-              { label: "Open", value: num(quote.open) },
-              { label: "High", value: num(quote.high) },
-              { label: "Low", value: num(quote.low) },
-              { label: "Previous close", value: num(quote.prev_close) },
+              { label: "Open", value: mark(quote.open) },
+              { label: "High", value: mark(quote.high) },
+              { label: "Low", value: mark(quote.low) },
+              { label: "Previous close", value: mark(quote.prev_close) },
               { label: "Volume", value: compactNum(quote.volume) },
             ]}
           />
@@ -92,6 +120,18 @@ export default function OverviewScreen({
               : "Saved in this browser · quotes refresh every 30 seconds"}
           </span>
         </div>
+      </Panel>
+      <Panel title="India VIX" meta={<Chip>NSE · regular session 09:15–15:30 IST</Chip>}>
+        {quotes.data?.["^INDIAVIX"] ? (
+          <p className="mk-line">
+            {num(quotes.data["^INDIAVIX"].last)} index points ·{" "}
+            {quoteSource(quotes.data["^INDIAVIX"])} · {stamp(quotes.data["^INDIAVIX"].quote_ts)}
+          </p>
+        ) : (
+          <p className="mk-line">
+            India VIX unavailable: the source returned no timestamped index quote.
+          </p>
+        )}
       </Panel>
       <div className="mk-overview-grid">
         <Panel

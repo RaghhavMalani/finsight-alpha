@@ -1,212 +1,202 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import { ForgeCommandPalette } from "@/app/command/ForgeCommandPalette";
+import { CommandLine } from "@/app/command/CommandLine";
+import { activeWorkspace, FUNCTION_KEYS, isTextField, WORKSPACES } from "@/app/workspaces";
+import { lookupInstrument } from "@/markets/instruments";
+import { factorSeries } from "@/replay/factor-series";
+import {
+  changeDataMode,
+  localLiveAllowed,
+  setCurrentTicker,
+  useCurrentTicker,
+  useDataMode,
+} from "@/replay/mode";
+import { loadReplayManifest } from "@/replay/client";
 import "./shell.css";
 
-type NavItem = {
-  key: string;
-  label: string;
-  to: string;
-  /** Scene that marks an Observatory item active. */
-  match?: string;
-  /** Path prefix that marks the item active, when it differs from `to`. */
-  prefix?: string;
-  search?: Record<string, unknown>;
-};
-const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
-  {
-    title: "Markets",
-    items: [
-      {
-        key: "",
-        label: "Desk",
-        to: "/markets",
-        prefix: "/markets",
-        search: { ticker: "SPY" },
-      },
-      { key: "", label: "Book", to: "/risk" },
-    ],
-  },
-  {
-    title: "Forge",
-    items: [
-      { key: "F2", label: "Center", to: "/forge", search: { run: undefined, node: 1 } },
-      { key: "F3", label: "Runs", to: "/runs" },
-      { key: "F4", label: "Bench", to: "/bench" },
-      { key: "F5", label: "Worlds", to: "/worlds" },
-      { key: "F6", label: "Artifacts", to: "/artifacts" },
-    ],
-  },
-  {
-    title: "Models",
-    items: [
-      {
-        key: "F7",
-        label: "Observatory",
-        to: "/observatory",
-        search: { scene: "hmm", ticker: "SPY" },
-      },
-      {
-        key: "F8",
-        label: "Neural",
-        to: "/observatory",
-        match: "neural",
-        search: { scene: "neural", ticker: "SPY" },
-      },
-    ],
-  },
-  {
-    title: "World",
-    items: [
-      { key: "F9", label: "God's Eye", to: "/globe" },
-      { key: "", label: "Dynamics", to: "/dynamics" },
-    ],
-  },
-];
-const ALL = NAV_GROUPS.flatMap((g) => g.items);
+const AGENT_PAGES = [
+  ["Center", "/forge"],
+  ["Runs", "/runs"],
+  ["Bench", "/bench"],
+  ["Worlds", "/worlds"],
+  ["Artifacts", "/artifacts"],
+] as const;
 
-/** Live UTC time, rendered only after mount so server and client markup agree. */
-function UtcClock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <span className="shell-clock" aria-label="UTC time">
-      {now ? now.toISOString().slice(11, 19) : "--:--:--"}
-      <small>UTC</small>
-    </span>
-  );
-}
-
-/** The FinSight mark: three layers of units, wired, pulsing toward the output. */
-function Mark() {
-  return (
-    <svg className="shell-mark" viewBox="0 0 32 32" aria-hidden="true">
-      <g className="w">
-        {[8, 16, 24].flatMap((y1) =>
-          [11, 21].map((y2) => <line key={`a${y1}${y2}`} x1="6" y1={y1} x2="16" y2={y2} />),
-        )}
-        {[11, 21].map((y) => (
-          <line key={`b${y}`} x1="16" y1={y} x2="26" y2="16" />
-        ))}
-      </g>
-      {[8, 16, 24].map((y) => (
-        <circle key={`i${y}`} cx="6" cy={y} r="2" className="n" />
-      ))}
-      {[11, 21].map((y) => (
-        <circle key={`h${y}`} cx="16" cy={y} r="2.2" className="n h" />
-      ))}
-      <circle cx="26" cy="16" r="2.8" className="n o" />
-    </svg>
-  );
-}
-
-/** `bleed` gives the page the whole viewport below the nav: no gutters, no footer. */
 export function ForgeShell({ children, bleed = false }: { children: ReactNode; bleed?: boolean }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const scene = useRouterState({
-    select: (state) => (state.location.search as { scene?: string }).scene,
-  });
+  const [cutoff, setCutoff] = useState<string | null>(null);
+  const [liveAllowed, setLiveAllowed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const search = useRouterState({ select: (s) => s.location.search as { ticker?: string } });
+  const params = useParams({ strict: false }) as { ticker?: string };
+  const context = useCurrentTicker();
+  const ticker = params.ticker ?? search.ticker ?? context;
+  const asset = lookupInstrument(ticker);
+  const series = factorSeries(ticker);
+  const workspace = activeWorkspace(pathname);
+  const mode = useDataMode();
+  const client = useQueryClient();
   const navigate = useNavigate();
-
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const typing = target?.matches("input, textarea, select, [contenteditable='true']");
+    setLiveAllowed(localLiveAllowed());
+    setReady(true);
+  }, []);
+  useEffect(() => {
+    setCurrentTicker(ticker);
+  }, [ticker]);
+  useEffect(() => {
+    let alive = true;
+    loadReplayManifest()
+      .then((m) => {
+        if (alive) setCutoff(m.as_of);
+      })
+      .catch(() => {
+        if (alive) setCutoff(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPaletteOpen(true);
         return;
       }
-      if (typing || event.altKey || event.metaKey || event.ctrlKey) return;
-      if (event.key === "F1") {
-        event.preventDefault();
-        setPaletteOpen(true);
+      if (
+        isTextField(event.target) ||
+        event.altKey ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.isComposing ||
+        event.repeat ||
+        !FUNCTION_KEYS.includes(event.key)
+      )
         return;
-      }
-      const item = ALL.find((entry) => entry.key && entry.key === event.key);
-      if (item) {
+      const target = WORKSPACES.find((w) => w.key === event.key);
+      if (target) {
         event.preventDefault();
-        void navigate({ to: item.to, search: item.search as never });
+        void navigate({ to: target.to, search: { ticker } as never });
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [navigate]);
-
-  const isActive = (item: NavItem) => {
-    if (item.to === "/observatory")
-      return (
-        pathname.startsWith("/observatory") && (item.match === "neural") === (scene === "neural")
-      );
-    if (item.prefix) return pathname.startsWith(item.prefix);
-    return item.to === "/forge" ? pathname === item.to : pathname.startsWith(item.to);
-  };
-
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navigate, ticker]);
   return (
-    <div className={`shell ${bleed ? "shell-bleed" : ""}`}>
+    <div
+      className={`shell ${bleed ? "shell-bleed" : ""}`}
+      data-mode={mode}
+      data-workspace={workspace}
+      data-ready={ready}
+    >
       <a href="#forge-main" className="shell-skip">
-        Skip to evidence
+        Skip to workspace
       </a>
-      {!bleed && <div className="shell-backdrop" aria-hidden="true" />}
       <header className="shell-bar">
         <Link to="/" className="shell-brand" aria-label="FinSight home">
-          <Mark />
-          <span>
-            FINSIGHT <b>FORGE</b>
+          <span className="shell-mark" aria-hidden="true">
+            F
           </span>
+          <b>FinSight</b>
         </Link>
-        <nav aria-label="Primary" className="shell-nav">
-          <button type="button" className="shell-cmd" onClick={() => setPaletteOpen(true)}>
-            <kbd>F1</kbd>Command
-          </button>
-          {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="shell-group" role="group" aria-label={group.title}>
-              <span className="shell-group-title" aria-hidden="true">
-                {group.title}
-              </span>
-              {group.items.map((item) => {
-                const active = isActive(item);
-                return (
-                  <Link
-                    key={item.label}
-                    to={item.to}
-                    search={item.search as never}
-                    aria-current={active ? "page" : undefined}
-                    className="shell-link"
-                  >
-                    {item.key && <kbd>{item.key}</kbd>}
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
+        <nav aria-label="Workspaces" className="shell-nav">
+          {WORKSPACES.map((w) => (
+            <Link
+              key={w.id}
+              to={w.to}
+              search={{ ticker } as never}
+              className="shell-link"
+              aria-current={workspace === w.id ? "page" : undefined}
+              title={
+                FUNCTION_KEYS.includes(w.key)
+                  ? `${w.key} · ${w.command}`
+                  : `${w.key} belongs to the browser; use ${w.command} or click`
+              }
+            >
+              <kbd aria-hidden="true">{w.key}</kbd>
+              <span>{w.label}</span>
+            </Link>
           ))}
         </nav>
-        <div className="shell-right">
-          <UtcClock />
-          <button
-            type="button"
-            className="shell-k"
-            onClick={() => setPaletteOpen(true)}
-            aria-label="Open command palette"
-          >
-            <span aria-hidden="true">⌘</span>K
-          </button>
-        </div>
-        <i className="shell-signal" aria-hidden="true" />
+        <button
+          type="button"
+          className="shell-k"
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Open command palette"
+        >
+          <kbd>⌘K / Ctrl K</kbd>
+        </button>
       </header>
+      <div className="shell-controls">
+        <CommandLine />
+        <div className="shell-context">
+          <span className="shell-instrument">
+            <b>{asset?.symbol ?? ticker}</b>
+            <span>
+              {asset
+                ? `${asset.code} · ${asset.exchange} · ${asset.currency}`
+                : series
+                  ? `${series.country} · market factor, not a ticker`
+                  : "Listing metadata unavailable"}
+            </span>
+          </span>
+          <div className="shell-mode" role="group" aria-label="Data mode">
+            <button
+              type="button"
+              aria-pressed={mode === "replay"}
+              onClick={() => void changeDataMode("replay", client)}
+            >
+              Replay
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode === "live"}
+              disabled={!liveAllowed}
+              title="Local installation with configured backend credentials"
+              onClick={() => void changeDataMode("live", client)}
+            >
+              Local Live
+            </button>
+          </div>
+          <span className="shell-cutoff">
+            {mode === "replay"
+              ? cutoff
+                ? `Artifact cutoff ${cutoff.replace("T", " ").replace("Z", " UTC")}`
+                : "Loading checked manifest…"
+              : "Local API · credentials stay on your server"}
+          </span>
+        </div>
+      </div>
+      {workspace === "agents" && (
+        <nav className="shell-subnav" aria-label="Agents sections">
+          {AGENT_PAGES.map(([label, to]) => (
+            <Link
+              key={to}
+              to={to}
+              search={{ ticker } as never}
+              aria-current={pathname === to || pathname.startsWith(`${to}/`) ? "page" : undefined}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      )}
       <main id="forge-main" tabIndex={-1} className={bleed ? "shell-main-bleed" : "shell-main"}>
         {children}
       </main>
       {!bleed && (
         <footer className="shell-foot">
-          <span>Observer foundation · read-only</span>
-          <span>Unknown schemas fail closed</span>
+          <span>
+            {mode === "replay"
+              ? "Checked derived artifacts · anonymous access"
+              : "Local Live · source and timestamp on every response"}
+          </span>
+          <span>Unknown or unlicensed evidence stays unavailable</span>
         </footer>
       )}
       <ForgeCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

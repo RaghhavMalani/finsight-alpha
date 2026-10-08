@@ -1,3 +1,6 @@
+import { readReplayRoute } from "@/replay/client";
+import { getDataMode, localLiveAllowed } from "@/replay/mode";
+
 export const API_BASE =
   import.meta.env.VITE_API_BASE_URL ||
   (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)
@@ -22,6 +25,16 @@ async function apiError(response: Response): Promise<ApiError> {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  if (getDataMode() === "replay") {
+    if (init?.method && init.method !== "GET")
+      throw new ApiError("This action requires configured local Live mode.", 403);
+    const result = await readReplayRoute(path);
+    if (getDataMode() !== "replay" || init?.signal?.aborted)
+      throw new DOMException("Data mode changed", "AbortError");
+    return result as T;
+  }
+  if (!localLiveAllowed())
+    throw new ApiError("Live data is available only on a configured local installation.", 403);
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: "include",
@@ -35,6 +48,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     throw await apiError(response);
   }
   const payload = await response.json().catch(() => null);
+  if (getDataMode() !== "live" || init?.signal?.aborted)
+    throw new DOMException("Data mode changed", "AbortError");
   return payload as T;
 }
 
@@ -87,6 +102,11 @@ export async function streamAgent(
   onEvent: (event: AgentStreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
+  if (getDataMode() !== "live" || !localLiveAllowed())
+    throw new ApiError(
+      "Agent execution requires configured local Live mode. Replay shows recorded answers.",
+      403,
+    );
   const response = await fetch(`${API_BASE}/agent/stream`, {
     method: "POST",
     credentials: "include",

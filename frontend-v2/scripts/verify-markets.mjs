@@ -481,6 +481,9 @@ if (baseUrl) {
           .getByRole("link", { name: "SIMF.NS", exact: true })
           .waitFor();
         await page.reload();
+        await page.locator('.shell[data-mode="replay"]').waitFor();
+        await page.getByRole("button", { name: "Local Live", exact: true }).click();
+        await page.locator('.shell[data-mode="live"]').waitFor();
         await page.getByRole("button", { name: "Remove from watchlist", exact: true }).waitFor();
         await page
           .getByRole("button", { name: "Remove SIMF.NS from watchlist", exact: true })
@@ -561,6 +564,13 @@ if (baseUrl) {
       };
     });
 
+  async function gotoLocalLive(page, url, options) {
+    await page.goto(url, options);
+    if (url.includes("BAD%3B")) return;
+    await page.getByRole("button", { name: "Local Live", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Local Live", exact: true }).click();
+    await page.locator('.shell[data-mode="live"]').waitFor();
+  }
   const browser = await chromium.launch();
   let views = 0;
   try {
@@ -603,7 +613,7 @@ if (baseUrl) {
           },
         );
         const where = `${screen} @${width}`;
-        await page.goto(`${baseUrl}${spec.path ?? `/markets/${screen}?ticker=SIMF`}`, {
+        await gotoLocalLive(page, `${baseUrl}${spec.path ?? `/markets/${screen}?ticker=SIMF`}`, {
           waitUntil: "load",
         });
         await hydrated(page, where);
@@ -641,9 +651,13 @@ if (baseUrl) {
             (route) => route.fulfill({ status, json: { detail: "Provider down for this check." } }),
           );
           const where = `${screen} @${width} ${status}`;
-          await page.goto(`${baseUrl}${SCREENS[screen].path ?? `/markets/${screen}?ticker=SIMF`}`, {
-            waitUntil: "load",
-          });
+          await gotoLocalLive(
+            page,
+            `${baseUrl}${SCREENS[screen].path ?? `/markets/${screen}?ticker=SIMF`}`,
+            {
+              waitUntil: "load",
+            },
+          );
           await hydrated(page, where);
           if (screen === "research") {
             await page.getByRole("button", { name: "Index latest filing" }).click();
@@ -676,17 +690,17 @@ if (baseUrl) {
           return route.fulfill({ json: typeof body === "string" ? fixtures[body] : body });
         },
       );
-      await page.goto(`${baseUrl}/markets/simf?range=5Y`);
+      await gotoLocalLive(page, `${baseUrl}/markets/simf?range=5Y`);
       await page.waitForURL(/\/markets\/SIMF\?range=5Y/);
       await page.locator(".mk-candles svg").waitFor();
       assert.equal(
         await page.getByRole("radio", { name: "5Y", exact: true }).getAttribute("aria-checked"),
         "true",
       );
-      await page.goto(`${baseUrl}/markets?ticker=RISK`);
+      await gotoLocalLive(page, `${baseUrl}/markets?ticker=RISK`);
       await page.getByRole("heading", { name: "RISK", exact: true }).waitFor();
       await page.locator(".mk-candles svg").waitFor();
-      await page.goto(`${baseUrl}/markets/BAD%3B`);
+      await gotoLocalLive(page, `${baseUrl}/markets/BAD%3B`);
       await page.getByRole("alert").filter({ hasText: "Invalid ticker" }).waitFor();
       assert.equal(await page.locator(".mk-candles").count(), 0);
       await page.close();

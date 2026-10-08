@@ -36,11 +36,20 @@ import {
   gstime,
   propagate,
   twoline2satrec,
+  json2satrec,
+  type SatRec,
 } from "satellite.js";
 import { esc } from "@/components/observatory/format";
 import { pickNearest, useCanvasPointer } from "@/components/observatory/pointer";
 import { LabelLayer, type LabelSpec } from "@/components/observatory/SceneLabels";
-import { HUB_RADIUS_KM, HUBS, subsolarPoint, type Quake, type Tle } from "./geo-data";
+import {
+  HUB_RADIUS_KM,
+  HUBS,
+  subsolarPoint,
+  type Quake,
+  type Satellite,
+  type RecordedSatellite,
+} from "./geo-data";
 import { EARTH_KM, R, toVec } from "./coords";
 import type { LandData } from "./land";
 import { SENSOR_PRELUDE, SENSOR_VERTEX, SENSORS, type SensorKind } from "./sensors";
@@ -331,16 +340,21 @@ function Satellites({
   onCount,
   iss,
 }: {
-  tles: Tle[];
+  tles: Satellite[];
   onCount: (n: number) => void;
   /** Written with the ISS position every second, for its label. */
   iss: Vector3;
 }) {
   const data = useMemo(() => {
-    const recs = tles.flatMap((t) => {
+    const recs = tles.flatMap<{
+      name: string;
+      rec: SatRec | null;
+      snapshot: RecordedSatellite | null;
+    }>((t) => {
+      if ("trail" in t) return [{ name: t.name, rec: null, snapshot: t }];
       try {
-        const rec = twoline2satrec(t.line1, t.line2);
-        return rec.error ? [] : [{ name: t.name, rec }];
+        const rec = "omm" in t ? json2satrec(t.omm) : twoline2satrec(t.line1, t.line2);
+        return rec.error ? [] : [{ name: t.name, rec, snapshot: null }];
       } catch {
         return [];
       }
@@ -398,6 +412,7 @@ function Satellites({
   );
   const v = useMemo(() => new Vector3(), []);
   const place = (rec: (typeof data.recs)[number]["rec"], date: Date) => {
+    if (!rec) return null;
     const pv = propagate(rec, date);
     if (!pv || !pv.position || typeof pv.position === "boolean") return null;
     const geo = eciToGeodetic(pv.position, gstime(date));
@@ -414,13 +429,18 @@ function Satellites({
     data.last = now;
     const pos = data.dot.geometry.getAttribute("position") as BufferAttribute,
       tpos = data.lines.geometry.getAttribute("position") as BufferAttribute;
-    data.recs.forEach(({ rec, name }, i) => {
-      const p = place(rec, new Date(now));
+    data.recs.forEach(({ rec, name, snapshot }, i) => {
+      const p = snapshot
+        ? toVec(snapshot.lat, snapshot.lon, R * (1 + snapshot.altitudeKm / EARTH_KM), v)
+        : place(rec, new Date(now));
       if (p) pos.setXYZ(i, p.x, p.y, p.z);
       if (p && name.startsWith("ISS (ZARYA)")) iss.copy(p);
       let prev: Vector3 | null = null;
       for (let k = 0; k < data.TRAIL; k++) {
-        const q = place(rec, new Date(now - (data.TRAIL - 1 - k) * 30_000));
+        const point = snapshot?.trail[k];
+        const q = point
+          ? toVec(point.lat, point.lon, R * (1 + point.altitudeKm / EARTH_KM), v)
+          : place(rec, new Date(now - (data.TRAIL - 1 - k) * 30_000));
         const cur: Vector3 | null = q ? q.clone() : prev;
         if (prev && cur) {
           const o = (i * (data.TRAIL - 1) + k - 1) * 2;
@@ -626,7 +646,7 @@ export default function GlobeScene({
   view?: [number, number, number];
   land: LandData | null;
   quakes: Quake[];
-  tles: Tle[];
+  tles: Satellite[];
   now: number;
   layers: GlobeLayers;
   sensor: SensorKind | null;
