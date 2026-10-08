@@ -194,16 +194,26 @@ if (urlIndex > 0) {
           );
         }
       }
-      for (const [command, workspace] of [
-        ["RELIANCE IN DES", "market"],
-        ["SPY US GP", "market"],
-        ["RELIANCE IB DES", "market"],
-        ["FACT", "factors"],
-        ["EXEC", "execution"],
+      for (const [command, workspace, ticker, graph] of [
+        ["RELIANCE IN DES", "market", "RELIANCE.NS", false],
+        ["SPY US GP", "market", "SPY", true],
+        ["RELIANCE IB DES", "market", "500325.BO", false],
+        ["FACT", "factors", "500325.BO", false],
+        ["EXEC", "execution", "500325.BO", false],
       ]) {
+        if (process.argv.includes("--debug")) console.log(`${name}: command ${command}`);
         await page.getByLabel("Command", { exact: true }).fill(command);
         await page.getByLabel("Command", { exact: true }).press("Enter");
-        await page.locator(`.shell[data-workspace="${workspace}"]`).waitFor();
+        // Several consecutive commands share MARKET. Its existing shell alone
+        // does not prove that navigation committed before the next input fill.
+        await page.waitForURL(
+          (url) =>
+            url.pathname === (workspace === "market" ? "/markets" : "/" + workspace) &&
+            url.searchParams.get("ticker") === ticker &&
+            url.searchParams.get("view") === (graph ? "graph" : null),
+        );
+        await page.locator(`.shell[data-ready="true"][data-workspace="${workspace}"]`).waitFor();
+        await page.waitForLoadState("networkidle");
       }
       for (const label of ["FACTORS", "EXECUTION"]) {
         await page

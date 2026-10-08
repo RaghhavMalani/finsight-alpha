@@ -18,7 +18,7 @@ The existing SHA-checked publication and projection adapters remain the data pat
 
 `frontend-v2/scripts/verify-agents.mjs` covers genuine frozen records and agent-specific grade/source/identity sabotage. Its production-browser mode checks desktop/mobile Agents pages, the drawer, keyboard focus, URL filters and unavailable evidence. Public screenshots use unmodified Replay with no request interception. Mocked Local Live and signed-out checks run separately and create no screenshots.
 
-Run lint, TypeScript, production build, every `verify-*.mjs`, existing browser QA, the Agents browser script and the full Linux backend CI suite. The existing Chrome/Edge/Firefox checker rechecks native F5/F7 behavior. Screenshots are under `docs/screenshots/phase1b-agents-*`. Final measured validation is recorded in the PR.
+Run lint, TypeScript, production build, every `verify-*.mjs`, existing browser QA, the Agents browser script and the full Linux backend CI suite. The Chrome/Edge/Firefox checker rechecks native F5/F7 behavior and waits for each exact command destination to settle before entering the next command; shell behavior is unchanged. Screenshots are under `docs/screenshots/phase1b-agents-*`. Final measured validation is recorded in the PR.
 
 ## Postable result
 
