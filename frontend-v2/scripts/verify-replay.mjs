@@ -7,6 +7,7 @@ import {
   validateMarketReplay,
 } from "../src/replay/contracts.ts";
 import { WORKSPACES } from "../src/app/workspaces.ts";
+import { validateTrace } from "../src/components/observatory/types.ts";
 import { fileURLToPath } from "node:url";
 
 const root = new URL("../public/", import.meta.url);
@@ -69,6 +70,63 @@ console.log(
   `Replay: ${checks} publication, byte-hash, source, cutoff and raw-price checks passed.`,
 );
 
+// Genuine factor traces: full market coverage, one recorded revised vintage,
+// return-only features, nested purges and unchanged claim flags.
+for (const [ticker, source, start] of [
+  ["US-MKT", "KENNETH_FRENCH", "1926-07-01"],
+  ["IN-MKT", "IIMA", "1993-10-04"],
+]) {
+  for (const kind of ["hmm", "signal"]) {
+    const entry = manifest.artifacts[`observatory:${ticker}:${kind}`];
+    assert.equal(entry.status, "AVAILABLE");
+    assert.ok(entry.licence.attribution && entry.licence.source_urls.length);
+    const value = JSON.parse(readFileSync(new URL(entry.url.slice(1), root)));
+    validateTrace(value, { ticker, kind, asOf: entry.as_of });
+    assert.equal(value.provenance.market_start, start);
+    assert.deepEqual(value.provenance.source, [source]);
+    assert.equal(value.provenance.input_hash, entry.input_hash);
+    assert.ok(
+      value.feature_names.every((f) => !/volume|price|high_low|intraday|benchmark/.test(f)),
+    );
+    assert.equal(value.provenance.split_clock, "OBSERVATION_SEQUENCE_FIXED_VINTAGE");
+    for (const sabotage of [
+      (p) => (p.provenance.source = ["ALPACA_IEX"]),
+      (p) => (p.provenance.latest_availability = "1926-07-01T00:00:00Z"),
+      (p) => (p.provenance.split_clock = "HISTORICAL_PIT"),
+      (p) => (p.provenance.source_captures[0].captured_at = "2099-01-01T00:00:00Z"),
+    ]) {
+      const changed = structuredClone(value);
+      sabotage(changed);
+      assert.throws(() => validateTrace(changed, { ticker, kind, asOf: entry.as_of }));
+    }
+    checks += 5;
+  }
+  const entry = manifest.artifacts[`market:${ticker}`];
+  const series = validateMarketReplay(
+    JSON.parse(readFileSync(new URL(entry.url.slice(1), root))),
+    ticker,
+    entry.as_of,
+  );
+  assert.ok(series.weeks[0].week.startsWith(start.slice(0, 4)));
+  assert.ok(series.weeks.filter((w) => w.regime).length > series.weeks.length * 0.98);
+  const regime = manifest.artifacts[`regime:${ticker}`];
+  assert.equal(regime.status, "AVAILABLE");
+  assert.equal(regime.input_hash, entry.input_hash);
+  checks += 4;
+}
+const satelliteEntry = manifest.artifacts["world:satellites"];
+assert.equal(satelliteEntry.status, "AVAILABLE");
+assert.equal(satelliteEntry.licence.dataset_key, "celestrak:gp");
+const satellites = JSON.parse(readFileSync(new URL(satelliteEntry.url.slice(1), root)));
+assert.ok(satellites.satellites.length > 0);
+assert.equal(satellites.schema_version, "satellite-replay/1");
+assert.ok(
+  !/"(?:line1|line2|MEAN_MOTION|ECCENTRICITY|INCLINATION|omm)"/.test(JSON.stringify(satellites)),
+);
+console.log(
+  `Public research: ${checks - Object.keys(manifest.artifacts).length - 11} additional real-series and source-clock checks passed; ${satellites.satellites.length} satellites.`,
+);
+
 // A derived fixture made from the existing simulated Phase 0 bars is strictly test-only.
 const weeklyBytes = readFileSync(
   new URL("./fixtures/market-weekly.TEST_ONLY.json", import.meta.url),
@@ -122,6 +180,12 @@ if (flag > 0) {
       "/reality/forge-v0.2.4.1",
       "/observatory?scene=neural&ticker=SPY",
       "/observatory?scene=hmm&ticker=RELIANCE.NS",
+      ...["US-MKT", "IN-MKT"].flatMap((ticker) => [
+        `/markets/${ticker}`,
+        `/observatory?scene=hmm&ticker=${ticker}`,
+        `/observatory?scene=signal&ticker=${ticker}`,
+      ]),
+      "/dynamics?ticker=IN-MKT",
       "/",
     ];
     for (const width of [1440, 390])
@@ -158,6 +222,63 @@ if (flag > 0) {
         if (path === "/markets/RELIANCE.NS") {
           await page.getByText("NSE · IS · INR", { exact: true }).waitFor();
           assert.match(await page.locator("main").innerText(), /09:15–15:30 IST/);
+        }
+        if (
+          /\/observatory\?scene=(hmm|signal)&ticker=(US|IN)-MKT/.test(path) ||
+          path === "/observatory"
+        ) {
+          await page.locator(".obs-readout").waitFor();
+          await page
+            .locator(".obs-title")
+            .getByText(/market factor, not a ticker/)
+            .waitFor();
+          assert.equal(await page.getByRole("alert").count(), 0, path);
+          await page.locator("canvas").first().waitFor();
+          await page.waitForTimeout(800);
+          if (process.argv.includes("--screenshots")) {
+            const params = new URL(path, base).searchParams;
+            const country = params.get("ticker") === "IN-MKT" ? "india" : "us";
+            const scene = params.get("scene") ?? "hmm";
+            await page.screenshot({
+              path: fileURLToPath(
+                new URL(`phase1a-observatory-${country}-${scene}-${width}.png`, shots),
+              ),
+              fullPage: true,
+            });
+          }
+        }
+        if (/\/markets\/(US|IN)-MKT/.test(path)) {
+          await page.getByRole("img", { name: /weekly relative performance/ }).waitFor();
+          for (const name of [
+            "Relative performance",
+            "Drawdown",
+            "Realized volatility",
+            "HMM regimes",
+          ]) {
+            await page.getByRole("button", { name, exact: true }).click();
+            await page
+              .getByRole("img", { name: new RegExp(`weekly ${name.toLowerCase()}`) })
+              .waitFor();
+          }
+          assert.ok(!(await page.locator("main").innerText()).includes("HMM shading unavailable"));
+          if (process.argv.includes("--screenshots"))
+            await page.screenshot({
+              path: fileURLToPath(
+                new URL(
+                  `phase1a-market-factor-${path.endsWith("IN-MKT") ? "india" : "us"}-${width}.png`,
+                  shots,
+                ),
+              ),
+              fullPage: true,
+            });
+        }
+        if (path === "/globe") {
+          await page
+            .getByRole("button", {
+              name: new RegExp(`^Satellites ${satellites.satellites.length}$`),
+            })
+            .waitFor();
+          assert.equal(await page.locator(".ge-chip.replay").count(), 2);
         }
         if (
           process.argv.includes("--screenshots") &&

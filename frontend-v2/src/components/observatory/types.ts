@@ -11,6 +11,12 @@ export type Provenance = {
   observations: number;
   price_basis: string;
   raw_snapshot_ids: string[];
+  series_label?: string;
+  split_clock?: string;
+  market_start?: string;
+  market_end?: string;
+  source_urls?: string[];
+  source_captures?: { source_url: string; captured_at: string; sha256: string }[];
 };
 export type TraceBase = {
   schema_version: "model-observatory/2";
@@ -331,13 +337,17 @@ export function validateTrace(value: unknown, request: TraceRequest): ModelTrace
   )
     fail();
   const p = trace.provenance;
+  const factor = p?.coverage === "MARKET_FACTOR";
+  const factorSource =
+    trace.ticker === "US-MKT" ? "KENNETH_FRENCH" : trace.ticker === "IN-MKT" ? "IIMA" : null;
   const atCutoff = (date: string) =>
     Number.isFinite(Date.parse(date)) && Date.parse(date) <= Date.parse(trace.as_of);
   if (
     !p ||
     !/^[a-f0-9]{64}$/.test(p.input_hash) ||
-    p.coverage !== "IEX_ONLY" ||
-    p.source.join() !== "ALPACA_IEX" ||
+    (factor
+      ? !factorSource || p.source.join() !== factorSource || trace.kind === "neural"
+      : p.coverage !== "IEX_ONLY" || p.source.join() !== "ALPACA_IEX") ||
     !p.evidence_quality.length ||
     !atCutoff(p.latest_observation) ||
     !Number.isFinite(Date.parse(p.latest_availability)) ||
@@ -352,7 +362,38 @@ export function validateTrace(value: unknown, request: TraceRequest): ModelTrace
   )
     fail();
   const qualities = [...new Set(p.evidence_quality)].sort();
-  if (
+  if (factor) {
+    const captures = p.source_captures;
+    if (
+      p.evidence_mode !== "CAPTURE_ONLY" ||
+      qualities.join() !== "CAPTURE_ONLY" ||
+      p.series_label !== "market factor, not a ticker" ||
+      p.price_basis !== "NOT_APPLICABLE_FACTOR_RETURNS" ||
+      p.split_clock !== "OBSERVATION_SEQUENCE_FIXED_VINTAGE" ||
+      !p.disclosure.includes("never backdated") ||
+      !p.market_start ||
+      !p.market_end ||
+      !atCutoff(p.market_end) ||
+      Date.parse(p.market_start) > Date.parse(p.market_end) ||
+      !captures?.length ||
+      captures.length !== p.raw_snapshot_ids.length ||
+      captures.some(
+        (c, i) =>
+          !atCutoff(c.captured_at) ||
+          c.sha256 !== p.raw_snapshot_ids[i] ||
+          !/^[a-f0-9]{64}$/.test(c.sha256) ||
+          !(factorSource === "KENNETH_FRENCH"
+            ? /^https:\/\/mba\.tuck\.dartmouth\.edu\/pages\/faculty\/ken\.french\/ftp\/F-F_(?:Research_Data_Factors|Momentum_Factor)_daily_CSV\.zip$/.test(
+                c.source_url,
+              )
+            : c.source_url ===
+              "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/DATA/2025-12_FourFactors_and_Market_Returns_Daily_SurvivorshipBiasAdjusted.csv"),
+      ) ||
+      Date.parse(p.latest_availability) !==
+        Math.max(...captures.map((c) => Date.parse(c.captured_at)))
+    )
+      fail();
+  } else if (
     qualities.some(
       (q) => !["CONSERVATIVE_MARKET_TIME", "RECEIVE_TIMESTAMP_CAPTURED"].includes(q),
     ) ||

@@ -8,6 +8,8 @@ import { overviewTarget } from "./contracts";
 import { pct, num, stamp } from "./format";
 import { Chip, Loading, Panel } from "./ui";
 import { toggleWatchlist, useWatchlist } from "./watchlist";
+import { FACTOR_SERIES, factorSeries } from "@/replay/factor-series";
+import { SourceCredit } from "@/replay/SourceCredit";
 import "./replay.css";
 
 const VIEWS = ["Relative performance", "Drawdown", "Realized volatility", "HMM regimes"] as const;
@@ -118,6 +120,7 @@ function WeeklyChart({ series, view }: { series: MarketReplay; view: View }) {
 
 export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
   const asset = lookupInstrument(ticker);
+  const factor = factorSeries(ticker);
   const watchlist = useWatchlist();
   const [view, setView] = useState<View>("Relative performance");
   const manifest = useQuery({
@@ -144,8 +147,20 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
   const watching = watchlist.includes(ticker);
   return (
     <>
+      <nav className="mk-replay-views" aria-label="Public market factors">
+        <span className="mk-note">Public research · market factor, not a ticker</span>
+        {FACTOR_SERIES.map((s) => (
+          <Link
+            key={s.id}
+            {...overviewTarget(s.id)}
+            aria-current={s.id === ticker ? "page" : undefined}
+          >
+            {s.name} · {s.source}
+          </Link>
+        ))}
+      </nav>
       <Panel
-        title={asset?.name ?? ticker}
+        title={factor ? `${factor.name} · market factor, not a ticker` : (asset?.name ?? ticker)}
         meta={
           <Chip>Replay · {entry?.scope === "TEST_ONLY" ? "TEST_ONLY" : "derived results"}</Chip>
         }
@@ -154,11 +169,32 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
           <span>
             {asset
               ? `${asset.exchange} · ${asset.code} · ${asset.currency}`
-              : "Listing metadata unavailable"}
+              : factor
+                ? `${factor.country} · market excess returns (Rm-Rf) · dimensionless`
+                : "Listing metadata unavailable"}
           </span>
-          <span>{asset ? `Regular cash session ${asset.session}` : "Session unavailable"}</span>
+          <span>
+            {asset
+              ? `Regular cash session ${asset.session}`
+              : factor
+                ? "Daily research release · fixed revised vintage"
+                : "Session unavailable"}
+          </span>
           <span>{stamp(entry?.as_of ?? manifest.data?.as_of)}</span>
         </div>
+        {series.data?.method.hmm?.source_coverage && (
+          <p className="mk-line">
+            {series.data.method.hmm.source_coverage.market_start}–
+            {series.data.method.hmm.source_coverage.market_end} ·{" "}
+            {series.data.method.hmm.source_coverage.observations.toLocaleString()} daily returns ·
+            captured {stamp(series.data.method.hmm.source_coverage.latest_availability)}
+          </p>
+        )}
+        {factor && entry && (
+          <div className="px-5 py-3">
+            <SourceCredit licence={entry.licence} />
+          </div>
+        )}
         <div className="mk-replay-kpis">
           <div>
             <span>Relative performance</span>
@@ -216,8 +252,8 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
               <b>{view} unavailable</b>
               <p>{reason}</p>
               <p>
-                Absolute vendor prices stay on the local installation. This view will render checked
-                weekly results when publication is permitted.
+                Ticker-level views stay Live-only. Open the US or India market factor above for
+                checked public weekly research.
               </p>
             </div>
           )}
@@ -288,7 +324,7 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
                 </tr>
               </thead>
               <tbody>
-                {series.data.weeks.map((w) => (
+                {series.data.weeks.slice(-52).map((w) => (
                   <tr key={w.week}>
                     <td>{w.week}</td>
                     <td>{num(w.relative_performance)}</td>
@@ -300,6 +336,10 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
               </tbody>
             </table>
           </div>
+          <p className="mk-line">
+            Latest 52 weeks shown. {series.data.weeks.length.toLocaleString()} weeks in the checked
+            full-history artifact.
+          </p>
         </Panel>
       )}
     </>

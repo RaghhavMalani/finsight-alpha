@@ -8,6 +8,7 @@ import { setWatchlist, toggleWatchlist, useWatchlist } from "./watchlist";
 import { useDataMode } from "@/replay/mode";
 import ReplayOverviewScreen from "./ReplayOverviewScreen";
 import { instrumentMoney, lookupInstrument } from "./instruments";
+import { factorSeries } from "@/replay/factor-series";
 
 function quoteSource(q: MarketQuote) {
   return q.source === "FINNHUB"
@@ -22,6 +23,15 @@ export default function OverviewScreen(props: {
   onRange: (range: BarRange) => void;
 }) {
   const mode = useDataMode();
+  if (mode === "live" && factorSeries(props.ticker))
+    return (
+      <Panel title="Market factor research">
+        <p className="mk-line">
+          These factor research scenes are recorded in Replay. Select Replay, or enter a ticker for
+          local Live prices.
+        </p>
+      </Panel>
+    );
   return mode === "replay" ? (
     <ReplayOverviewScreen ticker={props.ticker} />
   ) : (

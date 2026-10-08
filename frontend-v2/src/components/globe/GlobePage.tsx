@@ -16,7 +16,7 @@ import {
   USGS_MONTH_FEED,
   energyJoules,
   type Quake,
-  type Tle,
+  type Satellite,
 } from "./geo-data";
 import { loadQuakes, loadSatellites, useFeed, type Feed } from "./feeds";
 import { loadLand, type LandData } from "./land";
@@ -25,6 +25,8 @@ import { SENSORS, type SensorKind } from "./sensors";
 import "./globe.css";
 import { useDataMode } from "@/replay/mode";
 import { loadReplayManifest } from "@/replay/client";
+import type { ReplayManifest } from "@/replay/contracts";
+import { SourceCredit } from "@/replay/SourceCredit";
 
 const GlobeScene = lazy(() => import("./GlobeScene"));
 const ago = (ms: number) => {
@@ -41,7 +43,8 @@ export default function GlobePage() {
   const mode = useDataMode();
   const reduced = useReducedMotion();
   const quakes = useFeed<Quake[]>(loadQuakes, [], 5 * 60_000);
-  const sats = useFeed<Tle[]>(loadSatellites, [], 2 * 3600_000);
+  const sats = useFeed<Satellite[]>(loadSatellites, [], 2 * 3600_000);
+  const [manifest, setManifest] = useState<ReplayManifest | null>(null);
   const [land, setLand] = useState<LandData | null>(null);
   // Times start unset so server and client render the same markup; the clock starts on mount.
   const [now, setNow] = useState(0);
@@ -63,6 +66,7 @@ export default function GlobePage() {
         .then((m) => {
           if (alive) {
             const t = Date.parse(m.artifacts["world:quakes"]?.as_of ?? m.as_of);
+            setManifest(m);
             setNow(t);
             setClock(t);
           }
@@ -151,7 +155,7 @@ export default function GlobePage() {
             <h1>The planet, as public signals</h1>
             <p>
               {mode === "replay"
-                ? "A checked USGS earthquake snapshot over eight market hubs. Satellite coverage is unavailable without a publication grant."
+                ? "Checked USGS earthquakes and a frozen CelesTrak satellite snapshot over eight market hubs. Each layer records its own cutoff."
                 : "Live USGS earthquakes and CelesTrak satellites over eight market hubs."}{" "}
               Quake aggregates use a one-day availability lag; hub proximity is descriptive, not a
               company exposure map.
@@ -258,6 +262,30 @@ export default function GlobePage() {
           )}
         </div>
         <aside className="ge-panel" aria-label="Neural link">
+          {mode === "replay" && manifest && (
+            <details className="mb-5 text-xs leading-5">
+              <summary className="cursor-pointer">Sources, licences and recorded cutoffs</summary>
+              {["world:quakes", "world:satellites"].map((id) => {
+                const entry = manifest.artifacts[id];
+                return (
+                  entry && (
+                    <div key={id} className="mt-3">
+                      <p>
+                        {id === "world:quakes" ? "Earthquakes" : "Satellite orbital projection"} ·{" "}
+                        {entry.as_of}
+                      </p>
+                      <SourceCredit licence={entry.licence} />
+                      {entry.reason && <p>{entry.reason}</p>}
+                    </div>
+                  )
+                );
+              })}
+              <p className="mt-2">
+                Satellite positions and ten-minute trails are frozen SGP4 projections from recorded
+                OMM elements, for research visualization.
+              </p>
+            </details>
+          )}
           <div className="ge-eyebrow">Neural link · Geo events input layer</div>
           <p className="ge-lead">
             The same four values a network receives as its Geo events inputs, computed from this

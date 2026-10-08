@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { ModelTrace } from "./types";
 import { GEO_NEGATIVE_CONTROL } from "./neural/world";
+import { SourceCredit } from "@/replay/SourceCredit";
+import type { PublicationLicense } from "@/replay/contracts";
 
 export type SourceMode = "replay" | "live";
 
@@ -17,6 +19,7 @@ export function MethodDrawer({
   draftCutoff,
   onDraftCutoff,
   onRun,
+  licence,
 }: {
   open: boolean;
   onClose: () => void;
@@ -29,6 +32,7 @@ export function MethodDrawer({
   draftCutoff: string;
   onDraftCutoff: (value: string) => void;
   onRun: () => void;
+  licence?: PublicationLicense;
 }) {
   const close = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -111,6 +115,7 @@ export function MethodDrawer({
             ? "Neural net · method"
             : "Feature flow · method"}
       </h2>
+      {licence && <SourceCredit licence={licence} />}
       {rows.map(([k, v]) => (
         <div key={k}>
           <div className="obs-k">{k}</div>
@@ -210,6 +215,13 @@ export function MethodDrawer({
             )}
           </dl>
           {p.disclosure && <p style={{ marginTop: 10 }}>{p.disclosure}</p>}
+          {p.source_urls?.map((source) => (
+            <p key={source}>
+              <a href={source} target="_blank" rel="noreferrer">
+                Original research source
+              </a>
+            </p>
+          ))}
           {url && (
             <p style={{ marginTop: 10 }}>
               <a href={url} target="_blank" rel="noreferrer" style={{ color: "var(--obs-fg)" }}>

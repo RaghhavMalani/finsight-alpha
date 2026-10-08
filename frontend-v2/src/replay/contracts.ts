@@ -3,6 +3,10 @@ export type PublicationLicense = {
   permitted_uses: string[];
   dataset_key: string;
   valid_through: string | null;
+  attribution?: string;
+  source_urls?: string[];
+  terms_url?: string;
+  basis?: string;
 };
 export type ReplayEntry = {
   status: "AVAILABLE" | "UNAVAILABLE";
@@ -197,6 +201,15 @@ export type MarketReplay = {
     volatility_window_sessions: 20;
     annualization_sessions: 252;
     regime_semantics: string;
+    hmm?: {
+      source_coverage?: {
+        market_start: string;
+        market_end: string;
+        latest_availability: string;
+        observations: number;
+        disclosure: string;
+      };
+    };
   };
   weeks: MarketWeek[];
 };
@@ -235,7 +248,7 @@ export function validateMarketReplay(value: unknown, ticker: string, cutoff: str
   )
     fail("Market Replay identity or methodology mismatch.");
   if (p.weeks[0].relative_performance !== 100) fail("Relative performance must begin at 100.");
-  let previous = 0;
+  let previous: number | null = null;
   for (const w of p.weeks) {
     const t = Date.parse(w.week);
     if (
@@ -244,7 +257,7 @@ export function validateMarketReplay(value: unknown, ticker: string, cutoff: str
       new Date(t).toISOString().slice(0, 10) !== w.week ||
       Object.keys(w).sort().join() !==
         "drawdown,realized_volatility,regime,relative_performance,week" ||
-      t <= previous ||
+      (previous !== null && t <= previous) ||
       t > Date.parse(cutoff) ||
       !Number.isFinite(w.relative_performance) ||
       w.relative_performance <= 0 ||
@@ -257,7 +270,7 @@ export function validateMarketReplay(value: unknown, ticker: string, cutoff: str
     )
       fail("Invalid weekly derived Market observation.");
     if (
-      previous &&
+      previous !== null &&
       Math.floor((t + 3 * 86400000) / (7 * 86400000)) ===
         Math.floor((previous + 3 * 86400000) / (7 * 86400000))
     )

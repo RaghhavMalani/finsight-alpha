@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { loadQuakes, loadSatellites, useFeed } from "@/components/globe/feeds";
-import type { Quake, Tle } from "@/components/globe/geo-data";
+import type { Quake, Satellite } from "@/components/globe/geo-data";
 import { loadLand, type LandData } from "@/components/globe/land";
 import { useReducedMotion } from "@/components/observatory/useReducedMotion";
 import "@/components/landing/landing.css";
@@ -36,7 +36,7 @@ const INSTRUMENTS: {
 }[] = [
   {
     to: "/observatory",
-    search: { scene: "hmm", ticker: "SPY" },
+    search: { scene: "hmm", ticker: "US-MKT" },
     code: "F8",
     title: "Model Observatory",
     body: "An HMM's EM fit and a boosted forest's walk-forward folds, replayed from checked artifacts whose bytes are hashed before a single line is drawn.",
@@ -110,7 +110,7 @@ function Landing() {
   const mode = useDataMode();
   const reduced = useReducedMotion();
   const quakes = useFeed<Quake[]>(loadQuakes, [], 5 * 60_000);
-  const sats = useFeed<Tle[]>(loadSatellites, [], 2 * 3600_000);
+  const sats = useFeed<Satellite[]>(loadSatellites, [], 2 * 3600_000);
   const [land, setLand] = useState<LandData | null>(null);
   const [now, setNow] = useState(0);
   const [manifest, setManifest] = useState<ReplayManifest | null>(null);

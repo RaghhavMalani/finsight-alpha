@@ -26,7 +26,7 @@ const MARKET_TABS = [
 
 export const Route = createFileRoute("/markets")({
   validateSearch: (search: Record<string, unknown> & SearchSchemaInput) => ({
-    ticker: normalizeTicker(String(search.ticker ?? "")) ?? "SPY",
+    ticker: normalizeTicker(String(search.ticker ?? "")) ?? "US-MKT",
     view: search.view === "graph" ? "graph" : undefined,
     range:
       search.range === undefined || parseBarRange(search.range) === "1D"

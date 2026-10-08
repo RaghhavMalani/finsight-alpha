@@ -9,7 +9,7 @@ export const Route = createFileRoute("/observatory")({
       search.scene === "signal" || search.scene === "neural"
         ? (search.scene as "signal" | "neural")
         : ("hmm" as const),
-    ticker: normalizeTicker(String(search.ticker ?? "")) ?? "SPY",
+    ticker: normalizeTicker(String(search.ticker ?? "")) ?? "US-MKT",
   }),
   head: () => ({
     meta: [

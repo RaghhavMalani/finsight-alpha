@@ -1,5 +1,6 @@
 import { resolveInstrument, type Instrument } from "../../markets/instruments.ts";
 import { WORKSPACES } from "../workspaces.ts";
+import { factorSeries } from "../../replay/factor-series.ts";
 
 export type CommandTarget = { to: string; search: Record<string, string>; instrument?: Instrument };
 const functions: Record<string, string> = {
@@ -31,6 +32,17 @@ export function parseCommand(text: string, currentTicker = "SPY"): CommandTarget
     throw new Error("Use TICKER [EXCHANGE] FUNCTION, then GO.");
   const fn = tokens.at(-1)!;
   if (!functions[fn]) throw new Error(`Unknown function. Use ${COMMAND_CODES.join(", ")}.`);
+  const series = factorSeries(tokens[0]);
+  if (series) {
+    if (tokens.length !== 2 || !["GP", "REG", "OBS", "DES"].includes(fn))
+      throw new Error(
+        "Market factors have no exchange code. Use US-MKT or IN-MKT with GP, REG or OBS.",
+      );
+    return {
+      to: functions[fn],
+      search: { ticker: series.id, ...(fn === "GP" ? { view: "graph" } : {}) },
+    };
+  }
   const asset = resolveInstrument(tokens[0], tokens.length === 3 ? tokens[1] : undefined);
   return {
     to: functions[fn],

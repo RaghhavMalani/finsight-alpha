@@ -12,24 +12,30 @@ India listings display INR and the NSE regular cash session, 09:15–15:30 IST. 
 
 ## Public Replay boundary
 
-One `frontend-v2/public/replay-manifest.json` declares 76 available derived artifacts and unavailable coverage. Every entry carries sources, publication licence, cutoff, availability metadata and source input hash. Available payloads also carry byte count and SHA-256. The client verifies these before parsing or rendering; a changed byte, expired licence, future availability or raw-price field fails closed. Claim flags remain false.
+One `frontend-v2/public/replay-manifest.json` declares 85 available derived artifacts and unavailable coverage. Every entry records its sources, publication licence, cutoff, actual availability, source input hash, byte count and SHA-256. The client checks these before rendering. Claim flags remain false.
 
-The available artifacts are the existing frozen Forge research, verified Dynamics reference projections, explicitly labelled synthetic integration references and a genuine captured USGS ComCat earthquake snapshot. The World clock stays at the recorded cutoff, `2026-10-07T11:20:26Z`, and performs no external feed polling in Replay. USGS-authored ComCat data are covered by the source's [public-domain policy](https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits).
+The real public market evidence now uses the [Ken French Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) and the [IIM Ahmedabad Indian factor library](https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/). Both registrations permit attributed `publish_derived` research projections. They are not labelled public domain or Creative Commons, and do not authorize redistributing underlying CRSP or CMIE Prowess records. IIMA attribution follows Agarwalla, Jacob and Varma (2013), *Four factor model in Indian equities market*, W.P. No. 2013-09-05.
 
-The publication policy did not grant anonymous derived-series publication for these sources:
+| Public series | Genuine market history | Available views |
+|---|---|---|
+| `US-MKT` · Ken French | 1926-07-01–2026-08-31 · 26,317 daily returns | Weekly GP, HMM, signal validation, regime evidence |
+| `IN-MKT` · IIMA survivorship-bias adjusted release 2025-12 | 1993-10-04–2025-12-31 · 8,003 daily returns | Weekly GP, HMM, signal validation, regime evidence |
 
-| Source | Affected public coverage |
+Both are labelled **market factor, not a ticker**. The source files also contain size, value and momentum factors; their genuine coverage and capture hashes are recorded. IIMA's library starts 1993-10-01, but its first market-factor value is missing; the market series therefore starts October 4 without filling the missing value. Source CSV percentages are converted to proportional holding-period returns. GP compounds **market excess returns (Rm-Rf)** into a dimensionless index, rebased to 100 at the first weekly observation. It shows weekly relative performance, drawdown, 20-session annualized log-return volatility and HMM posterior shading across the fitted history. It is not a ticker price or an investable total-return index.
+
+The HMM and signal adapters reuse the existing return feature helpers, HMM EM tracer, GBM stage adapter, model-family selection suite, purge, validation and final holdout construction. No OHLCV rows or volume features are fabricated. HMM uses the entire complete market-return history; its posteriors are retrospective. Signal uses return, momentum, volatility and drawdown features from that country's market factor only. The US HMM reaches tolerance at 56 EM iterations; India reaches the 100-iteration cap and is explicitly labelled unconverged. The US signal verdict is inconclusive. India's holdout interval is above chance under the existing descriptive verdict rule; this does not earn an alpha claim.
+
+These are current **revised captures**, not historically known factor vintages. Each source records its actual capture time in `available_at`. The signal split clock orders observations within that one fixed vintage, with a one-session horizon purge and an untouched final 20% holdout after validation-only model selection. Historical split dates are not alleged publication dates. The [IIMA revision FAQ](https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/FAQ.php) explains why historical values may change. The regime panel publishes return-only HMM evidence, not a full six-component fracture score.
+
+WORLD includes a genuine USGS ComCat freeze and **176 unique satellites** derived from captured CelesTrak OMM JSON for the stations and visual groups. The orbital snapshot at `2026-10-08T04:10:00Z` contains SGP4 geodetic positions and 20 trail samples at 30-second intervals, with no TLE or OMM elements. Each layer displays its own cutoff; USGS retains `2026-10-07T11:20:26Z`. CelesTrak attribution includes USSPACECOM / 18th Space Defense Squadron and Space-Track.org. The registration cites the [CelesTrak usage policy](https://celestrak.org/usage-policy.php) and [Space-Track redistribution guidance](https://www.space-track.org/documentation). Captures are cached, GP requests are limited to two hours, and a non-200 response stops further requests. Orbital projections are research visualizations, not operational tracking.
+
+| Source kept unavailable publicly | Affected coverage |
 |---|---|
-| ALPACA_IEX | SPY, QQQ and IWM weekly Market series; HMM, signal and neural traces |
-| YFINANCE | US and NSE daily Market series |
-| YFINANCE / NSE India VIX | Derived volatility-index summary |
-| CelesTrak | Recorded satellite projection |
+| ALPACA_IEX | SPY, QQQ and IWM ticker GP; ticker HMM, signal and neural traces |
+| YFINANCE | US and India ticker GP |
+| YFINANCE / NSE India VIX | Volatility-index summary |
 
-These entries have no payload URL. A tenant display or training grant does not authorize publication. The six original Alpaca trace payloads are removed from the current repository tree and deployed static directory; contract tests read their byte-identical historical Git objects from the existing immutable PR #20 commit. Existing Git history is preserved. No vendor price download or simulated fixture fills a denied source.
-
-Market GP implements weekly relative performance rebased to 100, drawdown, 20-session annualized realized volatility and checked HMM shading. It publishes no absolute price levels. Each view shows its actual availability and methodology; the desk also provides instrument identity, session, watchlist and coverage. When an explicit publication grant and genuine local input are supplied, the exporter reuses the existing bounded HMM on admitted close-derived features. Its historical shading is a fit posterior, not contemporaneously known historical regimes or evidence of tradable alpha.
-
-The GP test inputs use the existing simulated Phase 0 bars, with an explicit TEST_ONLY badge and permission envelope. They exercise all four views and do not supply product screenshots or findings. The preserved real-trace layout tests are also separate from the unmocked production Replay checks.
+Those entries have no payload URL; ticker-level views remain local Live-only. Display or training grants do not authorize publication. Original Alpaca trace payloads remain absent from the current tree and deployed assets. Historical contract tests use the exact original PR #20 Git objects. Synthetic GP fixtures remain TEST_ONLY and supply no product evidence or screenshots.
 
 ## Reproduction
 
@@ -40,27 +46,32 @@ $env:MKL_NUM_THREADS='1'
 python -m scripts.export_replay --as-of 2026-10-07T11:20:26Z --world-input data/exports/replay-source/usgs-month.geojson
 ```
 
-The local captured source is intentionally ignored by Git. To capture a new genuine World snapshot, use `--capture-world` with a current cutoff after the source's generated timestamp. Verified frozen-reader results are cached locally only when tracked implementation/input hashes and software versions match; the original evidence verifier must complete before a cache entry is written. Public payload validation still runs on every export.
+Then add the public research projection without recomputing or altering the checked frozen Forge and Dynamics bytes:
+
+```powershell
+python -m scripts.export_public_research --as-of 2026-10-08T04:10:00Z --capture
+```
+
+Raw captures and their `.meta.json` files live in the ignored `data/exports/replay-source/` directory. The exporter verifies their exact URL, capture time and byte hash, uses the same capture on reruns, and fails closed per country/source. A fresh capture requires a current cutoff after capture; it never backdates a revised download. The library release URL is pinned for reproduction. Retained artifacts must pass byte, source-cutoff, licence and claim checks before the manifest is extended. The source capture metadata and hashes are also recorded in each public derived artifact.
 
 Local Live requires `VITE_ENABLE_LOCAL_LIVE=true` and a loopback hostname, plus a locally configured backend with its own credentials. A public hostname, URL parameter or browser preference cannot enable Live. Switching mode cancels and clears the query cache and remounts the workspace before later responses can render.
 
 ## Validation
 
-Lint, TypeScript, production build and every `verify-*.mjs` contract check pass. The browser checks pass 50 unmocked Replay views at 1440/390, 48 local-Live Market data/error/signed-out views, and 18 historical Observatory trace layouts. Chrome, Edge and Firefox pass all function-key and field-focus checks. Replay sabotage checks cover changed bytes, denied sources, unsafe price fields, expired permission, future availability, public attempts to enable Live and delayed responses across a mode switch.
+Lint, TypeScript, production build and every `verify-*.mjs` contract check are required. The expanded unmocked Replay check covers all workspaces, both countries' HMM and signal scenes, all four GP views and restored satellites at 1440/390, with zero live API requests, failed requests or viewport overflow. Checks also reject source substitution, backdated capture availability, historical-PIT relabelling and changed bytes. Existing local Live and historical Observatory contract/layout checks remain in place. Chrome, Edge and Firefox recheck function keys and text-field focus.
 
-The full Windows pytest run returned 768 passed and 16 failures: the existing sandbox sabotage tests time out during process startup against their 0.5-second deadline on this machine. The unchanged main baseline exhibits those same failures. The latest targeted Replay publication suite passes all 18 tests. The full Linux CI suite passes all 789 tests, along with frozen-lineage, authorship and truth checks.
+The targeted factor/publication tests pass 25 checks, including unit conversion, missing first market return, duplicate/out-of-order sessions, malformed returns, causal feature-prefix invariance and horizon purges. The full Windows backend suite returns 780 passed and 16 failed, with only the existing 0.5-second sandbox subprocess startup timeouts previously reproduced on main. Tests are not weakened. Latest Linux CI results are recorded in PR #21's validation section.
 
 ## Postable result
 
-The terminal now opens all ten workspaces without login or API keys and keeps US and India instrument context across navigation. Its public Replay verifies frozen research and a recorded USGS snapshot, while weekly Market views explain exactly which publication permissions are missing. No alpha or causal claim is earned by this navigation and publication work.
+Public Replay now shows real US and Indian market-factor research from the sources' full available histories, with checked HMM and signal scenes and weekly relative views. WORLD restores attributed, recorded satellite projections alongside genuine earthquakes. Revised-history validation and descriptive model scores do not certify tradable alpha or causal claims.
 
-Record 45–55 seconds from the public Replay build:
+Record about 60 seconds:
 
-1. MARKET: type `RELIANCE IN DES`, show IS / INR and NSE session hours (10 seconds).
-2. Type `SPY US GP`, select Drawdown, Realized volatility and HMM regimes, show the source/licence unavailable message (10 seconds).
-3. Press F2 for WORLD; show the recorded cutoff and USGS events (10 seconds).
-4. Open FACTORS and EXECUTION from the bar or palette; show their phase labels (5 seconds).
-5. Press F9 for AGENTS; show the existing checked frozen run evidence (10 seconds).
-6. Press F10 for DATA; end on the shared shell (5 seconds).
+1. MARKET: `US-MKT GP`, then Drawdown, Realized volatility and HMM regimes (10 seconds).
+2. `IN-MKT GP`, show the real history and the “market factor, not a ticker” label (10 seconds).
+3. F8 OBSERVATORY: show US and India Regime space and Feature flow; open Method for source/capture disclosure (20 seconds).
+4. F4 REGIMES: choose India; show the unconverged-fit disclosure and return-only evidence (10 seconds).
+5. F2 WORLD: show both recorded feed chips, satellite count and source credits (10 seconds).
 
-Use the committed 1440 and 390 screenshots in `docs/screenshots/`. Do not record the TEST_ONLY GP fixture as market evidence.
+Use the committed 1440 and 390 screenshots under `docs/screenshots/`, including `phase1a-observatory-{us,india}-{hmm,signal}-{width}.png`. Ticker GP and India VIX remain local Live-only.

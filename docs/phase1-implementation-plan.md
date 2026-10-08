@@ -121,3 +121,12 @@ All paths below are relative to the implementation worktree. Additions are propo
 - Capture MARKET (US and India), WORLD, REGIMES, OBSERVATORY, AGENTS and an empty future workspace at both widths. Document a 30–60 second recording path: F1 → `RELIANCE IN DES` → `SPY REG` → F8 → F9 → one future workspace. Finish the PR with a three-sentence honest finding, exact screens to record, public link and repository link.
 
 The user approved this plan with the amendments above. Implementation proceeds on Phase 1a; Phase 1b remains separate.
+
+
+## Approved public research coverage amendment
+
+Before merging #21, add attributed public research sources rather than leaving the real Market and Observatory empty. Register Ken French daily factors, IIM Ahmedabad daily factors and CelesTrak GP with narrowly scoped `publish_derived` metadata. Keep Alpaca, yfinance and NSE India VIX unavailable for anonymous publication.
+
+Add a dedicated return-native adapter (`src/replay/factors.py`) and derived-only exporter (`scripts/export_public_research.py`) on the existing HMM/GBM/split engines. Publish US-MKT and IN-MKT GP, HMM, signal and return-only regime evidence, labelled “market factor, not a ticker”. Retain full genuine market history, actual revised-capture availability and explicit observation-sequence validation semantics. Do not fabricate OHLCV or historical vintage availability. Restore frozen satellites from captured OMM JSON through `frontend-v2/scripts/project-satellites.mjs`, with fixed geodetic positions/trails and source attribution.
+
+Extend Replay checks and screenshots to both real country scenes and all four GP views; update PR coverage. Obtain and test the user-authorized temporary Vercel link when the connected account permits project access. Phase 1b remains separate.

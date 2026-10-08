@@ -5,6 +5,7 @@ import { ForgeCommandPalette } from "@/app/command/ForgeCommandPalette";
 import { CommandLine } from "@/app/command/CommandLine";
 import { activeWorkspace, FUNCTION_KEYS, isTextField, WORKSPACES } from "@/app/workspaces";
 import { lookupInstrument } from "@/markets/instruments";
+import { factorSeries } from "@/replay/factor-series";
 import {
   changeDataMode,
   localLiveAllowed,
@@ -27,18 +28,21 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [cutoff, setCutoff] = useState<string | null>(null);
   const [liveAllowed, setLiveAllowed] = useState(false);
+  const [ready, setReady] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const search = useRouterState({ select: (s) => s.location.search as { ticker?: string } });
   const params = useParams({ strict: false }) as { ticker?: string };
   const context = useCurrentTicker();
   const ticker = params.ticker ?? search.ticker ?? context;
   const asset = lookupInstrument(ticker);
+  const series = factorSeries(ticker);
   const workspace = activeWorkspace(pathname);
   const mode = useDataMode();
   const client = useQueryClient();
   const navigate = useNavigate();
   useEffect(() => {
     setLiveAllowed(localLiveAllowed());
+    setReady(true);
   }, []);
   useEffect(() => {
     setCurrentTicker(ticker);
@@ -88,6 +92,7 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
       className={`shell ${bleed ? "shell-bleed" : ""}`}
       data-mode={mode}
       data-workspace={workspace}
+      data-ready={ready}
     >
       <a href="#forge-main" className="shell-skip">
         Skip to workspace
@@ -135,7 +140,9 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
             <span>
               {asset
                 ? `${asset.code} · ${asset.exchange} · ${asset.currency}`
-                : "Listing metadata unavailable"}
+                : series
+                  ? `${series.country} · market factor, not a ticker`
+                  : "Listing metadata unavailable"}
             </span>
           </span>
           <div className="shell-mode" role="group" aria-label="Data mode">

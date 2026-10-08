@@ -43,6 +43,22 @@ for (const text of [
 assert.equal(parseCommand("FACT", "RELIANCE.NS").search.ticker, "RELIANCE.NS");
 assert.equal(parseCommand("EXECUTION").to, "/execution");
 assert.equal(parseCommand("SPY GP").search.view, "graph");
+for (const id of ["US-MKT", "IN-MKT"]) {
+  for (const [code, to] of [
+    ["GP", "/markets"],
+    ["REG", "/dynamics"],
+    ["OBS", "/observatory"],
+  ]) {
+    const target = parseCommand(`${id} ${code}`);
+    assert.equal(target.to, to);
+    assert.equal(target.search.ticker, id);
+    assert.equal(target.instrument, undefined);
+    count++;
+  }
+  assert.throws(() => parseCommand(`${id} US GP`));
+  assert.throws(() => parseCommand(`${id} OMON`));
+  count += 2;
+}
 assert.equal(resolveInstrument("TCS", "IN").session, "09:15–15:30 IST");
 assert.match(instrumentMoney(1234.56, "INR"), /₹/);
 assert.match(instrumentMoney(1234.56, "USD"), /\$/);
@@ -76,6 +92,7 @@ if (urlIndex > 0) {
       for (const w of WORKSPACES) {
         if (process.argv.includes("--debug")) console.log(`${name}: testing ${w.key}`);
         await page.goto(`${base}/data?ticker=RELIANCE.NS`);
+        await page.locator('.shell[data-ready="true"]').waitFor();
         await page.getByRole("button", { name: "Open command palette" }).waitFor();
         // A visible SSR button does not prove hydration; exercise a React state update first.
         await page.getByRole("button", { name: "Open command palette" }).click();
