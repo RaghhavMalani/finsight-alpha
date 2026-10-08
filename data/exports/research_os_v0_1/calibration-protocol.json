@@ -1,0 +1,13 @@
+{
+  "version": "calibration/1",
+  "declaration": "Committed before calibration outcomes; exact generator code is bound by the execution code hash.",
+  "generators": {
+    "iid": "Normal stationary unit variance, independent a/b and normal control columns",
+    "ar1": "Gaussian AR(1), rho=.3, innovation sigma=sqrt(1-rho^2), initial 0, burn=100",
+    "regression": "Response a + .2*x0 - .1*x1; two independent normal controls; tested intercept",
+    "plant": "Add .35 standardized units to a/response; same frozen generator and seeds as null",
+    "family": "46 independent uniform null p-values, 1000 families, Holm FWER/BH global-null FDR"
+  },
+  "seeds": "20261008 + case_index*1000000 + world; resampling seed +100000; family seed +900000000",
+  "acceptance": "Nominal .05 inside each case's 95% Wilson null CI; planted 95% lower >= .8; family upper <= .075. No widening, seed changes or retries. Canary cannot confer acceptance."
+}

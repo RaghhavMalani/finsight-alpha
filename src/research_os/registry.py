@@ -41,6 +41,9 @@ class Registry:
         return db
 
     def put(self, obj: Contract) -> str:
+        if type(obj).__name__ not in OBJECT_TYPES:
+            raise ValueError("Unsupported object type")
+        obj = type(obj).model_validate(obj.model_dump(mode="json"))
         payload, identity = canonical_json_bytes(obj.model_dump(mode="json")), obj.identity
         parent = getattr(obj, "parent", None)
         if parent:
