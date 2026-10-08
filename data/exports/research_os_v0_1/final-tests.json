@@ -1,0 +1,21 @@
+{
+  "generated_at": "2026-10-08T11:48:50.375365Z",
+  "total_passed": 162,
+  "by_module": {
+    "tests.research_os.test_adapter_semantics": 5,
+    "tests.research_os.test_calibration_contract": 2,
+    "tests.research_os.test_contracts": 40,
+    "tests.research_os.test_frozen_verification": 5,
+    "tests.research_os.test_research_os_api": 4,
+    "tests.research_os.test_runner": 12,
+    "tests.research_os.test_statistics_reference": 71,
+    "tests.research_os.test_workflow_guards": 14,
+    "tests.sabotage.test_research_os_guards": 9
+  },
+  "independent_reference_passed": 63,
+  "reference_module_total": 71,
+  "mutations_killed": 12,
+  "additional_adapter_semantic_guards": 5,
+  "full_calibration_verification": "VERIFIED: same frozen inputs, seeds, metrics and NOT_CALIBRATED acceptance; no replacement outcome",
+  "test_source_hash": "8f8bc04398b3616aa07300f35f744eb0bdabff53c822489bbf26e6b7c3c8a55f"
+}

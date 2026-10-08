@@ -6,7 +6,7 @@ Preregistration commit: `4301093`; hash: `e8b48dd1a00aa7e6d0d2cb3bd2c82840afc4b5
 
 | Evidence | Measured result |
 |---|---|
-| Research contracts/workflow/frozen evidence/sabotage suite | 157 passed, zero failed or collection errors |
+| Research contracts/workflow/frozen evidence/sabotage suite | 162 passed, zero failed or collection errors; includes five adapter-semantics guards |
 | Independent statistical references | 63 passed: Welch 16, paired 8, HAC matrix 12, bootstrap 4, permutation 4, Holm/BH 6, PSR 4, DSR expected maximum 4, noncentral-t power 4, Wilson 1 |
 | Other statistical reference-module checks | 8 passed; module total 71 |
 | Explicit source mutations | 12/12 killed; clean baseline 137 passed; collection errors excluded |
@@ -21,4 +21,6 @@ The four-way scorecard is `STATISTICAL=INCONCLUSIVE`, `ECONOMIC=UNAVAILABLE`, `R
 
 See [the findings and forest plot](findings/momentum-regimes.md), [workflow/contract documentation](research-os-v0.1.md), and `data/exports/research_os_v0_1/manifest.json` for sealed artifact bytes. Default verification succeeds because it correctly preserves the closed gate; passing integrity checks must not be presented as passing scientific calibration.
 
-Full regression and remote CI results are reported separately when measured. The post-gate F6 UI, public Replay publication and browser screenshots are deferred under the approved hard stop. No trading engine or replacement preregistration was added to repair the result.
+Full verification reproduced the same frozen calibration inputs, seeds, metrics and failed acceptance without replacing any outcome. Linux CI at `948e149` passed all 954 backend tests, frontend checks and truth-contract checks; the final guard commit is checked separately in [PR #23](https://github.com/RaghhavMalani/finsight-alpha/pull/23). The broader Windows run passed 932 tests and failed 17 unchanged sandbox tests because they returned TIMEOUT instead of the expected classification. A native interpreter probe reproduced 16 of these failures; the memory-limit check passed natively. There were no Research OS failures, and the Windows run is not claimed green.
+
+The final test record, Windows regression record and attributed derived-publication receipt are sealed in the manifest alongside the original records. Original local execution receipts remain unchanged. The post-gate F6 UI, application Replay publication and browser screenshots are deferred under the approved hard stop. No trading engine or replacement preregistration was added to repair the result.

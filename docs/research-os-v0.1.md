@@ -17,7 +17,7 @@ python -m src.research_os.cli --organization 1 inspect <object-hash>
 python -m src.research_os.cli --organization 1 artifact <artifact-hash> --run <run-hash>
 ```
 
-The angle-bracket arguments above are identifiers returned by the prior command. Existing source captures must be present locally, match their actual receipt bytes and match the frozen snapshot. Execution requires committed computation code. Missing captures or unavailable methods cannot yield a successful scientific result. The v0.1 execution adapter supports the registered US/India market-factor workflow; arbitrary user datasets/engines are not silently mapped onto that adapter.
+The angle-bracket arguments above are identifiers returned by the prior command. Existing source captures must be present locally, match their actual receipt bytes and match the frozen snapshot. Execution requires committed computation code. Missing captures or unavailable methods cannot yield a successful scientific result. The v0.1 execution adapter supports the frozen US/India market-factor protocol. It rejects changed hypothesis semantics, feature definitions, tests or parameters instead of silently computing the original study under new labels. New papers and hypotheses can be authored; executing a different protocol requires a separately tested adapter.
 
 `/research-os/objects`, `/papers`, `/freeze/{identity}`, `/run`, `/attempts` and `/artifacts/{identity}` provide the same local workflow. `/truth/{attempt}/{artifact_hash}` binds a successful immutable artifact to the existing tenant-scoped truth ledger. This optional explicit binding is separate from the canonical Research OS store; no old truth record is reinterpreted. Existing filings `/research` and paper-trading `/paper` remain separate.
 
@@ -33,7 +33,7 @@ Welch/paired inference uses SciPy, HAC uses statsmodels, bootstrap uses explicit
 
 ## Frozen evidence and verification
 
-`data/exports/research_os_v0_1/` holds the committed preregistration, original freeze receipt, calibration protocol and all measured worlds, first flagship results, method-paper metadata/anchor, computational repeatability, mutation evidence and byte manifest. Every first outcome was computed after preregistration commit `4301093`; the original calculation commit is `2e72e56`.
+`data/exports/research_os_v0_1/` holds the committed preregistration, original freeze receipt, calibration protocol and all measured worlds, first flagship results, method-paper metadata/anchor, computational repeatability, mutation evidence, final test counts, Windows regression results, attributed derived-publication receipt and byte manifest. Every first outcome was computed after preregistration commit `4301093`; the original calculation commit is `2e72e56`.
 
 ```powershell
 python scripts/verify_research_os.py

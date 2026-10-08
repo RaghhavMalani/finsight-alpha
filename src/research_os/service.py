@@ -8,6 +8,22 @@ from .momentum import prepare,evaluate
 from .runner import execute
 
 
+def require_supported_protocol(root:Path,spec:Preregistration):
+    """The narrow adapter must not execute one definition under another's label."""
+    reference=Preregistration.model_validate_json((root/"data/exports/research_os_v0_1/preregistration.json").read_bytes())
+    fields=("null","alternative","direction","universe","dependent","independent","controls",
+            "primary_endpoint","falsification","interpretation")
+    if any(getattr(spec.hypothesis,k)!=getattr(reference.hypothesis,k) for k in fields):
+        raise ValueError("Unsupported hypothesis semantics for the momentum adapter")
+    if (spec.features!=reference.features or spec.tests!=reference.tests
+            or spec.family!=reference.family or spec.parameters!=reference.parameters
+            or spec.acceptance!=reference.acceptance or spec.seeds!=reference.seeds
+            or spec.minimum_effect!=reference.minimum_effect or spec.prospective_sigma!=reference.prospective_sigma):
+        raise ValueError("Unsupported feature/test/parameter protocol; this adapter cannot silently reinterpret a new specification")
+    if tuple(d.country for d in spec.datasets)!=("US","INDIA") or any(d.evidence_mode!="CAPTURE_ONLY" for d in spec.datasets):
+        raise ValueError("Momentum adapter requires US/India fixed captures")
+
+
 class ResearchService:
     def __init__(self,root:Path,registry:Registry,capture_root:Path):
         self.root,self.registry,self.capture_root=root,registry,capture_root
@@ -28,6 +44,7 @@ class ResearchService:
         if not isinstance(receipt,FreezeReceipt): raise ValueError("Invalid freeze receipt")
         spec=self.registry.get(receipt.preregistration_hash)
         def compute(run):
+            require_supported_protocol(self.root,spec)
             from src.replay.factors import checked_capture,SOURCE_URLS
             country,variant=trial_id.split(":")
             index=next(i for i,d in enumerate(spec.datasets) if d.country==country)
