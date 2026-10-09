@@ -1,0 +1,54 @@
+{
+  "comparison_policy": "Only finite floating summary arithmetic may differ by <=1e-12 absolute. Bytes, counts, candidate selection, family membership and gate decisions stay exact.",
+  "earlier_ci_reader_rejections": [
+    {
+      "reason": "Strict read-only float dictionary equality rejected cross-library rounding; no outcome was regenerated or replaced",
+      "run_id": 37885315034,
+      "url": "https://github.com/RaghhavMalani/finsight-alpha/actions/runs/37885315034"
+    },
+    {
+      "reason": "Strict read-only float dictionary equality rejected cross-library rounding; no outcome was regenerated or replaced",
+      "run_id": 37885760958,
+      "url": "https://github.com/RaghhavMalani/finsight-alpha/actions/runs/37885760958"
+    }
+  ],
+  "independent_reader_with_ci_libraries": {
+    "confirmation_planted_evaluations": 450000,
+    "confirmation_settings_passed": 2,
+    "confirmation_worlds": 150000,
+    "discovery_candidate_evaluations": 120000,
+    "discovery_worlds": 30000,
+    "freeze_commit": "3c16fe0f216d959988230aa0c156dd64b914a704",
+    "integrity": "VERIFIED",
+    "new_gate": "NOT_CONFIRMED",
+    "old_gate": "PERMANENTLY_CLOSED",
+    "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+    "read_only_float_tolerance": 1e-12,
+    "read_only_max_float_difference": 6.411537967210279e-15,
+    "seed_count": 540360,
+    "seed_domains_disjoint": true,
+    "seed_manifest_hash": "1cbe15ead4159f13435e4c6d008ad79bfa5061278a0a527e89093bd4b97f31fc",
+    "selected": "NULL_MBB_T",
+    "selection_commit": "9af78e622b401e9babdd34bab63d46711a4d1845"
+  },
+  "original_environment_audit": {
+    "confirmation_planted_evaluations": 450000,
+    "confirmation_settings_passed": 2,
+    "confirmation_worlds": 150000,
+    "discovery_candidate_evaluations": 120000,
+    "discovery_worlds": 30000,
+    "freeze_commit": "3c16fe0f216d959988230aa0c156dd64b914a704",
+    "integrity": "VERIFIED",
+    "new_gate": "NOT_CONFIRMED",
+    "old_gate": "PERMANENTLY_CLOSED",
+    "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+    "read_only_float_tolerance": 1e-12,
+    "read_only_max_float_difference": 0.0,
+    "seed_count": 540360,
+    "seed_domains_disjoint": true,
+    "seed_manifest_hash": "1cbe15ead4159f13435e4c6d008ad79bfa5061278a0a527e89093bd4b97f31fc",
+    "selected": "NULL_MBB_T",
+    "selection_commit": "9af78e622b401e9babdd34bab63d46711a4d1845"
+  },
+  "worlds_generated_by_verifier": 0
+}

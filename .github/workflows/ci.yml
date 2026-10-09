@@ -30,6 +30,10 @@ jobs:
       - run: python -m compileall -q backend src tests
       - name: Verify Research OS frozen evidence and closed engine gate
         run: python scripts/verify_research_os.py
+      - name: Verify seed-disjoint inference tournament and retained closed baseline
+        run: python scripts/verify_inference_calibration_v011.py
+      - name: Inference tournament infrastructure canary cannot certify a method
+        run: python scripts/run_inference_calibration_v011.py canary
       - name: Verify frozen Forge baseline bytes
         run: |
           python - <<'PY'
