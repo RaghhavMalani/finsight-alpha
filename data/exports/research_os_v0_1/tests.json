@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-10-08T11:33:00.833264Z",
+  "platform": "Windows Python 3.12 local isolated statsmodels environment",
+  "total_passed": 157,
+  "failures": 0,
+  "errors": 0,
+  "by_module": {
+    "tests.research_os.test_calibration_contract": 2,
+    "tests.research_os.test_contracts": 40,
+    "tests.research_os.test_frozen_verification": 5,
+    "tests.research_os.test_research_os_api": 4,
+    "tests.research_os.test_runner": 12,
+    "tests.research_os.test_statistics_reference": 71,
+    "tests.research_os.test_workflow_guards": 14,
+    "tests.sabotage.test_research_os_guards": 9
+  },
+  "independent_reference_passed": 63,
+  "independent_reference_breakdown": {
+    "Welch SciPy": 16,
+    "Paired SciPy": 8,
+    "HAC independent matrix": 12,
+    "Bootstrap analytic interval": 4,
+    "Permutation SciPy": 4,
+    "Holm/BH sorted formulas": 6,
+    "PSR published equation": 4,
+    "DSR published expected max": 4,
+    "Power noncentral t": 4,
+    "Wilson known fixture": 1
+  },
+  "reference_module_total": 71,
+  "reference_module_other": 8,
+  "sabotage_specific": 9,
+  "actual_source_mutants_killed": 12,
+  "mutation_baseline_passed": 137,
+  "full_regression": "Separate local full run still pending; do not claim green until its result or Linux CI is measured",
+  "test_source_hash": "4ff652a1f30d70d63d5c4c0b7f67709b3c986e7746b07974baf65dd3826b4b0d"
+}

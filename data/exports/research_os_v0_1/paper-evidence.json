@@ -1,0 +1,33 @@
+{
+  "title": "The Deflated Sharpe Ratio",
+  "authors": [
+    "David H. Bailey",
+    "Marcos L\u00f3pez de Prado"
+  ],
+  "source_url": "https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf",
+  "source_sha256": "ca4a1e834a2954b84eb560776e903329cd9cef318d458aadf6d67bc8166d10b5",
+  "paper_hash": "7d07fed58d9fc7d140c45fd764b491bf5d8e1f24ab7a51aebe958e84876e75ab",
+  "pages_extracted": 22,
+  "claims": [
+    {
+      "schema_version": "research-os/0.1",
+      "kind": "METHOD",
+      "statement": "DSR needs an independent search count, not merely the number of correlated variants.",
+      "anchor": {
+        "schema_version": "research-os/0.1",
+        "page": 8,
+        "start": 2536,
+        "end": 2573,
+        "excerpt": "N is the number of independent trials"
+      },
+      "reported_value": null,
+      "unit": null
+    }
+  ],
+  "original_data": null,
+  "original_seed": null,
+  "original_ci": null,
+  "role": "STATISTICS_VALIDATION_ONLY",
+  "extracted_at": "2026-10-08T11:18:30.527736Z",
+  "publication_scope": "Metadata and anchored method excerpt only; full paper remains local"
+}

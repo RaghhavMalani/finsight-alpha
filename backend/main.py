@@ -51,6 +51,7 @@ from backend.routes import (
     quote,
     regime,
     research,
+    research_os,
     risk,
     strategy,
     tape,
@@ -174,6 +175,7 @@ app.include_router(analytics.router)
 app.include_router(graph.router)
 app.include_router(quote.router)
 app.include_router(research.router)
+app.include_router(research_os.router)
 app.include_router(pricing.router)
 app.include_router(risk.router)
 app.include_router(news.router)

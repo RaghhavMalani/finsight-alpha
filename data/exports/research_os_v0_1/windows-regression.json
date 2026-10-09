@@ -1,0 +1,97 @@
+{
+  "generated_at": "2026-10-08T11:48:50.381358Z",
+  "platform": "Windows Python 3.12 isolated environment",
+  "passed": 932,
+  "failed": 17,
+  "total": 949,
+  "failures": [
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import subprocess]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...f0886fcf560edfb9526acd59ed44c61bf7e037e95cb56f5c', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import os\\nos.system('echo escaped')]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...444f7763b2797e62d74cc047310002e4776edf3522f25f46', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import socket\\nsocket.getaddrinfo('example.com', 443)]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...7392a8dcb0ce6d2f46d62f550a63f3a781ced54401cce8c8', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import urllib.request\\nurllib.request.urlopen('https://example.com')]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...4798f950b8f9bc75f737e5508949e0d2ec8ff9b94dc3a33a', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import requests]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...0969f3bcdcfc11c158073c723e0ee76cfa47867b332c6428', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[__import__('subprocess')]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...5b983c7da45aa83bd5c24788fdd58cdec5e674ed9728462f', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[eval(\"__import__('socket')\")]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...b96e67a61b4eb4be1c12bda115161e6a563f490bd35de603', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import importlib]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...3bbc6f07e176bbd73939c95126df15b18711ec02d916e47c', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import threading]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...45d1027af6c9d36e5519940df27e094a482fa11aec73c654', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import time\\ntime.sleep(10)]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...68b048b91afea8e337b0e1e33e34053e45b14c931bbe25c0', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import datetime\\ndatetime.datetime.now()]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...3de395b69f9dff64b8b2a1096fc6f0cd81739dd554a2583f', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import os\\nos.urandom(16)]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...62fcb1de11a845f82479ef819dabe3a0754165e06de0a57c', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_escape_dynamic_network_thread_clock_and_entropy_attacks_are_blocked[import src.verifiers]",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> in {<ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>, <ExecutionStatus.SEED_MISMATCH: 'seed_mismatch'>}\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...b76bd6b6eb52ba8fbf8afd387baa10f44046ed31bdb73b0b', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_path_tmp_and_symlink_traversal_are_blocked",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> is <ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...0555d7a7c70baee3c980fe8d16afef7973f15ff6d5e4cd9f', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status\n +  and   <ExecutionStatus.POLICY_VIOLATION: 'policy_violation'> = ExecutionStatus.POLICY_VIOLATION"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_environment_secret_is_not_inherited",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> is <ExecutionStatus.SUCCEEDED: 'succeeded'>\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...993a285f7d2f7a1c938ffd0ebf43129cf9eadf293ba0e74f', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status\n +  and   <ExecutionStatus.SUCCEEDED: 'succeeded'> = ExecutionStatus.SUCCEEDED"
+    },
+    {
+      "module": "tests.sabotage.test_sandbox_nasty",
+      "test": "test_fork_pickle_process_and_huge_stdout_attacks_are_terminated",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> is <ExecutionStatus.POLICY_VIOLATION: 'policy_violation'>\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...8b7a9f946eecf0f2d1e35e3d0b0a2d4d5586a4c8ec313a59', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status\n +  and   <ExecutionStatus.POLICY_VIOLATION: 'policy_violation'> = ExecutionStatus.POLICY_VIOLATION"
+    },
+    {
+      "module": "tests.test_forge_sandbox",
+      "test": "test_sandbox_times_out_and_terminates_memory_bomb",
+      "message": "AssertionError: assert <ExecutionStatus.TIMEOUT: 'timeout'> is <ExecutionStatus.MEMORY_LIMIT: 'memory_limit'>\n +  where <ExecutionStatus.TIMEOUT: 'timeout'> = ExecutionResult(execution_id='execution-0001', status=<ExecutionStatus.TIMEOUT: 'timeout'>, exit_code=1, stdout_hash='...d79decd2882146bc271775d8bbd88eb03e52a99217034ce6', integrity_ok=True, termination_reason='wall-clock timeout exceeded').status\n +  and   <ExecutionStatus.MEMORY_LIMIT: 'memory_limit'> = ExecutionStatus.MEMORY_LIMIT"
+    }
+  ],
+  "interpretation": "All failures are unchanged sandbox tests returning TIMEOUT instead of expected policy/memory/seed/success classifications. Native interpreter probe reproduced 16 failures; memory-bomb check passed natively. Linux CI reported separately.",
+  "sandbox_source_changed": false,
+  "research_os_specific_failures": 0
+}

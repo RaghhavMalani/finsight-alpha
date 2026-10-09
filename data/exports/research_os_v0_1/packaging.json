@@ -1,0 +1,8 @@
+{
+  "file": "identities.json",
+  "reason": "Windows write_text CRLF was normalized to LF in the original Git preregistration commit; manifest now seals those original committed bytes. No field, outcome or preregistration identity changed.",
+  "original_workspace_sha256": "7acd3b7e35bf12997b2672f79bd2c02c840c1a57c96a3631b00327dc1ffe347f",
+  "original_committed_sha256": "35e93b369e99d2b81d66e74bc5508835f1d8313a96e90cbfbdd7e144879e07a4",
+  "fields_identical": true,
+  "scientific_outcomes_changed": false
+}

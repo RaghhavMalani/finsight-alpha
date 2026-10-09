@@ -1,0 +1,52 @@
+{
+  "scope": "GitHub derived gate evidence only; application Replay/UI publication deferred",
+  "generated_at": "2026-10-08T11:48:49.836526Z",
+  "licence_status": "PUBLISH_DERIVED",
+  "source_grants": {
+    "ken-french:daily-factors": {
+      "status": "ACTIVE",
+      "permitted_uses": [
+        "publish_derived"
+      ],
+      "dataset_key": "ken-french:daily-factors",
+      "valid_through": null,
+      "attribution": "Kenneth R. French Data Library; Fama and French research factors and momentum.",
+      "source_urls": [
+        "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html"
+      ],
+      "terms_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+      "basis": "Public research-return library; attributed derived research publication. No raw CRSP redistribution."
+    },
+    "iima:daily-factors": {
+      "status": "ACTIVE",
+      "permitted_uses": [
+        "publish_derived"
+      ],
+      "dataset_key": "iima:daily-factors",
+      "valid_through": null,
+      "attribution": "Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.",
+      "source_urls": [
+        "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/"
+      ],
+      "terms_url": "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+      "basis": "Public research-factor library with requested citation; attributed derived research publication. No raw Prowess redistribution."
+    }
+  },
+  "raw_source_capture_bytes_published": false,
+  "paper_scope": "Only metadata and 7-word method anchor; full PDF and extracted pages remain local",
+  "local_artifact_receipts": "Original LOCAL_ONLY execution receipts remain immutable; this later receipt authorizes the derived repository export",
+  "published_payload_sha256": {
+    "calibration-protocol.json": "5fa987415aef59c820acb44d394633560e90d9fc5b263da96dd99fccbd447922",
+    "calibration.json": "03b30c2521583178edaef72681066bde31b6d15c2f38213b58a45324510bbb98",
+    "flagship.json": "a645b6124441ec892112a3ec41546ed4516b7de5f25baf82320ae6ae7b8812c2",
+    "freeze-receipt.json": "95c1e0f830d90b7dc2ed3c696fcc9c5a74dbccb52f2eee7bba37f2a27f539878",
+    "identities.json": "35e93b369e99d2b81d66e74bc5508835f1d8313a96e90cbfbdd7e144879e07a4",
+    "mutations.json": "a414336c8b1cfc9723dc5af8eb335fa51e338503da9cb9d9d72ec35bed552f18",
+    "packaging.json": "31ee4a8af727e76c5886686140f58e0696d5cf1622dd8c528096f79f2d196df9",
+    "paper-evidence.json": "ae546166a6ae4f5b03e6991318228f9bf1032c046ea1760642e68106242068c5",
+    "preregistration.json": "2a4b3d6c6d8cac215e16b84171a8f5b685d4815f9de717af1aae2ad8db5b85b0",
+    "repeatability.json": "97d290ece4ee183ae3c207d82bca1d297d1babbd5fc7bf473147a3ae5f4ddc69",
+    "tests.json": "711af34d447ec550378dda87aa2c328c15ed819e0a3e431d5f64488f6aea0bb9"
+  },
+  "policy_commit": "2f2abb731851f44ba1189491b95d7c17f16464b2"
+}

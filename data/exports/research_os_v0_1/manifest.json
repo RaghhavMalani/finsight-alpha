@@ -1,0 +1,22 @@
+{
+  "schema_version": "research-os/0.1",
+  "preregistration_commit": "4301093",
+  "computation_commit": "2e72e56",
+  "scientific_engine_gate": "CLOSED",
+  "files": {
+    "calibration-protocol.json": "5fa987415aef59c820acb44d394633560e90d9fc5b263da96dd99fccbd447922",
+    "calibration.json": "03b30c2521583178edaef72681066bde31b6d15c2f38213b58a45324510bbb98",
+    "final-tests.json": "957864fdd963bc7e0c27bd8c6dfb2af33bd4f0a79a0e536273737bb50ccff0ed",
+    "flagship.json": "a645b6124441ec892112a3ec41546ed4516b7de5f25baf82320ae6ae7b8812c2",
+    "freeze-receipt.json": "95c1e0f830d90b7dc2ed3c696fcc9c5a74dbccb52f2eee7bba37f2a27f539878",
+    "identities.json": "35e93b369e99d2b81d66e74bc5508835f1d8313a96e90cbfbdd7e144879e07a4",
+    "mutations.json": "a414336c8b1cfc9723dc5af8eb335fa51e338503da9cb9d9d72ec35bed552f18",
+    "packaging.json": "31ee4a8af727e76c5886686140f58e0696d5cf1622dd8c528096f79f2d196df9",
+    "paper-evidence.json": "ae546166a6ae4f5b03e6991318228f9bf1032c046ea1760642e68106242068c5",
+    "preregistration.json": "2a4b3d6c6d8cac215e16b84171a8f5b685d4815f9de717af1aae2ad8db5b85b0",
+    "publication.json": "71b8b0e7cf6a378379ec6d5f638fcacafaab4fa6eb4640b567a5cd96cfd94313",
+    "repeatability.json": "97d290ece4ee183ae3c207d82bca1d297d1babbd5fc7bf473147a3ae5f4ddc69",
+    "tests.json": "711af34d447ec550378dda87aa2c328c15ed819e0a3e431d5f64488f6aea0bb9",
+    "windows-regression.json": "1db5c6fafa820d6d3cb94edf0ca44e7d2a9cde693e7e26fb45a02839d50e0d86"
+  }
+}
