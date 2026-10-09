@@ -1,0 +1,326 @@
+{
+  "alpha": 0.05,
+  "burn": 1024,
+  "candidates": [
+    "HAC_NORMAL",
+    "HAC_T",
+    "NULL_MBB_T",
+    "STATIONARY_PAIRS_T"
+  ],
+  "confirmation_acceptance": {
+    "all_required": true,
+    "bias_family_alpha": 0.01,
+    "bias_rule": "For each setting: (abs(mean estimate error) + t_(1-.01/(2*30),W-1) * empirical_SD/sqrt(W))/empirical_SD <= .10. Monte Carlo t approximation, not an exact confidence theorem under non-Gaussian worlds.",
+    "binomial_bounds": 90,
+    "binomial_family_alpha": 0.04,
+    "binomial_rule": "One-sided exact Clopper-Pearson with tail .04/90 for greater-size UCB, two-sided-size UCB and coverage LCB in EACH of 30 settings. Bonferroni union bound requires no independence.",
+    "coverage_lower_min": 0.92,
+    "missing_or_failed_world": "CLOSED; no removal, reroll, substitute or changed denominator",
+    "power": "Report greater/two-sided power at ALL fixed effects with pointwise exact 95% intervals; descriptive, no post-hoc threshold",
+    "scope": "Only selected method, specified DGPs/n/blocks/bootstrap budget; no certification for markets, other coefficients or engines",
+    "se_ratio": "Report mean reported SE / empirical SD AND its reciprocal; diagnostic, not an extra selectable gate",
+    "size_upper_max": 0.07,
+    "standardized_bias_upper_max": 0.1
+  },
+  "confirmation_worlds": 5000,
+  "controls": {
+    "coefficients": [
+      0.2,
+      -0.1
+    ],
+    "count": 2,
+    "means": [
+      0.2,
+      -0.1
+    ],
+    "rho": 0.5
+  },
+  "discovery_selection": {
+    "confirmation_access": "No confirmation world may be generated until selection receipt is exclusively written, hashed, and committed; no fallback selection after confirmation",
+    "rule": "Exclude candidates with ANY failed/nonfinite world. Rank remaining by fewest setting-wise point violations (greater size >.07, two-sided size >.07, coverage <.92, abs standardized bias >.10), then highest average greater-tail power over .1/.2/.4, then smallest worst null size, then declared candidate order. Select exactly one, even if its point gate fails; disclose violations. No eligible candidate means no confirmation and CLOSED."
+  },
+  "discovery_worlds": 1000,
+  "effect_grid": [
+    0,
+    0.1,
+    0.2,
+    0.4
+  ],
+  "evidence_mode": "SYNTHETIC_CALIBRATION",
+  "execution": {
+    "canary_status": "CANARY_ONLY, cannot select or certify",
+    "canary_worlds": 4,
+    "checkpoint": "Append completed fixed world chunks; resume only identical frozen protocol/code/environment/seed and existing-byte checks; retain attempts. No overwrite or statistical reroll.",
+    "workers_max": 4
+  },
+  "garch": {
+    "alpha": 0.1,
+    "beta": 0.85,
+    "initial_variance": 1,
+    "omega": 0.05
+  },
+  "inference": {
+    "block_length": "ceil(sqrt(n))",
+    "covariance_correction": "n/(n-k)",
+    "hac_lags": 6,
+    "hac_normal": "Incumbent asymptotic normal; same arithmetic as untouched v0.1 HAC",
+    "hac_t": "Same HAC covariance; t reference with residual df n-k, heuristic not exact finite-sample theorem",
+    "interval": "Two-sided nominal 95%; bootstrap-t q(.025,.975), NumPy linear quantiles",
+    "kernel": "Bartlett",
+    "location_equivariance": "Planted shifts add effect * target column; unrestricted coefficient/CI shift exactly, residuals unchanged. MBB restricted-null p recomputed for every effect, not recycled.",
+    "null_mbb": "Restricted OLS without target column; center restricted residuals; resample overlapping NONCIRCULAR fixed-length blocks, trim to n; fit full OLS and studentize with HAC6. +1 null p-values. CI separately uses unrestricted centered residual bootstrap-t with same block indices.",
+    "p_interval_duality": "Null-restricted p and unrestricted CI are separately calibrated; not claimed exact inversions",
+    "reported_se": "HAC SE for HAC methods; SD of unrestricted bootstrap coefficients for bootstrap methods; HAC studentization SE recorded separately",
+    "resamples": 999,
+    "stationary_pairs": "Joint (X,y) stationary bootstrap; uniform circular start, restart probability 1/ceil(sqrt(n)); center bootstrap coefficient at observed estimate and studentize with resampled HAC6. +1 p-values; equal-tailed bootstrap-t CI."
+  },
+  "old_baseline": {
+    "gate": "PERMANENTLY_CLOSED",
+    "merge_commit": "3b3fa50c8e53dc929395d56c6609c8f2f82f23fe",
+    "status": "PERMANENTLY_NOT_CALIBRATED"
+  },
+  "prohibitions": [
+    "VectorBT",
+    "market replication without separate authorization/preregistration",
+    "confirmation-driven selection/tuning",
+    "adding candidates or changing seeds after outcomes"
+  ],
+  "purpose": "New inference tournament; never repair or reopen v0.1 or rerun momentum",
+  "reject_rule": "p <= alpha; greater and two-sided both assessed",
+  "sample_sizes": [
+    120,
+    240,
+    480
+  ],
+  "schema": "research-os/inference-calibration/0.1.1",
+  "seed": {
+    "algorithm": "(1<<256) OR SHA256(namespace/phase/setting/world/stream) as integer",
+    "common_random_numbers": "Same error/control world and bootstrap indices across planted shifts within a world; never across phases",
+    "disjointness": "All new seeds >= 2^256; v0.1 seeds < 2^32. Phase domains distinct; enumerate and reject any collision.",
+    "namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+    "phases": [
+      "discovery",
+      "confirmation",
+      "canary"
+    ],
+    "streams": [
+      "data",
+      "NULL_MBB_T",
+      "STATIONARY_PAIRS_T"
+    ]
+  },
+  "settings": [
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_iid_n120",
+      "n": 120,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_iid_n240",
+      "n": 240,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_iid_n480",
+      "n": 480,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar03_n120",
+      "n": 120,
+      "rho": 0.3
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar03_n240",
+      "n": 240,
+      "rho": 0.3
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar03_n480",
+      "n": 480,
+      "rho": 0.3
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar06_n120",
+      "n": 120,
+      "rho": 0.6
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar06_n240",
+      "n": 240,
+      "rho": 0.6
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar06_n480",
+      "n": 480,
+      "rho": 0.6
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar08_n120",
+      "n": 120,
+      "rho": 0.8
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar08_n240",
+      "n": 240,
+      "rho": 0.8
+    },
+    {
+      "controls": false,
+      "error": "gaussian",
+      "id": "mean_ar08_n480",
+      "n": 480,
+      "rho": 0.8
+    },
+    {
+      "controls": false,
+      "error": "t5",
+      "id": "mean_t5_n120",
+      "n": 120,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "t5",
+      "id": "mean_t5_n240",
+      "n": 240,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "t5",
+      "id": "mean_t5_n480",
+      "n": 480,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "t5",
+      "id": "mean_ar_t5_n120",
+      "n": 120,
+      "rho": 0.6
+    },
+    {
+      "controls": false,
+      "error": "t5",
+      "id": "mean_ar_t5_n240",
+      "n": 240,
+      "rho": 0.6
+    },
+    {
+      "controls": false,
+      "error": "t5",
+      "id": "mean_ar_t5_n480",
+      "n": 480,
+      "rho": 0.6
+    },
+    {
+      "controls": false,
+      "error": "garch",
+      "id": "mean_garch_n120",
+      "n": 120,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "garch",
+      "id": "mean_garch_n240",
+      "n": 240,
+      "rho": 0
+    },
+    {
+      "controls": false,
+      "error": "garch",
+      "id": "mean_garch_n480",
+      "n": 480,
+      "rho": 0
+    },
+    {
+      "controls": true,
+      "error": "gaussian",
+      "id": "reg_ar06_n120",
+      "n": 120,
+      "rho": 0.6
+    },
+    {
+      "controls": true,
+      "error": "gaussian",
+      "id": "reg_ar06_n240",
+      "n": 240,
+      "rho": 0.6
+    },
+    {
+      "controls": true,
+      "error": "gaussian",
+      "id": "reg_ar06_n480",
+      "n": 480,
+      "rho": 0.6
+    },
+    {
+      "controls": true,
+      "error": "garch",
+      "id": "reg_garch_n120",
+      "n": 120,
+      "rho": 0
+    },
+    {
+      "controls": true,
+      "error": "garch",
+      "id": "reg_garch_n240",
+      "n": 240,
+      "rho": 0
+    },
+    {
+      "controls": true,
+      "error": "garch",
+      "id": "reg_garch_n480",
+      "n": 480,
+      "rho": 0
+    },
+    {
+      "controls": true,
+      "error": "xhetero",
+      "id": "reg_xhetero_n120",
+      "n": 120,
+      "rho": 0
+    },
+    {
+      "controls": true,
+      "error": "xhetero",
+      "id": "reg_xhetero_n240",
+      "n": 240,
+      "rho": 0
+    },
+    {
+      "controls": true,
+      "error": "xhetero",
+      "id": "reg_xhetero_n480",
+      "n": 480,
+      "rho": 0
+    }
+  ],
+  "target": "OLS intercept (coefficient 0); innovations/unconditional error SD is one",
+  "xhetero": "IID Gaussian innovation * sqrt(0.5 + 0.5 * centered_latent_control_1^2)"
+}
