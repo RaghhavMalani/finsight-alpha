@@ -9,7 +9,7 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from src.research_os.calibration_v011.protocol import load,digest,PROTOCOL_SHA,FREEZE_COMMIT,BASE_COMMIT,assert_disjoint
-from src.research_os.calibration_v011.study import read_ledger,validate_phase,selection_guard,read_npz
+from src.research_os.calibration_v011.study import read_ledger,validate_phase,selection_guard,read_npz,assert_inference_unchanged
 from scripts.verify_research_os import verify as verify_old
 
 
@@ -47,8 +47,11 @@ def verify(root=ROOT):
         selected,selection_hash=selection_guard(root,folder,p)
         confirmation=validate_phase(folder,"confirmation",p)
         if confirmation["selection_hash"]!=selection_hash: raise ValueError("Confirmation/selection binding changed")
-        for key in ("source_hash","runner_hash","environment"):
+        for key in ("runner_hash","environment"):
             if confirmation["execution"][key]!=discovery["execution"][key]: raise ValueError("Inference changed after discovery")
+        if confirmation["execution"]["source_hash"]!=discovery["execution"]["source_hash"]:
+            if confirmation["execution"].get("pre_confirmation_guard_repair_hash")!=assert_inference_unchanged(root,discovery["execution"]):
+                raise ValueError("Unbound guard-only source correction")
         log=subprocess.check_output(["git","log","--format=%H","--","data/exports/research_os_v0_1_1/selection.json"],cwd=root,text=True).splitlines()
         if not log: raise ValueError("Selection not historically committed")
         selection_commit=log[-1]

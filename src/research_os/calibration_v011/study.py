@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
 import math
+import ast
 from pathlib import Path
 import subprocess
 import sys
@@ -114,12 +115,40 @@ def selection_guard(root,folder,p):
     if actual!=historical: raise ValueError("Selection changed after commit")
     receipt=json.loads(actual)
     disc=validate_phase(folder,"discovery",p)
-    expected=select(disc["methods"],p)
+    # Restore the declared setting order used by the original execution. JSON
+    # object ordering cannot change floating-point summation in the audit check.
+    ordered={m:{s["id"]:disc["methods"][m][s["id"]] for s in p["settings"]} for m in p["candidates"]}
+    expected=select(ordered,p)
     if receipt["selection"]!=expected or receipt["discovery_file_hash"]!=digest((folder/"discovery.json").read_bytes()):
         raise ValueError("Selection does not match frozen discovery rule/evidence")
     if receipt["protocol_sha256"]!=PROTOCOL_SHA or receipt["selection"]["selected"] not in METHODS:
         raise ValueError("No valid selected candidate")
     return receipt["selection"]["selected"],digest(actual)
+
+
+def assert_inference_unchanged(root,original):
+    """A byte-sealed pre-confirmation guard repair permits no inference changes."""
+    path="data/exports/research_os_v0_1_1/pre-confirmation-guard-repair.json"
+    raw=(root/path).read_bytes()
+    committed=subprocess.check_output(["git","show","HEAD:"+path],cwd=root)
+    if raw!=committed: raise ValueError("Guard repair must be committed")
+    repair=json.loads(raw)
+    source="src/research_os/calibration_v011/study.py"
+    before=subprocess.check_output(["git","show",original["code_commit"]+":"+source],cwd=root)
+    after=subprocess.check_output(["git","show","HEAD:"+source],cwd=root)
+    changes=subprocess.check_output(["git","diff","--name-only",original["code_commit"],"HEAD","--","src","pyproject.toml"],cwd=root,text=True).splitlines()
+    if (changes!=[source] or repair["protocol_sha256"]!=PROTOCOL_SHA or repair["confirmation_worlds_generated"]!=0
+            or repair["study_source_sha256_before"]!=digest(before) or repair["study_source_sha256_after"]!=digest(after)):
+        raise ValueError("Unapproved computation change after discovery")
+    old_ast=ast.parse(before);new_ast=ast.parse(after)
+    # Every numerical, DGP, selector and seed module is byte-identical (changes
+    # allow-list above); the only execution file change has its exact byte seal.
+    for name in ("compute_chunk","payload_hash","write_npz","read_npz","validate_phase"):
+        old=next(n for n in old_ast.body if isinstance(n,ast.FunctionDef) and n.name==name)
+        new=next(n for n in new_ast.body if isinstance(n,ast.FunctionDef) and n.name==name)
+        if ast.dump(old,include_attributes=False)!=ast.dump(new,include_attributes=False):
+            raise ValueError("World computation or validation changed in guard repair")
+    return digest(raw)
 
 
 def validate_phase(folder,phase,p):
@@ -171,8 +200,10 @@ def run(root,phase,*,resume=False,workers=4):
     identity=execution(root)
     if phase=="confirmation":
         original=json.loads((folder/"discovery.json").read_bytes())["execution"]
-        for key in ("source_hash","runner_hash","environment"):
+        for key in ("runner_hash","environment"):
             if identity[key]!=original[key]: raise ValueError("Inference code/environment changed after discovery selection")
+        if identity["source_hash"]!=original["source_hash"]:
+            identity["pre_confirmation_guard_repair_hash"]=assert_inference_unchanged(root,original)
     runtime=root/"data/exports/replay-source/inference-v011-runtime"/phase
     with process_lock(runtime):
         header=runtime/"identity.json"

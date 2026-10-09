@@ -106,3 +106,18 @@ def test_simultaneous_bounds_are_stricter_than_pointwise(protocol):
     simultaneous=summarize(a,protocol);pointwise=summarize(a,protocol,simultaneous=False)
     assert simultaneous["greater_size_upper"]>pointwise["greater_size_upper"]
     assert simultaneous["coverage_lower"]<pointwise["coverage_lower"]
+
+
+def test_original_selection_survives_sorted_json_roundtrip(protocol):
+    folder=ROOT/"data/exports/research_os_v0_1_1"
+    selected,sha=selection_guard(ROOT,folder,protocol)
+    receipt=json.loads((folder/"selection.json").read_bytes())
+    assert selected==receipt["selection"]["selected"]=="NULL_MBB_T"
+    assert sha
+
+
+def test_guard_repair_cannot_change_inference_modules(protocol):
+    from src.research_os.calibration_v011.study import assert_inference_unchanged
+    folder=ROOT/"data/exports/research_os_v0_1_1"
+    original=json.loads((folder/"discovery.json").read_bytes())["execution"]
+    assert assert_inference_unchanged(ROOT,original)
