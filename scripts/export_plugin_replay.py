@@ -7,7 +7,6 @@ import importlib.metadata
 import json
 from pathlib import Path
 import sys
-import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,10 +15,10 @@ from finsight.plugins import Signal, SignalStore, RunRegistry, Runner, PluginCat
 from finsight.plugins.replay import FIXTURE_PATH, FIXTURE_SOURCE, publish
 from examples.momentum_plugin import MomentumModel
 from src.truth.contracts import canonical_hash
+from finsight.plugins.runner import DEPENDENCIES, runtime_identity
 
 DIRECTORY = ROOT / "data/exports/nervous_system_v0_1"
 TENANT = "public-fixture"
-DEPENDENCIES = ("numpy", "pandas", "duckdb", "pyarrow", "scikit-learn")
 
 
 def fingerprint():
@@ -37,6 +36,7 @@ def fingerprint():
                 for p in files
             },
             "dependencies": {p: importlib.metadata.version(p) for p in DEPENDENCIES},
+            "runtime": runtime_identity(),
             "seed": 42,
             "horizon": 1,
             "embargo": 2,

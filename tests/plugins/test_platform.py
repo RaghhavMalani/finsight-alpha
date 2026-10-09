@@ -22,6 +22,23 @@ from src.data.as_of import AsOfViolation
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_run_identity_binds_every_wrapped_engine_dependency_and_runtime(monkeypatch):
+    from finsight.plugins import runner as module
+    from src.truth.contracts import canonical_hash
+
+    before = module.code_identity(MeanModel, ROOT)
+    assert {"scipy", "statsmodels", "hmmlearn"} <= set(before["dependencies"])
+    assert before["runtime"]["python"]
+    original = module.importlib.metadata.version
+    monkeypatch.setattr(
+        module.importlib.metadata,
+        "version",
+        lambda name: "changed" if name == "scipy" else original(name),
+    )
+    after = module.code_identity(MeanModel, ROOT)
+    assert canonical_hash(before) != canonical_hash(after)
+
+
 class MeanModel(Model):
     inputs = ["market_return", "volatility"]
     outputs = ["momentum_signal"]

@@ -8,6 +8,7 @@ import inspect
 import json
 from pathlib import Path
 import subprocess
+import platform
 import numpy as np
 import pandas as pd
 from src.truth.contracts import canonical_hash
@@ -23,6 +24,24 @@ CLAIMS = {
     "causal_claim_eligible": False,
     "validated_alpha": False,
 }
+DEPENDENCIES = (
+    "numpy",
+    "pandas",
+    "duckdb",
+    "pyarrow",
+    "scikit-learn",
+    "scipy",
+    "statsmodels",
+    "hmmlearn",
+)
+
+
+def runtime_identity():
+    return {
+        "python": platform.python_version(),
+        "system": platform.system(),
+        "machine": platform.machine(),
+    }
 
 
 def code_identity(model_type, root: Path):
@@ -49,9 +68,9 @@ def code_identity(model_type, root: Path):
             }
         ),
         "dependencies": {
-            name: importlib.metadata.version(name)
-            for name in ("numpy", "pandas", "duckdb", "pyarrow", "scikit-learn")
+            name: importlib.metadata.version(name) for name in DEPENDENCIES
         },
+        "runtime": runtime_identity(),
         "dirty_computation": not module.is_relative_to(root)
         or bool(
             subprocess.check_output(
@@ -364,7 +383,7 @@ class Runner:
                         "kind": "REPEATED_HOLDOUT_OPENING",
                         "run_id": run_id,
                         "status": "OPEN",
-                        "reason": "Another registered configuration has already opened this data/split family",
+                        "reason": "Another registered run contract has already opened this data/split family",
                     }
                 )
             extension = winner.trace()
