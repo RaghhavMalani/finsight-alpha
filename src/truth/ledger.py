@@ -10,6 +10,7 @@ from sqlalchemy import select
 from src.auth.db import get_session
 from src.auth.tenant_models import AnalysisRun, ForecastSignal
 from src.data.license_policy import _set_tenant
+from src.truth.run_registry import RunRegistry  # Local immutable plugin runs; legacy SQL issuance is unchanged.
 
 
 def _datetime(value: str) -> datetime:

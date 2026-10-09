@@ -10,7 +10,8 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from src.research_os.calibration_v011.protocol import load,digest,PROTOCOL_SHA,FREEZE_COMMIT,BASE_COMMIT,assert_disjoint
-from src.research_os.calibration_v011.study import read_ledger,read_npz,assert_inference_unchanged
+from src.research_os.calibration_v011.study import read_ledger,read_npz
+from scripts.research_archive import historical_guard,verify_closed_history
 from src.research_os.calibration_v011.metrics import summarize,select
 from scripts.verify_research_os import verify as verify_old
 
@@ -96,6 +97,7 @@ def audit_selection(root,folder,p):
 
 
 def verify(root=ROOT):
+    verify_closed_history(root)
     p=load(root);folder=root/"data/exports/research_os_v0_1_1"
     old=verify_old()
     if old["calibration"]!="NOT_CALIBRATED" or old["scientific_engine_gate"]!="CLOSED":
@@ -132,7 +134,7 @@ def verify(root=ROOT):
         for key in ("runner_hash","environment"):
             if confirmation["execution"][key]!=discovery["execution"][key]: raise ValueError("Inference changed after discovery")
         if confirmation["execution"]["source_hash"]!=discovery["execution"]["source_hash"]:
-            if confirmation["execution"].get("pre_confirmation_guard_repair_hash")!=assert_inference_unchanged(root,discovery["execution"]):
+            if confirmation["execution"].get("pre_confirmation_guard_repair_hash")!=historical_guard(root,discovery["execution"],confirmation["execution"]):
                 raise ValueError("Unbound guard-only source correction")
         log=subprocess.check_output(["git","log","--format=%H","--","data/exports/research_os_v0_1_1/selection.json"],cwd=root,text=True).splitlines()
         if not log: raise ValueError("Selection not historically committed")
