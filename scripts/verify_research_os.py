@@ -15,6 +15,7 @@ from src.research_os.calibration import calibrate
 from src.research_os.projection import scorecard
 from src.research_os.power import wilson
 from src.research_os.dag import validate_dag
+from scripts.research_archive import verify_shared_history
 
 FROZEN=ROOT/"data/exports/research_os_v0_1"
 
@@ -88,11 +89,9 @@ def verify(full_calibration=False):
     require(all(r["metrics_identical"] and r["original_run_hash"]==r["repeat_run_hash"] and r["original_artifact_hash"]==r["repeat_artifact_hash"] for r in repeat["records"]),"Altered-repeat claim")
     mutations=read("mutations.json")
     require(mutations["killed"]==mutations["total"]==12 and all(r["errors"]==0 for r in mutations["mutants"]),"Invalid mutation acceptance")
-    # Shared finished evidence must remain byte-identical, including source policy.
-    protected=["src/dynamics","eval/dynamics","src/findings","src/verifiers","src/data/license_policy.py",
-        "src/replay","src/regime_intelligence","frontend-v2/public","frontend-v2/src/forge","frontend-v2/src/agents","docs/forge-reference.html"]
-    changed=subprocess.check_output(["git","diff","--name-only","2f2abb731851f44ba1189491b95d7c17f16464b2","HEAD","--",*protected],cwd=ROOT,text=True)
-    require(not changed.strip(),"Protected phase evidence changed")
+    # Preserve the historical phase boundary and every old public byte/entry.
+    # Only the separately reviewed Phase 2 synthetic plugin publication is added.
+    verify_shared_history(ROOT)
     require(not (ROOT/"src/research_os/adapters/vectorbt.py").exists(),"Trading engine crossed the unreviewed gate")
     return {"status":"VERIFIED","scientific_engine_gate":"CLOSED" if not accepted else "REQUIRES_USER_REVIEW",
         "calibration":cal["status"],"trials":len(records),"null_worlds":cal["total_null_worlds"],
