@@ -43,3 +43,5 @@ data/exports/research_os_v0_1/** -text
 
 # The separate inference tournament never normalizes sealed receipt/result bytes.
 data/exports/research_os_v0_1_1/** -text
+docs/research-os-v0.1.1-inference-calibration.md text eol=lf
+docs/findings/inference-calibration-v0.1.1.md text eol=lf

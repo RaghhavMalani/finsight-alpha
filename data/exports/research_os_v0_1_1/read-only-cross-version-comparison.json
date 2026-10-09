@@ -1,0 +1,40 @@
+{
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "rows_checked": 120,
+  "non_float_count_or_decision_differences": [],
+  "float_fields_different": 1346,
+  "max_absolute_difference": 6.411537967210279e-15,
+  "largest_examples": [
+    {
+      "field": "HAC_NORMAL/mean_iid_n120.standardized_bias_upper",
+      "stored": 0.1275652560980508,
+      "new": 0.12756525609805722,
+      "abs_difference": 6.411537967210279e-15
+    },
+    {
+      "field": "HAC_T/mean_iid_n120.standardized_bias_upper",
+      "stored": 0.1275652560980508,
+      "new": 0.12756525609805722,
+      "abs_difference": 6.411537967210279e-15
+    },
+    {
+      "field": "NULL_MBB_T/mean_iid_n120.standardized_bias_upper",
+      "stored": 0.1275652560980508,
+      "new": 0.12756525609805722,
+      "abs_difference": 6.411537967210279e-15
+    },
+    {
+      "field": "STATIONARY_PAIRS_T/mean_iid_n120.standardized_bias_upper",
+      "stored": 0.1275652560980508,
+      "new": 0.12756525609805722,
+      "abs_difference": 6.411537967210279e-15
+    },
+    {
+      "field": "HAC_NORMAL/mean_iid_n480.standardized_bias_upper",
+      "stored": 0.15250877114671169,
+      "new": 0.1525087711467181,
+      "abs_difference": 6.411537967210279e-15
+    }
+  ]
+}

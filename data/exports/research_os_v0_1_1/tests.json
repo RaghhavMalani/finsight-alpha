@@ -1,0 +1,59 @@
+{
+  "distinct_focused_passed": 250,
+  "known_warning": "Existing Starlette/httpx deprecation; no failed or skipped test",
+  "new_checks": 88,
+  "new_independent_references": 62,
+  "new_integrity_guards": 26,
+  "original_libraries": {
+    "numpy": "2.3.4",
+    "scipy": "1.16.3",
+    "statsmodels": "0.14.6"
+  },
+  "retained_baseline_checks": 162,
+  "runs": [
+    {
+      "duration_seconds": 32.474,
+      "errors": 0,
+      "failed": 0,
+      "junit_file": "test-evidence/v011-final-tests.xml",
+      "junit_sha256": "2ff8d96aeb8c645d59cd69a963fab8993e8be28db6db628f2ef0b1de3b0ee6ce",
+      "local_log_sha256": "ee9480286c6c03daf0dddf4aa4ffae3a114555a5e8452433490841633a21183b",
+      "passed": 241,
+      "scope": "241 distinct Research OS contracts/references",
+      "skipped": 0,
+      "timestamp": "2026-10-09T10:56:21.098017+05:30"
+    },
+    {
+      "duration_seconds": 3.781,
+      "errors": 0,
+      "failed": 0,
+      "junit_file": "test-evidence/v011-final-sabotage.xml",
+      "junit_sha256": "f6f6d6981d71ac8062713cc3f1610b48bd3bbbd28a8e736b5ab1daebda2be2e4",
+      "local_log_sha256": "c1e7d76e5ee73e34d0147b2ce171c343800e1dd4a1aaaa8b821ad8d1094d4331",
+      "passed": 9,
+      "scope": "9 distinct preserved Research OS sabotage guards",
+      "skipped": 0,
+      "timestamp": "2026-10-09T10:57:57.563221+05:30"
+    },
+    {
+      "duration_seconds": 9.621,
+      "errors": 0,
+      "failed": 0,
+      "junit_file": "test-evidence/v011-final-ci-tests.xml",
+      "junit_sha256": "27421719f79b21fcace5e621928aab5d632a02c96e7544d069406d3ce607688f",
+      "local_log_sha256": "37e0c98caaafd67732aaa56092db6d71dab3d2ca7ea96c41a58208d47890e7b3",
+      "passed": 88,
+      "scope": "88 new checks repeated under CI library versions; not added to the distinct total",
+      "skipped": 0,
+      "timestamp": "2026-10-09T10:56:58.551753+05:30"
+    }
+  ],
+  "schema": "research-os/inference-calibration/tests/0.1.1",
+  "scope": "Focused local checks; full Linux regression and frontend checks are reported separately in the PR CI coverage",
+  "second_library_environment": {
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "statsmodels": "0.14.6"
+  },
+  "tests_generate_study_outcomes": false
+}

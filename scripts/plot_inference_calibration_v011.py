@@ -28,15 +28,17 @@ def plot():
                     else row["coverage_lower"] if key=="coverage" else row["power"][2]["greater"])
         matrices.append(data)
     fig,axes=plt.subplots(1,3,figsize=(12.7,7.4),sharey=True)
-    titles=["Simultaneous size upper bound\nrequired <= 7%","Simultaneous coverage lower bound\nrequired >= 92%","Greater-tail power at effect 0.2\ndiagnostic; pointwise intervals in records"]
+    titles=["Worse one-/two-sided size upper bound\nrequired <= 7%","Simultaneous coverage lower bound\nrequired >= 92%","Greater-tail power at effect 0.2\ndiagnostic; pointwise intervals in records"]
+    palette=matplotlib.colors.LinearSegmentedColormap.from_list("research",["#ffffff","#dbe8f1","#b8d1e3"])
     for ax,data,title,lo,hi in zip(axes,matrices,titles,[0,.85,0],[.15,1,1]):
-        ax.imshow(data,cmap="Blues",vmin=lo,vmax=hi,aspect="auto")
+        ax.imshow(data,cmap=palette,vmin=lo,vmax=hi,aspect="auto")
         ax.set_xticks(range(3),[str(n) for n in p["sample_sizes"]]);ax.set_xlabel("Sample size")
         ax.set_yticks(range(len(names)),[name.replace("_"," ") for name in names])
         ax.set_title(title,fontsize=9,pad=12)
         for i in range(len(names)):
             for j in range(3):
-                value=data[i,j];text="unavailable" if not np.isfinite(value) else f"{100*value:.1f}%"
+                value=data[i,j];decimals=1 if ax is axes[2] else 2
+                text="unavailable" if not np.isfinite(value) else f"{100*value:.{decimals}f}%"
                 failure=(ax is axes[0] and value>.07) or (ax is axes[1] and value<.92)
                 ax.text(j,i,text,ha="center",va="center",fontsize=9,color="#b42318" if failure else "#111827",fontweight="bold" if failure else "normal")
     fig.suptitle(f"{result['status']} · {method}\nUntouched confirmation: 5,000 worlds per setting · SYNTHETIC CALIBRATION",fontsize=12,fontweight="bold")

@@ -109,8 +109,9 @@ def test_simultaneous_bounds_are_stricter_than_pointwise(protocol):
 
 
 def test_original_selection_survives_sorted_json_roundtrip(protocol):
+    from scripts.verify_inference_calibration_v011 import audit_selection
     folder=ROOT/"data/exports/research_os_v0_1_1"
-    selected,sha=selection_guard(ROOT,folder,protocol)
+    selected,sha=audit_selection(ROOT,folder,protocol)
     receipt=json.loads((folder/"selection.json").read_bytes())
     assert selected==receipt["selection"]["selected"]=="NULL_MBB_T"
     assert sha
@@ -121,3 +122,34 @@ def test_guard_repair_cannot_change_inference_modules(protocol):
     folder=ROOT/"data/exports/research_os_v0_1_1"
     original=json.loads((folder/"discovery.json").read_bytes())["execution"]
     assert assert_inference_unchanged(ROOT,original)
+
+
+def test_read_only_float_check_never_tolerates_count_or_verdict_changes():
+    from scripts.verify_inference_calibration_v011 import equivalent
+    assert equivalent({"metric":.07},{"metric":.07+1e-15})
+    assert not equivalent({"metric":.07},{"metric":.0700001})
+    assert not equivalent({"rejected":50},{"rejected":51})
+    assert not equivalent({"accepted":False},{"accepted":True})
+    assert not equivalent({"accepted":True},{"accepted":1})
+
+
+@pytest.mark.parametrize("mutation",["missing_setting","extra_setting","wrong_phase"])
+def test_read_only_family_audit_rejects_silent_changes(protocol,mutation):
+    from scripts.verify_inference_calibration_v011 import audit_family
+    folder=ROOT/"data/exports/research_os_v0_1_1"
+    report=json.loads((folder/"discovery.json").read_bytes())
+    if mutation=="missing_setting": report["methods"]["HAC_T"].pop(protocol["settings"][0]["id"])
+    elif mutation=="extra_setting": report["methods"]["HAC_T"]["undeclared"]={}
+    else: report["phase"]="confirmation"
+    with pytest.raises(ValueError,match="family"): audit_family(report,"discovery",protocol,protocol["candidates"])
+
+
+@pytest.mark.parametrize("mutation",["passed_count","engine_authorization"])
+def test_read_only_summary_cannot_promote_the_failed_gate(protocol,mutation):
+    from scripts.verify_inference_calibration_v011 import audit_summary
+    folder=ROOT/"data/exports/research_os_v0_1_1"
+    summary=json.loads((folder/"summary.json").read_bytes())
+    confirmation=json.loads((folder/"confirmation.json").read_bytes())
+    if mutation=="passed_count": summary["settings_passed"]=30
+    else: summary["engine_authorized"]=True
+    with pytest.raises(ValueError,match="Summary"): audit_summary(summary,confirmation,protocol,"NULL_MBB_T")

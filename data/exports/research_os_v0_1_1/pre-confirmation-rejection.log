@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "D:\Personal_Projects\Finance\finsight-alpha\.claude\worktrees\phase0\scripts\run_inference_calibration_v011.py", line 18, in <module>
+    result=run(ROOT,args.phase,resume=args.resume,workers=args.workers)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Personal_Projects\Finance\finsight-alpha\.claude\worktrees\phase0\src\research_os\calibration_v011\study.py", line 158, in run
+    chosen,selection_hash=selection_guard(root,folder,p);methods=[chosen]
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Personal_Projects\Finance\finsight-alpha\.claude\worktrees\phase0\src\research_os\calibration_v011\study.py", line 119, in selection_guard
+    raise ValueError("Selection does not match frozen discovery rule/evidence")
+ValueError: Selection does not match frozen discovery rule/evidence

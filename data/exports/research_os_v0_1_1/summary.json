@@ -1,0 +1,143 @@
+{
+  "confirmation_null_worlds": 150000,
+  "confirmation_planted_evaluations": 450000,
+  "discovery_method_worlds": 120000,
+  "discovery_worlds": 30000,
+  "engine_authorized": false,
+  "failed_settings": {
+    "mean_ar03_n120": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar03_n240": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar03_n480": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar06_n120": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar06_n240": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar06_n480": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar08_n120": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar08_n240": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar08_n480": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar_t5_n120": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar_t5_n240": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_ar_t5_n480": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_garch_n120": [
+      "greater size",
+      "coverage"
+    ],
+    "mean_garch_n240": [
+      "greater size",
+      "coverage"
+    ],
+    "mean_garch_n480": [
+      "greater size",
+      "coverage"
+    ],
+    "mean_iid_n120": [
+      "greater size",
+      "coverage"
+    ],
+    "mean_iid_n240": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_t5_n120": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_t5_n240": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "mean_t5_n480": [
+      "greater size"
+    ],
+    "reg_ar06_n120": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "reg_ar06_n240": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "reg_ar06_n480": [
+      "greater size",
+      "two-sided size",
+      "coverage"
+    ],
+    "reg_garch_n120": [
+      "greater size",
+      "coverage"
+    ],
+    "reg_garch_n240": [
+      "greater size",
+      "coverage"
+    ],
+    "reg_garch_n480": [
+      "greater size",
+      "coverage"
+    ],
+    "reg_xhetero_n120": [
+      "greater size",
+      "coverage"
+    ],
+    "reg_xhetero_n240": [
+      "coverage"
+    ]
+  },
+  "market_replication_authorized": false,
+  "old_gate": "PERMANENTLY_CLOSED",
+  "selected": "NULL_MBB_T",
+  "settings_passed": 2,
+  "settings_total": 30,
+  "status": "NOT_CONFIRMED"
+}

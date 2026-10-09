@@ -1,0 +1,1916 @@
+{
+  "artifacts": {
+    "confirmation.json": {
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "sha256": "96e559dfe2411aaf482caba7637ecaa1ba7fa85f2348fb2c43f4bb633fc36d58",
+      "source": "Metrics computed from all retained confirmation per-world artifacts",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar03_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "8d6462edb30e9e80cf6449ad63efb25afc83a2bb0592d2f97a3364d5623cb8c8",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar03_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "1faf59d2e6dee330712515244e239454da37f90491102c62daf0aa541bdf9200",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar03_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "39d9b5e749b0605f2b28527ecf0b68f7488c76e8e60338c570bb6edda197cd08",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar06_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "da2b7e8d3b5bcb7c2b2c489ace517c95014911fe8cbe8c2dd77aa3645adfb919",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar06_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "8dcea2bc6cc20efd6cdaf5d6d9a54eda928fdc5a82040a0d96ce64bac4475333",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar06_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "2763d5c9109edd87cf535b8938fa4b685eaf5cdcf5ef4e81961a74854c380765",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar08_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "d83ae17d091f8bcce32661a4386df441972711014461d22fb969e87bccfb7d27",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar08_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "e2d43ce21aa9e6ad79f95755846814e4a006457a1305062c81ccefd3456e809a",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar08_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "5218d46d3d7fb0d2a8acf90a1aa14abfdf73799c9c99728746d0867abd7cb82a",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar_t5_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "9cb563163bceac25685dd27504e13bf2212722a8d002e214bb3eb6b1acddebaf",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar_t5_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "81b8b8d7f9f5d11813432936bcc067c85f6371e4d5ea56d7b44c787683c67e7c",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_ar_t5_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "79c1930e1f75f9c75078949b598bd938e0843d45504e37578741bb410e105a9a",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_garch_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "7420a7da9f485adfac69c67f265862befe02da468897e7b680638d0ed77c3ad4",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_garch_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "0d44ff4f1f1a9dbfc8865f3fb35477700537d788b98146045f329349ac92789e",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_garch_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "f648c0e37947c60742a5e79feb6e44272d8fae390ca3cef3902ddca2e896bf9a",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_iid_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "69e8c194f342a141a1fc67f105d9eb6a7a7ed4d82b34951066b5f3bf9a533429",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_iid_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "7dc8912d95d3500a80180750a646a990268147f9f3e268be42dba118c26c0de7",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_iid_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "24ebd06219ffa6da1e453fa31032a1d963a3825929caa449a1034cd463b8cf0d",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_t5_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "2c9bd7ffa63a6ff068f71eedef2cdcff893115a9c007b9c4cb3da05915c2b318",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_t5_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "6e3a4308087a5e322c0cde4addeb944e37137125dbabb7a053d4864f438201d2",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/mean_t5_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "9150b13203761506d32350f497538419e35bfb96912c8fb43aac1f748e6ea961",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_ar06_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "e30013a92848d0345791e2cfbb0021a904caaed25f4e3d6583eff754cb043d1e",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_ar06_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "6d6f2b56b82b4dd0fc3b76c61db6995b31970a6366ba036a53ddb2c1b5bbe2c1",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_ar06_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "f580334ac2009c77bdfe9f96ca4f5c6b3113bc3af6dfcff4e0d12e0b3e4fd859",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_garch_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "7493c77f34d7599e0698bbec2ed5559d958fd1d994ffa5ff9fccaa077a7e2136",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_garch_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "f172238804a326ef0338f50751008a1eaee8b652ff108235d866615f6b1c02f2",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_garch_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "b2c9f7398ae20cb2fa36dd977e7e6dc0d5d6262c01793b2b5c407dd70dd90895",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_xhetero_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "64233420511745a48e36fb5151d0dece216973529bb739284503b4f0d9cd25f4",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_xhetero_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "ac075b0059402fbc16cd020e57a30d5c7eb3b234a4d0600a0516711c5ad0a0ca",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "confirmation/reg_xhetero_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "39a30ac783f1cbc6990aab236c504f231bfaf29a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "pre_confirmation_guard_repair_hash": "ba0cc8cf4be7c15a65bce211acde8ea6c10bb7c1672952dea1f4928e86000720",
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "997a8920d537c8bc423d6ba6ca9ea1e7bea17664493d90592fbb404140e086f8"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "confirmation",
+      "sha256": "70be351f4519302e2d7a149b6b72c0bd4ce6b1b5f3302de3287a026cae1d76de",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery.json": {
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "sha256": "97edf6d5c6341ca9091c35a9a325a4fbe099bd7d37a6eb3ca3f6fae5b904e24d",
+      "source": "Metrics computed from all retained discovery per-world artifacts",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar03_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "b1f0b7acfa111caa0643ebb67660338972810a64604fc958f94e6105d86175f1",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar03_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "538d64709e624b2fe5f4f0c6da0f7bf78cf3fdf83ac6be566c529a74ed449762",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar03_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "4871345bcc09870da7244bd4504e8c7230081eb8cfd258f95e623ee10e8913e5",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar06_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "958b9fc7a09bc1e4685e47495fc39aa80ccdc6a5a2a6465b68dcbc545b12be7e",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar06_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "d2ad2059887392d2c773938afc6dd7e1baa9a8a7a81d61d0dc600baca0996df9",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar06_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "b98db1140434d063adaef4b649a45a916eb226adb36b9c9edbae5eb4533ae605",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar08_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "663e74f42e73415abe482ba91fc3dfbdc85f210e1c88e4ca486e827594287d65",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar08_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "26751d5fa51b48def497aa674d3897245519abc20b3e9dc9e9c518c15bbbf012",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar08_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "58d76f56168197eee3c9c5bb174351e1f39c543615af4b2ae1de8de7ddcd518d",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar_t5_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "903d4a9bb6927cf2d887c399d92fcccd795d1d26598ab1cc7e820712d8099bf9",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar_t5_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "33f87b55b1a7c4a41148f90175c734b4cecd3a31edce0b5a09c16557a400c674",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_ar_t5_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "2d242c6417fbb81f63b5b7ae3e30da4576be441cccaee0f28f87dd9b1a57c071",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_garch_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "cd5dd5177854b97cadf588bdd6a5cfd71570ffc0ec708c50ae733a3aa3e03c42",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_garch_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "df7924cae9ef839bcca0a6197b2928ba33d9fe87a37182e480bd7be770597f74",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_garch_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "48cee45356bd48fb06eff0174a9c98adf70ba5216cb7e476a7b568215a0a634b",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_iid_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "482453e5d579f761eac3e8477552da5ae3e8fc75051593b1d029068fdae69733",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_iid_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "8ca2699b086324b37492c88e95865827c05fab781e50b2a3d0d3979513190d96",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_iid_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "6ea8d1ad9650d53e1babba392cdcff6c0e95877f2bee47b31371b2d73cf6f90c",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_t5_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "ff6e6c71abc8abe4dcb6607b2a95c5b607d856d43da40d930ae0fe2cd9d55c75",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_t5_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "1916446f83b6fd3b630927429a5173607cea94a19a9fe4aa2b0672795e31cb68",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/mean_t5_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "b525ce0e2475bf469e70081e1efa76b1784ada1bdac5d7d7d264b8c25275acac",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_ar06_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "8142e87b7db8bb11a28662353c39af92c80b8276fbc7f00d9759de1fc8005295",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_ar06_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "69388b8ee8cbc80c691b9131f80a5c459f9eabbedc891abc126271ee49f3557e",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_ar06_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "98638eff496053e56c56c8315c3ec48278a7b25d809e94d787a585dd68259cd9",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_garch_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "8b2d4e2e923c34f3727e63da8de6cd937983e672b0f0a2363bd38541195bbb99",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_garch_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "2f54796491f1d5ae1c434dea8cf1aa5f39f790ab03021ce26668a081678aff2f",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_garch_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "a333758abf204668315bd5a3069c0cfb55aed6ebc7c1336e434aff95d680ab57",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_xhetero_n120.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "4a265cccc9d4ae4b39c5225fc09f124222c72836c74e3954298f045ba0a70e1f",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_xhetero_n240.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "b85cf40509547160b58ed4cbbda1419d83ac9d132b27df6af805106028faf749",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "discovery/reg_xhetero_n480.npz": {
+      "attribution": "Finsight Alpha Research OS; declared controlled simulations",
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "execution": {
+        "code_commit": "bc12939d70e384d2fe8774949bcc2d8c4a43981a",
+        "environment": {
+          "dependencies": {
+            "hmmlearn": "0.3.3",
+            "numpy": "2.3.4",
+            "pandas": "2.3.1",
+            "pydantic": "2.13.4",
+            "scikit-learn": "1.7.0",
+            "scipy": "1.16.3",
+            "statsmodels": "0.14.6"
+          },
+          "platform": "Windows-11-10.0.26300-SP0",
+          "python": "3.12.0"
+        },
+        "runner_hash": "5c172ebc5abb13e9047bafe8895bb29e93ade933b83d288aee24e5694b3ff254",
+        "source_hash": "c741561201d94973ca45245b5201e63da92b63340704fbdc4c0de5275b3bf383"
+      },
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "protocol_sha256": "59c69a7807fb757ace22fca4f20b7c883ea43f48dad30a6eb608c936e35b248e",
+      "seed_namespace": "finsight/research-os/0.1.1/frozen-2026-10-09",
+      "seed_phase": "discovery",
+      "sha256": "3560d970c85a2a1b78f239a59398f032e7034efd31b4f9f06a7036396cfec8bf",
+      "source": "Project-generated controlled DGP; per-world estimates/intervals/p-values and input hashes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/bc12939d70e384d2fe8774949bcc2d8c4a43981a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "docs/findings/inference-calibration-v0.1.1.md": {
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "sha256": "3c2f8f1c68e9c5933f589a2f7288c16da9e548b01010dcdbfe94d442e7759063",
+      "source": "Rendered or documented frozen synthetic calibration protocol/outcomes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "docs/findings/inference-calibration-v0.1.1.png": {
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "sha256": "7bfa7f3bc3cee4cae6f85d86e9e727ce3aa87cbe133b49f68d1013beb0d98867",
+      "source": "Rendered or documented frozen synthetic calibration protocol/outcomes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    },
+    "docs/research-os-v0.1.1-inference-calibration.md": {
+      "evidence_mode": "SYNTHETIC_CALIBRATION",
+      "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+      "sha256": "60c67b5fe0176296775d8d33021e1eeb32deb85e16617445eae0ab75cda5cc02",
+      "source": "Rendered or documented frozen synthetic calibration protocol/outcomes",
+      "source_url": "https://github.com/RaghhavMalani/finsight-alpha/tree/39a30ac783f1cbc6990aab236c504f231bfaf29a/src/research_os/calibration_v011",
+      "third_party_data_sources": []
+    }
+  },
+  "attribution": "Finsight Alpha Research OS controlled inference calibration",
+  "licence_status": "PROJECT_GENERATED_SYNTHETIC_USER_AUTHORIZED_PUBLICATION",
+  "license_policy_changed": false,
+  "market_sources_added": false,
+  "repository_code_license": "UNSPECIFIED; this receipt grants no new blanket code or third-party licence",
+  "scope": "User-authorized GitHub inference-calibration review packet only; no application or market publication",
+  "third_party_data_sources": []
+}
