@@ -2,6 +2,8 @@
 
 The approved steps 1–4 have produced the first frozen US–India market-factor momentum study. **Do not integrate VectorBT.** The common engineering contract checks pass, but the scientific calibration fails the acceptance criterion committed before outcomes.
 
+Calibration-gate multiplicity is a limitation: requiring all eight separate 95% Wilson intervals to contain 5% is intentionally strict. If their coverage were exactly 95% and the checks independent, simultaneous coverage would be approximately `0.95^8 = 66.3%`, with a 33.7% chance of at least one false gate failure. This is an illustrative approximation, not a measured failure probability; dependence and binomial discreteness affect it. The preregistered v0.1 rule remains binding and its gate permanently CLOSED.
+
 Preregistration commit: `4301093`; hash: `e8b48dd1a00aa7e6d0d2cb3bd2c82840afc4b557ec17d38da4f9253b48370a84`. Actual inference/calibration/study code commit: `2e72e56`. The review branch's HEAD is the gate evidence commit; its full SHA is reported with the review link. Original code, data, seeds, dependency environment and artifact identities are retained in the measured records.
 
 | Evidence | Measured result |
