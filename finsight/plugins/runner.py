@@ -1,22 +1,23 @@
 """Platform-owned nested selection, accounting, traces and diagnostic hooks."""
 
 from __future__ import annotations
-from dataclasses import asdict
-from copy import deepcopy
-import importlib.metadata
-import inspect
+
 import json
-from pathlib import Path
-import subprocess
 import platform
+from copy import deepcopy
+from dataclasses import asdict
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
+
+from src.data.as_of import AsOfContext, AsOfViolation
 from src.truth.contracts import canonical_hash
 from src.truth.run_registry import RunRegistry
-from src.data.as_of import AsOfContext, AsOfViolation
+
 from .contracts import tenant, validate_inputs, validate_outputs
-from .splits import nested
 from .honesty import controls, diagnostic, factor_exposure
+from .splits import nested
 
 CLAIMS = {
     "inference_certified": False,
@@ -45,51 +46,9 @@ def runtime_identity():
 
 
 def code_identity(model_type, root: Path):
-    commit = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=root, text=True
-    ).strip()
-    files = sorted((root / "finsight/plugins").glob("*.py")) + sorted(
-        (root / "src").rglob("*.py")
-    )
-    module = Path(inspect.getfile(model_type)).resolve()
-    from hashlib import sha256
+    from .dependencies import manifest
 
-    return {
-        "commit": commit,
-        "plugin": model_type.__module__ + "." + model_type.__qualname__,
-        "plugin_source_sha256": sha256(
-            inspect.getsource(model_type).encode()
-        ).hexdigest(),
-        "plugin_module_sha256": sha256(module.read_bytes()).hexdigest(),
-        "platform_source_sha256": canonical_hash(
-            {
-                p.relative_to(root).as_posix(): sha256(p.read_bytes()).hexdigest()
-                for p in files
-            }
-        ),
-        "dependencies": {
-            name: importlib.metadata.version(name) for name in DEPENDENCIES
-        },
-        "runtime": runtime_identity(),
-        "dirty_computation": not module.is_relative_to(root)
-        or bool(
-            subprocess.check_output(
-                [
-                    "git",
-                    "status",
-                    "--porcelain",
-                    "--",
-                    "finsight",
-                    "src",
-                    str(module.relative_to(root))
-                    if module.is_relative_to(root)
-                    else "examples",
-                ],
-                cwd=root,
-                text=True,
-            ).strip()
-        ),
-    }
+    return manifest(model_type, root)
 
 
 class Runner:
@@ -195,7 +154,12 @@ class Runner:
                     > features.decision_at
                 ).any():
                     raise AsOfViolation("Future factor information")
+            code = code_identity(model_type, self.root)
+            from .dependencies import execution_provenance
+
+            execution = execution_provenance(self.root, code)
             contract = {
+                "schema_version": "plugin-computation/2",
                 "tenant_id": tenant_id,
                 "asset": asset,
                 "as_of": cutoff.isoformat,
@@ -205,10 +169,13 @@ class Runner:
                     "inputs": [asdict(s) for s in input_specs],
                     "outputs": [asdict(s) for s in output_specs],
                 },
-                "code": code_identity(model_type, self.root),
+                "code": code,
                 "configs": candidate_configs,
                 "splits": split,
                 "scope": scope,
+                "admission_references": self.store.admission_references(
+                    tenant_id, lineage
+                ),
                 "data_hash": canonical_hash(
                     [r.payload() for r in sorted(lineage, key=lambda r: r.identity)]
                 ),
@@ -228,7 +195,11 @@ class Runner:
             }
             run_id = self.registry.identity(contract)
             self.registry.event(
-                tenant_id, attempt, run_id, "RUN_BOUND", {"contract": contract}
+                tenant_id,
+                attempt,
+                run_id,
+                "RUN_BOUND",
+                {"contract": contract, "execution": execution},
             )
             old = self.registry.read(tenant_id, run_id)
             if old:
@@ -390,7 +361,8 @@ class Runner:
             if extension is not None:
                 json.dumps(extension, allow_nan=False)
             result = {
-                "schema_version": "plugin-run/1",
+                "schema_version": "plugin-run/2",
+                "execution": execution,
                 "run_id": run_id,
                 "tenant_id": tenant_id,
                 "status": "COMPUTED",
@@ -446,7 +418,8 @@ class Runner:
                     tenant_id,
                     run_id,
                     {
-                        "schema_version": "plugin-run/1",
+                        "schema_version": "plugin-run/2",
+                        "execution": execution,
                         "run_id": run_id,
                         "tenant_id": tenant_id,
                         "contract": contract,

@@ -52,7 +52,9 @@ def projection(registry, tenant_id, run_id, *, allowed_outputs):
         or not result["computation_ready"]
     ):
         raise ValueError("No completed computation to publish")
-    if result["contract"]["code"]["dirty_computation"]:
+    if result.get("execution", result["contract"]["code"]).get(
+        "dirty_computation", True
+    ):
         raise ValueError("Commit computation sources before public execution")
     if any(value is not False for value in result["claims"].values()):
         raise ValueError("Scientific claim promotion is forbidden")
@@ -93,10 +95,14 @@ def projection(registry, tenant_id, run_id, *, allowed_outputs):
         )
     }
     value.update(
-        schema_version="plugin-replay/1",
+        schema_version="plugin-replay/2"
+        if result["schema_version"] == "plugin-run/2"
+        else "plugin-replay/1",
         scope="SYNTHETIC_REFERENCE",
         label="MomentumModel · synthetic PIT fixture",
     )
+    if "execution" in result:
+        value["execution"] = deepcopy(result["execution"])
     value["sources"] = sorted({r["source"] for r in result["source_lineage"]})
     value["observatory"] = {
         "frames": deepcopy(result["observatory"]["frames"]),
@@ -115,7 +121,7 @@ def projection(registry, tenant_id, run_id, *, allowed_outputs):
     return value
 
 
-def publish(registry, tenant_id, run_id, *, root, output, allowed_outputs):
+def publish(registry, tenant_id, run_id, *, root, output, allowed_outputs, route=None):
     value = projection(registry, tenant_id, run_id, allowed_outputs=allowed_outputs)
     result = registry.read(tenant_id, run_id)
     licences = source_permissions(result, root)
@@ -123,6 +129,10 @@ def publish(registry, tenant_id, run_id, *, root, output, allowed_outputs):
         raise PermissionError(
             "This v0.1 entry publishes only the approved checked fixture source"
         )
+    if result["schema_version"] == "plugin-run/2":
+        if not route or route == "/plugins/momentum-fixture" or Path(output).resolve() == (Path(root) / "frontend-v2/public").resolve():
+            raise ValueError("Future v2 publication requires an explicit separate output directory and route; v1 is immutable")
+    route = route or "/plugins/momentum-fixture"
     cutoff = result["contract"]["as_of"]
     publisher = ReplayPublisher(Path(output), cutoff)
     pointer = Path(output) / "replay-manifest.json"
@@ -173,7 +183,7 @@ def publish(registry, tenant_id, run_id, *, root, output, allowed_outputs):
         input_hash=result["contract"]["data_hash"],
         scope="SYNTHETIC_REFERENCE",
         as_of=cutoff,
-        routes=("/plugins/momentum-fixture",),
+        routes=(route,),
     )
     publisher.finish()
     entry = publisher.manifest["artifacts"][identity]

@@ -30,12 +30,12 @@ def test_publication_permission_does_not_trust_vendor_first_party_labels():
 
 
 def test_dirty_computation_cannot_publish(platform, monkeypatch):
-    import finsight.plugins.runner as runner_module
+    import finsight.plugins.dependencies as runner_module
 
-    original = runner_module.code_identity
+    original = runner_module.execution_provenance
     monkeypatch.setattr(
         runner_module,
-        "code_identity",
+        "execution_provenance",
         lambda *args: {**original(*args), "dirty_computation": True},
     )
     _, registry, runner, kwargs = platform
