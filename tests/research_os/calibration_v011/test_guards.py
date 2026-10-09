@@ -118,10 +118,11 @@ def test_original_selection_survives_sorted_json_roundtrip(protocol):
 
 
 def test_guard_repair_cannot_change_inference_modules(protocol):
-    from src.research_os.calibration_v011.study import assert_inference_unchanged
+    from scripts.research_archive import historical_guard
     folder=ROOT/"data/exports/research_os_v0_1_1"
     original=json.loads((folder/"discovery.json").read_bytes())["execution"]
-    assert assert_inference_unchanged(ROOT,original)
+    confirmation=json.loads((folder/"confirmation.json").read_bytes())["execution"]
+    assert historical_guard(ROOT,original,confirmation)
 
 
 def test_read_only_float_check_never_tolerates_count_or_verdict_changes():

@@ -57,7 +57,7 @@ function stepCount(trace: ModelTrace) {
 export default function ObservatoryPage() {
   const search = useSearch({ from: "/observatory" });
   const navigate = useNavigate({ from: "/observatory" });
-  const kind = search.scene,
+  const kind = search.scene === "plugin" ? "hmm" : search.scene,
     ticker = search.ticker;
   const factor = factorSeries(ticker);
   const setKind = (scene: Kind) => void navigate({ search: { scene, ticker } });
@@ -257,6 +257,13 @@ export default function ObservatoryPage() {
             </button>
             <button role="tab" aria-selected={kind === "neural"} onClick={() => setKind("neural")}>
               Neural net
+            </button>
+            <button
+              role="tab"
+              aria-selected={false}
+              onClick={() => void navigate({ search: { scene: "plugin", ticker } })}
+            >
+              Plugin runs
             </button>
           </nav>
           <div className="obs-chips">

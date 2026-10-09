@@ -1,0 +1,44 @@
+{
+  "artifact_id": "plugins:run:d98ddd2d140e8f036a9dfec2655f90ad74fa5ce24c4b9f881343e87bedb67e5c",
+  "claims": {
+    "causal_claim_eligible": false,
+    "inference_certified": false,
+    "market_claim_eligible": false,
+    "validated_alpha": false
+  },
+  "code_commit": "5444b37a92e047a85b0e8fffeb039d73028327cc",
+  "entry": {
+    "as_of": "2024-12-02T21:03:00Z",
+    "available_at": "2024-12-02T21:03:00Z",
+    "bytes": 10379,
+    "input_hash": "fa44c6d84a2f4f99204c6e3347b3a94b8d5f56d0e111b0d2669d0b1811c4abae",
+    "kind": "plugin-run",
+    "licence": {
+      "attribution": "FinSight checked synthetic PIT fixture, derived from the preserved D0.4.2 demo world.",
+      "dataset_key": "project:nervous-fixture",
+      "permitted_uses": [
+        "publish_derived"
+      ],
+      "source_urls": [
+        "https://github.com/RaghhavMalani/finsight-alpha/blob/main/eval/plugins/nervous-system-v0.1/pit-fixture.json"
+      ],
+      "status": "FIRST_PARTY",
+      "valid_through": null
+    },
+    "observed_at": "2024-12-02T21:03:00Z",
+    "reason": null,
+    "scope": "SYNTHETIC_REFERENCE",
+    "sha256": "d14af88bdf646af137b296ed2c50dd1a28db8fc855e5beb754c835acb1514527",
+    "sources": [
+      "project:nervous-fixture"
+    ],
+    "status": "AVAILABLE",
+    "url": "/artifacts/replay/plugins-run-d98ddd2d140e8f036a9dfec2655f90ad74fa5ce24c4b9f881343e87bedb67e5c.json"
+  },
+  "fingerprint": "736c6806ca93805f6d21072306cd268319fd8726936698ec94db93d9612464fc",
+  "fixture_sha256": "031258cd00a44df70f8d2cb4badd6916e196a56992ac316da51eeb85df491c00",
+  "registry_sha256": "d6917d0c82467174dbfdc4d098f7b1684a9cc0ba32563b3fd9998f9468b7da24",
+  "run_id": "d98ddd2d140e8f036a9dfec2655f90ad74fa5ce24c4b9f881343e87bedb67e5c",
+  "schema_version": "nervous-system-receipt/1",
+  "scope": "SYNTHETIC_REFERENCE"
+}

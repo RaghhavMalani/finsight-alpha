@@ -11,6 +11,8 @@ dependencies = [
     "yfinance",
     "scipy",
     "statsmodels>=0.14.6,<0.15",
+    "duckdb>=1.4,<2",
+    "pyarrow>=20,<27",
     "scikit-learn",
     "joblib",
     "hmmlearn",
@@ -35,3 +37,6 @@ dependencies = [
 
 [tool.vercel]
 entrypoint = "backend.main:app"
+
+[tool.setuptools.packages.find]
+include = ["src*", "backend*", "finsight*"]

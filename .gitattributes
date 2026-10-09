@@ -45,3 +45,11 @@ data/exports/research_os_v0_1/** -text
 data/exports/research_os_v0_1_1/** -text
 docs/research-os-v0.1.1-inference-calibration.md text eol=lf
 docs/findings/inference-calibration-v0.1.1.md text eol=lf
+
+# New SDK sources use LF; checked run history retains its produced bytes.
+finsight/** text eol=lf
+examples/momentum_plugin.py text eol=lf
+src/truth/run_registry.py text eol=lf
+eval/plugins/** -text
+data/exports/nervous_system_v0_1/** -text
+data/exports/nervous_system_v0_1/receipt*.json whitespace=cr-at-eol
