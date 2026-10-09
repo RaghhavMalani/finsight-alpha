@@ -1,0 +1,329 @@
+.plugin-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 12px 0 40px;
+}
+.plugin-nav {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--sh-line);
+  padding-bottom: 14px;
+  color: var(--sh-muted);
+}
+.plugin-nav a {
+  text-decoration: none;
+}
+.plugin-nav span {
+  color: var(--sh-amber);
+}
+.plugin-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 0;
+}
+.plugin-kicker {
+  font: 11px var(--font-mono);
+  color: var(--sh-amber);
+  letter-spacing: 0.1em;
+  margin: 0 0 10px;
+}
+.plugin-heading h1 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  margin: 0 0 10px;
+}
+.plugin-heading p:last-child {
+  color: var(--sh-muted);
+  margin: 0;
+}
+.plugin-scope {
+  flex-shrink: 0;
+  border: 1px solid var(--sh-line-2);
+  padding: 8px 12px;
+  font: 11px var(--font-mono);
+  color: var(--sh-amber);
+}
+.plugin-status {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 24px;
+  border: 1px solid var(--sh-line-2);
+  background: var(--sh-panel);
+}
+.plugin-status span {
+  padding: 14px 18px;
+  font: 11px var(--font-mono);
+  color: var(--sh-muted);
+  border-right: 1px solid var(--sh-line);
+}
+.plugin-status span:last-child {
+  border-right: 0;
+}
+.plugin-status b {
+  display: block;
+  color: #b4d3bb;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.plugin-status .plugin-negative {
+  color: #e39a92;
+}
+.plugin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+.plugin-layout > div,
+.plugin-layout > aside {
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.plugin-panel {
+  padding: 22px;
+  border: 1px solid var(--sh-line);
+  background: var(--sh-panel);
+  min-width: 0;
+}
+.plugin-panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.plugin-panel h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+.plugin-panel-title > span,
+.plugin-meta {
+  font: 11px/1.6 var(--font-mono);
+  color: var(--sh-muted);
+}
+.plugin-subtitle {
+  color: var(--sh-muted);
+  margin: 12px 0 20px;
+}
+.plugin-splits {
+  display: flex;
+  gap: 6px;
+  margin: 24px 0 12px;
+}
+.plugin-splits > div {
+  min-width: 70px;
+  padding: 12px 10px;
+  border-top: 2px solid #8aa5b5;
+  background: #151c22;
+}
+.plugin-splits > div:nth-child(2) {
+  border-color: var(--sh-amber);
+  background: #231e14;
+}
+.plugin-splits > div:nth-child(3) {
+  border-color: #b095ac;
+  background: #211a21;
+}
+.plugin-splits span,
+.plugin-splits b {
+  display: block;
+  font: 11px/1.6 var(--font-mono);
+  text-transform: uppercase;
+}
+.plugin-splits b {
+  margin-top: 4px;
+  color: var(--sh-muted);
+}
+.plugin-timeline {
+  display: grid;
+  gap: 12px;
+  margin: 26px 0 18px;
+  font: 11px var(--font-mono);
+}
+.plugin-timeline input {
+  accent-color: var(--sh-amber);
+  width: 100%;
+}
+.plugin-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font: 12px/1.6 var(--font-mono);
+}
+.plugin-readout strong {
+  font-weight: 500;
+  color: var(--sh-amber);
+}
+.plugin-chart {
+  width: 100%;
+  display: block;
+  margin-top: 18px;
+  min-height: 130px;
+}
+.plugin-chart path {
+  fill: none;
+  stroke: var(--sh-amber);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.plugin-chart line {
+  stroke: var(--sh-line-2);
+  stroke-dasharray: 4 4;
+}
+.plugin-chart text {
+  fill: var(--sh-muted);
+  font: 12px var(--font-mono);
+}
+.plugin-selection-note {
+  min-height: 170px;
+  display: flex;
+  align-items: center;
+  color: var(--sh-muted);
+}
+.plugin-hooks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 24px;
+}
+.plugin-hooks article {
+  padding: 18px 0;
+  border-top: 1px solid var(--sh-line);
+}
+.plugin-hooks h3 {
+  margin: 0 0 8px;
+  text-transform: capitalize;
+  font-size: 13px;
+  font-weight: 500;
+}
+.plugin-hooks b {
+  font: 11px var(--font-mono);
+  color: var(--sh-amber);
+}
+.plugin-hooks p {
+  font-size: 12px;
+  margin: 8px 0 0;
+  color: var(--sh-muted);
+}
+.plugin-facts {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px 10px;
+  margin: 22px 0;
+}
+.plugin-facts dt {
+  color: var(--sh-muted);
+}
+.plugin-facts dd {
+  margin: 0;
+  font: 12px/1.6 var(--font-mono);
+  overflow-wrap: anywhere;
+  text-align: right;
+  max-width: 150px;
+}
+.plugin-panel details {
+  border-top: 1px solid var(--sh-line);
+  padding-top: 14px;
+}
+.plugin-panel summary {
+  cursor: pointer;
+  color: var(--sh-amber);
+}
+.plugin-identity {
+  overflow-wrap: anywhere;
+  font: 11px/1.7 var(--font-mono);
+  color: var(--sh-muted);
+}
+.plugin-issue {
+  border-top: 1px solid var(--sh-line);
+  padding-top: 12px;
+  margin-top: 16px;
+}
+.plugin-issue b {
+  font: 11px/1.6 var(--font-mono);
+  color: var(--sh-amber);
+}
+.plugin-issue p,
+.plugin-boundary p {
+  color: var(--sh-muted);
+  font-size: 12px;
+}
+.plugin-issue span {
+  font: 11px var(--font-mono);
+  color: var(--sh-muted);
+}
+.plugin-boundary {
+  border-left: 2px solid #e39a92;
+}
+.plugin-unavailable {
+  border: 1px solid var(--sh-line);
+  padding: 32px;
+  color: var(--sh-muted);
+}
+@media (max-width: 1000px) {
+  .plugin-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .plugin-layout > aside {
+    grid-template-columns: 1fr 1fr;
+  }
+  .plugin-boundary {
+    grid-column: 1/-1;
+  }
+  .plugin-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  .plugin-page {
+    padding-top: 8px;
+  }
+  .plugin-status {
+    grid-template-columns: 1fr 1fr;
+  }
+  .plugin-status span {
+    border-bottom: 1px solid var(--sh-line);
+    padding: 12px;
+  }
+  .plugin-status span:nth-child(2) {
+    border-right: 0;
+  }
+  .plugin-layout > aside,
+  .plugin-hooks {
+    grid-template-columns: 1fr;
+  }
+  .plugin-panel {
+    padding: 18px 14px;
+  }
+  .plugin-panel-title {
+    flex-wrap: wrap;
+  }
+  .plugin-readout {
+    gap: 10px;
+  }
+  .plugin-heading {
+    padding: 24px 0;
+    gap: 16px;
+  }
+  .plugin-chart {
+    min-height: 100px;
+  }
+  .plugin-chart text {
+    font-size: 22px;
+  }
+  .plugin-splits > div {
+    padding: 10px 6px;
+    min-width: 64px;
+  }
+  .plugin-nav {
+    gap: 20px;
+    font-size: 12px;
+  }
+}

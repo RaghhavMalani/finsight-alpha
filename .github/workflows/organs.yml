@@ -1,0 +1,53 @@
+name: Checked organs
+
+on:
+  schedule:
+    - cron: '20 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: checked-organs-main
+  cancel-in-progress: false
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      APP_ENV: test
+      FINSIGHT_DATA_DIR: /tmp/finsight-data
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -e . pytest httpx
+      - name: Validate retained source, run, publication and closed research history
+        run: python scripts/verify_plugin_replay.py
+      - name: Availability, tenant, type, leakage and holdout sabotage checks
+        run: pytest -q tests/plugins
+      - name: Refresh checked inputs and recompute only when source, data or environment changes
+        # v0.1 has no network data adapter. The refresh source is the checked PIT
+        # engineering fixture; it never starts another inference study.
+        run: python scripts/export_plugin_replay.py --refresh
+      - name: Risk hooks and publication binding must remain fail closed
+        run: python scripts/verify_plugin_replay.py
+      - name: Commit only derived run history and the Replay pointer
+        shell: bash
+        run: |
+          git config user.name 'Raghhav Malani'
+          git config user.email '96712854+RaghhavMalani@users.noreply.github.com'
+          git add -- data/exports/nervous_system_v0_1 frontend-v2/public/artifacts/replay/plugins-run-*.json frontend-v2/public/replay-manifest.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: publish checked plugin reference and issue hooks'
+          git push origin HEAD:main

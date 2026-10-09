@@ -28,6 +28,8 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e . pytest httpx
       - run: python -m compileall -q backend src tests
+      - name: Verify immutable plugin registry, checked Replay and retained closed research
+        run: python scripts/verify_plugin_replay.py
       - name: Verify Research OS frozen evidence and closed engine gate
         run: python scripts/verify_research_os.py
       - name: Verify seed-disjoint inference tournament and retained closed baseline
@@ -112,6 +114,7 @@ jobs:
       - run: node scripts/verify-shell.mjs
       - run: node scripts/verify-replay.mjs
       - run: node scripts/verify-agents.mjs
+      - run: node scripts/verify-plugins.mjs
       - run: npm run build
       - name: Install browsers for workspace and native-key checks
         run: |
@@ -133,6 +136,8 @@ jobs:
         run: node scripts/verify-agents.mjs --url http://127.0.0.1:4174
       - name: Chrome, Edge and Firefox release the shell keys and preserve F5/F7
         run: node scripts/verify-shell.mjs --url http://127.0.0.1:4174
+      - name: Plugin run Replay and byte, scope, claim and tenant sabotage
+        run: node scripts/verify-plugins.mjs --url http://127.0.0.1:4174
 
   truth-contract:
     runs-on: ubuntu-latest

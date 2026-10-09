@@ -2,12 +2,13 @@ import { lazy, Suspense } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { normalizeTicker } from "@/markets/contracts";
 const ObservatoryPage = lazy(() => import("@/components/observatory/ObservatoryPage"));
+const PluginObservatory = lazy(() => import("@/plugins/PluginObservatory"));
 export const Route = createFileRoute("/observatory")({
   // Tickers are declared by the replay manifest; the page rejects any it does not list.
   validateSearch: (search: Record<string, unknown>) => ({
     scene:
-      search.scene === "signal" || search.scene === "neural"
-        ? (search.scene as "signal" | "neural")
+      search.scene === "signal" || search.scene === "neural" || search.scene === "plugin"
+        ? (search.scene as "signal" | "neural" | "plugin")
         : ("hmm" as const),
     ticker: normalizeTicker(String(search.ticker ?? "")) ?? "US-MKT",
   }),
@@ -20,9 +21,14 @@ export const Route = createFileRoute("/observatory")({
       },
     ],
   }),
-  component: () => (
-    <Suspense fallback={<div className="p-8 font-mono text-faint">LOADING OBSERVATORY</div>}>
-      <ObservatoryPage />
-    </Suspense>
-  ),
+  component: ObservatoryRoute,
 });
+
+function ObservatoryRoute() {
+  const search = Route.useSearch();
+  return (
+    <Suspense fallback={<div className="p-8 font-mono text-faint">LOADING OBSERVATORY</div>}>
+      {search.scene === "plugin" ? <PluginObservatory /> : <ObservatoryPage />}
+    </Suspense>
+  );
+}
