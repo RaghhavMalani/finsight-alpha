@@ -121,3 +121,39 @@ def test_changed_artifact_bytes_fail_the_boundary(published, tmp_path):
     path.write_bytes(path.read_bytes().replace(b"INDIA", b"IND1A"))
     with pytest.raises(ValueError):
         verify_addition(public, identity, manifest["artifacts"][identity])
+
+
+def test_fresh_scheduler_runtime_with_identical_source_bytes_computes_nothing(tmp_path):
+    """D6 as the Actions runner sees it: an empty runtime each night, same source bytes."""
+    from finsight.plugins import Runner, RunRegistry
+    from src.regimes.service import Pipeline
+
+    (tmp_path / "public/artifacts/replay").mkdir(parents=True)
+    shutil.copyfile(ROOT / "frontend-v2/public/replay-manifest.json", tmp_path / "public/replay-manifest.json")
+    write_factor_captures(tmp_path / "night1")
+    shutil.copytree(tmp_path / "night1", tmp_path / "night2")
+    for meta in (tmp_path / "night2").glob("*.meta.json"):
+        value = json.loads(meta.read_text())
+        meta.write_text(json.dumps({**value, "captured_at": "2026-10-11T06:00:00Z"}))
+    guard = pytest.MonkeyPatch()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Phase 5 export must never run the row runner or open a holdout")
+
+    guard.setattr(Runner, "run", forbidden)
+    guard.setattr(RunRegistry, "holdout", forbidden)
+    try:
+        collector.collect(tmp_path / "runtime1", directory=tmp_path / "night1")
+        first = exporter.export(tmp_path / "runtime1", tmp_path / "public", tmp_path / "exports")
+        published = (tmp_path / "public/replay-manifest.json").read_bytes()
+        collector.collect(tmp_path / "runtime2", directory=tmp_path / "night2")
+        second = exporter.export(tmp_path / "runtime2", tmp_path / "public", tmp_path / "exports")
+    finally:
+        guard.undo()
+    assert first["status"] == "PUBLISHED" and first["new_runs"] == 10
+    assert second == {"status": "UNCHANGED", "new_runs": 0, "holdout_openings": 0}
+    assert (tmp_path / "public/replay-manifest.json").read_bytes() == published
+    pipe = Pipeline(tmp_path / "runtime2")
+    events = pipe.registry.events(pipe.tenant_id)
+    assert not any(e["event"] in {"RUN_SEALED", "HOLDOUT_OPENED"} for e in events)
+    assert pipe.registry.opening_count(pipe.tenant_id) == 0

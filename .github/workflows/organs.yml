@@ -4,18 +4,24 @@ on:
   schedule:
     - cron: '20 1 * * *'
   workflow_dispatch:
+    inputs:
+      scope:
+        description: 'all: Data Organ and Phase 5 regimes. regimes: Phase 5 only, so a branch proof never forks the Data Organ history on main.'
+        type: choice
+        options: [all, regimes]
+        default: all
 
 permissions:
   contents: write
 
 concurrency:
-  group: checked-organs-main
+  group: checked-organs-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   reference:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     env:
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -26,7 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          # The scheduled run is main; a dispatch publishes only to the branch it was run on.
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -37,22 +44,39 @@ jobs:
         run: python scripts/verify_plugin_replay.py
       - name: Validate prior Data Organ history before refresh
         run: python scripts/verify_data_organ.py
+      - name: Validate prior Phase 5 regime history before refresh
+        run: python scripts/verify_regimes.py
       - name: Refresh bounded official sources and retain failed attempts
+        if: inputs.scope != 'regimes'
         # Missing credentials, transport, calendars or grants remain UNAVAILABLE.
         # Current captures never replace the Phase 0-2 inputs or open a holdout.
         run: python scripts/collect_data_organ.py --network
       - name: Publish only derived Data Organ summaries with explicit retained evidence
+        if: inputs.scope != 'regimes'
         run: python scripts/export_data_organ_replay.py
       - name: Verify publication, source bytes, mappings and preserved history
+        if: inputs.scope != 'regimes'
         run: |
           python scripts/verify_data_organ.py --runtime data/exports/replay-source/data-organ-runtime
           python scripts/verify_plugin_replay.py
-      - name: Commit only derived Data Organ history and the Replay pointer
+      - name: Admit French and IIMA factor captures under the frozen Phase 5 profile
+        # CAPTURE_ONLY: invisible before its capture clock. A failed source stays
+        # UNAVAILABLE; no proxy, synthetic world or weaker provider is substituted.
+        run: python scripts/collect_regime_inputs.py --network
+      - name: Compute regimes only when admitted evidence changed, then publish derived views
+        # Unchanged capture bytes, profile and code: zero runs, zero openings, nothing published.
+        # Never opens a holdout and never executes the Phase 2 plugin reference.
+        run: python scripts/export_regimes_replay.py
+      - name: Verify regimes publication, sealed lineage and every earlier archive
+        run: |
+          python scripts/verify_regimes.py --runtime data/exports/replay-source/regimes-runtime
+          python scripts/verify_data_organ.py
+      - name: Commit only derived Data Organ and regime history and the Replay pointer
         shell: bash
         run: |
           git config user.name 'Raghhav Malani'
           git config user.email '96712854+RaghhavMalani@users.noreply.github.com'
-          git add -- data/exports/data_organ_v0_1 frontend-v2/public/artifacts/replay/data-organ-*.json frontend-v2/public/replay-manifest.json
+          git add -- data/exports/data_organ_v0_1 frontend-v2/public/artifacts/replay/data-organ-*.json data/exports/regimes_v0_1 frontend-v2/public/artifacts/replay/regimes-*.json frontend-v2/public/replay-manifest.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: publish derived Data Organ health and retained issues'
-          git push origin HEAD:main
+          git commit -m 'chore: publish derived organ health and sealed regime evidence'
+          git push origin HEAD:${{ github.ref_name }}

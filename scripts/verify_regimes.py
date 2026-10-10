@@ -86,7 +86,17 @@ def verify(root=ROOT, *, runtime=None):
         pipe = Pipeline(runtime)
         if pipe.registry.opening_count(pipe.tenant_id):
             raise ValueError("Local Phase 5 registry recorded a holdout opening")
-        for asset, market in receipt["markets"].items():
+        events = pipe.registry.events(pipe.tenant_id)
+        if any(e["event"] == "HOLDOUT_OPENED" for e in events):
+            raise ValueError("Local Phase 5 registry recorded a holdout opening")
+        sealed = {e["run_id"] for e in events if e["event"] == "RUN_SEALED"}
+        sealed_runs = len(sealed)
+        expected = {r for m in receipt["markets"].values() for r in m["run_ids"].values()}
+        # An UNCHANGED refresh computes nothing: its runtime holds admissions only.
+        markets = receipt["markets"].items() if sealed else ()
+        if sealed and not expected <= sealed:
+            raise ValueError("Published receipt names runs this runtime never sealed")
+        for asset, market in markets:
             snap = pipe.snapshot(asset, receipt["as_of"])
             if snap["run_ids"] != market["run_ids"]:
                 raise ValueError("Local sealed runs differ from the receipt")
@@ -100,6 +110,9 @@ def verify(root=ROOT, *, runtime=None):
         "artifacts": len(regimes),
         "holdout_openings": 0,
     }
+    if runtime:
+        result["runtime_sealed_runs"] = sealed_runs
+        result["runtime"] = "RE_PROJECTED" if sealed_runs else "UNCHANGED_ZERO_RUNS"
     return result
 
 
