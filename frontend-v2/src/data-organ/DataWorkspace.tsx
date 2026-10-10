@@ -20,19 +20,19 @@ export function DataWorkspace() {
     navigate({ to: "/data", search: { ...search, country: value } });
   if (query.isPending)
     return (
-      <main className="data-workspace">
+      <section className="data-workspace">
         <h1>Data Organ</h1>
         <p role="status">Checking admitted source evidence…</p>
-      </main>
+      </section>
     );
   if (query.error || !query.data)
     return (
-      <main className="data-workspace" data-state="unavailable">
+      <section className="data-workspace" data-state="unavailable">
         <h1>Data evidence unavailable</h1>
         <p role="alert">{query.error?.message ?? "No admitted diagnostics"}</p>
         <button onClick={() => query.refetch()}>Retry evidence</button>
         <p>No weaker provider or calendar fallback is used.</p>
-      </main>
+      </section>
     );
   const data = query.data,
     health = data.health.payload.items as Health[],
@@ -47,7 +47,7 @@ export function DataWorkspace() {
     sources = new Set(visible.map((r) => r.source));
   const admitted = coverage.filter((row) => ["ADMITTED", "RETAINED"].includes(row.status)).length;
   return (
-    <main className="data-workspace" data-state="ready" data-view={tab.toLowerCase()}>
+    <section className="data-workspace" data-state="ready" data-view={tab.toLowerCase()}>
       <header className="data-title">
         <div>
           <span className="data-eyebrow">F10 / DATA ORGAN v0.1</span>
@@ -305,6 +305,6 @@ export function DataWorkspace() {
         Admitted source bytes → clocks + schema + licence → signal mapping → diagnostic evidence.
         All scientific claim flags remain false.
       </footer>
-    </main>
+    </section>
   );
 }
