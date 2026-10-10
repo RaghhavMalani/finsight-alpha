@@ -172,11 +172,12 @@ def project_timeline(snapshot):
     }
     states = (vol.get("paths") or {}).get("states") or []
     vocabulary = sorted({s for _, s in states})
+    dates = [t[:10] for t, _ in states]
+    out["dates"] = dates
     out["volatility"] = {
-        "dates": [t[:10] for t, _ in states],
         "state_codes": _codes([s for _, s in states], vocabulary),
         "states": vocabulary,
-        "rv_20": [None if v is None else round(v, 8) for _, v in (vol.get("paths") or {}).get("rv_20", [])],
+        "rv_20": [None if v is None else round(v, 6) for _, v in (vol.get("paths") or {}).get("rv_20", [])],
         "rv_unit": "per observation",
         "tail": (vol.get("paths") or {}).get("tail", []),
     }
@@ -184,11 +185,15 @@ def project_timeline(snapshot):
         paths = run.get("paths") or {}
         series = paths.get("states") or []
         labels = (run.get("diagnostics") or {}).get("labels") or []
+        own = [t[:10] for t, _ in series]
+        offset = len(dates) - len(own)
+        if offset < 0 or dates[offset:] != own:
+            raise ValueError(key + " path is not a contiguous suffix of the observation dates")
         out[key] = {
-            "dates": [t[:10] for t, _ in series],
+            "offset": offset,
             "state_codes": _codes([s for _, s in series], labels) if labels else [],
             "labels": labels,
-            "confidence": [round(c, 6) for _, c in paths.get("confidence") or []],
+            "confidence": [round(c, 4) for _, c in paths.get("confidence") or []],
         }
     out["momentum_signal_tail"] = (mom.get("paths") or {}).get("signal_tail") or []
     return out
