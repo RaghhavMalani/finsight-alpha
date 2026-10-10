@@ -96,7 +96,7 @@ if (flag >= 0) {
               () => document.documentElement.scrollWidth <= window.innerWidth + 1,
             ),
             true,
-            "horizontal page overflow",
+            `${name}/${width}/${view}: horizontal page overflow`,
           );
         }
         await page.getByRole("button", { name: "INDIA", exact: true }).click();

@@ -103,3 +103,19 @@ def test_interrupted_append_recovers_idempotently_and_retains_failure(
     assert svc.recover("org-1") == 1
     assert svc.recover("org-1") == 0
     assert len(svc.registry.entries("org-1", "ATTEMPT_FAILED")) == 1
+
+
+def test_repeated_partial_scan_keeps_stable_issue_and_distinct_events(evidence):
+    svc, cap, raw, rows = evidence
+    bad = {**rows[0], "value": float("nan")}
+    kwargs = {"window": ["2025-01-01", "2025-02-28"]}
+    first = svc.ingest("org-1", cap, raw, [*rows, bad], **kwargs)
+    second = svc.ingest("org-1", cap, raw, [*rows, bad], **kwargs)
+    assert first["admission_id"] == second["admission_id"]
+    assert first["status"] == second["status"] == "PARTIAL"
+    events = svc.registry.entries("org-1", "ISSUE_EVENT")
+    assert len(events) == 2
+    assert events[0]["payload"]["issue_id"] == events[1]["payload"]["issue_id"]
+    assert events[0]["identity"] != events[1]["identity"]
+    assert len(svc.registry.entries("org-1", "ATTEMPT_COMPLETED")) == 2
+    assert not svc.registry.entries("org-1", "ATTEMPT_FAILED")

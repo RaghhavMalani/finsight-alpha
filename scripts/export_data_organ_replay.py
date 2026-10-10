@@ -198,6 +198,29 @@ def export(runtime=RUNTIME, public=ROOT / "frontend-v2/public", directory=DIRECT
         )
     for h in diagnostics:
         if h["quarantined"] or h["calendar_status"] == "UNAVAILABLE":
+            observed_events = [
+                e["payload"]["at"]
+                for e in entries
+                if e["kind"] == "ISSUE_EVENT"
+                and h["diagnostic_id"] in e["payload"].get("evidence", [])
+            ]
+            if not observed_events:
+                position = next(
+                    e["sequence"]
+                    for e in entries
+                    if e["kind"] == "DIAGNOSTIC" and e["identity"] == h["diagnostic_id"]
+                )
+                observed_events = [
+                    e["payload"]["at"]
+                    for e in entries
+                    if e["kind"] == "ATTEMPT_COMPLETED"
+                    and e["sequence"] > position
+                    and e["payload"]["source"] == h["source"]
+                ][:1]
+            if not observed_events:
+                raise ValueError(
+                    "Partial diagnostic lacks a witnessed scan/attempt clock"
+                )
             issues.append(
                 {
                     "id": canonical_hash([h["diagnostic_id"], "health"]),
@@ -208,12 +231,8 @@ def export(runtime=RUNTIME, public=ROOT / "frontend-v2/public", directory=DIRECT
                     "reason": str(h["quarantined"])
                     + " invalid observations quarantined. "
                     + (h["calendar_reason"] or ""),
-                    "first_seen_at": versions[
-                        h["contract"]["source_version"]
-                    ].captured_at,
-                    "last_seen_at": versions[
-                        h["contract"]["source_version"]
-                    ].captured_at,
+                    "first_seen_at": min(observed_events),
+                    "last_seen_at": max(observed_events),
                     "occurrences": 1,
                     "evidence": [h["diagnostic_id"]],
                 }
@@ -324,8 +343,10 @@ def export(runtime=RUNTIME, public=ROOT / "frontend-v2/public", directory=DIRECT
                     if note not in values[kind]["summary"]["information_basis"]:
                         values[kind]["summary"]["information_basis"] += note
         prior_issues = json.loads((directory / "issues.json").read_bytes())["items"]
+        witnessed = {e["hash"] for e in entries} | {e["identity"] for e in entries}
+        complete_issue_history = all(set(i["evidence"]) <= witnessed for i in prior_issues)
         current_issues = {i["id"]: i for i in values["issues"]["items"]}
-        for old in prior_issues:
+        for old in ([] if complete_issue_history else prior_issues):
             if old["id"] not in current_issues:
                 values["issues"]["items"].append(old)
             else:

@@ -118,6 +118,9 @@ code {
   grid-template-columns: minmax(0, 1fr) 270px;
   gap: 16px;
 }
+.data-health-layout > div {
+  min-width: 0;
+}
 .data-panel {
   background: #0b0d10;
   border: 1px solid #25292f;

@@ -30,7 +30,7 @@ class Service:
         self.registry.append(
             tenant_id,
             "ISSUE_EVENT",
-            canonical_hash([issue_id, evidence_id]),
+            uuid.uuid4().hex,
             {
                 "issue_id": issue_id,
                 "source": source,
