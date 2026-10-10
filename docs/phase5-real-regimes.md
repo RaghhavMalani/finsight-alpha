@@ -140,3 +140,22 @@ python scripts/export_regimes_replay.py --local   # seals local runs; publishes 
 cd frontend-v2 && npm run build && node scripts/preview-built.mjs &
 node scripts/verify-regimes.mjs --url http://127.0.0.1:4174
 ```
+
+## Real evidence and screenshots
+
+Results from the sealed runs are in [`findings/real-regimes-v0.1.md`](findings/real-regimes-v0.1.md).
+The screenshots are the production build (the Nitro Vercel output) serving the committed
+Replay pointer, captured by `verify-regimes.mjs --screenshots`. The branch's Vercel
+preview serves the same manifest bytes.
+
+| | |
+| --- | --- |
+| ![US NOW, 1440 px](screenshots/phase5-regimes-us-now-1440.png) | ![India NOW, 1440 px](screenshots/phase5-regimes-in-now-1440.png) |
+| US NOW · 1440 px | India NOW · 1440 px (`CALENDAR_UNAVAILABLE · STALE_INPUT`) |
+| ![US REPLAY, 1440 px](screenshots/phase5-regimes-us-replay-1440.png) | ![US COMPARE, 1440 px](screenshots/phase5-regimes-us-compare-1440.png) |
+| US REPLAY · sealed multi-cutoff timeline | COMPARE · each market at its own clock |
+
+* [Cross-market matrix, 1440 px](screenshots/phase5-regimes-matrix-1440.png)
+* [US NOW, 390 px](screenshots/phase5-regimes-us-now-390.png) ·
+  [India NOW, 390 px](screenshots/phase5-regimes-in-now-390.png) ·
+  [HMM panel, 390 px](screenshots/phase5-regimes-hmm-390.png)

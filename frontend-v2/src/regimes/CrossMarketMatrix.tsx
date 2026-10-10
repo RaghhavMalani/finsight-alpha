@@ -23,7 +23,7 @@ function cell(key: string, c: MatrixCell) {
   if (key === "volatility_stress")
     return `${fmt(c.value as number, 2)} · ${String((c.detail as { volatility_state?: string })?.volatility_state ?? "")}`;
   if (key === "factor_exposure")
-    return `β ${fmt(c.value as number, 2)} · ${String((c.detail as { neutrality?: string })?.neutrality ?? "")}`;
+    return `MKT β ${fmt(c.value as number, 2)} · worst term ${String((c.detail as { neutrality?: string })?.neutrality ?? "—")}`;
   if (key === "data_quality") return `${String(c.value)} open`;
   return String(c.value ?? "—");
 }

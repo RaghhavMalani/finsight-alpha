@@ -317,7 +317,13 @@ export function VolatilityPanel({
         </div>
         <div>
           <span>ARCH-LM p (5 lags)</span>
-          <strong>{lm && lm.status === "AVAILABLE" ? fmt(lm.lm_pvalue as number, 4) : "—"}</strong>
+          <strong>
+            {lm && lm.status === "AVAILABLE"
+              ? (lm.lm_pvalue as number) < 1e-4
+                ? "< 0.0001"
+                : fmt(lm.lm_pvalue as number, 4)
+              : "—"}
+          </strong>
         </div>
       </div>
       {timeline && (

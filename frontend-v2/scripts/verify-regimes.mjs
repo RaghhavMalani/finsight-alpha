@@ -165,8 +165,18 @@ if (flag > 0) {
         await new Promise(requestAnimationFrame);
       });
       const path = fileURLToPath(new URL(`phase5-regimes-${file}.png`, shots));
-      if (locator) await locator.screenshot({ path });
-      else await page.locator(".regimes-workspace").screenshot({ path });
+      // Page-coordinate clip of a full-page capture: the sticky shell never covers the panel.
+      const box = await (locator ?? page.locator(".regimes-workspace")).boundingBox();
+      await page.screenshot({
+        path,
+        fullPage: true,
+        clip: {
+          x: 0,
+          y: Math.max(0, box.y - 8),
+          width: page.viewportSize().width,
+          height: box.height + 16,
+        },
+      });
     };
     try {
       for (const width of [1440, 390]) {
@@ -207,13 +217,13 @@ if (flag > 0) {
         assert.match(text, /MOM FACTOR BY REGIME/i);
         assert.ok(/filtered, not calibrated/.test(text));
         assert.equal(await page.locator("#regimes-matrix tbody tr").count(), 2);
+        await shot(page, `us-now-${width}`);
+        if (width === 1440) await shot(page, "matrix-1440", page.locator("#regimes-matrix"));
+        if (width === 390) await shot(page, "hmm-390", page.locator("#regimes-hmm"));
         await page.locator("#regimes-timeline input[type=range]").fill("0");
         assert.ok(
           /warm-up|filtered confidence/.test(await page.locator(".regimes-readout").innerText()),
         );
-        await shot(page, `us-now-${width}`);
-        if (width === 1440) await shot(page, "matrix-1440", page.locator("#regimes-matrix"));
-        if (width === 390) await shot(page, "hmm-390", page.locator("#regimes-hmm"));
 
         await page.getByRole("button", { name: "Why is this regime state available?" }).click();
         const drawer = page.getByRole("dialog", { name: "Why is this regime state available?" });
