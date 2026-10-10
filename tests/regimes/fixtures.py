@@ -84,3 +84,80 @@ def write_factor_captures(
     )
     write_receipt(directory, "iima-daily.csv", frame.to_csv(index=False).encode(), captured_at)
     return {"us_sessions": n, "india_rows": m}
+
+
+def write_local_dataset(
+    path,
+    *,
+    asset="SPY",
+    start="2019-01-02",
+    end="2021-12-31",
+    gap=("2020-03-02", "2020-03-06"),
+    intraday_sessions=62,
+    minutes=120,
+    captured_at="2026-10-06T00:00:00Z",
+    seed=8,
+):
+    """Synthetic regime-pit/1 IEX export (test-only) with a deliberate daily gap."""
+    from datetime import datetime, time, timedelta
+    from zoneinfo import ZoneInfo
+
+    import exchange_calendars as xcals
+
+    from src.regime_intelligence.contracts import Observation, PITDataset
+
+    ny = ZoneInfo("America/New_York")
+    rng = np.random.default_rng(seed)
+    calendar = xcals.get_calendar("XNYS", start="2018-01-02")
+    sessions = [d.date() for d in calendar.sessions_in_range(start, end)]
+    sessions = [d for d in sessions if not (gap[0] <= d.isoformat() <= gap[1])]
+    price, rows = 300.0, []
+
+    def bar(close, volume):
+        return {"open": close, "high": close * 1.001, "low": close * 0.999, "close": close, "volume": volume}
+
+    for day in sessions:
+        price *= 1 + rng.normal(0.0004, 0.011)
+        observed = datetime.combine(day + timedelta(days=1), time.min, ny)
+        rows.append(
+            Observation(
+                stream="daily",
+                observed_at=observed,
+                available_at=observed + timedelta(seconds=900),
+                as_of=captured_at,
+                source="ALPACA_IEX",
+                revision="fixture:" + day.isoformat(),
+                quality="CONSERVATIVE_MARKET_TIME",
+                publication_evidence='{"fixture":"synthetic test-only"}',
+                values=bar(round(price, 4), float(rng.integers(1e5, 1e6))),
+            )
+        )
+    schedule = calendar.schedule.loc[sessions[-intraday_sessions].isoformat() : sessions[-1].isoformat()]
+    for opening in schedule.open:
+        level = price
+        for minute in range(minutes):
+            start_at = opening + pd.Timedelta(minutes=minute)
+            level *= 1 + rng.normal(0, 0.0008 * (2 if minute < 30 else 1))
+            observed = (start_at + pd.Timedelta(minutes=1)).to_pydatetime()
+            rows.append(
+                Observation(
+                    stream="intraday",
+                    observed_at=observed,
+                    available_at=observed + timedelta(seconds=900),
+                    as_of=captured_at,
+                    source="ALPACA_IEX",
+                    revision="fixture-minute:" + observed.isoformat(),
+                    quality="CONSERVATIVE_MARKET_TIME",
+                    publication_evidence='{"fixture":"synthetic test-only"}',
+                    values=bar(round(level, 4), float(rng.integers(100, 5000) * (3 if minute < 30 else 1))),
+                )
+            )
+    dataset = PITDataset(
+        asset=asset,
+        price_basis="UNADJUSTED",
+        calendar_note="Synthetic XNYS fixture with a deliberate gap",
+        definitions={"daily": "IEX bar close", "intraday": "IEX minute bars"},
+        observations=rows,
+    )
+    path.write_text(dataset.model_dump_json(), encoding="utf-8")
+    return {"daily": len(sessions), "intraday": len(rows) - len(sessions)}

@@ -64,11 +64,15 @@ def row(snapshot):
                 detail={"signal": mom["current"]["momentum_signal"], "definition": "12-1 market-factor signal"},
             ),
             "factor_exposure": _cell(
-                fac["current"]["mom_mkt_beta"],
+                fac["current"]["market_beta"],
                 status("factors"),
                 reason=modules["factors"]["reason"],
                 run_id=fac["run_id"],
-                detail={"neutrality": fac["current"]["neutrality"], "meaning": "MOM factor beta on MKT (partial set); an exposure, not measured crowding"},
+                detail={
+                    "neutrality": fac["current"]["neutrality"],
+                    "target": fac["diagnostics"]["target"],
+                    "meaning": "Beta of the diagnostic target on MKT (partial factor set); an exposure, not measured crowding",
+                },
             ),
             "event_pressure": _cell(None, "UNAVAILABLE", reason=modules["events"]["reason"]),
             "data_quality": _cell(

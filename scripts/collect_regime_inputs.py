@@ -85,6 +85,47 @@ def collect(runtime=RUNTIME, *, network=False, directory=CAPTURES):
     return service, results
 
 
+LOCAL_TENANT = "local-regime-evidence"
+LOCAL_RUNTIME = ROOT / "data/exports/replay-source/regimes-local-runtime"
+
+
+def collect_local(dataset_path, *, runtime=LOCAL_RUNTIME, directory=CAPTURES, network=False):
+    """Operator-only: an installed Market Regime v1.1 IEX dataset through the Data Organ.
+
+    Restricted local evidence; there is no derived-publication grant, so nothing
+    from this tenant may enter anonymous Replay. French factors are admitted into
+    the same tenant for excess returns and factor diagnostics.
+    """
+    from src.regime_intelligence.alpaca import URL
+    from src.regime_intelligence.providers import VersionedExportProvider
+
+    settings = profile()
+    service = service_for(runtime)
+    results = []
+    for cap, raw, rows in adapters.factors(directory, "US", network=network):
+        window = [settings["analysis_window"]["start"], max(r["observed_at"][:10] for r in rows)]
+        results.append(service.ingest(LOCAL_TENANT, cap, raw, rows, window=window))
+    dataset_path = Path(dataset_path)
+    raw = dataset_path.read_bytes()
+    dataset = VersionedExportProvider(dataset_path).load()
+    asset = dataset.asset
+    if asset not in settings["local_assets"]:
+        raise ValueError("Local tier is SPY/QQQ/IWM; other assets need their own admission review")
+    market = [o for o in dataset.observations if o.source == "ALPACA_IEX"]
+    if not market:
+        raise ValueError("Installed dataset has no ALPACA_IEX bars")
+    captured_at = max(o.as_of for o in market).isoformat()
+    daily = [o for o in market if o.stream == "daily"]
+    captures = [adapters.alpaca(daily, raw, captured_at, URL, asset=asset)] if daily else []
+    captures += adapters.alpaca_intraday(market, raw, captured_at, URL, asset=asset)
+    for cap, raw_bytes, rows in captures:
+        if not rows:
+            continue
+        window = [settings["analysis_window"]["start"], max(r["observed_at"][:10] for r in rows)]
+        results.append({**service.ingest(LOCAL_TENANT, cap, raw_bytes, rows, window=window), "asset": asset})
+    return service, results
+
+
 def content_fingerprint(service, tenant_id):
     """Admitted source bytes per asset: the scheduler's only change signal."""
     versions = {
@@ -110,6 +151,16 @@ if __name__ == "__main__":
     parser.add_argument("--network", action="store_true")
     parser.add_argument("--runtime", type=Path, default=RUNTIME)
     parser.add_argument("--directory", type=Path, default=CAPTURES)
+    parser.add_argument(
+        "--local-dataset",
+        type=Path,
+        help="Installed regime-pit/1 IEX dataset (operator machine only; never published)",
+    )
     args = parser.parse_args()
-    _, results = collect(args.runtime, network=args.network, directory=args.directory)
+    if args.local_dataset:
+        _, results = collect_local(
+            args.local_dataset, directory=args.directory, network=args.network
+        )
+    else:
+        _, results = collect(args.runtime, network=args.network, directory=args.directory)
     print(json.dumps({"results": results, "raw_inputs": "LOCAL_ONLY"}, indent=1))

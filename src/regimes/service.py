@@ -45,6 +45,31 @@ def _days(later, earlier):
     return (parse(later) - parse(earlier)).total_seconds() / 86400
 
 
+def plugin_chain(tier):
+    if tier == "PUBLIC":
+        return dict(PLUGINS), ORDER, {"volatility", "hmm2"}, {}
+    from .local import (
+        AssetReturns,
+        IntradaySeasonality,
+        LocalFactors,
+        LocalHMM2,
+        LocalHMM4,
+        LocalMomentum,
+        LocalVolatility,
+    )
+
+    plugins = {
+        "returns": AssetReturns,
+        "volatility": LocalVolatility,
+        "hmm2": LocalHMM2,
+        "hmm4": LocalHMM4,
+        "factors": LocalFactors,
+        "momentum": LocalMomentum,
+        "seasonality": IntradaySeasonality,
+    }
+    return plugins, tuple(plugins), {"returns", "volatility", "hmm2"}, {"factors": "US-MKT"}
+
+
 class Pipeline:
     def __init__(self, runtime: Path | str, *, tenant_id: str | None = None):
         self.runtime = Path(runtime)
@@ -55,23 +80,35 @@ class Pipeline:
         self.runner = SeriesRunner(self.store, self.registry, root=ROOT)
 
     def session(self, asset, as_of):
-        rows = self.store.history(self.tenant_id, as_of=as_of, names=["mkt"], asset=asset)
-        return session_evidence(market(asset)["calendar"], [r.observed_at for r in rows])
+        name = "mkt" if market(asset)["tier"] == "PUBLIC" else "market_close"
+        rows = self.store.history(self.tenant_id, as_of=as_of, names=[name], asset=asset)
+        stamps = [r.observed_at for r in rows]
+        if name == "market_close":
+            from .local import alpaca_session
+
+            stamps = alpaca_session(stamps)
+        return session_evidence(market(asset)["calendar"], stamps)
 
     def run_market(self, asset, as_of):
         """Explicit computation at one cutoff; idempotent through sealed reuse."""
         context = run_context(asset, self.session(asset, as_of))
+        plugins, order, producers, roles = plugin_chain(market(asset)["tier"])
         runs = {}
-        for key in ORDER:
+        for key in order:
+            if key == "seasonality" and not self.store.history(
+                self.tenant_id, as_of=as_of, names=["iex_bar_close"], asset=asset
+            ):
+                continue
             runs[key] = self.runner.compute(
-                PLUGINS[key],
+                plugins[key],
                 tenant_id=self.tenant_id,
                 asset=asset,
                 as_of=as_of,
+                assets=roles,
                 context=context,
                 scope=market(asset)["tier"],
             )
-            if key in {"volatility", "hmm2"}:
+            if key in producers:
                 admit_outputs(self.store, self.tenant_id, runs[key])
         if self.registry.opening_count(self.tenant_id):
             raise RuntimeError("Phase 5 registry recorded a holdout opening")
@@ -104,14 +141,15 @@ class Pipeline:
         return build_snapshot(asset, as_of, runs, chains)
 
     def sealed(self, asset, as_of):
+        plugins, _, _, _ = plugin_chain(market(asset)["tier"])
         found = {}
         for run in self.registry.list_runs(self.tenant_id):
             contract = run.get("contract") or {}
             if contract.get("asset") == asset and contract.get("as_of") == _iso(as_of):
-                for key, plugin in PLUGINS.items():
+                for key, plugin in plugins.items():
                     if contract.get("plugin") == plugin.name:
                         found[key] = run
-        missing = set(PLUGINS) - set(found)
+        missing = set(plugins) - set(found) - {"seasonality"}
         if missing:
             raise LookupError("No sealed runs for " + ", ".join(sorted(missing)))
         return found
@@ -224,7 +262,9 @@ def build_snapshot(asset, as_of, runs, chains):
         else module_status("PARTIAL", daily_partial)
         if coupling_ok
         else module_status("UNAVAILABLE", "Volatility producer run is not the bound HMM input"),
-        "seasonality": module_status(
+        "seasonality": _module(runs["seasonality"], chains["seasonality"])
+        if "seasonality" in runs
+        else module_status(
             "UNAVAILABLE",
             "INDIA INTRADAY SEASONALITY — UNAVAILABLE: no admitted intraday source and no evidenced XNSE session manifest"
             if india
