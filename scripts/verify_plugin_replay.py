@@ -11,14 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from finsight.plugins import RunRegistry
 from src.replay.publication import assert_derived
-from src.truth.contracts import canonical_hash
 from scripts.research_archive import verify_closed_history
 
 
-def verify():
-    directory = ROOT / "data/exports/nervous_system_v0_1"
-    receipt = json.loads((directory / "receipt.json").read_bytes())
-    raw = (directory / "registry.json").read_bytes()
+def verify_run(directory, receipt, manifest, *, latest=False):
+    raw = (
+        directory / ("registry-" + receipt["registry_sha256"] + ".json")
+    ).read_bytes()
     if sha256(raw).hexdigest() != receipt["registry_sha256"]:
         raise ValueError("Published attempt history bytes changed")
     snapshot = json.loads(raw)
@@ -69,12 +68,11 @@ def verify():
     if sha256(fixture.read_bytes()).hexdigest() != receipt["fixture_sha256"]:
         raise ValueError("Checked fixture changed")
     public = ROOT / "frontend-v2/public"
-    manifest = json.loads((public / "replay-manifest.json").read_bytes())
     identity = receipt["artifact_id"]
     entry = manifest["artifacts"][identity]
     if (
         entry != receipt["entry"]
-        or manifest["routes"]["/plugins/momentum-fixture"] != identity
+        or (latest and manifest["routes"]["/plugins/momentum-fixture"] != identity)
     ):
         raise ValueError("Publication receipt/manifest mismatch")
     payload = (public / entry["url"].lstrip("/")).read_bytes()
@@ -100,9 +98,47 @@ def verify():
     subprocess.check_call(
         ["git", "merge-base", "--is-ancestor", receipt["code_commit"], "HEAD"], cwd=ROOT
     )
+    return result
+
+
+def verify():
+    directory = ROOT / "data/exports/nervous_system_v0_1"
+    latest = json.loads((directory / "receipt.json").read_bytes())
+    raw = (directory / "registry.json").read_bytes()
+    if sha256(raw).hexdigest() != latest["registry_sha256"]:
+        raise ValueError("Current registry/receipt binding changed")
+    snapshot = json.loads(raw)
+    assert_derived(snapshot)
+    manifest = json.loads(
+        (ROOT / "frontend-v2/public/replay-manifest.json").read_bytes()
+    )
+    receipts = [
+        json.loads(p.read_bytes()) for p in sorted(directory.glob("receipt-*.json"))
+    ]
+    if {r["run_id"] for r in receipts} != {
+        r["run_id"] for r in snapshot["runs"]
+    }:
+        raise ValueError("Historical run or receipt omitted")
+    if latest not in receipts:
+        raise ValueError("Current receipt differs from retained history")
+    runs = {r["run_id"]: r for r in snapshot["runs"]}
+    for receipt in receipts:
+        result = verify_run(directory, receipt, manifest, latest=receipt == latest)
+        retained = runs[receipt["run_id"]]
+        if (
+            result["contract"] != retained["contract"]
+            or result["predictions"] != retained["predictions"]
+        ):
+            raise ValueError("Historical computation replaced in current registry")
+        events = [
+            e for e in snapshot["events"] if e["run_id"] == receipt["run_id"]
+        ]
+        if sum(e["event"] == "HOLDOUT_OPENED" for e in events) != 1:
+            raise ValueError("Historical opening lost or repeated")
     verify_closed_history(ROOT)
     print(
-        f"Plugin Replay verified: {len(result['predictions'])} actual held-out outputs, one opening, archived research unchanged"
+        f"Plugin Replay verified: {len(receipts)} retained runs, "
+        "one recorded opening each; no computation executed"
     )
 
 

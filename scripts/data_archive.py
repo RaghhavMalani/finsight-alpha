@@ -7,7 +7,7 @@ import subprocess
 from hashlib import sha256
 from pathlib import Path
 
-BASE = "7a69986955368ff3d1c8f369fbd3e37c358567af"
+BASE = "94eb4f5d4898ed96c35304be29e4a09835bba8e6"
 PUBLIC = "frontend-v2/public"
 KINDS = {
     "health",

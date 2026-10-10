@@ -110,7 +110,7 @@ without inventing raw files or silently fetching a weaker source.
 
 The scheduled workflow verifies the archived Phase 2 reference, refreshes only
 bounded Data Organ sources, and commits only derived Data Organ summaries and
-their Replay pointers. It never recomputes the checked plugin, changes the two
+their Replay pointers. It never recomputes the checked plugin, changes the three
 v1 run IDs or opens its holdout. Repeating an export with the same journal,
 declared computation files and evidence is idempotent. Git HEAD records execution
 provenance separately from deterministic diagnostic identity.

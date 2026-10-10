@@ -1,6 +1,6 @@
 # Data Organ v0.1: approved implementation plan
 
-PR #25 was merged normally at `7a69986955368ff3d1c8f369fbd3e37c358567af` after verifying the approved head `0288643b9eaeabb727896dc67d9b0765c4c12567`, all green checks and zero unresolved review threads. `feat/data-organ-v0.1` starts at that new main. Implementation approved on 2026-10-09.
+PR #25 was merged normally at `7a69986955368ff3d1c8f369fbd3e37c358567af` after verifying the approved head `0288643b9eaeabb727896dc67d9b0765c4c12567`, all green checks and zero unresolved review threads. `feat/data-organ-v0.1` starts at that new main. Implementation approved on 2026-10-09. Before merge, the archive boundary was advanced to `94eb4f5d4898ed96c35304be29e4a09835bba8e6`: the old nightly workflow had published a third v1 computation, `35b2839947ef7fe71700c3b25efff7ff5b6ca003156b20f6840b95e5add27ebc`, which is retained as immutable history. Reconciliation verifies it without execution.
 
 The approval boundary comes directly from the attached Phase 3 request and `docs/upgrade-plan.md`: inspect existing contracts, propose exact file changes, then obtain approval (completed). The first **implementation** commit will correct prospective computation identity. No model research, inference calibration, momentum-study rerun or execution-engine integration belongs here.
 
@@ -22,7 +22,7 @@ Introduce a versioned computation-dependency declaration. It binds the model imp
 
 Future `plugin-run/2` computation contracts include the scoped code/dependency hashes, admitted input hashes, target/factor hashes, seed, configuration, cutoff and split. Execution Git HEAD remains recorded as execution provenance in the attempt chain and sealed result, outside the computation-identity material. A sealed repeat returns its original execution provenance; a reuse attempt records its own current HEAD separately. An actual dependency change produces a different computation identity.
 
-Keep v1 canonical identity, both existing run IDs, opening events, registry snapshots, publication links and receipt fingerprints byte-identical. Add dual-version readers rather than reinterpret v1. The archived Phase 2 reference becomes verification-only in the scheduled workflow; a new v2 reference computation requires an explicit operator action and a new recorded attempt. Phase 3 data refreshes must not reopen its holdout. Do not execute that reference during this phase to manufacture a v2 receipt.
+Keep v1 canonical identity, all three existing v1 run IDs, opening events, registry snapshots, publication links and receipt fingerprints byte-identical. Add dual-version readers rather than reinterpret v1. The archived Phase 2 reference becomes verification-only in the scheduled workflow; a new v2 reference computation requires an explicit operator action and a new recorded attempt. Phase 3 data refreshes must not reopen its holdout. Do not execute that reference during this phase to manufacture a v2 receipt.
 
 Any future opt-in v2 reference publication uses a separate output directory and route; it cannot replace the archived v0.1 receipt or manifest pointer.
 
@@ -155,7 +155,7 @@ Use `forge-reference.html` tokens and the existing shell. F10 defaults to public
 
 Run all historical verifiers and full Linux pytest; lint, TypeScript, production build and every verify script; Chrome/Edge/Firefox at 1440/390; native DATA/palette/key navigation; real offline Replay with zero failed requests/vendor traffic. Sabotage future vintages, backdating, stripped timezone, duplicate identities with changed bytes, missing sessions, unresolved adjustments, provider incompatibility/disagreement, wrong tenant/grant, raw fields and rehashed semantic/clock/permission forgeries.
 
-Verify the two Phase 2 run IDs, registry chains, receipts and all earlier public bytes/entries against merged main. Source-policy audit must retain old function semantics and entries and admit only the reviewed narrow additions. Capture genuine production F10 screenshots. Write the three-sentence Postable result only after diagnostics finish, from observed counts/windows/limitations in the final receipt. Record health/coverage, UNRATE vintage scrub, mirror comparison, lineage and issue history; never manufacture a clean report or an alpha finding.
+Verify the three Phase 2 v1 run IDs, registry chains, receipts and all earlier public bytes/entries against merged main. Source-policy audit must retain old function semantics and entries and admit only the reviewed narrow additions. Capture genuine production F10 screenshots. Write the three-sentence Postable result only after diagnostics finish, from observed counts/windows/limitations in the final receipt. Record health/coverage, UNRATE vintage scrub, mirror comparison, lineage and issue history; never manufacture a clean report or an alpha finding.
 
 ## Logical implementation sequence after approval
 

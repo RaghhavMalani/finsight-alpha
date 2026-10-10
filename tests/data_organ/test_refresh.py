@@ -20,6 +20,7 @@ def test_missing_upstreams_retain_prior_evidence_and_export_is_idempotent(
         ROOT / "frontend-v2/public/replay-manifest.json",
         public / "replay-manifest.json",
     )
+    original_manifest = json.loads((public / "replay-manifest.json").read_bytes())
     for source in (ROOT / "frontend-v2/public/artifacts/replay").glob(
         "data-organ-*.json"
     ):
@@ -59,3 +60,16 @@ def test_missing_upstreams_retain_prior_evidence_and_export_is_idempotent(
     second = export(runtime, public, directory)
     assert second == first
     assert {p.name: p.read_bytes() for p in directory.glob("*.json")} == before
+    refreshed = json.loads((public / "replay-manifest.json").read_bytes())
+    for section in ("artifacts", "routes"):
+        original_plugins = {
+            key: value
+            for key, value in original_manifest[section].items()
+            if key.startswith("plugins:") or key.startswith("/plugins/")
+        }
+        assert {
+            key: value
+            for key, value in refreshed[section].items()
+            if key.startswith("plugins:") or key.startswith("/plugins/")
+        } == original_plugins
+    assert not list((public / "artifacts/replay").glob("plugins-*.json"))

@@ -141,8 +141,16 @@ def test_transitive_module_constants_bind_identity(tmp_path, monkeypatch):
     assert manifest(MeanModel, tmp_path) != before
 
 
-def test_real_unrelated_commit_preserves_calls_identity_and_openings(
-    platform, tmp_path, monkeypatch
+@pytest.mark.parametrize(
+    "changed_path",
+    [
+        "src/data_organ/service.py",
+        "src/data_organ/registry.py",
+        "src/data/sources/unrelated_adapter.py",
+    ],
+)
+def test_data_organ_or_source_commit_preserves_calls_identity_and_openings(
+    platform, tmp_path, monkeypatch, changed_path
 ):
     import finsight.plugins.dependencies as module
 
@@ -178,13 +186,19 @@ def test_real_unrelated_commit_preserves_calls_identity_and_openings(
 
         monkeypatch.setattr(MeanModel, name, counted)
     first = runner.run(MeanModel, **kwargs)
+    dependencies = manifest(MeanModel, checkout)
     calls = dict(counts)
     assert calls["fit"] > 0 and calls["predict"] > 0
-    (checkout / "src/unrelated_adapter.py").write_text("source = 'unrelated'\n")
-    git("add", "src/unrelated_adapter.py")
-    git("commit", "-qm", "Unrelated adapter")
+    changed = checkout / changed_path
+    changed.parent.mkdir(parents=True, exist_ok=True)
+    changed.write_text("source = 'unrelated to declared computation'\n")
+    git("add", changed_path)
+    git("commit", "-qm", "Data Organ or source-only change")
+    assert manifest(MeanModel, checkout) == dependencies
     second = runner.run(MeanModel, **kwargs)
     assert second == first
     assert counts == calls
     assert registry.opening_count("a") == 1
     assert git("rev-parse", "HEAD") != first["execution"]["commit"]
+    bound = [e for e in registry.events("a") if e["event"] == "RUN_BOUND"]
+    assert bound[-1]["payload"]["execution"]["commit"] == git("rev-parse", "HEAD")

@@ -2,7 +2,7 @@
 
 `finsight.plugins` supplies a typed PIT store, nested chronological splits, validation-only selection, immutable run records, an attempt ledger, engineering controls and publication hooks. A computation can be ready while its inference, market and alpha flags remain false. The closed Research OS results remain `NOT_CALIBRATED` and `NOT_CONFIRMED`; the two passing v0.1.1 settings are descriptive evidence only.
 
-## Run the checked example
+## Verify the archived example
 
 From the repository root, install the project in your local Python environment and run:
 
@@ -12,9 +12,9 @@ python scripts/verify_plugin_replay.py
 python scripts/export_plugin_replay.py --refresh
 ```
 
-The public example already has a recorded execution. An unchanged refresh verifies the same checked inputs, source code, wrapped-engine dependencies and Python/runtime identity, makes no new attempt and opens no holdout. A changed computation creates a new run; the exporter restores the checked prior registry into an empty local registry, retaining earlier attempts and openings. Repeat execution of the same run contract reuses the sealed result. This is local trusted Python execution, not a sandbox for arbitrary third-party plugins.
+The public example is archived. Both commands verify its retained inputs, receipts, snapshots and Replay bytes without executing a model or opening a holdout, even if unrelated source code has changed. Future opt-in v2 computations require a separate route, output directory and recorded attempt. The SDK supports trusted local Python plugins; it is not a sandbox for arbitrary third-party code.
 
-The default local DuckDB/Parquet store and SQLite registry live in ignored `data/exports/replay-source/nervous-runtime/`. Public, derived run metadata and the complete attempt chain are under `data/exports/nervous_system_v0_1/`; no runtime database is committed. Receipts and snapshots also retain content-addressed historical copies. The nightly `organs.yml` job uses the same pipeline and commits only derived publication/history paths after verification. v0.1 refreshes the checked fixture; network adapters and broader Risk Manager sweeps belong to later phases.
+The default local DuckDB/Parquet store and SQLite registry live in ignored `data/exports/replay-source/nervous-runtime/`. Public, derived run metadata and the complete attempt chain are under `data/exports/nervous_system_v0_1/`; no runtime database is committed. Receipts and snapshots also retain content-addressed historical copies. The nightly `organs.yml` job now verifies this archived reference and refreshes only derived Data Organ publication/history paths. It never executes the checked fixture; broader Risk Manager sweeps belong to later phases.
 
 ## The 30-line model
 
@@ -87,7 +87,7 @@ Null/planted hooks run one fixed engineering control each with a namespaced seed
 
 The worked run uses 220 return-only rows extracted from the preserved D0.4.2 synthetic world, sealed in `eval/plugins/nervous-system-v0.1/pit-fixture.json`. Both return and factor availability clocks are explicit simulation clocks, not vendor release evidence. It is labelled `SYNTHETIC_REFERENCE` throughout. Current public French/IIMA captures remain research evidence and cannot establish historical PIT availability for this SDK example. No new market source is introduced here.
 
-Two example run contracts are retained. The first was executed at `e133d5c`; a subsequent identity correction at `5444b37` bound all wrapped-engine dependencies and the Python/runtime identity. Each opened its holdout once. The same synthetic data family therefore has two recorded openings, and the current Replay visibly carries the resulting HIGH repeated-opening issue. This is an engineering identity repair, not model selection or a new inference tournament; the earlier result, receipt and publication are retained rather than replaced.
+Three v1 example run contracts are retained. The first was executed at `e133d5c`; an identity correction at `5444b37` bound all wrapped-engine dependencies and the Python/runtime identity. Before Phase 3 merged, the old nightly workflow executed again at `7a699869` and published run `35b2839947ef7fe71700c3b25efff7ff5b6ca003156b20f6840b95e5add27ebc` in main commit `94eb4f5`. Its broad source fingerprint changed despite unchanged study inputs. Each run opened its holdout once, so the same synthetic family has three recorded openings and the current Replay retains the HIGH repeated-opening issue. All three results, receipts, snapshots and publications remain immutable. Phase 3 reconciliation verifies history without creating a fourth opening.
 
 Public publication is an explicit hook on a sealed, committed computation. v0.1 permits only the approved checked fixture tenant/source/version and reviewed `momentum_signal` output; other sources require a real policy grant and are outside this public example. A vendor's self-declared `FIRST_PARTY` label grants no permission. Alpaca, yfinance and NSE India VIX stay unavailable publicly. The projector includes derived outputs, evaluation events, diagnostic hooks and linked issues, and excludes raw store values and arbitrary trace extensions. It preserves existing Replay entries and binds new artifact SHA/byte count to the immutable registry through a separate publication event.
 
@@ -123,7 +123,7 @@ attempt separately, without another model call or holdout opening.
 Data Organ admissions bind signals to verified source bytes, source/version,
 schema, licence resolution and admission seals. Legacy unmapped inputs remain
 explicitly `LEGACY_UNMAPPED`; old runs do not acquire invented receipts.
-The two Phase 2 v1 computations, their openings, receipts and public artifacts
+The three Phase 2 v1 computations, their openings, receipts and public artifacts
 remain immutable. `export_plugin_replay.py`, including its compatibility
 `--refresh` argument, now verifies that archive without executing it. Any future
 opt-in v2 reference needs a separate output directory, route and recorded
