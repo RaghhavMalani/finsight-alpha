@@ -163,21 +163,26 @@ def manifest(model_type, root):
             )
 
         while True:
-            old = set(dynamic_aliases)
+            old = (set(dynamic_aliases), set(import_namespaces))
             for node in ast.walk(tree):
-                if isinstance(node, (ast.Assign, ast.AnnAssign)) and is_importer(
-                    node.value
-                ):
+                if isinstance(node, (ast.Assign, ast.AnnAssign)):
                     targets = (
                         node.targets if isinstance(node, ast.Assign) else [node.target]
                     )
-                    dynamic_aliases.update(
+                    names = {
                         n.id
                         for t in targets
                         for n in ast.walk(t)
                         if isinstance(n, ast.Name)
-                    )
-            if old == dynamic_aliases:
+                    }
+                    if is_importer(node.value):
+                        dynamic_aliases.update(names)
+                    if (
+                        isinstance(node.value, ast.Name)
+                        and node.value.id in import_namespaces
+                    ):
+                        import_namespaces.update(names)
+            if old == (dynamic_aliases, import_namespaces):
                 break
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -255,51 +260,21 @@ def manifest(model_type, root):
         raise ValueError("Model source must be inside the declared computation root")
     tree = ast.parse(module_path.read_bytes())
     selected = ast.parse(textwrap.dedent(inspect.getsource(model_type)))
-    references = {
-        n.id
-        for n in ast.walk(selected)
-        if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
-    }
-    nodes = list(selected.body)
-    selected_names = {model_type.__name__}
-    while True:
-        helpers = [
-            n
-            for n in tree.body
-            if isinstance(n, (ast.FunctionDef, ast.ClassDef))
-            and n.name in references - selected_names
-        ]
-        if not helpers:
-            break
-        nodes.extend(helpers)
-        selected_names.update(n.name for n in helpers)
-        references.update(
-            n.id
-            for h in helpers
-            for n in ast.walk(h)
-            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)
-        )
-    for node in tree.body:
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
-            aliases = [
-                a
-                for a in node.names
-                if (a.asname or a.name.split(".")[0]) in references
+    # Resolve globals, assignments and helpers to a fixed point, just as for an
+    # imported symbol. A class -> alias -> constant chain must bind all three.
+    # Keep the selected class source (including nested classes) as the root.
+    selected_model_tree = selected_tree(
+        ast.Module(
+            body=[
+                n
+                for n in tree.body
+                if not isinstance(n, ast.ClassDef) or n.name != model_type.__name__
             ]
-            if aliases:
-                clone = (
-                    ast.Import(names=aliases)
-                    if isinstance(node, ast.Import)
-                    else ast.ImportFrom(
-                        module=node.module, names=aliases, level=node.level
-                    )
-                )
-                nodes.append(clone)
-        elif isinstance(node, (ast.Assign, ast.AnnAssign)) and any(
-            isinstance(x, ast.Name) and x.id in references for x in ast.walk(node)
-        ):
-            nodes.append(node)
-    selected_model_tree = ast.Module(body=nodes, type_ignores=[])
+            + selected.body,
+            type_ignores=[],
+        ),
+        [model_type.__name__],
+    )
     scan(selected_model_tree, model_type.__module__)
     files[module_path.relative_to(root).as_posix() + "#" + model_type.__qualname__] = (
         sha256(

@@ -75,6 +75,8 @@ def test_execution_head_does_not_reopen_holdout(platform, monkeypatch):
         "getattr(importlib, 'import_module')(self.config['module'])",
         "getattr(importlib, self.config['loader'])(self.config['module'])",
         "globals()['__import__'](self.config['module'])",
+        "namespace = importlib\n  getattr(namespace, self.config['loader'])(self.config['module'])",
+        "namespace = importlib\n  alias = namespace\n  getattr(alias, self.config['loader'])(self.config['module'])",
     ],
 )
 def test_aliased_dynamic_imports_fail_closed(monkeypatch, statement):
@@ -87,6 +89,30 @@ def test_aliased_dynamic_imports_fail_closed(monkeypatch, statement):
     )
     with pytest.raises(ValueError, match="Unresolved dynamic import"):
         manifest(MeanModel, ROOT)
+
+
+def test_transitive_module_constants_bind_identity(tmp_path, monkeypatch):
+    import finsight.plugins.dependencies as module
+
+    for name in manifest(MeanModel, ROOT)["sources"]:
+        path = name.split("#")[0]
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / path, target)
+    source = tmp_path / "tests/plugins/test_platform.py"
+    raw = source.read_text() + "\nBASE_WEIGHT = 1\nWEIGHT = BASE_WEIGHT\nUNRELATED = 1\n"
+    source.write_text(raw)
+    monkeypatch.setattr(module.inspect, "getfile", lambda _: str(source))
+    monkeypatch.setattr(
+        module.inspect,
+        "getsource",
+        lambda _: "class MeanModel:\n def fit(self, rows):\n  return WEIGHT\n",
+    )
+    before = manifest(MeanModel, tmp_path)
+    source.write_text(raw.replace("UNRELATED = 1", "UNRELATED = 2"))
+    assert manifest(MeanModel, tmp_path) == before
+    source.write_text(raw.replace("BASE_WEIGHT = 1", "BASE_WEIGHT = 2"))
+    assert manifest(MeanModel, tmp_path) != before
 
 
 def test_real_unrelated_commit_preserves_calls_identity_and_openings(
