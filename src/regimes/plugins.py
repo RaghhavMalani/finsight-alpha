@@ -226,6 +226,158 @@ class RegimeHMM4(_HMM):
         return frame, list(HMM_COLUMNS), "log_return"
 
 
+def _aligned(windows, names, *, how="inner"):
+    frame = None
+    for name in names:
+        part = windows[name][["observed_at", "value"]].rename(columns={"value": name})
+        frame = part if frame is None else frame.merge(part, on="observed_at", how=how)
+    return frame.sort_values("observed_at").reset_index(drop=True)
+
+
+class FactorDiagnostic(SeriesModel):
+    name = "regimes.factors"
+    version = "1"
+    series_inputs = (
+        SeriesInput("mkt", unit=RET, minimum=60),
+        SeriesInput("smb", unit=RET, minimum=60),
+        SeriesInput("hml", unit=RET, minimum=60),
+        SeriesInput("mom", unit=RET, minimum=60),
+        SeriesInput("hmm2_state", kind="category", minimum=0),
+    )
+    outputs = (
+        SignalType("mom_mkt_beta"),
+        SignalType("r_squared"),
+        SignalType("intercept", "float", RET),
+        SignalType("neutrality", "category"),
+    )
+
+    def compute(self, windows, context):
+        from src.regimes.factors import diagnose
+
+        settings = context["settings"]["factors"]
+        target, controls = settings["public"]["target"], settings["public"]["controls"]
+        frame = _aligned(windows, [target, *controls])
+        states = None
+        if len(windows["hmm2_state"]):
+            labels = windows["hmm2_state"][["observed_at", "value"]].rename(columns={"value": "state"})
+            frame = frame.merge(labels, on="observed_at", how="left")
+            states = frame.state.tolist()
+        result = diagnose(
+            frame,
+            target,
+            controls,
+            states=states,
+            window=settings["rolling_window"],
+            minimum=settings["minimum"],
+        )
+        full = result["full_window"]
+        if full["status"] != "AVAILABLE":
+            from finsight.plugins.series import SeriesUnavailable
+
+            raise SeriesUnavailable(full.get("reason", "Factor design unidentifiable"))
+        terms = {r["term"]: r for r in full["terms"]}
+        statuses = [r["neutrality"] for r in full["terms"] if r["neutrality"]]
+        overall = "EXPOSED" if "EXPOSED" in statuses else "WATCH" if "WATCH" in statuses else "NEUTRAL"
+        return {
+            "status": "COMPUTED",
+            "state_at": frame.observed_at.iloc[-1].isoformat(),
+            "current": {
+                "mom_mkt_beta": terms["mkt"]["coefficient"],
+                "r_squared": full["r_squared"],
+                "intercept": terms["intercept"]["coefficient"],
+                "neutrality": overall,
+            },
+            "paths": {
+                "rolling_tail": result["rolling"]["tail"],
+                "decomposition_tail": result["decomposition"]["tail"],
+            },
+            "diagnostics": {k: v for k, v in result.items() if k not in {"rolling", "decomposition"}}
+            | {
+                "rolling_semantics": result["rolling"]["semantics"],
+                "decomposition": {k: v for k, v in result["decomposition"].items() if k != "tail"},
+                "regime_states": "hmm2-diagnostic filtered states" if states else "UNAVAILABLE",
+            },
+            "issues": [
+                {
+                    "kind": "FACTOR_COVERAGE_PARTIAL",
+                    "severity": "INFO",
+                    "reason": "Partial factor set (" + ", ".join(controls) + "); seven-factor neutrality UNAVAILABLE",
+                }
+            ],
+        }
+
+
+class MomentumView(SeriesModel):
+    name = "regimes.momentum"
+    version = "1"
+    series_inputs = (
+        SeriesInput("mkt", unit=RET, minimum=253),
+        SeriesInput("mom", unit=RET, minimum=0),
+        SeriesInput("hmm2_state", kind="category", minimum=1),
+    )
+    outputs = (
+        SignalType("momentum_signal"),
+        SignalType("momentum_sign", "category"),
+    )
+
+    def compute(self, windows, context):
+        from src.regimes.momentum import mom_by_state, signal_by_state, signal_path
+
+        settings = context["settings"]["momentum"]
+        returns = windows["mkt"][["observed_at", "value"]].rename(columns={"value": "mkt"})
+        signal = signal_path(
+            returns.mkt.tolist(), lookback=settings["lookback"], skip=settings["skip"]
+        )
+        returns = returns.assign(signal=signal)
+        states = windows["hmm2_state"][["observed_at", "value"]].rename(columns={"value": "state"})
+        mom = windows["mom"][["observed_at", "value"]].rename(columns={"value": "mom"})
+        frame = returns.merge(states, on="observed_at", how="left").merge(
+            mom, on="observed_at", how="left"
+        )
+        frame = frame.astype(object).where(frame.notna(), None)
+        current = signal[-1]
+        unit = context["observation_unit"]
+        index_label = (
+            "252/21 session-index window (XNYS package evidence)"
+            if unit == "session"
+            else "252/21 observation-index approximation · CALENDAR_UNAVAILABLE"
+        )
+        stamps = [t.isoformat() for t in frame.observed_at]
+        return {
+            "status": "COMPUTED",
+            "state_at": stamps[-1],
+            "current": {
+                "momentum_signal": current,
+                "momentum_sign": "POSITIVE" if current > 0 else "NEGATIVE" if current < 0 else "ZERO",
+            },
+            "paths": {
+                "signal_tail": [[t, s] for t, s in list(zip(stamps, signal))[-250:]],
+            },
+            "diagnostics": {
+                "definition": "12-1 market-factor momentum: prod(1 + mkt) - 1 over observations t-252 .. t-22",
+                "index_label": index_label,
+                "signal_by_state": signal_by_state(frame.signal.tolist(), frame.state.tolist()),
+                "signal_by_state_semantics": "Distribution of the signal itself by hmm2 filtered state at the same observation; not a return",
+                "mom_factor_by_regime": mom_by_state(
+                    frame.mom.tolist(),
+                    frame.state.tolist(),
+                    annualization=context["annualization"],
+                    minimum=settings["mom_factor_sharpe_minimum"],
+                ),
+                "mom_factor_semantics": "MOM FACTOR BY REGIME: cross-sectional momentum-factor diagnostic; next-observation published MOM factor grouped by the lagged filtered state. Not the return of the 12-1 market-factor signal.",
+                "verdicts": "None. Research OS verdicts live only on the frozen Phase 4 card.",
+            },
+            "issues": [],
+        }
+
+
 SERIES_PLUGINS = {
-    plugin.name: plugin for plugin in (VolatilityDiagnostics, RegimeHMM2, RegimeHMM4)
+    plugin.name: plugin
+    for plugin in (
+        VolatilityDiagnostics,
+        RegimeHMM2,
+        RegimeHMM4,
+        FactorDiagnostic,
+        MomentumView,
+    )
 }

@@ -33,6 +33,7 @@ def describe(frame, *, settings, tail=250):
                 "ewma_vol": c.get("ewma_vol"),
                 "garch_vol": conditional[i] if conditional else None,
                 "cluster_score": path[i].get("cluster_score"),
+                "vol_z": c.get("vol_z"),
             }
         )
     return {

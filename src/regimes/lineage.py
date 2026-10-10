@@ -23,9 +23,34 @@ class JournalIndex:
         for entry in entries:
             self.by_kind.setdefault(entry["kind"], {})[entry["identity"]] = entry
         self._members = {}
+        self._verified = {}
 
     def get(self, kind, identity):
         return self.by_kind.get(kind, {}).get(identity)
+
+    def verified(self, admission_id, version_id):
+        """Seal and identity checks once per admission/source version pair."""
+        key = (admission_id, version_id)
+        if key not in self._verified:
+            admission = self.get("ADMISSION", admission_id)
+            version = self.get("SOURCE_VERSION", version_id)
+            result = None
+            if (
+                admission is not None
+                and version is not None
+                and canonical_hash(admission["payload"]) == admission_id
+                and admission["payload"]["source_version_id"] == version_id
+            ):
+                capture = Capture(**version["payload"])
+                if capture.identity == version_id:
+                    result = (
+                        admission["hash"],
+                        capture,
+                        canonical_hash(capture.schema),
+                        canonical_hash(capture.licence),
+                    )
+            self._verified[key] = result
+        return self._verified[key]
 
     def members(self, admission_id):
         if admission_id not in self._members:
@@ -62,22 +87,15 @@ def verify_source_bindings(index, bindings):
             binding
         ):
             raise ValueError("Signal mapping missing or substituted in the journal")
-        admission = index.get("ADMISSION", binding["admission_id"])
-        version = index.get("SOURCE_VERSION", binding["source_version_id"])
-        if (
-            admission is None
-            or version is None
-            or admission["hash"] != binding["admission_seal"]
-            or canonical_hash(admission["payload"]) != binding["admission_id"]
-            or admission["payload"]["source_version_id"] != binding["source_version_id"]
-        ):
+        verified = index.verified(binding["admission_id"], binding["source_version_id"])
+        if verified is None:
             raise ValueError("Broken source-admission seal")
-        capture = Capture(**version["payload"])
+        admission_hash, capture, schema_hash, licence_hash = verified
         if (
-            capture.identity != binding["source_version_id"]
+            admission_hash != binding["admission_seal"]
             or capture.content_sha256 != binding["capture_sha256"]
-            or canonical_hash(capture.schema) != binding["schema_hash"]
-            or canonical_hash(capture.licence) != binding["licence_resolution_hash"]
+            or schema_hash != binding["schema_hash"]
+            or licence_hash != binding["licence_resolution_hash"]
         ):
             raise ValueError("Source version, schema or licence substitution")
         members = index.members(binding["admission_id"])
@@ -103,7 +121,21 @@ def verify_source_bindings(index, bindings):
     return summary
 
 
-def verify_run(store, run_registry, journal_index, tenant_id, run, *, _seen=None):
+def visible_history(store, tenant_id, as_of, cache):
+    """One verified store read per cutoff, keyed by the current signal count."""
+    with store.connection() as db:
+        count = db.execute(
+            "SELECT count(*) FROM signals WHERE tenant=?", [tenant_id]
+        ).fetchone()[0]
+    key = (tenant_id, as_of, count)
+    if key not in cache:
+        cache[key] = store.history(tenant_id, as_of=as_of)
+    return cache[key]
+
+
+def verify_run(
+    store, run_registry, journal_index, tenant_id, run, *, _seen=None, histories=None
+):
     """Recompute a sealed run's inputs from its contract and verify the chain.
 
     Returns a JSON-serialisable chain; status INVALID carries the reason.
@@ -117,7 +149,8 @@ def verify_run(store, run_registry, journal_index, tenant_id, run, *, _seen=None
         if sealed is None or canonical_hash(sealed) != canonical_hash(run):
             raise ValueError("Run is not the sealed registry record")
         contract = run["contract"]
-        visible = store.history(tenant_id, as_of=contract["as_of"])
+        histories = {} if histories is None else histories
+        visible = visible_history(store, tenant_id, contract["as_of"], histories)
         windows, used = select_inputs(
             visible, contract["declarations"]["inputs"], contract["assets"]
         )
@@ -132,7 +165,13 @@ def verify_run(store, run_registry, journal_index, tenant_id, run, *, _seen=None
         for producer_id in contract["lineage"]["producer_runs"]:
             producer = run_registry.read(tenant_id, producer_id)
             chain = verify_run(
-                store, run_registry, journal_index, tenant_id, producer, _seen=seen
+                store,
+                run_registry,
+                journal_index,
+                tenant_id,
+                producer,
+                _seen=seen,
+                histories=histories,
             )
             if chain["status"] != "VERIFIED":
                 raise ValueError("Producer lineage invalid: " + chain["reason"])
