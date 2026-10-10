@@ -108,3 +108,23 @@ FinSight's 30-line plugin produced 42 held-out outputs on a checked synthetic PI
 Record F8 `/observatory?scene=plugin` at 1440px and 390px: the final holdout frame with capability strip, scrub to validation, then expand **Identity and source** to show the run, commit, source and licence. Include the honesty hooks and Risk hooks in the capture. These screens demonstrate platform accountability, not trading performance.
 
 Storage references: [DuckDB Python client](https://duckdb.org/docs/stable/clients/python/overview) and [Arrow Parquet](https://arrow.apache.org/docs/python/parquet.html).
+
+## Prospective v2 identity and Data Organ admission
+
+New computations use `plugin-computation/2` and `plugin-run/2`. The dependency
+manifest binds the selected model and its declared transitive local routines,
+installed distributions, runtime, admitted inputs, targets, configuration and
+seed. It does not hash an unrelated source tree. Unresolved dynamic imports fail
+closed; plugins can declare a literal import or a reviewed call-site resolution.
+Git HEAD and computation dirtiness are execution provenance outside run identity.
+A sealed repeat returns the original result and records the current reuse
+attempt separately, without another model call or holdout opening.
+
+Data Organ admissions bind signals to verified source bytes, source/version,
+schema, licence resolution and admission seals. Legacy unmapped inputs remain
+explicitly `LEGACY_UNMAPPED`; old runs do not acquire invented receipts.
+The two Phase 2 v1 computations, their openings, receipts and public artifacts
+remain immutable. `export_plugin_replay.py`, including its compatibility
+`--refresh` argument, now verifies that archive without executing it. Any future
+opt-in v2 reference needs a separate output directory, route and recorded
+attempt; Phase 3 does not create one.

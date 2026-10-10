@@ -34,9 +34,9 @@ export function parseCommand(text: string, currentTicker = "SPY"): CommandTarget
   if (!functions[fn]) throw new Error(`Unknown function. Use ${COMMAND_CODES.join(", ")}.`);
   const series = factorSeries(tokens[0]);
   if (series) {
-    if (tokens.length !== 2 || !["GP", "REG", "OBS", "DES"].includes(fn))
+    if (tokens.length !== 2 || !["GP", "REG", "OBS", "DES", "DATA"].includes(fn))
       throw new Error(
-        "Market factors have no exchange code. Use US-MKT or IN-MKT with GP, REG or OBS.",
+        "Market factors have no exchange code. Use US-MKT or IN-MKT with GP, REG, OBS or DATA.",
       );
     return {
       to: functions[fn],

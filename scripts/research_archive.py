@@ -61,10 +61,14 @@ def verify_shared_history(root: Path):
         text=True,
     )
     changed = subprocess.check_output(
-        ["git", "diff", "--name-only", BASELINE, "--", *SHARED_PATHS],
+        ["git", "diff", "--name-only", BASELINE, "--", *[p for p in SHARED_PATHS if p != "src/data/license_policy.py"]],
         cwd=root,
         text=True,
     )
+    from scripts.data_archive import verify_policy, verify_addition
+    policy_changed = subprocess.check_output(["git", "diff", "--name-only", BASELINE, "--", "src/data/license_policy.py"], cwd=root, text=True).strip()
+    if policy_changed:
+        verify_policy(root, BASELINE)
     if historical.strip() or changed.strip():
         raise ValueError("Protected phase evidence changed: " + historical + changed)
     original = json.loads(
@@ -77,8 +81,12 @@ def verify_shared_history(root: Path):
     if set(current) != set(original) or any(
         not same_json(current[k], v)
         for k, v in original.items()
-        if k not in {"artifacts", "routes"}
+        if k not in {"artifacts", "routes", "as_of"}
     ):
+        raise ValueError("Historical manifest metadata changed")
+    from finsight.plugins.contracts import utc
+    data_additions = {k for k in current["artifacts"] if k.startswith("data-organ:")}
+    if current["as_of"] != original["as_of"] and (not data_additions or utc(current["as_of"]) < utc(original["as_of"])):
         raise ValueError("Historical manifest metadata changed")
     for section in ("artifacts", "routes"):
         if any(
@@ -89,6 +97,9 @@ def verify_shared_history(root: Path):
     additions = set(current["artifacts"]) - set(original["artifacts"])
     allowed_files = {PUBLIC + "/replay-manifest.json"}
     for identity in additions:
+        if identity.startswith("data-organ:"):
+            allowed_files.add(verify_addition(public, identity, current["artifacts"][identity]))
+            continue
         if not re.fullmatch(r"plugins:run:[0-9a-f]{64}", identity):
             raise ValueError("Unreviewed public artifact addition")
         run_id = identity.rsplit(":", 1)[1]
@@ -129,6 +140,8 @@ def verify_shared_history(root: Path):
             raise ValueError("Plugin publication claim boundary changed")
         allowed_files.add(PUBLIC + url)
     for route in set(current["routes"]) - set(original["routes"]):
+        if route in {"/data/" + k for k in ("health", "revisions", "disagreement", "coverage", "lineage", "issues", "costs")} and current["routes"][route] in data_additions:
+            continue
         if (
             route != "/plugins/momentum-fixture"
             or current["routes"][route] not in additions

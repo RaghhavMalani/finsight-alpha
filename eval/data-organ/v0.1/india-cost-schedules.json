@@ -1,0 +1,204 @@
+{
+  "capture_transport": "Native curl with browser user-agent; initial requests captures timed out",
+  "components": [
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2026-04-01",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.745415Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-04-17",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "8d1c32e6dcbd3d303a66a8c4292f4326806ec71c24eb867c7aeb49173d5d8492",
+        "source_url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "STT",
+      "rate": "0.001",
+      "settlement": "DELIVERY",
+      "sides": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2026-04-01",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.745415Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-04-17",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "8d1c32e6dcbd3d303a66a8c4292f4326806ec71c24eb867c7aeb49173d5d8492",
+        "source_url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "STT",
+      "rate": "0.00025",
+      "settlement": "NON_DELIVERY",
+      "sides": [
+        "SELL"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2020-07-01",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.745415Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-04-17",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "8d1c32e6dcbd3d303a66a8c4292f4326806ec71c24eb867c7aeb49173d5d8492",
+        "source_url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "STAMP",
+      "rate": "0.00015",
+      "settlement": "DELIVERY",
+      "sides": [
+        "BUY"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2020-07-01",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.745415Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-04-17",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "8d1c32e6dcbd3d303a66a8c4292f4326806ec71c24eb867c7aeb49173d5d8492",
+        "source_url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "STAMP",
+      "rate": "0.00003",
+      "settlement": "NON_DELIVERY",
+      "sides": [
+        "BUY"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2026-10-09",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.745415Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-04-17",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "8d1c32e6dcbd3d303a66a8c4292f4326806ec71c24eb867c7aeb49173d5d8492",
+        "source_url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "SEBI",
+      "rate": "0.000001",
+      "settlement": "ANY",
+      "sides": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    {
+      "base": "EVIDENCED_SERVICE_BASE_REQUIRED",
+      "effective_from": "2026-10-09",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.745415Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-04-17",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "8d1c32e6dcbd3d303a66a8c4292f4326806ec71c24eb867c7aeb49173d5d8492",
+        "source_url": "https://www.nseindia.com/static/invest/first-time-investor-sebi-turnover-fees-stt-other-levies"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "GST",
+      "rate": "0.18",
+      "settlement": "ANY",
+      "sides": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2024-10-01",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.748416Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2024-09-27",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "85b816208f33bdd1c6c0d827b1ba996aba1fe08fe883a6d31c6a2c0ad55304a4",
+        "source_url": "https://nsearchives.nseindia.com/content/circulars/FA64232.pdf"
+      },
+      "evidenced_through": "2026-02-28",
+      "name": "EXCHANGE",
+      "rate": "0.0000297",
+      "settlement": "ANY",
+      "sides": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2026-03-01",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.749417Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-02-27",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "6085601a26177ed61e37e5347960b936d71464ab625d6a0d9fe72b2ec838ac09",
+        "source_url": "https://nsearchives.nseindia.com/content/circulars/FA73061.pdf"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "EXCHANGE",
+      "rate": "0.000030699",
+      "settlement": "ANY",
+      "sides": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2026-03-01",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.749417Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-02-27",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "6085601a26177ed61e37e5347960b936d71464ab625d6a0d9fe72b2ec838ac09",
+        "source_url": "https://nsearchives.nseindia.com/content/circulars/FA73061.pdf"
+      },
+      "evidenced_through": "2026-10-09",
+      "name": "IPFT",
+      "rate": "0.000000001",
+      "settlement": "ANY",
+      "sides": [
+        "BUY",
+        "SELL"
+      ]
+    },
+    {
+      "base": "TRADED_VALUE",
+      "effective_from": "2026-02-27",
+      "evidence": {
+        "captured_at": "2026-10-09T16:50:03.749417Z",
+        "clock_quality": "CAPTURE_ONLY",
+        "publication_date": "2026-02-27",
+        "representation": "EXACT_RESPONSE_BYTES",
+        "source_sha256": "6085601a26177ed61e37e5347960b936d71464ab625d6a0d9fe72b2ec838ac09",
+        "source_url": "https://nsearchives.nseindia.com/content/circulars/FA73061.pdf"
+      },
+      "evidenced_through": "2026-02-28",
+      "name": "IPFT",
+      "rate": "0.000001",
+      "settlement": "ANY",
+      "sides": [
+        "BUY",
+        "SELL"
+      ]
+    }
+  ],
+  "schema_version": "india-cost-schedule/1",
+  "scope": "NSE cash equity only; GST base needs separate evidence; no backward extrapolation"
+}

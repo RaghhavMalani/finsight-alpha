@@ -10,7 +10,8 @@ type Hook = {
   r_squared?: number | null;
 };
 export type PluginReplay = {
-  schema_version: "plugin-replay/1";
+  schema_version: "plugin-replay/1" | "plugin-replay/2";
+  execution?: { commit: string; dirty_computation: false; dependency_manifest_hash: string };
   run_id: string;
   label: string;
   scope: "SYNTHETIC_REFERENCE";
@@ -22,7 +23,12 @@ export type PluginReplay = {
     seed: number;
     data_hash: string;
     scope: string;
-    code: { commit: string; dirty_computation: false };
+    code: {
+      commit?: string;
+      dirty_computation?: false;
+      schema_version?: string;
+      sources?: Record<string, string>;
+    };
     splits: {
       groups: Record<"fit" | "validation" | "development" | "holdout", number[]>;
       horizon_purge_rows: number;
@@ -106,8 +112,23 @@ export async function validatePluginReplay(
     c = object(r.contract),
     code = object(c.code),
     cap = object(r.inference_capability);
+  const provenance = r.schema_version === "plugin-replay/2" ? object(r.execution) : code;
   if (
-    r.schema_version !== "plugin-replay/1" ||
+    r.schema_version === "plugin-replay/2" &&
+    (c.schema_version !== "plugin-computation/2" ||
+      code.schema_version !== "computation-dependencies/2" ||
+      !hash(provenance.dependency_manifest_hash) ||
+      !Object.keys(object(code.sources)).length)
+  )
+    fail("v2 dependency declaration");
+  if (
+    r.schema_version === "plugin-replay/2" &&
+    (await sha256(new TextEncoder().encode(JSON.stringify(canonical(code))).buffer)) !==
+      provenance.dependency_manifest_hash
+  )
+    fail("v2 dependency manifest substitution");
+  if (
+    !["plugin-replay/1", "plugin-replay/2"].includes(String(r.schema_version)) ||
     r.status !== "COMPUTED" ||
     r.computation_ready !== true ||
     r.scope !== "SYNTHETIC_REFERENCE" ||
@@ -122,9 +143,9 @@ export async function validatePluginReplay(
     c.as_of !== entry.as_of ||
     entry.scope !== r.scope ||
     entry.kind !== "plugin-run" ||
-    code.dirty_computation !== false ||
-    typeof code.commit !== "string" ||
-    !/^[a-f0-9]{40}$/.test(code.commit)
+    provenance.dirty_computation !== false ||
+    typeof provenance.commit !== "string" ||
+    !/^[a-f0-9]{40}$/.test(provenance.commit as string)
   )
     fail("source/run/scope binding");
   if (

@@ -48,6 +48,7 @@ for (const id of ["US-MKT", "IN-MKT"]) {
     ["GP", "/markets"],
     ["REG", "/dynamics"],
     ["OBS", "/observatory"],
+    ["DATA", "/data"],
   ]) {
     const target = parseCommand(`${id} ${code}`);
     assert.equal(target.to, to);

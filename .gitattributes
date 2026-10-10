@@ -53,3 +53,8 @@ src/truth/run_registry.py text eol=lf
 eval/plugins/** -text
 data/exports/nervous_system_v0_1/** -text
 data/exports/nervous_system_v0_1/receipt*.json whitespace=cr-at-eol
+
+# Phase 3 evidence is content addressed; runtime/raw evidence remains ignored.
+data/exports/data_organ_v0_1/** -text
+eval/data-organ/** text eol=lf
+src/data_organ/** text eol=lf
