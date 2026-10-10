@@ -132,10 +132,23 @@ def verify(root):
     additions = set(current["artifacts"]) - set(original["artifacts"])
     allowed = {PUBLIC + "/replay-manifest.json"}
     for identity in additions:
+        if identity.startswith("regimes:"):
+            # Phase 5 additions have their own reviewed boundary.
+            from scripts.regimes_archive import verify_addition as regimes_addition
+
+            allowed.add(
+                regimes_addition(root / PUBLIC, identity, current["artifacts"][identity])
+            )
+            continue
         allowed.add(
             verify_addition(root / PUBLIC, identity, current["artifacts"][identity])
         )
     for route in set(current["routes"]) - set(original["routes"]):
+        if route.startswith("/regimes/"):
+            from scripts.regimes_archive import verify_route
+
+            verify_route(route, current["routes"][route], current["artifacts"])
+            continue
         if (
             route not in {"/data/" + kind for kind in KINDS}
             or current["routes"][route] not in additions
