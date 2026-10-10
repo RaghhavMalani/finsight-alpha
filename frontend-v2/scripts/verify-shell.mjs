@@ -182,6 +182,7 @@ if (urlIndex > 0) {
       }
       // All captured keys remain native while editing; contenteditable, textarea and select too.
       await page.goto(`${base}/data`);
+      await page.locator('.shell[data-ready="true"]').waitFor();
       await page.getByLabel("Command", { exact: true }).waitFor();
       for (const selector of [
         "#terminal-command",
