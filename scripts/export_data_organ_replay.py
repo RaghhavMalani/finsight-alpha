@@ -430,11 +430,11 @@ def export(runtime=RUNTIME, public=ROOT / "frontend-v2/public", directory=DIRECT
     raw = (json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode()
     (directory / ("receipt-" + sha256(raw).hexdigest() + ".json")).write_bytes(raw)
     (directory / "receipt.json").write_bytes(raw)
-    (directory / "manifest.json").write_text(
-        json.dumps(published, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+    (directory / "manifest.json").write_bytes(
+        (json.dumps(published, sort_keys=True, indent=2) + "\n").encode("utf-8")
     )
-    (directory / "catalog.json").write_text(
-        json.dumps(catalog(), sort_keys=True, indent=2) + "\n", encoding="utf-8"
+    (directory / "catalog.json").write_bytes(
+        (json.dumps(catalog(), sort_keys=True, indent=2) + "\n").encode("utf-8")
     )
     print(
         json.dumps(
