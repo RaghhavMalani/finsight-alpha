@@ -138,7 +138,62 @@ def window_frame(rows):
     )
 
 
-def _bindings(store, tenant_id, rows):
+def input_key(name, role):
+    return name if role == "primary" else f"{role}.{name}"
+
+
+def select_inputs(visible, inputs, roles):
+    """Windows for declared inputs from rows already filtered to the cutoff."""
+    windows, used = {}, []
+    for item in inputs:
+        spec = SignalType(item["name"], item["kind"], item["unit"])
+        rows = latest_vintages(
+            [
+                r
+                for r in visible
+                if r.name == item["name"] and r.asset == roles[item["role"]]
+            ],
+            spec,
+        )
+        used.extend(rows)
+        windows[input_key(item["name"], item["role"])] = window_frame(rows)
+    return windows, used
+
+
+def lineage_summary(used, bindings, windows):
+    ordered = sorted(used, key=lambda r: r.identity)
+    return {
+        "data_hash": canonical_hash([r.payload() for r in ordered]),
+        "lineage_digest": canonical_hash([bindings[r.identity] for r in ordered]),
+        "admissions": sorted(
+            {b["admission_id"] for b in bindings.values() if "admission_id" in b}
+        ),
+        "source_versions": sorted({b["source_version_id"] for b in bindings.values()}),
+        "producer_runs": sorted(
+            {
+                b["producer_run_id"]
+                for b in bindings.values()
+                if b.get("kind") == "PLUGIN_OUTPUT"
+            }
+        ),
+        "licences": sorted({r.licence for r in used}),
+        "sources": sorted({r.source for r in used}),
+        "windows": {
+            key: {
+                "observations": len(frame),
+                "first_observed": frame.observed_at.min().isoformat()
+                if len(frame)
+                else None,
+                "last_observed": frame.observed_at.max().isoformat()
+                if len(frame)
+                else None,
+            }
+            for key, frame in windows.items()
+        },
+    }
+
+
+def admission_bindings(store, tenant_id, rows):
     """Batch admission lookup. Unmapped inputs fail closed for series runs."""
     with store.connection() as db:
         records = db.execute(
@@ -303,57 +358,12 @@ class SeriesRunner:
                 {i.name for i in model_type.series_inputs},
                 {roles[i.role] for i in model_type.series_inputs},
             )
-            windows, used = {}, []
-            for item in model_type.series_inputs:
-                rows = latest_vintages(
-                    [
-                        r
-                        for r in visible
-                        if r.name == item.name and r.asset == roles[item.role]
-                    ],
-                    item.spec,
-                )
-                used.extend(rows)
-                key = item.name if item.role == "primary" else f"{item.role}.{item.name}"
-                windows[key] = window_frame(rows)
-            bindings = _bindings(self.store, tenant_id, used)
+            windows, used = select_inputs(visible, declarations["inputs"], roles)
+            bindings = admission_bindings(self.store, tenant_id, used)
             from .derived import verify_bindings
 
             verify_bindings(self.registry, tenant_id, bindings, used)
-            ordered = sorted(used, key=lambda r: r.identity)
-            lineage = {
-                "data_hash": canonical_hash([r.payload() for r in ordered]),
-                "lineage_digest": canonical_hash(
-                    [bindings[r.identity] for r in ordered]
-                ),
-                "admissions": sorted(
-                    {b["admission_id"] for b in bindings.values() if "admission_id" in b}
-                ),
-                "source_versions": sorted(
-                    {b["source_version_id"] for b in bindings.values()}
-                ),
-                "producer_runs": sorted(
-                    {
-                        b["producer_run_id"]
-                        for b in bindings.values()
-                        if b.get("kind") == "PLUGIN_OUTPUT"
-                    }
-                ),
-                "licences": sorted({r.licence for r in used}),
-                "sources": sorted({r.source for r in used}),
-                "windows": {
-                    key: {
-                        "observations": len(frame),
-                        "first_observed": frame.observed_at.min().isoformat()
-                        if len(frame)
-                        else None,
-                        "last_observed": frame.observed_at.max().isoformat()
-                        if len(frame)
-                        else None,
-                    }
-                    for key, frame in windows.items()
-                },
-            }
+            lineage = lineage_summary(used, bindings, windows)
             code = manifest(model_type, self.root)
             execution = execution_provenance(self.root, code)
             contract = {
@@ -394,10 +404,9 @@ class SeriesRunner:
                 tenant_id, attempt, run_id, "COMPUTATION_STARTED", {"holdout": None}
             )
             short = [
-                f"{key}: {len(windows[key])} < {i.minimum}"
+                f"{input_key(i.name, i.role)}: {len(windows[input_key(i.name, i.role)])} < {i.minimum}"
                 for i in model_type.series_inputs
-                for key in [i.name if i.role == "primary" else f"{i.role}.{i.name}"]
-                if len(windows[key]) < i.minimum
+                if len(windows[input_key(i.name, i.role)]) < i.minimum
             ]
             if short:
                 raise SeriesUnavailable(
