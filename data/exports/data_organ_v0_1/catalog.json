@@ -1,0 +1,162 @@
+{
+  "factor_window": [
+    "2024-01-01",
+    "2025-12-31"
+  ],
+  "macro_window": [
+    "2020-01-01",
+    "2025-12-31"
+  ],
+  "profiles": [
+    {
+      "cadence": "DAILY",
+      "calendar": "XNYS",
+      "clock_quality": "CAPTURE_ONLY",
+      "country": "US",
+      "fields": [
+        "MKT",
+        "SMB",
+        "HML",
+        "MOM",
+        "RF"
+      ],
+      "label": "French daily factors \u00b7 market factor, not a ticker",
+      "scope": "MARKET_FACTOR",
+      "source": "ken-french:daily-factors",
+      "source_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html"
+    },
+    {
+      "cadence": "DAILY",
+      "calendar": "XNSE_UNAVAILABLE_WITHOUT_OFFICIAL_MANIFEST",
+      "clock_quality": "CAPTURE_ONLY",
+      "country": "INDIA",
+      "fields": [
+        "MKT",
+        "SMB",
+        "HML",
+        "MOM",
+        "RF"
+      ],
+      "label": "IIMA daily factors \u00b7 market factor, not a ticker",
+      "scope": "MARKET_FACTOR",
+      "source": "iima:daily-factors",
+      "source_url": "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/"
+    },
+    {
+      "cadence": "MONTHLY",
+      "calendar": "NOT_APPLICABLE",
+      "clock_quality": "CONSERVATIVE_VINTAGE_DAY",
+      "country": "US",
+      "fields": [
+        "unemployment_rate"
+      ],
+      "label": "ALFRED UNRATE vintage intervals",
+      "scope": "MACRO_VINTAGES",
+      "source": "alfred:UNRATE",
+      "source_url": "https://alfred.stlouisfed.org/series?seid=UNRATE"
+    },
+    {
+      "cadence": "MONTHLY",
+      "calendar": "NOT_APPLICABLE",
+      "clock_quality": "CAPTURE_ONLY",
+      "country": "US",
+      "fields": [
+        "unemployment_rate"
+      ],
+      "label": "BLS current U3 mirror \u00b7 same upstream as UNRATE",
+      "scope": "CURRENT_MIRROR",
+      "source": "bls:LNS14000000",
+      "source_url": "https://www.bls.gov/developers/"
+    },
+    {
+      "cadence": "OPERATOR_IMPORT",
+      "calendar": "XNYS",
+      "clock_quality": "CONSERVATIVE_MARKET_TIME",
+      "country": "US",
+      "fields": [
+        "market_close"
+      ],
+      "label": "Alpaca IEX \u00b7 conservative market time",
+      "scope": "LOCAL_ONLY",
+      "source": "alpaca:iex",
+      "source_url": "https://docs.alpaca.markets/docs/historical-stock-data-1"
+    },
+    {
+      "cadence": "OPERATOR_IMPORT",
+      "calendar": "XNYS",
+      "clock_quality": "CAPTURE_ONLY",
+      "country": "US",
+      "fields": [
+        "market_close"
+      ],
+      "label": "Yahoo adjusted capture \u00b7 local only",
+      "scope": "LOCAL_ONLY",
+      "source": "yfinance",
+      "source_url": "https://finance.yahoo.com/"
+    },
+    {
+      "cadence": "OPERATOR_IMPORT",
+      "calendar": "XNSE_EVIDENCE_REQUIRED",
+      "clock_quality": "CAPTURE_ONLY",
+      "country": "INDIA",
+      "fields": [
+        "market_close"
+      ],
+      "label": "NSE unadjusted EOD operator import \u00b7 local only",
+      "scope": "LOCAL_ONLY",
+      "source": "nse:bhavcopy",
+      "source_url": "https://www.nseindia.com/all-reports"
+    },
+    {
+      "cadence": "OPERATOR_IMPORT",
+      "calendar": "XNSE_EVIDENCE_REQUIRED",
+      "clock_quality": "CAPTURE_ONLY",
+      "country": "INDIA",
+      "fields": [
+        "vix"
+      ],
+      "label": "NSE India VIX \u00b7 local only",
+      "scope": "LOCAL_ONLY",
+      "source": "nse:india-vix",
+      "source_url": "https://www.nseindia.com/market-data/india-vix"
+    },
+    {
+      "cadence": "RELEASE_IMPORT",
+      "calendar": "NOT_APPLICABLE",
+      "clock_quality": "PUBLICATION_TIMESTAMP_REQUIRED",
+      "country": "INDIA",
+      "fields": [
+        "repo_rate"
+      ],
+      "label": "RBI policy repo release imports",
+      "scope": "LICENCE_UNVERIFIED",
+      "source": "rbi:policy-repo",
+      "source_url": "https://www.rbi.org.in/"
+    },
+    {
+      "cadence": "RELEASE_IMPORT",
+      "calendar": "NOT_APPLICABLE",
+      "clock_quality": "PUBLICATION_TIMESTAMP_REQUIRED",
+      "country": "INDIA",
+      "fields": [
+        "cpi_combined"
+      ],
+      "label": "MOSPI CPI Combined release imports",
+      "scope": "LICENCE_UNVERIFIED",
+      "source": "mospi:cpi-combined",
+      "source_url": "https://www.mospi.gov.in/"
+    },
+    {
+      "cadence": "UNAVAILABLE",
+      "calendar": "NOT_APPLICABLE",
+      "clock_quality": "UNAVAILABLE",
+      "country": "INDIA",
+      "fields": [],
+      "label": "India fundamentals coverage",
+      "scope": "UNAVAILABLE",
+      "source": "india:fundamentals",
+      "source_url": "https://www.nseindia.com/"
+    }
+  ],
+  "schema_version": "data-organ-catalog/1"
+}
