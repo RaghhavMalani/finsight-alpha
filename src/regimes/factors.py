@@ -59,7 +59,7 @@ def diagnose(frame, target, controls, *, states=None, window=None, minimum=None)
     y = frame[target].to_numpy(float)
     x = frame[controls].to_numpy(float)
     full = regress(y, x, controls)
-    rolling, explained, residual, stamps = [], [], [], []
+    rolling, raw, explained, residual, stamps = [], [], [], [], []
     for t in range(len(frame)):
         start = max(0, t - window)
         if t - start < minimum:
@@ -71,9 +71,9 @@ def diagnose(frame, target, controls, *, states=None, window=None, minimum=None)
         fitted = float(beta[0] + x[t] @ beta[1:])
         stamps.append(frame.observed_at.iloc[t].isoformat())
         rolling.append({c: float(b) for c, b in zip(controls, beta[1:])})
+        raw.append(float(y[t]))
         explained.append(fitted)
         residual.append(float(y[t] - fitted))
-    raw = [float(v) for v in y[len(y) - len(explained):]] if explained else []
     cumulative = {
         "raw": float(np.sum(raw)) if raw else None,
         "explained": float(np.sum(explained)) if explained else None,

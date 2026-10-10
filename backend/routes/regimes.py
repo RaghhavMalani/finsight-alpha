@@ -59,11 +59,19 @@ def _latest(pipe, asset):
     return max(cutoffs)
 
 
-def _snapshot(asset, as_of):
+def _snapshot(asset, as_of, *, allow_invalid_lineage=False):
     pipe = _pipeline(asset)
     as_of = as_of or _latest(pipe, asset)
     try:
-        return pipe.snapshot(asset, as_of)
+        snap = pipe.snapshot(asset, as_of)
+        if not allow_invalid_lineage:
+            from src.regimes.publication import assert_verified_lineage
+
+            try:
+                assert_verified_lineage(snap)
+            except ValueError as error:
+                raise HTTPException(409, str(error)) from error
+        return snap
     except LookupError as error:
         raise HTTPException(404, "UNAVAILABLE: " + str(error)) from error
     except ValueError as error:
@@ -143,7 +151,7 @@ def lineage(request: Request, asset: str = Query(...), as_of: str | None = None)
     _gate(request)
     from src.regimes.publication import project_lineage
 
-    snap = _snapshot(asset, as_of)
+    snap = _snapshot(asset, as_of, allow_invalid_lineage=True)
     return _envelope("lineage", snap, project_lineage(snap))
 
 

@@ -1,5 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { ReplayError } from "@/replay/contracts";
 import { useDataMode } from "@/replay/mode";
 import { lookupInstrument } from "@/markets/instruments";
 import type { Snapshot } from "./contracts";
@@ -122,7 +123,7 @@ function Tiles({ snapshot }: { snapshot: Snapshot }) {
 }
 
 function Dashboard({ snapshot }: { snapshot: Snapshot }) {
-  const timeline = useTimeline(snapshot.asset);
+  const timeline = useTimeline(snapshot.asset, snapshot.requested_as_of);
   const s = snapshot.module_statuses;
   const usableTimeline = timeline.data?.payload;
   return (
@@ -169,26 +170,41 @@ export function RegimeIntelligence() {
     : "now";
   const [lineageFor, setLineageFor] = useState<string | null>(null);
   const snapshot = useSnapshot(asset);
-  const binding = useReplayBinding("snapshot", asset);
   const history = useHistory(asset);
   const selected = typeof search.at === "string" ? search.at : null;
   const sealedEntry = history.data?.payload.entries.find((e) => e.as_of === selected) ?? null;
-  const sealed = useSealedSnapshot(
-    mode === "replay" && dataMode === "replay" ? (sealedEntry?.snapshot_artifact ?? null) : null,
-  );
+  const selecting = mode === "replay" && dataMode === "replay" && selected !== null;
+  const selectedIdentity = selecting ? (sealedEntry?.snapshot_artifact ?? null) : null;
+  const sealed = useSealedSnapshot(selectedIdentity, asset, selected);
+  const binding = useReplayBinding("snapshot", asset, selectedIdentity);
   const other = useSnapshot(asset === "IN-MKT" ? "US-MKT" : "IN-MKT");
   const matrix = useMatrix();
-  const lineage = useLineage(lineageFor ?? asset, lineageFor !== null);
   const go = (patch: Record<string, unknown>) =>
     void navigate({ to: "/dynamics", search: { ...search, ...patch } as never });
   const assets = dataMode === "live" ? [...PUBLIC_ASSETS, ...LOCAL_ASSETS] : [...PUBLIC_ASSETS];
-  const current = mode === "replay" && sealed.data ? sealed.data.payload : snapshot.data?.payload;
+  const evidenceError = selecting
+    ? (history.error ??
+      sealed.error ??
+      (history.data && !sealedEntry
+        ? new ReplayError("Requested cutoff is not in the sealed history.")
+        : null))
+    : snapshot.error;
+  const current = evidenceError
+    ? undefined
+    : selecting
+      ? sealed.data?.payload
+      : snapshot.data?.payload;
+  const lineage = useLineage(
+    lineageFor ?? asset,
+    lineageFor !== null,
+    lineageFor === asset ? (current?.requested_as_of ?? null) : null,
+  );
 
   return (
     <section
       className="regimes-workspace"
       aria-label="Regime intelligence"
-      data-state={current ? "ready" : snapshot.error ? "unavailable" : "loading"}
+      data-state={current ? "ready" : evidenceError ? "unavailable" : "loading"}
       data-mode={mode}
       data-asset={asset}
     >
@@ -233,13 +249,23 @@ export function RegimeIntelligence() {
       </header>
 
       {!current ? (
-        <div className="regimes-state" role={snapshot.error ? "alert" : "status"}>
-          {snapshot.error ? (
+        <div className="regimes-state" role={evidenceError ? "alert" : "status"}>
+          {evidenceError ? (
             <>
               <strong>Regime evidence unavailable</strong>
-              <p>{snapshot.error.message}</p>
+              <p>{evidenceError.message}</p>
               <p>No synthetic world, weaker provider or proxy is substituted.</p>
-              <button onClick={() => snapshot.refetch()}>Retry evidence</button>
+              <button
+                onClick={() =>
+                  selecting
+                    ? selectedIdentity
+                      ? sealed.refetch()
+                      : history.refetch()
+                    : snapshot.refetch()
+                }
+              >
+                Retry evidence
+              </button>
             </>
           ) : (
             <p>Verifying sealed regime evidence…</p>

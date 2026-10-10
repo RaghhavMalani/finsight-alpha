@@ -97,7 +97,20 @@ def _hmm(run):
     return out
 
 
+def assert_verified_lineage(snapshot):
+    """Numerical views require verified chains; diagnostic lineage stays readable."""
+    chains = snapshot.get("lineage") or {}
+    invalid = {
+        name: chain.get("reason", "chain is not verified")
+        for name, chain in chains.items()
+        if chain.get("status") != "VERIFIED"
+    }
+    if not chains or invalid:
+        raise ValueError("INPUT_LINEAGE_INVALID: " + (str(invalid) if invalid else "missing chains"))
+
+
 def project_snapshot(snapshot):
+    assert_verified_lineage(snapshot)
     runs = snapshot["runs"]
     vol, two, four = runs["volatility"], runs["hmm2"], runs["hmm4"]
     mom, fac = runs["momentum"], runs["factors"]
@@ -161,6 +174,7 @@ def _codes(values, vocabulary):
 
 
 def project_timeline(snapshot):
+    assert_verified_lineage(snapshot)
     runs = snapshot["runs"]
     vol, two, four, mom = runs["volatility"], runs["hmm2"], runs["hmm4"], runs["momentum"]
     out = {
@@ -200,6 +214,7 @@ def project_timeline(snapshot):
 
 
 def project_factors(snapshot):
+    assert_verified_lineage(snapshot)
     fac = snapshot["runs"]["factors"]
     paths = fac.get("paths") or {}
     return {
@@ -240,6 +255,7 @@ def project_lineage(snapshot):
 
 
 def project_history(previous, snapshot, snapshot_identity):
+    assert_verified_lineage(snapshot)
     entries = list((previous or {}).get("entries", []))
     runs = snapshot["runs"]
     entry = {

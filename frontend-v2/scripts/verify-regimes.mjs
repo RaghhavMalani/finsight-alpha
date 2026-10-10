@@ -246,6 +246,27 @@ if (flag > 0) {
         assert.ok((await page.locator(".regimes-history li").count()) >= 1);
         if (width === 1440) await shot(page, "us-replay-1440");
 
+        const oldest = values.get("/regimes/history?asset=US-MKT").payload.entries[0];
+        text = await open("asset=US-MKT&mode=replay&at=" + encodeURIComponent(oldest.as_of));
+        assert.ok((await page.locator(".regimes-clock").innerText()).includes(oldest.as_of));
+        assert.ok(
+          text.includes(
+            `REPLAY · sha256 ${manifest.artifacts[oldest.snapshot_artifact].sha256.slice(0, 12)}`,
+          ),
+        );
+        const oldestPayload = JSON.parse(
+          readFileSync(new URL(manifest.artifacts[oldest.snapshot_artifact].url.slice(1), root)),
+        ).payload;
+        await page.getByRole("button", { name: "Why is this regime state available?" }).click();
+        const historicalDrawer = page.getByRole("dialog", {
+          name: "Why is this regime state available?",
+        });
+        await historicalDrawer
+          .getByText(oldestPayload.run_ids.volatility.slice(0, 12), { exact: false })
+          .first()
+          .waitFor();
+        await historicalDrawer.getByRole("button", { name: "Close lineage" }).click();
+
         text = await open("asset=US-MKT&mode=compare");
         assert.ok(text.includes("INDIA MARKET-FACTOR REGIME"));
         assert.ok(text.includes("Nothing is aligned, filled or ranked"));
@@ -285,6 +306,39 @@ if (flag > 0) {
         );
         const page = await context.newPage();
         await page.goto(base + "/dynamics?asset=US-MKT", { waitUntil: "networkidle" });
+        await page.locator('.regimes-workspace[data-state="unavailable"] [role=alert]').waitFor();
+        assert.equal(await page.locator(".regimes-tile").count(), 0, kind);
+        assert.equal(await page.locator("#regimes-timeline").count(), 0, kind);
+        await context.close();
+        views++;
+      }
+      // Selecting a historical cutoff must fail closed rather than substitute NOW.
+      const oldest = values.get("/regimes/history?asset=US-MKT").payload.entries[0];
+      const historicalId = oldest.snapshot_artifact;
+      const historicalEntry = manifest.artifacts[historicalId];
+      for (const kind of ["hash", "missing", "cutoff", "asset", "unknown-cutoff"]) {
+        const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+        const altered = JSON.parse(readFileSync(new URL(historicalEntry.url.slice(1), root)));
+        if (kind === "cutoff") altered.payload.requested_as_of = "1920-01-01T00:00:00Z";
+        if (kind === "asset")
+          altered.payload = values.get("/regimes/snapshot?asset=IN-MKT").payload;
+        const raw = JSON.stringify(altered) + (kind === "hash" ? " " : "");
+        const fake = structuredClone(manifest);
+        if (["cutoff", "asset"].includes(kind)) {
+          fake.artifacts[historicalId].sha256 = createHash("sha256").update(raw).digest("hex");
+          fake.artifacts[historicalId].bytes = Buffer.byteLength(raw);
+        }
+        await context.route("**/replay-manifest.json", (route) => route.fulfill({ json: fake }));
+        await context.route("**" + historicalEntry.url, (route) =>
+          kind === "missing"
+            ? route.fulfill({ status: 404, body: "unavailable" })
+            : route.fulfill({ contentType: "application/json", body: raw }),
+        );
+        const page = await context.newPage();
+        const at = kind === "unknown-cutoff" ? "1920-01-01T00:00:00Z" : oldest.as_of;
+        await page.goto(base + "/dynamics?asset=US-MKT&mode=replay&at=" + encodeURIComponent(at), {
+          waitUntil: "networkidle",
+        });
         await page.locator('.regimes-workspace[data-state="unavailable"] [role=alert]').waitFor();
         assert.equal(await page.locator(".regimes-tile").count(), 0, kind);
         assert.equal(await page.locator("#regimes-timeline").count(), 0, kind);

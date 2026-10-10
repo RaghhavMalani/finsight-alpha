@@ -58,3 +58,6 @@ data/exports/nervous_system_v0_1/receipt*.json whitespace=cr-at-eol
 data/exports/data_organ_v0_1/** -text
 eval/data-organ/** text eol=lf
 src/data_organ/** text eol=lf
+
+# Phase 5 receipts retain their exact content-addressed bytes on every platform.
+data/exports/regimes_v0_1/** -text
