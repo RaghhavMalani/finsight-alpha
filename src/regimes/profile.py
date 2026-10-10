@@ -49,3 +49,17 @@ def context(asset):
         "badges": spec["badges"],
         "tier": spec["tier"],
     }
+
+
+def run_context(asset, session=None):
+    """Identity-bound computation context: profile bytes, market semantics, calendar."""
+    base = context(asset)
+    unit = base["observation_unit"]
+    if session is not None and session.get("unit") == "observation":
+        unit = "observation"
+    return {
+        **base,
+        "observation_unit": unit,
+        "session_evidence": session,
+        "settings": profile(),
+    }

@@ -67,9 +67,9 @@ class SeriesModel(ABC):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        declared = tuple(cls.__dict__.get("computation_dependencies", ()))
+        declared = tuple(getattr(cls, "computation_dependencies", ()))
         cls.computation_dependencies = SERIES_KERNEL + tuple(
-            d for d in declared if d not in SERIES_KERNEL
+            dict.fromkeys(d for d in declared if d not in SERIES_KERNEL)
         )
 
     def __init__(self, *, seed: int = 42, **config):
@@ -92,9 +92,10 @@ class SeriesModel(ABC):
             n.startswith("target") or n in {"label", "future_return"} for n in names
         ):
             raise ValueError("Targets cannot be declared as series inputs")
-        outputs = [o.name for o in cls.outputs + cls.derived_outputs]
-        if len(set(outputs)) != len(outputs):
-            raise ValueError("Duplicate output declaration")
+        for group in (cls.outputs, cls.derived_outputs):
+            names = [o.name for o in group]
+            if len(set(names)) != len(names):
+                raise ValueError("Duplicate output declaration")
         return {
             "inputs": [
                 {**asdict(i.spec), "role": i.role, "minimum": i.minimum}

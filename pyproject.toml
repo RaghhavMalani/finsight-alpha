@@ -32,6 +32,7 @@ dependencies = [
     "google-cloud-storage",
     "uvicorn",
     "exchange-calendars>=4.13,<5",
+    "arch>=8,<9",
     "websocket-client>=1.8,<2",
 ]
 
