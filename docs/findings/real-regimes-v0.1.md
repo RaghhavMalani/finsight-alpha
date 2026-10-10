@@ -1,6 +1,6 @@
 # Both market factors sit in their calmer regime; India's evidence is 284 days old
 
-At the sealed cutoff `2026-10-10T13:09:33.975258Z`, the filtered two-state HMM puts
+At the sealed cutoff `2026-10-10T13:59:59.414508Z`, the filtered two-state HMM puts
 both the US and the Indian market factor in `VOL_RANK_1_OF_2`, the lower-variance
 regime, with filtered posteriors of 1.000 and 0.999. They are evaluated at their own
 `state_at`: 2026-08-31 for the US and 2025-12-31 for India, 243 days apart. India's
@@ -20,7 +20,7 @@ is a volatility-only partial subtotal.
 | | US MARKET-FACTOR REGIME | INDIA MARKET-FACTOR REGIME |
 | --- | --- | --- |
 | Source | [French daily factors](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip) + [momentum](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Momentum_Factor_daily_CSV.zip) | [IIMA four factors and market returns](https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/DATA/2025-12_FourFactors_and_Market_Returns_Daily_SurvivorshipBiasAdjusted.csv) |
-| Captured (CAPTURE_ONLY) | 2026-10-10T13:07:20Z (FF3), 13:08:46Z (MOM) | 2026-10-10T13:09:33Z |
+| Captured (CAPTURE_ONLY) | 2026-10-10T13:57:41Z (FF3), 13:59:10Z (MOM) | 2026-10-10T13:59:59Z |
 | Full library coverage | MKT/SMB/HML/RF 1926-07-01 → 2026-08-31 (26,317 rows each); MOM 1926-11-03 → 2026-08-31 (26,216) | MKT/SMB/HML/MOM/RF 1993-10-01 → 2025-12-31 (8,004 rows each) |
 | Analysis window (D1) | 2000-01-01 → 2026-08-31: 6,705 observations | 2000-01-01 → 2025-12-31: 6,466 observations |
 | Admitted / quarantined | 33,525 / 0 | 32,330 / 0 |
@@ -56,8 +56,10 @@ tests.
 | Persistence α+β · half-life | 0.980 · 34.1 sessions | 0.984 · 43.4 observations |
 | Frozen D0.4.2 state counts | NORMAL 3,749 · LOW_VOL 1,256 · HIGH_VOL 1,162 · VOL_CLUSTER 414 · VOL_BREAK 38 · VOL_SHOCK 27 · warm-up 59 | NORMAL 3,499 · LOW_VOL 1,052 · HIGH_VOL 1,027 · VOL_CLUSTER 744 · VOL_BREAK 51 · VOL_SHOCK 34 · warm-up 59 |
 
-Neither fit is at a parameter boundary, and both half-lives are inside the stationary
-domain.
+Neither fit is at a parameter boundary, and both ARCH coefficients are identified: their
+robust 95% lower bounds are 0.098 (US) and 0.098 (India), above zero. Both half-lives are
+inside the stationary domain. A fit without an identified ARCH effect is reported as
+`UNIDENTIFIED`, with no persistence or half-life.
 
 ## HMM regimes
 
@@ -144,20 +146,22 @@ These are not compounded P&L and not alpha.
 | [38052277371](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/38052277371) | `655ab44` | No prior receipt → `PUBLISHED`: 10 sealed runs (one per computation per market), 0 holdout openings, re-projected from the runtime (`RE_PROJECTED`, 10 runs); committed `0ebbdd9` |
 | [38053525411](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/38053525411) | `800236b` | Fresh runner, identical capture bytes → `{"status": "UNCHANGED", "new_runs": 0, "holdout_openings": 0}`; runtime `UNCHANGED_ZERO_RUNS`; nothing committed |
 | [38054445190](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/38054445190) | `7682bcf` | Publication code changed (library coverage) → `PUBLISHED`: 10 new sealed runs, 0 openings; sealed history appended, earlier artifacts byte-identical; committed `f4a7d95` |
-| [38055871865](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/38055871865) | `f4a7d95` | Fresh runner, identical bytes, final code → `UNCHANGED`, 0 runs, 0 openings; runtime `UNCHANGED_ZERO_RUNS`; 22 artifacts verified; nothing committed |
+| [38055871865](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/38055871865) | `f4a7d95` | Fresh runner, identical bytes → `UNCHANGED`, 0 runs, 0 openings; runtime `UNCHANGED_ZERO_RUNS`; 22 artifacts verified; nothing committed |
+| [38057668714](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/38057668714) | `9ea8d52` | Computation code changed (GARCH identification) → `PUBLISHED`: 10 new sealed runs, 0 openings, every published value unchanged; committed `477d725` |
+| [38059074354](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/38059074354) | `477d725` | Fresh runner, identical bytes, final code → `UNCHANGED`, 0 runs, 0 openings; runtime `UNCHANGED_ZERO_RUNS`; 33 artifacts verified; nothing committed |
 
-The two sealed cutoffs agree on every published state because their input bytes are
-identical. The sealed multi-cutoff timeline therefore shows two entries, as known at
+The three sealed cutoffs agree on every published state because their input bytes are
+identical. The sealed multi-cutoff timeline therefore shows three entries, as known at
 each run.
 
 ## Identities at the current cutoff
 
-* Receipt `data/exports/regimes_v0_1/receipt-e307e1ed….json`; profile sha256 `b12b8ed7…`;
-  execution commit `7682bcf`, `dirty_computation: false`.
-* US runs: volatility `a3a69ddc…`, hmm2 `fda7bf8d…`, hmm4 `6ef2e72e…`, factors
-  `19d59987…`, momentum `bde2a485…`; snapshot `regimes:snapshot:dc4ce03a…`.
-* India runs: volatility `81bd2285…`, hmm2 `b1f80b32…`, hmm4 `d3d07180…`, factors
-  `46df1ebd…`, momentum `d380cdb0…`; snapshot `regimes:snapshot:e7545843…`.
+* Receipt `data/exports/regimes_v0_1/receipt-40683751….json`; profile sha256 `b12b8ed7…`;
+  execution commit `9ea8d52`, `dirty_computation: false`.
+* US runs: volatility `9038c013…`, hmm2 `91496503…`, hmm4 `6632b083…`, factors
+  `133fe71f…`, momentum `77f16d4a…`; snapshot `regimes:snapshot:12235bb5…`.
+* India runs: volatility `f839fd04…`, hmm2 `e8b9663b…`, hmm4 `ad0a7662…`, factors
+  `e5602e88…`, momentum `437bb21b…`; snapshot `regimes:snapshot:188141fd…`.
 
 ## What this does not show
 
