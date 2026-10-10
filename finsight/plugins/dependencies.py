@@ -182,8 +182,64 @@ def manifest(model_type, root):
                         and node.value.id in import_namespaces
                     ):
                         import_namespaces.update(names)
+                    elif (
+                        isinstance(node.value, ast.Call)
+                        and is_importer(node.value.func)
+                        and node.value.args
+                        and isinstance(node.value.args[0], ast.Constant)
+                        and isinstance(node.value.args[0].value, str)
+                        and node.value.args[0].value.split(".")[0]
+                        in {"importlib", "builtins"}
+                    ):
+                        import_namespaces.update(names)
             if old == (dynamic_aliases, import_namespaces):
                 break
+        parents = {
+            child: parent
+            for parent in ast.walk(tree)
+            for child in ast.iter_child_nodes(parent)
+        }
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and not isinstance(node.ctx, ast.Load):
+                continue
+            importer = is_importer(node)
+            namespace = isinstance(node, ast.Name) and node.id in import_namespaces
+            if not importer and not namespace:
+                continue
+            parent = parents.get(node)
+            alias = isinstance(parent, (ast.Assign, ast.AnnAssign)) and (
+                parent.value is node
+                and all(
+                    isinstance(t, ast.Name)
+                    for t in (
+                        parent.targets
+                        if isinstance(parent, ast.Assign)
+                        else [parent.target]
+                    )
+                )
+            )
+            direct = isinstance(parent, ast.Call) and parent.func is node
+            attribute = (
+                namespace
+                and isinstance(parent, ast.Attribute)
+                and parent.value is node
+                and parent.attr != "__dict__"
+            )
+            lookup = (
+                namespace
+                and isinstance(parent, ast.Call)
+                and isinstance(parent.func, ast.Name)
+                and parent.func.id == "getattr"
+                and len(parent.args) > 1
+                and parent.args[0] is node
+                and isinstance(parent.args[1], ast.Constant)
+                and isinstance(parent.args[1].value, str)
+                and parent.args[1].value != "__dict__"
+            )
+            # Opaque containers/callbacks can hide the actual import call. They
+            # are unsupported declarations, not a reason to broaden the hash.
+            if not (alias or (importer and direct) or attribute or lookup):
+                raise ValueError("Unresolved dynamic import reference at " + module)
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for alias in node.names:

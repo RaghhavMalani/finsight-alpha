@@ -77,6 +77,13 @@ def test_execution_head_does_not_reopen_holdout(platform, monkeypatch):
         "globals()['__import__'](self.config['module'])",
         "namespace = importlib\n  getattr(namespace, self.config['loader'])(self.config['module'])",
         "namespace = importlib\n  alias = namespace\n  getattr(alias, self.config['loader'])(self.config['module'])",
+        "loaders = [__import__]\n  loaders[0](self.config['module'])",
+        "loaders = {'load': importlib.import_module}\n  loaders['load'](self.config['module'])",
+        "namespaces = [importlib]\n  getattr(namespaces[0], self.config['loader'])(self.config['module'])",
+        "importlib.__dict__['import_module'](self.config['module'])",
+        "namespace = __import__('importlib')\n  getattr(namespace, self.config['loader'])(self.config['module'])",
+        "getter = getattr\n  getter(importlib, self.config['loader'])(self.config['module'])",
+        "functools.partial(__import__, self.config['module'])()",
     ],
 )
 def test_aliased_dynamic_imports_fail_closed(monkeypatch, statement):
@@ -89,6 +96,25 @@ def test_aliased_dynamic_imports_fail_closed(monkeypatch, statement):
     )
     with pytest.raises(ValueError, match="Unresolved dynamic import"):
         manifest(MeanModel, ROOT)
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "loader = __import__\n  loader('json')",
+        "namespace = importlib\n  getattr(namespace, 'import_module')('json')",
+        "namespace = __import__('importlib')\n  getattr(namespace, 'import_module')('json')",
+    ],
+)
+def test_resolved_import_aliases_remain_supported(monkeypatch, statement):
+    import finsight.plugins.dependencies as module
+
+    monkeypatch.setattr(
+        module.inspect,
+        "getsource",
+        lambda _: "class MeanModel:\n def fit(self, rows):\n  " + statement + "\n",
+    )
+    assert manifest(MeanModel, ROOT)["schema_version"] == "computation-dependencies/2"
 
 
 def test_transitive_module_constants_bind_identity(tmp_path, monkeypatch):
