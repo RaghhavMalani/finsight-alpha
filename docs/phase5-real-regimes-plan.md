@@ -1,8 +1,33 @@
-# Phase 5 — Real US + India Regime Intelligence: implementation plan
+# Phase 5 — Real US + India Regime Intelligence: approved implementation plan
 
-**Status: PLANNING ONLY. Awaiting explicit approval. Nothing below is implemented.**
+**Status: APPROVED 2026-10-10 with the amendments recorded below. Implementation proceeds through §17 steps 1–8 without further planning approval.**
 
-Branch `feat/phase5-real-regimes` starts at canonical main `1a0d03d7dedb2e50e57a7c28149f2ed0351be275` (the PR #26 merge). This commit adds only this document. No code, data, artifact, workflow or manifest changes are made before approval.
+Branch `feat/phase5-real-regimes` starts at canonical main `1a0d03d7dedb2e50e57a7c28149f2ed0351be275` (the PR #26 merge). The original proposal was commit `1242f86`; where it conflicts with the review decision below, the review decision governs.
+
+## Review decision (binding)
+
+| Decision | Outcome | Binding amendment |
+| --- | --- | --- |
+| D1 window | Approved | 2000-01-01 onward is the common analytical window. Each source's complete historical coverage is still reported separately. |
+| D2 tenant | Approved | `public-regime-evidence`; Phase 3 F10 history and counts are not mutated. |
+| D3 SeriesModel | Approved | Zero fabricated targets, splits or holdout openings for unsupervised/time-series computations. |
+| D4 India | Approved with restriction | `PARTIAL · CALENDAR_UNAVAILABLE · STALE_INPUT`. Transitions, windows, durations and GARCH persistence are **per observed record**, never trading days or sessions. No annualisation and no session-gap diagnostics for India. |
+| D5 local tier | Approved, non-blocking | SPY/QQQ/IWM first; sector ETFs only if already legitimately admitted. Phase 5 completion does not depend on it. |
+| D6 nightly | Approved conditionally | First prove with `workflow_dispatch`: unchanged source → zero new runs; changed admitted content → one new sealed run per computation; always zero holdout openings and zero implicit plugin/reference executions. Only then is the scheduled path left enabled. |
+| D7 GARCH | **Changed** | The mature `arch` package (8.x, NCSA licence) is the production GARCH(1,1) estimator, with robust covariance. An independent bounded SciPy reference implementation lives in tests only, for parameter/likelihood/conditional-volatility differential checks. If `arch` cannot be installed reliably in required CI, stop and report before substituting any production estimator. (Checked at approval time: `arch` 8.0.0 installs on Linux/Python 3.11 with the repo's numpy/pandas, and a `cp311-win_amd64` wheel exists.) |
+| D8 fracture/IOHMM | Approved | Partial/unavailable; no manufactured components. |
+| D9 captures | Approved | Public French/IIMA capture runs in GitHub Actions or by operator execution; the local Alpaca tier is populated on the operator machine. Cloud network blocking never weakens provenance. |
+| D10 badge | Approved | `LOCAL MODEL RUN`, never `LIVE MODEL RUN` without a continuously running feed. |
+
+**Scientific corrections (binding):**
+
+1. **Module 6 semantics.** The primary momentum panel conditions the **12–1 market-factor signal itself** on HMM state: n, mean signal, median signal, positive-signal fraction and dispersion. The French/IIMA `MOM` factor by regime is a separately titled panel, "MOM FACTOR BY REGIME — cross-sectional momentum-factor diagnostic", and is never described as the return of a 12–1 market-timing signal. The frozen Phase 4 card is the only place carrying Research OS momentum verdicts.
+2. **Time semantics without a calendar.** India HMM transitions are "per observed record", expected duration is in observations, GARCH persistence is per observation step, and 12–1 is a "252/21 observation-index approximation · CALENDAR_UNAVAILABLE". "Days", "trading days" and "sessions" are never used for India.
+3. **Posterior semantics.** Published historical paths are genuinely **filtered** by a custom forward recursion; full-sequence (forward–backward) `predict_proba` output is never published as a historical state. Three layers stay distinct: CURRENT STATE AT CUTOFF (PIT-valid for the admitted capture), WITHIN-RUN HISTORICAL PATH (`PARAMETER_RETROSPECTIVE`, parameters estimated through the cutoff) and SEALED MULTI-CUTOFF TIMELINE (the as-known-at-each-run sequence).
+
+**Naming (binding).** Public anonymous views say `US MARKET-FACTOR REGIME · French MKT · CAPTURE_ONLY` and `INDIA MARKET-FACTOR REGIME · IIMA MKT · CAPTURE_ONLY · STALE_INPUT`. They never imply SPY or NIFTY 50. Local views say e.g. `SPY REGIME · ALPACA IEX · LOCAL ONLY · CONSERVATIVE_MARKET_TIME`.
+
+**Still out of scope:** VectorBT, NautilusTrader, hftbacktest, Kalshi, new inference calibration, a new momentum study and any live-trading functionality. Evidence requirements are never weakened to make a module available. The phase ends with one unmerged PR carrying sealed real-evidence findings, production screenshots and the complete verification packet.
 
 This is a product and descriptive-research phase. It is not an inference-calibration tournament, a Research OS retry, a rerun of the frozen momentum study, an alpha claim, a trading strategy, or an execution-engine integration. All claim flags stay false: `market_claim_eligible`, `validated_alpha`, `inference_certified`, `causal_claim_eligible`, plus D0.4.2's `trusted_graph` and `precise_edge_confidence`.
 
@@ -198,11 +223,11 @@ Plugin `regimes.volatility` (`src/regimes/volatility.py`), input: daily market e
 
 - **Descriptive components.** These come from `volatility_path` unchanged: RV 5/20/60 (RMS), EWMA λ = 0.94, 20-session sample variance, lag-1 squared/absolute-return autocorrelation, vol-of-vol, shock magnitude, persistence and the frozen state decision.
 - **ARCH-LM.** `het_arch(r − mean(r), nlags=5)` over the full visible window, minimum 100 observations. It reports the LM statistic, df and asymptotic χ² p-value, labelled `DIAGNOSTIC_ASYMPTOTIC`. There is one preregistered lag choice and no multiple-testing claim.
-- **GARCH(1,1).**
-  - In-repo Gaussian QMLE (scipy L-BFGS-B, decision D7) on zero-mean demeaned percent returns, minimum 500 observations.
-  - Constraints: ω > 0, α ≥ 0, β ≥ 0, α + β < 1 via reparameterisation. Fixed start (ω = 0.05·var, α = 0.05, β = 0.90); initial variance = window sample variance.
-  - Outputs: ω, α, β, α + β, conditional-volatility path, `fit_status` (`CONVERGED` / `UNCONVERGED` / `BOUNDARY`), and Bollerslev–Wooldridge sandwich SEs labelled `DIAGNOSTIC_ASYMPTOTIC` (`UNAVAILABLE` if the Hessian is not positive definite).
-  - Half-life `ln 0.5 / ln(α+β)` is published only when 0 < α + β < 1; otherwise `INVALID_DOMAIN` and null.
+- **GARCH(1,1)** (decision D7 as amended).
+  - Production estimator: `arch.arch_model(r, mean="Constant", vol="GARCH", p=1, q=1, dist="normal", rescale=False)` on percent returns, minimum 500 observations, fitted with `cov_type="robust"` (Bollerslev–Wooldridge).
+  - Outputs: μ, ω, α, β, α + β, conditional-volatility path, log-likelihood, optimizer convergence flag and `fit_status` (`CONVERGED` / `UNCONVERGED` / `BOUNDARY`). Robust SEs and p-values are labelled `DIAGNOSTIC_ASYMPTOTIC`, never calibrated.
+  - Half-life `ln 0.5 / ln(α+β)` is published only when 0 < α + β < 1; otherwise `INVALID_DOMAIN` and null. It is in observation steps (sessions only where an evidenced calendar exists, so "sessions" for XNYS-backed US rows and "observations" for India).
+  - Test-only reference: an independent bounded SciPy Gaussian QMLE in `tests/regimes/reference_garch.py` cross-checks parameters, log-likelihood and conditional volatility on synthetic GARCH worlds and on fixed data.
 - **Provenance.** Every output carries asset, requested `as_of`, `state_at`, input hash, admission identities, evidence quality, calendar identity, plugin version, missing components and diagnostic status.
 - **Derived outputs.** `realized_vol_20`, `garch_conditional_vol` and `volatility_state` are appended as `PLUGIN_OUTPUT` signals (`source = plugin:regimes.volatility`, `version = producer run_id`, `available_at = producer cutoff`). They are bound to the sealed producer run (§6.3).
 
@@ -216,7 +241,7 @@ Two preregistered configurations, both reported, with no selection between them:
 | `hmm4-existing` | Phase 1a features via `src/regime/regime_features` from the admitted return window: `log_return`, `rolling_return_20`, `realized_vol_20`, `drawdown_from_252_high` | 4 | `train_hmm_regime_model(n_states=4, covariance_type="full", random_state=42)` |
 
 - **Fitting.** Fit uses only the visible window at the cutoff (StandardScaler fit on the same window). There is no train/holdout and no state-count search. Seed 42 is fixed; there are no reruns.
-- **Exposed outputs.** Filtered posteriors (own forward recursion over the fitted `startprob_`, `transmat_`, `means_`, `covars_`; tested against hmmlearn), the transition matrix, occupancy, expected duration `1/(1−p_kk)`, per-state transition entropy, means and covariances in original units, `monitor_.converged`, the log-likelihood history, iteration count, the current posterior and the last 250 posteriors. The state path itself publishes daily argmax and confidence.
+- **Exposed outputs.** Filtered posteriors from a custom forward recursion over the fitted `startprob_`, `transmat_`, `means_`, `covars_`. The final filtered row is tested against hmmlearn's posterior for the final observation, where filtering and smoothing coincide. Full-sequence forward–backward probabilities are never published as historical states. Also exposed: the transition matrix, occupancy, expected duration `1/(1−p_kk)` in observations, per-state transition entropy, means and covariances in original units, `monitor_.converged`, the log-likelihood history, iteration count, the current posterior and the last 250 filtered posteriors. The state path publishes filtered argmax and confidence per observation.
 - **Labelling.** A deterministic post-fit rule orders states by fitted return-feature variance in original units: `VOL_RANK_1_OF_K` (lowest) … `VOL_RANK_K_OF_K`. Per-state mean return is shown as a number only. There are no bull/bear/crash labels. The canonical permutation and its semantic hash are sealed.
 - **Semantics labels.** The path within one run is `PARAMETER_RETROSPECTIVE` (parameters use data up to the cutoff; filtering is observation-causal). The state at the cutoff is the PIT-valid output. A genuine as-known-then timeline is the sequence of sealed runs at successive cutoffs.
 - **Issues.**
@@ -260,10 +285,10 @@ The view is named `PARTIAL_FACTOR_DIAGNOSTIC` (US: MKT, SMB, HML, MOM; India: II
 
 This is not the Phase 4 study, and nothing from Phase 4 is recomputed.
 
-- **Current momentum.** Market-factor 12-1 momentum is `Π(1+mkt)` over observation indices [t−252, t−21] − 1. India's indices are labelled observation-sequence, not verified sessions.
-- **Conditional view.** The next-observation MOM factor return is grouped by lagged `hmm2-diagnostic` state at the cutoff run. Each group shows n, mean, median, hit rate, and descriptive Sharpe (n ≥ 30 and nonzero sd, same gate as D0.4.2).
-- **Turnover.** `UNAVAILABLE` (a factor return has no position).
-- **UI separation.** A permanent split card shows "FROZEN RESEARCH OS RESULT" (the four verdicts read from SHA-pinned `data/exports/research_os_v0_1/flagship.json`) beside "CURRENT DESCRIPTIVE REGIME VIEW". The descriptive panel carries no verdict field.
+- **CURRENT MARKET-FACTOR MOMENTUM.** The 12–1 signal is `Π(1+mkt)` over observation indices [t−252, t−21] − 1. US rows use XNYS-backed session indices; India rows say "252/21 observation-index approximation · CALENDAR_UNAVAILABLE".
+- **Signal by HMM state (primary panel).** The historical 12–1 signal is grouped by the `hmm2-diagnostic` filtered state at the same observation. Each group shows n, mean signal, median signal, positive-signal fraction and dispersion (MAD and sample SD). It is a distribution of the signal itself, not a return.
+- **MOM FACTOR BY REGIME (separate panel).** Subtitled "cross-sectional momentum-factor diagnostic". The next-observation French/IIMA `MOM` return is grouped by the lagged filtered state: n, mean, median, positive fraction, and descriptive Sharpe only when n ≥ 30 with nonzero SD. It is never described as the return of the 12–1 market-factor signal.
+- **UI separation.** A permanent split card shows "FROZEN RESEARCH OS RESULT" (the four verdicts read from SHA-pinned `data/exports/research_os_v0_1/flagship.json`) beside "CURRENT DESCRIPTIVE REGIME VIEW". Neither descriptive panel carries a verdict field.
 
 ### 5.7 Module 7 — event pressure
 
@@ -348,11 +373,11 @@ Kinds: `HMM_UNCONVERGED, INSUFFICIENT_WARMUP, LOW_STATE_OCCUPANCY, REGIME_INSTAB
 | `src/regimes/contracts.py` | Envelope, statuses, evidence propagation, claims, issue kinds |
 | `src/regimes/profile.py` | Loads/validates the frozen profile and its hash |
 | `src/regimes/volatility.py` | Module 1 adapter: `volatility_path`, ARCH-LM wrapper |
-| `src/regimes/garch.py` | GARCH(1,1) Gaussian QMLE, sandwich SEs, half-life domain |
+| `src/regimes/garch.py` | `arch` GARCH(1,1) wrapper with robust covariance, fit status, half-life domain |
 | `src/regimes/hmm.py` | Module 2 adapters, filtered posteriors, deterministic labelling, persistence/entropy/OOD |
 | `src/regimes/seasonality.py` | Module 4 input adapter to frozen `seasonality`; IEX labelling |
 | `src/regimes/factors.py` | Module 5 partial-factor diagnostic, raw/explained/residual |
-| `src/regimes/momentum.py` | Module 6 descriptive view, frozen-verdict reader |
+| `src/regimes/momentum.py` | Module 6: 12–1 market-factor signal by HMM state; separately named MOM-factor diagnostic; frozen-verdict reader |
 | `src/regimes/events.py` | Module 7 admitted-stream gate and aggregate Hawkes diagnostics |
 | `src/regimes/matrix.py` | Module 8 composition and descriptive summaries |
 | `src/regimes/plugins.py` | Registered series plugins and explicit dependency declarations |
@@ -373,7 +398,7 @@ Kinds: `HMM_UNCONVERGED, INSUFFICIENT_WARMUP, LOW_STATE_OCCUPANCY, REGIME_INSTAB
 | `tests/regimes/test_lineage_sabotage.py` | Test family B |
 | `tests/regimes/test_calendar_sabotage.py` | Test family C |
 | `tests/regimes/test_hmm.py` | Test family D |
-| `tests/regimes/test_volatility.py`, `tests/regimes/test_garch.py` | Test family E |
+| `tests/regimes/test_volatility.py`, `tests/regimes/test_garch.py`, `tests/regimes/reference_garch.py` | Test family E; independent SciPy reference GARCH used only for differential checks |
 | `tests/regimes/test_seasonality.py` | Test family F |
 | `tests/regimes/test_factors.py` | Test family G |
 | `tests/regimes/test_events.py` | Test family H |
@@ -398,6 +423,7 @@ Kinds: `HMM_UNCONVERGED, INSUFFICIENT_WARMUP, LOW_STATE_OCCUPANCY, REGIME_INSTAB
 
 | Path | Bounded change |
 | --- | --- |
+| `pyproject.toml` | Add `arch>=8,<9` (production GARCH estimator, decision D7) |
 | `finsight/plugins/dependencies.py` | Select the series kernel for `SeriesModel` subclasses only; row-model manifests unchanged |
 | `finsight/plugins/__init__.py` | Export `SeriesModel` |
 | `src/data_organ/adapters.py` | Additive `alpaca_intraday` (IEX minute `iex_bar_close`, `iex_bar_volume`, LOCAL_ONLY), only if D5 is approved; existing adapters unchanged |
@@ -432,7 +458,7 @@ Each series plugin declares `computation_dependencies` explicitly. Unresolved or
 
 | Plugin | Declared computation roots (besides series kernel) |
 | --- | --- |
-| `regimes.volatility` | `src.regimes.volatility`, `src.regimes.garch`, `src.dynamics.market_regime:volatility_path`, statsmodels `het_arch`, scipy optimize |
+| `regimes.volatility` | `src.regimes.volatility`, `src.regimes.garch`, `src.dynamics.market_regime:volatility_path`, statsmodels `het_arch`, `arch` |
 | `regimes.hmm2` | `src.regimes.hmm`, `src.regime.hmm_regime:train_hmm_regime_model`, hmmlearn, scikit-learn, scipy |
 | `regimes.hmm4-existing` | the above + `src.regime.regime_features` |
 | `regimes.factors` | `src.regimes.factors`, `src.dynamics.market_regime:hac_regression`, `POLICY` |
@@ -449,8 +475,8 @@ The Data Organ code, the API, the UI and the matrix composition are outside ever
 | A PIT / leakage | Future price, factor revision, macro release, event and volatility rows each leave the old cutoff byte-identical with no recompute; target-named input rejected; normaliser fit outside the visible window rejected; capture-only data invisible before its capture clock | `test_pit_sabotage.py` |
 | B Lineage | Changed source bytes, admission hash, source/version mismatch, backdated `available_at`, stripped timezone and removed licence grant each fail closed or make public Replay unavailable; lineage failure makes the output UNAVAILABLE, never a cached value | `test_lineage_sabotage.py`, `test_derived_lineage.py` |
 | C Calendar | XNSE unavailable gives no weekday/XBOM grid; calendar version change changes diagnostic identity; invalid early close/session gives explicit unsupported | `test_calendar_sabotage.py` |
-| D HMM | Fixed-seed determinism; filtered-posterior prefix invariance; final filtered = hmmlearn posterior; transition and posterior rows sum to 1; label determinism under permuted init; relabelling changes semantic hash; unconverged run retained with no retry | `test_hmm.py` |
-| E Volatility | Constant series; IID Gaussian (no clustering, ARCH-LM diagnostic only); ARCH and GARCH synthetic controls (parameters recovered within tolerance); shock/recovery world; return scaling (α, β invariant, ω scales); no NaN/Inf; half-life `INVALID_DOMAIN` for α + β ≥ 1 | `test_volatility.py`, `test_garch.py` |
+| D HMM | Fixed-seed determinism; filtered-posterior prefix invariance (future observations never change an earlier filtered row under fixed parameters); final filtered = hmmlearn posterior; a smoothed path is rejected by the publication validator; transition and posterior rows sum to 1; label determinism under permuted init; relabelling changes semantic hash; unconverged run retained with no retry; India durations in observations | `test_hmm.py` |
+| E Volatility | Constant series; IID Gaussian (no clustering, ARCH-LM diagnostic only); ARCH and GARCH synthetic controls (parameters recovered within tolerance); `arch` vs SciPy reference agreement on parameters, log-likelihood and conditional volatility; shock/recovery world; return scaling (α, β invariant, ω scales); no NaN/Inf; half-life `INVALID_DOMAIN` for α + β ≥ 1 | `test_volatility.py`, `test_garch.py` |
 | F Seasonality | Planted time-of-day effect recovered; shuffled timestamps destroy it; missing sessions stay missing; DST transition; `iex_volume` never becomes consolidated volume | `test_seasonality.py` |
 | G Factors | Known-beta, zero-beta, missing factor, future factor clock, partial set never labelled seven-factor; raw = explained + residual | `test_factors.py` |
 | H Hawkes | No stream → UNAVAILABLE; Poisson control has no high excitation; excitation fixture works as an engineering test; real pipeline rejects synthetic scope | `test_events.py` |
@@ -458,7 +484,7 @@ The Data Organ code, the API, the UI and the matrix composition are outside ever
 | J Replay/API | GET never fetches upstream or writes registry events; unauthenticated 401; SHA mismatch, unknown schema or elevated claim → unavailable; anonymous Replay zero API/vendor requests | `test_publication.py`, `test_api.py`, `verify-regimes.mjs` |
 | No-holdout | `Runner.run` and `RunRegistry.holdout` patched to fail across the whole pipeline and scheduler replay; zero `HOLDOUT_OPENED` in the Phase 5 registry; Phase 2 public-fixture registry never restored into it | `test_series_runner.py` |
 | Boundary | All pre-`1a0d03d` public bytes, Phase 0–4 exports and Phase 3 history unchanged; only reviewed `regimes:*` additions | `test_archive_boundary.py`, `regimes_archive.py` |
-| Frozen-verdict separation | Research OS verdict card byte-bound to `flagship.json`; descriptive panel has no verdict field | `test_momentum_view.py` |
+| Module 6 semantics | Primary panel aggregates the 12–1 signal, never a return; MOM-factor panel separately named; Research OS verdict card byte-bound to `flagship.json`; descriptive panels have no verdict field | `test_momentum_view.py` |
 
 ## 13. Browser and Replay plan
 
@@ -501,7 +527,7 @@ No 3D rendering is added; all Phase 5 views are dense 2D SVG.
 | India state is about nine months stale | `STALE_INPUT` issue and visible date gap; no extrapolation |
 | HMM non-convergence | Retained and shown; no reruns |
 | A small grid of thresholds looks like tuning | All thresholds are frozen in the profile before the first real run, and the profile hash is bound into runs |
-| GARCH optimiser edge cases | Explicit fit status, boundary flag, domain-checked half-life, synthetic controls |
+| GARCH optimiser edge cases | `arch` estimator with explicit fit status, boundary flag, domain-checked half-life, synthetic controls and an independent test-only reference |
 | Lineage scale and performance | Batch verification, lineage digest instead of inline references |
 | Boundary verifiers break | Phase 5 audit plus a narrow delegation, same pattern Phase 3 used |
 | Network-blocked capture in this session | Real runs in Actions or on the operator machine, or after the hosts are allowed |
@@ -543,7 +569,7 @@ No 3D rendering is added; all Phase 5 views are dense 2D SVG.
 - A current India state.
 - Any calibrated or inferential claim.
 
-**Can we run real HMM for both markets?** Yes, on market-factor returns. US: CAPTURE_ONLY. India: CAPTURE_ONLY, plus observation-sequence indexing without calendar verification and a stale end date (decision D4). Locally on SPY/QQQ/IWM with CONSERVATIVE_MARKET_TIME. Unconverged fits are retained.
+**Can we run real HMM for both markets?** Yes, on market-factor returns. US: CAPTURE_ONLY. India: CAPTURE_ONLY, `PARTIAL · CALENDAR_UNAVAILABLE · STALE_INPUT`, with transitions and durations per observed record (never days or sessions) and no annualisation (decision D4 as amended). Locally on SPY/QQQ/IWM with CONSERVATIVE_MARKET_TIME. Unconverged fits are retained.
 
 **Can we run intraday seasonality for both markets?** No. US is possible only locally on 90 IEX-only sessions after a new admission (D5), and is never public without a grant. India is UNAVAILABLE.
 
@@ -592,7 +618,9 @@ No 3D rendering is added; all Phase 5 views are dense 2D SVG.
 
 It shows no chart skeleton, placeholder number or greyed fake data. Partial modules render only the available components, with an explicit partial subtotal where a total would otherwise appear.
 
-## Decisions needed before implementation
+## Decisions as proposed (resolved)
+
+All ten were resolved by the review decision at the top of this document, which governs where it differs from the recommendations below.
 
 | Id | Decision | Recommendation |
 | --- | --- | --- |
@@ -602,7 +630,7 @@ It shows no chart skeleton, placeholder number or greyed fake data. Partial modu
 | D4 | India daily modules without calendar evidence | Run vol/GARCH/HMM on the IIMA observation sequence as `PARTIAL · CALENDAR_UNAVAILABLE · STALE_INPUT`; annualised and session-dependent outputs unavailable. Alternative: mark India daily modules UNAVAILABLE |
 | D5 | Local tier (SPY/QQQ/IWM, sector ETFs, IEX-minute admission for US seasonality) | Include as local-only, verified on the operator's machine; never public |
 | D6 | Nightly automation | Add a Phase 5 step to `organs.yml` that publishes only when admitted factor content changes, so genuine capture-clock replay history accrues. Alternative: operator-only publication in v0.1 |
-| D7 | GARCH implementation | In-repo scipy QMLE with synthetic controls. Alternative: add the `arch` package as a dependency (new dependency; not added without approval) |
+| D7 | GARCH implementation | **Decided:** `arch` package in production; SciPy reference in tests only |
 | D8 | Fracture landscape and IOHMM | Show both as PARTIAL/UNAVAILABLE with reasons; no IOHMM gate in this phase |
 | D9 | Where real captures run | GitHub Actions (`workflow_dispatch` on the branch) or the operator machine. This session's network policy blocks the French, IIMA, Alpaca and NSE hosts unless they are allowed in the environment settings |
 | D10 | Badge wording for authenticated local views | `LOCAL MODEL RUN · run_id` instead of `LIVE MODEL RUN`, because GET routes read sealed runs and no live feed exists |
