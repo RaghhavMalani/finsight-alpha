@@ -49,7 +49,9 @@ class VolatilityDiagnostics(SeriesModel):
             "volatility_state": current["state"],
             "realized_vol_20": components.get("rv_20"),
             "ewma_vol": components.get("ewma_vol"),
-            "garch_persistence": garch["persistence"] if fitted else None,
+            "garch_persistence": garch["persistence"]
+            if fitted and garch["fit_status"] == "CONVERGED"
+            else None,
             "garch_half_life": garch.get("half_life_observations") if fitted else None,
             "arch_lm_pvalue": result["arch_lm"].get("lm_pvalue"),
         }
@@ -60,6 +62,8 @@ class VolatilityDiagnostics(SeriesModel):
                 {
                     "kind": "GARCH_UNCONVERGED"
                     if garch["fit_status"] == "UNCONVERGED"
+                    else "GARCH_UNIDENTIFIED"
+                    if garch["fit_status"] == "UNIDENTIFIED"
                     else "GARCH_BOUNDARY",
                     "severity": "LOW",
                     "reason": garch["half_life_domain"],

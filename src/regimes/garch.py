@@ -38,19 +38,34 @@ def fit_garch(returns, *, minimum=500):
     persistence = alpha + beta
     converged = int(result.convergence_flag) == 0
     boundary = alpha < BOUNDARY or beta < BOUNDARY or persistence >= 1 - BOUNDARY
-    status = "UNCONVERGED" if not converged else "BOUNDARY" if boundary else "CONVERGED"
-    if not converged or boundary or not 0 < persistence < 1:
+    errors = result.std_err
+    pvalues = result.pvalues
+    # With no ARCH effect beta (and so persistence) is not identified, and the
+    # optimizer can stop at a tiny alpha just above the boundary with beta near 1.
+    alpha_se = float(errors["alpha[1]"])
+    alpha_lower = alpha - 1.96 * alpha_se if math.isfinite(alpha_se) else -math.inf
+    identified = alpha_lower > 0
+    status = (
+        "UNCONVERGED"
+        if not converged
+        else "BOUNDARY"
+        if boundary
+        else "UNIDENTIFIED"
+        if not identified
+        else "CONVERGED"
+    )
+    if status != "CONVERGED" or not 0 < persistence < 1:
         half_life, domain = None, (
             "INVALID_DOMAIN: optimizer did not converge"
             if not converged
             else "INVALID_DOMAIN: ARCH/GARCH coefficient at its boundary; persistence not identified"
             if boundary
+            else "INVALID_DOMAIN: ARCH coefficient not distinguishable from zero (alpha - 1.96 robust se <= 0); beta and persistence not identified"
+            if not identified
             else "INVALID_DOMAIN: alpha+beta outside (0,1)"
         )
     else:
         half_life, domain = math.log(0.5) / math.log(persistence), "VALID"
-    errors = result.std_err
-    pvalues = result.pvalues
     conditional = np.asarray(result.conditional_volatility, dtype=float) / 100
     unconditional = (
         math.sqrt(omega / (1 - persistence)) / 100 if 0 < persistence < 1 else None
@@ -68,6 +83,11 @@ def fit_garch(returns, *, minimum=500):
         "persistence": persistence,
         "half_life_observations": half_life,
         "half_life_domain": domain,
+        "arch_identification": {
+            "rule": "alpha - 1.96 * robust se > 0 (asymptotic diagnostic, not a calibrated test)",
+            "alpha_lower_95": alpha_lower if math.isfinite(alpha_lower) else None,
+            "identified": identified,
+        },
         "unconditional_vol": unconditional,
         "log_likelihood": float(result.loglikelihood),
         "converged": converged,

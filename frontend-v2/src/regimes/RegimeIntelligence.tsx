@@ -69,7 +69,7 @@ function Badges({ snapshot, sha }: { snapshot: Snapshot; sha: string | null }) {
 function useTiles(snapshot: Snapshot) {
   return useMemo(() => {
     const hmm = snapshot.current.regime,
-      g = snapshot.volatility.garch as Record<string, number | null>;
+      g = snapshot.volatility.garch as Record<string, number | string | null>;
     const serious = snapshot.issues.filter(
       (i) => i.severity === "MEDIUM" || i.severity === "HIGH",
     ).length;
@@ -92,7 +92,10 @@ function useTiles(snapshot: Snapshot) {
       {
         label: "PERSISTENCE",
         value: `${fmt(hmm?.expected_duration ?? null, 1)} ${snapshot.observation_unit}s`,
-        note: `GARCH α+β ${fmt(g.persistence ?? null, 3)}`,
+        note:
+          g.fit_status === "CONVERGED"
+            ? `GARCH α+β ${fmt((g.persistence as number | null) ?? null, 3)}`
+            : `GARCH persistence not identified (${String(g.fit_status ?? "—")})`,
       },
       {
         label: "DATA QUALITY",

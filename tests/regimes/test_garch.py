@@ -44,10 +44,19 @@ def test_arch_matches_independent_scipy_reference(world):
     assert ll == pytest.approx(production["log_likelihood"], abs=0.5)
 
 
-def test_iid_gaussian_is_flagged_boundary_without_half_life():
-    fit = fit_garch(np.random.default_rng(3).normal(0, 0.01, 1500))
-    assert fit["fit_status"] == "BOUNDARY"
+@pytest.mark.parametrize("seed", [3, 4, 5, 6, 7, 8])
+def test_iid_gaussian_never_reports_an_identified_persistence(seed):
+    # Without an ARCH effect beta is not identified; the optimizer may stop at
+    # alpha = 0 or at a tiny alpha with beta near 1 depending on the platform.
+    fit = fit_garch(np.random.default_rng(seed).normal(0, 0.01, 1500))
+    assert fit["fit_status"] in {"BOUNDARY", "UNIDENTIFIED"}
     assert fit["half_life_observations"] is None and fit["half_life_domain"].startswith("INVALID_DOMAIN")
+    assert fit["arch_identification"]["identified"] is False or fit["fit_status"] == "BOUNDARY"
+
+
+def test_simulated_arch_effect_is_identified(world):
+    fit = fit_garch(world)
+    assert fit["arch_identification"]["identified"] and fit["arch_identification"]["alpha_lower_95"] > 0
 
 
 def test_return_scaling_leaves_dynamics_invariant(world):

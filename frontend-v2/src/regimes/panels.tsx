@@ -301,7 +301,9 @@ export function VolatilityPanel({
         )}
         <div>
           <span>GARCH α + β</span>
-          <strong>{fmt(g.persistence as number, 4)}</strong>
+          <strong>
+            {g.fit_status === "CONVERGED" ? fmt(g.persistence as number, 4) : "not identified"}
+          </strong>
         </div>
         <div>
           <span>Half-life ({unit}s)</span>
