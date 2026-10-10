@@ -124,3 +124,21 @@ def test_missing_sessions_stay_missing_and_dst_shifts_utc_not_local_buckets():
     utc = {b["observed_at"].astimezone(__import__("datetime").timezone.utc).strftime("%H:%M") for b in buckets}
     assert local == {"10:00", "10:30", "11:00"}
     assert {"15:00", "14:00"} <= utc
+
+
+def test_operator_local_command_seals_only_local_runs_and_publishes_nothing(local):
+    from scripts.export_regimes_replay import compute_local
+
+    pipe, runs, _ = local
+    first = compute_local(pipe.runtime, as_of=CUTOFF)
+    again = compute_local(pipe.runtime, as_of=CUTOFF)
+    for result in (first, again):
+        assert result["status"] == "LOCAL_ONLY" and result["published"] == 0
+        assert result["holdout_openings"] == 0
+        assert result["assets"]["SPY"]["run_ids"] == {k: r["run_id"] for k, r in runs.items()}
+    # SPY reuses the fixture's sealed chain; daily-only QQQ and IWM seal theirs once.
+    assert {a: r["status"] for a, r in first["assets"].items()} == dict.fromkeys(["SPY", "QQQ", "IWM"], "SEALED")
+    assert "seasonality" not in first["assets"]["QQQ"]["run_ids"]
+    assert first["new_runs"] == 12 and again["new_runs"] == 0
+    assert again["assets"] == first["assets"]
+    assert not pipe.store.history("public-regime-evidence", as_of=CUTOFF)

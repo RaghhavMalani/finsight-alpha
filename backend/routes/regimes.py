@@ -2,8 +2,9 @@
 
 GET routes read sealed runs and admitted local evidence only: no upstream fetch,
 no computation, no registry writes. New cutoffs are computed by the explicit
-operator command `scripts/export_regimes_replay.py`. Public visitors use the
-SHA-checked Replay artifacts instead.
+operator commands `scripts/export_regimes_replay.py` (public markets) and
+`scripts/export_regimes_replay.py --local` (SPY/QQQ/IWM, never published).
+Public visitors use the SHA-checked Replay artifacts instead.
 """
 
 from pathlib import Path

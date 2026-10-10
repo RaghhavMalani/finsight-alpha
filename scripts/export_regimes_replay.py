@@ -160,10 +160,56 @@ def export(runtime=collector.RUNTIME, public=PUBLIC, directory=DIRECTORY, *, as_
     return result
 
 
+def compute_local(runtime=collector.LOCAL_RUNTIME, *, as_of=None):
+    """Operator machine only: seal the SPY/QQQ/IWM chain in the local tenant.
+
+    Publishes nothing. Alpaca IEX has no derived-publication grant; the
+    authenticated local API reads these sealed runs as LOCAL MODEL RUN.
+    """
+    service = collector.service_for(runtime)
+    clocks = [
+        e["payload"]["captured_at"]
+        for e in service.registry.entries(collector.LOCAL_TENANT, "SOURCE_VERSION")
+    ]
+    if not clocks:
+        raise LookupError("No admitted local evidence; run collect_regime_inputs.py --local-dataset first")
+    as_of = as_of or max(clocks, key=utc)
+    pipe = Pipeline(runtime, tenant_id=collector.LOCAL_TENANT)
+    sealed_before = sum(e["event"] == "RUN_SEALED" for e in pipe.registry.events(pipe.tenant_id))
+    assets = {}
+    for asset in profile()["local_assets"]:
+        try:
+            runs = pipe.run_market(asset, as_of)
+            assets[asset] = {"status": "SEALED", "run_ids": {k: r["run_id"] for k, r in runs.items()}}
+        except (LookupError, ValueError) as error:
+            assets[asset] = {"status": "UNAVAILABLE", "reason": str(error)}
+    events = pipe.registry.events(pipe.tenant_id)
+    if pipe.registry.opening_count(pipe.tenant_id) or any(e["event"] == "HOLDOUT_OPENED" for e in events):
+        raise RuntimeError("Local Phase 5 computation recorded a holdout opening")
+    result = {
+        "status": "LOCAL_ONLY",
+        "as_of": as_of,
+        "new_runs": sum(e["event"] == "RUN_SEALED" for e in events) - sealed_before,
+        "holdout_openings": 0,
+        "published": 0,
+        "assets": assets,
+    }
+    print(json.dumps(result))
+    return result
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--runtime", type=Path, default=collector.RUNTIME)
+    parser.add_argument("--runtime", type=Path)
     parser.add_argument("--as-of")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Seal the SPY/QQQ/IWM chain in the local tenant; publishes nothing",
+    )
     args = parser.parse_args()
-    export(args.runtime, as_of=args.as_of, force=args.force)
+    if args.local:
+        compute_local(args.runtime or collector.LOCAL_RUNTIME, as_of=args.as_of)
+    else:
+        export(args.runtime or collector.RUNTIME, as_of=args.as_of, force=args.force)
