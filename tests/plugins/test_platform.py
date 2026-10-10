@@ -27,13 +27,15 @@ def test_run_identity_binds_every_wrapped_engine_dependency_and_runtime(monkeypa
     from src.truth.contracts import canonical_hash
 
     before = module.code_identity(MeanModel, ROOT)
-    assert {"scipy", "statsmodels", "hmmlearn"} <= set(before["dependencies"])
+    assert {"numpy", "pandas", "duckdb"} <= set(before["dependencies"])
     assert before["runtime"]["python"]
-    original = module.importlib.metadata.version
+    from finsight.plugins import dependencies
+
+    original = dependencies.importlib.metadata.version
     monkeypatch.setattr(
-        module.importlib.metadata,
+        dependencies.importlib.metadata,
         "version",
-        lambda name: "changed" if name == "scipy" else original(name),
+        lambda name: "changed" if name == "numpy" else original(name),
     )
     after = module.code_identity(MeanModel, ROOT)
     assert canonical_hash(before) != canonical_hash(after)

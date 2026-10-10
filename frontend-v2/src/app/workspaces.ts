@@ -46,8 +46,6 @@ export const WORKSPACES = [
     key: "F10",
     command: "DATA",
     to: "/data",
-    phase: 3,
-    future: "US and India source health and revision views arrive in Phase 3.",
   },
 ] as const;
 

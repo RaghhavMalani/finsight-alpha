@@ -22,6 +22,7 @@ jobs:
       MKL_NUM_THREADS: '1'
       APP_ENV: test
       FINSIGHT_DATA_DIR: /tmp/finsight-data
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,20 +35,24 @@ jobs:
       - run: python -m pip install -e . pytest httpx
       - name: Validate retained source, run, publication and closed research history
         run: python scripts/verify_plugin_replay.py
-      - name: Availability, tenant, type, leakage and holdout sabotage checks
-        run: pytest -q tests/plugins
-      - name: Refresh checked inputs and recompute only when source, data or environment changes
-        # v0.1 has no network data adapter. The refresh source is the checked PIT
-        # engineering fixture; it never starts another inference study.
-        run: python scripts/export_plugin_replay.py --refresh
-      - name: Risk hooks and publication binding must remain fail closed
-        run: python scripts/verify_plugin_replay.py
-      - name: Commit only derived run history and the Replay pointer
+      - name: Validate prior Data Organ history before refresh
+        run: python scripts/verify_data_organ.py
+      - name: Refresh bounded official sources and retain failed attempts
+        # Missing credentials, transport, calendars or grants remain UNAVAILABLE.
+        # Current captures never replace the Phase 0-2 inputs or open a holdout.
+        run: python scripts/collect_data_organ.py --network
+      - name: Publish only derived Data Organ summaries with explicit retained evidence
+        run: python scripts/export_data_organ_replay.py
+      - name: Verify publication, source bytes, mappings and preserved history
+        run: |
+          python scripts/verify_data_organ.py --runtime data/exports/replay-source/data-organ-runtime
+          python scripts/verify_plugin_replay.py
+      - name: Commit only derived Data Organ history and the Replay pointer
         shell: bash
         run: |
           git config user.name 'Raghhav Malani'
           git config user.email '96712854+RaghhavMalani@users.noreply.github.com'
-          git add -- data/exports/nervous_system_v0_1 frontend-v2/public/artifacts/replay/plugins-run-*.json frontend-v2/public/replay-manifest.json
+          git add -- data/exports/data_organ_v0_1 frontend-v2/public/artifacts/replay/data-organ-*.json frontend-v2/public/replay-manifest.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: publish checked plugin reference and issue hooks'
+          git commit -m 'chore: publish derived Data Organ health and retained issues'
           git push origin HEAD:main

@@ -1,18 +1,21 @@
 """Append-only Parquet signals with a tenant-scoped DuckDB admission index."""
 
 from __future__ import annotations
-from contextlib import contextmanager
+
 import json
-from pathlib import Path
 import threading
 import uuid
+from contextlib import contextmanager
+from pathlib import Path
 
 import duckdb
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+
 from src.data.as_of import AsOfContext
 from src.truth.contracts import canonical_hash
+
 from .contracts import Signal, SignalType, tenant, utc, validate_inputs
 
 _locks: dict[str, threading.RLock] = {}
@@ -32,6 +35,37 @@ class SignalStore:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS signals (tenant VARCHAR, identity VARCHAR, payload VARCHAR, content_hash VARCHAR, file VARCHAR, PRIMARY KEY(tenant,identity))"
             )
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS signal_admissions(tenant VARCHAR,identity VARCHAR,payload VARCHAR,hash VARCHAR,PRIMARY KEY(tenant,identity))"
+            )
+
+    def admission_references(self, tenant_id, rows):
+        tenant(tenant_id)
+        result = []
+        with self.connection() as db:
+            for row in sorted(rows, key=lambda r: r.identity):
+                found = db.execute(
+                    "SELECT payload,hash FROM signal_admissions WHERE tenant=? AND identity=?",
+                    [tenant_id, row.identity],
+                ).fetchone()
+                if found:
+                    payload = json.loads(found[0])
+                    if (
+                        canonical_hash(payload) != found[1]
+                        or payload["signal_sha256"] != canonical_hash(row.payload())
+                        or payload["source_version_id"] != row.version
+                    ):
+                        raise ValueError("Signal admission substitution")
+                    result.append(payload)
+                else:
+                    result.append(
+                        {
+                            "signal_id": row.identity,
+                            "signal_sha256": canonical_hash(row.payload()),
+                            "status": "LEGACY_UNMAPPED",
+                        }
+                    )
+        return result
 
     @contextmanager
     def connection(self):
@@ -42,10 +76,24 @@ class SignalStore:
             finally:
                 db.close()
 
-    def append(self, tenant_id: str, rows: list[Signal]):
+    def append(self, tenant_id: str, rows: list[Signal], *, admissions=None):
         tenant(tenant_id)
         if not rows or any(r.tenant_id != tenant_id for r in rows):
             raise PermissionError("An append requires one explicit matching tenant")
+        bindings = (
+            {r["signal_id"]: r for r in admissions} if admissions is not None else {}
+        )
+        if admissions is not None and (
+            len(bindings) != len(admissions)
+            or set(bindings) != {r.identity for r in rows}
+        ):
+            raise ValueError("Complete unique admission mappings required")
+        for row in rows:
+            if row.identity in bindings and (
+                bindings[row.identity]["signal_sha256"] != canonical_hash(row.payload())
+                or bindings[row.identity]["source_version_id"] != row.version
+            ):
+                raise ValueError("Admission mapping does not bind this signal")
         unique: dict[str, Signal] = {}
         for row in rows:
             if row.identity in unique and unique[row.identity] != row:
@@ -54,6 +102,24 @@ class SignalStore:
         with self.connection() as db:
             db.execute("BEGIN TRANSACTION")
             try:
+                for identity, binding in bindings.items():
+                    digest = canonical_hash(binding)
+                    old_binding = db.execute(
+                        "SELECT hash FROM signal_admissions WHERE tenant=? AND identity=?",
+                        [tenant_id, identity],
+                    ).fetchone()
+                    if old_binding and old_binding[0] != digest:
+                        raise ValueError("Immutable signal admission conflict")
+                    if not old_binding:
+                        db.execute(
+                            "INSERT INTO signal_admissions VALUES (?,?,?,?)",
+                            [
+                                tenant_id,
+                                identity,
+                                json.dumps(binding, sort_keys=True),
+                                digest,
+                            ],
+                        )
                 pending = []
                 for row in unique.values():
                     spec = db.execute(

@@ -15,6 +15,36 @@ const bytes = readFileSync(new URL(entry.url.slice(1), root));
 assert.equal(createHash("sha256").update(bytes).digest("hex"), entry.sha256);
 const value = JSON.parse(bytes);
 const run = await validatePluginReplay(value, entry);
+// A constructed reader fixture only: no v2 reference run, receipt or publication.
+const canonical = (v) =>
+  Array.isArray(v)
+    ? v.map(canonical)
+    : v && typeof v === "object"
+      ? Object.fromEntries(
+          Object.entries(v)
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+            .map(([k, x]) => [k, canonical(x)]),
+        )
+      : v;
+const digest = (v) =>
+  createHash("sha256")
+    .update(JSON.stringify(canonical(v)))
+    .digest("hex");
+let prospective = structuredClone(value);
+prospective.schema_version = "plugin-replay/2";
+prospective.contract.schema_version = "plugin-computation/2";
+prospective.execution = { commit: prospective.contract.code.commit, dirty_computation: false };
+delete prospective.contract.code.commit;
+delete prospective.contract.code.dirty_computation;
+prospective.contract.code.schema_version = "computation-dependencies/2";
+prospective.contract.code.sources = { "examples/momentum_plugin.py#MomentumModel": "a".repeat(64) };
+prospective.execution.dependency_manifest_hash = digest(prospective.contract.code);
+const prospectiveId = digest(prospective.contract);
+prospective = JSON.parse(JSON.stringify(prospective).replaceAll(value.run_id, prospectiveId));
+await validatePluginReplay(prospective, entry);
+const substituted = structuredClone(prospective);
+substituted.execution.dependency_manifest_hash = "b".repeat(64);
+await assert.rejects(validatePluginReplay(substituted, entry));
 let checks = 1;
 for (const mutate of [
   (r) => (r.claims.inference_certified = true),

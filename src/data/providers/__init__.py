@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from .alpha_vantage_provider import AlphaVantageProvider
 from .base import MarketDataProvider, ProviderError, STANDARD_COLUMNS
+from .nse_provider import NSEProvider
 from .polygon_provider import PolygonProvider
 from .yfinance_provider import YFinanceProvider
 
@@ -16,6 +17,7 @@ PROVIDER_REGISTRY: dict[str, type[MarketDataProvider]] = {
     YFinanceProvider.name: YFinanceProvider,
     AlphaVantageProvider.name: AlphaVantageProvider,
     PolygonProvider.name: PolygonProvider,
+    NSEProvider.name: NSEProvider,
 }
 
 # Names safe to show in a UI dropdown (ordered, default first).
@@ -55,6 +57,7 @@ __all__ = [
     "YFinanceProvider",
     "AlphaVantageProvider",
     "PolygonProvider",
+    "NSEProvider",
     "PROVIDER_REGISTRY",
     "AVAILABLE_PROVIDERS",
     "get_provider",

@@ -71,3 +71,8 @@ def latest_runs(organization_id: int) -> list[dict]:
         }
         for row in latest.values()
     ]
+
+
+def record_data_organ_attempt(organization_id, result):
+    """Keep the existing health endpoint linked to source-admission evidence."""
+    return record_run(organization_id=organization_id, pipeline_key="data-organ:" + result["source"], status=result["status"], rows_received=result.get("admitted", 0), metrics={k: v for k, v in result.items() if k in {"admission_id", "quarantined", "retained_prior_evidence"}}, error=result.get("reason"))

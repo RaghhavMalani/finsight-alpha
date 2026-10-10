@@ -48,6 +48,7 @@ for (const id of ["US-MKT", "IN-MKT"]) {
     ["GP", "/markets"],
     ["REG", "/dynamics"],
     ["OBS", "/observatory"],
+    ["DATA", "/data"],
   ]) {
     const target = parseCommand(`${id} ${code}`);
     assert.equal(target.to, to);
@@ -127,7 +128,22 @@ if (urlIndex > 0) {
           await d.dismiss();
         };
         page.on("dialog", onDialog);
+        // When the browser reloads on uncaptured F5, wait for the document
+        // commit before inspecting its preserved event or navigating again.
+        // Some headless browser channels leave F5 to browser UI without reloading.
+        const refresh =
+          w.key === "F5"
+            ? page
+                .waitForEvent("framenavigated", {
+                  predicate: (frame) => frame === page.mainFrame(),
+                  timeout: 2000,
+                })
+                .catch(() => null)
+            : null;
         await page.keyboard.press(w.key);
+        if (refresh) {
+          if (await refresh) await page.waitForLoadState("networkidle");
+        }
         if (FUNCTION_KEYS.includes(w.key)) {
           await page
             .locator(`.shell[data-workspace="${w.id}"]`)

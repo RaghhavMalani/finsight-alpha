@@ -16,6 +16,8 @@ class Model(ABC):
     version: ClassVar[str] = "1"
     capability: ClassVar[InferenceCapability] = InferenceCapability()
     task: ClassVar[str] = "regression"
+    computation_dependencies: ClassVar[tuple[str, ...]] = ()
+    dynamic_imports: ClassVar[dict[str, str]] = {}
 
     def __init__(self, *, seed: int = 42, **config):
         if type(seed) is not int or not 0 <= seed < 2**64:

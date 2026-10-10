@@ -21,6 +21,18 @@ UNVERIFIED = "UNVERIFIED"
 # Narrow publication registrations for attributed research projections. These are
 # not raw-vendor-data licences or tenant display/training grants.
 PUBLIC_RESEARCH_SOURCES = {
+    "alfred:UNRATE": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.",
+        "source_urls": ["https://alfred.stlouisfed.org/series?seid=UNRATE"],
+        "terms_url": "https://alfred.stlouisfed.org/series?seid=UNRATE",
+        "basis": "UNRATE-specific Public Domain: Citation Requested designation; aggregated revision/health evidence only. No blanket FRED grant.",
+    },
+    "bls:LNS14000000": {
+        "attribution": "U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.",
+        "source_urls": ["https://www.bls.gov/developers/", "https://www.bls.gov/opub/copyright-information.htm"],
+        "terms_url": "https://www.bls.gov/opub/copyright-information.htm",
+        "basis": "BLS public-domain statistical data, excluding protected imagery. Aggregated mirror/health evidence only.",
+    },
     "ken-french:daily-factors": {
         "attribution": "Kenneth R. French Data Library; Fama and French research factors and momentum.",
         "source_urls": ["https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html"],
