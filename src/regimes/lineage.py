@@ -117,6 +117,14 @@ def verify_source_bindings(index, bindings):
         )
         if binding["admission_id"] not in item["admissions"]:
             item["admissions"].append(binding["admission_id"])
+            coverage = index.get("LIBRARY_COVERAGE", capture.identity)
+            if coverage is not None and "library_coverage" not in item:
+                # D1: the source's complete coverage, reported apart from the analysis window.
+                item["library_coverage"] = {
+                    field: {"first_date": c["first"], "last_date": c["last"], "rows": c["rows"]}
+                    for field, c in coverage["payload"]["library"].items()
+                }
+                item["analysis_window"] = coverage["payload"]["analysis_window"]
         item["signals"] += 1
     return summary
 

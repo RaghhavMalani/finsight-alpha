@@ -220,7 +220,7 @@ def _chain(chain):
         "execution": _pick(chain.get("execution") or {}, ("commit", "dirty_computation", "dependency_manifest_hash")),
         "sources": [
             {
-                **_pick(s, ("source", "source_url", "source_version_id", "capture_sha256", "captured_at", "clock_quality", "availability_rule", "licence_decision", "calendar", "field_definition", "unit", "feed_scope", "price_basis", "signals")),
+                **_pick(s, ("source", "source_url", "source_version_id", "capture_sha256", "captured_at", "clock_quality", "availability_rule", "licence_decision", "calendar", "field_definition", "unit", "feed_scope", "price_basis", "signals", "library_coverage", "analysis_window")),
                 "admissions": sorted(s.get("admissions", [])),
             }
             for s in chain.get("sources", [])

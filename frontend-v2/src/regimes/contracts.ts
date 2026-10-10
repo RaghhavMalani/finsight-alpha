@@ -277,6 +277,8 @@ export type LineageChain = {
     licence_decision: { status: string; dataset_key: string; permitted_uses: string[] };
     admissions: string[];
     signals: number;
+    library_coverage?: Record<string, { first_date: string; last_date: string; rows: number }>;
+    analysis_window?: string[];
   }[];
   producers?: LineageChain[];
 };

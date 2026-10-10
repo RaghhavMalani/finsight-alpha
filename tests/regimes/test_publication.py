@@ -157,3 +157,31 @@ def test_fresh_scheduler_runtime_with_identical_source_bytes_computes_nothing(tm
     events = pipe.registry.events(pipe.tenant_id)
     assert not any(e["event"] in {"RUN_SEALED", "HOLDOUT_OPENED"} for e in events)
     assert pipe.registry.opening_count(pipe.tenant_id) == 0
+
+
+def test_full_library_coverage_is_reported_apart_from_the_analysis_window(published):
+    root = published[0]
+    manifest = json.loads((root / "public/replay-manifest.json").read_bytes())
+    for asset in ("US-MKT", "IN-MKT"):
+        entry = manifest["artifacts"][manifest["routes"][f"/regimes/lineage?asset={asset}"]]
+        lineage = json.loads((root / "public" / entry["url"].lstrip("/")).read_bytes())["payload"]
+        sources = lineage["runs"]["volatility"]["sources"]
+        assert sources and all("library_coverage" in s for s in sources)
+        for source in sources:
+            window = source["analysis_window"]
+            assert window[0] == "2000-01-01"
+            for field in source["library_coverage"].values():
+                assert field["first_date"] <= window[0] and field["last_date"] == window[1]
+                assert field["rows"] > 0
+    receipt = json.loads((root / "exports/receipt.json").read_bytes())
+    assert set(receipt["library_coverage"]) == {"US-MKT", "IN-MKT"}
+
+
+def test_publication_code_changes_republish(tmp_path):
+    for path in exporter.PUBLICATION_SOURCES:
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / path, tmp_path / path)
+    assert exporter.publication_identity(tmp_path) == exporter.publication_identity()
+    target = tmp_path / "src/regimes/publication.py"
+    target.write_bytes(target.read_bytes() + b"\n# projection change\n")
+    assert exporter.publication_identity(tmp_path) != exporter.publication_identity()

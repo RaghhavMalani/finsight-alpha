@@ -35,6 +35,29 @@ from src.truth.contracts import canonical_hash
 
 DIRECTORY = ROOT / "data/exports/regimes_v0_1"
 PUBLIC = ROOT / "frontend-v2/public"
+# Snapshot assembly, lineage verification and projection: a change here must
+# republish even when the computations and their inputs are unchanged.
+PUBLICATION_SOURCES = (
+    "scripts/collect_regime_inputs.py",
+    "scripts/export_regimes_replay.py",
+    "src/regimes/calendar.py",
+    "src/regimes/contracts.py",
+    "src/regimes/lineage.py",
+    "src/regimes/matrix.py",
+    "src/regimes/profile.py",
+    "src/regimes/publication.py",
+    "src/regimes/service.py",
+    "src/replay/publication.py",
+)
+
+
+def publication_identity(root=ROOT):
+    return canonical_hash(
+        {
+            path: sha256((Path(root) / path).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+            for path in PUBLICATION_SOURCES
+        }
+    )
 
 
 def fingerprint(service, tenant_id):
@@ -45,7 +68,29 @@ def fingerprint(service, tenant_id):
             name: canonical_hash(manifest(plugin, ROOT)["sources"])
             for name, plugin in sorted(SERIES_PLUGINS.items())
         },
+        "publication": publication_identity(),
     }
+
+
+def library_coverage(service, tenant_id):
+    """D1: each admitted source's complete coverage, apart from the analysis window."""
+    out = {}
+    for entry in service.registry.entries(tenant_id, "LIBRARY_COVERAGE"):
+        payload = entry["payload"]
+        out.setdefault(payload["asset"], []).append(
+            {
+                "source": payload["source"],
+                "source_version_id": payload["source_version_id"],
+                "capture_sha256": payload["capture_sha256"],
+                "captured_at": payload["captured_at"],
+                "analysis_window": payload["analysis_window"],
+                "library": {
+                    field: {"first_date": c["first"], "last_date": c["last"], "rows": c["rows"]}
+                    for field, c in payload["library"].items()
+                },
+            }
+        )
+    return out
 
 
 def latest_capture(service, tenant_id):
@@ -144,6 +189,7 @@ def export(runtime=collector.RUNTIME, public=PUBLIC, directory=DIRECTORY, *, as_
             }
             for asset, snap in snapshots.items()
         },
+        "library_coverage": library_coverage(service, tenant_id),
         "unavailable_markets": unavailable,
         "matrix_artifact": matrix_entry[("matrix", None)]["artifact_id"],
         "new_runs": new_runs,

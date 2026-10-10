@@ -25,6 +25,15 @@ function Chain({ chain, depth = 0 }: { chain: LineageChain; depth?: number }) {
             availability {s.availability_rule} → licence {s.licence_decision.status} (
             {s.licence_decision.dataset_key};{" "}
             {s.licence_decision.permitted_uses.join(", ") || "no uses"})
+            {s.library_coverage && (
+              <div className="regimes-footnote">
+                Library coverage{" "}
+                {Object.entries(s.library_coverage)
+                  .map(([f, c]) => `${f} ${c.first_date} → ${c.last_date} (${c.rows} rows)`)
+                  .join(" · ")}
+                {s.analysis_window && ` · analysis window ${s.analysis_window.join(" → ")}`}
+              </div>
+            )}
           </li>
         ))}
         {chain.producers?.map((p) => (
