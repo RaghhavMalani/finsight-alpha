@@ -10,7 +10,7 @@ from scripts import collect_regime_inputs as collector
 from scripts import export_regimes_replay as exporter
 from scripts.regimes_archive import verify_addition
 from src.regimes.publication import validate_public
-from tests.regimes.conftest import ROOT
+from tests.regimes.conftest import ROOT, pre_phase5_manifest
 from tests.regimes.fixtures import write_factor_captures
 
 
@@ -20,7 +20,7 @@ def published(tmp_path_factory):
 
     root = tmp_path_factory.mktemp("regime-publication")
     (root / "public/artifacts/replay").mkdir(parents=True)
-    shutil.copyfile(ROOT / "frontend-v2/public/replay-manifest.json", root / "public/replay-manifest.json")
+    pre_phase5_manifest(root / "public/replay-manifest.json")
     write_factor_captures(root / "captures")
     collector.collect(root / "runtime", directory=root / "captures")
     guard = pytest.MonkeyPatch()
@@ -129,7 +129,7 @@ def test_fresh_scheduler_runtime_with_identical_source_bytes_computes_nothing(tm
     from src.regimes.service import Pipeline
 
     (tmp_path / "public/artifacts/replay").mkdir(parents=True)
-    shutil.copyfile(ROOT / "frontend-v2/public/replay-manifest.json", tmp_path / "public/replay-manifest.json")
+    pre_phase5_manifest(tmp_path / "public/replay-manifest.json")
     write_factor_captures(tmp_path / "night1")
     shutil.copytree(tmp_path / "night1", tmp_path / "night2")
     for meta in (tmp_path / "night2").glob("*.meta.json"):

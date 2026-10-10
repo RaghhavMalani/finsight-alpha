@@ -75,3 +75,22 @@ def series_platform(tmp_path):
 def returns():
     rng = np.random.default_rng(7)
     return rng.normal(0.0003, 0.01, 400)
+
+
+def pre_phase5_manifest(target):
+    """The checked Replay pointer without Phase 5 entries, for an isolated test publication.
+
+    The committed pointer carries real sealed regimes routes whose artifacts are
+    not copied into a test directory.
+    """
+    import json
+
+    manifest = json.loads((ROOT / "frontend-v2/public/replay-manifest.json").read_bytes())
+    manifest["artifacts"] = {
+        k: v for k, v in manifest["artifacts"].items() if not k.startswith("regimes:")
+    }
+    manifest["routes"] = {
+        k: v for k, v in manifest["routes"].items() if not k.startswith("/regimes/")
+    }
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(manifest, indent=1, sort_keys=True))
