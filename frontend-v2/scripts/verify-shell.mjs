@@ -256,6 +256,15 @@ if (urlIndex > 0) {
             );
             throw error;
           });
+        // Router location and the old shell's workspace attribute can update
+        // before the destination mounts. Wait for actual destination content,
+        // then its hydrated shell, so a remount cannot erase the next command.
+        if (workspace === "market")
+          await page
+            .locator(".mk-head")
+            .getByRole("heading", { name: ticker, exact: true })
+            .waitFor();
+        else await page.locator(`[data-placeholder="${workspace}"]`).waitFor();
         await page.locator(`.shell[data-ready="true"][data-workspace="${workspace}"]`).waitFor();
         await page.waitForLoadState("networkidle");
       }
@@ -264,7 +273,10 @@ if (urlIndex > 0) {
           .getByRole("navigation", { name: "Workspaces" })
           .getByText(label, { exact: true })
           .click();
-        await page.locator(`.shell[data-workspace="${label.toLowerCase()}"]`).waitFor();
+        await page.locator(`[data-placeholder="${label.toLowerCase()}"]`).waitFor();
+        await page
+          .locator(`.shell[data-ready="true"][data-workspace="${label.toLowerCase()}"]`)
+          .waitFor();
         await page.keyboard.press("Control+k");
         await page.getByRole("dialog").getByRole("combobox").fill(label);
         await page
