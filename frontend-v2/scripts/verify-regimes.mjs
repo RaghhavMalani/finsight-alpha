@@ -74,6 +74,15 @@ for (const asset of ["US-MKT", "IN-MKT"]) {
   }
 }
 
+// Retained factor versions are public too, including direct URLs without routes.
+for (const [id, entry] of Object.entries(manifest.artifacts)) {
+  if (!id.startsWith("regimes:factors:")) continue;
+  const bytes = readFileSync(new URL(entry.url.slice(1), root));
+  assert.equal(createHash("sha256").update(bytes).digest("hex"), entry.sha256);
+  validateEnvelope(JSON.parse(bytes), "factors");
+  checks++;
+}
+
 const sabotage = {
   "/regimes/snapshot?asset=US-MKT": [
     (p, v) => (v.claims.validated_alpha = true),
@@ -116,6 +125,19 @@ const sabotage = {
     (p) => p.volatility.rv_20.pop(),
     (p) => (p.path_semantics = "AS_KNOWN_THEN"),
     (p) => (p.posterior_semantics = "SMOOTHED"),
+  ],
+  "/regimes/factors?asset=US-MKT": [
+    (p) => (p.decomposition_tail = [{ observed_at: "2025-09-03T00:00:00Z", raw: 0.006 }]),
+    (p) =>
+      (p.decomposition_tail = [
+        { observed_at: "2025-09-03T00:00:00Z", explained: 0.0038, residual: 0.0022 },
+      ]),
+    (p) => (p.rolling_tail[0].raw = 0.006),
+    (p) => Object.assign(p.rolling_tail[0], { explained: 0.0038, residual: 0.0022 }),
+    (p) => (p.rolling_tail[0].mom = 0.006),
+    (p) => (p.full_window.raw_mean = 0.006),
+    (p) => (p.full_window.terms[0].raw = 0.006),
+    (p) => (p.full_window.n = 1),
   ],
   "/regimes/matrix": [
     (p) => (p.rows[0].tier = "LOCAL_ONLY"),

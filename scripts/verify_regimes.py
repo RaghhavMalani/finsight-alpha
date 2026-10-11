@@ -33,6 +33,8 @@ def verify(root=ROOT, *, runtime=None):
     root = Path(root)
     public = root / "frontend-v2/public"
     verify_boundary(root)
+    from scripts.correct_regime_factors import verify_corrections
+    withdrawals = verify_corrections(public, root / 'data/exports/regimes_v0_1')
     manifest = json.loads((public / "replay-manifest.json").read_bytes())
     regimes = sorted(k for k in manifest["artifacts"] if k.startswith("regimes:"))
     for identity in regimes:
@@ -107,7 +109,7 @@ def verify(root=ROOT, *, runtime=None):
         "status": "VERIFIED",
         "as_of": receipt["as_of"],
         "markets": sorted(receipt["markets"]),
-        "artifacts": len(regimes),
+        "artifacts": len(regimes), "withdrawn_factor_artifacts": withdrawals,
         "holdout_openings": 0,
     }
     if runtime:

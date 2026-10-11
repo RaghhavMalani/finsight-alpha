@@ -423,6 +423,102 @@ export function validateMatrix(value: Matrix, mode: "replay" | "live") {
   return value;
 }
 
+export function validateFactors(value: unknown) {
+  const fields = (v: unknown, keys: string[]): Record<string, unknown> => {
+    if (
+      !v ||
+      typeof v !== "object" ||
+      Array.isArray(v) ||
+      Object.keys(v).some((k) => !keys.includes(k))
+    )
+      fail("Undeclared public factor field; source histories are forbidden.");
+    return v as Record<string, unknown>;
+  };
+  const controls = ["mkt", "smb", "hml"];
+  const keys = [
+    "asset",
+    "name",
+    "status",
+    "controls",
+    "rolling_tail",
+    "full_window",
+    "stability",
+    "semantics",
+  ];
+  const p = fields(value, keys);
+  if (
+    Object.keys(p).length !== keys.length ||
+    JSON.stringify(p.controls) !== JSON.stringify(controls)
+  )
+    fail("Public factor schema or controls differ from the reviewed whitelist.");
+  if (
+    !PUBLIC_LABELS[p.asset as string] ||
+    ![null, "PARTIAL_FACTOR_DIAGNOSTIC"].includes(p.name as string | null) ||
+    !["COMPUTED", "PARTIAL", "AVAILABLE", "UNAVAILABLE"].includes(p.status as string) ||
+    p.semantics !==
+      "Prior-only rolling coefficients and full-window HAC diagnostics; no observation-level target, fitted return or residual is public"
+  )
+    fail("Undeclared public factor semantics.");
+  if (p.stability !== null && !finite(p.stability))
+    fail("Factor stability must be a finite scalar.");
+  if (!Array.isArray(p.rolling_tail) || p.rolling_tail.length > 250)
+    fail("Malformed factor exposure tail.");
+  for (const row of p.rolling_tail as unknown[]) {
+    const r = fields(row, ["observed_at", ...controls]);
+    if (
+      Object.keys(r).length !== 4 ||
+      typeof r.observed_at !== "string" ||
+      !/(Z|[+-]\d{2}:\d{2})$/.test(r.observed_at) ||
+      !Number.isFinite(Date.parse(r.observed_at)) ||
+      controls.some((c) => !finite(r[c]))
+    )
+      fail("Malformed factor exposure row.");
+  }
+  const fit = fields(p.full_window, [
+    "status",
+    "reason",
+    "n",
+    "condition",
+    "r_squared",
+    "terms",
+    "inference",
+  ]);
+  if (fit.status === "UNAVAILABLE") {
+    fields(fit, ["status", "reason"]);
+    return value;
+  }
+  if (
+    fit.status !== "AVAILABLE" ||
+    !Number.isInteger(fit.n) ||
+    (fit.n as number) < 60 ||
+    !finite(fit.condition) ||
+    (fit.r_squared !== null && !finite(fit.r_squared)) ||
+    !Array.isArray(fit.terms) ||
+    fit.terms.length !== 4
+  )
+    fail("Factor full-window diagnostics must aggregate at least 60 observations.");
+  const terms = fit.terms as unknown[];
+  const names = new Set<string>();
+  for (const term of terms) {
+    const t = fields(term, ["term", "coefficient", "hac_se", "t", "interval_95", "neutrality"]);
+    if (
+      Object.keys(t).length !== 6 ||
+      !["intercept", ...controls].includes(t.term as string) ||
+      !finite(t.coefficient) ||
+      !finite(t.hac_se) ||
+      (t.t !== null && !finite(t.t)) ||
+      !Array.isArray(t.interval_95) ||
+      t.interval_95.length !== 2 ||
+      !t.interval_95.every(finite) ||
+      ![null, "NEUTRAL", "WATCH", "EXPOSED"].includes(t.neutrality as string | null)
+    )
+      fail("Malformed public factor coefficient.");
+    names.add(t.term as string);
+  }
+  if (names.size !== 4) fail("Factor coefficient terms must be distinct.");
+  return value;
+}
+
 export function validateEnvelope<T>(value: unknown, kind: RegimeKind): Envelope<T> {
   assertDerivedPayload(value);
   if (!value || typeof value !== "object") fail("Regime evidence is malformed.");
@@ -454,6 +550,7 @@ export function validateEnvelope<T>(value: unknown, kind: RegimeKind): Envelope<
   if (kind === "snapshot") validateSnapshot(payload as Snapshot, mode);
   if (kind === "timeline") validateTimeline(payload as Timeline);
   if (kind === "matrix") validateMatrix(payload as Matrix, mode);
+  if (kind === "factors" && mode === "replay") validateFactors(payload);
   return {
     kind,
     mode,

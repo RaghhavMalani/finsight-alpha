@@ -648,3 +648,19 @@ All ten were resolved by the review decision at the top of this document, which 
 - Vercel green, with served manifest bytes equal to committed bytes.
 - All claim flags false in every artifact, envelope and UI contract.
 - Findings and the three-sentence Postable result written only from actual sealed runs, with the exact screens to record.
+
+
+## PR #27 publication-review amendment
+
+Public factor projections must exclude any per-observation raw target/factor
+returns and explained/residual pairs that reconstruct them. Only rolling
+coefficients and full-window aggregated diagnostics are admitted by the factor
+whitelist. The six unsafe Phase 5 projections are withdrawn with receipt mappings
+and replaced from their existing sealed run outputs. No real capture or model
+execution is authorised for this correction; original computations and all
+unaffected/frozen evidence stay immutable.
+
+D6 uses the approved option B: scheduled Phase 5 publication remains disabled
+until reviewed final-code real idempotence proof. Only explicit manual
+`workflow_dispatch scope=regimes` can capture/compute/publish Phase 5; scheduled
+and `scope=all` runs refresh Data Organ and verify retained Phase 5 evidence.

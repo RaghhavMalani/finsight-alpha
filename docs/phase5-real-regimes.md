@@ -93,10 +93,27 @@ grant, so only `US-MKT` and `IN-MKT` derived views reach anonymous Replay. The s
 kinds — `snapshot`, `timeline`, `factors`, `lineage`, `history` (per market) and
 `matrix` — are positive-whitelist projections, validated fail-closed in Python
 (`src/regimes/publication.py`) and again in the browser
-(`frontend-v2/src/regimes/contracts.ts`): no source values, raw keys, smoothed
+(`frontend-v2/src/regimes/contracts.ts`): no per-observation source values, smoothed
 posteriors, settings, contracts, local rows, synthetic worlds or granted claims.
 Lineage artifacts show identities and clocks only (`source_values: LOCAL_ONLY`).
-`scripts/regimes_archive.py` keeps every earlier artifact, route and frozen export
+Public factors contain only MKT/SMB/HML rolling coefficients, full-window HAC
+coefficients/R² and stability. A kind-specific whitelist rejects decomposition
+rows, target-return aliases and explained/residual pairs, including nested fields.
+Whole-window aggregate attribution remains in the unchanged snapshot diagnostics.
+
+The review found that the original six factor projections exposed dated MOM
+returns directly and through explained + residual. `correct_regime_factors.py`
+reprojects their existing hash-bound sealed outputs: retained receipt → snapshot
+diagnostics/rolling exposures → replacement. It never calls a collector, model,
+runner or holdout API. These six unsafe static files and manifest entries are
+withdrawn, including direct URLs; valid historical publications stay retained.
+Original receipts are byte-identical and retain the old references as historical
+evidence. The new correction receipt maps every withdrawal to its replacement,
+snapshot, verified lineage, run and sealed receipt, without changing computation
+fingerprints or source clocks. Git history and earlier protected deployments are
+not erased by this correction. `verify_regimes` also rejects orphan factor files.
+
+`scripts/regimes_archive.py` keeps every pre-Phase-5 artifact, route and frozen export
 byte-identical, and the Phase 3 and Research OS guards delegate only reviewed
 `regimes:*` identities and `/regimes/*` routes to it.
 
@@ -108,7 +125,18 @@ organisation and 404 without a local runtime; GETs never fetch, compute or write
 
 `organs.yml` runs nightly on `main` and on `workflow_dispatch`. A dispatch publishes
 only to the branch it runs on; `scope=regimes` skips the Data Organ refresh so a
-branch proof never forks its hash-chained history. Each run:
+branch proof never forks its hash-chained history.
+
+**D6 gate: scheduled Phase 5 publication is disabled (review option B).** Scheduled
+runs and default `scope=all` dispatches verify retained Phase 5 evidence and refresh
+Data Organ only. All three Phase 5 capture/compute/runtime-verification steps require
+both `workflow_dispatch` and an explicit `scope=regimes`. Re-enabling the schedule
+requires a reviewed final-code real dispatch followed by an unchanged dispatch with
+zero runs, zero openings and zero commits. No such dispatch was made for this
+publication correction. The older real proof is retained, not claimed as a proof
+for the changed code.
+
+An explicit manual `scope=regimes` dispatch:
 
 1. verifies the plugin registry, the Data Organ history and the prior Phase 5 history;
 2. captures French and IIMA through the Data Organ (`collect_regime_inputs.py --network`);
@@ -126,7 +154,12 @@ It never opens a holdout and never executes the Phase 2 plugin reference.
 ## Operator commands
 
 ```bash
-# Public evidence (network needed for French and IIMA)
+# Read-only publication correction (existing sealed outputs, no captures/models)
+python scripts/correct_regime_factors.py
+python scripts/verify_regimes.py
+
+# Explicit operator public evidence refresh (network needed for French and IIMA;
+# scheduled Phase 5 publication remains disabled pending final-code D6 proof)
 python scripts/collect_regime_inputs.py --network
 python scripts/export_regimes_replay.py
 python scripts/verify_regimes.py --runtime data/exports/replay-source/regimes-runtime

@@ -3,7 +3,8 @@
 Only PUBLIC-tier market-factor rows with an active derived-publication grant are
 published. Raw factor returns, prices, volumes, run contracts and profile
 settings never leave the local runtime. Every artifact is content-addressed and
-old artifacts are never pruned.
+valid artifacts are retained. Unsafe Phase 5 factor projections may be withdrawn
++with a receipt linking their replacements; sealed computations stay immutable.
 """
 
 from __future__ import annotations
@@ -213,18 +214,104 @@ def project_timeline(snapshot):
     return out
 
 
+FACTOR_CONTROLS = ("mkt", "smb", "hml")
+FACTOR_KEYS = {"asset", "name", "status", "controls", "rolling_tail", "full_window", "stability", "semantics"}
+FIT_KEYS = {"status", "reason", "n", "condition", "r_squared", "terms", "inference"}
+TERM_KEYS = {"term", "coefficient", "hac_se", "t", "interval_95", "neutrality"}
+FACTOR_SEMANTICS = "Prior-only rolling coefficients and full-window HAC diagnostics; no observation-level target, fitted return or residual is public"
+
+
+def project_factor_summary(asset, diagnostics, rolling_tail, status):
+    """Whitelist only exposures and a full-window fit, never return decomposition.
+
+    Also used by the read-only correction of previously sealed run projections.
+    Raw means and decomposition paths remain in the sealed local diagnostics.
+    """
+    controls = diagnostics.get("controls") or list(FACTOR_CONTROLS)
+    full = diagnostics.get("full_window") or {"status": "UNAVAILABLE"}
+    fit = _pick(full, FIT_KEYS)
+    if "terms" in full:
+        fit["terms"] = [_pick(term, TERM_KEYS) for term in full["terms"]]
+    return {
+        "asset": asset,
+        "name": diagnostics.get("name"),
+        "status": status,
+        "controls": controls,
+        "rolling_tail": [_pick(row, ("observed_at", *controls)) for row in rolling_tail],
+        "full_window": fit,
+        "stability": diagnostics.get("stability"),
+        "semantics": FACTOR_SEMANTICS,
+    }
+
+
 def project_factors(snapshot):
     assert_verified_lineage(snapshot)
     fac = snapshot["runs"]["factors"]
-    paths = fac.get("paths") or {}
-    return {
-        "asset": snapshot["asset"],
-        "name": (fac.get("diagnostics") or {}).get("name"),
-        "status": fac["status"],
-        "rolling_tail": paths.get("rolling_tail") or [],
-        "decomposition_tail": paths.get("decomposition_tail") or [],
-        "semantics": "RAW vs FACTOR-EXPLAINED vs RESIDUAL; unit-notional arithmetic attribution; not compounded P&L or alpha",
-    }
+    return project_factor_summary(
+        snapshot["asset"], fac.get("diagnostics") or {},
+        (fac.get("paths") or {}).get("rolling_tail") or [], fac["status"],
+    )
+
+
+def validate_factors(payload):
+    """Kind-specific positive whitelist; aliases and reconstructable pairs fail closed."""
+    import math
+    from finsight.plugins.contracts import utc
+
+    def fields(value, keys):
+        if not isinstance(value, dict) or set(value) - keys:
+            raise ValueError("Undeclared public factor field: source histories are forbidden")
+
+    def number(value, *, nullable=False):
+        if value is None and nullable:
+            return
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError("Public factor diagnostic must be a finite scalar")
+
+    fields(payload, FACTOR_KEYS)
+    if set(payload) != FACTOR_KEYS or payload["controls"] != list(FACTOR_CONTROLS):
+        raise ValueError("Public factor schema or controls differ from the reviewed whitelist")
+    if payload["semantics"] != FACTOR_SEMANTICS or payload["name"] not in (None, "PARTIAL_FACTOR_DIAGNOSTIC"):
+        raise ValueError("Undeclared public factor semantics")
+    if payload["status"] not in {"COMPUTED", "PARTIAL", "AVAILABLE", "UNAVAILABLE"}:
+        raise ValueError("Undeclared public factor status")
+    number(payload["stability"], nullable=True)
+    if not isinstance(payload["rolling_tail"], list) or len(payload["rolling_tail"]) > 250:
+        raise ValueError("Public factor exposure tail is malformed")
+    for row in payload["rolling_tail"]:
+        fields(row, {"observed_at", *FACTOR_CONTROLS})
+        if set(row) != {"observed_at", *FACTOR_CONTROLS}:
+            raise ValueError("Public factor exposure row is incomplete")
+        utc(row["observed_at"])
+        for control in FACTOR_CONTROLS:
+            number(row[control])
+    fit = payload["full_window"]
+    fields(fit, FIT_KEYS)
+    if fit.get("status") not in {"AVAILABLE", "UNAVAILABLE"}:
+        raise ValueError("Public factor fit status is malformed")
+    if fit["status"] == "AVAILABLE":
+        if type(fit.get("n")) is not int or fit["n"] < 60:
+            raise ValueError("Public factor fit must aggregate at least 60 observations")
+        number(fit.get("r_squared"), nullable=True)
+        number(fit.get("condition"))
+        terms = fit.get("terms")
+        if not isinstance(terms, list) or {t.get("term") for t in terms} != {"intercept", *FACTOR_CONTROLS} or len(terms) != 4:
+            raise ValueError("Public factor terms must be the reviewed coefficients")
+        for term in terms:
+            fields(term, TERM_KEYS)
+            if set(term) != TERM_KEYS:
+                raise ValueError("Public factor coefficient is incomplete")
+            for key in ("coefficient", "hac_se"):
+                number(term[key])
+            number(term["t"], nullable=True)
+            if not isinstance(term["interval_95"], list) or len(term["interval_95"]) != 2:
+                raise ValueError("Public factor interval must have two endpoints")
+            for value in term["interval_95"]:
+                number(value)
+            if term["neutrality"] not in {None, "NEUTRAL", "WATCH", "EXPOSED"}:
+                raise ValueError("Undeclared public factor neutrality")
+    elif set(fit) - {"status", "reason"}:
+        raise ValueError("Unavailable factor fit cannot carry cached numbers")
 
 
 def _chain(chain):
@@ -299,6 +386,8 @@ def validate_public(kind, payload, *, asset=None):
     walk(payload)
     if kind in PER_ASSET and payload.get("asset") not in PUBLIC_SOURCES:
         raise ValueError("Only PUBLIC market-factor rows are published")
+    if kind == "factors":
+        validate_factors(payload)
     if kind == "snapshot":
         if set(payload) - SNAPSHOT_KEYS:
             raise ValueError("Undeclared snapshot field")

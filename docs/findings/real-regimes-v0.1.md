@@ -154,9 +154,30 @@ The three sealed cutoffs agree on every published state because their input byte
 identical. The sealed multi-cutoff timeline therefore shows three entries, as known at
 each run.
 
+## Publication correction after review
+
+The six original factor artifacts across three cutoffs contained dated raw MOM
+returns and reconstructable explained/residual pairs. They were withdrawn from
+the current public manifest and static directory. Their replacements contain
+rolling coefficients, full-window HAC coefficients/R² and stability only. The
+unchanged snapshot retains whole-window aggregate diagnostics; no per-date
+decomposition is public.
+
+The correction uses only existing sealed, hash-bound receipt/snapshot/factor
+output bytes. It creates no captures, model computations or holdout openings. All
+27 other Phase 5 artifacts, three original sealed receipts, run identities,
+lineage, HMM/GARCH evidence and screenshots remain byte-identical. Earlier
+protected deployments and Git history are not erased.
+
+Scheduled Phase 5 publication is now disabled under review option B, pending a
+final-code real dispatch and an unchanged repeat proving zero runs/openings/commits.
+The dispatches above prove only their named sealed versions. Data Organ scheduling
+continues, and explicit manual `scope=regimes` remains available for the later proof.
+
 ## Identities at the current cutoff
 
-* Receipt `data/exports/regimes_v0_1/receipt-40683751….json`; profile sha256 `b12b8ed7…`;
+* Correction receipt `data/exports/regimes_v0_1/receipt-2c9a7690….json`
++  (full SHA-256 `2c9a7690069a14a2926d66c8e9548ff737b9d9f911effb2eacdb461535615feb`); original receipt `40683751…` retained; profile sha256 `b12b8ed7…`;
   execution commit `9ea8d52`, `dirty_computation: false`.
 * US runs: volatility `9038c013…`, hmm2 `91496503…`, hmm4 `6632b083…`, factors
   `133fe71f…`, momentum `77f16d4a…`; snapshot `regimes:snapshot:12235bb5…`.

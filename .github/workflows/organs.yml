@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: 'all: Data Organ and Phase 5 regimes. regimes: Phase 5 only, so a branch proof never forks the Data Organ history on main.'
+        description: 'all: Data Organ only while D6 is gated. regimes: explicit manual Phase 5 proof on this branch; never runs on a schedule.'
         type: choice
         options: [all, regimes]
         default: all
@@ -59,15 +59,20 @@ jobs:
         run: |
           python scripts/verify_data_organ.py --runtime data/exports/replay-source/data-organ-runtime
           python scripts/verify_plugin_replay.py
+      # D6 CLOSED: scheduled Phase 5 capture/computation/publication stays disabled
+      # until a reviewed final-code real unchanged-source proof is completed.
       - name: Admit French and IIMA factor captures under the frozen Phase 5 profile
+        if: github.event_name == 'workflow_dispatch' && inputs.scope == 'regimes'
         # CAPTURE_ONLY: invisible before its capture clock. A failed source stays
         # UNAVAILABLE; no proxy, synthetic world or weaker provider is substituted.
         run: python scripts/collect_regime_inputs.py --network
       - name: Compute regimes only when admitted evidence changed, then publish derived views
+        if: github.event_name == 'workflow_dispatch' && inputs.scope == 'regimes'
         # Unchanged capture bytes, profile and code: zero runs, zero openings, nothing published.
         # Never opens a holdout and never executes the Phase 2 plugin reference.
         run: python scripts/export_regimes_replay.py
       - name: Verify regimes publication, sealed lineage and every earlier archive
+        if: github.event_name == 'workflow_dispatch' && inputs.scope == 'regimes'
         run: |
           python scripts/verify_regimes.py --runtime data/exports/replay-source/regimes-runtime
           python scripts/verify_data_organ.py
