@@ -57,6 +57,7 @@ def current_factors():
     lambda p: p["full_window"].__setitem__("raw_mean", .006),
     lambda p: p["full_window"]["terms"][0].__setitem__("raw", .006),
     lambda p: p["full_window"].__setitem__("n", 1),
+    lambda p: p["full_window"].__setitem__("inference", [{"observed_at": "2025-09-03T00:00:00Z", "explained": .0038, "residual": .0022}]),
     lambda p: p.__setitem__("history", [{"date": "2025-09-03", "value": .006}]),
 ])
 def test_factor_kind_whitelist_rejects_raw_pairs_and_aliases(mutate):

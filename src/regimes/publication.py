@@ -287,6 +287,9 @@ def validate_factors(payload):
             number(row[control])
     fit = payload["full_window"]
     fields(fit, FIT_KEYS)
+    for key in ("reason", "inference"):
+        if key in fit and not isinstance(fit[key], str):
+            raise ValueError("Public factor annotations must be text, never source-row containers")
     if fit.get("status") not in {"AVAILABLE", "UNAVAILABLE"}:
         raise ValueError("Public factor fit status is malformed")
     if fit["status"] == "AVAILABLE":

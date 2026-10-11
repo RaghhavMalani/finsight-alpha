@@ -138,6 +138,10 @@ const sabotage = {
     (p) => (p.full_window.raw_mean = 0.006),
     (p) => (p.full_window.terms[0].raw = 0.006),
     (p) => (p.full_window.n = 1),
+    (p) =>
+      (p.full_window.inference = [
+        { observed_at: "2025-09-03T00:00:00Z", explained: 0.0038, residual: 0.0022 },
+      ]),
   ],
   "/regimes/matrix": [
     (p) => (p.rows[0].tier = "LOCAL_ONLY"),

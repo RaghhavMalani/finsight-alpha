@@ -483,6 +483,9 @@ export function validateFactors(value: unknown) {
     "terms",
     "inference",
   ]);
+  for (const key of ["reason", "inference"])
+    if (key in fit && typeof fit[key] !== "string")
+      fail("Factor annotations must be text, never source-row containers.");
   if (fit.status === "UNAVAILABLE") {
     fields(fit, ["status", "reason"]);
     return value;
