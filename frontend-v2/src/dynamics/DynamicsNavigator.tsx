@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { FactorRegimeEvidence } from "@/replay/FactorRegimeEvidence";
+import { RegimeIntelligence } from "@/regimes/RegimeIntelligence";
 import { DynamicsLab } from "@/dynamics/DynamicsLab";
 import { FailureMicroscope } from "@/dynamics/FailureMicroscope";
 import { EventDynamicsWorkbench } from "@/dynamics/EventDynamicsWorkbench";
@@ -163,6 +164,7 @@ export function DynamicsNavigator() {
 
   return (
     <ForgeShell>
+      <RegimeIntelligence />
       <FactorRegimeEvidence />
       <header className="border border-[#25313A] bg-[#090D10] px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-4">

@@ -5,6 +5,7 @@ from .model import Model
 from .store import SignalStore
 from .runner import Runner
 from .catalog import PluginCatalog
+from .series import SeriesInput, SeriesModel, SeriesRunner
 from src.truth.run_registry import RunRegistry
 
 __all__ = [
@@ -15,4 +16,7 @@ __all__ = [
     "InferenceCapability",
     "Runner",
     "RunRegistry",
+    "SeriesInput",
+    "SeriesModel",
+    "SeriesRunner",
 ]

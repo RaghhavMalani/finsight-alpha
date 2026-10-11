@@ -167,6 +167,8 @@ app.add_middleware(
 # Register routers.
 from backend.routes import data_organ
 app.include_router(data_organ.router)
+from backend.routes import regimes as regimes_routes
+app.include_router(regimes_routes.router)
 app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(assets.router)

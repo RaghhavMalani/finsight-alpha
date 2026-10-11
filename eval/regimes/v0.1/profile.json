@@ -1,0 +1,89 @@
+{
+  "schema_version": "regimes-profile/1",
+  "frozen_on": "2026-10-10",
+  "frozen_before_real_outputs": true,
+  "tenant": "public-regime-evidence",
+  "analysis_window": {
+    "start": "2000-01-01",
+    "end": "LAST_CAPTURED_OBSERVATION",
+    "note": "Common Phase 5 analytical window; each source's complete library coverage is reported separately."
+  },
+  "markets": {
+    "US-MKT": {
+      "label": "US MARKET-FACTOR REGIME",
+      "series_label": "French MKT",
+      "not_a": "Market factor (Rm-Rf), not SPY or any ticker",
+      "country": "US",
+      "source": "ken-french:daily-factors",
+      "tier": "PUBLIC",
+      "return_field": "mkt",
+      "factor_fields": ["mkt", "smb", "hml", "mom", "rf"],
+      "calendar": {"mic": "XNYS", "status": "PACKAGE_EVIDENCE"},
+      "observation_unit": "session",
+      "annualization": 252,
+      "badges": ["CAPTURE_ONLY"]
+    },
+    "IN-MKT": {
+      "label": "INDIA MARKET-FACTOR REGIME",
+      "series_label": "IIMA MKT",
+      "not_a": "Market factor (Rm-Rf), not NIFTY 50 or any index",
+      "country": "INDIA",
+      "source": "iima:daily-factors",
+      "tier": "PUBLIC",
+      "return_field": "mkt",
+      "factor_fields": ["mkt", "smb", "hml", "mom", "rf"],
+      "calendar": {"mic": "XNSE", "status": "UNAVAILABLE", "reason": "No evidenced official XNSE session manifest; XBOM/weekday substitution forbidden"},
+      "observation_unit": "observation",
+      "annualization": 1,
+      "badges": ["CAPTURE_ONLY", "CALENDAR_UNAVAILABLE"]
+    }
+  },
+  "local_assets": {
+    "SPY": {"label": "SPY REGIME", "source": "alpaca:iex", "tier": "LOCAL_ONLY", "factors_from": "US-MKT", "calendar": {"mic": "XNYS", "status": "PACKAGE_EVIDENCE"}, "observation_unit": "session", "annualization": 252, "badges": ["ALPACA IEX", "LOCAL ONLY", "CONSERVATIVE_MARKET_TIME", "IEX_ONLY", "UNADJUSTED"]},
+    "QQQ": {"label": "QQQ REGIME", "source": "alpaca:iex", "tier": "LOCAL_ONLY", "factors_from": "US-MKT", "calendar": {"mic": "XNYS", "status": "PACKAGE_EVIDENCE"}, "observation_unit": "session", "annualization": 252, "badges": ["ALPACA IEX", "LOCAL ONLY", "CONSERVATIVE_MARKET_TIME", "IEX_ONLY", "UNADJUSTED"]},
+    "IWM": {"label": "IWM REGIME", "source": "alpaca:iex", "tier": "LOCAL_ONLY", "factors_from": "US-MKT", "calendar": {"mic": "XNYS", "status": "PACKAGE_EVIDENCE"}, "observation_unit": "session", "annualization": 252, "badges": ["ALPACA IEX", "LOCAL ONLY", "CONSERVATIVE_MARKET_TIME", "IEX_ONLY", "UNADJUSTED"]}
+  },
+  "volatility": {
+    "descriptive_engine": "src.dynamics.market_regime.volatility_path (frozen market-regime/0.4.2 thresholds)",
+    "arch_lm": {"lags": 5, "minimum": 100, "inference": "DIAGNOSTIC_ASYMPTOTIC"},
+    "garch": {"package": "arch", "major_version": 8, "mean": "Constant", "vol": "GARCH", "p": 1, "q": 1, "dist": "normal", "rescale": false, "units": "percent", "cov_type": "robust", "minimum": 500, "inference": "DIAGNOSTIC_ASYMPTOTIC"},
+    "tail": 250
+  },
+  "hmm": {
+    "engine": "src.regime.hmm_regime.train_hmm_regime_model",
+    "seed": 42,
+    "posterior": "FILTERED_FORWARD_RECURSION",
+    "posterior_tail": 250,
+    "labelling": "VOL_RANK_k_OF_K by ascending fitted variance of the return feature in per-observation units",
+    "configs": {
+      "hmm2-diagnostic": {"n_states": 2, "covariance_type": "full", "features": ["mkt", "realized_vol_20"], "feature_sources": {"mkt": "data-organ admission", "realized_vol_20": "plugin:regimes.volatility output"}, "return_feature": "mkt", "minimum": 120},
+      "hmm4-existing": {"n_states": 4, "covariance_type": "full", "features": ["log_return", "rolling_return_20", "realized_vol_20", "drawdown_from_252_high"], "feature_definitions": "src.replay.factors.factor_features over the compounded excess-return research index (Phase 1a definitions)", "return_feature": "log_return", "minimum": 312}
+    }
+  },
+  "factors": {
+    "name": "PARTIAL_FACTOR_DIAGNOSTIC",
+    "public": {"target": "mom", "controls": ["mkt", "smb", "hml"]},
+    "local": {"target": "excess_return", "controls": ["mkt", "smb", "hml", "mom"]},
+    "rolling_window": 120,
+    "minimum": 60,
+    "hac_lags": 3,
+    "inference": "DIAGNOSTIC_ASYMPTOTIC",
+    "seven_factor": "UNAVAILABLE: QUAL, VOL and LIQ are not admitted"
+  },
+  "momentum": {"signal": "12-1 market-factor momentum", "lookback": 252, "skip": 21, "mom_factor_sharpe_minimum": 30},
+  "issues": {
+    "stale_input_calendar_days": {"medium": 45, "high": 120},
+    "regime_instability": {"window": 20, "switches": 5},
+    "low_state_occupancy": {"share": 0.05, "count": 30},
+    "ood_quantile": 0.999,
+    "intraday_minimum_sessions": 60
+  },
+  "claims": {
+    "inference_certified": false,
+    "market_claim_eligible": false,
+    "causal_claim_eligible": false,
+    "validated_alpha": false,
+    "trusted_graph": false,
+    "precise_edge_confidence": false
+  }
+}

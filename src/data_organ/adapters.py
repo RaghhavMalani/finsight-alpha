@@ -345,6 +345,54 @@ def alpaca(dataset, raw, captured_at, source_url, *, asset):
     )
 
 
+def alpaca_intraday(dataset, raw, captured_at, source_url, *, asset):
+    """IEX minute bars as two captures so close (USD) and volume (shares) keep units.
+
+    Only reconstructed CONSERVATIVE_MARKET_TIME minute bars are admitted here;
+    volume is IEX venue volume, never consolidated US market volume.
+    """
+    bars = [
+        r
+        for r in dataset
+        if r.stream == "intraday" and r.quality == "CONSERVATIVE_MARKET_TIME"
+    ]
+    out = []
+    for field, key, unit, definition in (
+        ("iex_bar_close", "close", "USD", "IEX minute bar close"),
+        ("iex_bar_volume", "volume", "shares", "IEX minute bar volume; venue-only, not consolidated"),
+    ):
+        rows = [
+            {
+                "asset": asset,
+                "field": field,
+                "value": float(r.values[key]),
+                "observed_at": r.observed_at.isoformat(),
+                "available_at": r.available_at.isoformat(),
+                "revision": r.revision,
+            }
+            for r in bars
+        ]
+        out.append(
+            (
+                capture(
+                    "alpaca:iex",
+                    source_url,
+                    raw,
+                    captured_at,
+                    schema={field: "float"},
+                    quality="CONSERVATIVE_MARKET_TIME",
+                    unit=unit,
+                    definition=definition,
+                    feed="IEX_ONLY",
+                    basis="UNADJUSTED",
+                ),
+                raw,
+                rows,
+            )
+        )
+    return out
+
+
 def market_provider(
     frame,
     raw,

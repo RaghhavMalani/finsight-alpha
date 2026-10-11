@@ -182,6 +182,7 @@ if (urlIndex > 0) {
       }
       // All captured keys remain native while editing; contenteditable, textarea and select too.
       await page.goto(`${base}/data`);
+      await page.locator('.shell[data-ready="true"]').waitFor();
       await page.getByLabel("Command", { exact: true }).waitFor();
       for (const selector of [
         "#terminal-command",
@@ -210,6 +211,19 @@ if (urlIndex > 0) {
           );
         }
       }
+      // The focus fixtures insert unmanaged nodes into the document. Exercise
+      // real command submission in a fresh document, then prove React handlers
+      // are interactive before sending Enter; a parent readiness flag alone is
+      // not a check of the command/palette event path.
+      await page.goto(`${base}/data?ticker=RELIANCE.NS`);
+      await page.locator('.shell[data-ready="true"]').waitFor();
+      await page.getByRole("button", { name: "Open command palette" }).click();
+      await page.getByRole("dialog").waitFor();
+      await page.waitForFunction(
+        () => document.activeElement === document.querySelector('[role="dialog"] input'),
+      );
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
       for (const [command, workspace, ticker, graph] of [
         ["RELIANCE IN DES", "market", "RELIANCE.NS", false],
         ["SPY US GP", "market", "SPY", true],
@@ -222,12 +236,35 @@ if (urlIndex > 0) {
         await page.getByLabel("Command", { exact: true }).press("Enter");
         // Several consecutive commands share MARKET. Its existing shell alone
         // does not prove that navigation committed before the next input fill.
-        await page.waitForURL(
-          (url) =>
-            url.pathname === (workspace === "market" ? "/markets" : "/" + workspace) &&
-            url.searchParams.get("ticker") === ticker &&
-            url.searchParams.get("view") === (graph ? "graph" : null),
-        );
+        await page
+          .waitForURL(
+            (url) =>
+              url.pathname === (workspace === "market" ? "/markets" : "/" + workspace) &&
+              url.searchParams.get("ticker") === ticker &&
+              url.searchParams.get("view") === (graph ? "graph" : null),
+          )
+          .catch(async (error) => {
+            console.error(
+              JSON.stringify({
+                browser: name,
+                command,
+                url: page.url(),
+                input: await page.getByLabel("Command", { exact: true }).inputValue(),
+                help: await page.locator("#terminal-command-help").innerText(),
+                focus: await page.evaluate(() => document.activeElement?.id),
+              }),
+            );
+            throw error;
+          });
+        // Router location and the old shell's workspace attribute can update
+        // before the destination mounts. Wait for actual destination content,
+        // then its hydrated shell, so a remount cannot erase the next command.
+        if (workspace === "market")
+          await page
+            .locator(".mk-head")
+            .getByRole("heading", { name: ticker, exact: true })
+            .waitFor();
+        else await page.locator(`[data-placeholder="${workspace}"]`).waitFor();
         await page.locator(`.shell[data-ready="true"][data-workspace="${workspace}"]`).waitFor();
         await page.waitForLoadState("networkidle");
       }
@@ -236,7 +273,10 @@ if (urlIndex > 0) {
           .getByRole("navigation", { name: "Workspaces" })
           .getByText(label, { exact: true })
           .click();
-        await page.locator(`.shell[data-workspace="${label.toLowerCase()}"]`).waitFor();
+        await page.locator(`[data-placeholder="${label.toLowerCase()}"]`).waitFor();
+        await page
+          .locator(`.shell[data-ready="true"][data-workspace="${label.toLowerCase()}"]`)
+          .waitFor();
         await page.keyboard.press("Control+k");
         await page.getByRole("dialog").getByRole("combobox").fill(label);
         await page

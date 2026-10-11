@@ -53,18 +53,34 @@ def test_third_run_bytes_are_inside_the_phase_3_archive(monkeypatch, path):
         data_archive.verify(ROOT)
 
 
-def test_scheduler_only_verifies_plugins_and_stages_data_organ():
+def test_scheduler_only_verifies_plugins_and_stages_derived_organ_history():
     workflow = (ROOT / ".github/workflows/organs.yml").read_text()
     assert workflow.count("python scripts/verify_plugin_replay.py") == 2
     assert "python scripts/collect_data_organ.py --network" in workflow
     assert "python scripts/export_data_organ_replay.py" in workflow
     assert "export_plugin_replay.py" not in workflow
     assert "momentum_plugin.py" not in workflow
+    # Phase 5: idempotent regimes refresh, verified against its runtime and every archive.
+    assert "python scripts/collect_regime_inputs.py --network" in workflow
+    assert "python scripts/export_regimes_replay.py" in workflow
+    assert "--force" not in workflow
+    assert (
+        "python scripts/verify_regimes.py --runtime data/exports/replay-source/regimes-runtime"
+        in workflow
+    )
+    # The nightly stays on main; a dispatch publishes only to its own branch and can
+    # skip the Data Organ so a branch proof never forks its hash-chained history.
+    assert "cron: '20 1 * * *'" in workflow
+    assert "ref: ${{ github.ref_name }}" in workflow
+    assert "git push origin HEAD:${{ github.ref_name }}" in workflow
+    assert workflow.count("if: inputs.scope != 'regimes'") == 3
     staged = next(
         line.strip() for line in workflow.splitlines() if "git add --" in line
     )
     assert staged == (
         "git add -- data/exports/data_organ_v0_1 "
         "frontend-v2/public/artifacts/replay/data-organ-*.json "
+        "data/exports/regimes_v0_1 "
+        "frontend-v2/public/artifacts/replay/regimes-*.json "
         "frontend-v2/public/replay-manifest.json"
     )

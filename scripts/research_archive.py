@@ -85,7 +85,7 @@ def verify_shared_history(root: Path):
     ):
         raise ValueError("Historical manifest metadata changed")
     from finsight.plugins.contracts import utc
-    data_additions = {k for k in current["artifacts"] if k.startswith("data-organ:")}
+    data_additions = {k for k in current["artifacts"] if k.startswith(("data-organ:", "regimes:"))}
     if current["as_of"] != original["as_of"] and (not data_additions or utc(current["as_of"]) < utc(original["as_of"])):
         raise ValueError("Historical manifest metadata changed")
     for section in ("artifacts", "routes"):
@@ -99,6 +99,11 @@ def verify_shared_history(root: Path):
     for identity in additions:
         if identity.startswith("data-organ:"):
             allowed_files.add(verify_addition(public, identity, current["artifacts"][identity]))
+            continue
+        if identity.startswith("regimes:"):
+            from scripts.regimes_archive import verify_addition as regimes_addition
+
+            allowed_files.add(regimes_addition(public, identity, current["artifacts"][identity]))
             continue
         if not re.fullmatch(r"plugins:run:[0-9a-f]{64}", identity):
             raise ValueError("Unreviewed public artifact addition")
@@ -141,6 +146,11 @@ def verify_shared_history(root: Path):
         allowed_files.add(PUBLIC + url)
     for route in set(current["routes"]) - set(original["routes"]):
         if route in {"/data/" + k for k in ("health", "revisions", "disagreement", "coverage", "lineage", "issues", "costs")} and current["routes"][route] in data_additions:
+            continue
+        if route.startswith("/regimes/"):
+            from scripts.regimes_archive import verify_route
+
+            verify_route(route, current["routes"][route], current["artifacts"])
             continue
         if (
             route != "/plugins/momentum-fixture"
