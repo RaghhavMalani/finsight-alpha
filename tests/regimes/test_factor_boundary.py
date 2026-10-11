@@ -7,7 +7,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import yaml
 
 from scripts.correct_regime_factors import correct, verify_corrections
 from src.regimes.publication import project_factors, validate_public
@@ -149,14 +148,17 @@ def test_orphan_factor_direct_url_is_rejected(legacy):
 
 
 def test_d6_schedule_and_all_scope_cannot_execute_phase5():
-    workflow = yaml.safe_load((ROOT / ".github/workflows/organs.yml").read_text(encoding="utf-8"))
-    steps = workflow["jobs"]["reference"]["steps"]
-    gate = "github.event_name == 'workflow_dispatch' && inputs.scope == 'regimes'"
-    phase5 = [s for s in steps if "collect_regime_inputs.py --network" in s.get("run", "") or "export_regimes_replay.py" in s.get("run", "") or "verify_regimes.py --runtime" in s.get("run", "")]
+    text = (ROOT / ".github/workflows/organs.yml").read_text(encoding="utf-8")
+    # Inspect each YAML step's exact condition without adding a parser dependency.
+    steps = text.split("      - ")[1:]
+    gate = "        if: github.event_name == 'workflow_dispatch' && inputs.scope == 'regimes'"
+    phase5 = [s for s in steps if "collect_regime_inputs.py --network" in s or "export_regimes_replay.py" in s or "verify_regimes.py --runtime" in s]
     assert len(phase5) == 3
-    assert all(s["if"] == gate for s in phase5)
+    assert all(gate in s.splitlines() for s in phase5)
     # Both clauses must pass; schedule and a default all dispatch stay gated.
     for event, scope in [("schedule", "all"), ("schedule", "regimes"), ("workflow_dispatch", "all")]:
         assert not (event == "workflow_dispatch" and scope == "regimes")
-    assert all(s["if"] == "inputs.scope != 'regimes'" for s in steps if "collect_data_organ.py --network" in s.get("run", "") or "export_data_organ_replay.py" in s.get("run", ""))
-    assert not any("run_plugin_reference.py" in s.get("run", "") for s in steps)
+    data = [s for s in steps if "collect_data_organ.py --network" in s or "export_data_organ_replay.py" in s]
+    assert len(data) == 2
+    assert all("        if: inputs.scope != 'regimes'" in s.splitlines() for s in data)
+    assert "run_plugin_reference.py" not in text
