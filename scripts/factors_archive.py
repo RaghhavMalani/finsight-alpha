@@ -72,6 +72,8 @@ def verify_freeze(root):
 def verify_addition(public, identity, entry):
     from src.factors.publication import validate_public
     public = Path(public)
+    fields={'status','kind','url','sha256','bytes','sources','licence','input_hash','as_of','observed_at','available_at','reason','scope'}
+    if not isinstance(entry,dict) or set(entry)!=fields or entry['reason'] is not None:raise ValueError('Unknown Phase 6 manifest field')
     match = IDENTITY.fullmatch(identity)
     if not match:
         raise ValueError('Unreviewed Phase 6 namespace')

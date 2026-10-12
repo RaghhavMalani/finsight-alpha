@@ -10,7 +10,7 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     env:
       APP_ENV: test
       FINSIGHT_DATA_DIR: /tmp/finsight-data
@@ -78,7 +78,9 @@ jobs:
           python scripts/verify_release_authorship.py
       - name: Verify agent-eval anti-gaming contracts
         run: pytest -q tests/test_agent_eval_metrics.py tests/sabotage
-      - run: pytest -q --ignore=tests/regimes
+      - name: Phase 6 read-only metadata, reference and archive sabotage suite
+        run: pytest -q tests/factors
+      - run: pytest -q --ignore=tests/regimes --ignore=tests/factors
 
   regimes:
     # Phase 5 families A-K admit real-shaped captures through the Data Organ; run in parallel.

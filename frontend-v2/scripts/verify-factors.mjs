@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync, mkdirSync } from "node:fs";
+import { readFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
 import {
   CUTOFFS,
   KNOWN_IDS,
   KNOWN_BUNDLES,
   KNOWN_ENTRIES,
+  KNOWN_METADATA_ENTRIES,
   validateMetadata,
   stable,
 } from "../src/factors/contracts.ts";
@@ -24,6 +26,8 @@ for (const country of ["US", "INDIA"])
         entry = manifest.artifacts[id],
         raw = readFileSync(new URL(entry.url.slice(1), root)),
         value = JSON.parse(raw);
+      assert.equal(stable(entry), stable(KNOWN_METADATA_ENTRIES[id]));
+      checks++;
       assert.equal(createHash("sha256").update(raw).digest("hex"), id.split(":").at(-1));
       assert.equal(raw.length, entry.bytes);
       assert(raw.length <= 128 * 1024);
@@ -90,6 +94,22 @@ for (const country of ["US", "INDIA"])
 console.log(
   `FACTORS static: ${checks} integrity, schema, reference, ledger and reconstruction checks passed.`,
 );
+const built = new URL("../.vercel/output/static/assets/", import.meta.url);
+if (existsSync(built)) {
+  const feature = readdirSync(built)
+    .filter((name) => name.endsWith(".js"))
+    .map((name) => ({ name, raw: readFileSync(new URL(name, built)) }))
+    .filter(
+      (item) =>
+        /^(factors-|RetainedDiagnostics-|LineageDrawer-)/.test(item.name) ||
+        /factor-metadata|factor-retained|READ_ONLY_FACTOR_EVIDENCE/.test(item.raw.toString()),
+    );
+  const size = feature.reduce((n, item) => n + gzipSync(item.raw).length, 0);
+  assert(size <= 64 * 1024, "Incremental FACTORS JS exceeds 64 KiB gzip");
+  console.log(
+    `FACTORS production JS: ${size} gzip bytes across ${feature.length} feature-bearing chunks.`,
+  );
+}
 const urlIndex = process.argv.indexOf("--url");
 if (urlIndex !== -1) {
   const base = process.argv[urlIndex + 1],
@@ -106,6 +126,7 @@ if (urlIndex !== -1) {
       failed = [],
       errors = [];
     let dataBytes = 0;
+    const responseWork = [];
     page.on("request", (r) => {
       const u = new URL(r.url());
       if (
@@ -116,11 +137,20 @@ if (urlIndex !== -1) {
     });
     page.on("requestfailed", (r) => failed.push(r.url()));
     page.on("pageerror", (e) => errors.push(e.message));
-    page.on("response", async (r) => {
-      if (/\/artifacts\/replay\/factors-|\/artifacts\/replay\/regimes-/.test(r.url()))
-        dataBytes += (await r.body()).length;
+    page.on("response", (r) => {
+      if (
+        /\/replay-manifest\.json|\/artifacts\/replay\/factors-|\/artifacts\/replay\/regimes-/.test(
+          r.url(),
+        )
+      )
+        responseWork.push(
+          r.body().then((body) => {
+            dataBytes += body.length;
+          }),
+        );
     });
     for (const country of ["US", "INDIA"]) {
+      const before = dataBytes;
       await page.goto(
         base +
           "/factors?country=" +
@@ -130,6 +160,10 @@ if (urlIndex !== -1) {
       );
       await page.locator('[data-factor-workspace][data-state="ready"]').waitFor();
       await page.locator('[data-diagnostics="ready"]').waitFor();
+      await page.waitForLoadState("networkidle");
+      await Promise.all(responseWork);
+      assert(dataBytes - before <= 512 * 1024);
+      console.log(`${name} ${country} initial selected data: ${dataBytes - before} bytes`);
       assert(await page.getByText("NOT CALIBRATED", { exact: true }).count());
       assert(await page.getByText("Market factor, not a ticker", { exact: true }).count());
       for (const width of [1440, 390]) {
@@ -181,6 +215,10 @@ if (urlIndex !== -1) {
       });
     await context.close();
     for (const sabotage of [
+      "metadata-entry",
+      "metadata-source",
+      "metadata-clock",
+      "metadata-tenant",
       "metadata-bytes",
       "metadata-route",
       "reference-licence",
@@ -193,14 +231,29 @@ if (urlIndex !== -1) {
       const cutoff = CUTOFFS.at(-1),
         catalogId = KNOWN_IDS["US|" + cutoff].catalog,
         ref = KNOWN_BUNDLES.US[cutoff].refs.factors;
-      if (["metadata-route", "reference-licence"].includes(sabotage))
+      if (
+        [
+          "metadata-route",
+          "reference-licence",
+          "metadata-entry",
+          "metadata-source",
+          "metadata-clock",
+          "metadata-tenant",
+        ].includes(sabotage)
+      )
         await c.route("**/replay-manifest.json", async (route) => {
           const value = structuredClone(manifest);
           if (sabotage === "metadata-route") {
             for (const key of Object.keys(value.routes))
               if (key.startsWith("/factor-evidence/catalog") && key.includes("country=US"))
                 value.routes[key] = KNOWN_IDS["INDIA|" + cutoff].catalog;
-          } else value.artifacts[ref.artifact_id].licence.status = "LOCAL_ONLY";
+          } else if (sabotage === "metadata-entry") value.artifacts[catalogId].scope = "LOCAL_ONLY";
+          else if (sabotage === "metadata-source")
+            value.artifacts[catalogId].sources = ["yfinance"];
+          else if (sabotage === "metadata-clock")
+            value.artifacts[catalogId].observed_at = "2026-10-10T00:00:00Z";
+          else if (sabotage === "metadata-tenant") value.artifacts[catalogId].tenant_id = "other";
+          else value.artifacts[ref.artifact_id].licence.status = "LOCAL_ONLY";
           await route.fulfill({ json: value });
         });
       else {
@@ -227,7 +280,7 @@ if (urlIndex !== -1) {
     }
     await browser.close();
     console.log(
-      `${name}: real US/India, three cutoffs, catalogue/audit/ledger/lineage, 1440/390, zero API/vendor traffic and six sabotage cases passed.`,
+      `${name}: real US/India, three cutoffs, catalogue/audit/ledger/lineage, 1440/390, zero API/vendor traffic and ten sabotage cases passed.`,
     );
   }
 }

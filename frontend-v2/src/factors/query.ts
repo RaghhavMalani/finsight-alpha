@@ -7,6 +7,7 @@ import {
   KNOWN_IDS,
   KNOWN_BUNDLES,
   KNOWN_ENTRIES,
+  KNOWN_METADATA_ENTRIES,
   stable,
   validateMetadata,
   type Kind,
@@ -25,6 +26,7 @@ export async function loadMetadata(k: Kind, c: Country, cutoff: string) {
       "/factor-evidence/" + k + "?country=" + c + "&as_of=" + encodeURIComponent(cutoff),
     );
   if (
+    stable(entry) !== stable(KNOWN_METADATA_ENTRIES[id]) ||
     m.routes[route] !== id ||
     entry?.kind !== "factors-" + k ||
     entry.scope !== "READ_ONLY_FACTOR_EVIDENCE" ||

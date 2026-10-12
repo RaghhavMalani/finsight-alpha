@@ -40,3 +40,12 @@ def test_false_cannot_alias_zero_in_phase5_entry(monkeypatch):
         return raw
     monkeypatch.setattr(Path,'read_bytes',sabotage)
     with pytest.raises(ValueError,match='Phase 5 artifact'):verify_freeze(ROOT)
+
+
+@pytest.mark.parametrize('field,value',[('tenant_id','other'),('provider_rows',[1,2,3]),('reason','{"raw":[1,2,3]}')])
+def test_manifest_annotations_cannot_transport_unreviewed_values(field,value):
+    from scripts.factors_archive import verify_addition
+    manifest=json.loads((ROOT/'frontend-v2/public/replay-manifest.json').read_bytes())
+    identity=next(k for k in manifest['artifacts'] if k.startswith('factors:'))
+    entry=dict(manifest['artifacts'][identity]);entry[field]=value
+    with pytest.raises(ValueError,match='Unknown Phase 6 manifest field'):verify_addition(ROOT/'frontend-v2/public',identity,entry)
