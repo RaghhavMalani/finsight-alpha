@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { Country } from "./contracts";
 import { useFactorLineage } from "./query";
 export function LineageDrawer({
@@ -10,9 +11,41 @@ export function LineageDrawer({
   onClose: () => void;
 }) {
   const q = useFactorLineage(country, cutoff);
+  const drawer = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    const node = drawer.current;
+    node?.querySelector<HTMLButtonElement>("button")?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key === "Tab" && node) {
+        const targets = Array.from(
+          node.querySelectorAll<HTMLElement>('button,summary,a[href],[tabindex="0"]'),
+        );
+        const first = targets[0],
+          last = targets.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    node?.addEventListener("keydown", key);
+    return () => {
+      node?.removeEventListener("keydown", key);
+      previous?.focus();
+    };
+  }, [onClose]);
   return (
     <div className="factor-drawer-backdrop">
       <aside
+        ref={drawer}
         className="factor-drawer"
         role="dialog"
         aria-modal="true"

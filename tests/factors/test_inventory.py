@@ -33,3 +33,13 @@ def test_omitting_a_channel_fails(tmp_path):
     p.write_text(json.dumps(v))
     with pytest.raises(ValueError,match='Every channel'):
         verify_inventory(tmp_path)
+
+
+@pytest.mark.parametrize('declaration',['ENGINES = __import__("never_execute").register()','class NewModel(SeriesModel): pass'])
+def test_new_registration_site_cannot_hide(tmp_path,declaration):
+    from src.factors.inventory import DECLARATIONS
+    for name in DECLARATIONS:
+        target=tmp_path/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((ROOT/name).read_bytes())
+    target=tmp_path/'eval/factors/v0.1/output-inventory.json';target.parent.mkdir(parents=True);target.write_bytes((ROOT/'eval/factors/v0.1/output-inventory.json').read_bytes())
+    (tmp_path/'src/new_engine.py').write_text(declaration)
+    with pytest.raises(ValueError,match='Unreviewed'):verify_inventory(tmp_path)

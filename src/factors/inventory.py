@@ -109,6 +109,21 @@ def declarations(root):
 def verify_inventory(root):
     root = Path(root)
     retained = json.loads((root / 'eval/factors/v0.1/output-inventory.json').read_bytes())
+    # New production registration sites cannot hide outside the reviewed matrix.
+    for package in ('src','finsight','examples'):
+        for path in (root/package).rglob('*.py'):
+            relative=path.relative_to(root).as_posix()
+            if relative in DECLARATIONS or relative.startswith('src/factors/'):
+                continue
+            tree=ast.parse(path.read_bytes())
+            for node in ast.walk(tree):
+                if isinstance(node,(ast.Assign,ast.AnnAssign)):
+                    targets=node.targets if isinstance(node,ast.Assign) else [node.target]
+                    if any(isinstance(t,ast.Name) and t.id in ('ENGINES','SERIES_PLUGINS','LOCAL_PLUGINS') for t in targets):
+                        raise ValueError('Unreviewed registration site: '+relative)
+                if isinstance(node,ast.ClassDef) and relative not in ('finsight/plugins/series.py','finsight/plugins/model.py'):
+                    if any(isinstance(b,ast.Name) and b.id in ('Model','SeriesModel') for b in node.bases):
+                        raise ValueError('Unreviewed model declaration: '+relative)
     actual = declarations(root)
     # Expected declarations and reviewed eligibility rows are independent seals.
     if actual != retained['declarations']:
