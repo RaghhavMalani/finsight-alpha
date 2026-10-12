@@ -34,13 +34,17 @@ export function parseCommand(text: string, currentTicker = "SPY"): CommandTarget
   if (!functions[fn]) throw new Error(`Unknown function. Use ${COMMAND_CODES.join(", ")}.`);
   const series = factorSeries(tokens[0]);
   if (series) {
-    if (tokens.length !== 2 || !["GP", "REG", "OBS", "DES", "DATA"].includes(fn))
+    if (tokens.length !== 2 || !["GP", "REG", "OBS", "DES", "DATA", "FACT"].includes(fn))
       throw new Error(
-        "Market factors have no exchange code. Use US-MKT or IN-MKT with GP, REG, OBS or DATA.",
+        "Market factors have no exchange code. Use US-MKT or IN-MKT with GP, REG, OBS, DATA or FACT.",
       );
     return {
       to: functions[fn],
-      search: { ticker: series.id, ...(fn === "GP" ? { view: "graph" } : {}) },
+      search: {
+        ticker: series.id,
+        ...(fn === "FACT" ? { country: series.id === "US-MKT" ? "US" : "INDIA" } : {}),
+        ...(fn === "GP" ? { view: "graph" } : {}),
+      },
     };
   }
   const asset = resolveInstrument(tokens[0], tokens.length === 3 ? tokens[1] : undefined);

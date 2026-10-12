@@ -77,7 +77,7 @@ def export(root):
     writes[receipt_path]=receipt_raw
     # Preflight is complete. Stage byte-identical files; never call the shared
     # ReplayPublisher.finish(), which would prune unlisted historical files.
-    staged=[]
+    staged=[];installed=[];manifest_stage=None;committed=False
     try:
         for target,raw in writes.items():
             target.parent.mkdir(parents=True,exist_ok=True)
@@ -88,11 +88,17 @@ def export(root):
             with os.fdopen(fd,'wb') as out:out.write(raw)
             staged.append((Path(name),target))
         if pointer.read_bytes()!=original:raise ValueError('Manifest changed during export; retain prior evidence')
-        for staged_path,target in staged:os.replace(staged_path,target)
+        for staged_path,target in staged:
+            os.replace(staged_path,target);installed.append(target)
         fd,name=tempfile.mkstemp(prefix='.factors-manifest-',dir=public)
+        manifest_stage=Path(name)
         with os.fdopen(fd,'wb') as out:out.write(canonical(manifest))
-        os.replace(name,pointer)
+        os.replace(name,pointer);committed=True
     finally:
+        if not committed:
+            for target in installed:
+                if target.is_file() and target.read_bytes()==writes[target]:target.unlink()
+        if manifest_stage is not None and manifest_stage.is_file():manifest_stage.unlink()
         for staged_path,_ in staged:
             if staged_path.is_file():staged_path.unlink() # Only owned new staging files.
     return {'status':'PUBLISHED','artifacts':len(artifacts),'writes':len(writes)+1,'receipt_sha256':receipt_hash}

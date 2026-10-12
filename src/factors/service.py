@@ -26,6 +26,7 @@ def payload(root,kind,country,cutoff):
         real['CLAIM_STATUS']=stage('BLOCKED','NO_INFERENCE_CERTIFICATION',[spec['refs']['factors']],'NOT_CALIBRATED')
         mapping=json.loads((Path(root)/'eval/factors/v0.1/ledger-map.json').read_bytes())
         for ref in p['file_refs'].values():resolve_file_ref(root,ref)
+        real['COSTS']=stage('UNAVAILABLE','COSTS_UNAVAILABLE',[p['file_refs']['illustrative_cost']],'ECONOMIC_UNAVAILABLE')
         prior={k:stage(v['status'],v['reason_code'],[p['file_refs'][name] for name in v['evidence_keys']],v['underlying_verdict']) for k,v in mapping['research_stages'].items()}
         fixture={k:stage('NOT_APPLICABLE','ENGINEERING_ONLY') for k in stages}
         return {'candidates':[{'candidate_id':country+':retained-mom','label':'Retained MOM factor assessment','country':country,'evidence_class':'RETAINED_REAL','family_ref':None,'stages':real},

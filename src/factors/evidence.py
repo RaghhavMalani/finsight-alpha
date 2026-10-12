@@ -61,7 +61,7 @@ def verify_bundle(root,country,cutoff):
 def resolve_file_ref(root,ref):
     p=policy(root)
     if not any(canonical(ref)==canonical(x) for x in p['file_refs'].values()):raise ValueError('Unreviewed frozen file reference')
-    if ref['commit']!=BASE or ref['json_pointer'] not in ('/claims','/scorecard','/calibration_status','/status','/holdout_openings','/family','/publication_correction','/profile_sha256'):
+    if ref['commit']!=BASE or ref['json_pointer'] not in ('/claims','/scorecard','/calibration_status','/status','/holdout_openings','/family','/publication_correction','/profile_sha256','/payload/example/all_in_estimated_trading_cost'):
         raise ValueError('Unreviewed file assertion')
     target=Path(root)/ref['path'];raw=target.read_bytes()
     if sha256(raw).hexdigest()!=ref['sha256']:raise ValueError('Frozen ledger evidence changed')
@@ -69,6 +69,7 @@ def resolve_file_ref(root,ref):
     for part in ref['json_pointer'].split('/')[1:]:
         if not isinstance(selected,dict) or part not in selected:raise ValueError('Orphan ledger assertion')
         selected=selected[part]
+    if ref['assertion_id']=='ILLUSTRATIVE_ALL_IN_UNAVAILABLE' and (selected is not None or value['payload']['example']['statutory_status']!='PARTIAL' or value['payload']['example']['all_in_status']!='PARTIAL'):raise ValueError('Illustrative costs promoted')
     if ref['assertion_id'] in ('NOT_CALIBRATED','NOT_CONFIRMED') and selected!=ref['assertion_id']:
         raise ValueError('Frozen inference gate changed')
     return value

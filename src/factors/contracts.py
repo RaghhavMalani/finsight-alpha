@@ -31,9 +31,9 @@ def validate_schema(value,schema,path='root'):
             raise ValueError('Unknown or missing metadata field: '+path)
         for key,definition in schema['properties'].items():validate_schema(value[key],definition,path+'.'+key)
     elif kind=='array':
-        if not isinstance(value,list) or len(value)!=len(schema['prefixItems']):
+        if not isinstance(value,list) or len(value)!=schema['length']:
             raise ValueError('Unknown metadata array length: '+path)
-        for i,(item,definition) in enumerate(zip(value,schema['prefixItems'])):validate_schema(item,definition,path+f'[{i}]')
+        for i,item in enumerate(value):validate_schema(item,schema['items'],path+f'[{i}]')
     elif kind=='integer':
         if type(value) is not int or value<0 or value>2**53-1:
             raise ValueError('Only safe coverage/count integers allowed: '+path)
@@ -59,7 +59,7 @@ def schema_for(samples):
         return {'oneOf':[schema_for(values) for values in groups.values()]}
     value=samples[0]
     if isinstance(value,dict):return {'type':'object','properties':{k:schema_for([v[k] for v in samples]) for k in sorted(value)}}
-    if isinstance(value,list):return {'type':'array','prefixItems':[schema_for([v[i] for v in samples]) for i in range(len(value))]}
+    if isinstance(value,list):return {'type':'array','length':len(value),'items':schema_for([item for v in samples for item in v]) if value else {'type':'null'}}
     if type(value) is float:raise ValueError('Numerical diagnostics cannot enter metadata schema')
     kind='null' if value is None else 'boolean' if type(value) is bool else 'integer' if type(value) is int else 'string'
     if kind=='string' and re.fullmatch('[a-f0-9]{64}',value):return {'type':'string','pattern':'[a-f0-9]{64}'}
