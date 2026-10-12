@@ -1,0 +1,83 @@
+{
+  "research_stages": {
+    "CLAIM_STATUS": {
+      "evidence_keys": [
+        "flagship",
+        "original_gate",
+        "replacement"
+      ],
+      "reason_code": "CLOSED_PRIOR",
+      "status": "BLOCKED",
+      "underlying_verdict": "NOT_CALIBRATED / CLOSED"
+    },
+    "COSTS": {
+      "evidence_keys": [
+        "flagship",
+        "original_gate",
+        "replacement"
+      ],
+      "reason_code": "COSTS_UNAVAILABLE",
+      "status": "UNAVAILABLE",
+      "underlying_verdict": "ECONOMIC_UNAVAILABLE"
+    },
+    "CROSS_MARKET": {
+      "evidence_keys": [
+        "flagship",
+        "original_gate",
+        "replacement"
+      ],
+      "reason_code": "CLOSED_PRIOR",
+      "status": "PARTIAL",
+      "underlying_verdict": "INCONCLUSIVE"
+    },
+    "DEFINITION": {
+      "evidence_keys": [
+        "preregistration"
+      ],
+      "reason_code": "CLOSED_PRIOR",
+      "status": "VERIFIED",
+      "underlying_verdict": "NOT_CALIBRATED / CLOSED"
+    },
+    "MULTIPLE_TESTING": {
+      "evidence_keys": [
+        "flagship",
+        "original_gate",
+        "replacement"
+      ],
+      "reason_code": "CLOSED_PRIOR",
+      "status": "PARTIAL",
+      "underlying_verdict": "NOT_CALIBRATED / CLOSED"
+    },
+    "OUT_OF_SAMPLE": {
+      "evidence_keys": [
+        "flagship",
+        "original_gate",
+        "replacement"
+      ],
+      "reason_code": "CLOSED_PRIOR",
+      "status": "PARTIAL",
+      "underlying_verdict": "NOT_CALIBRATED / CLOSED"
+    },
+    "RAW_TEST": {
+      "evidence_keys": [
+        "flagship",
+        "original_gate",
+        "replacement"
+      ],
+      "reason_code": "CLOSED_PRIOR",
+      "status": "PARTIAL",
+      "underlying_verdict": "NOT_CALIBRATED / CLOSED"
+    },
+    "REGIME_ROBUSTNESS": {
+      "evidence_keys": [
+        "flagship",
+        "original_gate",
+        "replacement"
+      ],
+      "reason_code": "CLOSED_PRIOR",
+      "status": "PARTIAL",
+      "underlying_verdict": "INCONCLUSIVE"
+    }
+  },
+  "schema_version": "factors-ledger-map/1"
+}
