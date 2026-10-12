@@ -198,4 +198,4 @@ jobs:
       - name: Reject removed alternative-data theatre
         shell: bash
         run: |
-          ! git grep -nE 'parking-lot fill|BACKTESTED Â·|Since 2018.*median forward return|fall back silently to sim' -- frontend-v2/src
+          ! git grep -nE 'parking-lot fill|BACKTESTED ·|Since 2018.*median forward return|fall back silently to sim' -- frontend-v2/src

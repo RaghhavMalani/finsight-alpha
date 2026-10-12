@@ -65,4 +65,3 @@ data/exports/regimes_v0_1/** -text
 # Phase 6 metadata receipts retain their produced bytes.
 data/exports/factors_v0_1/** -text
 eval/factors/** -text
-src/factors/** text eol=lf
