@@ -125,7 +125,8 @@ if (urlIndex !== -1) {
       bad = [],
       failed = [],
       errors = [];
-    let dataBytes = 0;
+    let dataBytes = 0,
+      measuring = false;
     const responseWork = [];
     page.on("request", (r) => {
       const u = new URL(r.url());
@@ -139,18 +140,26 @@ if (urlIndex !== -1) {
     page.on("pageerror", (e) => errors.push(e.message));
     page.on("response", (r) => {
       if (
+        measuring &&
         /\/replay-manifest\.json|\/artifacts\/replay\/factors-|\/artifacts\/replay\/regimes-/.test(
           r.url(),
         )
       )
         responseWork.push(
-          r.body().then((body) => {
-            dataBytes += body.length;
-          }),
+          r
+            .body()
+            .then((body) => {
+              dataBytes += body.length;
+            })
+            .catch((e) => {
+              errors.push("Initial response measurement failed: " + e.message);
+            }),
         );
     });
     for (const country of ["US", "INDIA"]) {
       const before = dataBytes;
+      responseWork.length = 0;
+      measuring = true;
       await page.goto(
         base +
           "/factors?country=" +
@@ -161,6 +170,7 @@ if (urlIndex !== -1) {
       await page.locator('[data-factor-workspace][data-state="ready"]').waitFor();
       await page.locator('[data-diagnostics="ready"]').waitFor();
       await page.waitForLoadState("networkidle");
+      measuring = false;
       await Promise.all(responseWork);
       assert(dataBytes - before <= 512 * 1024);
       console.log(`${name} ${country} initial selected data: ${dataBytes - before} bytes`);
