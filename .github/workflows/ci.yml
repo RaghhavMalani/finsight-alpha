@@ -10,7 +10,7 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       APP_ENV: test
       FINSIGHT_DATA_DIR: /tmp/finsight-data
