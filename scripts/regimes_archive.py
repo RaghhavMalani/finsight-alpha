@@ -106,12 +106,22 @@ def verify(root):
     allowed = {PUBLIC + "/replay-manifest.json"}
     for identity in additions:
         entry = current["artifacts"][identity]
+        if identity.startswith("factors:"):
+            from scripts.factors_archive import verify_addition as factors_addition
+
+            allowed.add(factors_addition(root / PUBLIC, identity, entry))
+            continue
         if identity.startswith("data-organ:"):
             allowed.add(data_addition(root / PUBLIC, identity, entry))
         else:
             allowed.add(verify_addition(root / PUBLIC, identity, entry))
     for route, identity in current["routes"].items():
         if same_json(original["routes"].get(route), identity):
+            continue
+        if route.startswith("/factor-evidence/"):
+            from scripts.factors_archive import verify_route as factors_route
+
+            factors_route(route, identity, current["artifacts"], root=root)
             continue
         if route.startswith("/data/") and identity in additions and identity.startswith("data-organ:"):
             continue

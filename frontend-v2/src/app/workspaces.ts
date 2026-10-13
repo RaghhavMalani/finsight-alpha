@@ -17,8 +17,6 @@ export const WORKSPACES = [
     key: "F5",
     command: "FACT",
     to: "/factors",
-    phase: 6,
-    future: "Factor library and neutrality checks arrive in Phase 6.",
   },
   {
     id: "research",

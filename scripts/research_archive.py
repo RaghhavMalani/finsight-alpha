@@ -86,7 +86,8 @@ def verify_shared_history(root: Path):
         raise ValueError("Historical manifest metadata changed")
     from finsight.plugins.contracts import utc
     data_additions = {k for k in current["artifacts"] if k.startswith(("data-organ:", "regimes:"))}
-    if current["as_of"] != original["as_of"] and (not data_additions or utc(current["as_of"]) < utc(original["as_of"])):
+    factor_additions = {k for k in current["artifacts"] if k.startswith("factors:")}
+    if current["as_of"] != original["as_of"] and (not (data_additions or factor_additions) or utc(current["as_of"]) < utc(original["as_of"])):
         raise ValueError("Historical manifest metadata changed")
     for section in ("artifacts", "routes"):
         if any(
@@ -97,6 +98,11 @@ def verify_shared_history(root: Path):
     additions = set(current["artifacts"]) - set(original["artifacts"])
     allowed_files = {PUBLIC + "/replay-manifest.json"}
     for identity in additions:
+        if identity.startswith("factors:"):
+            from scripts.factors_archive import verify_addition as factors_addition
+
+            allowed_files.add(factors_addition(public, identity, current["artifacts"][identity]))
+            continue
         if identity.startswith("data-organ:"):
             allowed_files.add(verify_addition(public, identity, current["artifacts"][identity]))
             continue
@@ -145,6 +151,11 @@ def verify_shared_history(root: Path):
             raise ValueError("Plugin publication claim boundary changed")
         allowed_files.add(PUBLIC + url)
     for route in set(current["routes"]) - set(original["routes"]):
+        if route.startswith("/factor-evidence/"):
+            from scripts.factors_archive import verify_route as factors_route
+
+            factors_route(route, current["routes"][route], current["artifacts"], root=root)
+            continue
         if route in {"/data/" + k for k in ("health", "revisions", "disagreement", "coverage", "lineage", "issues", "costs")} and current["routes"][route] in data_additions:
             continue
         if route.startswith("/regimes/"):

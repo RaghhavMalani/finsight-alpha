@@ -49,7 +49,7 @@ export function CommandLine() {
         role={error ? "alert" : undefined}
       >
         {error ??
-          "Ticker · exchange · function. DES  GP  OMON  FA  REG  GE  RISK · FACT and EXEC open future workspaces."}
+          "Ticker · exchange · function. DES  GP  OMON  FA  REG  GE  RISK · FACT opens read-only factor evidence; EXEC is a future workspace."}
       </p>
     </form>
   );

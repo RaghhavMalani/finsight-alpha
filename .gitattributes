@@ -61,3 +61,7 @@ src/data_organ/** text eol=lf
 
 # Phase 5 receipts retain their exact content-addressed bytes on every platform.
 data/exports/regimes_v0_1/** -text
+
+# Phase 6 metadata receipts retain their produced bytes.
+data/exports/factors_v0_1/** -text
+eval/factors/** -text

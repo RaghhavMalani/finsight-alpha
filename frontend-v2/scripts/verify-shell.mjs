@@ -49,11 +49,13 @@ for (const id of ["US-MKT", "IN-MKT"]) {
     ["REG", "/dynamics"],
     ["OBS", "/observatory"],
     ["DATA", "/data"],
+    ["FACT", "/factors"],
   ]) {
     const target = parseCommand(`${id} ${code}`);
     assert.equal(target.to, to);
     assert.equal(target.search.ticker, id);
     assert.equal(target.instrument, undefined);
+    if (code === "FACT") assert.equal(target.search.country, id === "US-MKT" ? "US" : "INDIA");
     count++;
   }
   assert.throws(() => parseCommand(`${id} US GP`));
@@ -264,6 +266,7 @@ if (urlIndex > 0) {
             .locator(".mk-head")
             .getByRole("heading", { name: ticker, exact: true })
             .waitFor();
+        else if (workspace === "factors") await page.locator("[data-factor-workspace]").waitFor();
         else await page.locator(`[data-placeholder="${workspace}"]`).waitFor();
         await page.locator(`.shell[data-ready="true"][data-workspace="${workspace}"]`).waitFor();
         await page.waitForLoadState("networkidle");
@@ -273,7 +276,8 @@ if (urlIndex > 0) {
           .getByRole("navigation", { name: "Workspaces" })
           .getByText(label, { exact: true })
           .click();
-        await page.locator(`[data-placeholder="${label.toLowerCase()}"]`).waitFor();
+        if (label === "FACTORS") await page.locator("[data-factor-workspace]").waitFor();
+        else await page.locator(`[data-placeholder="${label.toLowerCase()}"]`).waitFor();
         await page
           .locator(`.shell[data-ready="true"][data-workspace="${label.toLowerCase()}"]`)
           .waitFor();
