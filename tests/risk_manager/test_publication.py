@@ -7,12 +7,6 @@ from src.risk_manager.publication import validate_public,safe_payload,publish
 from src.risk_manager.contracts import digest,canonical
 ROOT=Path(__file__).resolve().parents[2]
 
-@pytest.fixture(scope="module")
-def preflight():
-    result=run(ROOT,publish_artifacts=False)
-    assert result["status"]=="PARTIAL"
-    return result
-
 def test_budget_two_kinds_and_claims(preflight):
     page=preflight["coverage_state"]; state=preflight["state"]
     ref=state["payload"]["evidence_index"][0]
@@ -47,7 +41,15 @@ def test_country_selector_counts_and_grant_sabotage(preflight):
 def fixture_root(tmp_path):
     for name in ["eval/risk_manager/v0.1/policy.json","eval/risk_manager/v0.1/evidence-map.json","frontend-v2/public/replay-manifest.json"]:
         p=tmp_path/name; p.parent.mkdir(parents=True,exist_ok=True); shutil.copyfile(ROOT/name,p)
-    return (tmp_path/"frontend-v2/public/replay-manifest.json").read_bytes()
+    # Fixture publications use an empty risk namespace in a temporary copy.
+    # The actual first production sweep and all its bytes remain untouched.
+    from src.risk_manager.contracts import decode
+    manifest_path = tmp_path / "frontend-v2/public/replay-manifest.json"
+    manifest = decode(manifest_path.read_bytes())
+    manifest["artifacts"] = {k: v for k, v in manifest["artifacts"].items() if not k.startswith("risk:")}
+    manifest["routes"] = {k: v for k, v in manifest["routes"].items() if not k.startswith("/risk-manager/")}
+    manifest_path.write_bytes(canonical(manifest) + b"\n")
+    return manifest_path.read_bytes()
 
 def test_interrupted_publication_rolls_back_only_owned_files(preflight,tmp_path):
     original=fixture_root(tmp_path)

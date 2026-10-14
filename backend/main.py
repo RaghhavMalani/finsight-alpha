@@ -53,6 +53,7 @@ from backend.routes import (
     research,
     research_os,
     risk,
+    risk_manager,
     strategy,
     tape,
     universe,
@@ -184,6 +185,7 @@ app.include_router(research.router)
 app.include_router(research_os.router)
 app.include_router(pricing.router)
 app.include_router(risk.router)
+app.include_router(risk_manager.router)
 app.include_router(news.router)
 app.include_router(portfolio.router)
 app.include_router(backtest.router)

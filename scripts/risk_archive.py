@@ -1,84 +1,190 @@
 """Narrow two-kind risk extension; old manifest subsets remain frozen."""
+from collections import Counter
 from pathlib import Path
-from hashlib import sha256
 import re
-from urllib.parse import urlsplit,parse_qs,urlencode
-from src.risk_manager.contracts import canonical,decode,counts,digest,clock
+from urllib.parse import urlsplit, parse_qs, urlencode
+from src.risk_manager.contracts import decode, digest, clock
 from src.risk_manager.evidence import freeze_inventory
-from src.risk_manager.publication import read_artifact,validate_public,entry
+from src.risk_manager.publication import read_artifact
 
-IDENTITY=re.compile(r"risk:(state|sweep):[a-f0-9]{64}")
-def verify_addition(public,identity,value):
-    public=Path(public); root=public.parents[1]
+IDENTITY = re.compile(r"risk:(state|sweep):[a-f0-9]{64}")
+CATEGORIES = {"DATA", "MODEL", "RESEARCH_HYGIENE", "PORTFOLIO", "SIMULATOR", "SYSTEM"}
+
+
+def verify_addition(public, identity, value):
+    public = Path(public)
+    root = public.parents[1]
     if not IDENTITY.fullmatch(identity):
         raise ValueError("Unreviewed risk kind")
-    manifest={"artifacts":{identity:value}}
-    read_artifact(root,manifest,identity)
-    return "frontend-v2/public"+value["url"]
+    read_artifact(root, {"artifacts": {identity: value}}, identity)
+    return "frontend-v2/public" + value["url"]
 
-def verify_route(route,identity,artifacts,root=None):
-    p=urlsplit(route)
-    if p.scheme or p.netloc or p.fragment or p.path not in {"/risk-manager/state","/risk-manager/sweep"}:
+
+def verify_route(route, identity, artifacts, root=None):
+    parts = urlsplit(route)
+    if parts.scheme or parts.netloc or parts.fragment or parts.path not in {"/risk-manager/state", "/risk-manager/sweep"}:
         raise ValueError("Unknown risk route")
-    query=parse_qs(p.query,strict_parsing=True)
-    if query and (set(query)!={"sweep_id"} or any(len(v)!=1 for v in query.values()) or not re.fullmatch("[a-f0-9]{64}",query["sweep_id"][0])):
+    query = parse_qs(parts.query, strict_parsing=True, keep_blank_values=True)
+    if query and (set(query) != {"sweep_id"} or any(len(v) != 1 for v in query.values())
+                  or not re.fullmatch("[a-f0-9]{64}", query["sweep_id"][0])):
         raise ValueError("Invalid sweep selector")
-    if route!=p.path+("?" + urlencode(sorted((k,v[0]) for k,v in query.items())) if query else ""):
+    canonical_route = parts.path + ("?" + urlencode(sorted((k, v[0]) for k, v in query.items())) if query else "")
+    if route != canonical_route:
         raise ValueError("Noncanonical risk route")
-    kind=p.path.rsplit("/",1)[1]
-    if identity not in artifacts or not identity.startswith("risk:"+kind+":"):
+    kind = parts.path.rsplit("/", 1)[1]
+    if identity not in artifacts or not identity.startswith("risk:" + kind + ":"):
         raise ValueError("Risk route kind substituted")
     if root is not None and query:
-        m=decode((Path(root)/"frontend-v2/public/replay-manifest.json").read_bytes())
-        q=read_artifact(root,m,identity)["payload"]
-        if kind=="sweep" and q["sweep_id"]!=query["sweep_id"][0]:
+        manifest = decode((Path(root) / "frontend-v2/public/replay-manifest.json").read_bytes())
+        payload = read_artifact(root, manifest, identity)["payload"]
+        if kind == "sweep" and payload["sweep_id"] != query["sweep_id"][0]:
             raise ValueError("Risk sweep selector substituted")
-        if kind=="state":
-            receipt_ref=m["routes"].get("/risk-manager/sweep?sweep_id="+query["sweep_id"][0])
-            if not receipt_ref or read_artifact(root,m,receipt_ref)["payload"]["state_ref"]!=identity:
+        if kind == "state":
+            receipt_ref = manifest["routes"].get("/risk-manager/sweep?sweep_id=" + query["sweep_id"][0])
+            if not receipt_ref or read_artifact(root, manifest, receipt_ref)["payload"]["state_ref"] != identity:
                 raise ValueError("Risk state/sweep selector substituted")
     return True
 
-def verify(root):
-    root=Path(root); inventory=freeze_inventory(root)
-    m=decode((root/"frontend-v2/public/replay-manifest.json").read_bytes())
-    risk={i:e for i,e in m["artifacts"].items() if i.startswith("risk:")}
-    values={}
-    for i,e in risk.items():
-        verify_addition(root/"frontend-v2/public",i,e)
-        values[i]=read_artifact(root,m,i)
-    for route,identity in m["routes"].items():
-        if route.startswith("/risk-manager/"):
-            verify_route(route,identity,m["artifacts"],root)
-    for p in (root/"frontend-v2/public/artifacts/replay").glob("risk-*.json"):
-        if not any(p.name==i.replace(":","-")+".json" for i in risk):
-            raise ValueError("Orphan risk artifact")
-    for i,v in values.items():
-        if v["kind"]=="risk-sweep":
-            q=v["payload"]
-            if q["prior_sweep_ref"] and q["prior_sweep_ref"] not in values:
+
+def verify_graph(values, expected_origins):
+    """Check immutable cross joins; no current evaluator hash is imposed on history."""
+    states = {key: value for key, value in values.items() if value["kind"] == "risk-state"}
+    receipts = {key: value for key, value in values.items() if value["kind"] == "risk-sweep"}
+    observations = {}
+    observations_by_id = {}
+    for identity, value in receipts.items():
+        payload = value["payload"]
+        for observation in payload["observations"]:
+            pair = (payload["fingerprint"], observation["observation_id"])
+            # Operational recovery can publish the same evaluator fingerprint.
+            # Observation content excludes witness clocks, so retain every actual witness.
+            observations.setdefault(pair, []).append(observation)
+            observations_by_id.setdefault(observation["observation_id"], []).append(observation)
+
+    def observation_ref(ref, issue_id, witness):
+        candidates = observations.get((ref["sweep_fingerprint"], ref["observation_id"]), [])
+        observation = next((o for o in candidates if o["issue_id"] == issue_id and o["witnessed_at"] == witness), None)
+        if not observation:
+            raise ValueError("Issue observation reference or witness substituted")
+        return observation
+
+    def lifecycle(issue):
+        first = observation_ref(issue["first_seen_ref"], issue["issue_id"], issue["first_seen_at"])
+        if issue["first_seen_at"] != first["witnessed_at"]:
+            raise ValueError("First seen fabricated")
+        for observation_id in issue["observation_ids"]:
+            candidates = observations_by_id.get(observation_id, [])
+            if not any(o["issue_id"] == issue["issue_id"] for o in candidates):
+                raise ValueError("Orphan Issue observation")
+        if issue["resolution_ref"]:
+            clear = observation_ref(issue["resolution_ref"], issue["issue_id"], issue["resolved_at"])
+            if (clear["outcome"], clear["availability"], clear["currency"]) != ("CLEAR", "AVAILABLE", "CURRENT"):
+                raise ValueError("Resolution lacks positive complete evidence")
+            if issue["resolved_at"] != clear["witnessed_at"] or issue["policy_sha256"] != clear["policy_sha256"]:
+                raise ValueError("Resolution clock/policy substituted")
+            prior = [o for candidates in observations_by_id.values() for o in candidates
+                     if o["issue_id"] == issue["issue_id"] and o["outcome"] != "CLEAR"
+                     and o["policy_sha256"] == clear["policy_sha256"]
+                     and clock(o["witnessed_at"]) < clock(clear["witnessed_at"])]
+            if not any(digest(o["evidence_refs"]) != digest(clear["evidence_refs"]) for o in prior):
+                raise ValueError("Resolution lacks changed compatible evidence")
+
+    for identity, value in receipts.items():
+        payload = value["payload"]
+        cursor = identity
+        visited = set()
+        while cursor:
+            if cursor in visited:
+                raise ValueError("Risk history cycle")
+            visited.add(cursor)
+            parent = receipts.get(cursor)
+            if not parent:
                 raise ValueError("Orphan prior sweep")
-            if q["status"]!="FAILED":
-                if q["state_ref"] not in values:
-                    raise ValueError("Orphan successful state")
-                s=values[q["state_ref"]]["payload"]
-                if s["sweep_fingerprint"]!=q["fingerprint"]:
-                    raise ValueError("State/receipt fingerprint mismatch")
-                observed={o["observation_id"]:o for r in values.values() if r["kind"]=="risk-sweep" for o in r["payload"]["observations"]}
-                for issue in s["issues"]:
-                    if issue["first_seen_ref"]["observation_id"] not in observed or issue["last_observation_id"] not in observed:
-                        raise ValueError("Orphan Issue observation")
-                    first=observed[issue["first_seen_ref"]["observation_id"]]
-                    if issue["first_seen_at"]!=first["witnessed_at"]:
-                        raise ValueError("First seen fabricated")
-                    if issue["resolution_ref"]:
-                        clear=observed.get(issue["resolution_ref"]["observation_id"])
-                        if not clear or clear["outcome"]!="CLEAR" or clear["availability"]!="AVAILABLE":
-                            raise ValueError("Resolution lacks positive evidence")
-                expected=decode((root/"data/exports/data_organ_v0_1/issues.json").read_bytes())["items"]
-                origins=[o for x in s["issues"] for o in x["origin_records"] if o["source"]!="phase2-fixture"]
-                if {digest(o) for o in origins}!={digest(o) for o in expected}:
-                    raise ValueError("Data origin evidence lost or rewritten")
-    return dict(status="VERIFIED",base="16db82c5f2f50b98253df9989c586cd45aa98f6b",frozen_files=930,
-                prior_artifacts=221,prior_routes=126,withdrawals=6,risk_artifacts=len(risk),
-                scientific_inventory_sha256=inventory,d6="DISABLED / DEFERRED")
+            cursor = parent["payload"]["prior_sweep_ref"]
+        if len({h["sweep_ref"] for h in payload["history_index"]}) != len(payload["history_index"]):
+            raise ValueError("Duplicate history entry")
+        for index, history in enumerate(payload["history_index"]):
+            parent = receipts.get(history["sweep_ref"])
+            if not parent:
+                raise ValueError("Orphan history entry")
+            parent_payload = parent["payload"]
+            expected = dict(sweep_id=parent_payload["sweep_id"], sweep_ref=history["sweep_ref"],
+                            state_ref=parent_payload["state_ref"], published_at=parent_payload["published_at"],
+                            status=parent_payload["status"])
+            if history != expected:
+                raise ValueError("History entry substituted")
+            if index == 0 and history["sweep_ref"] != payload["prior_sweep_ref"]:
+                raise ValueError("History first parent substituted")
+            if index and receipts[payload["history_index"][index - 1]["sweep_ref"]]["payload"]["prior_sweep_ref"] != history["sweep_ref"]:
+                raise ValueError("History chain substituted")
+        if payload["prior_sweep_ref"]:
+            prior = receipts[payload["prior_sweep_ref"]]["payload"]
+            if clock(prior["published_at"]) > clock(payload["started_at"]):
+                raise ValueError("Sweep predates its parent")
+        if payload["status"] == "FAILED":
+            if payload["failure"]["last_valid_state_ref"] != payload["state_ref"]:
+                raise ValueError("Failure changed the last valid state")
+            if payload["state_ref"] is not None and payload["state_ref"] not in states:
+                raise ValueError("Failure lost the last valid state")
+            lifecycle(payload["failure"]["issue"])
+            continue
+        state_value = states.get(payload["state_ref"])
+        if not state_value:
+            raise ValueError("Orphan successful state")
+        state = state_value["payload"]
+        if (state["sweep_fingerprint"], state["evaluation_cutoff"], state_value["published_at"]) != (
+                payload["fingerprint"], payload["evaluation_cutoff"], payload["published_at"]):
+            raise ValueError("State/receipt fingerprint or clocks mismatch")
+        if payload["sweep_id"] != digest(["risk-sweep/1", payload["fingerprint"], payload["started_at"], state["state_id"]]):
+            raise ValueError("Successful sweep identity substituted")
+        expected_prior = receipts[payload["prior_sweep_ref"]]["payload"]["state_ref"] if payload["prior_sweep_ref"] else None
+        if state["prior_state_ref"] != expected_prior:
+            raise ValueError("State parent does not bind prior successful state")
+        if len(state["coverage"]) != 6 or {c["category"] for c in state["coverage"]} != CATEGORIES:
+            raise ValueError("Primary category coverage missing or duplicated")
+        pages = [ref for ref in state["evidence_index"] if ref.get("selector_id") == "risk_coverage"]
+        if len(pages) != 1 or len(state["evidence_index"]) != 1:
+            raise ValueError("Primary coverage leaf substituted")
+        ref = pages[0]
+        page = states.get(ref["artifact_id"])
+        if not page or page["payload"]["sweep_fingerprint"] != payload["fingerprint"]:
+            raise ValueError("Coverage leaf belongs to another sweep")
+        if page["payload"]["issues"] or page["payload"]["prior_state_ref"] or page["payload"]["historical_origin_counts"]:
+            raise ValueError("Coverage leaf is not bounded metadata")
+        if len({row["check_id"] for row in page["payload"]["coverage"]}) != len(page["payload"]["coverage"]):
+            raise ValueError("Duplicate coverage check")
+        if any(c not in page["payload"]["coverage"] for c in state["coverage"]):
+            raise ValueError("Primary summary substituted")
+        for issue in state["issues"]:
+            lifecycle(issue)
+        origins = [origin for issue in state["issues"] for origin in issue["origin_records"]
+                   if origin["source"] != "phase2-fixture"]
+        if Counter(digest(o) for o in origins) != Counter(digest(o) for o in expected_origins):
+            raise ValueError("Data origin evidence lost, duplicated or rewritten")
+    return True
+
+
+def verify(root):
+    root = Path(root)
+    inventory = freeze_inventory(root)
+    manifest = decode((root / "frontend-v2/public/replay-manifest.json").read_bytes())
+    risk = {identity: entry for identity, entry in manifest["artifacts"].items() if identity.startswith("risk:")}
+    values = {}
+    for identity, entry in risk.items():
+        verify_addition(root / "frontend-v2/public", identity, entry)
+        values[identity] = read_artifact(root, manifest, identity)
+    for route, identity in manifest["routes"].items():
+        if route.startswith("/risk-manager/"):
+            verify_route(route, identity, manifest["artifacts"], root)
+    for path in (root / "frontend-v2/public/artifacts/replay").glob("risk-*.json"):
+        if not any(path.name == identity.replace(":", "-") + ".json" for identity in risk):
+            raise ValueError("Orphan risk artifact")
+    expected = decode((root / "data/exports/data_organ_v0_1/issues.json").read_bytes())["items"]
+    verify_graph(values, expected)
+    latest = manifest["routes"].get("/risk-manager/sweep")
+    latest_state = manifest["routes"].get("/risk-manager/state")
+    if latest and values[latest]["payload"]["state_ref"] != latest_state:
+        raise ValueError("Latest receipt/state route pair substituted")
+    return dict(status="VERIFIED", base="16db82c5f2f50b98253df9989c586cd45aa98f6b", frozen_files=930,
+                prior_artifacts=221, prior_routes=126, withdrawals=6, risk_artifacts=len(risk),
+                scientific_inventory_sha256=inventory, d6="DISABLED / DEFERRED")

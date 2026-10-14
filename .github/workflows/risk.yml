@@ -1,0 +1,90 @@
+name: Manual retained risk sweep
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Retained evidence only. Scheduling stays disabled; D6 remains deferred.'
+        type: choice
+        options: [risk]
+        default: risk
+permissions:
+  contents: write
+concurrency:
+  group: checked-organs-${{ github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  risk:
+    if: github.event_name == 'workflow_dispatch' && inputs.scope == 'risk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_ENV: test
+      FINSIGHT_DATA_DIR: /tmp/finsight-risk-data
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -e . pytest httpx
+      - name: Validate frozen histories without scientific execution
+        run: |
+          python scripts/verify_plugin_replay.py
+          python scripts/verify_data_organ.py
+          python scripts/verify_regimes.py
+          python scripts/verify_factors.py
+          python scripts/verify_research_os.py
+          python scripts/verify_inference_calibration_v011.py
+          python scripts/verify_risk_manager.py
+      - name: Explicit retained-only risk sweep
+        run: python scripts/run_risk_sweep.py --scope risk
+      - name: Repeat unchanged evidence and require zero publication writes
+        run: |
+          python - <<'PY'
+          from src.risk_manager.sweep import run
+          result = run()
+          assert result['status'] == 'UNCHANGED' and result['writes'] == 0, result
+          assert result['new_occurrences'] == 0
+          assert all(v == 0 for v in result['transitions'].values())
+          assert result['manifest_rewrite'] is False
+          print(result)
+          PY
+      - name: Verify public state, history, old subsets and D6
+        run: python scripts/verify_risk_manager.py
+      - name: Preserve operational failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: risk-failure-evidence
+          path: data/exports/risk_manager_v0_1/failures
+          if-no-files-found: ignore
+      - name: Commit only checked new risk evidence
+        shell: bash
+        run: |
+          git config user.name 'Raghhav Malani'
+          git config user.email '96712854+RaghhavMalani@users.noreply.github.com'
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          paths = ['frontend-v2/public/replay-manifest.json', 'data/exports/risk_manager_v0_1/manifest.json']
+          patterns = {
+              'data/exports/risk_manager_v0_1': r'(?:state|sweep)-[a-f0-9]{64}\.json',
+              'frontend-v2/public/artifacts/replay': r'risk-(?:state|sweep)-[a-f0-9]{64}\.json',
+          }
+          for directory, pattern in patterns.items():
+              paths.extend(str(p) for p in Path(directory).iterdir() if p.is_file() and re.fullmatch(pattern, p.name))
+          subprocess.run(['git', 'add', '--', *paths], check=True)
+          staged = subprocess.check_output(['git', 'diff', '--cached', '--name-only'], text=True).splitlines()
+          if set(staged) - set(paths):
+              raise SystemExit('Staging escaped the checked two-kind risk allowlist')
+          PY
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: publish sealed retained risk evidence'
+          git push origin HEAD:${{ github.ref_name }}
