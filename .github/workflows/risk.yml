@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 10
     env:
       APP_ENV: test
+      RISK_PUBLICATION_BRANCH: ${{ github.ref_name }}
       FINSIGHT_DATA_DIR: /tmp/finsight-risk-data
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -87,4 +88,4 @@ jobs:
           PY
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'chore: publish sealed retained risk evidence'
-          git push origin HEAD:${{ github.ref_name }}
+          git push origin "HEAD:$RISK_PUBLICATION_BRANCH"

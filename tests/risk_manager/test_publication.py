@@ -69,3 +69,61 @@ def test_transaction_publishes_complete_pair_and_coverage(preflight,tmp_path):
     assert m["routes"]["/risk-manager/state"]==result["state_ref"]
     assert len([i for i in m["artifacts"] if i.startswith("risk:")])==3
     assert {e["kind"] for i,e in m["artifacts"].items() if i.startswith("risk:")}=={"risk-state","risk-sweep"}
+
+
+@pytest.mark.parametrize("sabotage", ["coverage_private", "coverage_test", "publication_source", "envelope_fingerprint", "payload_cutoff"])
+def test_resealed_payload_still_rejects_boundary_substitution(preflight, sabotage):
+    value = deepcopy(preflight["coverage_state"])
+    if sabotage == "coverage_private":
+        value["payload"]["coverage"][0]["evidence_class"] = "LOCAL_PAPER_BOOK"
+    elif sabotage == "coverage_test":
+        value["payload"]["coverage"][0]["evidence_class"] = "SYNTHETIC_TEST_ONLY"
+    elif sabotage == "publication_source":
+        value["sources"] = ["unreviewed:provider"]
+    elif sabotage == "envelope_fingerprint":
+        value["input_hash"] = "a" * 64
+    elif sabotage == "payload_cutoff":
+        value["payload"]["evaluation_cutoff"] = "2026-10-13T07:48:06Z"
+    value["payload"]["state_id"] = digest({k: v for k, v in value["payload"].items() if k != "state_id"})
+    with pytest.raises(ValueError):
+        validate_public(value, ROOT)
+
+
+@pytest.mark.parametrize("field", ["as_of", "available_at", "source_ids"])
+def test_coverage_leaf_reference_clocks_and_sources_cannot_be_substituted(preflight, field):
+    value = deepcopy(preflight["state"])
+    page = preflight["coverage_state"]
+    original = value["payload"]["evidence_index"][0]
+    staged = {original["artifact_id"]: (page, canonical(page) + b"\n")}
+    original[field] = ["unreviewed:provider"] if field == "source_ids" else "2026-10-13T08:00:00Z"
+    value["payload"]["state_id"] = digest({k: v for k, v in value["payload"].items() if k != "state_id"})
+    with pytest.raises(ValueError):
+        validate_public(value, ROOT, staged=staged)
+
+
+@pytest.mark.parametrize("sabotage", ["observation_id", "observation_fingerprint", "witness_clock", "transition_issue"])
+def test_receipt_observation_cross_join_substitution(preflight, sabotage):
+    value = deepcopy(preflight["receipt"])
+    payload = value["payload"]
+    if sabotage == "observation_id":
+        payload["observations"][0]["observation_id"] = "a" * 64
+    elif sabotage == "observation_fingerprint":
+        payload["observations"][0]["fingerprint"] = "a" * 64
+    elif sabotage == "witness_clock":
+        payload["observations"][0]["witnessed_at"] = "2026-10-15T12:00:00Z"
+    elif sabotage == "transition_issue":
+        payload["transitions"][0]["issue_id"] = "risk-issue:" + "a" * 64
+    with pytest.raises(ValueError):
+        validate_public(value, ROOT)
+
+
+def test_atomic_pair_rejects_valid_unrelated_state(preflight, tmp_path):
+    original = fixture_root(tmp_path)
+    other = deepcopy(preflight["state"])
+    other["payload"]["prior_state_ref"] = "risk:state:" + "a" * 64
+    other["payload"]["state_id"] = digest({k: v for k, v in other["payload"].items() if k != "state_id"})
+    with pytest.raises(ValueError):
+        publish(tmp_path, other, preflight["receipt"], expected_manifest=original,
+                extra_states=[preflight["coverage_state"]])
+    assert (tmp_path / "frontend-v2/public/replay-manifest.json").read_bytes() == original
+    assert list((tmp_path / "frontend-v2/public/artifacts/replay").glob("risk-*.json")) == []

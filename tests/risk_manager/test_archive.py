@@ -1,15 +1,73 @@
+from copy import deepcopy
+from hashlib import sha256
 from pathlib import Path
 import pytest
-from scripts.risk_archive import verify,verify_route,verify_addition
-from src.risk_manager.contracts import decode
-ROOT=Path(__file__).resolve().parents[2]
+from scripts.risk_archive import verify, verify_route, verify_addition, verify_graph
+from src.risk_manager.contracts import canonical, decode
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
 def test_baseline_subsets_and_withdrawals():
-    result=verify(ROOT)
-    assert result["prior_artifacts"]==221 and result["prior_routes"]==126 and result["withdrawals"]==6
-    assert result["d6"]=="DISABLED / DEFERRED"
-    frozen=decode((ROOT/"eval/risk_manager/v0.1/phase0-6-freeze.json").read_bytes())
+    result = verify(ROOT)
+    assert result["prior_artifacts"] == 221 and result["prior_routes"] == 126 and result["withdrawals"] == 6
+    assert result["d6"] == "DISABLED / DEFERRED"
+    frozen = decode((ROOT / "eval/risk_manager/v0.1/phase0-6-freeze.json").read_bytes())
     assert frozen["files"][".github/workflows/organs.yml"]
+
+
 def test_unreviewed_kind_and_route_rejected():
-    for route in ["/risk-manager/unknown","/risk-manager/state?path=secret","//private/risk-manager/state","/risk-manager/state?sweep_id=bad"]:
-        with pytest.raises(ValueError): verify_route(route,"risk:state:"+"a"*64,{"risk:state:"+"a"*64:{}})
-    with pytest.raises(ValueError): verify_addition(ROOT/"frontend-v2/public","risk:history:"+"a"*64,{})
+    for route in ["/risk-manager/unknown", "/risk-manager/state?path=secret", "//private/risk-manager/state",
+                  "/risk-manager/state?sweep_id=bad", "/risk-manager/state?sweep_id="]:
+        with pytest.raises(ValueError):
+            verify_route(route, "risk:state:" + "a" * 64, {"risk:state:" + "a" * 64: {}})
+    with pytest.raises(ValueError):
+        verify_addition(ROOT / "frontend-v2/public", "risk:history:" + "a" * 64, {})
+
+
+def graph_fixture(preflight):
+    values = {}
+    for value in [preflight["coverage_state"], preflight["state"], preflight["receipt"]]:
+        kind = "state" if value["kind"] == "risk-state" else "sweep"
+        identity = "risk:" + kind + ":" + sha256(canonical(value) + b"\n").hexdigest()
+        values[identity] = deepcopy(value)
+    receipt_ref = next(key for key, value in values.items() if value["kind"] == "risk-sweep")
+    state_ref = values[receipt_ref]["payload"]["state_ref"]
+    leaf_ref = values[state_ref]["payload"]["evidence_index"][0]["artifact_id"]
+    origins = decode((ROOT / "data/exports/data_organ_v0_1/issues.json").read_bytes())["items"]
+    return values, receipt_ref, state_ref, leaf_ref, origins
+
+
+@pytest.mark.parametrize("sabotage", [
+    "first_seen_fingerprint", "first_seen_clock", "duplicate_origin", "coverage_fingerprint",
+    "missing_category", "state_parent", "sweep_id", "history_cycle", "orphan_state", "orphan_risk_reference",
+])
+def test_cross_join_sabotage_cannot_pass(preflight, sabotage):
+    values, receipt_ref, state_ref, leaf_ref, origins = graph_fixture(preflight)
+    assert verify_graph(values, origins)
+    state = values[state_ref]["payload"]
+    receipt = values[receipt_ref]["payload"]
+    if sabotage == "first_seen_fingerprint":
+        state["issues"][0]["first_seen_ref"]["sweep_fingerprint"] = "a" * 64
+    elif sabotage == "first_seen_clock":
+        state["issues"][0]["first_seen_at"] = "2026-10-14T00:00:00Z"
+    elif sabotage == "duplicate_origin":
+        issue = next(row for row in state["issues"] if row["origin_records"]
+                     and row["origin_records"][0]["source"] != "phase2-fixture")
+        issue["origin_records"].append(deepcopy(issue["origin_records"][0]))
+    elif sabotage == "coverage_fingerprint":
+        values[leaf_ref]["payload"]["sweep_fingerprint"] = "a" * 64
+    elif sabotage == "missing_category":
+        state["coverage"].pop()
+    elif sabotage == "state_parent":
+        state["prior_state_ref"] = leaf_ref
+    elif sabotage == "sweep_id":
+        receipt["sweep_id"] = "a" * 64
+    elif sabotage == "history_cycle":
+        receipt["prior_sweep_ref"] = receipt_ref
+    elif sabotage == "orphan_state":
+        values["risk:state:" + "a" * 64] = deepcopy(values[leaf_ref])
+    elif sabotage == "orphan_risk_reference":
+        state["issues"][0]["evidence_refs"] = [dict(type="RISK_OBSERVATION", observation_id="a" * 64, sweep_fingerprint="a" * 64)]
+    with pytest.raises(ValueError):
+        verify_graph(values, origins)

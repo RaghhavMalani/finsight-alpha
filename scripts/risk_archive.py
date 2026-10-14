@@ -68,6 +68,33 @@ def verify_graph(values, expected_origins):
             raise ValueError("Issue observation reference or witness substituted")
         return observation
 
+    def verify_observation_refs(refs, subject=None):
+        for ref in refs:
+            if ref["type"] != "RISK_OBSERVATION":
+                continue
+            candidates = observations.get((ref["sweep_fingerprint"], ref["observation_id"]), [])
+            if not candidates:
+                raise ValueError("Orphan risk evidence reference")
+            if subject and subject["outcome"] == "CLEAR" and subject["category"] == "SYSTEM":
+                if not any(o["issue_id"] == subject["issue_id"] and o["outcome"] == "FINDING"
+                           and o["observation_id"] == subject["previous_observation_id"]
+                           and clock(o["witnessed_at"]) < clock(subject["witnessed_at"]) for o in candidates):
+                    raise ValueError("System repair evidence is incompatible with its failed predecessor")
+
+    for state_value in states.values():
+        state = state_value["payload"]
+        verify_observation_refs(state["evidence_index"])
+        for issue in state["issues"]:
+            verify_observation_refs(issue["evidence_refs"])
+        for row in state["coverage"]:
+            verify_observation_refs(row["evidence_refs"])
+    for receipt_value in receipts.values():
+        receipt = receipt_value["payload"]
+        for observation in receipt["observations"]:
+            verify_observation_refs(observation["evidence_refs"], observation)
+        if receipt["failure"]:
+            verify_observation_refs(receipt["failure"]["issue"]["evidence_refs"])
+
     def lifecycle(issue):
         first = observation_ref(issue["first_seen_ref"], issue["issue_id"], issue["first_seen_at"])
         if issue["first_seen_at"] != first["witnessed_at"]:
@@ -89,6 +116,7 @@ def verify_graph(values, expected_origins):
             if not any(digest(o["evidence_refs"]) != digest(clear["evidence_refs"]) for o in prior):
                 raise ValueError("Resolution lacks changed compatible evidence")
 
+    used_states = set()
     for identity, value in receipts.items():
         payload = value["payload"]
         cursor = identity
@@ -126,12 +154,15 @@ def verify_graph(values, expected_origins):
                 raise ValueError("Failure changed the last valid state")
             if payload["state_ref"] is not None and payload["state_ref"] not in states:
                 raise ValueError("Failure lost the last valid state")
+            if payload["state_ref"] is not None:
+                used_states.add(payload["state_ref"])
             lifecycle(payload["failure"]["issue"])
             continue
         state_value = states.get(payload["state_ref"])
         if not state_value:
             raise ValueError("Orphan successful state")
         state = state_value["payload"]
+        used_states.add(payload["state_ref"])
         if (state["sweep_fingerprint"], state["evaluation_cutoff"], state_value["published_at"]) != (
                 payload["fingerprint"], payload["evaluation_cutoff"], payload["published_at"]):
             raise ValueError("State/receipt fingerprint or clocks mismatch")
@@ -146,6 +177,7 @@ def verify_graph(values, expected_origins):
         if len(pages) != 1 or len(state["evidence_index"]) != 1:
             raise ValueError("Primary coverage leaf substituted")
         ref = pages[0]
+        used_states.add(ref["artifact_id"])
         page = states.get(ref["artifact_id"])
         if not page or page["payload"]["sweep_fingerprint"] != payload["fingerprint"]:
             raise ValueError("Coverage leaf belongs to another sweep")
@@ -161,6 +193,8 @@ def verify_graph(values, expected_origins):
                    if origin["source"] != "phase2-fixture"]
         if Counter(digest(o) for o in origins) != Counter(digest(o) for o in expected_origins):
             raise ValueError("Data origin evidence lost, duplicated or rewritten")
+    if used_states != set(states):
+        raise ValueError("Unreferenced risk state in public namespace")
     return True
 
 
@@ -185,6 +219,15 @@ def verify(root):
     latest_state = manifest["routes"].get("/risk-manager/state")
     if latest and values[latest]["payload"]["state_ref"] != latest_state:
         raise ValueError("Latest receipt/state route pair substituted")
+    reachable = set()
+    cursor = latest
+    while cursor:
+        if cursor in reachable:
+            raise ValueError("Latest sweep history cycle")
+        reachable.add(cursor)
+        cursor = values[cursor]["payload"]["prior_sweep_ref"]
+    if reachable != {key for key, value in values.items() if value["kind"] == "risk-sweep"}:
+        raise ValueError("Unreferenced risk receipt in public namespace")
     return dict(status="VERIFIED", base="16db82c5f2f50b98253df9989c586cd45aa98f6b", frozen_files=930,
                 prior_artifacts=221, prior_routes=126, withdrawals=6, risk_artifacts=len(risk),
                 scientific_inventory_sha256=inventory, d6="DISABLED / DEFERRED")
