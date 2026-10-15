@@ -7,7 +7,7 @@ from src.risk_manager.reducer import reduce
 
 def sample():
     e=EvidenceReaders(Path(__file__).resolve().parents[2]).read()
-    observations,_=evaluate(e,now())
+    observations,_=evaluate(e,"2026-10-13T12:00:00Z")
     return next(o for o in observations if o["rule_id"]=="R-MODEL-AGE" and o["asset"]=="IN-MKT")
 
 def revision(o,**updates):

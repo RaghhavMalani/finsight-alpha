@@ -23,7 +23,7 @@ def test_positive_nested_whitelist(preflight,field):
     bad["payload"]["coverage"][0]["scope"][field]="leak"
     with pytest.raises(ValueError): validate_public(bad,ROOT)
 
-@pytest.mark.parametrize("text",['data:application/json;base64,aaaa','https://private.invalid/rows','C:\\private\\db','api_key=secret','A'*150])
+@pytest.mark.parametrize("text",['data:application/json;base64,aaaa','https://private.invalid/rows','C:\\private\\db','api_key=secret','A'*150,r'c:\private\db','/tmp/private.json','s3://private/rows','mailto:private@example.invalid','tel:+10000000','blob:private','javascript:alert(1)'])
 def test_encoded_and_url_carriers_rejected(text):
     with pytest.raises(ValueError): safe_payload({"reason":text})
 
@@ -39,7 +39,10 @@ def test_country_selector_counts_and_grant_sabotage(preflight):
 
 
 def fixture_root(tmp_path):
-    for name in ["eval/risk_manager/v0.1/policy.json","eval/risk_manager/v0.1/evidence-map.json","frontend-v2/public/replay-manifest.json"]:
+    from src.risk_manager.sweep import SOURCE_FILES
+    names = ["eval/risk_manager/v0.1/policy.json", "eval/risk_manager/v0.1/evidence-map.json",
+             "frontend-v2/public/replay-manifest.json", *SOURCE_FILES]
+    for name in names:
         p=tmp_path/name; p.parent.mkdir(parents=True,exist_ok=True); shutil.copyfile(ROOT/name,p)
     # Fixture publications use an empty risk namespace in a temporary copy.
     # The actual first production sweep and all its bytes remain untouched.
@@ -125,5 +128,71 @@ def test_atomic_pair_rejects_valid_unrelated_state(preflight, tmp_path):
     with pytest.raises(ValueError):
         publish(tmp_path, other, preflight["receipt"], expected_manifest=original,
                 extra_states=[preflight["coverage_state"]])
+    assert (tmp_path / "frontend-v2/public/replay-manifest.json").read_bytes() == original
+    assert list((tmp_path / "frontend-v2/public/artifacts/replay").glob("risk-*.json")) == []
+
+
+def test_nonnull_container_producer_run_and_unknown_policy_selector(preflight):
+    value = deepcopy(preflight["coverage_state"])
+    ref = next(r for r in value["payload"]["evidence_index"] if r["type"] == "REPLAY_ARTIFACT")
+    ref["run_id"] = "a" * 64
+    value["payload"]["state_id"] = digest({k: v for k, v in value["payload"].items() if k != "state_id"})
+    with pytest.raises(ValueError):
+        validate_public(value, ROOT)
+    value = deepcopy(preflight["coverage_state"])
+    row = next(c for c in value["payload"]["coverage"] if c["evidence_refs"][0]["type"] == "POLICY_ASSERTION")
+    row["evidence_refs"][0]["check_id"] = "UNREVIEWED_HOLDINGS:private-account:v0.1"
+    value["payload"]["state_id"] = digest({k: v for k, v in value["payload"].items() if k != "state_id"})
+    with pytest.raises(ValueError):
+        validate_public(value, ROOT)
+
+
+@pytest.mark.parametrize("sabotage", ["missing", "extra", "duplicate", "hash", "bytes"])
+def test_receipt_input_inventory_bound_even_after_rehashing(preflight, sabotage):
+    value = deepcopy(preflight["receipt"])
+    payload = value["payload"]
+    if sabotage == "missing":
+        payload["inputs"].pop()
+    elif sabotage == "extra":
+        payload["inputs"].append(dict(input_id="unreviewed_private_input", sha256="a" * 64, bytes=42))
+    elif sabotage == "duplicate":
+        payload["inputs"].append(deepcopy(payload["inputs"][0]))
+    elif sabotage == "hash":
+        payload["inputs"][0]["sha256"] = "a" * 64
+    elif sabotage == "bytes":
+        payload["inputs"][0]["bytes"] += 1
+    payload["fingerprint"] = digest(dict(inputs=payload["inputs"], evaluation_cutoff=payload["evaluation_cutoff"],
+                                        policy_sha256=payload["policy_sha256"], evaluator_source_hash=payload["evaluator_source_hash"],
+                                        scope="RETAINED_RISK_EVIDENCE"))
+    value["input_hash"] = payload["fingerprint"]
+    with pytest.raises(ValueError):
+        validate_public(value, ROOT)
+
+
+def test_publisher_rejects_unreviewed_evaluator_hash_before_writing(preflight, tmp_path):
+    original = fixture_root(tmp_path)
+    receipt = deepcopy(preflight["receipt"])
+    receipt["payload"]["evaluator_source_hash"] = "a" * 64
+    receipt["payload"]["fingerprint"] = digest(dict(inputs=receipt["payload"]["inputs"],
+        evaluation_cutoff=receipt["payload"]["evaluation_cutoff"], policy_sha256=receipt["payload"]["policy_sha256"],
+        evaluator_source_hash=receipt["payload"]["evaluator_source_hash"], scope="RETAINED_RISK_EVIDENCE"))
+    receipt["input_hash"] = receipt["payload"]["fingerprint"]
+    state = deepcopy(preflight["state"])
+    page = deepcopy(preflight["coverage_state"])
+    for value in [state, page]:
+        value["input_hash"] = receipt["input_hash"]
+        value["payload"]["sweep_fingerprint"] = receipt["input_hash"]
+    page["payload"]["state_id"] = digest({k: v for k, v in page["payload"].items() if k != "state_id"})
+    from hashlib import sha256
+    ref = state["payload"]["evidence_index"][0]
+    raw = canonical(page) + b"\n"
+    ref.update(artifact_id="risk:state:" + sha256(raw).hexdigest(), sha256=sha256(raw).hexdigest(), bytes=len(raw))
+    state["payload"]["state_id"] = digest({k: v for k, v in state["payload"].items() if k != "state_id"})
+    receipt["payload"]["state_ref"] = "risk:state:" + sha256(canonical(state) + b"\n").hexdigest()
+    receipt["payload"]["sweep_id"] = digest(["risk-sweep/1", receipt["payload"]["fingerprint"], receipt["payload"]["started_at"],
+                                           state["payload"]["state_id"]])
+    # The fixture root has the exact current evaluator, independent of the forged receipt.
+    with pytest.raises(ValueError, match="evaluator hash"):
+        publish(tmp_path, state, receipt, expected_manifest=original, extra_states=[page])
     assert (tmp_path / "frontend-v2/public/replay-manifest.json").read_bytes() == original
     assert list((tmp_path / "frontend-v2/public/artifacts/replay").glob("risk-*.json")) == []

@@ -20,10 +20,13 @@ FILE_PATHS = {
     "factor_policy":"eval/factors/v0.1/policy.json",
 }
 FORBIDDEN_PREFIXES = ("src.regimes.", "src.research_os.", "src.execution.", "src.simulation.",
-    "finsight.plugins.runner", "finsight.plugins.series", "src.risk.var_cvar",
-    "src.data.providers", "src.data.market_data", "src.data_organ.service",
-    "src.data_organ.adapters", "yfinance", "hmmlearn", "arch.", "requests.",
-    "httpx.", "urllib.request", "socket", "subprocess")
+    "src.ml.", "src.dynamics.", "src.regime_intelligence.", "src.factors.",
+    "finsight.plugins.", "src.risk.var_cvar", "src.data.providers",
+    "src.data.market_data", "src.data_organ.service", "src.data_organ.adapters",
+    "yfinance", "hmmlearn", "arch", "requests", "httpx", "urllib.request",
+    "socket", "subprocess", "sklearn", "statsmodels", "scipy", "torch",
+    "numpy", "pandas")
+
 
 @contextmanager
 def forbidden_calls():
@@ -31,7 +34,10 @@ def forbidden_calls():
     def guard(frame, event, arg):
         if event == "call" and frame.f_globals.get("__name__", "").startswith(FORBIDDEN_PREFIXES):
             raise RuntimeError("Forbidden scientific/provider/runtime call")
-        if event == "c_call" and getattr(arg, "__module__", "") in {"_sqlite3", "_socket"}:
+        if event == "c_call" and (
+            (getattr(arg, "__module__", "") or "").startswith(FORBIDDEN_PREFIXES)
+            or getattr(arg, "__module__", "") in {"_sqlite3", "_socket"}
+        ):
             raise RuntimeError("Forbidden database/network call")
         if previous:
             previous(frame, event, arg)

@@ -25,7 +25,7 @@ def safe_payload(value):
         for v in value:
             safe_payload(v)
     elif isinstance(value,str):
-        if re.search(r'(?:https?://|file:|data:|[A-Z]:[\\/]|\.\./)',value):
+        if re.search(r'(?:[A-Za-z][A-Za-z0-9+.-]*://|(?:file|data|mailto|tel|blob|javascript):|[A-Za-z]:[\\/]|\.\./|(?<![A-Za-z0-9_.])/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+)',value,re.I):
             raise ValueError("Arbitrary public URL/path/payload")
         if re.search(r'(?:raw_prices|last_price|adj_close|ohlcv)\s*["\x27]?\s*[:=]',value,re.I):
             raise ValueError("Encoded provider payload")
@@ -59,6 +59,8 @@ def validate_refs(refs, root, staged=None):
                 raise ValueError("Coverage page clock/source substitution")
             validate_public(page,root,staged=staged)
         elif r["type"]=="REPLAY_ARTIFACT":
+            if r["run_id"] is not None:
+                raise ValueError("Container has no singular producing run")
             if r["artifact_id"] not in artifacts or r["selector_id"] not in selectors:
                 raise ValueError("Unreviewed artifact/selector")
             e=artifacts[r["artifact_id"]]
@@ -76,7 +78,7 @@ def validate_refs(refs, root, staged=None):
             if (r["sha256"],r["bytes"])!=(s["sha256"],s["bytes"]):
                 raise ValueError("Frozen file reference substitution")
         elif r["type"]=="POLICY_ASSERTION":
-            if r["policy_sha256"]!=policy["sha256"]:
+            if r["policy_sha256"]!=policy["sha256"] or not any(r["check_id"].startswith(rule["check_id"]+":") for rule in policy["rules"]):
                 raise ValueError("Policy assertion substitution")
 
 def validate_public(value, root, staged=None):
@@ -142,6 +144,13 @@ def validate_public(value, root, staged=None):
         if p["policy_sha256"]!=policy["sha256"]:
             raise ValueError("Sweep policy substitution")
         if p["status"]!="FAILED":
+            evidence=decode((Path(root)/"eval/risk_manager/v0.1/evidence-map.json").read_bytes())
+            entries={spec["artifact_id"]:spec["entry"] for spec in evidence["artifacts"].values()}
+            entries.update(evidence["health_history"])
+            expected_inputs={key:dict(input_id=key,sha256=entry["sha256"],bytes=entry["bytes"]) for key,entry in entries.items()}
+            expected_inputs.update({key:dict(input_id=key,sha256=spec["sha256"],bytes=spec["bytes"]) for key,spec in evidence["files"].items()})
+            if p["inputs"]!=[expected_inputs[key] for key in sorted(expected_inputs)]:
+                raise ValueError("Sweep reviewed input inventory substitution")
             expected=digest(dict(inputs=p["inputs"],evaluation_cutoff=p["evaluation_cutoff"],policy_sha256=p["policy_sha256"],
                 evaluator_source_hash=p["evaluator_source_hash"],scope="RETAINED_RISK_EVIDENCE"))
             if p["fingerprint"]!=expected:
@@ -220,6 +229,9 @@ def publish(root, state, sweep, *, expected_manifest, interrupt=None, extra_stat
         staged[ident]=(checked,raw)
     checked_sweep=prepared[-1][1]
     sp=checked_sweep["payload"]
+    from .sweep import evaluator_hash
+    if sp["evaluator_source_hash"]!=evaluator_hash(root):
+        raise ValueError("Unreviewed publication evaluator hash")
     if checked_sweep["kind"]!="risk-sweep" or any(v["kind"]!="risk-state" for _,v,_ in prepared[:-1]):
         raise ValueError("Unapproved publication order/kind")
     if state is not None:

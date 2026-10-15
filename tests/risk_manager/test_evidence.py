@@ -26,3 +26,16 @@ def test_map_path_and_country_substitution_rejected():
     e=EvidenceReaders(ROOT)
     e.map=deepcopy(e.map); e.map["artifacts"]["model_US"]["entry"]["sources"]=["iima:daily-factors"]
     with pytest.raises(ValueError): e.artifact("model_US")
+
+
+@pytest.mark.parametrize("module", [
+    "src.ml.models", "src.dynamics.hawkes_boundary", "src.regime_intelligence.collector",
+    "src.factors.service", "finsight.plugins.model", "finsight.plugins.engines",
+    "sklearn.linear_model._base", "statsmodels.regression.linear_model",
+    "scipy.stats._distn_infrastructure", "torch.nn.modules.module",
+])
+def test_every_scientific_runtime_namespace_is_instrumented(module):
+    namespace = {"__name__": module}
+    exec("def fit(): raise AssertionError('Scientific fixture executed')", namespace)
+    with pytest.raises(RuntimeError), forbidden_calls():
+        namespace["fit"]()
