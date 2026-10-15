@@ -91,7 +91,12 @@ const COMMANDS = [
     hint: "Regime and event-process research",
     to: "/dynamics",
   },
-  { id: "risk", label: "Open Paper Book", hint: "Positions, stress and hedges", to: "/risk" },
+  {
+    id: "risk",
+    label: "Open Risk Manager",
+    hint: "Issues, evidence coverage and sealed history",
+    to: "/risk",
+  },
 ] as const;
 
 export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {

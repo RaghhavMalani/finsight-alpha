@@ -1,0 +1,199 @@
+{
+  "schema_version": "risk-browser-proof/1",
+  "evidence_class": "ENGINEERING_QA",
+  "base": "http://127.0.0.1:4174",
+  "real": [
+    {
+      "browser": "chrome",
+      "viewport": [
+        1440,
+        390,
+        1920
+      ],
+      "currentReal": 11,
+      "totalIssues": 32,
+      "coverageSlots": 75,
+      "initialRiskBytes": 232919,
+      "initialTotalDataBytes": 486106,
+      "coldLoadMs": 1475,
+      "warmLoadMs": 156,
+      "filterInteractionMs": 5.4000000059604645,
+      "validation": [
+        {
+          "name": "risk-contract-validation",
+          "duration": 32.19999998807907
+        },
+        {
+          "name": "risk-contract-validation",
+          "duration": 41.400000005960464
+        }
+      ],
+      "apiProviderPaperTapeRequests": 0,
+      "pageErrors": 0,
+      "privateCacheIsolation": "PASS",
+      "noPolling": "PASS",
+      "screenshots": "real unmodified responses"
+    },
+    {
+      "browser": "msedge",
+      "viewport": [
+        1440,
+        390,
+        1920
+      ],
+      "currentReal": 11,
+      "totalIssues": 32,
+      "coverageSlots": 75,
+      "initialRiskBytes": 232919,
+      "initialTotalDataBytes": 486106,
+      "coldLoadMs": 734,
+      "warmLoadMs": 153,
+      "filterInteractionMs": 4.799999982118607,
+      "validation": [
+        {
+          "name": "risk-contract-validation",
+          "duration": 10.599999994039536
+        },
+        {
+          "name": "risk-contract-validation",
+          "duration": 5.700000017881393
+        }
+      ],
+      "apiProviderPaperTapeRequests": 0,
+      "pageErrors": 0,
+      "privateCacheIsolation": "PASS",
+      "noPolling": "PASS",
+      "screenshots": "verified, no screenshots retained"
+    },
+    {
+      "browser": "firefox",
+      "viewport": [
+        1440,
+        390,
+        1920
+      ],
+      "currentReal": 11,
+      "totalIssues": 32,
+      "coverageSlots": 75,
+      "initialRiskBytes": 232919,
+      "initialTotalDataBytes": 486106,
+      "coldLoadMs": 1013,
+      "warmLoadMs": 756,
+      "filterInteractionMs": 2,
+      "validation": [
+        {
+          "name": "risk-contract-validation",
+          "duration": 7
+        },
+        {
+          "name": "risk-contract-validation",
+          "duration": 12
+        }
+      ],
+      "apiProviderPaperTapeRequests": 0,
+      "pageErrors": 0,
+      "privateCacheIsolation": "PASS",
+      "noPolling": "PASS",
+      "screenshots": "verified, no screenshots retained"
+    }
+  ],
+  "synthetic": [
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "checksum",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "nested-payload",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "claim-promotion",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "failed-sweep-prior-state",
+      "result": "PASS",
+      "priorFeedPreserved": true
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "checksum",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "nested-payload",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "claim-promotion",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "checksum",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "nested-payload",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "claim-promotion",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    }
+  ]
+}

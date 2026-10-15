@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Instrument } from "@/lib/market";
 import { fmt, isQuoted, TICKERS } from "@/lib/market";
-import { COMMODITIES, quoteSymbol } from "@/lib/book";
+import {
+  admittedQuote,
+  COMMODITIES,
+  quoteObservedAt,
+  quoteSymbol,
+  type QuotedMark,
+} from "@/lib/book";
 import {
   addDemoPosition,
   removeDemoPosition,
@@ -16,10 +22,12 @@ import { toast } from "sonner";
 export function BookDrawer({
   positions,
   instruments,
+  quotes,
   onClose,
 }: {
   positions: DemoPosition[];
   instruments: Record<string, Instrument>;
+  quotes: Record<string, QuotedMark>;
   onClose: () => void;
 }) {
   const [edit, setEdit] = useState(false);
@@ -32,7 +40,8 @@ export function BookDrawer({
   // A provider quote for a book symbol (futures via their continuous contract), else null.
   const quoteOf = (sym: string) => {
     const inst = instruments[quoteSymbol(sym)];
-    return isQuoted(inst) ? inst : null;
+    const quote = quotes[quoteSymbol(sym)];
+    return isQuoted(inst) && admittedQuote(quote) && quote.mark === inst.price ? inst : null;
   };
   const rows = useMemo(() => {
     return positions.map((p) => {
@@ -48,9 +57,12 @@ export function BookDrawer({
     });
     // quoteOf reads only `instruments`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [positions, instruments]);
+  }, [positions, instruments, quotes]);
 
   const unpricedCount = rows.filter((r) => r.mv == null).length;
+  const quoteClocks = Object.entries(quotes).map(
+    ([symbol, quote]) => symbol + " " + quote.source + " " + quoteObservedAt(quote.quote_ts),
+  );
   const pricedMV = rows.reduce((s, r) => s + Math.abs(r.mv ?? 0), 0);
   const totalMV = pricedMV || 1;
   const cls = (sym: string): "EQ" | "CX" | "CM" =>
@@ -71,7 +83,7 @@ export function BookDrawer({
     // values, not quotes, so they never price a booking.
     const entry = quoteOf(sym)?.price;
     if (entry == null || !Number.isFinite(entry)) {
-      toast.error(`No live quote for ${sym}; nothing was booked.`);
+      toast.error(`No eligible observed quote for ${sym}; nothing was booked.`);
       return;
     }
     addDemoPosition({ symbol: sym, qty: n, entry: +entry.toFixed(2) });
@@ -84,7 +96,7 @@ export function BookDrawer({
     return (
       <div className="border border-primary/40 bg-panel p-4 amber-glow">
         <div className="mono-caps mb-2 flex items-center gap-2 text-[10px]">
-          <span className="text-primary">PAPER BOOK · EMPTY</span>
+          <span className="text-primary">LOCAL_PAPER_BOOK · EMPTY</span>
           <span
             className={`border px-1.5 py-0.5 text-[8px] ${sync.state === "offline" ? "border-down/50 text-down" : "border-border text-faint"}`}
           >
@@ -98,8 +110,7 @@ export function BookDrawer({
           </span>
         </div>
         <div className="font-serif text-[13px] text-foreground leading-snug">
-          No fabricated positions are loaded. Add a paper position to start tracking P&amp;L and
-          risk.
+          No stored positions. Add a paper position to explore local estimates.
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <div className="w-full border border-divider bg-background/50 p-2">
@@ -149,8 +160,14 @@ export function BookDrawer({
 
   return (
     <div className="border border-primary/40 bg-panel amber-glow">
+      <p className="border-b border-divider p-3 text-[10px] text-muted-foreground">
+        {positions.length - unpricedCount}/{positions.length} eligible quoted holdings ·
+        R-PORTFOLIO-MARKS · excluded {unpricedCount}. Quoted-subset weights and P&amp;L estimates
+        exclude unavailable positions. Observation clocks: {quoteClocks.join("; ") || "UNAVAILABLE"}
+        .
+      </p>
       <div className="mono-caps flex items-center gap-2 border-b border-divider px-3 py-1.5 text-[10px]">
-        <span className="text-primary">PAPER BOOK · {positions.length} POSITIONS</span>
+        <span className="text-primary">LOCAL_PAPER_BOOK · {positions.length} POSITIONS</span>
         <span className="text-faint">edit to change · scoped to your account</span>
         <span
           className={`border px-1.5 py-0.5 text-[8px] ${sync.state === "offline" ? "border-down/50 text-down" : "border-border text-faint"}`}

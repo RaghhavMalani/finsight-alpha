@@ -180,6 +180,8 @@ if (urlIndex > 0) {
             `${name}: ${w.key} was captured`,
           );
         }
+        if (w.id === "risk")
+          await page.getByRole("region", { name: "Risk issue feed", exact: true }).waitFor();
         page.off("dialog", onDialog);
       }
       // All captured keys remain native while editing; contenteditable, textarea and select too.

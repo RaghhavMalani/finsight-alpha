@@ -1,0 +1,21 @@
+{
+  "evidence_class": "SYNTHETIC_TEST_ONLY",
+  "test": "memory-only retained-baseline builder",
+  "elapsed_seconds": 1.0846731000056025,
+  "added_peak_working_set_bytes": 18268160,
+  "no_publication": true,
+  "manifest_unchanged": true,
+  "operation_proofs": {
+    "provider_captures": 0,
+    "model_runs": 0,
+    "plugin_runs": 0,
+    "series_runs": 0,
+    "factor_fits": 0,
+    "research_attempts": 0,
+    "holdout_openings": 0,
+    "simulator_runs": 0,
+    "before_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+    "after_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+    "forbidden_call_guard": "ENFORCED"
+  }
+}

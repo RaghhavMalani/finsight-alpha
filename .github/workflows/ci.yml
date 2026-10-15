@@ -162,6 +162,7 @@ jobs:
           npx eslint src/risk-manager src/routes/risk.tsx scripts/verify-risk-manager.mjs
           npx prettier --check src/risk-manager src/routes/risk.tsx src/lib/book.ts src/lib/demoBook.ts src/components/risk/RiskLiveCommandCenter.tsx scripts/verify-risk-manager.mjs
           node scripts/verify-risk-manager.mjs
+          node scripts/verify-risk-local.mjs
       - run: npm run build
       - name: Install browsers for workspace and native-key checks
         run: |
