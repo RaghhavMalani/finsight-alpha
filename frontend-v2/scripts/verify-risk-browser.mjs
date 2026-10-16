@@ -239,7 +239,7 @@ for (const name of channels) {
   );
   assert(
     validation.every((m) => m.duration <= 50),
-    "Synchronous risk validation budget",
+    "Synchronous risk validation budget: " + JSON.stringify(validation),
   );
   report.real.push({
     browser: name,

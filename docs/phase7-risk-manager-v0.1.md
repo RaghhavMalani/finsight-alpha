@@ -126,18 +126,18 @@ Public portfolio quoted marks, VaR, CVaR, concentration, factor exposure and liq
 
 | Fact | Original genuine sweep | Final boundary revision |
 | --- | --- | --- |
-| sweep_id | `b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9` | `6378835ba6c3ee674b95074ab7acc3a1dd2d31b94add711606cc72dd0f49c504` |
-| state_id | `109e21290debf6d3958f7dc9117756b1e0666b7b49b6cdfa1bd288d8fe1e2c8b` | `f192f3dc0906556ac3d79ae05abaa12966b8b5acaf2960af31b23bd31ade9521` |
+| sweep_id | `b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9` | `0334f656ac3e4800bd14caeaff4b16082f1d60b926ac35edaad419dc3d3b3fcb` |
+| state_id | `109e21290debf6d3958f7dc9117756b1e0666b7b49b6cdfa1bd288d8fe1e2c8b` | `95b9b22fcc900b7fdc60d637aa89e2182d0e380af248c046978487a58703c091` |
 | policy_sha256 | `8ab6fe12b3bdb61986e7b5af124c34892f84480cd6a2dfd1f1f01ec98d9c3c92` | `8ab6fe12b3bdb61986e7b5af124c34892f84480cd6a2dfd1f1f01ec98d9c3c92` |
-| fingerprint | `69a625acefb22a68a5edb744121c12a6eee52893a3548188c3abbff4bbb506da` | `e0feb0a3beebce20ee633efe633b3f13d8a040129fd751bddca8816532daf402` |
-| published_at | `2026-10-13T17:35:27.305060Z` | `2026-10-15T14:11:02.215129Z` |
+| fingerprint | `69a625acefb22a68a5edb744121c12a6eee52893a3548188c3abbff4bbb506da` | `e99b387fbf28baaba2edcdb62a816cd6393fd0edac0c1e189da736ec9d447d3a` |
+| published_at | `2026-10-13T17:35:27.305060Z` | `2026-10-16T04:39:23.274704Z` |
 | evidence_cutoff | `2026-10-13T07:48:05.159978Z` | `2026-10-13T07:48:05.159978Z` |
 
 The original genuine sweep created 32 Issues after the core contract and publication tests and historical archive checks passed. Its publication bytes are retained. Each audited revision emitted 32 UNCHANGED transitions and preserved every original first-seen reference and occurrence count.
 
-All three immediate identical repeats returned UNCHANGED: 0 NEW, 0 UPDATED, 0 RESOLVED, 0 new occurrences, 0 artifact writes, 0 manifest rewrites and 0 commits. The evaluation cutoff is pinned; later wall-clock execution does not age the model evidence.
+All four immediate identical repeats returned UNCHANGED: 0 NEW, 0 UPDATED, 0 RESOLVED, 0 new occurrences, 0 artifact writes, 0 manifest rewrites and 0 commits. The evaluation cutoff is pinned; later wall-clock execution does not age the model evidence.
 
-The audited sweep took 9.6926 seconds. Tracemalloc measured 15,846,828 bytes of added Python allocation peak (not an operating-system RSS measurement). The before/after immutable scientific inventory is `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`.
+The audited sweep took 14.0583 seconds. Tracemalloc measured 15,867,595 bytes of added Python allocation peak (not an operating-system RSS measurement). The before/after immutable scientific inventory is `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`.
 
 Instrumented forbidden calls and immutable history comparisons prove: new provider captures 0; model runs 0; plugin runs 0; SeriesModel runs 0; factor fits 0; research attempts 0; holdout openings 0; simulator runs 0. All six scientific claim flags remain literal false. No old three/four-field claim envelope was rewritten.
 
@@ -145,9 +145,9 @@ Independent fixture failures never enter production risk artifacts. An untrusted
 
 ## Verification
 
-- Core boundary, lifecycle, publication sabotage and authenticated GET-only API: 87 tests PASS. The existing Linux CI suite runs against this branch and is reported separately on the PR.
-- Historical verifiers run in read-only mode: Plugin, Data, Regimes, Research OS and inference verification PASS after integration. Factors verification is recorded with the final CI results. No retained campaign or calibration canary is run by risk publication.
-- Frontend lint, TypeScript, formatting and production build PASS. Risk static verifier: 62 checks across 9 genuine artifacts, 32 Issues and 75 coverage slots PASS. Local paper-lab regression PASS, including six exact comparisons with the original estimator. Browser and Vercel results are recorded below and in the PR.
+- Core boundary, lifecycle, publication sabotage and authenticated GET-only API: 95 tests PASS. The existing Linux CI suite runs against this branch and is reported separately on the PR.
+- Historical verifiers run in read-only mode: Plugin, Data, Regimes, Research OS and inference verification PASS after integration. Factors verification PASS: 684 frozen Phase 5 files, 24 metadata artifacts, 18 references, six withdrawals; no scientific execution. No retained campaign or calibration canary is run by risk publication.
+- Frontend lint, TypeScript, formatting and production build PASS. Risk static verifier: 69 checks across 12 genuine artifacts, 32 Issues and 75 coverage slots PASS. Local paper-lab regression PASS, including six exact comparisons with the original estimator. Browser and Vercel results are recorded below and in the PR.
 
 ## Local paper lab
 
@@ -169,13 +169,13 @@ Unmodified public Replay passed in Chrome, Edge and Firefox at 1440×900, 390×8
 
 | Browser | Cold load (ms) | Warm load (ms) | Filter (ms) | Max validation (ms) | Private/API/provider requests |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| chrome | 1475 | 156 | 5.40 | 41.40 | 0 |
-| msedge | 734 | 153 | 4.80 | 10.60 | 0 |
-| firefox | 1013 | 756 | 2.00 | 12.00 | 0 |
+| chrome | 773 | 195 | 6.90 | 37.30 | 0 |
+| msedge | 723 | 121 | 3.30 | 15.00 | 0 |
+| firefox | 982 | 420 | 2.00 | 21.00 | 0 |
 
-Initial selected risk data: 232,919 bytes (budget 262,144). Total including manifest: 486,106 bytes (budget 524,288). The emitted public F3 chunk is 23,450 bytes gzip (budget 65,536); the private local lab is lazy and absent from Replay requests.
+Initial selected risk data: 233,243 bytes (budget 262,144). Total including manifest: 489,046 bytes (budget 524,288). The emitted public F3 chunk is 23,637 bytes gzip (budget 65,536); the private local lab is lazy and absent from Replay requests.
 
-A separate 1,000-Issue in-memory SYNTHETIC_TEST_ONLY filter/sort/selection fixture measured below 8 ms. The real browser table above uses actual 32-Issue evidence. A separate no-publication baseline builder used 18,268,160 bytes of added OS peak working set, below 256 MiB; its source inventory and manifest remained unchanged.
+A separate 1,000-Issue in-memory SYNTHETIC_TEST_ONLY filter/sort/selection fixture measured below 12 ms. The real browser table above uses actual 32-Issue evidence. A separate no-publication baseline builder used 18,268,160 bytes of added OS peak working set, below 256 MiB; its source inventory and manifest remained unchanged.
 
 Fifteen isolated browser mutations (checksum, permission, unknown nested payload, claim promotion and duplicate key in each browser) failed closed. A separate SYNTHETIC_TEST_ONLY failed-sweep scene retained the prior successful feed and displayed the operational failure; its screenshot is prominently labelled. None of these responses entered production risk artifacts.
 
@@ -189,7 +189,7 @@ At final review preparation, main was acae82916835b45e7296b9ce8f280fc54a0f636e, 
 
 ## Reproduce bounded checks
 
-\`\`\`text
+```text
 python scripts/verify_risk_manager.py
 python -m pytest tests/risk_manager
 node frontend-v2/scripts/verify-risk-manager.mjs
@@ -197,4 +197,14 @@ node frontend-v2/scripts/verify-risk-local.mjs
 cd frontend-v2
 node scripts/preview-built.mjs
 node scripts/verify-risk-browser.mjs --url http://127.0.0.1:4174
-\`\`\`
+```
+
+## Session request binding
+
+Local paper GET and PUT requests include the identity verified by /auth/me. The server compares this assertion with the identity in that same request's signed session cookie before storage access. A cookie switch after the identity check therefore returns 401 and resets the local boundary; the header cannot select or override another account. Four storage-free engineering tests cover stale reads/writes and compatible existing clients. The explicit CORS allowlist admits this header.
+
+The frontend Linux job installs the same tested Pydantic version needed by its isolated synthetic failure helper. This helper runs no provider/model work and publishes no artifact.
+
+## Final payload guard proof
+
+Short base64/hex JSON and URI carriers and UNC paths are rejected by both publisher and browser validators. The fourth genuine retained revision preserves the original three sealed sweeps. Its [audited repeat proof](../data/exports/risk_manager_v0_1/carrier-boundary-proof.json) records 32 UNCHANGED transitions, preserved first-seen references and occurrences, unchanged scientific inventory and an immediate repeat with zero writes.

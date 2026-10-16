@@ -2292,14 +2292,17 @@ const REVIEWED_INPUTS = Array.from(INPUT_BINDINGS.values()).sort((a, b) =>
   a.input_id < b.input_id ? -1 : a.input_id > b.input_id ? 1 : 0,
 );
 
-function safeStrings(value: unknown): void {
+const PUBLIC_TEXT_DECODER = new TextDecoder("utf-8", { fatal: true });
+function safeStrings(value: unknown, checked = new Set<string>()): void {
   if (typeof value === "string") {
+    if (checked.has(value)) return;
     if (value.includes(String.fromCharCode(92))) fail("Backslash path/escape carrier.");
     const candidates: string[] = [];
-    const decoder = new TextDecoder("utf-8", { fatal: true });
     if (value.length >= 4 && value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
       try {
-        candidates.push(decoder.decode(Uint8Array.from(atob(value), (c) => c.charCodeAt(0))));
+        candidates.push(
+          PUBLIC_TEXT_DECODER.decode(Uint8Array.from(atob(value), (c) => c.charCodeAt(0))),
+        );
       } catch {
         /* Ordinary identifier. */
       }
@@ -2307,7 +2310,9 @@ function safeStrings(value: unknown): void {
     if (value.length >= 4 && value.length % 2 === 0 && /^[a-fA-F0-9]+$/.test(value)) {
       try {
         candidates.push(
-          decoder.decode(Uint8Array.from(value.match(/../g) ?? [], (pair) => parseInt(pair, 16))),
+          PUBLIC_TEXT_DECODER.decode(
+            Uint8Array.from(value.match(/../g) ?? [], (pair) => parseInt(pair, 16)),
+          ),
         );
       } catch {
         /* Digest bytes. */
@@ -2321,7 +2326,7 @@ function safeStrings(value: unknown): void {
         /* Not encoded JSON. */
       }
       if (payload !== null && typeof payload === "object") fail("Encoded JSON payload carrier.");
-      safeStrings(decoded);
+      safeStrings(decoded, checked);
     }
     if (
       /(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/|(?:file|data|mailto|tel|blob|javascript):|[A-Za-z]:[\\/]|\.\.\/|(?<![A-Za-z0-9_.])\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+)/i.test(
@@ -2331,8 +2336,10 @@ function safeStrings(value: unknown): void {
       (value.length > 80 && /^[A-Za-z0-9+/]+={0,2}$/.test(value))
     )
       fail("Unreviewed public carrier.");
-  } else if (Array.isArray(value)) value.forEach(safeStrings);
-  else if (value && typeof value === "object") Object.values(value).forEach(safeStrings);
+    checked.add(value);
+  } else if (Array.isArray(value)) value.forEach((entry) => safeStrings(entry, checked));
+  else if (value && typeof value === "object")
+    Object.values(value).forEach((entry) => safeStrings(entry, checked));
 }
 function unique(values: string[], name: string): void {
   if (new Set(values).size !== values.length) fail("Duplicate " + name + ".");

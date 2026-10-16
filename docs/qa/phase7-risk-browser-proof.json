@@ -13,19 +13,19 @@
       "currentReal": 11,
       "totalIssues": 32,
       "coverageSlots": 75,
-      "initialRiskBytes": 232919,
-      "initialTotalDataBytes": 486106,
-      "coldLoadMs": 1475,
-      "warmLoadMs": 156,
-      "filterInteractionMs": 5.4000000059604645,
+      "initialRiskBytes": 233243,
+      "initialTotalDataBytes": 489046,
+      "coldLoadMs": 773,
+      "warmLoadMs": 195,
+      "filterInteractionMs": 6.899999998509884,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 32.19999998807907
+          "duration": 19.299999997019768
         },
         {
           "name": "risk-contract-validation",
-          "duration": 41.400000005960464
+          "duration": 37.29999999701977
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -44,19 +44,19 @@
       "currentReal": 11,
       "totalIssues": 32,
       "coverageSlots": 75,
-      "initialRiskBytes": 232919,
-      "initialTotalDataBytes": 486106,
-      "coldLoadMs": 734,
-      "warmLoadMs": 153,
-      "filterInteractionMs": 4.799999982118607,
+      "initialRiskBytes": 233243,
+      "initialTotalDataBytes": 489046,
+      "coldLoadMs": 723,
+      "warmLoadMs": 121,
+      "filterInteractionMs": 3.2999999970197678,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 10.599999994039536
+          "duration": 15
         },
         {
           "name": "risk-contract-validation",
-          "duration": 5.700000017881393
+          "duration": 7.600000001490116
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -75,19 +75,19 @@
       "currentReal": 11,
       "totalIssues": 32,
       "coverageSlots": 75,
-      "initialRiskBytes": 232919,
-      "initialTotalDataBytes": 486106,
-      "coldLoadMs": 1013,
-      "warmLoadMs": 756,
+      "initialRiskBytes": 233243,
+      "initialTotalDataBytes": 489046,
+      "coldLoadMs": 982,
+      "warmLoadMs": 420,
       "filterInteractionMs": 2,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 7
+          "duration": 21
         },
         {
           "name": "risk-contract-validation",
-          "duration": 12
+          "duration": 11
         }
       ],
       "apiProviderPaperTapeRequests": 0,
