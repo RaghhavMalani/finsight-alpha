@@ -161,7 +161,7 @@ app.add_middleware(
     allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Accept", "X-FinSight-Organization"],
+    allow_headers=["Content-Type", "Accept", "X-FinSight-Organization", "X-FinSight-Paper-Owner"],
 )
 
 

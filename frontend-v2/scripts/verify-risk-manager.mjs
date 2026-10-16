@@ -99,6 +99,10 @@ for (const [pathId, binding] of Object.entries(FILE_BINDINGS)) {
   });
 }
 for (const carrier of [
+  "\\\\server\\private\\book",
+  "eyJyYXdfcHJpY2VzIjpbMV19",
+  "7b2261223a5b315d7d",
+  "czM6Ly9wcml2YXRlL3Jvd3M=",
   "ftp://example.invalid/evidence",
   "custom+evidence://payload",
   "MAILTO:private@example.invalid",

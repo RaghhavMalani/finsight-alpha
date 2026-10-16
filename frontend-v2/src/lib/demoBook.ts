@@ -108,7 +108,10 @@ async function hydrateFromServer() {
     // Display only this authenticated account's cache, and only on server failure.
     const startingRevision = revision;
     try {
-      const response = await api<PaperBookPayload>("/paper/positions", { signal });
+      const response = await api<PaperBookPayload>("/paper/positions", {
+        signal,
+        headers: { "X-FinSight-Paper-Owner": String(user.id) },
+      });
       if (!allowed() || generation !== epoch || signal.aborted || owner !== user.id) return;
       if (revision === startingRevision) {
         positions = validPositions(response.positions);
@@ -161,6 +164,7 @@ async function saveToServer(snapshotRevision: number) {
     }
     const response = await api<PaperBookPayload>("/paper/positions", {
       method: "PUT",
+      headers: { "X-FinSight-Paper-Owner": String(expectedOwner) },
       body: JSON.stringify({ positions: snapshot }),
       signal,
     });

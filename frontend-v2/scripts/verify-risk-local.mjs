@@ -49,6 +49,11 @@ const context = vm.createContext({
         { status: authFails ? 401 : 200 },
       );
     if (path === "/paper/positions") {
+      assert.equal(
+        init.headers["X-FinSight-Paper-Owner"],
+        String(userId),
+        "Every paper request binds its verified owner",
+      );
       if (init?.method === "PUT") {
         writes.push(JSON.parse(init.body));
         held = JSON.parse(init.body).positions;

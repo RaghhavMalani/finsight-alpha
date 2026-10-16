@@ -4,6 +4,8 @@ from contextlib import contextmanager
 from hashlib import sha256
 from pathlib import Path
 import os
+import base64
+import json
 import re
 from .contracts import StateEnvelope,SweepEnvelope,canonical,decode,digest,counts,CLAIMS,identity,clock
 from .policy import load,validate_rule
@@ -25,6 +27,27 @@ def safe_payload(value):
         for v in value:
             safe_payload(v)
     elif isinstance(value,str):
+        if chr(92) in value:
+            raise ValueError("Backslash path/escape carrier")
+        candidates=[]
+        if len(value)>=4 and len(value)%4==0 and re.fullmatch(r"[A-Za-z0-9+/]+={0,2}",value):
+            try:
+                candidates.append(base64.b64decode(value,validate=True).decode("utf-8"))
+            except (ValueError,UnicodeError):
+                pass
+        if len(value)>=4 and len(value)%2==0 and re.fullmatch(r"[a-fA-F0-9]+",value):
+            try:
+                candidates.append(bytes.fromhex(value).decode("utf-8"))
+            except (ValueError,UnicodeError):
+                pass
+        for decoded in candidates:
+            try:
+                payload=json.loads(decoded)
+            except (ValueError,TypeError):
+                payload=None
+            if isinstance(payload,(dict,list)):
+                raise ValueError("Encoded JSON payload carrier")
+            safe_payload(decoded)
         if re.search(r'(?:[A-Za-z][A-Za-z0-9+.-]*://|(?:file|data|mailto|tel|blob|javascript):|[A-Za-z]:[\\/]|\.\./|(?<![A-Za-z0-9_.])/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+)',value,re.I):
             raise ValueError("Arbitrary public URL/path/payload")
         if re.search(r'(?:raw_prices|last_price|adj_close|ohlcv)\s*["\x27]?\s*[:=]',value,re.I):

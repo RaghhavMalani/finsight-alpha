@@ -196,3 +196,8 @@ def test_publisher_rejects_unreviewed_evaluator_hash_before_writing(preflight, t
         publish(tmp_path, state, receipt, expected_manifest=original, extra_states=[page])
     assert (tmp_path / "frontend-v2/public/replay-manifest.json").read_bytes() == original
     assert list((tmp_path / "frontend-v2/public/artifacts/replay").glob("risk-*.json")) == []
+
+@pytest.mark.parametrize("text", ['\\\\server\\private\\book', 'eyJyYXdfcHJpY2VzIjpbMV19', '7b2261223a5b315d7d', 'czM6Ly9wcml2YXRlL3Jvd3M='])
+def test_short_encoded_structures_and_unc_carriers_rejected(text):
+    with pytest.raises(ValueError):
+        safe_payload({"reason": text})

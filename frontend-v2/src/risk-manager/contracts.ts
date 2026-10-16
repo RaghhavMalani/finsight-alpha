@@ -2294,6 +2294,35 @@ const REVIEWED_INPUTS = Array.from(INPUT_BINDINGS.values()).sort((a, b) =>
 
 function safeStrings(value: unknown): void {
   if (typeof value === "string") {
+    if (value.includes(String.fromCharCode(92))) fail("Backslash path/escape carrier.");
+    const candidates: string[] = [];
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    if (value.length >= 4 && value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
+      try {
+        candidates.push(decoder.decode(Uint8Array.from(atob(value), (c) => c.charCodeAt(0))));
+      } catch {
+        /* Ordinary identifier. */
+      }
+    }
+    if (value.length >= 4 && value.length % 2 === 0 && /^[a-fA-F0-9]+$/.test(value)) {
+      try {
+        candidates.push(
+          decoder.decode(Uint8Array.from(value.match(/../g) ?? [], (pair) => parseInt(pair, 16))),
+        );
+      } catch {
+        /* Digest bytes. */
+      }
+    }
+    for (const decoded of candidates) {
+      let payload: unknown;
+      try {
+        payload = JSON.parse(decoded);
+      } catch {
+        /* Not encoded JSON. */
+      }
+      if (payload !== null && typeof payload === "object") fail("Encoded JSON payload carrier.");
+      safeStrings(decoded);
+    }
     if (
       /(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/|(?:file|data|mailto|tel|blob|javascript):|[A-Za-z]:[\\/]|\.\.\/|(?<![A-Za-z0-9_.])\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+)/i.test(
         value,
