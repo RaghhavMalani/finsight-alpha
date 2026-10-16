@@ -145,7 +145,7 @@ Independent fixture failures never enter production risk artifacts. An untrusted
 
 ## Verification
 
-- Core boundary, lifecycle, publication sabotage and authenticated GET-only API: 95 tests PASS. The existing Linux CI suite runs against this branch and is reported separately on the PR.
+- Core boundary, lifecycle, publication sabotage and authenticated GET-only API: 96 tests PASS. The existing Linux CI suite runs against this branch and is reported separately on the PR.
 - Historical verifiers run in read-only mode: Plugin, Data, Regimes, Research OS and inference verification PASS after integration. Factors verification PASS: 684 frozen Phase 5 files, 24 metadata artifacts, 18 references, six withdrawals; no scientific execution. No retained campaign or calibration canary is run by risk publication.
 - Frontend lint, TypeScript, formatting and production build PASS. Risk static verifier: 69 checks across 12 genuine artifacts, 32 Issues and 75 coverage slots PASS. Local paper-lab regression PASS, including six exact comparisons with the original estimator. Browser and Vercel results are recorded below and in the PR.
 
@@ -208,3 +208,5 @@ The frontend Linux job installs the same tested Pydantic version needed by its i
 ## Final payload guard proof
 
 Short base64/hex JSON and URI carriers and UNC paths are rejected by both publisher and browser validators. The fourth genuine retained revision preserves the original three sealed sweeps. Its [audited repeat proof](../data/exports/risk_manager_v0_1/carrier-boundary-proof.json) records 32 UNCHANGED transitions, preserved first-seen references and occurrences, unchanged scientific inventory and an immediate repeat with zero writes.
+
+The manual workflow installs only the closed-schema dependency and uses the complete bounded Phase 7 freeze/history verifier before and after publication. Full historical verifiers remain in CI; repeating their nested audits in the dispatch would exceed its approved ten-minute bound. A workflow boundary test enforces manual-only triggers, the ten-minute limit, minimal dependencies, bounded preflight and shared publication lock.
