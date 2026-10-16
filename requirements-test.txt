@@ -1,0 +1,4 @@
+# Engineering test dependencies; separate from runtime and manual risk dispatch.
+pytest
+httpx
+PyYAML==6.0.2

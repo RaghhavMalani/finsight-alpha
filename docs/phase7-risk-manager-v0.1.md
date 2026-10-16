@@ -190,6 +190,7 @@ At final review preparation, main was acae82916835b45e7296b9ce8f280fc54a0f636e, 
 ## Reproduce bounded checks
 
 ```text
+python -m pip install -e . -r requirements-test.txt
 python scripts/verify_risk_manager.py
 python -m pytest tests/risk_manager
 node frontend-v2/scripts/verify-risk-manager.mjs
@@ -210,3 +211,5 @@ The frontend Linux job installs the same tested Pydantic version needed by its i
 Short base64/hex JSON and URI carriers and UNC paths are rejected by both publisher and browser validators. The fourth genuine retained revision preserves the original three sealed sweeps. Its [audited repeat proof](../data/exports/risk_manager_v0_1/carrier-boundary-proof.json) records 32 UNCHANGED transitions, preserved first-seen references and occurrences, unchanged scientific inventory and an immediate repeat with zero writes.
 
 The manual workflow installs only the closed-schema dependency and uses the complete bounded Phase 7 freeze/history verifier before and after publication. Full historical verifiers remain in CI; repeating their nested audits in the dispatch would exceed its approved ten-minute bound. A workflow boundary test enforces manual-only triggers, the ten-minute limit, minimal dependencies, bounded preflight and shared publication lock.
+
+The backend CI job installs the declared engineering test dependencies from requirements-test.txt, including the PyYAML parser used only to inspect the manual workflow. The production runtime and manual dispatch dependency set are unchanged.
