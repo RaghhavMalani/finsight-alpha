@@ -9,6 +9,13 @@ ROOT=Path(__file__).resolve().parents[2]
 
 def test_budget_two_kinds_and_claims(preflight):
     page=preflight["coverage_state"]; state=preflight["state"]
+    assert state["payload"]["coverage"]==[]
+    assert {row["category"] for row in page["payload"]["coverage"]}=={"DATA","MODEL","RESEARCH_HYGIENE","PORTFOLIO","SIMULATOR","SYSTEM"}
+    missing=deepcopy(page)
+    missing["payload"]["coverage"]=[row for row in missing["payload"]["coverage"] if row["category"]!="SYSTEM"]
+    missing["payload"]["state_id"]=digest({k:v for k,v in missing["payload"].items() if k!="state_id"})
+    with pytest.raises(ValueError,match="category coverage"):
+        validate_public(missing,ROOT)
     ref=state["payload"]["evidence_index"][0]
     staged={ref["artifact_id"]:(page,canonical(page)+b"\n")}
     for value in [page,state]:
@@ -41,9 +48,16 @@ def test_country_selector_counts_and_grant_sabotage(preflight):
 def fixture_root(tmp_path):
     from src.risk_manager.sweep import SOURCE_FILES
     names = ["eval/risk_manager/v0.1/policy.json", "eval/risk_manager/v0.1/evidence-map.json",
-             "frontend-v2/public/replay-manifest.json", *SOURCE_FILES]
+             "frontend-v2/public/replay-manifest.json", "eval/risk_manager/v0.1/phase0-6-freeze.json", *SOURCE_FILES]
     for name in names:
         p=tmp_path/name; p.parent.mkdir(parents=True,exist_ok=True); shutil.copyfile(ROOT/name,p)
+    from src.risk_manager.contracts import decode
+    manifest = decode((ROOT/"frontend-v2/public/replay-manifest.json").read_bytes())
+    for identity,entry in manifest["artifacts"].items():
+        if identity.startswith("data-organ:"):
+            name="frontend-v2/public"+entry["url"]
+            target=tmp_path/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,target)
+    shutil.copytree(ROOT/"eval/risk_manager/v0.1/frozen-monitoring",tmp_path/"eval/risk_manager/v0.1/frozen-monitoring")
     # Fixture publications use an empty risk namespace in a temporary copy.
     # The actual first production sweep and all its bytes remain untouched.
     from src.risk_manager.contracts import decode

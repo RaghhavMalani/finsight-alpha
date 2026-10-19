@@ -47,7 +47,7 @@ def reduce(previous, observations, sweep_fingerprint, previous_observations=()):
                     old["occurrences"] += 1
                 transition = "UPDATED"
             elif old["evidence_class"] == "UNAVAILABLE" and (last is None or last["fingerprint"] != o["fingerprint"]):
-                old.update(reason=o["reason"],evidence_refs=o["evidence_refs"],policy_sha256=o["policy_sha256"],
+                old.update(reason=o["reason"],evidence_at=o["evidence_at"],evidence_cutoff=o["evidence_cutoff"],evidence_refs=o["evidence_refs"],policy_sha256=o["policy_sha256"],
                            last_observation_id=o["observation_id"])
                 old["observation_ids"].append(o["observation_id"])
                 old["occurrences"] += 1

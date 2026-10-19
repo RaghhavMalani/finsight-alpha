@@ -8,8 +8,8 @@ ROOT=Path(__file__).resolve().parents[2]
 def test_retained_reader_and_freeze_have_no_scientific_calls():
     before=freeze_inventory(ROOT)
     with forbidden_calls(): e=EvidenceReaders(ROOT).read()
-    assert len(e.inputs)==30
-    assert e.cutoff=="2026-10-13T07:48:05.159978Z"
+    assert len(e.inputs)==len(e.monitoring["inputs"]) and len(e.inputs)>30
+    assert e.cutoff==e.manifest["artifacts"][e.manifest["routes"]["/data/issues"]]["as_of"]
     assert freeze_inventory(ROOT)==before
     assert e.values["research_flagship"]["holdout_openings"]==46
     assert e.values["research_repeat"]["holdout_openings_after_repeat"]==48

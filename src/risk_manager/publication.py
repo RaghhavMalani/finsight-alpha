@@ -9,10 +9,12 @@ import json
 import re
 from .contracts import StateEnvelope,SweepEnvelope,canonical,decode,digest,counts,CLAIMS,identity,clock
 from .policy import load,validate_rule
+from .monitoring import ALIASES, bundle_at, monitoring_catalog, monitoring_operation
 
 LICENCE=dict(status="FIRST_PARTY",permitted_uses=["publish_derived"],dataset_key="project:risk-manager-evidence",valid_through=None)
 KINDS={"risk-state":StateEnvelope,"risk-sweep":SweepEnvelope}
 LIMIT=128*1024
+CATEGORIES={"DATA","MODEL","RESEARCH_HYGIENE","PORTFOLIO","SIMULATOR","SYSTEM"}
 
 def safe_payload(value):
     forbidden={"price","prices","rawprices","rawprice","lastprice","prevclose","adjclose","adjustedclose",
@@ -57,13 +59,15 @@ def safe_payload(value):
         if len(value)>80 and re.fullmatch(r"[A-Za-z0-9+/]+={0,2}",value):
             raise ValueError("Encoded payload carrier")
 
-def validate_refs(refs, root, staged=None):
+def validate_refs(refs, root, staged=None, *, cutoff=None, catalog=None):
     root=Path(root)
     evidence=decode((root/"eval/risk_manager/v0.1/evidence-map.json").read_bytes())
     policy=load(root)
-    artifacts={s["artifact_id"]:s["entry"] for s in evidence["artifacts"].values()}
-    artifacts.update(evidence["health_history"])
-    selectors=set(evidence["artifacts"])|{"health_history_"+i.rsplit(":",1)[-1] for i in evidence["health_history"]}
+    bundle=bundle_at(root,cutoff or policy["evaluation_cutoff"],catalog=catalog)
+    assigned_artifacts={**evidence["artifacts"],**bundle["artifacts"]}
+    artifacts={s["artifact_id"]:s["entry"] for s in assigned_artifacts.values()}
+    artifacts.update(bundle["health_history"])
+    selectors=set(assigned_artifacts)|{"health_history_"+i.rsplit(":",1)[-1] for i in bundle["health_history"]}
     for r in refs:
         if r["type"]=="REPLAY_ARTIFACT" and r["selector_id"]=="risk_coverage":
             identity=r["artifact_id"]
@@ -80,7 +84,7 @@ def validate_refs(refs, root, staged=None):
                 raise ValueError("Coverage page is not a bounded leaf")
             if (r["as_of"],r["available_at"],r["source_ids"])!=(page["published_at"],page["published_at"],page["sources"]):
                 raise ValueError("Coverage page clock/source substitution")
-            validate_public(page,root,staged=staged)
+            validate_public(page,root,staged=staged,catalog=catalog)
         elif r["type"]=="REPLAY_ARTIFACT":
             if r["run_id"] is not None:
                 raise ValueError("Container has no singular producing run")
@@ -91,7 +95,7 @@ def validate_refs(refs, root, staged=None):
             actual=[r["sha256"],r["bytes"],r["kind"],r["as_of"],r["available_at"],r["source_ids"]]
             if canonical(actual)!=canonical(expected):
                 raise ValueError("Reference binding substitution")
-            assigned=evidence["artifacts"].get(r["selector_id"])
+            assigned=assigned_artifacts.get(r["selector_id"])
             if assigned and assigned["artifact_id"]!=r["artifact_id"]:
                 raise ValueError("Reference selector/subject substitution")
         elif r["type"]=="FROZEN_FILE":
@@ -104,7 +108,7 @@ def validate_refs(refs, root, staged=None):
             if r["policy_sha256"]!=policy["sha256"] or not any(r["check_id"].startswith(rule["check_id"]+":") for rule in policy["rules"]):
                 raise ValueError("Policy assertion substitution")
 
-def validate_public(value, root, staged=None):
+def _validate_public(value, root, staged=None, *, catalog=None):
     if value.get("kind") not in KINDS:
         raise ValueError("Unapproved risk kind")
     model=KINDS[value["kind"]].model_validate(value)
@@ -113,7 +117,9 @@ def validate_public(value, root, staged=None):
     policy=load(root)
     if parsed["claim_flags"]!=CLAIMS or parsed["licence"]!=LICENCE:
         raise ValueError("Claim/licence promotion")
-    if parsed["evidence_cutoff"]!=policy["evaluation_cutoff"] or clock(parsed["published_at"])<clock(parsed["evidence_cutoff"]):
+    catalog=catalog or monitoring_catalog(root)
+    bundle=bundle_at(root,parsed["evidence_cutoff"],catalog=catalog)
+    if clock(parsed["published_at"])<clock(parsed["evidence_cutoff"]):
         raise ValueError("Publication/cutoff substitution")
     p=parsed["payload"]
     refs=[]
@@ -142,14 +148,28 @@ def validate_public(value, root, staged=None):
             for ref in i["evidence_refs"]:
                 if ref["type"]=="REPLAY_ARTIFACT" and clock(ref["available_at"])>clock(i["evidence_cutoff"]):
                     raise ValueError("Issue reference available after cutoff")
-            refs.extend(i["evidence_refs"])
+            validate_refs(i["evidence_refs"],root,staged=staged,cutoff=i["evidence_cutoff"],catalog=catalog)
         refs.extend(p["evidence_index"])
-        for ref in p["evidence_index"]:
-            if ref.get("selector_id")=="risk_coverage":
-                page=(staged[ref["artifact_id"]][0] if staged and ref["artifact_id"] in staged else
-                    decode((Path(root)/"frontend-v2/public/artifacts/replay"/(ref["artifact_id"].replace(":","-")+".json")).read_bytes()))
-                if (page["input_hash"],page["evidence_cutoff"])!=(parsed["input_hash"],parsed["evidence_cutoff"]):
-                    raise ValueError("Coverage page fingerprint/cutoff substitution")
+        pages=[ref for ref in p["evidence_index"] if ref.get("selector_id")=="risk_coverage"]
+        if pages:
+            if len(pages)!=1 or len(p["evidence_index"])!=1:
+                raise ValueError("Primary coverage leaf substituted")
+            if p["coverage"] and (len(p["coverage"])!=6 or {row["category"] for row in p["coverage"]}!=CATEGORIES):
+                raise ValueError("Primary category coverage missing or duplicated")
+            ref=pages[0]
+            page=(staged[ref["artifact_id"]][0] if staged and ref["artifact_id"] in staged else
+                decode((Path(root)/"frontend-v2/public/artifacts/replay"/(ref["artifact_id"].replace(":","-")+".json")).read_bytes()))
+            if (page["input_hash"],page["evidence_cutoff"])!=(parsed["input_hash"],parsed["evidence_cutoff"]):
+                raise ValueError("Coverage page fingerprint/cutoff substitution")
+            if any(row not in page["payload"]["coverage"] for row in p["coverage"]):
+                raise ValueError("Primary category preview substituted")
+        else:
+            if p["issues"] or p["prior_state_ref"] or p["historical_origin_counts"]:
+                raise ValueError("Coverage leaf is not bounded metadata")
+            if {row["category"] for row in p["coverage"]}!=CATEGORIES:
+                raise ValueError("Sealed leaf category coverage missing")
+            if len({row["check_id"] for row in p["coverage"]})!=len(p["coverage"]):
+                raise ValueError("Duplicate coverage check")
         for c in p["coverage"]:
             if c["evidence_class"] not in {"REAL_RETAINED","UNAVAILABLE","RETAINED_SYNTHETIC"}:
                 raise ValueError("Private/example/test coverage in production")
@@ -167,12 +187,7 @@ def validate_public(value, root, staged=None):
         if p["policy_sha256"]!=policy["sha256"]:
             raise ValueError("Sweep policy substitution")
         if p["status"]!="FAILED":
-            evidence=decode((Path(root)/"eval/risk_manager/v0.1/evidence-map.json").read_bytes())
-            entries={spec["artifact_id"]:spec["entry"] for spec in evidence["artifacts"].values()}
-            entries.update(evidence["health_history"])
-            expected_inputs={key:dict(input_id=key,sha256=entry["sha256"],bytes=entry["bytes"]) for key,entry in entries.items()}
-            expected_inputs.update({key:dict(input_id=key,sha256=spec["sha256"],bytes=spec["bytes"]) for key,spec in evidence["files"].items()})
-            if p["inputs"]!=[expected_inputs[key] for key in sorted(expected_inputs)]:
+            if p["inputs"]!=bundle["inputs"]:
                 raise ValueError("Sweep reviewed input inventory substitution")
             expected=digest(dict(inputs=p["inputs"],evaluation_cutoff=p["evaluation_cutoff"],policy_sha256=p["policy_sha256"],
                 evaluator_source_hash=p["evaluator_source_hash"],scope="RETAINED_RISK_EVIDENCE"))
@@ -213,7 +228,7 @@ def validate_public(value, root, staged=None):
             raise ValueError("Transition count substitution")
         if parsed["published_at"]!=p["published_at"]:
             raise ValueError("Receipt publication clock mismatch")
-    validate_refs(refs,root,staged=staged)
+    validate_refs(refs,root,staged=staged,cutoff=parsed["evidence_cutoff"],catalog=catalog)
     raw=canonical(parsed)+b"\n"
     if len(raw)>LIMIT:
         raise ValueError("Risk artifact exceeds 128 KiB budget")
@@ -232,6 +247,11 @@ def writer_lock(root):
         yield
     finally:
         path.unlink(missing_ok=True)
+
+
+def validate_public(value, root, staged=None, *, catalog=None):
+    with monitoring_operation():
+        return _validate_public(value, root, staged=staged, catalog=catalog)
 
 def entry(identity, value, raw):
     return dict(status="AVAILABLE",kind=value["kind"],url="/artifacts/replay/"+identity.replace(":","-")+".json",

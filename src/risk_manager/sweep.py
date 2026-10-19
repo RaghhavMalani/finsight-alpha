@@ -5,13 +5,14 @@ from .contracts import identity, CLAIMS, canonical, decode, digest, now, counts,
 from .policy import load,projection
 from .evidence import EvidenceReaders,freeze_inventory,forbidden_calls
 from .rules import evaluate
+from .monitoring import monitoring_operation
 from .reducer import reduce
 from .publication import LICENCE,publish,read_artifact,writer_lock,validate_public
 
 ROOT=Path(__file__).resolve().parents[2]
 SOURCE_FILES=("src/risk_manager/contracts.py","src/risk_manager/policy.py","src/risk_manager/evidence.py",
               "src/risk_manager/rules.py","src/risk_manager/reducer.py","src/risk_manager/sweep.py",
-              "src/risk_manager/publication.py")
+              "src/risk_manager/publication.py","src/risk_manager/monitoring.py")
 OPERATIONS=("provider_captures","model_runs","plugin_runs","series_runs","factor_fits","research_attempts",
             "holdout_openings","simulator_runs")
 
@@ -68,7 +69,8 @@ def _run(root=ROOT, *, clock_fn=now, publish_artifacts=True, failure_sink=None):
             sid,rid,old,prior,oldobs=previous(root,manifest)
             before=freeze_inventory(root)
             with forbidden_calls():
-                e=EvidenceReaders(root).read()
+                e=EvidenceReaders(root,manifest=manifest,manifest_raw=manifest_raw).read()
+                p=e.policy
                 inputs=[e.inputs[k] for k in sorted(e.inputs)]
                 code_hash=evaluator_hash(root)
                 fingerprint=digest(dict(inputs=inputs,evaluation_cutoff=e.cutoff,policy_sha256=p["sha256"],
@@ -117,10 +119,9 @@ def _run(root=ROOT, *, clock_fn=now, publish_artifacts=True, failure_sink=None):
                     source_ids=["project:risk-manager-evidence"],run_id=None)
                 staged={leaf_id:(leaf,leaf_raw)}
                 projected_issues=[dict(i,evidence_refs=i["evidence_refs"][:1]) for i in issues]
+                # The sealed leaf retains every coverage row and complete instructions.
+                # Loading those rows on demand avoids duplicating six preview checks here.
                 summary=[]
-                for cat in ("DATA","MODEL","RESEARCH_HYGIENE","PORTFOLIO","SIMULATOR","SYSTEM"):
-                    rows=[c for c in projected_cov if c["category"]==cat]
-                    summary.append(next((c for c in rows if c["availability"]=="UNAVAILABLE"),rows[0]))
                 payload=dict(state_id="0"*64,sweep_fingerprint=fingerprint,evaluation_cutoff=e.cutoff,
                     policy=projection(p),issues=projected_issues,coverage=summary,counts=counts(issues),evidence_index=[page_ref],
                     historical_origin_counts=origin_counts(e.values["data_issues"]["payload"]["items"]),prior_state_ref=sid)
@@ -197,7 +198,7 @@ def repair_observation(issue,last,p,witness,e,before,proof_fingerprint=None):
     return seal_observation(dict(schema_version="risk-observation/1",**fields,
         observation_id="0"*64,fingerprint="0"*64,previous_observation_id=last["observation_id"],
         reason_code=None,reason="All required retained readers and immutable inventory checks passed after the failed attempt.",
-        outcome="CLEAR",currency="CURRENT",availability="AVAILABLE",evidence_at=witness,evidence_cutoff=witness,witnessed_at=witness,
+        outcome="CLEAR",currency="CURRENT",availability="AVAILABLE",evidence_at=e.cutoff,evidence_cutoff=e.cutoff,witnessed_at=witness,
         evidence_refs=refs,source_quality=dict(clock_quality="NOT_APPLICABLE",lineage_status="VERIFIED",
         permission_status="METADATA_ONLY",limitation_codes=[]),
         remediation=dict(state="INFORMATIONAL",requirement_code="SYSTEM_REPAIR",text="Retained boundary repair witnessed; no science executed.",
@@ -270,5 +271,5 @@ def failed_receipt(root,p,started,sid,rid,prior,before,exc,clock_fn,old=None):
 
 
 def run(root=ROOT, **kwargs):
-    with forbidden_calls():
+    with monitoring_operation(), forbidden_calls():
         return _run(root, **kwargs)

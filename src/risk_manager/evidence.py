@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 from .contracts import BASE, canonical, clock, decode, digest
 from .policy import load as load_policy
+from .monitoring import ALIASES, ALL_KINDS, MIRRORS, selected_bundle, current_receipt
 
 FILE_PATHS = {
     "plugin_registry":"data/exports/nervous_system_v0_1/registry.json",
@@ -54,7 +55,7 @@ def freeze_inventory(root):
         raise ValueError("Canonical freeze identity changed")
     inventory = {}
     for name, expected in frozen["files"].items():
-        raw = (root/name).read_bytes()
+        raw = (root/("eval/risk_manager/v0.1/frozen-monitoring/"+expected["sha256"]+".json") if name in MIRRORS else root/name).read_bytes()
         if expected["mode"] == "canonical_text":
             raw = raw.replace(b"\r\n", b"\n")
         current = sha256(raw).hexdigest()
@@ -62,8 +63,11 @@ def freeze_inventory(root):
             raise ValueError("Frozen evidence changed: " + name)
         inventory[name] = current
     manifest = decode((root/"frontend-v2/public/replay-manifest.json").read_bytes())
+    current_receipt(root,manifest)
     for part in ("artifacts", "routes"):
         for name, expected in frozen[part].items():
+            if part=="routes" and name in {"/data/"+kind for kind in ALL_KINDS}:
+                continue
             if canonical(manifest[part].get(name)) != canonical(expected):
                 raise ValueError("Pre-Phase7 manifest binding changed: " + name)
     for key, value in frozen["manifest_contract"].items():
@@ -80,7 +84,7 @@ def freeze_inventory(root):
     return digest(inventory)
 
 class EvidenceReaders:
-    def __init__(self, root):
+    def __init__(self, root, *, manifest=None, manifest_raw=None):
         self.root = Path(root).resolve()
         self.policy = load_policy(root)
         self.map = decode((self.root/"eval/risk_manager/v0.1/evidence-map.json").read_bytes())
@@ -88,9 +92,11 @@ class EvidenceReaders:
             raise ValueError("Unknown evidence map")
         if self.map["evaluation_cutoff"] != self.policy["evaluation_cutoff"]:
             raise ValueError("Evaluation cutoff substitution")
-        self.cutoff = self.policy["evaluation_cutoff"]
-        self.manifest_raw = (self.root/"frontend-v2/public/replay-manifest.json").read_bytes()
-        self.manifest = decode(self.manifest_raw)
+        self.manifest_raw = manifest_raw if manifest_raw is not None else (self.root/"frontend-v2/public/replay-manifest.json").read_bytes()
+        self.manifest = manifest if manifest is not None else decode(self.manifest_raw)
+        self.monitoring = selected_bundle(self.root,self.manifest)
+        self.cutoff = self.monitoring["evaluation_cutoff"]
+        self.policy = dict(self.policy,evaluation_cutoff=self.cutoff)
         self.frozen = decode((self.root/"eval/risk_manager/v0.1/phase0-6-freeze.json").read_bytes())
         self.inputs = {}
         self.refs = {}
@@ -108,9 +114,10 @@ class EvidenceReaders:
         return raw
 
     def artifact(self, alias, spec=None):
-        spec = spec or self.map["artifacts"][alias]
+        spec = spec or (self.monitoring["artifacts"][alias] if alias in ALIASES else self.map["artifacts"][alias])
         identity, entry = spec["artifact_id"], spec["entry"]
-        if canonical(entry) != canonical(self.frozen["artifacts"].get(identity)) or canonical(entry) != canonical(self.manifest["artifacts"].get(identity)):
+        monitoring = alias in ALIASES or alias.startswith("health_history_")
+        if (not monitoring and canonical(entry) != canonical(self.frozen["artifacts"].get(identity))) or canonical(entry) != canonical(self.manifest["artifacts"].get(identity)):
             raise ValueError("Original artifact binding substituted")
         expected_url = "/artifacts/replay/" + identity.replace(":","-") + ".json"
         # Earlier kinds in this reader all use strict content-addressed names.
@@ -151,7 +158,7 @@ class EvidenceReaders:
         for alias in sorted(FILE_PATHS):
             self.file(alias)
         health = {}
-        for i, entry in sorted(self.map["health_history"].items()):
+        for i, entry in sorted(self.monitoring["health_history"].items()):
             v = self.artifact("health_history_"+i.rsplit(":",1)[-1], {"artifact_id":i,"entry":entry})
             for row in v["payload"]["items"]:
                 health[row["diagnostic_id"]] = row

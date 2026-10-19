@@ -37,7 +37,8 @@ jobs:
       - name: Validate the complete frozen subset and risk history within the manual budget
         # Full historical verifiers remain in CI. Their repeated nested audits exceed
         # this dispatch's approved ten-minute bound; this verifier checks all 930
-        # immutable files, 221 prior artifacts, 126 routes and six withdrawals.
+        # baseline hashes, 221 prior artifacts, 126 original route identities and six
+        # withdrawals; current Data routes must match one sealed publication receipt.
         run: python scripts/verify_risk_manager.py
       - name: Explicit retained-only risk sweep
         run: python scripts/run_risk_sweep.py --scope risk

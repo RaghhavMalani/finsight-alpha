@@ -171,7 +171,7 @@ def verify_graph(values, expected_origins):
         expected_prior = receipts[payload["prior_sweep_ref"]]["payload"]["state_ref"] if payload["prior_sweep_ref"] else None
         if state["prior_state_ref"] != expected_prior:
             raise ValueError("State parent does not bind prior successful state")
-        if len(state["coverage"]) != 6 or {c["category"] for c in state["coverage"]} != CATEGORIES:
+        if state["coverage"] and (len(state["coverage"]) != 6 or {c["category"] for c in state["coverage"]} != CATEGORIES):
             raise ValueError("Primary category coverage missing or duplicated")
         pages = [ref for ref in state["evidence_index"] if ref.get("selector_id") == "risk_coverage"]
         if len(pages) != 1 or len(state["evidence_index"]) != 1:
@@ -183,6 +183,8 @@ def verify_graph(values, expected_origins):
             raise ValueError("Coverage leaf belongs to another sweep")
         if page["payload"]["issues"] or page["payload"]["prior_state_ref"] or page["payload"]["historical_origin_counts"]:
             raise ValueError("Coverage leaf is not bounded metadata")
+        if {row["category"] for row in page["payload"]["coverage"]}!=CATEGORIES:
+            raise ValueError("Sealed leaf category coverage missing")
         if len({row["check_id"] for row in page["payload"]["coverage"]}) != len(page["payload"]["coverage"]):
             raise ValueError("Duplicate coverage check")
         if any(c not in page["payload"]["coverage"] for c in state["coverage"]):
@@ -191,14 +193,14 @@ def verify_graph(values, expected_origins):
             lifecycle(issue)
         origins = [origin for issue in state["issues"] for origin in issue["origin_records"]
                    if origin["source"] != "phase2-fixture"]
-        if Counter(digest(o) for o in origins) != Counter(digest(o) for o in expected_origins):
+        if Counter(digest(o) for o in origins) != Counter(digest(o) for o in (expected_origins[payload["fingerprint"]] if isinstance(expected_origins,dict) else expected_origins)):
             raise ValueError("Data origin evidence lost, duplicated or rewritten")
     if used_states != set(states):
         raise ValueError("Unreferenced risk state in public namespace")
     return True
 
 
-def verify(root):
+def _verify(root):
     root = Path(root)
     inventory = freeze_inventory(root)
     manifest = decode((root / "frontend-v2/public/replay-manifest.json").read_bytes())
@@ -213,7 +215,16 @@ def verify(root):
     for path in (root / "frontend-v2/public/artifacts/replay").glob("risk-*.json"):
         if not any(path.name == identity.replace(":", "-") + ".json" for identity in risk):
             raise ValueError("Orphan risk artifact")
-    expected = decode((root / "data/exports/data_organ_v0_1/issues.json").read_bytes())["items"]
+    from src.risk_manager.monitoring import read_data
+    expected = {}
+    for value in values.values():
+        if value["kind"]!="risk-sweep" or value["payload"]["status"]=="FAILED":
+            continue
+        receipt=value["payload"]
+        origins=[item for item in receipt["inputs"] if item["input_id"].startswith("data-organ:issues:")]
+        if len(origins)!=1:
+            raise ValueError("Historical sweep lacks its exact Data issues input")
+        expected[receipt["fingerprint"]]=read_data(root,manifest,origins[0]["input_id"],expected_kind="issues")["payload"]["items"]
     verify_graph(values, expected)
     latest = manifest["routes"].get("/risk-manager/sweep")
     latest_state = manifest["routes"].get("/risk-manager/state")
@@ -231,3 +242,9 @@ def verify(root):
     return dict(status="VERIFIED", base="16db82c5f2f50b98253df9989c586cd45aa98f6b", frozen_files=930,
                 prior_artifacts=221, prior_routes=126, withdrawals=6, risk_artifacts=len(risk),
                 scientific_inventory_sha256=inventory, d6="DISABLED / DEFERRED")
+
+
+def verify(root):
+    from src.risk_manager.monitoring import monitoring_operation
+    with monitoring_operation():
+        return _verify(root)

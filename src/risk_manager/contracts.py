@@ -306,7 +306,7 @@ class StatePayload(Closed):
     evaluation_cutoff: str
     policy: PolicyProjection
     issues: Annotated[list[Issue], Field(max_length=1000)]
-    coverage: Annotated[list[Coverage], Field(min_length=1, max_length=1000)]
+    coverage: Annotated[list[Coverage], Field(max_length=1000)]
     counts: list[CountRow]
     evidence_index: list[EvidenceRef]
     historical_origin_counts: list[CountRow]

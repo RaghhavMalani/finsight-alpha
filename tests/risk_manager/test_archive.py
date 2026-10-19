@@ -58,7 +58,7 @@ def test_cross_join_sabotage_cannot_pass(preflight, sabotage):
     elif sabotage == "coverage_fingerprint":
         values[leaf_ref]["payload"]["sweep_fingerprint"] = "a" * 64
     elif sabotage == "missing_category":
-        state["coverage"].pop()
+        values[leaf_ref]["payload"]["coverage"]=[row for row in values[leaf_ref]["payload"]["coverage"] if row["category"]!="SYSTEM"]
     elif sabotage == "state_parent":
         state["prior_state_ref"] = leaf_ref
     elif sabotage == "sweep_id":
@@ -71,3 +71,23 @@ def test_cross_join_sabotage_cannot_pass(preflight, sabotage):
         state["issues"][0]["evidence_refs"] = [dict(type="RISK_OBSERVATION", observation_id="a" * 64, sweep_fingerprint="a" * 64)]
     with pytest.raises(ValueError):
         verify_graph(values, origins)
+
+
+def test_each_historical_sweep_binds_its_own_retained_origin_inventory():
+    from src.risk_manager.monitoring import read_data,monitoring_operation
+    from src.risk_manager.publication import read_artifact
+    manifest=decode((ROOT/"frontend-v2/public/replay-manifest.json").read_bytes())
+    with monitoring_operation():
+        values={identity:read_artifact(ROOT,manifest,identity) for identity in manifest["artifacts"] if identity.startswith("risk:")}
+        expected={}
+        for value in values.values():
+            if value["kind"]!="risk-sweep" or value["payload"]["status"]=="FAILED":continue
+            receipt=value["payload"]
+            issue_input=next(item["input_id"] for item in receipt["inputs"] if item["input_id"].startswith("data-organ:issues:"))
+            expected[receipt["fingerprint"]]=read_data(ROOT,manifest,issue_input)["payload"]["items"]
+        assert verify_graph(values,expected)
+        # The older successful sweeps preserve27origins; current raw monitoring contains later origins.
+        current=read_data(ROOT,manifest,manifest["routes"]["/data/issues"])["payload"]["items"]
+        if any(len(origins)!=len(current) for origins in expected.values()):
+            with pytest.raises(ValueError,match="Data origin"):
+                verify_graph(values,current)

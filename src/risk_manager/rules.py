@@ -11,7 +11,7 @@ def evaluate(evidence, witnessed_at):
             code=None, reason=None, aliases=(), severity=None, category=None, country="NONE", asset=None,
             model=None, family=None, key="v0.1", kind=None, origins=(), currency="CURRENT",
             evidence_class="REAL_RETAINED", evidence_at=None, value=None, threshold=None, unit=None,
-            title=None, comparison="EXACT"):
+            title=None, comparison="EXACT", lineage_status=None, limitation_codes=None):
         rule = rules[rule_id]
         category = category or rule["category"]
         family = family or rule_id
@@ -45,10 +45,10 @@ def evaluate(evidence, witnessed_at):
             reason_code=code,reason=message,outcome=outcome,currency=currency,availability=availability,
             evidence_class="UNAVAILABLE" if unavailable else evidence_class,evidence_at=evidence_at,
             evidence_cutoff=evidence.cutoff,witnessed_at=witnessed_at,policy_sha256=p["sha256"],
-            fingerprint="0"*64,previous_observation_id=None,evidence_refs=refs,
+            fingerprint="0"*64,previous_observation_id=None,evidence_refs=refs[:1],
             source_quality=dict(clock_quality="CAPTURE_ONLY" if category=="MODEL" else "NOT_APPLICABLE",
-                lineage_status="UNAVAILABLE" if unavailable else "VERIFIED",permission_status="METADATA_ONLY",
-                limitation_codes=[code] if code else []),remediation=remediation,origin_records=list(origins),
+                lineage_status=lineage_status or ("UNAVAILABLE" if unavailable else "VERIFIED"),permission_status="METADATA_ONLY",
+                limitation_codes=limitation_codes if limitation_codes is not None else ([code] if code else [])),remediation=remediation,origin_records=list(origins),
             assertions=[dict(assertion_id=check_id,outcome=outcome,unit=unit or rule["unit"],value=None if unavailable else value,
                 comparison="NONE" if unavailable else comparison,threshold=None if unavailable else threshold)])
         o["issue_id"] = identity(o)
@@ -80,11 +80,19 @@ def evaluate(evidence, witnessed_at):
         rule_id = "R-DATA-ATTEMPT" if kind=="attempt" else "R-DATA-HEALTH"
         last = max(origins,key=lambda o:o["last_seen_at"])
         country = next((x["country"] for x in evidence.values["data_coverage"]["payload"]["items"] if x["source"]==source),"NONE")
+        missing=any(origin["id"] in {row["origin_id"] for row in evidence.monitoring.get("unresolved_diagnostics",[])} for origin in origins)
         add(rule_id,source,triggered=True,code=last["kind"],reason=last["reason"],origins=origins,
             aliases=("data_issues","data_health","data_coverage"),severity=last["severity"],
-            availability="AVAILABLE",key=key,currency="CURRENT" if current else "HISTORICAL_ONLY",
+            availability="PARTIAL" if missing else "AVAILABLE",lineage_status="UNAVAILABLE" if missing else None,
+            limitation_codes=["REQUIRED_READER_FAILED"] if missing else None,key=key,currency="CURRENT" if current else "HISTORICAL_ONLY",
             country=country if country in {"US","INDIA"} else "NONE",evidence_at=utc(last["last_seen_at"]),
             value=len(origins),unit="events",title=source+" Â· "+("source unavailable" if kind=="attempt" else "partial source health"))
+    for missing in evidence.monitoring.get("unresolved_diagnostics",[]):
+        add("R-DATA-HEALTH",missing["source"],availability="UNAVAILABLE",code="REQUIRED_READER_FAILED",
+            category="DATA",key="historical-diagnostic:"+missing["origin_id"],currency="HISTORICAL_ONLY",
+            aliases=("data_issues",),title="Historical Data health diagnostic unavailable",
+            reason="The exact retained IIMA origin "+missing["origin_id"]+" references diagnostic "+missing["diagnostic_id"]+
+                ", which is absent from retained HEALTH history. The original origin remains unchanged; its diagnostic cannot be evaluated.")
     for h in health:
         subject = h["source"]
         key = h["window_start"]+":"+h["window_end"]+":"+h["library_start"]

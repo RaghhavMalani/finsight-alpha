@@ -3,7 +3,7 @@ from collections import Counter
 from src.risk_manager.evidence import EvidenceReaders,forbidden_calls
 from src.risk_manager.rules import evaluate
 from src.risk_manager.reducer import reduce
-from src.risk_manager.contracts import now,partition
+from src.risk_manager.contracts import now,partition,clock,utc
 ROOT=Path(__file__).resolve().parents[2]
 
 def result():
@@ -14,11 +14,15 @@ def result():
 def test_actual_retained_counts_and_all_origins():
     e,o,c,i,t=result()
     real=[x for x in i if partition(x)=="CURRENT_REAL"]
-    assert Counter((x["category"],x["severity"]) for x in real)=={("DATA","HIGH"):8,("DATA","MEDIUM"):2,("MODEL","HIGH"):1}
+    expected=Counter({("DATA","HIGH"):8,("DATA","MEDIUM"):2})
+    for country in ("US","INDIA"):
+        age=(clock(e.cutoff)-clock(utc(e.values["model_"+country]["payload"]["state_at"]))).total_seconds()/86400
+        if age>45:expected[("MODEL","HIGH" if age>120 else "MEDIUM")]+=1
+    assert Counter((x["category"],x["severity"]) for x in real)==expected
     origins=[x for row in i for x in row["origin_records"] if x["source"]!="phase2-fixture"]
-    assert Counter(x["severity"] for x in origins)=={"HIGH":8,"MEDIUM":13,"INFO":6}
+    assert Counter(x["severity"] for x in origins)==Counter(x["severity"] for x in e.values["data_issues"]["payload"]["items"])
     assert {x["id"] for x in origins}=={x["id"] for x in e.values["data_issues"]["payload"]["items"]}
-    assert len(c)==75 and len({x["check_id"] for x in c})==75
+    assert len(c)==76 and len({x["check_id"] for x in c})==76
 
 def test_models_and_research_not_invented_and_missing_checks_not_green():
     _,o,c,i,_=result()
