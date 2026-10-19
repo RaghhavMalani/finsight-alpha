@@ -1,0 +1,79 @@
+{
+  "schema_version": "risk-ui-static-proof/1",
+  "checks": 123,
+  "risk_artifacts": 15,
+  "issues": 34,
+  "coverage_slots": 76,
+  "origin_proofs": [
+    {
+      "state_ref": "risk:state:35dbf3510813be500b67a3f858d6fc7b5b302f54dae418a9315df96911bca131",
+      "cutoff": "2026-10-19T06:20:06.850005Z",
+      "origins": 39
+    },
+    {
+      "state_ref": "risk:state:70c52275c95d883f456b87e8e7bb9cb0b4de87807fb3b621ad02ad80fde73ada",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    },
+    {
+      "state_ref": "risk:state:780f310e37113a1577d3e8a69b5bc89a4959dc827b1f88f254a5db9ca756fe26",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    },
+    {
+      "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    },
+    {
+      "state_ref": "risk:state:f1923b048789e44e4e96a21f20647009b5a6b29d4bca5faad42e07390e83da87",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    }
+  ],
+  "admitted_monitoring_epochs": [
+    "2026-10-13T07:48:05.159978Z",
+    "2026-10-14T06:16:11.008297Z",
+    "2026-10-15T05:59:07.293121Z",
+    "2026-10-16T05:58:56.339670Z",
+    "2026-10-17T05:42:24.055238Z",
+    "2026-10-18T06:03:45.703339Z",
+    "2026-10-19T06:20:06.850005Z"
+  ],
+  "initial_risk_bytes": 239126,
+  "total_initial_bytes": 290393,
+  "initial_manifest_bytes": 51267,
+  "global_manifest_bytes": 331703,
+  "initial_manifest_sha256": "0633818a3d0a1bd04f897cf694ec3ed9a9a0061b2dc8a563ddee0c97ecbab327",
+  "global_manifest_sha256": "a9c27b18556bdeceb8036513dbebfbd49ba8dc7a61c2f140e3692c51c00b403c",
+  "validation_max_ms": 11.438599999999951,
+  "synthetic_1000_filter_max_ms": 1.1912999999999556,
+  "synthetic_fixture_evidence_class": "SYNTHETIC_TEST_ONLY",
+  "actual_sweep": "f65c5f9156e1d782a41e6132190975919772b215b5397cc78d0b8945af56d7ae",
+  "future_monitoring": {
+    "evidence_class": "SYNTHETIC_TEST_ONLY",
+    "original_epochs": 7,
+    "automatically_admitted_epochs": 8,
+    "admitted_cutoff": "2026-10-20T06:20:06.850Z",
+    "new_diagnostic_resolved": true,
+    "rejection_checks": 29,
+    "publication_writes": 0
+  },
+  "evidence_class": "ENGINEERING_QA",
+  "selected_state_ref": "risk:state:35dbf3510813be500b67a3f858d6fc7b5b302f54dae418a9315df96911bca131",
+  "selected_sweep_ref": "risk:sweep:1e104eb220bc52ec9f2a015be66b5e9f1ca506bb2a026fbbe75922420dbe808d",
+  "public_risk_chunk": {
+    "file": "risk-DZuN796-.js",
+    "bytes": 341619,
+    "gzip_bytes": 40185,
+    "gzip_budget_bytes": 65536
+  },
+  "gates": {
+    "lint": "PASS",
+    "types": "PASS",
+    "format": "PASS",
+    "production_build": "PASS",
+    "static": "PASS",
+    "local": "PASS"
+  }
+}

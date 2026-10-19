@@ -64,3 +64,7 @@ frontend-v2/.vercel/
 .env.local
 frontend-v2/.env.local
 .env*
+# Derived automatically from checked public Data Organ publications.
+frontend-v2/src/risk-manager/monitoring-catalog.generated.ts
+frontend-v2/src/risk-manager/read-plan.generated.ts
+frontend-v2/public/risk-read-manifest.json

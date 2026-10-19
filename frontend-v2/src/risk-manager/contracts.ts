@@ -1,4 +1,6 @@
-import { PINNED_POLICY, PINNED_CUTOFF, REPLAY_BINDINGS, FILE_BINDINGS } from "./bindings.ts";
+import { PINNED_POLICY, REPLAY_BINDINGS, FILE_BINDINGS } from "./bindings.ts";
+import { MONITORING_CATALOG } from "./monitoring-catalog.generated.ts";
+export { strictJSON } from "./strict-json.ts";
 import { assertDerivedPayload } from "../replay/contracts.ts";
 
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
@@ -218,6 +220,7 @@ type Schema = {
   enum?: unknown[];
   anyOf?: Schema[];
   oneOf?: Schema[];
+  discriminator?: { propertyName: string; mapping: Record<string, string> };
   type?: string;
   properties?: Record<string, Schema>;
   required?: string[];
@@ -990,7 +993,6 @@ const SCHEMAS = {
           coverage: {
             items: { $ref: "#/$defs/Coverage" },
             maxItems: 1000,
-            minItems: 1,
             title: "Coverage",
             type: "array",
           },
@@ -2115,81 +2117,16 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
-/** Decode before JSON.parse could discard duplicate keys; no permissive reviver. */
-export function strictJSON(text: string): unknown {
-  let at = 0;
-  const space = () => {
-    while (/[ \t\n\r]/.test(text[at] ?? "") && at < text.length) at++;
-  };
-  const string = (): string => {
-    const start = at++;
-    while (at < text.length) {
-      const char = text[at++];
-      if (char === "\\") {
-        at++;
-        continue;
-      }
-      if (char === '"') return JSON.parse(text.slice(start, at)) as string;
-    }
-    return fail("Unterminated JSON string.");
-  };
-  const value = (): unknown => {
-    space();
-    if (text[at] === '"') return string();
-    if (text[at] === "{") {
-      at++;
-      space();
-      const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
-      if (text[at] === "}") {
-        at++;
-        return result;
-      }
-      while (at < text.length) {
-        space();
-        if (text[at] !== '"') fail("Object key required.");
-        const key = string();
-        space();
-        if (Object.hasOwn(result, key)) fail("Duplicate JSON key.");
-        if (text[at++] !== ":") fail("JSON colon required.");
-        result[key] = value();
-        space();
-        const delimiter = text[at++];
-        if (delimiter === "}") return result;
-        if (delimiter !== ",") fail("JSON object delimiter required.");
-      }
-      return fail("Unterminated JSON object.");
-    }
-    if (text[at] === "[") {
-      at++;
-      space();
-      const result: unknown[] = [];
-      if (text[at] === "]") {
-        at++;
-        return result;
-      }
-      while (at < text.length) {
-        result.push(value());
-        space();
-        const delimiter = text[at++];
-        if (delimiter === "]") return result;
-        if (delimiter !== ",") fail("JSON array delimiter required.");
-      }
-      return fail("Unterminated JSON array.");
-    }
-    const token = /^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/.exec(
-      text.slice(at),
-    );
-    if (!token) return fail("Invalid JSON token.");
-    at += token[0].length;
-    const result: unknown = JSON.parse(token[0]);
-    if (typeof result === "number" && !Number.isFinite(result)) fail("Nonfinite JSON.");
-    return result;
-  };
-  const result = value();
-  space();
-  if (at !== text.length) fail("Trailing JSON content.");
-  return result;
+/** Compare the full retained UTC precision, including sub-millisecond evidence clocks. */
+export function utcMicros(value: string): bigint {
+  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?Z$/.exec(value);
+  if (!match || Number(match[1].slice(0, 4)) < 1) return fail("Invalid UTC clock.");
+  const millis = Date.parse(match[1] + "Z");
+  if (!Number.isFinite(millis) || new Date(millis).toISOString().slice(0, 19) !== match[1])
+    return fail("Invalid UTC calendar clock.");
+  return BigInt(millis) * 1000n + BigInt((match[2] ?? "").padEnd(6, "0"));
 }
+
 function validate(
   value: unknown,
   schema: Schema,
@@ -2199,7 +2136,19 @@ function validate(
   if (schema.$ref) return validate(value, defs[schema.$ref.split("/").at(-1)!], defs, path);
   const choices = schema.anyOf ?? schema.oneOf;
   if (choices) {
-    for (const choice of choices) {
+    if (schema.discriminator) {
+      const tag =
+        value && typeof value === "object" && !Array.isArray(value)
+          ? (value as Record<string, unknown>)[schema.discriminator.propertyName]
+          : null;
+      const selected = typeof tag === "string" ? schema.discriminator.mapping[tag] : undefined;
+      if (!selected || !choices.some((choice) => choice.$ref === selected))
+        return fail("Unreviewed discriminator at " + path);
+      return validate(value, { $ref: selected }, defs, path);
+    }
+    const nullChoice = choices.find((choice) => choice.type === "null");
+    if (value === null && nullChoice) return validate(value, nullChoice, defs, path);
+    for (const choice of choices.filter((choice) => choice.type !== "null")) {
       try {
         validate(value, choice, defs, path);
         return;
@@ -2230,13 +2179,11 @@ function validate(
       validate(child, properties[key], defs, path + "." + key);
       if (
         (key.endsWith("_at") || ["as_of", "evidence_cutoff", "evaluation_cutoff"].includes(key)) &&
-        child !== null &&
-        (typeof child !== "string" ||
-          !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$/.test(child) ||
-          !Number.isFinite(Date.parse(child)) ||
-          new Date(child).toISOString().slice(0, 19) !== child.slice(0, 19))
-      )
-        fail("Invalid UTC clock at " + path);
+        child !== null
+      ) {
+        if (typeof child !== "string") fail("Invalid UTC clock at " + path);
+        utcMicros(child as string);
+      }
     }
   } else if (schema.type === "array") {
     if (!Array.isArray(value)) fail("Array required at " + path);
@@ -2275,24 +2222,68 @@ export function partition(issue: Issue): string {
   return issue.currency === "CURRENT" ? "CURRENT_REAL" : "HISTORICAL";
 }
 const PRODUCTION_CLASSES = new Set(["REAL_RETAINED", "UNAVAILABLE", "RETAINED_SYNTHETIC"]);
-const INPUT_BINDINGS = new Map<string, { input_id: string; sha256: string; bytes: number }>([
-  ...Object.values(REPLAY_BINDINGS).map(
-    (binding) =>
-      [
-        binding.artifact_id,
-        { input_id: binding.artifact_id, sha256: binding.sha256, bytes: binding.bytes },
-      ] as const,
-  ),
-  ...Object.entries(FILE_BINDINGS).map(
-    ([id, binding]) =>
-      [id, { input_id: id, sha256: binding.sha256, bytes: binding.bytes }] as const,
-  ),
+type InputBinding = { input_id: string; sha256: string; bytes: number };
+type ArtifactBinding = {
+  artifact_id: string;
+  kind: string;
+  sha256: string;
+  bytes: number;
+  as_of: string;
+  available_at: string;
+  sources: readonly string[];
+};
+type MonitoringEntry = Omit<ArtifactBinding, "artifact_id">;
+type MonitoringBundle = {
+  evaluation_cutoff: string;
+  artifacts: Record<string, { artifact_id: string; entry: MonitoringEntry }>;
+  health_history: Record<string, MonitoringEntry>;
+  inputs: InputBinding[];
+};
+const MONITORING_ALIASES = new Set([
+  "data_issues",
+  "data_health",
+  "data_coverage",
+  "data_disagreement",
+  "data_lineage",
 ]);
-const REVIEWED_INPUTS = Array.from(INPUT_BINDINGS.values()).sort((a, b) =>
-  a.input_id < b.input_id ? -1 : a.input_id > b.input_id ? 1 : 0,
+const MONITORING_BUNDLES = new Map<string, MonitoringBundle>(
+  (MONITORING_CATALOG as unknown as { bundles: MonitoringBundle[] }).bundles.map((bundle) => [
+    bundle.evaluation_cutoff,
+    bundle,
+  ]),
 );
+const FIRST_EVIDENCE_EPOCH = Array.from(MONITORING_BUNDLES.keys(), utcMicros).reduce(
+  (earliest, next) => (next < earliest ? next : earliest),
+);
+export function reviewedMonitoringBundle(cutoff: string): MonitoringBundle {
+  const bundle = MONITORING_BUNDLES.get(cutoff);
+  if (!bundle) return fail("Unadmitted retained monitoring epoch.");
+  return bundle;
+}
+function replayBinding(selector: string, cutoff: string): ArtifactBinding | undefined {
+  const bundle = reviewedMonitoringBundle(cutoff);
+  if (MONITORING_ALIASES.has(selector)) {
+    const binding = bundle.artifacts[selector];
+    return binding ? { artifact_id: binding.artifact_id, ...binding.entry } : undefined;
+  }
+  if (selector.startsWith("health_history_")) {
+    const artifact_id = "data-organ:health:" + selector.slice("health_history_".length);
+    const entry = bundle.health_history[artifact_id];
+    return entry ? { artifact_id, ...entry } : undefined;
+  }
+  return REPLAY_BINDINGS[selector as keyof typeof REPLAY_BINDINGS];
+}
 
-const PUBLIC_TEXT_DECODER = new TextDecoder("utf-8", { fatal: true });
+const PUBLIC_TEXT_DECODER = new TextDecoder("utf-8", { ignoreBOM: true });
+const PUBLIC_TEXT_ENCODER = new TextEncoder();
+function decodeCarrier(bytes: Uint8Array): string | null {
+  const decoded = PUBLIC_TEXT_DECODER.decode(bytes);
+  const encoded = PUBLIC_TEXT_ENCODER.encode(decoded);
+  // Exact round-trip rejects malformed UTF-8 without throwing for ordinary digest bytes.
+  if (encoded.length !== bytes.length || encoded.some((byte, index) => byte !== bytes[index]))
+    return null;
+  return decoded.startsWith("\uFEFF") ? decoded.slice(1) : decoded;
+}
 function safeStrings(value: unknown, checked = new Set<string>()): void {
   if (typeof value === "string") {
     if (checked.has(value)) return;
@@ -2300,31 +2291,30 @@ function safeStrings(value: unknown, checked = new Set<string>()): void {
     const candidates: string[] = [];
     if (value.length >= 4 && value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
       try {
-        candidates.push(
-          PUBLIC_TEXT_DECODER.decode(Uint8Array.from(atob(value), (c) => c.charCodeAt(0))),
-        );
+        const decoded = decodeCarrier(Uint8Array.from(atob(value), (c) => c.charCodeAt(0)));
+        if (decoded !== null) candidates.push(decoded);
       } catch {
         /* Ordinary identifier. */
       }
     }
     if (value.length >= 4 && value.length % 2 === 0 && /^[a-fA-F0-9]+$/.test(value)) {
       try {
-        candidates.push(
-          PUBLIC_TEXT_DECODER.decode(
-            Uint8Array.from(value.match(/../g) ?? [], (pair) => parseInt(pair, 16)),
-          ),
+        const decoded = decodeCarrier(
+          Uint8Array.from(value.match(/../g) ?? [], (pair) => parseInt(pair, 16)),
         );
+        if (decoded !== null) candidates.push(decoded);
       } catch {
         /* Digest bytes. */
       }
     }
     for (const decoded of candidates) {
       let payload: unknown;
-      try {
-        payload = JSON.parse(decoded);
-      } catch {
-        /* Not encoded JSON. */
-      }
+      if (/^[ \t\r\n]*[[{]/.test(decoded))
+        try {
+          payload = JSON.parse(decoded);
+        } catch {
+          /* Not encoded JSON. */
+        }
       if (payload !== null && typeof payload === "object") fail("Encoded JSON payload carrier.");
       safeStrings(decoded, checked);
     }
@@ -2344,7 +2334,7 @@ function safeStrings(value: unknown, checked = new Set<string>()): void {
 function unique(values: string[], name: string): void {
   if (new Set(values).size !== values.length) fail("Duplicate " + name + ".");
 }
-function refsValid(refs: Ref[], policy: string): void {
+function refsValid(refs: Ref[], policy: string, cutoff: string): void {
   for (const ref of refs) {
     if (ref.type === "POLICY_ASSERTION") {
       if (
@@ -2373,7 +2363,7 @@ function refsValid(refs: Ref[], policy: string): void {
         )
           fail("Coverage reference substituted.");
       } else {
-        const binding = REPLAY_BINDINGS[ref.selector_id as keyof typeof REPLAY_BINDINGS];
+        const binding = replayBinding(ref.selector_id ?? "", cutoff);
         if (
           !binding ||
           stable([
@@ -2400,7 +2390,11 @@ function refsValid(refs: Ref[], policy: string): void {
     }
   }
 }
-function ruleValid(item: Issue | Observation, policy: State["payload"]["policy"]): void {
+function ruleValid(
+  item: Issue | Observation,
+  policy: State["payload"]["policy"],
+  operationalWitness?: string,
+): void {
   const rule = policy.rules.find((r) => r.rule_id === item.rule_id);
   if (
     !rule ||
@@ -2424,12 +2418,18 @@ function ruleValid(item: Issue | Observation, policy: State["payload"]["policy"]
     )
       fail("Country/evidence substitution.");
   }
-  refsValid(item.evidence_refs, policy.sha256);
-  if (item.evidence_at && Date.parse(item.evidence_at) > Date.parse(item.evidence_cutoff))
+  if (item.evidence_cutoff !== operationalWitness) reviewedMonitoringBundle(item.evidence_cutoff);
+  refsValid(item.evidence_refs, policy.sha256, item.evidence_cutoff);
+  if (item.evidence_at && utcMicros(item.evidence_at) > utcMicros(item.evidence_cutoff))
     fail("Future evidence.");
 }
-function issueValid(issue: Issue, policy: State["payload"]["policy"]): void {
-  ruleValid(issue, policy);
+function issueValid(
+  issue: Issue,
+  policy: State["payload"]["policy"],
+  publishedAt: string,
+  operationalWitness?: string,
+): void {
+  ruleValid(issue, policy, operationalWitness);
   unique(issue.observation_ids, "Issue observation");
   if (
     !issue.observation_ids.includes(issue.last_observation_id) ||
@@ -2440,13 +2440,108 @@ function issueValid(issue: Issue, policy: State["payload"]["policy"]): void {
     if (
       !issue.resolution_ref ||
       !issue.resolved_at ||
-      Date.parse(issue.resolved_at) < Date.parse(issue.first_seen_at)
+      utcMicros(issue.resolved_at) < utcMicros(issue.first_seen_at)
     )
       fail("Resolution lacks positive proof.");
   } else if (issue.resolution_ref !== null || issue.resolved_at !== null)
     fail("Open Issue has resolution.");
-  if (Date.parse(issue.first_seen_at) < Date.parse(issue.evidence_cutoff))
-    fail("Detection precedes cutoff.");
+  if (
+    utcMicros(issue.first_seen_at) < FIRST_EVIDENCE_EPOCH ||
+    utcMicros(issue.first_seen_at) > utcMicros(publishedAt)
+  )
+    fail("Detection is outside retained Risk Manager history.");
+  if (utcMicros(issue.evidence_cutoff) > utcMicros(publishedAt))
+    fail("Issue monitoring epoch exceeds publication.");
+}
+function checkedFailureWitness(payload: Sweep["payload"]): string | undefined {
+  if (!payload.failure) return undefined;
+  const issue = payload.failure.issue;
+  const observation = payload.observations.find(
+    (item) => item.observation_id === issue.last_observation_id,
+  );
+  const witness = issue.evidence_cutoff;
+  const integrity = payload.failure.reason_code === "ARTIFACT_INTEGRITY_BREACH";
+  const check = "SYSTEM_SWEEP:risk-workspace:failure";
+  if (
+    payload.status !== "FAILED" ||
+    payload.failure.subsystem !== "retained-reader" ||
+    !observation ||
+    issue.status !== "OPEN" ||
+    issue.category !== "SYSTEM" ||
+    issue.rule_id !== (integrity ? "R-SYSTEM-INTEGRITY" : "R-SYSTEM-SWEEP") ||
+    issue.severity !== (integrity ? "CRITICAL" : "HIGH") ||
+    issue.reason_code !== payload.failure.reason_code ||
+    issue.currency !== "CURRENT" ||
+    issue.availability !== "UNAVAILABLE" ||
+    issue.evidence_class !== "REAL_RETAINED" ||
+    issue.country !== "NONE" ||
+    issue.asset !== null ||
+    issue.model !== null ||
+    issue.origin_records.length !== 0 ||
+    issue.evidence_at !== witness ||
+    observation.witnessed_at !== witness ||
+    observation.outcome !== "FINDING" ||
+    utcMicros(issue.first_seen_at) > utcMicros(witness) ||
+    utcMicros(witness) < utcMicros(payload.started_at) ||
+    utcMicros(witness) > utcMicros(payload.completed_at) ||
+    stable(issue.scope) !==
+      stable({
+        kind: "PUBLIC_PLATFORM",
+        subject_id: "risk-workspace",
+        evidence_family: "R-SYSTEM-SWEEP",
+        stable_scope_key: "retained-reader",
+      }) ||
+    stable(issue.evidence_refs) !==
+      stable([
+        { type: "POLICY_ASSERTION", policy_sha256: payload.policy_sha256, check_id: check },
+      ]) ||
+    stable(issue.source_quality) !==
+      stable({
+        clock_quality: "NOT_APPLICABLE",
+        lineage_status: "UNAVAILABLE",
+        permission_status: "METADATA_ONLY",
+        limitation_codes: [payload.failure.reason_code],
+      }) ||
+    stable(observation.assertions) !==
+      stable([
+        {
+          assertion_id: check,
+          outcome: "FINDING",
+          unit: "status",
+          value: "FAILED",
+          comparison: "EXACT",
+          threshold: "VERIFIED",
+        },
+      ])
+  )
+    return fail("Operational failure witness substituted.");
+  for (const key of [
+    "issue_id",
+    "rule_id",
+    "rule_version",
+    "category",
+    "severity",
+    "scope",
+    "country",
+    "asset",
+    "model",
+    "title",
+    "reason_code",
+    "reason",
+    "currency",
+    "availability",
+    "evidence_class",
+    "evidence_at",
+    "evidence_cutoff",
+    "policy_sha256",
+    "evidence_refs",
+    "source_quality",
+    "remediation",
+    "origin_records",
+  ] as const)
+    if (stable(issue[key]) !== stable(observation[key]))
+      return fail("Operational failure observation/Issue mismatch.");
+  return witness;
 }
 export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"): State | Sweep {
   const validationStarted = performance.now();
@@ -2454,9 +2549,9 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
   safeStrings(value);
   validate(value, SCHEMAS[kind], SCHEMAS[kind].$defs ?? {}, "risk");
   const v = value as State | Sweep;
+  const admitted = reviewedMonitoringBundle(v.evidence_cutoff);
   if (
-    v.evidence_cutoff !== PINNED_CUTOFF ||
-    Date.parse(v.published_at) < Date.parse(v.evidence_cutoff) ||
+    utcMicros(v.published_at) < utcMicros(v.evidence_cutoff) ||
     v.payload.evaluation_cutoff !== v.evidence_cutoff ||
     stable(v.licence) !==
       stable({
@@ -2473,6 +2568,22 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
       expected = new Map<string, number>();
     if (stable(p.policy) !== stable(PINNED_POLICY) || state.input_hash !== p.sweep_fingerprint)
       fail("State policy/fingerprint substituted.");
+    const pages = p.evidence_index.filter((ref) => ref.selector_id === "risk_coverage");
+    const coverageCategories = new Set(p.coverage.map((row) => row.category));
+    if (pages.length) {
+      if (
+        pages.length !== 1 ||
+        p.evidence_index.length !== 1 ||
+        (p.coverage.length > 0 && (p.coverage.length !== 6 || coverageCategories.size !== 6))
+      )
+        fail("Primary coverage page or preview substituted.");
+    } else if (
+      p.issues.length ||
+      p.prior_state_ref ||
+      p.historical_origin_counts.length ||
+      coverageCategories.size !== 6
+    )
+      fail("Coverage leaf is incomplete or contains primary state.");
     unique(
       p.issues.map((issue) => issue.issue_id),
       "Issue identity",
@@ -2482,7 +2593,9 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
       "coverage slot",
     );
     for (const issue of p.issues) {
-      issueValid(issue, p.policy);
+      issueValid(issue, p.policy, v.published_at);
+      if (utcMicros(issue.evidence_cutoff) > utcMicros(v.evidence_cutoff))
+        fail("Issue epoch exceeds selected state.");
       const key = [partition(issue), issue.category, issue.severity].join("|");
       expected.set(key, (expected.get(key) ?? 0) + 1);
     }
@@ -2504,11 +2617,11 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
         (row.availability === "UNAVAILABLE" && row.outcome !== "NOT_EVALUATED")
       )
         fail("Missing check shown healthy.");
-      if (row.evidence_at && Date.parse(row.evidence_at) > Date.parse(v.evidence_cutoff))
+      if (row.evidence_at && utcMicros(row.evidence_at) > utcMicros(v.evidence_cutoff))
         fail("Future coverage evidence.");
-      refsValid(row.evidence_refs, p.policy.sha256);
+      refsValid(row.evidence_refs, p.policy.sha256, v.evidence_cutoff);
     }
-    refsValid(p.evidence_index, p.policy.sha256);
+    refsValid(p.evidence_index, p.policy.sha256, v.evidence_cutoff);
   } else {
     const sweep = v as Sweep,
       p = sweep.payload;
@@ -2517,14 +2630,15 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
       sweep.input_hash !== p.fingerprint ||
       sweep.published_at !== p.published_at ||
       !(
-        Date.parse(p.started_at) <= Date.parse(p.completed_at) &&
-        Date.parse(p.completed_at) <= Date.parse(p.published_at)
+        utcMicros(p.started_at) <= utcMicros(p.completed_at) &&
+        utcMicros(p.completed_at) <= utcMicros(p.published_at)
       ) ||
-      Date.parse(p.evaluation_cutoff) > Date.parse(p.started_at)
+      utcMicros(p.evaluation_cutoff) > utcMicros(p.started_at)
     )
       fail("Sweep clocks/policy/fingerprint substituted.");
     if ((p.status === "FAILED") !== (p.failure !== null) || (p.status !== "FAILED" && !p.state_ref))
       fail("Sweep failure mismatch.");
+    const failureWitness = checkedFailureWitness(p);
     if (
       p.status === "FAILED" &&
       (p.transition_counts.resolved !== 0 || p.state_ref !== p.failure?.last_valid_state_ref)
@@ -2548,15 +2662,24 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
       p.transitions.map((transition) => transition.issue_id),
       "transition Issue",
     );
-    if (p.status !== "FAILED" && stable(p.inputs) !== stable(REVIEWED_INPUTS))
+    if (p.status !== "FAILED" && stable(p.inputs) !== stable(admitted.inputs))
       fail("Reviewed sweep input inventory substituted.");
     const observations = new Map(
       p.observations.map((observation) => [observation.observation_id, observation]),
     );
     for (const observation of p.observations) {
-      ruleValid(observation, PINNED_POLICY as unknown as State["payload"]["policy"]);
+      const operationalWitness =
+        observation.observation_id === p.failure?.issue.last_observation_id
+          ? failureWitness
+          : undefined;
+      ruleValid(
+        observation,
+        PINNED_POLICY as unknown as State["payload"]["policy"],
+        operationalWitness,
+      );
       if (
-        Date.parse(observation.witnessed_at) < Date.parse(observation.evidence_cutoff) ||
+        (operationalWitness === undefined && observation.evidence_cutoff !== v.evidence_cutoff) ||
+        utcMicros(observation.witnessed_at) < utcMicros(observation.evidence_cutoff) ||
         (observation.outcome !== "CLEAR" && observation.reason_code === null)
       )
         fail("Observation lacks witnessed proof.");
@@ -2585,14 +2708,19 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
       p.history_index.some(
         (row) =>
           row.sweep_id === p.sweep_id ||
-          Date.parse(row.published_at) > Date.parse(p.published_at) ||
+          utcMicros(row.published_at) > utcMicros(p.published_at) ||
           !/^risk:sweep:[a-f0-9]{64}$/.test(row.sweep_ref) ||
           (row.state_ref !== null && !/^risk:state:[a-f0-9]{64}$/.test(row.state_ref)),
       )
     )
       fail("Sweep history substituted.");
     if (p.failure)
-      issueValid(p.failure.issue, PINNED_POLICY as unknown as State["payload"]["policy"]);
+      issueValid(
+        p.failure.issue,
+        PINNED_POLICY as unknown as State["payload"]["policy"],
+        v.published_at,
+        failureWitness,
+      );
   }
   performance.measure("risk-contract-validation", {
     start: validationStarted,

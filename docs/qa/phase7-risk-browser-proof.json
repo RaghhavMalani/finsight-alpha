@@ -10,22 +10,29 @@
         390,
         1920
       ],
-      "currentReal": 11,
-      "totalIssues": 32,
-      "coverageSlots": 75,
-      "initialRiskBytes": 233243,
-      "initialTotalDataBytes": 489046,
-      "coldLoadMs": 773,
-      "warmLoadMs": 195,
-      "filterInteractionMs": 6.899999998509884,
+      "currentReal": 12,
+      "totalIssues": 34,
+      "coverageSlots": 76,
+      "historicalSelection": {
+        "sweep_id": "b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9",
+        "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+        "evidence_cutoff": "2026-10-13T07:48:05.159978Z",
+        "current_real": 11,
+        "result": "PASS"
+      },
+      "initialRiskBytes": 239126,
+      "initialTotalDataBytes": 290393,
+      "coldLoadMs": 1401,
+      "warmLoadMs": 174,
+      "filterInteractionMs": 5.299999952316284,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 19.299999997019768
+          "duration": 37.89999997615814
         },
         {
           "name": "risk-contract-validation",
-          "duration": 37.29999999701977
+          "duration": 36.80000001192093
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -41,22 +48,29 @@
         390,
         1920
       ],
-      "currentReal": 11,
-      "totalIssues": 32,
-      "coverageSlots": 75,
-      "initialRiskBytes": 233243,
-      "initialTotalDataBytes": 489046,
-      "coldLoadMs": 723,
-      "warmLoadMs": 121,
-      "filterInteractionMs": 3.2999999970197678,
+      "currentReal": 12,
+      "totalIssues": 34,
+      "coverageSlots": 76,
+      "historicalSelection": {
+        "sweep_id": "b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9",
+        "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+        "evidence_cutoff": "2026-10-13T07:48:05.159978Z",
+        "current_real": 11,
+        "result": "PASS"
+      },
+      "initialRiskBytes": 239126,
+      "initialTotalDataBytes": 290393,
+      "coldLoadMs": 722,
+      "warmLoadMs": 112,
+      "filterInteractionMs": 6,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 15
+          "duration": 9.600000023841858
         },
         {
           "name": "risk-contract-validation",
-          "duration": 7.600000001490116
+          "duration": 7.600000023841858
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -72,18 +86,25 @@
         390,
         1920
       ],
-      "currentReal": 11,
-      "totalIssues": 32,
-      "coverageSlots": 75,
-      "initialRiskBytes": 233243,
-      "initialTotalDataBytes": 489046,
-      "coldLoadMs": 982,
-      "warmLoadMs": 420,
-      "filterInteractionMs": 2,
+      "currentReal": 12,
+      "totalIssues": 34,
+      "coverageSlots": 76,
+      "historicalSelection": {
+        "sweep_id": "b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9",
+        "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+        "evidence_cutoff": "2026-10-13T07:48:05.159978Z",
+        "current_real": 11,
+        "result": "PASS"
+      },
+      "initialRiskBytes": 239126,
+      "initialTotalDataBytes": 290393,
+      "coldLoadMs": 1084,
+      "warmLoadMs": 579,
+      "filterInteractionMs": 9,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 21
+          "duration": 11
         },
         {
           "name": "risk-contract-validation",
@@ -113,6 +134,30 @@
     {
       "browser": "chrome",
       "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-sources",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-clock",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-url",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
       "case": "nested-payload",
       "result": "FAILED_CLOSED"
     },
@@ -127,6 +172,19 @@
       "evidence_class": "SYNTHETIC_TEST_ONLY",
       "case": "duplicate-key",
       "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "invalid-utf8",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "receipt-bound-failure-witness-contract",
+      "result": "PASS",
+      "rejection_checks": 11
     },
     {
       "browser": "chrome",
@@ -150,6 +208,30 @@
     {
       "browser": "msedge",
       "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-sources",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-clock",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-url",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
       "case": "nested-payload",
       "result": "FAILED_CLOSED"
     },
@@ -163,6 +245,12 @@
       "browser": "msedge",
       "evidence_class": "SYNTHETIC_TEST_ONLY",
       "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "invalid-utf8",
       "result": "FAILED_CLOSED"
     },
     {
@@ -180,6 +268,30 @@
     {
       "browser": "firefox",
       "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-sources",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-clock",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-url",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
       "case": "nested-payload",
       "result": "FAILED_CLOSED"
     },
@@ -193,6 +305,12 @@
       "browser": "firefox",
       "evidence_class": "SYNTHETIC_TEST_ONLY",
       "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "invalid-utf8",
       "result": "FAILED_CLOSED"
     }
   ]

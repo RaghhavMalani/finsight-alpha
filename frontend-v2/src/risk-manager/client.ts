@@ -1,10 +1,12 @@
-import { loadReplayManifest, sha256, readReplayArtifact } from "@/replay/client";
-import type { ReplayManifest } from "@/replay/contracts";
+import { sha256 } from "@/replay/client";
+import { loadRiskReadManifest } from "./manifest";
+import { assertDerivedPayload, type ReplayManifest } from "@/replay/contracts";
 import {
   strictJSON,
   validateRisk,
   verifyRiskIdentity,
   stable,
+  reviewedMonitoringBundle,
   type State,
   type Sweep,
   type Ref,
@@ -17,6 +19,84 @@ export type RiskBundle = {
   stateRef: string | null;
   sweepRef: string;
 };
+function checkReferencedEntries(value: State | Sweep, manifest: ReplayManifest): void {
+  const atEpoch = (refs: Ref[], cutoff: string) => refs.map((ref) => ({ ref, cutoff }));
+  const refs =
+    value.kind === "risk-state"
+      ? [
+          ...atEpoch(value.payload.evidence_index, value.evidence_cutoff),
+          ...value.payload.coverage.flatMap((row) =>
+            atEpoch(row.evidence_refs, value.evidence_cutoff),
+          ),
+          ...value.payload.issues.flatMap((issue) =>
+            atEpoch(issue.evidence_refs, issue.evidence_cutoff),
+          ),
+        ]
+      : [
+          ...value.payload.observations.flatMap((observation) =>
+            atEpoch(observation.evidence_refs, observation.evidence_cutoff),
+          ),
+          ...atEpoch(
+            value.payload.failure?.issue.evidence_refs ?? [],
+            value.payload.failure?.issue.evidence_cutoff ?? value.evidence_cutoff,
+          ),
+        ];
+  for (const { ref, cutoff } of refs) {
+    if (ref.type !== "REPLAY_ARTIFACT") continue;
+    const entry = ref.artifact_id ? manifest.artifacts[ref.artifact_id] : null;
+    if (ref.kind?.startsWith("data-organ-")) {
+      const bundle = reviewedMonitoringBundle(cutoff);
+      const binding = bundle.artifacts[ref.selector_id ?? ""];
+      const admitted =
+        binding?.artifact_id === ref.artifact_id
+          ? binding.entry
+          : bundle.health_history[ref.artifact_id ?? ""];
+      if (!admitted || stable(entry) !== stable(admitted))
+        throw new Error("Admitted monitoring artifact metadata changed.");
+    }
+    const rights = ref.kind?.startsWith("data-organ-")
+      ? {
+          status: "FIRST_PARTY",
+          dataset: "project:data-organ-diagnostics",
+          scope: "REAL_DERIVED_DIAGNOSTICS",
+        }
+      : ref.kind?.startsWith("regimes-")
+        ? { status: "ACTIVE", dataset: ref.source_ids?.[0], scope: "REAL_DERIVED_REGIMES" }
+        : ref.kind?.startsWith("factors-")
+          ? {
+              status: "FIRST_PARTY",
+              dataset: "project:factor-evidence",
+              scope: "READ_ONLY_FACTOR_EVIDENCE",
+            }
+          : ref.kind === "risk-state"
+            ? {
+                status: "FIRST_PARTY",
+                dataset: "project:risk-manager-evidence",
+                scope: "RETAINED_RISK_EVIDENCE",
+              }
+            : null;
+    if (
+      !entry ||
+      !rights ||
+      !ref.artifact_id ||
+      entry.url !== "/artifacts/replay/" + ref.artifact_id.replaceAll(":", "-") + ".json" ||
+      entry.scope !== rights.scope ||
+      entry.status !== "AVAILABLE" ||
+      entry.kind !== ref.kind ||
+      entry.sha256 !== ref.sha256 ||
+      entry.bytes !== ref.bytes ||
+      entry.as_of !== ref.as_of ||
+      entry.available_at !== ref.available_at ||
+      stable(entry.sources) !== stable(ref.source_ids) ||
+      entry.licence.status !== rights.status ||
+      entry.licence.dataset_key !== rights.dataset ||
+      stable(entry.licence.permitted_uses) !== stable(["publish_derived"]) ||
+      entry.licence.valid_through !== null
+    )
+      throw new Error("Retained evidence provenance or publication rights changed.");
+  }
+}
+
 export async function readChecked(
   id: string,
   manifest: ReplayManifest,
@@ -55,6 +135,7 @@ export async function readChecked(
     expectedKind,
   );
   await verifyRiskIdentity(value);
+  checkReferencedEntries(value, manifest);
   if (
     value.input_hash !== entry.input_hash ||
     value.published_at !== entry.available_at ||
@@ -67,7 +148,7 @@ export async function readChecked(
   return value;
 }
 export async function loadRisk(signal?: AbortSignal, sweepId?: string): Promise<RiskBundle> {
-  const manifest = await loadReplayManifest();
+  const manifest = await loadRiskReadManifest(Boolean(sweepId));
   if (signal?.aborted) throw new DOMException("Risk selection cancelled.", "AbortError");
   if (sweepId && !/^[a-f0-9]{64}$/.test(sweepId))
     throw new Error("Unknown retained sweep selector.");
@@ -119,7 +200,9 @@ export async function readCoverage(bundle: RiskBundle, signal?: AbortSignal): Pr
     page.payload.issues.length ||
     page.payload.evidence_index.some((item) => item.selector_id === "risk_coverage") ||
     page.payload.policy.sha256 !== bundle.state?.payload.policy.sha256 ||
-    page.payload.sweep_fingerprint !== bundle.state?.payload.sweep_fingerprint
+    page.payload.sweep_fingerprint !== bundle.state?.payload.sweep_fingerprint ||
+    page.evidence_cutoff !== bundle.state?.evidence_cutoff ||
+    page.published_at !== bundle.state?.published_at
   )
     throw new Error("Coverage page substituted.");
   return page;
@@ -148,7 +231,14 @@ export async function inspectRef(ref: Ref, bundle: RiskBundle): Promise<string> 
     stable(entry.sources) !== stable(ref.source_ids)
   )
     throw new Error("Original evidence binding changed.");
-  await readReplayArtifact(ref.artifact_id);
+  if (entry.url !== "/artifacts/replay/" + ref.artifact_id.replaceAll(":", "-") + ".json")
+    throw new Error("Original evidence URL substituted.");
+  const response = await fetch(entry.url, { credentials: "omit" });
+  if (!response.ok) throw new Error("Original evidence unavailable.");
+  const raw = await response.arrayBuffer();
+  if (raw.byteLength !== ref.bytes || (await sha256(raw)) !== ref.sha256)
+    throw new Error("Original evidence checksum or byte count mismatch.");
+  assertDerivedPayload(strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(raw)));
   return (
     "Original artifact verified · " +
     entry.scope +

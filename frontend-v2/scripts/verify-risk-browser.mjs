@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { chromium, firefox } from "playwright";
+import { stable, validateRisk } from "../src/risk-manager/contracts.ts";
 const at = process.argv.indexOf("--url");
 assert(at >= 0 && process.argv[at + 1], "Pass --url for the built preview");
 const base = process.argv[at + 1].replace(/\/$/, "");
@@ -12,11 +13,20 @@ const repo = fileURLToPath(new URL("../../", import.meta.url));
 const shots = new URL("../../docs/screenshots/", import.meta.url);
 mkdirSync(shots, { recursive: true });
 const manifest = JSON.parse(readFileSync(new URL("replay-manifest.json", root)));
+const readProjectionRaw = readFileSync(new URL("risk-read-manifest.json", root));
+const readProjection = JSON.parse(readProjectionRaw);
 const stateId = manifest.routes["/risk-manager/state"];
 const sweepId = manifest.routes["/risk-manager/sweep"];
 const rawAt = (id) => readFileSync(new URL(manifest.artifacts[id].url.slice(1), root));
 const state = JSON.parse(rawAt(stateId));
 const sweep = JSON.parse(rawAt(sweepId));
+const coverageRef = state.payload.evidence_index.find((ref) => ref.selector_id === "risk_coverage");
+assert(coverageRef?.artifact_id, "Selected state retains coverage binding");
+const coverageState = JSON.parse(rawAt(coverageRef.artifact_id));
+const coverageSlots = coverageState.payload.coverage.length;
+const portfolioSlots = coverageState.payload.coverage.filter(
+  (slot) => slot.category === "PORTFOLIO",
+);
 const real = state.payload.issues.filter(
   (i) => i.status === "OPEN" && i.currency === "CURRENT" && i.evidence_class === "REAL_RETAINED",
 );
@@ -29,6 +39,43 @@ const report = {
   real: [],
   synthetic: [],
 };
+// Isolated engineering contexts replace the trusted build anchor as well as sealed fixture bytes.
+// Production has no runtime override. Real contexts below never install this response handler.
+async function syntheticReadView(context, changed) {
+  const needed = new Set([
+    ...Object.keys(readProjection.artifacts),
+    changed.routes["/risk-manager/state"],
+    changed.routes["/risk-manager/sweep"],
+  ]);
+  const fixture = {
+    ...changed,
+    artifacts: Object.fromEntries(
+      Object.entries(changed.artifacts).filter(([identity]) => needed.has(identity)),
+    ),
+    routes: Object.fromEntries(
+      Object.keys(readProjection.routes).map((route) => [route, changed.routes[route]]),
+    ),
+  };
+  const raw = Buffer.from(JSON.stringify(fixture) + "\n");
+  await context.route("**/risk-read-manifest.json", (route) =>
+    route.fulfill({ body: raw, contentType: "application/json" }),
+  );
+  await context.route("**/*.js", async (route) => {
+    const response = await route.fetch();
+    let body = await response.text();
+    if (body.includes(sha(readProjectionRaw))) {
+      body = body.replaceAll(sha(readProjectionRaw), sha(raw));
+      const pattern = new RegExp(
+        '(["\x27]?bytes["\x27]?\\s*:\\s*)' + readProjectionRaw.length + "(?=\\s*[,}])",
+        "g",
+      );
+      assert(pattern.test(body), "Synthetic build-anchor byte binding located");
+      pattern.lastIndex = 0;
+      body = body.replace(pattern, (_match, prefix) => prefix + raw.length);
+    }
+    await route.fulfill({ response, body });
+  });
+}
 const channels = process.env.RISK_BROWSER_CHANNELS?.split(",") ?? ["chrome", "msedge", "firefox"];
 for (const name of channels) {
   const browser = await (name === "firefox" ? firefox : chromium).launch(
@@ -68,7 +115,10 @@ for (const name of channels) {
   page.on("pageerror", (e) => errors.push(e.message));
   let measuring = true;
   page.on("response", (r) => {
-    if (measuring && /\/replay-manifest\.json|\/artifacts\/replay\//.test(r.url()))
+    if (
+      measuring &&
+      /\/(?:replay-manifest|risk-read-manifest)\.json|\/artifacts\/replay\//.test(r.url())
+    )
       responses.push(
         r.body().then((body) => ({ url: r.url(), bytes: body.length, hash: sha(body) })),
       );
@@ -87,6 +137,15 @@ for (const name of channels) {
   const totalBytes = bodies.reduce((n, r) => n + r.bytes, 0);
   assert(riskBytes <= 256 * 1024, "Initial selected risk data budget");
   assert(totalBytes <= 512 * 1024, "Initial total data budget");
+  assert(
+    !bodies.some((body) => body.url.endsWith("/replay-manifest.json")),
+    "Global history metadata is deferred until explicit interaction",
+  );
+  assert.equal(bodies.filter((body) => body.url.endsWith("/risk-read-manifest.json")).length, 1);
+  assert.equal(
+    bodies.find((body) => body.url.endsWith("/risk-read-manifest.json")).hash,
+    sha(readProjectionRaw),
+  );
   assert.equal(
     bodies.filter((r) => /risk-(state|sweep)-/.test(r.url)).length,
     2,
@@ -148,12 +207,15 @@ for (const name of channels) {
   await page.getByRole("region", { name: "Risk coverage matrix", exact: true }).waitFor();
   assert.equal(
     await page.getByRole("region", { name: "Risk coverage matrix" }).locator("tbody tr").count(),
-    75,
+    coverageSlots,
   );
   await page.getByLabel("Coverage category", { exact: true }).selectOption("PORTFOLIO");
   const coverage = page.getByRole("region", { name: "Risk coverage matrix" });
-  assert.equal(await coverage.locator("tbody tr").count(), 6);
-  assert.equal(await coverage.getByText("UNAVAILABLE", { exact: true }).count(), 7);
+  assert.equal(await coverage.locator("tbody tr").count(), portfolioSlots.length);
+  assert.equal(
+    await coverage.getByText("UNAVAILABLE", { exact: true }).count(),
+    1 + portfolioSlots.filter((slot) => slot.availability === "UNAVAILABLE").length,
+  );
   if (name === "chrome")
     await page.screenshot({
       path: fileURLToPath(new URL("phase7-risk-coverage.png", shots)),
@@ -168,19 +230,65 @@ for (const name of channels) {
       path: fileURLToPath(new URL("phase7-risk-history.png", shots)),
       fullPage: true,
     });
+  let historicalSelection = null;
   if (sweep.payload.history_index.length) {
+    const selected = sweep.payload.history_index.at(-1);
+    const historicalState = JSON.parse(rawAt(selected.state_ref));
+    const historicalSweep = JSON.parse(rawAt(selected.sweep_ref));
+    const historicalReal = historicalState.payload.issues.filter(
+      (issue) =>
+        issue.status === "OPEN" &&
+        issue.currency === "CURRENT" &&
+        issue.evidence_class === "REAL_RETAINED",
+    );
+    const observedHistory = [];
+    const recordHistory = (response) => {
+      if (
+        [
+          manifest.artifacts[selected.state_ref].url,
+          manifest.artifacts[selected.sweep_ref].url,
+        ].some((path) => response.url().endsWith(path))
+      )
+        observedHistory.push(
+          response.body().then((bytes) => ({ url: response.url(), hash: sha(bytes) })),
+        );
+    };
+    page.on("response", recordHistory);
     await history.locator("button").last().click();
     await feed.waitFor();
-    assert.equal(await feed.locator("tbody tr").count(), real.length);
+    assert.equal(await feed.locator("tbody tr").count(), historicalReal.length);
     await page.getByRole("button", { name: "Sweep history", exact: true }).click();
-    await page.getByRole("region", { name: "Sealed risk sweep history" }).waitFor();
+    const selectedHistory = page.getByRole("region", { name: "Sealed risk sweep history" });
+    await selectedHistory.waitFor();
     assert.equal(
-      await page
-        .getByRole("region", { name: "Sealed risk sweep history" })
-        .locator("button")
-        .count(),
-      1,
+      await selectedHistory.locator("button").count(),
+      1 + historicalSweep.payload.history_index.length,
     );
+    assert(
+      await selectedHistory
+        .locator("time[title=" + JSON.stringify(historicalSweep.evidence_cutoff) + "]")
+        .count(),
+      "Historical receipt keeps its own evidence cutoff",
+    );
+    page.off("response", recordHistory);
+    const selectedBodies = await Promise.all(observedHistory);
+    for (const id of [selected.state_ref, selected.sweep_ref]) {
+      assert(
+        selectedBodies.some(
+          (body) =>
+            body.url.endsWith(manifest.artifacts[id].url) &&
+            body.hash === manifest.artifacts[id].sha256,
+        ),
+        "History selection serves exact historical bytes",
+      );
+    }
+    historicalSelection = {
+      sweep_id: selected.sweep_id,
+      state_ref: selected.state_ref,
+      evidence_cutoff: historicalSweep.evidence_cutoff,
+      current_real: historicalReal.length,
+      result: "PASS",
+    };
   }
   await page.setViewportSize({ width: 390, height: 844 });
   const warmStart = Date.now();
@@ -246,7 +354,8 @@ for (const name of channels) {
     viewport: [1440, 390, 1920],
     currentReal: real.length,
     totalIssues: state.payload.issues.length,
-    coverageSlots: 75,
+    coverageSlots,
+    historicalSelection,
     initialRiskBytes: riskBytes,
     initialTotalDataBytes: totalBytes,
     coldLoadMs: coldMs,
@@ -265,23 +374,54 @@ for (const name of channels) {
   for (const sabotage of [
     "checksum",
     "permission",
+    "monitoring-permission",
+    "monitoring-sources",
+    "monitoring-clock",
+    "monitoring-url",
     "nested-payload",
     "claim-promotion",
     "duplicate-key",
+    "invalid-utf8",
   ]) {
     const c = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const p = await c.newPage();
     let raw = rawAt(stateId);
     const m = structuredClone(manifest);
     if (sabotage === "permission") m.artifacts[stateId].licence.status = "LOCAL_ONLY";
-    else if (sabotage !== "checksum") {
+    else if (sabotage.startsWith("monitoring-")) {
+      const ref = state.payload.issues
+        .flatMap((issue) => issue.evidence_refs)
+        .find((item) => item.selector_id === "data_issues");
+      assert(ref?.artifact_id);
+      const entry = m.artifacts[ref.artifact_id];
+      if (sabotage === "monitoring-permission")
+        entry.licence.dataset_key = "project:unreviewed-monitoring";
+      if (sabotage === "monitoring-sources") entry.sources = ["unreviewed:source"];
+      if (sabotage === "monitoring-clock") entry.observed_at = "2026-10-01T00:00:00Z";
+      if (sabotage === "monitoring-url") entry.url = "/artifacts/replay/substituted-evidence.json";
+    } else if (sabotage !== "checksum") {
       const v = JSON.parse(raw);
       if (sabotage === "nested-payload")
         v.payload.issues[0].source_quality.provider_rows = [1, 2, 3];
       if (sabotage === "claim-promotion") v.claim_flags.validated_alpha = true;
+      if (sabotage === "invalid-utf8") {
+        v.payload.issues[0].reason = "\uFFFD\uFFFD";
+        const { state_id: _stateId, ...bare } = v.payload;
+        v.payload.state_id = sha(Buffer.from(stable(bare)));
+      }
       raw = Buffer.from(JSON.stringify(v) + "\n");
       if (sabotage === "duplicate-key")
         raw = Buffer.from(raw.toString().replace(/^{/, '{"kind":"risk-state",'));
+      if (sabotage === "invalid-utf8") {
+        const marker = Buffer.from("\uFFFD\uFFFD");
+        const position = raw.indexOf(marker);
+        assert(position >= 0);
+        raw = Buffer.concat([
+          raw.subarray(0, position),
+          Buffer.from([0xc0, 0xaf]),
+          raw.subarray(position + marker.length),
+        ]);
+      }
       const id = "risk:state:" + sha(raw);
       const entry = structuredClone(m.artifacts[stateId]);
       entry.sha256 = sha(raw);
@@ -309,6 +449,7 @@ for (const name of channels) {
       await c.route("**" + m.artifacts[stateId].url, (route) =>
         route.fulfill({ body: raw.toString() + " ", contentType: "application/json" }),
       );
+    await syntheticReadView(c, m);
     await c.route("**/replay-manifest.json", (route) => route.fulfill({ json: m }));
     await p.goto(base + "/risk");
     await p.getByRole("alert").waitFor();
@@ -339,6 +480,47 @@ for (const name of channels) {
     const wrapper = JSON.parse(fixture.stdout.trim().split(/\r?\n/).at(-1));
     assert.equal(wrapper.evidence_class, "SYNTHETIC_TEST_ONLY");
     const value = wrapper.receipt;
+    validateRisk(value, "risk-sweep");
+    let witnessAttacks = 0;
+    for (const mutate of [
+      (v) => (v.payload.failure.issue.category = "DATA"),
+      (v) => (v.payload.failure.issue.scope.subject_id = "ordinary-data"),
+      (v) => (v.payload.failure.issue.evidence_refs[0].check_id = "SYSTEM_SWEEP:unrelated"),
+      (v) => (v.payload.failure.issue.last_observation_id = "0".repeat(64)),
+      (v) => (v.payload.failure.issue.source_quality.permission_status = "VERIFIED"),
+      (v) => (v.payload.failure.subsystem = "unreviewed-source"),
+      (v) => (v.payload.observations[0].evidence_at = v.evidence_cutoff),
+      (v) => (v.payload.observations[0].assertions[0].value = "VERIFIED"),
+      (v) => (v.payload.completed_at = v.payload.started_at),
+    ]) {
+      const copy = structuredClone(value);
+      mutate(copy);
+      assert.throws(
+        () => validateRisk(copy, "risk-sweep"),
+        "Failure witness remains receipt-bound",
+      );
+      witnessAttacks++;
+    }
+    for (const [source, kind, item] of [
+      [state, "risk-state", (v) => v.payload.issues[0]],
+      [sweep, "risk-sweep", (v) => v.payload.observations[0]],
+    ]) {
+      const copy = structuredClone(source);
+      item(copy).evidence_at = item(copy).evidence_cutoff =
+        value.payload.failure.issue.evidence_cutoff;
+      assert.throws(
+        () => validateRisk(copy, kind),
+        "Ordinary incidents still require a Data epoch",
+      );
+      witnessAttacks++;
+    }
+    report.synthetic.push({
+      browser: name,
+      evidence_class: "SYNTHETIC_TEST_ONLY",
+      case: "receipt-bound-failure-witness-contract",
+      result: "PASS",
+      rejection_checks: witnessAttacks,
+    });
     const raw = Buffer.from(JSON.stringify(value) + "\n");
     const id = "risk:sweep:" + sha(raw);
     const m = structuredClone(manifest);
@@ -357,6 +539,7 @@ for (const name of channels) {
     m.as_of = value.published_at;
     const c = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const p = await c.newPage();
+    await syntheticReadView(c, m);
     await c.route("**/replay-manifest.json", (route) => route.fulfill({ json: m }));
     await c.route("**" + entry.url, (route) =>
       route.fulfill({ body: raw, contentType: "application/json" }),
