@@ -37,26 +37,27 @@ export async function loadMetadata(k: Kind, c: Country, cutoff: string) {
     throw new Error("Metadata publication binding unavailable");
   return validateMetadata(await readReplayArtifact(id), k, c, cutoff);
 }
-export function useFactorMetadata(c: Country, cutoff: string, valid: boolean) {
+type MetadataPanel = Exclude<Kind, "lineage">;
+export function useFactorMetadata(k: MetadataPanel, c: Country, cutoff: string, valid: boolean) {
   const mode = useDataMode();
   return useQuery({
-    queryKey: ["factor-metadata", mode, c, cutoff],
+    queryKey: ["factor-metadata", mode, k, c, cutoff],
     enabled: valid,
     retry: false,
     staleTime: Infinity,
     queryFn: async ({ signal }) => {
       if (mode === "live") {
         await api(
-          "/factor-evidence/catalog?country=" + c + "&as_of=" + encodeURIComponent(cutoff),
+          "/factor-evidence/" + k + "?country=" + c + "&as_of=" + encodeURIComponent(cutoff),
           { signal },
         );
         throw new Error("UNAVAILABLE: no installed local runtime");
       }
-      const [catalog, audit, ledger] = await Promise.all(
-        ["catalog", "audit", "ledger"].map((k) => loadMetadata(k as Kind, c, cutoff)),
-      );
+      const metadata = await loadMetadata(k, c, cutoff);
       if (signal.aborted) throw new DOMException("Selection changed", "AbortError");
-      return { catalog: catalog as Catalog, audit: audit as Audit, ledger: ledger as Ledger };
+      if (k === "catalog") return { kind: k, value: metadata as Catalog };
+      if (k === "audit") return { kind: k, value: metadata as Audit };
+      return { kind: k, value: metadata as Ledger };
     },
   });
 }

@@ -430,6 +430,7 @@ assert.match(workspace, /lazy\(\(\) => import\("@\/components\/risk\/LocalRiskLa
 for (const filename of [
   "client.ts",
   "RiskWorkspace.tsx",
+  "RiskShell.tsx",
   "IssueFeed.tsx",
   "IssueInspector.tsx",
   "CoverageMatrix.tsx",

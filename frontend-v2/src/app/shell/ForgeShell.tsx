@@ -49,13 +49,7 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
   }, [ticker]);
   useEffect(() => {
     let alive = true;
-    const read =
-      pathname === "/risk"
-        ? import("@/risk-manager/manifest").then(({ loadRiskReadManifest }) =>
-            loadRiskReadManifest(),
-          )
-        : loadReplayManifest();
-    read
+    loadReplayManifest()
       .then((m) => {
         if (alive) setCutoff(m.as_of);
       })
@@ -65,7 +59,7 @@ export function ForgeShell({ children, bleed = false }: { children: ReactNode; b
     return () => {
       alive = false;
     };
-  }, [pathname]);
+  }, []);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {

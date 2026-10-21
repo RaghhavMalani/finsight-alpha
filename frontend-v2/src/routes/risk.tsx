@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { RiskShell } from "@/risk-manager/RiskShell";
 import { RiskWorkspace } from "@/risk-manager/RiskWorkspace";
 
 export const Route = createFileRoute("/risk")({
@@ -17,8 +17,8 @@ export const Route = createFileRoute("/risk")({
 });
 function RiskRoute() {
   return (
-    <ForgeShell>
+    <RiskShell>
       <RiskWorkspace />
-    </ForgeShell>
+    </RiskShell>
   );
 }

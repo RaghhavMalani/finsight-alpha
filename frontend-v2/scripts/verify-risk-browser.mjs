@@ -12,7 +12,8 @@ const root = new URL("../public/", import.meta.url);
 const repo = fileURLToPath(new URL("../../", import.meta.url));
 const shots = new URL("../../docs/screenshots/", import.meta.url);
 mkdirSync(shots, { recursive: true });
-const manifest = JSON.parse(readFileSync(new URL("replay-manifest.json", root)));
+const manifestRaw = readFileSync(new URL("replay-manifest.json", root));
+const manifest = JSON.parse(manifestRaw);
 const readProjectionRaw = readFileSync(new URL("risk-read-manifest.json", root));
 const readProjection = JSON.parse(readProjectionRaw);
 const stateId = manifest.routes["/risk-manager/state"];
@@ -370,6 +371,31 @@ for (const name of channels) {
       name === "chrome" ? "real unmodified responses" : "verified, no screenshots retained",
   });
   await context.close();
+  // The unchanged legacy shell must still read the complete global view on ordinary routes.
+  const ordinary = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const normal = await ordinary.newPage();
+  const normalMetadata = [];
+  normal.on("response", (response) => {
+    if (/\/(?:replay-manifest|risk-read-manifest)\.json$/.test(response.url()))
+      normalMetadata.push(
+        response
+          .body()
+          .then((body) => ({ url: response.url(), bytes: body.length, hash: sha(body) })),
+      );
+  });
+  await normal.goto(base + "/markets");
+  await normal.waitForLoadState("networkidle");
+  const globalReads = await Promise.all(normalMetadata);
+  assert.equal(globalReads.length, 1, "Ordinary shell reads one complete global manifest");
+  assert(globalReads[0].url.endsWith("/replay-manifest.json"));
+  assert.equal(globalReads[0].bytes, manifestRaw.length);
+  assert.equal(globalReads[0].hash, sha(manifestRaw));
+  report.real.at(-1).normalGlobalRead = {
+    route: "/markets",
+    bytes: manifestRaw.length,
+    result: "PASS",
+  };
+  await ordinary.close();
   // All following response mutations are separate engineering contexts, never the real screenshots.
   for (const sabotage of [
     "checksum",

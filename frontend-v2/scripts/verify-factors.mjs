@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import {
   CUTOFFS,
@@ -102,7 +102,8 @@ if (existsSync(built)) {
     .filter(
       (item) =>
         /^(factors-|RetainedDiagnostics-|LineageDrawer-)/.test(item.name) ||
-        /factor-metadata|factor-retained|READ_ONLY_FACTOR_EVIDENCE/.test(item.raw.toString()),
+        // Shared consumers may validate the factor publication scope without loading this UI.
+        /factor-metadata|factor-retained/.test(item.raw.toString()),
     );
   const size = feature.reduce((n, item) => n + gzipSync(item.raw).length, 0);
   assert(size <= 64 * 1024, "Incremental FACTORS JS exceeds 64 KiB gzip");
@@ -114,7 +115,11 @@ const urlIndex = process.argv.indexOf("--url");
 if (urlIndex !== -1) {
   const base = process.argv[urlIndex + 1],
     { chromium, firefox } = await import("playwright"),
-    shots = new URL("../../docs/screenshots/", import.meta.url);
+    shotIndex = process.argv.indexOf("--screenshots-dir"),
+    shots =
+      shotIndex === -1
+        ? new URL("../../docs/screenshots/", import.meta.url)
+        : pathToFileURL(process.argv[shotIndex + 1].replace(/[\\/]?$/, "/"));
   mkdirSync(shots, { recursive: true });
   for (const name of ["chrome", "msedge", "firefox"]) {
     const browser = await (name === "firefox" ? firefox : chromium).launch(
@@ -124,12 +129,14 @@ if (urlIndex !== -1) {
       page = await context.newPage(),
       bad = [],
       failed = [],
-      errors = [];
+      errors = [],
+      requested = [];
     let dataBytes = 0,
       measuring = false;
     const responseWork = [];
     page.on("request", (r) => {
       const u = new URL(r.url());
+      requested.push(u.pathname);
       if (
         u.origin !== new URL(base).origin ||
         /\/api\/|:8000|\/factor-evidence\/|\/factors\/[^?]/.test(u.href)
@@ -157,7 +164,18 @@ if (urlIndex !== -1) {
         );
     });
     for (const country of ["US", "INDIA"]) {
-      const before = dataBytes;
+      const before = dataBytes,
+        requestStart = requested.length,
+        cutoff = CUTOFFS.at(-1),
+        metadataUrls = Object.fromEntries(
+          ["catalog", "audit", "ledger", "lineage"].map((kind) => [
+            kind,
+            manifest.artifacts[KNOWN_IDS[country + "|" + cutoff][kind]].url,
+          ]),
+        ),
+        selectedRequests = () => requested.slice(requestStart),
+        requestCount = (kind) =>
+          selectedRequests().filter((url) => url === metadataUrls[kind]).length;
       responseWork.length = 0;
       measuring = true;
       await page.goto(
@@ -172,8 +190,22 @@ if (urlIndex !== -1) {
       await page.waitForLoadState("networkidle");
       measuring = false;
       await Promise.all(responseWork);
+      assert.equal(requestCount("catalog"), 1, "Catalogue metadata is loaded on selection");
+      for (const kind of ["audit", "ledger", "lineage"])
+        assert.equal(requestCount(kind), 0, `Hidden ${kind} metadata stays deferred`);
+      for (const ref of Object.values(KNOWN_BUNDLES[country][cutoff].refs))
+        assert(
+          selectedRequests().includes(manifest.artifacts[ref.artifact_id].url),
+          "Catalogue loads every retained numerical reference",
+        );
+      assert(
+        !selectedRequests().some((url) => /\/assets\/risk-[^/]+\.js$/.test(url)),
+        "Factors does not request the unrelated Risk bundle",
+      );
       assert(dataBytes - before <= 512 * 1024);
-      console.log(`${name} ${country} initial selected data: ${dataBytes - before} bytes`);
+      console.log(
+        `${name} ${country} initial selected data: ${dataBytes - before} bytes; no Risk JS requested`,
+      );
       assert(await page.getByText("NOT CALIBRATED", { exact: true }).count());
       assert(await page.getByText("Market factor, not a ticker", { exact: true }).count());
       for (const width of [1440, 390]) {
@@ -195,20 +227,35 @@ if (urlIndex !== -1) {
         await page.locator('[data-diagnostics="ready"]').waitFor();
         assert((await page.locator("[data-diagnostics]").innerText()).includes(cutoff));
       }
+      for (const kind of ["audit", "ledger", "lineage"])
+        assert.equal(requestCount(kind), 0, `Browsing cutoffs does not preload ${kind}`);
       await page.getByRole("button", { name: "Output audit", exact: true }).click();
       await page.getByText("Declaration audit", { exact: true }).waitFor();
+      assert.equal(requestCount("audit"), 1, "Audit loads when its tab opens");
+      assert.equal(requestCount("ledger"), 0, "Ledger remains deferred while audit is open");
+      assert.equal(requestCount("lineage"), 0, "Metadata lineage waits for its drawer");
       assert.equal(await page.locator(".factor-audit-list details").count(), 64);
       await page.getByRole("button", { name: "Evidence ledger", exact: true }).click();
       await page.getByText("Read-only stages · no factor-zoo funnel", { exact: true }).waitFor();
       assert.equal(await page.locator(".factor-ledger article").count(), 3);
+      assert.equal(requestCount("ledger"), 1, "Ledger loads when its tab opens");
+      assert.equal(requestCount("lineage"), 0, "Metadata lineage remains deferred");
       await page.getByRole("button", { name: "Lineage ↗", exact: true }).click();
       await page.locator(".factor-lineage-nodes").waitFor();
+      assert.equal(requestCount("lineage"), 1, "Metadata lineage loads with its drawer");
       if (name === "chrome" && country === "US")
         await page.screenshot({
           path: fileURLToPath(new URL("phase6-factors-lineage-1440.png", shots)),
           fullPage: true,
         });
       await page.getByRole("button", { name: "Close lineage" }).click();
+      await page.getByRole("button", { name: "Output audit", exact: true }).click();
+      await page.getByText("Declaration audit", { exact: true }).waitFor();
+      await page.getByRole("button", { name: "Evidence ledger", exact: true }).click();
+      await page.getByText("Read-only stages · no factor-zoo funnel", { exact: true }).waitFor();
+      await page.waitForLoadState("networkidle");
+      for (const kind of ["audit", "ledger", "lineage"])
+        assert.equal(requestCount(kind), 1, `Reviewed ${kind} metadata is reused from cache`);
     }
     assert(dataBytes <= 6 * 512 * 1024, "Bounded selected-cutoff data budget");
     assert.deepEqual(bad, []);
@@ -288,9 +335,36 @@ if (urlIndex !== -1) {
       assert.equal(await p.locator('[data-diagnostics="ready"]').count(), 0);
       await c.close();
     }
+    for (const panel of ["audit", "ledger"]) {
+      const c = await browser.newContext(),
+        p = await c.newPage(),
+        id = KNOWN_IDS["US|" + CUTOFFS.at(-1)][panel],
+        requests = [];
+      p.on("request", (request) => requests.push(new URL(request.url()).pathname));
+      await c.route("**" + manifest.artifacts[id].url, (route) =>
+        route.fulfill({ status: 404, body: "Unavailable selected metadata" }),
+      );
+      await p.goto(base + "/factors?country=US&ticker=US-MKT");
+      await p.locator('[data-diagnostics="ready"]').waitFor();
+      await p.waitForLoadState("networkidle");
+      assert(!requests.includes(manifest.artifacts[id].url), `Hidden missing ${panel} is deferred`);
+      await p
+        .getByRole("button", {
+          name: panel === "audit" ? "Output audit" : "Evidence ledger",
+          exact: true,
+        })
+        .click();
+      await p.locator('[data-factor-workspace][data-state="unavailable"]').waitFor();
+      assert(
+        requests.includes(manifest.artifacts[id].url),
+        `Selected missing ${panel} is requested`,
+      );
+      assert.equal(await p.locator('[data-diagnostics="ready"]').count(), 0);
+      await c.close();
+    }
     await browser.close();
     console.log(
-      `${name}: real US/India, three cutoffs, catalogue/audit/ledger/lineage, 1440/390, zero API/vendor traffic and ten sabotage cases passed.`,
+      `${name}: real US/India, three cutoffs, catalogue/audit/ledger/lineage, 1440/390, lazy metadata requests/cache reuse, zero API/vendor traffic and twelve sabotage cases passed.`,
     );
   }
 }
