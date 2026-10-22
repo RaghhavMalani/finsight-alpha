@@ -215,3 +215,47 @@ def test_publisher_rejects_unreviewed_evaluator_hash_before_writing(preflight, t
 def test_short_encoded_structures_and_unc_carriers_rejected(text):
     with pytest.raises(ValueError):
         safe_payload({"reason": text})
+
+
+def test_primary_links_preserve_full_source_observations(preflight):
+    from src.risk_manager.publication import source_observation
+    from src.risk_manager.reducer import observation_ref
+    state,receipt=preflight["state"],preflight["receipt"]
+    for issue in state["payload"]["issues"]:
+        observation=source_observation(issue,receipt)
+        assert observation is not None
+        assert issue["evidence_refs"]==[observation_ref(observation,receipt["payload"]["fingerprint"])]
+        assert observation["evidence_refs"]!=issue["evidence_refs"]
+        assert issue["origin_records"]==observation["origin_records"]
+        assert issue["last_observation_id"] in issue["observation_ids"]
+    assert len(canonical(state))+1<=128*1024
+
+
+@pytest.mark.parametrize("sabotage",["fingerprint","missing_observation","other_issue","mixed","evidence_at"])
+def test_resealed_primary_source_pointer_rejected_before_writes(preflight,tmp_path,sabotage):
+    from hashlib import sha256
+    original=fixture_root(tmp_path)
+    state,receipt=deepcopy(preflight["state"]),deepcopy(preflight["receipt"])
+    issue=state["payload"]["issues"][0]
+    ref=issue["evidence_refs"][0]
+    if sabotage=="fingerprint":
+        ref["sweep_fingerprint"]="a"*64
+    elif sabotage=="missing_observation":
+        ref["observation_id"]="a"*64
+    elif sabotage=="mixed":
+        observation=next(o for o in receipt["payload"]["observations"] if o["observation_id"]==issue["last_observation_id"])
+        issue["evidence_refs"].append(deepcopy(observation["evidence_refs"][0]))
+    elif sabotage=="evidence_at":
+        issue["evidence_at"]=None if issue["evidence_at"] is not None else issue["evidence_cutoff"]
+    else:
+        other=state["payload"]["issues"][1]
+        issue["evidence_refs"]=deepcopy(other["evidence_refs"])
+        issue["last_observation_id"]=other["last_observation_id"]
+        issue["observation_ids"].append(other["last_observation_id"])
+    state["payload"]["state_id"]=digest({k:v for k,v in state["payload"].items() if k!="state_id"})
+    receipt["payload"]["state_ref"]="risk:state:"+sha256(canonical(state)+b"\n").hexdigest()
+    receipt["payload"]["sweep_id"]=digest(["risk-sweep/1",receipt["payload"]["fingerprint"],receipt["payload"]["started_at"],state["payload"]["state_id"]])
+    with pytest.raises(ValueError,match="source observation"):
+        publish(tmp_path,state,receipt,expected_manifest=original,extra_states=[preflight["coverage_state"]])
+    assert (tmp_path/"frontend-v2/public/replay-manifest.json").read_bytes()==original
+    assert list((tmp_path/"frontend-v2/public/artifacts/replay").glob("risk-*.json"))==[]

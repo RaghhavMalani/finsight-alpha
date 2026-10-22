@@ -6,8 +6,8 @@ from .policy import load,projection
 from .evidence import EvidenceReaders,freeze_inventory,forbidden_calls
 from .rules import evaluate
 from .monitoring import monitoring_operation
-from .reducer import reduce
-from .publication import LICENCE,publish,read_artifact,writer_lock,validate_public
+from .reducer import reduce,observation_ref
+from .publication import LICENCE,publish,read_artifact,writer_lock,validate_public,source_observation,validate_observation_sources
 
 ROOT=Path(__file__).resolve().parents[2]
 SOURCE_FILES=("src/risk_manager/contracts.py","src/risk_manager/policy.py","src/risk_manager/evidence.py",
@@ -30,19 +30,33 @@ def previous(root, manifest):
     state=read_artifact(root,manifest,sid) if sid else None
     receipt=read_artifact(root,manifest,rid) if rid else None
     observations={}
+    receipts=[]
     cursor=rid
     visited=set()
     while cursor:
         if cursor in visited:
             raise ValueError("Risk history cycle")
         visited.add(cursor)
-        r=read_artifact(root,manifest,cursor)["payload"]
+        receipt_value=read_artifact(root,manifest,cursor)
+        receipts.append(receipt_value)
+        r=receipt_value["payload"]
         for o in r["observations"]:
             observations.setdefault(o["observation_id"],o)
         cursor=r["prior_sweep_ref"]
     # A failed attempt is a witnessed System incident, even though it cannot
     # replace the successful state. Keep it until a positive repair observation.
-    issues={i["issue_id"]:i for i in state["payload"]["issues"]} if state else {}
+    issues={i["issue_id"]:dict(i) for i in state["payload"]["issues"]} if state else {}
+    if state and any(ref["type"]=="RISK_OBSERVATION" for i in issues.values() for ref in i["evidence_refs"]):
+        validate_observation_sources(receipts)
+        owners=[r for r in receipts if r["payload"]["status"]!="FAILED" and r["payload"]["state_ref"]==sid
+                and (r["payload"]["fingerprint"],r["evidence_cutoff"],r["published_at"])==
+                    (state["payload"]["sweep_fingerprint"],state["evidence_cutoff"],state["published_at"])]
+        if len(owners)!=1:
+            raise ValueError("Compact Issue owning receipt missing or substituted")
+        for issue in issues.values():
+            source=source_observation(issue,owners[0])
+            if source:
+                issue["evidence_refs"]=[dict(ref) for ref in source["evidence_refs"]]
     cursor=rid
     while cursor:
         r=read_artifact(root,manifest,cursor)["payload"]
@@ -118,7 +132,17 @@ def _run(root=ROOT, *, clock_fn=now, publish_artifacts=True, failure_sink=None):
                     bytes=len(leaf_raw),as_of=published,available_at=published,selector_id="risk_coverage",
                     source_ids=["project:risk-manager-evidence"],run_id=None)
                 staged={leaf_id:(leaf,leaf_raw)}
-                projected_issues=[dict(i,evidence_refs=i["evidence_refs"][:1]) for i in issues]
+                by_observation={o["observation_id"]:o for o in retained_obs}
+                projected_issues=[]
+                for issue in issues:
+                    observation=by_observation.get(issue["last_observation_id"])
+                    # The owning receipt retains every original source reference.
+                    # Carried Issues and resolved findings keep their original sources
+                    # when the latest observation has different resolution evidence.
+                    refs=([observation_ref(observation,fingerprint)] if observation and observation["issue_id"]==issue["issue_id"]
+                          and canonical(observation["evidence_refs"])==canonical(issue["evidence_refs"])
+                          else issue["evidence_refs"])
+                    projected_issues.append(dict(issue,evidence_refs=refs))
                 # The sealed leaf retains every coverage row and complete instructions.
                 # Loading those rows on demand avoids duplicating six preview checks here.
                 summary=[]

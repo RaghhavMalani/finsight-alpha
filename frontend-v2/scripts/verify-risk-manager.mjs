@@ -44,6 +44,7 @@ await assert.rejects(() =>
 const futureMonitoring = verifyFutureMonitoringAdmission(manifest, (url) =>
   readFileSync(new URL(url.slice(1), publicRoot)),
 );
+const { checkedIssueReferences } = await import("../src/risk-manager/evidence.ts");
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 let checks = futureMonitoring.rejection_checks + 3;
 const values = new Map();
@@ -84,11 +85,140 @@ for (const slot of coverage.payload.coverage.filter((slot) => slot.category === 
   assert.equal(slot.availability, "UNAVAILABLE");
   assert.equal(slot.outcome, "NOT_EVALUATED");
 }
+// Existing typed observation links must retain the full source evidence without substitutions.
+const sourceIssue = state.payload.issues.find((issue) =>
+  sweep.payload.observations.some(
+    (observation) => observation.observation_id === issue.last_observation_id,
+  ),
+);
+assert(sourceIssue);
+const pointerIssue = structuredClone(sourceIssue);
+pointerIssue.evidence_refs = [
+  {
+    type: "RISK_OBSERVATION",
+    observation_id: sourceIssue.last_observation_id,
+    sweep_fingerprint: sweep.payload.fingerprint,
+  },
+];
+const sourceObservation = sweep.payload.observations.find(
+  (row) => row.observation_id === sourceIssue.last_observation_id,
+);
+assert.equal(
+  stable(checkedIssueReferences(pointerIssue, sweep)),
+  stable(sourceObservation.evidence_refs),
+);
+const pointerSubstitutions = [
+  (issue) => {
+    issue.evidence_refs[0].sweep_fingerprint = "0".repeat(64);
+  },
+  (issue) => {
+    issue.evidence_refs[0].observation_id = "0".repeat(64);
+  },
+  (issue) => {
+    issue.issue_id = "0".repeat(64);
+  },
+  (issue) => {
+    issue.rule_id = "R-SYSTEM-SWEEP";
+  },
+  (issue) => {
+    issue.scope.stable_scope_key = "substituted";
+  },
+  (issue) => {
+    issue.policy_sha256 = "0".repeat(64);
+  },
+  (issue) => {
+    issue.evidence_cutoff = "2026-10-13T07:48:05Z";
+  },
+  (issue) => {
+    issue.evidence_at = null;
+  },
+  (issue) => {
+    issue.evidence_refs.push({
+      type: "POLICY_ASSERTION",
+      policy_sha256: issue.policy_sha256,
+      check_id: "SYSTEM_SWEEP:x",
+    });
+  },
+  (_issue, owner) => {
+    owner.payload.observations = [];
+  },
+  (_issue, owner) => {
+    owner.payload.status = "FAILED";
+  },
+  (issue, owner) => {
+    owner.payload.observations.find(
+      (row) => row.observation_id === issue.last_observation_id,
+    ).evidence_refs = structuredClone(issue.evidence_refs);
+  },
+  (issue, owner) => {
+    owner.payload.observations.find(
+      (row) => row.observation_id === issue.last_observation_id,
+    ).issue_id = "0".repeat(64);
+  },
+];
+for (const substitute of pointerSubstitutions) {
+  const issue = structuredClone(pointerIssue),
+    owner = structuredClone(sweep);
+  substitute(issue, owner);
+  assert.throws(
+    () => checkedIssueReferences(issue, owner),
+    "Compact source substitutions fail closed",
+  );
+}
+for (const substitute of [
+  (owner) => {
+    owner.payload.observations.push(structuredClone(sourceObservation));
+  },
+  (owner) => {
+    owner.payload.observations.find(
+      (row) => row.observation_id === sourceIssue.last_observation_id,
+    ).witnessed_at = "2020-01-01T00:00:00Z";
+  },
+]) {
+  const owner = structuredClone(sweep);
+  substitute(owner);
+  assert.throws(
+    () => checkedIssueReferences(pointerIssue, owner),
+    "Source witness or uniqueness substituted",
+  );
+  checks++;
+}
+const mixedWrongSource = structuredClone(pointerIssue);
+mixedWrongSource.evidence_refs[0].observation_id = "0".repeat(64);
+mixedWrongSource.evidence_refs.push(structuredClone(sourceObservation.evidence_refs[0]));
+assert.throws(
+  () => checkedIssueReferences(mixedWrongSource, sweep),
+  "Mixed Issue observation links cannot bypass source validation",
+);
+checks++;
+const clearOwner = structuredClone(sweep);
+clearOwner.payload.observations.find(
+  (row) => row.observation_id === sourceIssue.last_observation_id,
+).outcome = "CLEAR";
+assert.throws(
+  () => checkedIssueReferences(pointerIssue, clearOwner),
+  "Resolved Issues keep their original finding references",
+);
+checks++;
+const directIssue = structuredClone(pointerIssue);
+directIssue.evidence_refs = structuredClone(sourceObservation.evidence_refs);
+assert.equal(
+  stable(checkedIssueReferences(directIssue, sweep)),
+  stable(sourceObservation.evidence_refs),
+);
+checks += pointerSubstitutions.length + 2;
 // Each state joins its own immutable Data Organ bundle, including historical receipts.
 const originProofs = [];
 for (const [id, item] of values) {
   if (item.kind !== "risk-state" || !item.payload.issues.length) continue;
-  const issueRefs = item.payload.issues.flatMap((issue) => issue.evidence_refs);
+  const owner = [...values.values()].find(
+    (value) =>
+      value.kind === "risk-sweep" &&
+      value.payload.status !== "FAILED" &&
+      value.payload.state_ref === id,
+  );
+  assert(owner, "State source receipt retained");
+  const issueRefs = item.payload.issues.flatMap((issue) => checkedIssueReferences(issue, owner));
   const selectedRef = issueRefs.find(
     (ref) =>
       ref.type === "REPLAY_ARTIFACT" &&
@@ -475,6 +605,7 @@ console.log(
       issues: state.payload.issues.length,
       coverage_slots: coverage.payload.coverage.length,
       origin_proofs: originProofs,
+      compact_source_substitution_checks: pointerSubstitutions.length + 4,
       admitted_monitoring_epochs: MONITORING_CATALOG.bundles.map(
         (bundle) => bundle.evaluation_cutoff,
       ),

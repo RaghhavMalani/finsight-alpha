@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { chromium, firefox } from "playwright";
 import { stable, validateRisk } from "../src/risk-manager/contracts.ts";
+import { checkedIssueReferences } from "../src/risk-manager/evidence.ts";
 const at = process.argv.indexOf("--url");
 assert(at >= 0 && process.argv[at + 1], "Pass --url for the built preview");
 const base = process.argv[at + 1].replace(/\/$/, "");
@@ -416,7 +417,7 @@ for (const name of channels) {
     if (sabotage === "permission") m.artifacts[stateId].licence.status = "LOCAL_ONLY";
     else if (sabotage.startsWith("monitoring-")) {
       const ref = state.payload.issues
-        .flatMap((issue) => issue.evidence_refs)
+        .flatMap((issue) => checkedIssueReferences(issue, sweep))
         .find((item) => item.selector_id === "data_issues");
       assert(ref?.artifact_id);
       const entry = m.artifacts[ref.artifact_id];
@@ -565,6 +566,17 @@ for (const name of channels) {
     m.as_of = value.published_at;
     const c = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const p = await c.newPage();
+    const failureReads = [];
+    p.on("response", (response) => {
+      if (
+        /\/(?:risk-read-manifest|replay-manifest)\.json$|\/artifacts\/replay\/risk-(?:state|sweep)-/.test(
+          response.url(),
+        )
+      )
+        failureReads.push(
+          response.body().then((body) => ({ url: response.url(), bytes: body.length })),
+        );
+    });
     await syntheticReadView(c, m);
     await c.route("**/replay-manifest.json", (route) => route.fulfill({ json: m }));
     await c.route("**" + entry.url, (route) =>
@@ -572,6 +584,17 @@ for (const name of channels) {
     );
     await p.goto(base + "/risk");
     await p.getByText("FAILED SWEEP · PREVIOUS STATE RETAINED", { exact: true }).waitFor();
+    await p.waitForLoadState("networkidle");
+    const failedReadRows = await Promise.all(failureReads);
+    const failedRiskBytes = failedReadRows
+      .filter((row) => row.url.includes("/artifacts/replay/risk-"))
+      .reduce((sum, row) => sum + row.bytes, 0);
+    const failedTotalBytes = failedReadRows.reduce((sum, row) => sum + row.bytes, 0);
+    assert(
+      failedRiskBytes <= 256 * 1024,
+      "Failed scene counts source receipt within initial Risk budget",
+    );
+    assert(failedTotalBytes <= 512 * 1024, "Failed scene total initial data budget");
     assert.equal(
       await p.getByRole("region", { name: "Risk issue feed" }).locator("tbody tr").count(),
       real.length + 1,
@@ -602,6 +625,9 @@ for (const name of channels) {
       case: "failed-sweep-prior-state",
       result: "PASS",
       priorFeedPreserved: true,
+      initialRiskBytes: failedRiskBytes,
+      initialTotalDataBytes: failedTotalBytes,
+      sourceReceiptIncludedInBudget: true,
     });
     await c.close();
   }

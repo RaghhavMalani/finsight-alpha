@@ -5,7 +5,7 @@ import re
 from urllib.parse import urlsplit, parse_qs, urlencode
 from src.risk_manager.contracts import decode, digest, clock
 from src.risk_manager.evidence import freeze_inventory
-from src.risk_manager.publication import read_artifact
+from src.risk_manager.publication import read_artifact,source_observation,validate_observation_sources
 
 IDENTITY = re.compile(r"risk:(state|sweep):[a-f0-9]{64}")
 CATEGORIES = {"DATA", "MODEL", "RESEARCH_HYGIENE", "PORTFOLIO", "SIMULATOR", "SYSTEM"}
@@ -50,6 +50,7 @@ def verify_graph(values, expected_origins):
     """Check immutable cross joins; no current evaluator hash is imposed on history."""
     states = {key: value for key, value in values.items() if value["kind"] == "risk-state"}
     receipts = {key: value for key, value in values.items() if value["kind"] == "risk-sweep"}
+    validate_observation_sources(receipts.values())
     observations = {}
     observations_by_id = {}
     for identity, value in receipts.items():
@@ -191,6 +192,7 @@ def verify_graph(values, expected_origins):
             raise ValueError("Primary summary substituted")
         for issue in state["issues"]:
             lifecycle(issue)
+            source_observation(issue,value)
         origins = [origin for issue in state["issues"] for origin in issue["origin_records"]
                    if origin["source"] != "phase2-fixture"]
         if Counter(digest(o) for o in origins) != Counter(digest(o) for o in (expected_origins[payload["fingerprint"]] if isinstance(expected_origins,dict) else expected_origins)):

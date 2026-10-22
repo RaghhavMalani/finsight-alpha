@@ -83,6 +83,10 @@ def test_system_failure_is_retained_until_positive_changed_repair(monkeypatch):
     assert issue["status"] == "RESOLVED"
     assert issue["first_seen_at"] == failure_issue["first_seen_at"]
     assert issue["first_seen_ref"] == failure_issue["first_seen_ref"]
+    # Resolution updates last_observation_id to CLEAR while preserving finding
+    # evidence. A compact CLEAR pointer would silently change that evidence.
+    assert issue["evidence_refs"] == failure_issue["evidence_refs"]
+    assert issue["evidence_refs"][0]["type"] == "POLICY_ASSERTION"
     assert repaired["transitions"]["resolved"] == 1
     clear = next(o for o in repaired["receipt"]["payload"]["observations"] if o["issue_id"] == issue["issue_id"])
     assert clear["outcome"] == "CLEAR" and clear["availability"] == "AVAILABLE"

@@ -91,3 +91,33 @@ def test_each_historical_sweep_binds_its_own_retained_origin_inventory():
         if any(len(origins)!=len(current) for origins in expected.values()):
             with pytest.raises(ValueError,match="Data origin"):
                 verify_graph(values,current)
+
+
+@pytest.mark.parametrize("sabotage",["fingerprint","missing_observation","other_issue","self_source","cyclic_source","mixed"])
+def test_primary_source_graph_substitution_rejected(preflight,sabotage):
+    values,receipt_ref,state_ref,_,origins=graph_fixture(preflight)
+    state=values[state_ref]["payload"]
+    receipt=values[receipt_ref]["payload"]
+    issue=state["issues"][0]
+    ref=issue["evidence_refs"][0]
+    if sabotage=="fingerprint":
+        ref["sweep_fingerprint"]="a"*64
+    elif sabotage=="missing_observation":
+        ref["observation_id"]="a"*64
+    elif sabotage=="mixed":
+        observation=next(o for o in receipt["observations"] if o["observation_id"]==issue["last_observation_id"])
+        issue["evidence_refs"].append(deepcopy(observation["evidence_refs"][0]))
+    elif sabotage=="other_issue":
+        other=state["issues"][1]
+        issue["evidence_refs"]=deepcopy(other["evidence_refs"])
+        issue["last_observation_id"]=other["last_observation_id"]
+        issue["observation_ids"].append(other["last_observation_id"])
+    else:
+        observation=next(o for o in receipt["observations"] if o["observation_id"]==issue["last_observation_id"])
+        observation["evidence_refs"]=[deepcopy(ref)]
+        if sabotage=="cyclic_source":
+            other=receipt["observations"][1]
+            observation["evidence_refs"][0]["observation_id"]=other["observation_id"]
+            other["evidence_refs"]=[deepcopy(ref)]
+    with pytest.raises(ValueError):
+        verify_graph(values,origins)

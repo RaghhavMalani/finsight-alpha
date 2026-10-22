@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { inspectRef, type RiskBundle } from "./client";
+import { checkedIssueReferences } from "./evidence";
 import { stamp, type Issue } from "./contracts";
 import { displayText, tone } from "./filters";
 export function IssueInspector({
@@ -85,6 +86,7 @@ export function IssueInspector({
         Select a finding to inspect its rule, immutable evidence and unblock requirements.
       </aside>
     );
+  const sourceRefs = checkedIssueReferences(issue, bundle.stateSweep);
   const rule = bundle.state?.payload.policy.rules.find((r) => r.rule_id === issue.rule_id);
   return (
     <aside
@@ -181,7 +183,15 @@ export function IssueInspector({
         </section>
         <section>
           <h3 className="mono-caps text-[9px] text-primary">IMMUTABLE REFERENCES</h3>
-          {issue.evidence_refs.map((ref, index) => (
+          {issue.evidence_refs.length === 1 &&
+            issue.evidence_refs[0].type === "RISK_OBSERVATION" && (
+              <p className="mt-2 break-all font-mono text-[8px] text-faint">
+                SEALED OBSERVATION {issue.last_observation_id}
+                <br />
+                SWEEP {issue.evidence_refs[0].sweep_fingerprint}
+              </p>
+            )}
+          {sourceRefs.map((ref, index) => (
             <button
               key={index}
               className="mt-2 block w-full break-all border border-divider p-2 text-left font-mono text-[9px] text-muted-foreground hover:border-primary"

@@ -108,6 +108,67 @@ def validate_refs(refs, root, staged=None, *, cutoff=None, catalog=None):
             if r["policy_sha256"]!=policy["sha256"] or not any(r["check_id"].startswith(rule["check_id"]+":") for rule in policy["rules"]):
                 raise ValueError("Policy assertion substitution")
 
+def source_observation(issue, receipt):
+    """Resolve a compact Issue pointer only in its owning sealed receipt."""
+    refs=issue["evidence_refs"]
+    if not any(ref["type"]=="RISK_OBSERVATION" for ref in refs):
+        return None
+    if len(refs)!=1:
+        raise ValueError("Issue source observation requires one exact pointer")
+    ref=refs[0]
+    payload=receipt["payload"]
+    matches=[o for o in payload["observations"] if o["observation_id"]==ref["observation_id"]]
+    if (payload["status"]=="FAILED" or ref["sweep_fingerprint"]!=payload["fingerprint"]
+            or ref["observation_id"]!=issue["last_observation_id"] or len(matches)!=1):
+        raise ValueError("Issue source observation pointer substituted")
+    observation=matches[0]
+    if observation["outcome"]=="CLEAR":
+        raise ValueError("Clearing observation cannot replace Issue finding sources")
+    if (observation["issue_id"]!=issue["issue_id"]
+            or observation["evidence_cutoff"]!=issue["evidence_cutoff"]
+            or observation["evidence_at"]!=issue["evidence_at"]
+            or not clock(payload["started_at"])<=clock(observation["witnessed_at"])<=clock(payload["completed_at"])):
+        raise ValueError("Issue source observation subject or clock substituted")
+    if any(r["type"]=="RISK_OBSERVATION" and r["sweep_fingerprint"]==payload["fingerprint"]
+           for r in observation["evidence_refs"]):
+        raise ValueError("Issue source observation cannot reference its own sweep")
+    return observation
+
+
+def validate_observation_sources(receipts):
+    """Resolve original observation sources through exact, earlier witnesses."""
+    observations={}
+    for receipt in receipts:
+        payload=receipt["payload"]
+        for observation in payload["observations"]:
+            observations.setdefault((payload["fingerprint"],observation["observation_id"]),[]).append(observation)
+    edges={}
+    for pair,witnesses in observations.items():
+        edges[pair]=set()
+        for observation in witnesses:
+            for ref in observation["evidence_refs"]:
+                if ref["type"]!="RISK_OBSERVATION":
+                    continue
+                target=(ref["sweep_fingerprint"],ref["observation_id"])
+                candidates=observations.get(target,[])
+                if target==pair or not any(o["issue_id"]==observation["issue_id"]
+                        and clock(o["witnessed_at"])<clock(observation["witnessed_at"]) for o in candidates):
+                    raise ValueError("Observation source is missing, self-referential or incompatible")
+                edges[pair].add(target)
+    complete=set(); active=set()
+    def visit(pair):
+        if pair in active:
+            raise ValueError("Observation source cycle")
+        if pair in complete:
+            return
+        active.add(pair)
+        for target in edges[pair]:
+            visit(target)
+        active.remove(pair); complete.add(pair)
+    for pair in edges:
+        visit(pair)
+
+
 def _validate_public(value, root, staged=None, *, catalog=None):
     if value.get("kind") not in KINDS:
         raise ValueError("Unapproved risk kind")
@@ -283,6 +344,10 @@ def publish(root, state, sweep, *, expected_manifest, interrupt=None, extra_stat
             raise ValueError("State/sweep pair substitution")
         if sp["sweep_id"]!=digest(["risk-sweep/1",sp["fingerprint"],sp["started_at"],checked_state["payload"]["state_id"]]):
             raise ValueError("Sweep identity substitution")
+        if (checked_state["evidence_cutoff"],checked_state["payload"]["evaluation_cutoff"])!=(checked_sweep["evidence_cutoff"],sp["evaluation_cutoff"]):
+            raise ValueError("State/sweep evidence clock substitution")
+        for issue in checked_state["payload"]["issues"]:
+            source_observation(issue,checked_sweep)
     elif sp["status"]!="FAILED":
         raise ValueError("Successful publication omitted its state")
     elif sp["state_ref"]:
@@ -290,6 +355,19 @@ def publish(root, state, sweep, *, expected_manifest, interrupt=None, extra_stat
         prior_state=read_artifact(root,existing,sp["state_ref"])
         if prior_state["kind"]!="risk-state" or existing["routes"].get("/risk-manager/state")!=sp["state_ref"]:
             raise ValueError("Failure last-valid-state substitution")
+    existing=decode(expected_manifest)
+    receipts=[checked_sweep]
+    cursor=sp["prior_sweep_ref"]; visited=set()
+    while cursor:
+        if cursor in visited:
+            raise ValueError("Risk history cycle")
+        visited.add(cursor)
+        prior_receipt=read_artifact(root,existing,cursor)
+        if prior_receipt["kind"]!="risk-sweep":
+            raise ValueError("Prior sweep kind substituted")
+        receipts.append(prior_receipt)
+        cursor=prior_receipt["payload"]["prior_sweep_ref"]
+    validate_observation_sources(receipts)
     manifest_path=public/"replay-manifest.json"
     if manifest_path.read_bytes()!=expected_manifest:
         raise ValueError("Manifest moved during sweep")

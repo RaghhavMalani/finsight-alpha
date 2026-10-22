@@ -57,6 +57,24 @@ export function deriveRiskReadManifest(manifest, readArtifact) {
   for (const input of sweep.payload.inputs) {
     if (manifest.artifacts[input.input_id]) wanted.add(input.input_id);
   }
+  // A failed receipt keeps a prior compact state; retain metadata for its exact source receipt.
+  if (sweep.payload.status === "FAILED" && stateRef) {
+    let parent = sweep.payload.prior_sweep_ref;
+    const visited = new Set([sweepRef]);
+    let found = false;
+    while (parent) {
+      assert(!visited.has(parent), "Risk source receipt history cycle");
+      visited.add(parent);
+      const ancestor = readRisk(parent, "sweep");
+      assert.equal(ancestor.payload.state_ref, stateRef, "Failure lost its prior valid state");
+      if (ancestor.payload.status !== "FAILED") {
+        found = true;
+        break;
+      }
+      parent = ancestor.payload.prior_sweep_ref;
+    }
+    assert(found, "Failure source receipt missing");
+  }
   const currentHistory = sweep.payload.history_index.slice(0, 20);
   for (const row of currentHistory) {
     assert(manifest.artifacts[row.sweep_ref], "Retained history receipt absent");

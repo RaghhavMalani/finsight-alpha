@@ -1,5 +1,7 @@
 import { sha256 } from "@/replay/client";
 import { loadRiskReadManifest } from "./manifest";
+import { RISK_READ_PLAN } from "./read-plan.generated";
+import { checkedIssueReferences } from "./evidence";
 import { assertDerivedPayload, type ReplayManifest } from "@/replay/contracts";
 import {
   strictJSON,
@@ -15,6 +17,7 @@ import {
 export type RiskBundle = {
   state: State | null;
   sweep: Sweep;
+  stateSweep: Sweep;
   manifest: ReplayManifest;
   stateRef: string | null;
   sweepRef: string;
@@ -181,9 +184,52 @@ export async function loadRisk(signal?: AbortSignal, sweepId?: string): Promise<
       state.published_at !== sweep.published_at)
   )
     throw new Error("Risk state/sweep lineage mismatch.");
+  let stateSweep = sweep;
+  const compactState = state?.payload.issues.some(
+    (issue) =>
+      issue.evidence_refs.length === 1 && issue.evidence_refs[0].type === "RISK_OBSERVATION",
+  );
+  if (state && compactState && sweep.payload.status === "FAILED") {
+    let parent = sweep.payload.prior_sweep_ref;
+    const visited = new Set([sweepRef]);
+    let riskBytes =
+      manifest.artifacts[sweepRef].bytes + (stateRef ? manifest.artifacts[stateRef].bytes : 0);
+    let found = false;
+    while (parent) {
+      if (visited.has(parent)) throw new Error("Risk source receipt history cycle.");
+      visited.add(parent);
+      const entry = manifest.artifacts[parent];
+      if (
+        !entry ||
+        (!sweepId &&
+          (riskBytes + entry.bytes > 256 * 1024 ||
+            RISK_READ_PLAN.projection.bytes + riskBytes + entry.bytes > 512 * 1024))
+      )
+        throw new Error("Risk source receipt exceeds the bounded read budget.");
+      riskBytes += entry.bytes;
+      const ancestor = await readChecked(parent, manifest, signal);
+      if (ancestor.kind !== "risk-sweep" || ancestor.payload.state_ref !== stateRef)
+        throw new Error("Failure source receipt changed the last valid state.");
+      if (ancestor.payload.status !== "FAILED") {
+        stateSweep = ancestor;
+        found = true;
+        break;
+      }
+      parent = ancestor.payload.prior_sweep_ref;
+    }
+    if (
+      !found ||
+      state.payload.sweep_fingerprint !== stateSweep.payload.fingerprint ||
+      state.evidence_cutoff !== stateSweep.evidence_cutoff ||
+      state.published_at !== stateSweep.published_at ||
+      state.payload.policy.sha256 !== stateSweep.payload.policy_sha256
+    )
+      throw new Error("Last valid state source receipt substituted.");
+  }
+  for (const issue of state?.payload.issues ?? []) checkedIssueReferences(issue, stateSweep);
   if (sweepId && sweep.payload.sweep_id !== sweepId) throw new Error("Sweep selector substituted.");
   if (signal?.aborted) throw new DOMException("Risk selection cancelled.", "AbortError");
-  return { state, sweep, manifest, stateRef, sweepRef };
+  return { state, sweep, stateSweep, manifest, stateRef, sweepRef };
 }
 export async function readCoverage(bundle: RiskBundle, signal?: AbortSignal): Promise<State> {
   const ref = bundle.state?.payload.evidence_index.find((r) => r.selector_id === "risk_coverage");
