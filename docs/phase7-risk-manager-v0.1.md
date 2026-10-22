@@ -1,14 +1,14 @@
 # Phase 7 Risk Manager / Immune System v0.1
 
-Retained scientific evidence and newly admitted Data Organ monitoring feed deterministic rules, a stable Issue reducer, sealed state/sweep receipts, and the F3 evidence workspace. Missing evidence is explicitly unavailable. PR #29 remains DRAFT / OPEN / UNMERGED; final Linux CI and preview results are linked in the PR.
+Retained scientific evidence and newly admitted Data Organ monitoring feed deterministic rules, a stable Issue reducer, sealed state/sweep receipts, and the F3 evidence workspace. Missing evidence is explicitly unavailable. PR #29 remains DRAFT / OPEN / UNMERGED; see the PR for final Linux CI and preview verification status.
 
 ## Reconciliation and scientific freeze
 
 - Canonical base: `16db82c5f2f50b98253df9989c586cd45aa98f6b`. Implementation uses the isolated `feat/phase7-risk-manager-v0.1` worktree; the original checkout was not used.
-- Main `db7257327e8c2dda3cbcc1bcdf84c172714ad02e` was merged without rebasing. All 71 nonmanifest main additions/changes and all current Data routes remain exact in Git.
+- Main `917c7849e932b2e37cef1b5ca19099587ea11e77` was merged without rebasing. All 93 nonmanifest main additions/changes and all current Data routes remain exact in Git.
 - The original freeze JSON is byte-identical: 930 baseline file hashes, 221 original artifact entries, 126 original route identities and six withdrawals. Nine explicitly named mutable Data mirrors retain their original content-addressed snapshots; all other frozen files remain strict. All 119 other route bindings remain exact; seven advancing Data routes must match one sealed current Data receipt.
 - Phase 5 retains its fixed 684-file baseline; Phase 6 retains 24 metadata artifacts and 18 numerical references. SDK/Research OS/synthetic simulator histories, organs.yml and D6 remain unchanged.
-- All 12 earlier public Risk artifacts and 16 raw/proof history files remain byte-identical. The fifth genuine sweep adds only two risk-state files and one risk-sweep receipt: 15 retained public Risk artifacts within 278 global artifacts.
+- All 15 earlier public Risk artifacts and 20 raw/proof history files remain byte-identical. The new genuine sweep adds only two risk-state files and one risk-sweep receipt: 18 retained public Risk artifacts within 295 global artifacts.
 
 [Reconciliation byte guard](qa/phase7-risk-freeze-reconciliation-proof.json).
 
@@ -18,19 +18,19 @@ One manifest byte snapshot selects exactly /data/issues, /data/health, /data/cov
 
 Frozen scientific bindings remain exact. Current successful sweeps require the current sealed seven-entry Data receipt; historical Risk states bind their own five selected envelopes, exact input inventory and epoch. The separate Data history verifier validates retained publication receipts. Historical states are never compared with the mutable current issues mirror.
 
-The successful evaluation cutoff is the coherent selected Data bundle epoch `2026-10-19T06:20:06.850005Z`. It is included in the fingerprint. Wall-clock time, unrelated Git commits and the global manifest clock cannot age model evidence. The unchanged policy cutoff remains only a legacy receipt anchor; thresholds remain 45/120 days and the original reviewed model limits.
+The successful evaluation cutoff is the coherent selected Data bundle epoch `2026-10-21T06:09:58.066349Z`. It is included in the fingerprint. Wall-clock time, unrelated Git commits and the global manifest clock cannot age model evidence. The unchanged policy cutoff remains only a legacy receipt anchor; thresholds remain 45/120 days and the original reviewed model limits.
 
 | Selected route | Immutable artifact |
 | --- | --- |
-| /data/issues | `data-organ:issues:18b46a03a94670f3b6420160fced2c170c12f1c59e6ab2a7a45528dd68aacb5e` |
-| /data/health | `data-organ:health:33eab744a58c7f458d0a67b7b349774680978095d7ffa14e99b1787310e931aa` |
-| /data/coverage | `data-organ:coverage:1b52da02176a5539d52cec9e7c97416da0f47c5b5de74bf93993fffd73b9947e` |
-| /data/disagreement | `data-organ:disagreement:99bcba431e1ed2d8f8bf2e6b671530e9047e87ab9cdbcc0953dbe854d80af769` |
-| /data/lineage | `data-organ:lineage:ea7b6b93736a091f249558db5c74623328e6850bd3bab8373f3a0bbd2c73327c` |
+| /data/issues | `data-organ:issues:84a784364d611aac9701d5964407191324b1f4d112e7fc9bb9c0895c3f8cb324` |
+| /data/health | `data-organ:health:4360b532ecb7e4268d29cec15f6a25f7e40de61eac2bd62b439538ced2e6c9f5` |
+| /data/coverage | `data-organ:coverage:2566f40c4808800baad475f0efe76501955d1ad2271f9d78f69ae0ac6d79bc87` |
+| /data/disagreement | `data-organ:disagreement:47e1eb5310ddc836531aca2b0577c987bec13ca40d1c22b47934d36e3923a7b9` |
+| /data/lineage | `data-organ:lineage:b224b3fe425a2ddf5772f5f4bed353db5c030939b83521a3d4598ed5c04d502f` |
 
 ## Actual incidents
 
-There are 34 normalized Issues: 12 current real, 8 historical, 13 unavailable and 1 retained synthetic. All 39 current upstream origins are preserved exactly: 8 HIGH, 25 MEDIUM, 6 INFO. Their IDs, severity, status, clocks, occurrence counts and evidence remain unchanged.
+There are 34 normalized Issues: 12 current real, 8 historical, 13 unavailable and 1 retained synthetic. All 43 current upstream origins are preserved exactly: 8 HIGH, 29 MEDIUM, 6 INFO. Their IDs, severity, status, clocks, occurrence counts and evidence match the selected upstream bundle.
 
 | Partition | Category | Severity | Count |
 | --- | --- | --- | ---: |
@@ -46,7 +46,7 @@ There are 34 normalized Issues: 12 current real, 8 historical, 13 unavailable an
 | UNAVAILABLE | PORTFOLIO | INFO | 6 |
 | UNAVAILABLE | SIMULATOR | INFO | 1 |
 
-All 32 original Issue IDs and first-seen references remain. The two new Issues are the explicitly approved missing historical diagnostic coverage and US retained model input age crossing 45 days at the new witnessed epoch. New health diagnostic IDs update existing semantic incidents rather than creating duplicate incidents. India remains HIGH above 120 days; no model is rerun.
+All 34 previous Issue IDs and first-seen references remain, including the original 32. This sweep creates no new Issue. The two October 19 additions remain: explicitly approved missing historical diagnostic coverage and US retained model input age crossing 45 days at a witnessed epoch. New health diagnostic IDs update existing semantic incidents. India remains HIGH above 120 days; no model is rerun.
 
 Real research hygiene has no finding. Three original SDK openings, 46 original flagship openings and 48 later repeatability-scope openings remain separate. The one retained synthetic warning groups two SDK warning records. Existing simulator history remains 22 PASS plus one intentional NOT_COMPARABLE; real simulator comparison is UNAVAILABLE / DEFERRED_PHASE9.
 
@@ -137,38 +137,38 @@ Availability: 49 AVAILABLE, 14 PARTIAL, 13 UNAVAILABLE. Outcomes: 34 CLEAR, 21 F
 
 | Fact | Reconciled genuine sweep |
 | --- | --- |
-| `sweep_id` | `f65c5f9156e1d782a41e6132190975919772b215b5397cc78d0b8945af56d7ae` |
-| `state_id` | `c2b0051205a260207308c725cdfb599e7706733edf67c9ab9a6edc229dcb4665` |
-| `fingerprint` | `79c298f0a3661c577f1e14051580901b0c08db3f19dd32d46e9b5b9070e36917` |
+| `sweep_id` | `7c3377722c399159341871d7f97a3c8a9075a224de887e9409574b9e0b08ddeb` |
+| `state_id` | `5991b48c8080dd7ab5d8454c3c06e655eadf933cbfa8dc3a8dc19fc4410310e5` |
+| `fingerprint` | `3dcf356ec72b748a70508b64844c884ea658ab2348768b108cbfad3c5668970c` |
 | `policy_sha256` | `8ab6fe12b3bdb61986e7b5af124c34892f84480cd6a2dfd1f1f01ec98d9c3c92` |
-| `published_at` | `2026-10-19T07:16:04.271230Z` |
-| `evidence_cutoff` | `2026-10-19T06:20:06.850005Z` |
+| `published_at` | `2026-10-21T10:28:09.669386Z` |
+| `evidence_cutoff` | `2026-10-21T06:09:58.066349Z` |
 
-Transitions: {"new": 2, "resolved": 0, "unchanged": 0, "updated": 32}. The immediate identical repeat returned UNCHANGED with 0 NEW, 0 UPDATED, 0 RESOLVED, 0 new occurrences, 0 writes, 0 manifest rewrite and 0 commits.
-The allocation-profiled genuine sweep took 34.4222 seconds; added Python allocation peak was 16,650,596 bytes. Windows process peak working set was 79,081,472 bytes; incremental OS peak was 32,047,104 bytes.
+Transitions: {"new": 0, "resolved": 0, "unchanged": 0, "updated": 34}. The immediate identical repeat returned UNCHANGED with 0 NEW, 0 UPDATED, 0 RESOLVED, 0 new occurrences, 0 writes, 0 manifest rewrite and 0 commits.
+The actual genuine sweep took 7.9753 seconds without allocation profiling. Windows process peak working set was 58,843,136 bytes; incremental OS peak was 13,623,296 bytes.
 The before/after scientific inventory remains `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. All eight instrumented operation counts are 0: captures, model runs, plugin runs, SeriesModel runs, factor fits, research attempts, holdout openings and simulator runs. All six scientific claim flags remain literal false.
 
 Only risk-state and risk-sweep are public Risk kinds, each bounded at 128 KiB. Unknown nested fields, duplicate keys, nonfinite/coerced values, raw/private payloads, encoded carriers, arbitrary paths/URLs/selectors and promoted claims fail closed. Failed sweeps preserve the last valid feed; positive changed proof is required to resolve a System incident.
 
-Unprofiled nonpublishing evaluation of the same retained manifest and evaluator took 9.025 seconds (under the 30-second operator target). The allocation profiler overhead is reported separately; no runtime limit is relaxed.
+Current payload bytes: state 129,633, receipt 118,194, coverage leaf 113,447. Each remains below 131,072 bytes; state headroom is 1,439 bytes. No payload or runtime budget is relaxed.
 
-[Genuine publication/repeat proof](../data/exports/risk_manager_v0_1/monitoring-reconciliation-proof.json).
+[Genuine publication/repeat proof](../data/exports/risk_manager_v0_1/monitoring-reconciliation-2026-10-21-proof.json).
 
 ## Verification and performance
 
 - 117 Risk Manager tests pass, including new admission and per-historical-sweep conservation checks. Historical verifiers and full Factors/Regimes/general suites are included in final Linux CI; CI results are reported on the PR.
-- Frontend lint, types, formatting, production build, 123 static Risk checks, and six exact original-estimator comparisons pass. The public chunk is 40,185 bytes gzip against 65,536 bytes. All 30 browser sabotage cases fail closed;11 operational-witness substitution probes reject.
+- Frontend lint, types, formatting, production build, 144 static Risk checks, and six exact original-estimator comparisons pass. The public chunk is 49,442 bytes gzip against 65,536 bytes. All 30 browser sabotage cases fail closed; 11 operational-witness substitution probes reject.
 - Chrome, Edge and Firefox pass 1440/390/1920 coverage, navigation/history, focus/Escape, privacy isolation and fail-closed sabotage. All real responses remain unmodified; failure scenes are explicitly SYNTHETIC_TEST_ONLY.
 
 | Browser | Cold ms | Warm ms | Filter ms | Max validation ms | API/provider/paper/tape |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| chrome | 1401 | 174 | 5.30 | 37.90 | 0 |
-| msedge | 722 | 112 | 6.00 | 9.60 | 0 |
-| firefox | 1084 | 579 | 9.00 | 11.00 | 0 |
+| chrome | 1280 | 175 | 7.80 | 39.40 | 0 |
+| msedge | 727 | 101 | 7.60 | 7.70 | 0 |
+| firefox | 971 | 418 | 5.00 | 12.00 | 0 |
 
-Initial selected Risk bytes: 239,126 /262,144. Initial total data including the checked read projection: 290,393 /524,288. The full global manifest remains preserved and deferred from initial Risk loading. Chunk/filter/sabotage evidence is retained in the engineering QA receipts.
+Initial selected Risk bytes: 247,827 /262,144. Initial total data including the checked read projection: 304,434 /524,288. The full global manifest remains preserved and deferred from initial Risk loading. Chunk/filter/sabotage evidence is retained in the engineering QA receipts.
 
-[Static QA](qa/phase7-risk-static-proof.json), [browser QA](qa/phase7-risk-browser-proof.json), [local regression](qa/phase7-risk-local-proof.json). Real screenshots: [desktop](screenshots/phase7-risk-real-desktop.png), [mobile](screenshots/phase7-risk-real-mobile.png), [inspector](screenshots/phase7-risk-inspector.png), [coverage](screenshots/phase7-risk-coverage.png), [history](screenshots/phase7-risk-history.png). [Synthetic failure scene](screenshots/phase7-risk-failure.png).
+[Static QA](qa/phase7-risk-static-proof.json), [browser QA](qa/phase7-risk-browser-proof.json), [local regression](qa/phase7-risk-local-proof.json), [Factors lazy-panel QA](qa/phase7-factors-lazy-panel-proof.json). Real screenshots: [desktop](screenshots/phase7-risk-real-desktop.png), [mobile](screenshots/phase7-risk-real-mobile.png), [inspector](screenshots/phase7-risk-inspector.png), [coverage](screenshots/phase7-risk-coverage.png), [history](screenshots/phase7-risk-history.png). [Synthetic failure scene](screenshots/phase7-risk-failure.png).
 
 ## Local paper lab
 
@@ -190,6 +190,8 @@ Run Python scripts/verify_risk_manager.py and pytest tests/risk_manager; run the
 - `.gitattributes`: exact receipt/metadata bytes and canonical evaluator source endings make Windows and Linux integrity checks reproducible.
 - `requirements-test.txt`: explicit pytest, httpx and PyYAML engineering dependencies support API and manual-workflow boundary tests without expanding the production or manual-sweep dependency set.
 
+- `frontend-v2/src/factors/query.ts`, `FactorsWorkspace.tsx` and `scripts/verify-factors.mjs`: defer unopened audit/ledger metadata until the selected panel needs it. The growing retained manifest had pushed eager catalogue loading above its existing 512 KiB budget. Catalogue mode still loads all three retained numerical references; every opened panel retains its full schema, hash, country, route and licence checks. The budget, frozen readers, Phase 6 metadata and scientific behavior are unchanged. Bundle QA includes all four executable Factors query/schema, workspace, diagnostics and lineage chunks; it excludes the separately lazy Risk chunk that only shares metadata scope constants. Browser network proof confirms Factors loads no Risk JavaScript. The existing 64 KiB limit remains unchanged.
+
 These amendments support the authorized navigation, privacy and verification boundaries. They do not grant a client header account authority.
 
 ## Operational closure gate
@@ -208,6 +210,6 @@ The user explicitly approved preserving this exact origin, marking its diagnosti
 
 A pure Node build generator derives the monitoring catalog from the checked global manifest and retained public Data artifacts. It runs on install, build, development start and static verification. Generated catalog/read-plan files and the derived Risk read manifest are ignored build products; the manual workflow still stages only its original two-kind Risk allowlist and manifest pointers. A synthetic later-publication fixture proves that a valid new epoch is admitted without editing TypeScript bindings.
 
-The full global manifest remains preserved in Git and served unchanged. Initial `/risk` loads use a small exact projection of the same manifest metadata, along with both the selected state and sweep receipt. Their bytes and SHA are sealed into the generated read plan. Explicit historical selection may load the sealed full global view. The shell uses this bounded read on `/risk` and returns to its ordinary manifest loading on other routes. This keeps the original initial-load budget while retaining full origin records and complete receipts.
+The full global manifest remains preserved in Git and served unchanged. Initial `/risk` loads use a small exact projection of the same manifest metadata, along with both the selected state and sweep receipt. Their bytes and SHA are sealed into the generated read plan. Explicit historical selection may load the sealed full global view. A dedicated Phase 7 `RiskShell.tsx` uses this bounded read only on `/risk`. The original `ForgeShell.tsx` remains byte-identical to the fixed Phase 5 baseline, and other routes retain its ordinary global manifest loading. This keeps the original initial-load budget while retaining full origin records and complete receipts.
 
-The additional `package.json`, `.gitignore` and `ForgeShell.tsx` changes support automatic admission and avoid fetching the full manifest a second time during initial Risk loading. No new public Risk artifact kind, schedule, provider call or scientific capability is introduced.
+The additional `package.json`, `.gitignore`, dedicated `risk-manager/RiskShell.tsx` and `/risk` route changes support automatic admission and avoid fetching the full manifest a second time during initial Risk loading. The dedicated shell preserves the frozen shell presentation, navigation, keyboard and session behavior; only its bounded manifest reader differs. No new public Risk artifact kind, schedule, provider call or scientific capability is introduced.

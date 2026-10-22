@@ -1,10 +1,15 @@
 {
   "schema_version": "risk-ui-static-proof/1",
-  "checks": 123,
-  "risk_artifacts": 15,
+  "checks": 144,
+  "risk_artifacts": 18,
   "issues": 34,
   "coverage_slots": 76,
   "origin_proofs": [
+    {
+      "state_ref": "risk:state:0f69ee006943cf1c3e28221ee264ee622e2749373e95345f5c21f984fcd23a7a",
+      "cutoff": "2026-10-21T06:09:58.066349Z",
+      "origins": 43
+    },
     {
       "state_ref": "risk:state:35dbf3510813be500b67a3f858d6fc7b5b302f54dae418a9315df96911bca131",
       "cutoff": "2026-10-19T06:20:06.850005Z",
@@ -38,36 +43,36 @@
     "2026-10-16T05:58:56.339670Z",
     "2026-10-17T05:42:24.055238Z",
     "2026-10-18T06:03:45.703339Z",
-    "2026-10-19T06:20:06.850005Z"
+    "2026-10-19T06:20:06.850005Z",
+    "2026-10-20T06:10:32.259779Z",
+    "2026-10-21T06:09:58.066349Z"
   ],
-  "initial_risk_bytes": 239126,
-  "total_initial_bytes": 290393,
-  "initial_manifest_bytes": 51267,
-  "global_manifest_bytes": 331703,
-  "initial_manifest_sha256": "0633818a3d0a1bd04f897cf694ec3ed9a9a0061b2dc8a563ddee0c97ecbab327",
-  "global_manifest_sha256": "a9c27b18556bdeceb8036513dbebfbd49ba8dc7a61c2f140e3692c51c00b403c",
-  "validation_max_ms": 11.438599999999951,
-  "synthetic_1000_filter_max_ms": 1.1912999999999556,
+  "initial_risk_bytes": 247827,
+  "total_initial_bytes": 304434,
+  "initial_manifest_bytes": 56607,
+  "global_manifest_bytes": 358747,
+  "initial_manifest_sha256": "8b284a8c90793b45786136d200de5643b824023b58e77e38423ba2ff41009a5d",
+  "global_manifest_sha256": "2fce580242985e48ceeb29f0e376914ccb26868b9a37c466bc451238056457f7",
+  "validation_max_ms": 11.118199999999888,
+  "synthetic_1000_filter_max_ms": 1.0304999999998472,
   "synthetic_fixture_evidence_class": "SYNTHETIC_TEST_ONLY",
-  "actual_sweep": "f65c5f9156e1d782a41e6132190975919772b215b5397cc78d0b8945af56d7ae",
+  "actual_sweep": "7c3377722c399159341871d7f97a3c8a9075a224de887e9409574b9e0b08ddeb",
   "future_monitoring": {
     "evidence_class": "SYNTHETIC_TEST_ONLY",
-    "original_epochs": 7,
-    "automatically_admitted_epochs": 8,
-    "admitted_cutoff": "2026-10-20T06:20:06.850Z",
+    "original_epochs": 9,
+    "automatically_admitted_epochs": 10,
+    "admitted_cutoff": "2026-10-22T06:09:58.066Z",
     "new_diagnostic_resolved": true,
     "rejection_checks": 29,
     "publication_writes": 0
   },
-  "evidence_class": "ENGINEERING_QA",
-  "selected_state_ref": "risk:state:35dbf3510813be500b67a3f858d6fc7b5b302f54dae418a9315df96911bca131",
-  "selected_sweep_ref": "risk:sweep:1e104eb220bc52ec9f2a015be66b5e9f1ca506bb2a026fbbe75922420dbe808d",
   "public_risk_chunk": {
-    "file": "risk-DZuN796-.js",
-    "bytes": 341619,
-    "gzip_bytes": 40185,
+    "file": "risk-Dl0pWJWP.js",
+    "bytes": 431016,
+    "gzip_bytes": 49442,
     "gzip_budget_bytes": 65536
   },
+  "evidence_class": "ENGINEERING_QA",
   "gates": {
     "lint": "PASS",
     "types": "PASS",

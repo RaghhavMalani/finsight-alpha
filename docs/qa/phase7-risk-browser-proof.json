@@ -20,26 +20,31 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 239126,
-      "initialTotalDataBytes": 290393,
-      "coldLoadMs": 1401,
-      "warmLoadMs": 174,
-      "filterInteractionMs": 5.299999952316284,
+      "initialRiskBytes": 247827,
+      "initialTotalDataBytes": 304434,
+      "coldLoadMs": 1280,
+      "warmLoadMs": 175,
+      "filterInteractionMs": 7.800000011920929,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 37.89999997615814
+          "duration": 39.400000005960464
         },
         {
           "name": "risk-contract-validation",
-          "duration": 36.80000001192093
+          "duration": 38.599999994039536
         }
       ],
       "apiProviderPaperTapeRequests": 0,
       "pageErrors": 0,
       "privateCacheIsolation": "PASS",
       "noPolling": "PASS",
-      "screenshots": "real unmodified responses"
+      "screenshots": "real unmodified responses",
+      "normalGlobalRead": {
+        "route": "/markets",
+        "bytes": 358747,
+        "result": "PASS"
+      }
     },
     {
       "browser": "msedge",
@@ -58,26 +63,31 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 239126,
-      "initialTotalDataBytes": 290393,
-      "coldLoadMs": 722,
-      "warmLoadMs": 112,
-      "filterInteractionMs": 6,
+      "initialRiskBytes": 247827,
+      "initialTotalDataBytes": 304434,
+      "coldLoadMs": 727,
+      "warmLoadMs": 101,
+      "filterInteractionMs": 7.600000023841858,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 9.600000023841858
+          "duration": 7.5
         },
         {
           "name": "risk-contract-validation",
-          "duration": 7.600000023841858
+          "duration": 7.699999988079071
         }
       ],
       "apiProviderPaperTapeRequests": 0,
       "pageErrors": 0,
       "privateCacheIsolation": "PASS",
       "noPolling": "PASS",
-      "screenshots": "verified, no screenshots retained"
+      "screenshots": "verified, no screenshots retained",
+      "normalGlobalRead": {
+        "route": "/markets",
+        "bytes": 358747,
+        "result": "PASS"
+      }
     },
     {
       "browser": "firefox",
@@ -96,26 +106,31 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 239126,
-      "initialTotalDataBytes": 290393,
-      "coldLoadMs": 1084,
-      "warmLoadMs": 579,
-      "filterInteractionMs": 9,
+      "initialRiskBytes": 247827,
+      "initialTotalDataBytes": 304434,
+      "coldLoadMs": 971,
+      "warmLoadMs": 418,
+      "filterInteractionMs": 5,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 11
+          "duration": 12
         },
         {
           "name": "risk-contract-validation",
-          "duration": 11
+          "duration": 7
         }
       ],
       "apiProviderPaperTapeRequests": 0,
       "pageErrors": 0,
       "privateCacheIsolation": "PASS",
       "noPolling": "PASS",
-      "screenshots": "verified, no screenshots retained"
+      "screenshots": "verified, no screenshots retained",
+      "normalGlobalRead": {
+        "route": "/markets",
+        "bytes": 358747,
+        "result": "PASS"
+      }
     }
   ],
   "synthetic": [

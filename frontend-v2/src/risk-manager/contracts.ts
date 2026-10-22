@@ -2117,14 +2117,41 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
+// These patterns come only from the finite, module-private schemas above.
+const SCHEMA_PATTERNS: ReadonlyMap<string, RegExp> = (() => {
+  const patterns = new Map<string, RegExp>();
+  const visit = (schema: Schema): void => {
+    if (schema.pattern && !patterns.has(schema.pattern))
+      patterns.set(schema.pattern, new RegExp(schema.pattern));
+    for (const child of Object.values(schema.$defs ?? {})) visit(child);
+    for (const child of Object.values(schema.properties ?? {})) visit(child);
+    if (schema.items) visit(schema.items);
+    for (const choice of [...(schema.anyOf ?? []), ...(schema.oneOf ?? [])]) visit(choice);
+  };
+  Object.values(SCHEMAS).forEach(visit);
+  return patterns;
+})();
+const VALID_UTC_MICROS = new Map<string, bigint>();
+const UTC_MICRO_CACHE_LIMIT = 256;
+
 /** Compare the full retained UTC precision, including sub-millisecond evidence clocks. */
 export function utcMicros(value: string): bigint {
+  const cached = typeof value === "string" ? VALID_UTC_MICROS.get(value) : undefined;
+  if (cached !== undefined) return cached;
   const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?Z$/.exec(value);
   if (!match || Number(match[1].slice(0, 4)) < 1) return fail("Invalid UTC clock.");
   const millis = Date.parse(match[1] + "Z");
   if (!Number.isFinite(millis) || new Date(millis).toISOString().slice(0, 19) !== match[1])
     return fail("Invalid UTC calendar clock.");
-  return BigInt(millis) * 1000n + BigInt((match[2] ?? "").padEnd(6, "0"));
+  const micros = BigInt(millis) * 1000n + BigInt((match[2] ?? "").padEnd(6, "0"));
+  if (typeof value === "string") {
+    if (VALID_UTC_MICROS.size >= UTC_MICRO_CACHE_LIMIT) {
+      const oldest = VALID_UTC_MICROS.keys().next().value;
+      if (oldest !== undefined) VALID_UTC_MICROS.delete(oldest);
+    }
+    VALID_UTC_MICROS.set(value, micros);
+  }
+  return micros;
 }
 
 function validate(
@@ -2197,7 +2224,7 @@ function validate(
     if (
       text.length < (schema.minLength ?? 0) ||
       text.length > (schema.maxLength ?? Infinity) ||
-      (schema.pattern && !new RegExp(schema.pattern).test(text))
+      (schema.pattern && !SCHEMA_PATTERNS.get(schema.pattern)!.test(text))
     )
       fail("String bound at " + path);
   } else if (schema.type === "integer" || schema.type === "number") {

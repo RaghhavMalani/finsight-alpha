@@ -1,0 +1,160 @@
+{
+  "schema_version": "factors-lazy-panel-proof/1",
+  "evidence_class": "ENGINEERING_QA",
+  "source_commit": "7cf5e50572e871328d768112d5eab8d465e26788",
+  "global_manifest_bytes": 358747,
+  "global_manifest_sha256": "2fce580242985e48ceeb29f0e376914ccb26868b9a37c466bc451238056457f7",
+  "limits": {
+    "initial_data_bytes": 524288,
+    "incremental_javascript_gzip_bytes": 65536
+  },
+  "full_browser_matrix": {
+    "result": "PASS",
+    "browsers": ["chrome", "msedge", "firefox"],
+    "countries": ["US", "INDIA"],
+    "cutoffs": [
+      "2026-10-10T12:34:47.123204Z",
+      "2026-10-10T13:09:33.975258Z",
+      "2026-10-10T13:59:59.414508Z"
+    ],
+    "viewports": [1440, 390],
+    "static_checks": 288,
+    "sabotage_cases_per_browser": 12,
+    "original_sabotages_retained": 10,
+    "deferred_missing_panel_sabotages": 2,
+    "lazy_request_and_cache_reuse_checks": "PASS",
+    "zero_api_vendor_traffic": true,
+    "log": ".tmp/phase7-factors-browser-final.log"
+  },
+  "postpublication_initial_probes": [
+    {
+      "browser": "chrome",
+      "country": "US",
+      "initial_data_bytes": 493013,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "chrome",
+      "country": "INDIA",
+      "initial_data_bytes": 493010,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "msedge",
+      "country": "US",
+      "initial_data_bytes": 493013,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "msedge",
+      "country": "INDIA",
+      "initial_data_bytes": 493010,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "firefox",
+      "country": "US",
+      "initial_data_bytes": 493013,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "firefox",
+      "country": "INDIA",
+      "initial_data_bytes": 493010,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    }
+  ],
+  "incremental_javascript_gzip_bytes": 23341,
+  "chunks": [
+    {
+      "name": "factors-DX1ycG0Y.js",
+      "raw_bytes": 15243,
+      "gzip_bytes": 4744
+    },
+    {
+      "name": "LineageDrawer-VlrSgJ18.js",
+      "raw_bytes": 2315,
+      "gzip_bytes": 1074
+    },
+    {
+      "name": "query-DXzKEMqB.js",
+      "raw_bytes": 109815,
+      "gzip_bytes": 15900
+    },
+    {
+      "name": "RetainedDiagnostics-CtnA0W7j.js",
+      "raw_bytes": 4305,
+      "gzip_bytes": 1623
+    }
+  ],
+  "all_interactions_network_proof": {
+    "schema_version": "factors-network-proof/1",
+    "evidence_class": "ENGINEERING_QA",
+    "browser": "chrome",
+    "countries": ["US", "INDIA"],
+    "cutoffs": [
+      "2026-10-10T12:34:47.123204Z",
+      "2026-10-10T13:09:33.975258Z",
+      "2026-10-10T13:59:59.414508Z"
+    ],
+    "panels": ["catalog", "audit", "ledger", "lineage"],
+    "risk_javascript_requests": 0,
+    "scripts": [
+      "/assets/index-cUHeo1rL.js",
+      "/assets/jsx-runtime-n5LQ9ujS.js",
+      "/assets/react-dom-CQmWuZA8.js",
+      "/assets/Match-BVbSqRWI.js",
+      "/assets/lazyRouteComponent-BA-fd_SA.js",
+      "/assets/link-DIv42wgR.js",
+      "/assets/useMatch-_t8iZQDk.js",
+      "/assets/root-DLTE-HSj.js",
+      "/assets/useSelector-SMYh0rPl.js",
+      "/assets/query-ChMwgRNV.js",
+      "/assets/preload-helper-Czpn1I53.js",
+      "/assets/contracts-CGi5jbv7.js",
+      "/assets/factors-DBTb_Sux.js",
+      "/assets/useSearch-ZY1MAi2f.js",
+      "/assets/useNavigate-IpFqW5Td.js",
+      "/assets/ForgeShell-qRNDagH4.js",
+      "/assets/query-CBkgaxy1.js",
+      "/assets/matchContext-GQpJ4Iuv.js",
+      "/assets/useParams-CbkD5rfR.js",
+      "/assets/with-selector-DeHT1bGq.js",
+      "/assets/shell-DTZlUZuX.js",
+      "/assets/instruments-BNqRWfgg.js",
+      "/assets/factor-series-BaUqAhqC.js",
+      "/assets/client-M5moVStk.js",
+      "/assets/useQuery-QanoAicU.js",
+      "/assets/api-3gopBTc7.js",
+      "/assets/contracts-B65WguUK.js",
+      "/assets/ripple-0B0clhCR.js",
+      "/assets/RetainedDiagnostics-SB3IpDvY.js",
+      "/assets/LineageDrawer-DGRvN1Z1.js"
+    ]
+  },
+  "frozen_phase6_screenshots_modified": false
+}

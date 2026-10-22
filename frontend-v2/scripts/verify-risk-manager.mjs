@@ -238,6 +238,30 @@ const shiftUTC = (value, delta) => {
   );
 };
 assert.equal(utcMicros("2026-10-19T06:20:06.85Z"), utcMicros("2026-10-19T06:20:06.850000Z"));
+const preciseClock = "2026-10-21T06:09:58.066349Z",
+  preciseMicros = utcMicros(preciseClock),
+  invalidClocks = [
+    "0000-01-01T00:00:00Z",
+    "2026-02-30T00:00:00Z",
+    "2026-13-01T00:00:00Z",
+    "2026-10-21T24:00:00Z",
+    "2026-10-21T06:09:58.0663490Z",
+    "2026-10-21T06:09:58.066349+00:00",
+    "\uFEFF2026-10-21T06:09:58.066349Z",
+  ];
+assert.equal(utcMicros("2026-10-21T06:09:58.066350Z") - preciseMicros, 1n);
+for (let pass = 0; pass < 2; pass++) {
+  assert.equal(
+    utcMicros(preciseClock),
+    preciseMicros,
+    "Warm or evicted clocks retain microseconds",
+  );
+  for (const invalid of invalidClocks) assert.throws(() => utcMicros(invalid));
+  for (let index = 0; index < 300; index++)
+    utcMicros(new Date(Date.UTC(2026, 0, 1, 0, 0, index)).toISOString());
+}
+assert.equal(utcMicros(preciseClock), preciseMicros);
+checks += 18;
 const sameEpoch = structuredClone(state);
 sameEpoch.payload.issues[0].evidence_at = sameEpoch.payload.issues[0].evidence_cutoff;
 validateRisk(sameEpoch, "risk-state");
