@@ -1,7 +1,10 @@
 {
   "schema_version": "risk-browser-proof/1",
   "evidence_class": "ENGINEERING_QA",
-  "base": "http://127.0.0.1:4174",
+  "base": "http://127.0.0.1:4176",
+  "manifest_sha256": "036556c1c62fcb3225dac9b8533ca42b8f13a91a1096ff9b38f0e77a34515baf",
+  "state_ref": "risk:state:a4f9ca119ef214f21a7eb1b8749f21e44d3643ec1e0c4b8ec9bc44e7d3d077ce",
+  "sweep_ref": "risk:sweep:63467f3612c0c56f1a849125c0ed1883122b15aa163257c1fadbc5cfbf0b27a7",
   "real": [
     {
       "browser": "chrome",
@@ -20,19 +23,19 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 247827,
-      "initialTotalDataBytes": 304434,
-      "coldLoadMs": 1280,
-      "warmLoadMs": 175,
-      "filterInteractionMs": 7.800000011920929,
+      "initialRiskBytes": 247325,
+      "initialTotalDataBytes": 307532,
+      "coldLoadMs": 739,
+      "warmLoadMs": 113,
+      "filterInteractionMs": 6.400000000372529,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 39.400000005960464
+          "duration": 8.299999999813735
         },
         {
           "name": "risk-contract-validation",
-          "duration": 38.599999994039536
+          "duration": 7.699999999720603
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -42,7 +45,7 @@
       "screenshots": "real unmodified responses",
       "normalGlobalRead": {
         "route": "/markets",
-        "bytes": 358747,
+        "bytes": 373577,
         "result": "PASS"
       }
     },
@@ -63,19 +66,19 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 247827,
-      "initialTotalDataBytes": 304434,
-      "coldLoadMs": 727,
-      "warmLoadMs": 101,
-      "filterInteractionMs": 7.600000023841858,
+      "initialRiskBytes": 247325,
+      "initialTotalDataBytes": 307532,
+      "coldLoadMs": 717,
+      "warmLoadMs": 108,
+      "filterInteractionMs": 6.5,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 7.5
+          "duration": 8.299999999813735
         },
         {
           "name": "risk-contract-validation",
-          "duration": 7.699999988079071
+          "duration": 7.899999999906868
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -85,7 +88,7 @@
       "screenshots": "verified, no screenshots retained",
       "normalGlobalRead": {
         "route": "/markets",
-        "bytes": 358747,
+        "bytes": 373577,
         "result": "PASS"
       }
     },
@@ -106,19 +109,19 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 247827,
-      "initialTotalDataBytes": 304434,
-      "coldLoadMs": 971,
-      "warmLoadMs": 418,
-      "filterInteractionMs": 5,
+      "initialRiskBytes": 247325,
+      "initialTotalDataBytes": 307532,
+      "coldLoadMs": 1084,
+      "warmLoadMs": 324,
+      "filterInteractionMs": 4,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 12
+          "duration": 21
         },
         {
           "name": "risk-contract-validation",
-          "duration": 7
+          "duration": 16
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -128,7 +131,7 @@
       "screenshots": "verified, no screenshots retained",
       "normalGlobalRead": {
         "route": "/markets",
-        "bytes": 358747,
+        "bytes": 373577,
         "result": "PASS"
       }
     }
@@ -206,7 +209,10 @@
       "evidence_class": "SYNTHETIC_TEST_ONLY",
       "case": "failed-sweep-prior-state",
       "result": "PASS",
-      "priorFeedPreserved": true
+      "priorFeedPreserved": true,
+      "initialRiskBytes": 253302,
+      "initialTotalDataBytes": 314263,
+      "sourceReceiptIncludedInBudget": true
     },
     {
       "browser": "msedge",

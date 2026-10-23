@@ -1,7 +1,7 @@
 {
   "schema_version": "risk-ui-static-proof/1",
-  "checks": 144,
-  "risk_artifacts": 18,
+  "checks": 166,
+  "risk_artifacts": 21,
   "issues": 34,
   "coverage_slots": 76,
   "origin_proofs": [
@@ -26,6 +26,11 @@
       "origins": 27
     },
     {
+      "state_ref": "risk:state:a4f9ca119ef214f21a7eb1b8749f21e44d3643ec1e0c4b8ec9bc44e7d3d077ce",
+      "cutoff": "2026-10-22T06:12:54.143951Z",
+      "origins": 45
+    },
+    {
       "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
       "cutoff": "2026-10-13T07:48:05.159978Z",
       "origins": 27
@@ -36,6 +41,7 @@
       "origins": 27
     }
   ],
+  "compact_source_substitution_checks": 17,
   "admitted_monitoring_epochs": [
     "2026-10-13T07:48:05.159978Z",
     "2026-10-14T06:16:11.008297Z",
@@ -45,40 +51,43 @@
     "2026-10-18T06:03:45.703339Z",
     "2026-10-19T06:20:06.850005Z",
     "2026-10-20T06:10:32.259779Z",
-    "2026-10-21T06:09:58.066349Z"
+    "2026-10-21T06:09:58.066349Z",
+    "2026-10-22T06:12:54.143951Z"
   ],
-  "initial_risk_bytes": 247827,
-  "total_initial_bytes": 304434,
-  "initial_manifest_bytes": 56607,
-  "global_manifest_bytes": 358747,
-  "initial_manifest_sha256": "8b284a8c90793b45786136d200de5643b824023b58e77e38423ba2ff41009a5d",
-  "global_manifest_sha256": "2fce580242985e48ceeb29f0e376914ccb26868b9a37c466bc451238056457f7",
-  "validation_max_ms": 11.118199999999888,
-  "synthetic_1000_filter_max_ms": 1.0304999999998472,
+  "initial_risk_bytes": 247325,
+  "total_initial_bytes": 307532,
+  "initial_manifest_bytes": 60207,
+  "global_manifest_bytes": 373577,
+  "initial_manifest_sha256": "f5515a4bd54c119785288732e059d2f4e9b8ebaf95dba2061b8782fe601a59a3",
+  "global_manifest_sha256": "036556c1c62fcb3225dac9b8533ca42b8f13a91a1096ff9b38f0e77a34515baf",
+  "validation_max_ms": 11.669399999999996,
+  "synthetic_1000_filter_max_ms": 1.244799999999941,
   "synthetic_fixture_evidence_class": "SYNTHETIC_TEST_ONLY",
-  "actual_sweep": "7c3377722c399159341871d7f97a3c8a9075a224de887e9409574b9e0b08ddeb",
+  "actual_sweep": "62f2f60b40cac3e36a599fda4b28390887fbda06e04bf5dfe306f0bc64553ee5",
   "future_monitoring": {
     "evidence_class": "SYNTHETIC_TEST_ONLY",
-    "original_epochs": 9,
-    "automatically_admitted_epochs": 10,
-    "admitted_cutoff": "2026-10-22T06:09:58.066Z",
+    "original_epochs": 10,
+    "automatically_admitted_epochs": 11,
+    "admitted_cutoff": "2026-10-23T06:12:54.143Z",
     "new_diagnostic_resolved": true,
     "rejection_checks": 29,
     "publication_writes": 0
   },
   "public_risk_chunk": {
-    "file": "risk-Dl0pWJWP.js",
-    "bytes": 431016,
-    "gzip_bytes": 49442,
-    "gzip_budget_bytes": 65536
+    "name": "risk-BEOubjjB.js",
+    "raw_bytes": 477642,
+    "gzip_bytes": 52737,
+    "limit_gzip_bytes": 65536
   },
-  "evidence_class": "ENGINEERING_QA",
   "gates": {
-    "lint": "PASS",
-    "types": "PASS",
-    "format": "PASS",
-    "production_build": "PASS",
-    "static": "PASS",
-    "local": "PASS"
+    "payloads": "PASS",
+    "selected_pair": "PASS",
+    "total_initial": "PASS",
+    "public_javascript": "PASS",
+    "validation": "PASS",
+    "filters": "PASS",
+    "closed_schema": "PASS",
+    "future_admission": "PASS",
+    "source_observation_links": "PASS"
   }
 }

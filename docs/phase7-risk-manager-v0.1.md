@@ -5,10 +5,10 @@ Retained scientific evidence and newly admitted Data Organ monitoring feed deter
 ## Reconciliation and scientific freeze
 
 - Canonical base: `16db82c5f2f50b98253df9989c586cd45aa98f6b`. Implementation uses the isolated `feat/phase7-risk-manager-v0.1` worktree; the original checkout was not used.
-- Main `917c7849e932b2e37cef1b5ca19099587ea11e77` was merged without rebasing. All 93 nonmanifest main additions/changes and all current Data routes remain exact in Git.
+- Main `06644485e6289503cab785278c6d3e52f9dcf437` was merged without rebasing. All 104 nonmanifest main additions/changes and all current Data routes remain exact in Git.
 - The original freeze JSON is byte-identical: 930 baseline file hashes, 221 original artifact entries, 126 original route identities and six withdrawals. Nine explicitly named mutable Data mirrors retain their original content-addressed snapshots; all other frozen files remain strict. All 119 other route bindings remain exact; seven advancing Data routes must match one sealed current Data receipt.
 - Phase 5 retains its fixed 684-file baseline; Phase 6 retains 24 metadata artifacts and 18 numerical references. SDK/Research OS/synthetic simulator histories, organs.yml and D6 remain unchanged.
-- All 15 earlier public Risk artifacts and 20 raw/proof history files remain byte-identical. The new genuine sweep adds only two risk-state files and one risk-sweep receipt: 18 retained public Risk artifacts within 295 global artifacts.
+- All 18 earlier public Risk artifacts and 24 raw/proof history files remain byte-identical. The new genuine sweep adds only two risk-state files and one risk-sweep receipt: 21 retained public Risk artifacts within 305 global artifacts.
 
 [Reconciliation byte guard](qa/phase7-risk-freeze-reconciliation-proof.json).
 
@@ -18,19 +18,19 @@ One manifest byte snapshot selects exactly /data/issues, /data/health, /data/cov
 
 Frozen scientific bindings remain exact. Current successful sweeps require the current sealed seven-entry Data receipt; historical Risk states bind their own five selected envelopes, exact input inventory and epoch. The separate Data history verifier validates retained publication receipts. Historical states are never compared with the mutable current issues mirror.
 
-The successful evaluation cutoff is the coherent selected Data bundle epoch `2026-10-21T06:09:58.066349Z`. It is included in the fingerprint. Wall-clock time, unrelated Git commits and the global manifest clock cannot age model evidence. The unchanged policy cutoff remains only a legacy receipt anchor; thresholds remain 45/120 days and the original reviewed model limits.
+The successful evaluation cutoff is the coherent selected Data bundle epoch `2026-10-22T06:12:54.143951Z`. It is included in the fingerprint. Wall-clock time, unrelated Git commits and the global manifest clock cannot age model evidence. The unchanged policy cutoff remains only a legacy receipt anchor; thresholds remain 45/120 days and the original reviewed model limits.
 
 | Selected route | Immutable artifact |
 | --- | --- |
-| /data/issues | `data-organ:issues:84a784364d611aac9701d5964407191324b1f4d112e7fc9bb9c0895c3f8cb324` |
-| /data/health | `data-organ:health:4360b532ecb7e4268d29cec15f6a25f7e40de61eac2bd62b439538ced2e6c9f5` |
-| /data/coverage | `data-organ:coverage:2566f40c4808800baad475f0efe76501955d1ad2271f9d78f69ae0ac6d79bc87` |
-| /data/disagreement | `data-organ:disagreement:47e1eb5310ddc836531aca2b0577c987bec13ca40d1c22b47934d36e3923a7b9` |
-| /data/lineage | `data-organ:lineage:b224b3fe425a2ddf5772f5f4bed353db5c030939b83521a3d4598ed5c04d502f` |
+| /data/issues | `data-organ:issues:54a51ffbbe3b7e95831b2a3e6b4d79b0ff2736ea3bcb72e8e3a8460441188433` |
+| /data/health | `data-organ:health:4f43624416b5c2ea556082afd9e8bc944ec1814eb7848da86f996caa0f8f46bd` |
+| /data/coverage | `data-organ:coverage:6e9bb3234e333b4f7e68ede69088101a810ef78f72c7027ce3e375beb2cc25f2` |
+| /data/disagreement | `data-organ:disagreement:a286b62df025f9b6e361637389e85a89e95ff0fcf05ead5f79b42ea38976b253` |
+| /data/lineage | `data-organ:lineage:a8867b289a50975023e689478a56d447611b20f828f5125fb21de28091ec1f8d` |
 
 ## Actual incidents
 
-There are 34 normalized Issues: 12 current real, 8 historical, 13 unavailable and 1 retained synthetic. All 43 current upstream origins are preserved exactly: 8 HIGH, 29 MEDIUM, 6 INFO. Their IDs, severity, status, clocks, occurrence counts and evidence match the selected upstream bundle.
+There are 34 normalized Issues: 12 current real, 8 historical, 13 unavailable and 1 retained synthetic. All 45 current upstream origins are preserved exactly: 8 HIGH, 31 MEDIUM, 6 INFO. Their IDs, severity, status, clocks, occurrence counts and evidence match the selected upstream bundle.
 
 | Partition | Category | Severity | Count |
 | --- | --- | --- | ---: |
@@ -137,36 +137,36 @@ Availability: 49 AVAILABLE, 14 PARTIAL, 13 UNAVAILABLE. Outcomes: 34 CLEAR, 21 F
 
 | Fact | Reconciled genuine sweep |
 | --- | --- |
-| `sweep_id` | `7c3377722c399159341871d7f97a3c8a9075a224de887e9409574b9e0b08ddeb` |
-| `state_id` | `5991b48c8080dd7ab5d8454c3c06e655eadf933cbfa8dc3a8dc19fc4410310e5` |
-| `fingerprint` | `3dcf356ec72b748a70508b64844c884ea658ab2348768b108cbfad3c5668970c` |
+| `sweep_id` | `62f2f60b40cac3e36a599fda4b28390887fbda06e04bf5dfe306f0bc64553ee5` |
+| `state_id` | `47f386d097d21540109e3eb63e2eb8bf598a41e22a393f365d8de3900af8d8f6` |
+| `fingerprint` | `02f9f3107ceb85fcf6f6f59e789e5716827476ee76e109c65cb7313d5b3c3214` |
 | `policy_sha256` | `8ab6fe12b3bdb61986e7b5af124c34892f84480cd6a2dfd1f1f01ec98d9c3c92` |
-| `published_at` | `2026-10-21T10:28:09.669386Z` |
-| `evidence_cutoff` | `2026-10-21T06:09:58.066349Z` |
+| `published_at` | `2026-10-22T11:55:01.286296Z` |
+| `evidence_cutoff` | `2026-10-22T06:12:54.143951Z` |
 
 Transitions: {"new": 0, "resolved": 0, "unchanged": 0, "updated": 34}. The immediate identical repeat returned UNCHANGED with 0 NEW, 0 UPDATED, 0 RESOLVED, 0 new occurrences, 0 writes, 0 manifest rewrite and 0 commits.
-The actual genuine sweep took 7.9753 seconds without allocation profiling. Windows process peak working set was 58,843,136 bytes; incremental OS peak was 13,623,296 bytes.
+The actual genuine sweep took 13.9942 seconds without allocation profiling. Windows process peak working set was 59,805,696 bytes; incremental OS peak was 14,454,784 bytes.
 The before/after scientific inventory remains `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. All eight instrumented operation counts are 0: captures, model runs, plugin runs, SeriesModel runs, factor fits, research attempts, holdout openings and simulator runs. All six scientific claim flags remain literal false.
 
 Only risk-state and risk-sweep are public Risk kinds, each bounded at 128 KiB. Unknown nested fields, duplicate keys, nonfinite/coerced values, raw/private payloads, encoded carriers, arbitrary paths/URLs/selectors and promoted claims fail closed. Failed sweeps preserve the last valid feed; positive changed proof is required to resolve a System incident.
 
-Current payload bytes: state 129,633, receipt 118,194, coverage leaf 113,447. Each remains below 131,072 bytes; state headroom is 1,439 bytes. No payload or runtime budget is relaxed.
+The uncompacted primary state was 133,309 bytes. Compact source links reduce it to 127,222 bytes without changing the schema, policy, origins or budget. Current payload bytes: state 127,222, receipt 120,103, coverage leaf 113,447. Each remains below 131,072 bytes; state headroom is 3,850 bytes. No payload or runtime budget is relaxed. Primary Issue source links use the existing RISK_OBSERVATION type only when they reproduce the original finding references exactly. The paired sealed receipt and coverage leaf retain the source metadata. Historical observations, all origin fields and lifecycle IDs are preserved; resolution keeps its original finding references. Publication, archive validation and the frontend reject substituted or cyclic links. Failed initial reads include the owning successful receipt within both existing data budgets.
 
-[Genuine publication/repeat proof](../data/exports/risk_manager_v0_1/monitoring-reconciliation-2026-10-21-proof.json).
+[Genuine publication/repeat proof](../data/exports/risk_manager_v0_1/monitoring-reconciliation-2026-10-22-proof.json).
 
 ## Verification and performance
 
-- 117 Risk Manager tests pass, including new admission and per-historical-sweep conservation checks. Historical verifiers and full Factors/Regimes/general suites are included in final Linux CI; CI results are reported on the PR.
-- Frontend lint, types, formatting, production build, 144 static Risk checks, and six exact original-estimator comparisons pass. The public chunk is 49,442 bytes gzip against 65,536 bytes. All 30 browser sabotage cases fail closed; 11 operational-witness substitution probes reject.
+- The local 133-case Risk suite passed, followed by four targeted tests for the final source-link guards. The full final Linux suite collects 137 Risk cases. Historical verifiers and full Factors/Regimes/general suites are included in Linux CI; exact-head results are reported on the PR.
+- Frontend lint, types, formatting, production build, 166 static Risk checks, and six exact original-estimator comparisons pass. The public chunk is 52,737 bytes gzip against 65,536 bytes. All 30 browser sabotage cases fail closed; 11 operational-witness substitution probes reject.
 - Chrome, Edge and Firefox pass 1440/390/1920 coverage, navigation/history, focus/Escape, privacy isolation and fail-closed sabotage. All real responses remain unmodified; failure scenes are explicitly SYNTHETIC_TEST_ONLY.
 
 | Browser | Cold ms | Warm ms | Filter ms | Max validation ms | API/provider/paper/tape |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| chrome | 1280 | 175 | 7.80 | 39.40 | 0 |
-| msedge | 727 | 101 | 7.60 | 7.70 | 0 |
-| firefox | 971 | 418 | 5.00 | 12.00 | 0 |
+| chrome | 739 | 113 | 6.40 | 8.30 | 0 |
+| msedge | 717 | 108 | 6.50 | 8.30 | 0 |
+| firefox | 1084 | 324 | 4.00 | 21.00 | 0 |
 
-Initial selected Risk bytes: 247,827 /262,144. Initial total data including the checked read projection: 304,434 /524,288. The full global manifest remains preserved and deferred from initial Risk loading. Chunk/filter/sabotage evidence is retained in the engineering QA receipts.
+Initial selected Risk bytes: 247,325 /262,144. Initial total data including the checked read projection: 307,532 /524,288. The full global manifest remains preserved and deferred from initial Risk loading. Chunk/filter/sabotage evidence is retained in the engineering QA receipts.
 
 [Static QA](qa/phase7-risk-static-proof.json), [browser QA](qa/phase7-risk-browser-proof.json), [local regression](qa/phase7-risk-local-proof.json), [Factors lazy-panel QA](qa/phase7-factors-lazy-panel-proof.json). Real screenshots: [desktop](screenshots/phase7-risk-real-desktop.png), [mobile](screenshots/phase7-risk-real-mobile.png), [inspector](screenshots/phase7-risk-inspector.png), [coverage](screenshots/phase7-risk-coverage.png), [history](screenshots/phase7-risk-history.png). [Synthetic failure scene](screenshots/phase7-risk-failure.png).
 

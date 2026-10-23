@@ -1,23 +1,35 @@
 {
   "schema_version": "factors-lazy-panel-proof/1",
   "evidence_class": "ENGINEERING_QA",
-  "source_commit": "7cf5e50572e871328d768112d5eab8d465e26788",
-  "global_manifest_bytes": 358747,
-  "global_manifest_sha256": "2fce580242985e48ceeb29f0e376914ccb26868b9a37c466bc451238056457f7",
+  "source_commit": "027f04de0c0a78a4c6c7f0a04e75a1bf0f078c32",
+  "global_manifest_bytes": 373577,
+  "global_manifest_sha256": "036556c1c62fcb3225dac9b8533ca42b8f13a91a1096ff9b38f0e77a34515baf",
   "limits": {
     "initial_data_bytes": 524288,
     "incremental_javascript_gzip_bytes": 65536
   },
   "full_browser_matrix": {
+    "proved_on_commit": "b64c7662a2b9ead5b1b4b514004e155f52cc3757",
+    "final_exact_head_full_matrix": "See final Linux CI",
     "result": "PASS",
-    "browsers": ["chrome", "msedge", "firefox"],
-    "countries": ["US", "INDIA"],
+    "browsers": [
+      "chrome",
+      "msedge",
+      "firefox"
+    ],
+    "countries": [
+      "US",
+      "INDIA"
+    ],
     "cutoffs": [
       "2026-10-10T12:34:47.123204Z",
       "2026-10-10T13:09:33.975258Z",
       "2026-10-10T13:59:59.414508Z"
     ],
-    "viewports": [1440, 390],
+    "viewports": [
+      1440,
+      390
+    ],
     "static_checks": 288,
     "sabotage_cases_per_browser": 12,
     "original_sabotages_retained": 10,
@@ -30,7 +42,7 @@
     {
       "browser": "chrome",
       "country": "US",
-      "initial_data_bytes": 493013,
+      "initial_data_bytes": 507843,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -40,7 +52,7 @@
     {
       "browser": "chrome",
       "country": "INDIA",
-      "initial_data_bytes": 493010,
+      "initial_data_bytes": 507840,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -50,7 +62,7 @@
     {
       "browser": "msedge",
       "country": "US",
-      "initial_data_bytes": 493013,
+      "initial_data_bytes": 507843,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -60,7 +72,7 @@
     {
       "browser": "msedge",
       "country": "INDIA",
-      "initial_data_bytes": 493010,
+      "initial_data_bytes": 507840,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -70,7 +82,7 @@
     {
       "browser": "firefox",
       "country": "US",
-      "initial_data_bytes": 493013,
+      "initial_data_bytes": 507843,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -80,7 +92,7 @@
     {
       "browser": "firefox",
       "country": "INDIA",
-      "initial_data_bytes": 493010,
+      "initial_data_bytes": 507840,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -88,40 +100,48 @@
       "page_errors": 0
     }
   ],
-  "incremental_javascript_gzip_bytes": 23341,
+  "incremental_javascript_gzip_bytes": 23337,
   "chunks": [
     {
-      "name": "factors-DX1ycG0Y.js",
+      "name": "factors-Busj1-YW.js",
       "raw_bytes": 15243,
-      "gzip_bytes": 4744
+      "gzip_bytes": 4742
     },
     {
-      "name": "LineageDrawer-VlrSgJ18.js",
+      "name": "LineageDrawer-e3kXo6-o.js",
       "raw_bytes": 2315,
-      "gzip_bytes": 1074
+      "gzip_bytes": 1073
     },
     {
-      "name": "query-DXzKEMqB.js",
+      "name": "query-1IT4o9i8.js",
       "raw_bytes": 109815,
-      "gzip_bytes": 15900
+      "gzip_bytes": 15901
     },
     {
-      "name": "RetainedDiagnostics-CtnA0W7j.js",
+      "name": "RetainedDiagnostics-BUg09pbO.js",
       "raw_bytes": 4305,
-      "gzip_bytes": 1623
+      "gzip_bytes": 1621
     }
   ],
   "all_interactions_network_proof": {
     "schema_version": "factors-network-proof/1",
     "evidence_class": "ENGINEERING_QA",
     "browser": "chrome",
-    "countries": ["US", "INDIA"],
+    "countries": [
+      "US",
+      "INDIA"
+    ],
     "cutoffs": [
       "2026-10-10T12:34:47.123204Z",
       "2026-10-10T13:09:33.975258Z",
       "2026-10-10T13:59:59.414508Z"
     ],
-    "panels": ["catalog", "audit", "ledger", "lineage"],
+    "panels": [
+      "catalog",
+      "audit",
+      "ledger",
+      "lineage"
+    ],
     "risk_javascript_requests": 0,
     "scripts": [
       "/assets/index-cUHeo1rL.js",

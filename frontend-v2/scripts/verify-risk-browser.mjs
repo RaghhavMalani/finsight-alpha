@@ -38,6 +38,9 @@ const report = {
   schema_version: "risk-browser-proof/1",
   evidence_class: "ENGINEERING_QA",
   base,
+  manifest_sha256: sha(manifestRaw),
+  state_ref: stateId,
+  sweep_ref: sweepId,
   real: [],
   synthetic: [],
 };
@@ -193,7 +196,10 @@ for (const name of channels) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return performance.now() - start;
   });
-  assert(interaction <= 100, "Actual filter interaction budget");
+  assert(
+    interaction <= 100,
+    "Actual filter interaction budget: " + interaction + " ms (limit 100 ms)",
+  );
   await feed.getByRole("button", { name: /retained input age/i }).click();
   await page.locator('[aria-label="Issue evidence inspector"]').waitFor();
   assert(await page.getByText("STALE_INPUT", { exact: true }).count());
@@ -491,6 +497,7 @@ for (const name of channels) {
       case: sabotage,
       result: "FAILED_CLOSED",
     });
+    await c.unrouteAll({ behavior: "wait" });
     await c.close();
   }
   if (name === "chrome") {
@@ -629,6 +636,7 @@ for (const name of channels) {
       initialTotalDataBytes: failedTotalBytes,
       sourceReceiptIncludedInBudget: true,
     });
+    await c.unrouteAll({ behavior: "wait" });
     await c.close();
   }
   await browser.close();

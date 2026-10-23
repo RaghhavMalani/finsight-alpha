@@ -326,11 +326,20 @@ assert.equal(
   stable(sweep.payload.inputs),
   stable(reviewedMonitoringBundle(sweep.evidence_cutoff).inputs),
 );
+// Exercise the still-supported direct-reference schema in legacy provenance rejection probes.
+function directReferenceFixture() {
+  const value = structuredClone(state);
+  for (let index = 0; index < value.payload.issues.length; index++)
+    value.payload.issues[index].evidence_refs = structuredClone(
+      checkedIssueReferences(state.payload.issues[index], sweep),
+    );
+  return value;
+}
 const otherBundle = MONITORING_CATALOG.bundles.find(
   (bundle) => bundle.evaluation_cutoff !== state.evidence_cutoff,
 );
 if (otherBundle) {
-  const crossEpoch = structuredClone(state);
+  const crossEpoch = directReferenceFixture();
   const ref = crossEpoch.payload.issues
     .flatMap((issue) => issue.evidence_refs)
     .find((item) => item.selector_id === "data_issues");
@@ -497,7 +506,7 @@ for (const mutate of [
   (v) => (v.payload.issues[0].first_seen_at = "2099-01-01T00:00:00Z"),
   (v) => (v.licence.permitted_uses = ["display"]),
 ]) {
-  const copy = structuredClone(state);
+  const copy = directReferenceFixture();
   mutate(copy);
   assert.throws(() => validateRisk(copy, "risk-state"));
   checks++;
