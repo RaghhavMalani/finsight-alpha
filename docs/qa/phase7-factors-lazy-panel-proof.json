@@ -1,9 +1,10 @@
 {
   "schema_version": "factors-lazy-panel-proof/1",
   "evidence_class": "ENGINEERING_QA",
-  "source_commit": "027f04de0c0a78a4c6c7f0a04e75a1bf0f078c32",
-  "global_manifest_bytes": 373577,
-  "global_manifest_sha256": "036556c1c62fcb3225dac9b8533ca42b8f13a91a1096ff9b38f0e77a34515baf",
+  "verification_date": "2026-10-23",
+  "source_commit": "08f67ef21ca9801da713c42a35b579e01275fd07",
+  "global_manifest_bytes": 388407,
+  "global_manifest_sha256": "1cdbd7463b084b587299251dad032ae3deb718d8578fa18435e8b53500a0e443",
   "limits": {
     "initial_data_bytes": 524288,
     "incremental_javascript_gzip_bytes": 65536
@@ -42,7 +43,7 @@
     {
       "browser": "chrome",
       "country": "US",
-      "initial_data_bytes": 507843,
+      "initial_data_bytes": 522673,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -52,7 +53,7 @@
     {
       "browser": "chrome",
       "country": "INDIA",
-      "initial_data_bytes": 507840,
+      "initial_data_bytes": 522670,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -62,7 +63,7 @@
     {
       "browser": "msedge",
       "country": "US",
-      "initial_data_bytes": 507843,
+      "initial_data_bytes": 522673,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -72,7 +73,7 @@
     {
       "browser": "msedge",
       "country": "INDIA",
-      "initial_data_bytes": 507840,
+      "initial_data_bytes": 522670,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -82,7 +83,7 @@
     {
       "browser": "firefox",
       "country": "US",
-      "initial_data_bytes": 507843,
+      "initial_data_bytes": 522673,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -92,7 +93,7 @@
     {
       "browser": "firefox",
       "country": "INDIA",
-      "initial_data_bytes": 507840,
+      "initial_data_bytes": 522670,
       "initial_data_limit": 524288,
       "all_three_numerical_references_loaded": true,
       "hidden_metadata_requests": 0,
@@ -100,27 +101,27 @@
       "page_errors": 0
     }
   ],
-  "incremental_javascript_gzip_bytes": 23337,
+  "incremental_javascript_gzip_bytes": 23335,
   "chunks": [
     {
-      "name": "factors-Busj1-YW.js",
+      "name": "factors-BeW28qco.js",
       "raw_bytes": 15243,
-      "gzip_bytes": 4742
+      "gzip_bytes": 4741
     },
     {
-      "name": "LineageDrawer-e3kXo6-o.js",
+      "name": "LineageDrawer-CoPecbNK.js",
       "raw_bytes": 2315,
       "gzip_bytes": 1073
     },
     {
-      "name": "query-1IT4o9i8.js",
+      "name": "query-BFC59gqm.js",
       "raw_bytes": 109815,
-      "gzip_bytes": 15901
+      "gzip_bytes": 15899
     },
     {
-      "name": "RetainedDiagnostics-BUg09pbO.js",
+      "name": "RetainedDiagnostics-D1GF-O6O.js",
       "raw_bytes": 4305,
-      "gzip_bytes": 1621
+      "gzip_bytes": 1622
     }
   ],
   "all_interactions_network_proof": {

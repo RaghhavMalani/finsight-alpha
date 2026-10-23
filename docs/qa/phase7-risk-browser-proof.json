@@ -2,9 +2,9 @@
   "schema_version": "risk-browser-proof/1",
   "evidence_class": "ENGINEERING_QA",
   "base": "http://127.0.0.1:4176",
-  "manifest_sha256": "036556c1c62fcb3225dac9b8533ca42b8f13a91a1096ff9b38f0e77a34515baf",
-  "state_ref": "risk:state:a4f9ca119ef214f21a7eb1b8749f21e44d3643ec1e0c4b8ec9bc44e7d3d077ce",
-  "sweep_ref": "risk:sweep:63467f3612c0c56f1a849125c0ed1883122b15aa163257c1fadbc5cfbf0b27a7",
+  "manifest_sha256": "1cdbd7463b084b587299251dad032ae3deb718d8578fa18435e8b53500a0e443",
+  "state_ref": "risk:state:70ac82fde3f0f115fa4eda0beda7451f1b4d17bbecf260fd1e5534f761a2be0f",
+  "sweep_ref": "risk:sweep:d98b8a07f32e0d66ed12778e3c383c24dab3d7cbecd7ea3f14c0137f0e7daef7",
   "real": [
     {
       "browser": "chrome",
@@ -23,19 +23,19 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 247325,
-      "initialTotalDataBytes": 307532,
-      "coldLoadMs": 739,
-      "warmLoadMs": 113,
-      "filterInteractionMs": 6.400000000372529,
+      "initialRiskBytes": 252912,
+      "initialTotalDataBytes": 316719,
+      "coldLoadMs": 961,
+      "warmLoadMs": 99,
+      "filterInteractionMs": 7.399999998509884,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 8.299999999813735
+          "duration": 9.100000001490116
         },
         {
           "name": "risk-contract-validation",
-          "duration": 7.699999999720603
+          "duration": 9.5
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -45,7 +45,7 @@
       "screenshots": "real unmodified responses",
       "normalGlobalRead": {
         "route": "/markets",
-        "bytes": 373577,
+        "bytes": 388407,
         "result": "PASS"
       }
     },
@@ -66,19 +66,19 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 247325,
-      "initialTotalDataBytes": 307532,
-      "coldLoadMs": 717,
-      "warmLoadMs": 108,
-      "filterInteractionMs": 6.5,
+      "initialRiskBytes": 252912,
+      "initialTotalDataBytes": 316719,
+      "coldLoadMs": 773,
+      "warmLoadMs": 160,
+      "filterInteractionMs": 5.300000004470348,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 8.299999999813735
+          "duration": 10.299999997019768
         },
         {
           "name": "risk-contract-validation",
-          "duration": 7.899999999906868
+          "duration": 7.5
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -88,7 +88,7 @@
       "screenshots": "verified, no screenshots retained",
       "normalGlobalRead": {
         "route": "/markets",
-        "bytes": 373577,
+        "bytes": 388407,
         "result": "PASS"
       }
     },
@@ -109,19 +109,19 @@
         "current_real": 11,
         "result": "PASS"
       },
-      "initialRiskBytes": 247325,
-      "initialTotalDataBytes": 307532,
-      "coldLoadMs": 1084,
-      "warmLoadMs": 324,
-      "filterInteractionMs": 4,
+      "initialRiskBytes": 252912,
+      "initialTotalDataBytes": 316719,
+      "coldLoadMs": 1007,
+      "warmLoadMs": 532,
+      "filterInteractionMs": 7,
       "validation": [
         {
           "name": "risk-contract-validation",
-          "duration": 21
+          "duration": 14
         },
         {
           "name": "risk-contract-validation",
-          "duration": 16
+          "duration": 11
         }
       ],
       "apiProviderPaperTapeRequests": 0,
@@ -131,7 +131,7 @@
       "screenshots": "verified, no screenshots retained",
       "normalGlobalRead": {
         "route": "/markets",
-        "bytes": 373577,
+        "bytes": 388407,
         "result": "PASS"
       }
     }
@@ -210,8 +210,8 @@
       "case": "failed-sweep-prior-state",
       "result": "PASS",
       "priorFeedPreserved": true,
-      "initialRiskBytes": 253302,
-      "initialTotalDataBytes": 314263,
+      "initialRiskBytes": 258889,
+      "initialTotalDataBytes": 323450,
       "sourceReceiptIncludedInBudget": true
     },
     {
@@ -334,5 +334,7 @@
       "case": "invalid-utf8",
       "result": "FAILED_CLOSED"
     }
-  ]
+  ],
+  "source_commit": "08f67ef21ca9801da713c42a35b579e01275fd07",
+  "verification_date": "2026-10-23"
 }
