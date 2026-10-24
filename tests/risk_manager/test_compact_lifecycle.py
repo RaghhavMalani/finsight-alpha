@@ -204,9 +204,6 @@ def test_over_100_applied_observations_hydrate_reduce_archive_and_repeat_without
     original_receipt = retained[manifest["routes"]["/risk-manager/sweep"]]
     leaf_ref = original_state["payload"]["evidence_index"][0]
     original_leaf = retained[leaf_ref["artifact_id"]]
-    template = next(o for value in retained.values() if value["kind"] == "risk-sweep"
-                    for o in value["payload"]["observations"]
-                    if o["rule_id"] == "R-MODEL-AGE" and o["asset"] == "IN-MKT")
     values, previous_issues, observations = {}, [], []
     prior_ref = prior_state_ref = None
     prior_receipt = None
@@ -215,6 +212,15 @@ def test_over_100_applied_observations_hydrate_reduce_archive_and_repeat_without
     current_inputs = [current_evidence.inputs[key] for key in sorted(current_evidence.inputs)]
     cutoff = current_evidence.cutoff
     start = clock(cutoff) + timedelta(days=1)
+    # Current Data can advance independently of the last sealed Risk state.
+    # Derive fixture sources from this admitted epoch, as the public validator does.
+    current_observations, current_coverage = sweep.evaluate(
+        current_evidence, start.isoformat().replace("+00:00", "Z"))
+    template = next(o for o in current_observations
+                    if o["rule_id"] == "R-MODEL-AGE" and o["asset"] == "IN-MKT")
+    original_leaf["payload"].update(
+        coverage=[dict(row, evidence_refs=row["evidence_refs"][:1]) for row in current_coverage],
+        evidence_index=list({digest(ref): ref for row in current_coverage for ref in row["evidence_refs"]}.values()))
     for index in range(103):
         witness = (start + timedelta(seconds=index)).isoformat().replace("+00:00", "Z")
         observation = deepcopy(template)
@@ -243,7 +249,7 @@ def test_over_100_applied_observations_hydrate_reduce_archive_and_repeat_without
         page = dict(leaf_ref, artifact_id=leaf_id, sha256=sha256(leaf_raw).hexdigest(), bytes=len(leaf_raw),
                     as_of=witness, available_at=witness)
         state["payload"].update(sweep_fingerprint=fingerprint, evaluation_cutoff=cutoff, issues=[public_issue], counts=counts(issues),
-                                evidence_index=[page], historical_origin_counts=[], prior_state_ref=prior_state_ref)
+                                coverage=[], evidence_index=[page], historical_origin_counts=[], prior_state_ref=prior_state_ref)
         state["payload"]["state_id"] = digest({k: v for k, v in state["payload"].items() if k != "state_id"})
         state_id, state_raw = sealed_value(state)
         receipt = deepcopy(original_receipt)
