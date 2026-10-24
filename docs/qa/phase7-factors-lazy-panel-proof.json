@@ -1,0 +1,181 @@
+{
+  "schema_version": "factors-lazy-panel-proof/1",
+  "evidence_class": "ENGINEERING_QA",
+  "verification_date": "2026-10-23",
+  "source_commit": "08f67ef21ca9801da713c42a35b579e01275fd07",
+  "global_manifest_bytes": 388407,
+  "global_manifest_sha256": "1cdbd7463b084b587299251dad032ae3deb718d8578fa18435e8b53500a0e443",
+  "limits": {
+    "initial_data_bytes": 524288,
+    "incremental_javascript_gzip_bytes": 65536
+  },
+  "full_browser_matrix": {
+    "proved_on_commit": "b64c7662a2b9ead5b1b4b514004e155f52cc3757",
+    "final_exact_head_full_matrix": "See final Linux CI",
+    "result": "PASS",
+    "browsers": [
+      "chrome",
+      "msedge",
+      "firefox"
+    ],
+    "countries": [
+      "US",
+      "INDIA"
+    ],
+    "cutoffs": [
+      "2026-10-10T12:34:47.123204Z",
+      "2026-10-10T13:09:33.975258Z",
+      "2026-10-10T13:59:59.414508Z"
+    ],
+    "viewports": [
+      1440,
+      390
+    ],
+    "static_checks": 288,
+    "sabotage_cases_per_browser": 12,
+    "original_sabotages_retained": 10,
+    "deferred_missing_panel_sabotages": 2,
+    "lazy_request_and_cache_reuse_checks": "PASS",
+    "zero_api_vendor_traffic": true,
+    "log": ".tmp/phase7-factors-browser-final.log"
+  },
+  "postpublication_initial_probes": [
+    {
+      "browser": "chrome",
+      "country": "US",
+      "initial_data_bytes": 522673,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "chrome",
+      "country": "INDIA",
+      "initial_data_bytes": 522670,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "msedge",
+      "country": "US",
+      "initial_data_bytes": 522673,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "msedge",
+      "country": "INDIA",
+      "initial_data_bytes": 522670,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "firefox",
+      "country": "US",
+      "initial_data_bytes": 522673,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    },
+    {
+      "browser": "firefox",
+      "country": "INDIA",
+      "initial_data_bytes": 522670,
+      "initial_data_limit": 524288,
+      "all_three_numerical_references_loaded": true,
+      "hidden_metadata_requests": 0,
+      "risk_javascript_requests": 0,
+      "page_errors": 0
+    }
+  ],
+  "incremental_javascript_gzip_bytes": 23335,
+  "chunks": [
+    {
+      "name": "factors-BeW28qco.js",
+      "raw_bytes": 15243,
+      "gzip_bytes": 4741
+    },
+    {
+      "name": "LineageDrawer-CoPecbNK.js",
+      "raw_bytes": 2315,
+      "gzip_bytes": 1073
+    },
+    {
+      "name": "query-BFC59gqm.js",
+      "raw_bytes": 109815,
+      "gzip_bytes": 15899
+    },
+    {
+      "name": "RetainedDiagnostics-D1GF-O6O.js",
+      "raw_bytes": 4305,
+      "gzip_bytes": 1622
+    }
+  ],
+  "all_interactions_network_proof": {
+    "schema_version": "factors-network-proof/1",
+    "evidence_class": "ENGINEERING_QA",
+    "browser": "chrome",
+    "countries": [
+      "US",
+      "INDIA"
+    ],
+    "cutoffs": [
+      "2026-10-10T12:34:47.123204Z",
+      "2026-10-10T13:09:33.975258Z",
+      "2026-10-10T13:59:59.414508Z"
+    ],
+    "panels": [
+      "catalog",
+      "audit",
+      "ledger",
+      "lineage"
+    ],
+    "risk_javascript_requests": 0,
+    "scripts": [
+      "/assets/index-cUHeo1rL.js",
+      "/assets/jsx-runtime-n5LQ9ujS.js",
+      "/assets/react-dom-CQmWuZA8.js",
+      "/assets/Match-BVbSqRWI.js",
+      "/assets/lazyRouteComponent-BA-fd_SA.js",
+      "/assets/link-DIv42wgR.js",
+      "/assets/useMatch-_t8iZQDk.js",
+      "/assets/root-DLTE-HSj.js",
+      "/assets/useSelector-SMYh0rPl.js",
+      "/assets/query-ChMwgRNV.js",
+      "/assets/preload-helper-Czpn1I53.js",
+      "/assets/contracts-CGi5jbv7.js",
+      "/assets/factors-DBTb_Sux.js",
+      "/assets/useSearch-ZY1MAi2f.js",
+      "/assets/useNavigate-IpFqW5Td.js",
+      "/assets/ForgeShell-qRNDagH4.js",
+      "/assets/query-CBkgaxy1.js",
+      "/assets/matchContext-GQpJ4Iuv.js",
+      "/assets/useParams-CbkD5rfR.js",
+      "/assets/with-selector-DeHT1bGq.js",
+      "/assets/shell-DTZlUZuX.js",
+      "/assets/instruments-BNqRWfgg.js",
+      "/assets/factor-series-BaUqAhqC.js",
+      "/assets/client-M5moVStk.js",
+      "/assets/useQuery-QanoAicU.js",
+      "/assets/api-3gopBTc7.js",
+      "/assets/contracts-B65WguUK.js",
+      "/assets/ripple-0B0clhCR.js",
+      "/assets/RetainedDiagnostics-SB3IpDvY.js",
+      "/assets/LineageDrawer-DGRvN1Z1.js"
+    ]
+  },
+  "frozen_phase6_screenshots_modified": false
+}

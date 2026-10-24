@@ -22,13 +22,14 @@ function FactorSelection() {
     mode = useDataMode(),
     country = s.country as Country,
     cutoff = s.at,
+    panel = s.panel === "audit" ? "audit" : s.panel === "ledger" ? "ledger" : "catalog",
     valid =
       ["US", "INDIA"].includes(country) && CUTOFFS.includes(cutoff as (typeof CUTOFFS)[number]);
   const [selected, setSelected] = useState<string | null>(
       ["US-MKT", "IN-MKT"].includes(s.ticker ?? "") ? country.toLowerCase() + ":mom" : null,
     ),
     [lineage, setLineage] = useState(false),
-    q = useFactorMetadata(country, cutoff, valid);
+    q = useFactorMetadata(panel, country, cutoff, valid);
   const go = (next: Record<string, string>) =>
     navigate({ to: "/factors", search: { ...s, ...next } });
   return (
@@ -161,9 +162,9 @@ function FactorSelection() {
             ))}
             <button onClick={() => setLineage(true)}>Lineage ↗</button>
           </nav>
-          {s.panel === "catalog" ? (
+          {q.data.kind === "catalog" ? (
             <>
-              <EvidenceCatalogue data={q.data.catalog} selected={selected} onSelect={setSelected} />
+              <EvidenceCatalogue data={q.data.value} selected={selected} onSelect={setSelected} />
               <Suspense fallback={<p>Loading diagnostic view…</p>}>
                 <Diagnostics
                   country={country}
@@ -175,7 +176,7 @@ function FactorSelection() {
               <section className="factor-panel factor-unavailable">
                 <h2>Analytics without an approved contract</h2>
                 <div>
-                  {q.data.catalog.payload.unavailable_analytics.map((item) => (
+                  {q.data.value.payload.unavailable_analytics.map((item) => (
                     <article key={item.id}>
                       <b>{item.id.replaceAll("_", " ")}</b>
                       <span>UNAVAILABLE</span>
@@ -189,10 +190,10 @@ function FactorSelection() {
                 </div>
               </section>
             </>
-          ) : s.panel === "audit" ? (
-            <OutputAudit data={q.data.audit} />
+          ) : q.data.kind === "audit" ? (
+            <OutputAudit data={q.data.value} />
           ) : (
-            <EvidenceLedger data={q.data.ledger} />
+            <EvidenceLedger data={q.data.value} />
           )}
           <footer className="factor-boundaries">
             <b>Scientific claims remain closed.</b>

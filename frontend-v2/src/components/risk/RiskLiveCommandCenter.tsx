@@ -2,7 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 
 import { api, type TapeItem } from "@/lib/api";
-import { COMMODITY_QUOTES, quoteSymbol, updateBookMarks, type Book } from "@/lib/book";
+import {
+  admittedQuote,
+  clearBookMarks,
+  COMMODITY_QUOTES,
+  quoteSymbol,
+  updateBookMarks,
+  type Book,
+  type QuotedMark,
+} from "@/lib/book";
 
 type TapePayload = { items: TapeItem[]; live: boolean };
 type NewsRecord = {
@@ -218,14 +226,15 @@ export function RiskLiveCommandCenter({
   const symbolKey = marketSymbols.join(",");
   const tape = useQuery({
     queryKey: ["risk-live-tape", symbolKey],
-    queryFn: () => api<TapePayload>(`/tape?symbols=${encodeURIComponent(symbolKey)}`),
+    queryFn: ({ signal }) =>
+      api<TapePayload>(`/tape?symbols=${encodeURIComponent(symbolKey)}`, { signal }),
     refetchInterval: 30_000,
     staleTime: 15_000,
     retry: 1,
   });
   const news = useQuery({
     queryKey: ["risk-live-news"],
-    queryFn: () => api<NewsPayload>("/news/global/cues?limit=48"),
+    queryFn: ({ signal }) => api<NewsPayload>("/news/global/cues?limit=48", { signal }),
     refetchInterval: 5 * 60_000,
     staleTime: 2 * 60_000,
     retry: 1,
@@ -233,17 +242,29 @@ export function RiskLiveCommandCenter({
 
   const items = useMemo(() => tape.data?.items ?? [], [tape.data?.items]);
   useEffect(() => {
+    if (tape.isError) {
+      clearBookMarks();
+      return;
+    }
+    if (!tape.data) return;
     const heldSymbols = new Set(
       [...book.positions, ...book.unpriced].map((position) => position.symbol),
     );
-    const marks: Record<string, number> = {};
+    const marks: Record<string, QuotedMark> = {};
     for (const item of items) {
       const bookSymbol = COMMODITY_BOOK_SYMBOL[item.ticker] ?? item.ticker;
       // SPY is kept even when not held: the index hedges are sized and priced from it.
-      if (heldSymbols.has(bookSymbol) || bookSymbol === "SPY") marks[bookSymbol] = item.last;
+      const quote = {
+        mark: item.last,
+        source: item.source,
+        quote_ts: item.quote_ts,
+        live: item.live,
+      };
+      if ((heldSymbols.has(bookSymbol) || bookSymbol === "SPY") && admittedQuote(quote))
+        marks[bookSymbol] = quote;
     }
-    if (Object.keys(marks).length) updateBookMarks(marks);
-  }, [book.positions, book.unpriced, items]);
+    updateBookMarks(marks);
+  }, [book.positions, book.unpriced, items, tape.data, tape.isError]);
   const markets = useMemo(() => itemMap(items), [items]);
   const regime = useMemo(() => regimeOf(items), [items]);
   const strategies = useMemo(() => strategyDeck(items, book), [items, book]);
@@ -268,10 +289,10 @@ export function RiskLiveCommandCenter({
             <div>
               <div className="mono-caps flex flex-wrap items-center gap-2 text-[8px]">
                 <span className="border border-primary/50 bg-primary/10 px-2 py-1 text-primary">
-                  RISK OS · LIVE
+                  LOCAL PAPER LAB
                 </span>
                 <span className="border border-info/40 bg-info/5 px-2 py-1 text-info">
-                  {tape.data?.live ? `${liveCount} STREAMING` : "EOD VERIFIED"}
+                  {tape.data?.live ? `${liveCount} STREAMING` : "EOD OBSERVED"}
                 </span>
                 <span className="text-faint">30S MARKET REFRESH · 5M CATALYST REFRESH</span>
               </div>
@@ -283,8 +304,8 @@ export function RiskLiveCommandCenter({
                   {regime.label}
                 </div>
                 <div className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  {regime.note} The command layer separates portfolio truth from market
-                  intelligence, so an empty account never inherits fabricated risk.
+                  {regime.note} These local market heuristics and proxy settings are separate from
+                  retained Risk Manager evidence.
                 </div>
               </div>
             </div>
@@ -329,7 +350,7 @@ export function RiskLiveCommandCenter({
         <section className="risk-rise relative overflow-hidden border border-primary/45 bg-primary/[.04] p-5">
           <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
           <div className="mono-caps text-[8px] text-primary">
-            PORTFOLIO TRUTH · {unpriced} UNPRICED POSITION{unpriced === 1 ? "" : "S"}
+            LOCAL_PAPER_BOOK · {unpriced} UNPRICED POSITION{unpriced === 1 ? "" : "S"}
           </div>
           <div className="mt-2 font-serif text-2xl text-foreground">
             {book.unpriced.map((position) => position.symbol).join(", ")}{" "}
@@ -337,8 +358,8 @@ export function RiskLiveCommandCenter({
           </div>
           <div className="mt-2 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
             Until the tape quotes {unpriced === 1 ? "it" : "them"},{" "}
-            {unpriced === 1 ? "it stays" : "they stay"} out of NAV, P&amp;L, VaR, exposure and
-            stress. No reference level or simulated price is used in place of a quote.
+            {unpriced === 1 ? "it stays" : "they stay"} out of capital proxy, P&amp;L, VaR, exposure
+            and stress. No reference level or simulated price is used in place of a quote.
           </div>
         </section>
       )}
@@ -348,14 +369,15 @@ export function RiskLiveCommandCenter({
           <div className="absolute inset-y-0 left-0 w-1 bg-info risk-edge-pulse" />
           <div className="grid items-center gap-5 lg:grid-cols-[1fr_auto]">
             <div>
-              <div className="mono-caps text-[8px] text-info">PORTFOLIO TRUTH · ZERO POSITIONS</div>
+              <div className="mono-caps text-[8px] text-info">
+                LOCAL_PAPER_BOOK · ZERO POSITIONS
+              </div>
               <div className="mt-2 font-serif text-2xl text-foreground">
-                Your risk is zero because your paper book is empty.
+                Your paper book has no stored positions.
               </div>
               <div className="mt-2 max-w-3xl text-[11px] leading-relaxed text-muted-foreground">
-                The old screen silently injected a $10M sample book, five commodity futures, and two
-                options. That fallback is removed. Add only the positions you actually want modeled;
-                market intelligence remains active without changing your exposure.
+                Stored paper holdings stay empty. Local market heuristics and model estimates do not
+                establish real portfolio risk.
               </div>
             </div>
             <button

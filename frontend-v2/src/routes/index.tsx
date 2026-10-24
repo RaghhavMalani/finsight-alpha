@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Watch regime models converge, signal forests re-rank and neural networks you design learn, on point-in-time evidence with the holdout sealed until it counts.",
+          "Inspect checked regime models, signal traces and retained risk evidence. Training and private accounts require configured local Live mode.",
       },
     ],
   }),
@@ -48,7 +48,7 @@ const INSTRUMENTS: {
     search: { scene: "neural", ticker: "SPY" },
     code: "F8",
     title: "Neural Lab",
-    body: "Design a network, then watch every weight move as it trains in your browser on worlds with a known answer, or on real evidence through the backend.",
+    body: "Inspect a recorded neural trace. Editing and training on synthetic worlds or backend evidence require configured local Live mode.",
     tone: "#FF4FD8",
     art: <ArtNetwork />,
   },
@@ -56,7 +56,7 @@ const INSTRUMENTS: {
     to: "/globe",
     code: "F2",
     title: "God's Eye",
-    body: "Live earthquakes and satellites over the market hubs, computed into the network's Geo events inputs with the same one-day rule the backend uses.",
+    body: "Checked earthquake and satellite snapshots over market hubs. Configured local Live can load public feeds; hub proximity is descriptive.",
     tone: "#3FE0FF",
     art: <ArtGlobe />,
   },
@@ -80,8 +80,8 @@ const INSTRUMENTS: {
   {
     to: "/risk",
     code: "F3",
-    title: "Risk Desk",
-    body: "Your paper book, stress scenarios and hedges. An empty book reads as zero risk, never as an injected sample portfolio.",
+    title: "Risk Manager",
+    body: "Retained Issues, coverage and sealed sweep history. Public portfolio checks are unavailable; paper books require authenticated local Live.",
     tone: "#FF8A5B",
     art: <ArtBars />,
   },
@@ -132,7 +132,9 @@ function Landing() {
       `USGS · ${quakes.data.length} M4.5+ recorded events`,
     latest && `Latest · M${latest.mag.toFixed(1)} ${latest.place ?? ""}`,
     sats.status === "live" && `CelesTrak · ${sats.data.length} satellites propagated`,
-    "Neural lab · trains in your browser, nothing uploaded",
+    mode === "replay"
+      ? "Neural lab · recorded trace · training requires local Live"
+      : "Neural lab · local training, nothing uploaded",
   ].filter((x): x is string => !!x);
   return (
     <div className="landing">
@@ -154,7 +156,7 @@ function Landing() {
           </Link>
         </nav>
         <Link to="/login" className="ld-signin">
-          Sign in
+          Local sign in
         </Link>
       </header>
 
@@ -193,9 +195,9 @@ function Landing() {
             </span>
           </h1>
           <p className="ld-lead">
-            Watch a regime model converge, a signal forest re-rank its inputs and a neural network
-            you designed learn, epoch by epoch. Everything runs on point-in-time evidence, and the
-            holdout stays sealed until it counts.
+            {mode === "replay"
+              ? "Inspect recorded regime models, signal traces and risk evidence. Each source keeps its own availability, cutoff and limitations. Training and private paper books require configured local Live mode."
+              : "Watch a regime model converge, a signal forest re-rank its inputs and a neural network learn, epoch by epoch, through your configured local installation."}
           </p>
           <div className="ld-ctas">
             <Link to="/observatory" search={{ scene: "hmm", ticker: "SPY" }} className="ld-primary">
@@ -206,14 +208,17 @@ function Landing() {
               search={{ scene: "neural", ticker: "SPY" }}
               className="ld-secondary"
             >
-              Train a network
+              {mode === "replay" ? "Inspect neural Replay" : "Train a network"}
             </Link>
             <Link to="/globe" className="ld-secondary">
               Open God's Eye
             </Link>
           </div>
         </div>
-        <div className="ld-strip" aria-label="Live status">
+        <div
+          className="ld-strip"
+          aria-label={mode === "replay" ? "Recorded evidence status" : "Local status"}
+        >
           <div className={reduced ? "" : "ld-marquee"}>
             {[...strip, ...strip].map((item, i) => (
               <span key={i} aria-hidden={i >= strip.length}>

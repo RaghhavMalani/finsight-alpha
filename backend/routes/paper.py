@@ -45,6 +45,11 @@ def _user_id(request: Request) -> int:
     user_id = verify_session(request.cookies.get("fs_session"))
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    # Bind a local paper request to the identity it verified before dispatch.
+    # This is an assertion, never an identity/tenant override: the cookie wins.
+    expected_owner = request.headers.get("X-FinSight-Paper-Owner")
+    if expected_owner is not None and expected_owner != str(user_id):
+        raise HTTPException(status_code=401, detail="Paper account changed; authenticate again")
     return user_id
 
 

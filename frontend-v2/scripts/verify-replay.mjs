@@ -6,6 +6,7 @@ import {
   validateReplayManifest,
   validateMarketReplay,
 } from "../src/replay/contracts.ts";
+import { strictJSON, validateRisk } from "../src/risk-manager/contracts.ts";
 import { WORKSPACES } from "../src/app/workspaces.ts";
 import { validateTrace } from "../src/components/observatory/types.ts";
 import { fileURLToPath } from "node:url";
@@ -30,6 +31,8 @@ for (const [id, entry] of Object.entries(manifest.artifacts)) {
   const value = JSON.parse(bytes);
   assertDerivedPayload(value);
   if (entry.kind === "market-series") validateMarketReplay(value, id.slice(7), entry.as_of);
+  if (["risk-state", "risk-sweep"].includes(entry.kind))
+    validateRisk(strictJSON(bytes.toString("utf8")), entry.kind);
   checks++;
 }
 for (const file of readdirSync(new URL("artifacts/replay/", root)))
@@ -212,6 +215,8 @@ if (flag > 0) {
           await page.locator('.shell[data-mode="replay"] #terminal-command').waitFor();
           await page.getByRole("main").waitFor();
         }
+        if (path === "/risk")
+          await page.getByRole("region", { name: "Risk issue feed", exact: true }).waitFor();
         await page.waitForTimeout(400);
         assert.deepEqual(errors, [], `${path} @${width}: failed requests or page errors`);
         assert.deepEqual(forbidden, [], `${path} @${width}: Replay contacted a live source`);

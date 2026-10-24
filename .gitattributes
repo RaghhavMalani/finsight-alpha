@@ -65,3 +65,8 @@ data/exports/regimes_v0_1/** -text
 # Phase 6 metadata receipts retain their produced bytes.
 data/exports/factors_v0_1/** -text
 eval/factors/** -text
+
+# Phase 7 metadata and receipts preserve exact published bytes.
+eval/risk_manager/** -text
+data/exports/risk_manager_v0_1/** -text
+src/risk_manager/** text eol=lf

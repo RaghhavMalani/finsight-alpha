@@ -1,0 +1,340 @@
+{
+  "schema_version": "risk-browser-proof/1",
+  "evidence_class": "ENGINEERING_QA",
+  "base": "http://127.0.0.1:4176",
+  "manifest_sha256": "1cdbd7463b084b587299251dad032ae3deb718d8578fa18435e8b53500a0e443",
+  "state_ref": "risk:state:70ac82fde3f0f115fa4eda0beda7451f1b4d17bbecf260fd1e5534f761a2be0f",
+  "sweep_ref": "risk:sweep:d98b8a07f32e0d66ed12778e3c383c24dab3d7cbecd7ea3f14c0137f0e7daef7",
+  "real": [
+    {
+      "browser": "chrome",
+      "viewport": [
+        1440,
+        390,
+        1920
+      ],
+      "currentReal": 12,
+      "totalIssues": 34,
+      "coverageSlots": 76,
+      "historicalSelection": {
+        "sweep_id": "b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9",
+        "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+        "evidence_cutoff": "2026-10-13T07:48:05.159978Z",
+        "current_real": 11,
+        "result": "PASS"
+      },
+      "initialRiskBytes": 252912,
+      "initialTotalDataBytes": 316719,
+      "coldLoadMs": 961,
+      "warmLoadMs": 99,
+      "filterInteractionMs": 7.399999998509884,
+      "validation": [
+        {
+          "name": "risk-contract-validation",
+          "duration": 9.100000001490116
+        },
+        {
+          "name": "risk-contract-validation",
+          "duration": 9.5
+        }
+      ],
+      "apiProviderPaperTapeRequests": 0,
+      "pageErrors": 0,
+      "privateCacheIsolation": "PASS",
+      "noPolling": "PASS",
+      "screenshots": "real unmodified responses",
+      "normalGlobalRead": {
+        "route": "/markets",
+        "bytes": 388407,
+        "result": "PASS"
+      }
+    },
+    {
+      "browser": "msedge",
+      "viewport": [
+        1440,
+        390,
+        1920
+      ],
+      "currentReal": 12,
+      "totalIssues": 34,
+      "coverageSlots": 76,
+      "historicalSelection": {
+        "sweep_id": "b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9",
+        "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+        "evidence_cutoff": "2026-10-13T07:48:05.159978Z",
+        "current_real": 11,
+        "result": "PASS"
+      },
+      "initialRiskBytes": 252912,
+      "initialTotalDataBytes": 316719,
+      "coldLoadMs": 773,
+      "warmLoadMs": 160,
+      "filterInteractionMs": 5.300000004470348,
+      "validation": [
+        {
+          "name": "risk-contract-validation",
+          "duration": 10.299999997019768
+        },
+        {
+          "name": "risk-contract-validation",
+          "duration": 7.5
+        }
+      ],
+      "apiProviderPaperTapeRequests": 0,
+      "pageErrors": 0,
+      "privateCacheIsolation": "PASS",
+      "noPolling": "PASS",
+      "screenshots": "verified, no screenshots retained",
+      "normalGlobalRead": {
+        "route": "/markets",
+        "bytes": 388407,
+        "result": "PASS"
+      }
+    },
+    {
+      "browser": "firefox",
+      "viewport": [
+        1440,
+        390,
+        1920
+      ],
+      "currentReal": 12,
+      "totalIssues": 34,
+      "coverageSlots": 76,
+      "historicalSelection": {
+        "sweep_id": "b5a2bba45bb5e5565757aeea2e6df5c78ed5046d92964ba2fb5fb377ffe720b9",
+        "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+        "evidence_cutoff": "2026-10-13T07:48:05.159978Z",
+        "current_real": 11,
+        "result": "PASS"
+      },
+      "initialRiskBytes": 252912,
+      "initialTotalDataBytes": 316719,
+      "coldLoadMs": 1007,
+      "warmLoadMs": 532,
+      "filterInteractionMs": 7,
+      "validation": [
+        {
+          "name": "risk-contract-validation",
+          "duration": 14
+        },
+        {
+          "name": "risk-contract-validation",
+          "duration": 11
+        }
+      ],
+      "apiProviderPaperTapeRequests": 0,
+      "pageErrors": 0,
+      "privateCacheIsolation": "PASS",
+      "noPolling": "PASS",
+      "screenshots": "verified, no screenshots retained",
+      "normalGlobalRead": {
+        "route": "/markets",
+        "bytes": 388407,
+        "result": "PASS"
+      }
+    }
+  ],
+  "synthetic": [
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "checksum",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-sources",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-clock",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-url",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "nested-payload",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "claim-promotion",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "invalid-utf8",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "receipt-bound-failure-witness-contract",
+      "result": "PASS",
+      "rejection_checks": 11
+    },
+    {
+      "browser": "chrome",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "failed-sweep-prior-state",
+      "result": "PASS",
+      "priorFeedPreserved": true,
+      "initialRiskBytes": 258889,
+      "initialTotalDataBytes": 323450,
+      "sourceReceiptIncludedInBudget": true
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "checksum",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-sources",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-clock",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-url",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "nested-payload",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "claim-promotion",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "msedge",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "invalid-utf8",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "checksum",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-permission",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-sources",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-clock",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "monitoring-url",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "nested-payload",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "claim-promotion",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "duplicate-key",
+      "result": "FAILED_CLOSED"
+    },
+    {
+      "browser": "firefox",
+      "evidence_class": "SYNTHETIC_TEST_ONLY",
+      "case": "invalid-utf8",
+      "result": "FAILED_CLOSED"
+    }
+  ],
+  "source_commit": "08f67ef21ca9801da713c42a35b579e01275fd07",
+  "verification_date": "2026-10-23"
+}

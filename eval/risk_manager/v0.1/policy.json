@@ -1,0 +1,676 @@
+{
+  "schema_version": "risk-policy/1",
+  "version": "0.1",
+  "base": "16db82c5f2f50b98253df9989c586cd45aa98f6b",
+  "evaluation_cutoff": "2026-10-13T07:48:05.159978Z",
+  "rules": [
+    {
+      "rule_id": "R-DATA-ATTEMPT",
+      "rule_version": 1,
+      "category": "DATA",
+      "check_id": "DATA_SOURCE_ATTEMPTS",
+      "reason_codes": [
+        "SOURCE_ATTEMPT_FAILED",
+        "UNKNOWN_ORIGIN"
+      ],
+      "severity": "HIGH",
+      "predicate": "Preserve upstream source-attempt severity and current admission scope.",
+      "unit": "events",
+      "input_selectors": [
+        "data_issues",
+        "data_coverage"
+      ],
+      "inherited_policy": null,
+      "remediation": "Witness admitted operator evidence and reviewed publication permission.",
+      "limitations": "Historical INFO attempts remain historical; no provider request."
+    },
+    {
+      "rule_id": "R-DATA-HEALTH",
+      "rule_version": 1,
+      "category": "DATA",
+      "check_id": "DATA_SOURCE_HEALTH",
+      "reason_codes": [
+        "PARTIAL_SOURCE_HEALTH",
+        "UNKNOWN_ORIGIN"
+      ],
+      "severity": "MEDIUM",
+      "predicate": "Preserve upstream partial health; join exact diagnostic IDs.",
+      "unit": "status",
+      "input_selectors": [
+        "data_issues",
+        "data_health"
+      ],
+      "inherited_policy": null,
+      "remediation": "Supply admitted quarantine remediation or official calendar evidence.",
+      "limitations": "Group compatible diagnostics; preserve all origin IDs and clocks."
+    },
+    {
+      "rule_id": "R-DATA-FRESHNESS",
+      "rule_version": 1,
+      "category": "DATA",
+      "check_id": "DATA_STALENESS",
+      "reason_codes": [
+        "SOURCE_STALE"
+      ],
+      "severity": "MEDIUM",
+      "predicate": "Trigger only retained freshness_status STALE; daily >7 days, BLS_U3 >65 days at age_reference.",
+      "unit": "calendar_days",
+      "input_selectors": [
+        "data_health"
+      ],
+      "inherited_policy": "data-health/2",
+      "remediation": "Supply new admitted evidence through Data Organ.",
+      "limitations": "HISTORICAL_WINDOW is not current staleness."
+    },
+    {
+      "rule_id": "R-DATA-GAPS",
+      "rule_version": 1,
+      "category": "DATA",
+      "check_id": "DATA_GAPS",
+      "reason_codes": [
+        "EVIDENCED_SESSION_GAPS"
+      ],
+      "severity": "MEDIUM",
+      "predicate": "missing_sessions >0 only with calendar_status AVAILABLE.",
+      "unit": "observations",
+      "input_selectors": [
+        "data_health"
+      ],
+      "inherited_policy": "data-health/2",
+      "remediation": "Supply complete admitted window or reviewed omission explanation.",
+      "limitations": "India has no evidenced XNSE calendar; macro sessions not applicable."
+    },
+    {
+      "rule_id": "R-DATA-MIRROR",
+      "rule_version": 1,
+      "category": "DATA",
+      "check_id": "DATA_PROVIDER_DISAGREEMENT",
+      "reason_codes": [
+        "MIRROR_DISCREPANCY"
+      ],
+      "severity": "LOW",
+      "predicate": "Retained compatible summary different >0; original absolute delta >1e-12.",
+      "unit": "pairs",
+      "input_selectors": [
+        "data_disagreement"
+      ],
+      "inherited_policy": "data-health/2",
+      "remediation": "Investigate exact source/vintage discrepancy through Data Organ.",
+      "limitations": "Retained ALFRED/BLS same-upstream mirror; current refresh unavailable."
+    },
+    {
+      "rule_id": "R-MODEL-HMM-CONVERGENCE",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_HMM_CONVERGENCE",
+      "reason_codes": [
+        "HMM_UNCONVERGED"
+      ],
+      "severity": "MEDIUM",
+      "predicate": "converged=false; retained absolute final likelihood change <0.01; iteration cap is not convergence.",
+      "unit": "boolean",
+      "input_selectors": [
+        "model_snapshot",
+        "model_lineage"
+      ],
+      "inherited_policy": "regimes-profile/1",
+      "remediation": "Separately reviewed model repair; no F3 refit.",
+      "limitations": "Parameter-retrospective and uncalibrated."
+    },
+    {
+      "rule_id": "R-MODEL-OCCUPANCY",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_STATE_OCCUPANCY",
+      "reason_codes": [
+        "LOW_STATE_OCCUPANCY"
+      ],
+      "severity": "LOW",
+      "predicate": "Any retained share <0.05 OR occupancy count <30.",
+      "unit": "observations",
+      "input_selectors": [
+        "model_snapshot",
+        "model_lineage"
+      ],
+      "inherited_policy": "regimes-profile/1",
+      "remediation": "Review state identification separately.",
+      "limitations": "Descriptive state sufficiency; no inference certificate."
+    },
+    {
+      "rule_id": "R-MODEL-INSTABILITY",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_SWITCHING",
+      "reason_codes": [
+        "REGIME_INSTABILITY"
+      ],
+      "severity": "MEDIUM",
+      "predicate": "Retained recent_switches >5 in exactly 20 observations.",
+      "unit": "observations",
+      "input_selectors": [
+        "model_snapshot",
+        "model_lineage"
+      ],
+      "inherited_policy": "regimes-profile/1",
+      "remediation": "Review model and window separately.",
+      "limitations": "Retrospective path, not prospective regime-change certification."
+    },
+    {
+      "rule_id": "R-MODEL-OOD",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_OOD",
+      "reason_codes": [
+        "MODEL_OOD_DIAGNOSTIC"
+      ],
+      "severity": "LOW",
+      "predicate": "Read retained ood flag at stored chi-square quantile 0.999; no distance recomputation.",
+      "unit": "boolean",
+      "input_selectors": [
+        "model_snapshot",
+        "model_lineage"
+      ],
+      "inherited_policy": "regimes-profile/1",
+      "remediation": "Suppress unsupported predictive interpretation; require consumer receipts.",
+      "limitations": "HMM diagnostic only; false OOD is not full supported manifold."
+    },
+    {
+      "rule_id": "R-MODEL-GARCH-CONVERGENCE",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_GARCH_CONVERGENCE",
+      "reason_codes": [
+        "GARCH_UNCONVERGED"
+      ],
+      "severity": "LOW",
+      "predicate": "Retained fit_status UNCONVERGED or converged=false.",
+      "unit": "boolean",
+      "input_selectors": [
+        "model_snapshot",
+        "model_lineage"
+      ],
+      "inherited_policy": "regimes-profile/1",
+      "remediation": "Separate optimizer review; no rerun.",
+      "limitations": "Original GARCH severity LOW is preserved."
+    },
+    {
+      "rule_id": "R-MODEL-GARCH-DOMAIN",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_GARCH_DOMAIN",
+      "reason_codes": [
+        "GARCH_BOUNDARY",
+        "GARCH_UNIDENTIFIED",
+        "GARCH_INVALID_DOMAIN"
+      ],
+      "severity": "LOW",
+      "predicate": "Retained BOUNDARY/UNIDENTIFIED/invalid half_life_domain. Boundary 1e-4; identification alpha-1.96 robust SE >0.",
+      "unit": "status",
+      "input_selectors": [
+        "model_snapshot",
+        "model_lineage"
+      ],
+      "inherited_policy": "regimes-profile/1",
+      "remediation": "Leave invalid half-life unavailable.",
+      "limitations": "Asymptotic identification diagnostic only."
+    },
+    {
+      "rule_id": "R-MODEL-AGE",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_INPUT_AGE",
+      "reason_codes": [
+        "STALE_INPUT"
+      ],
+      "severity": "HIGH",
+      "predicate": "Explicit pinned cutoff minus state_at: >120 calendar days HIGH, >45 MEDIUM; no rounding.",
+      "unit": "calendar_days",
+      "input_selectors": [
+        "model_snapshot"
+      ],
+      "inherited_policy": "regimes-profile/1",
+      "remediation": "New separately authorized retained evidence; no Phase 5 refresh.",
+      "limitations": "Evidence-only epoch; identical later dispatch is unchanged."
+    },
+    {
+      "rule_id": "R-MODEL-LINEAGE",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_LINEAGE",
+      "reason_codes": [
+        "INPUT_LINEAGE_INVALID"
+      ],
+      "severity": "CRITICAL",
+      "predicate": "Require exact source/run/producer/country/cutoff/profile joins.",
+      "unit": "status",
+      "input_selectors": [
+        "model_snapshot",
+        "model_lineage"
+      ],
+      "inherited_policy": null,
+      "remediation": "Restore immutable bindings or withdraw unsafe new publication.",
+      "limitations": "Missing input is unavailable, not proof of corruption."
+    },
+    {
+      "rule_id": "R-MODEL-ABSTENTION",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_ABSTENTION",
+      "reason_codes": [
+        "UNSUPPORTED_MANIFOLD_USE"
+      ],
+      "severity": "HIGH",
+      "predicate": "Consumer receipt required; numerical/decision evaluator disabled in v0.1.",
+      "unit": "status",
+      "input_selectors": [
+        "model_snapshot"
+      ],
+      "inherited_policy": null,
+      "remediation": "Provide reviewed consumer decision and abstention receipts.",
+      "limitations": "PARTIAL diagnostic boundary; compliance unavailable."
+    },
+    {
+      "rule_id": "R-MODEL-PSI",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_PSI",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: no reviewed reference/current distributions, bins and PIT task contract.",
+      "unit": "status",
+      "input_selectors": [
+        "factor_audit"
+      ],
+      "inherited_policy": null,
+      "remediation": "Separately reviewed retained monitoring contract.",
+      "limitations": "No new distribution, feature computation or model run."
+    },
+    {
+      "rule_id": "R-MODEL-KS",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_KS",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: compatible samples and dependence/task/chronology contract absent.",
+      "unit": "status",
+      "input_selectors": [
+        "factor_audit"
+      ],
+      "inherited_policy": null,
+      "remediation": "Separately reviewed retained comparison evidence.",
+      "limitations": "Do not apply KS to every computation/event plugin."
+    },
+    {
+      "rule_id": "R-MODEL-CALIBRATION",
+      "rule_version": 1,
+      "category": "MODEL",
+      "check_id": "MODEL_CALIBRATION",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: independently supported baseline/current prediction-outcome contract absent.",
+      "unit": "status",
+      "input_selectors": [
+        "research_gate"
+      ],
+      "inherited_policy": null,
+      "remediation": "Independent calibration evidence under separate approval.",
+      "limitations": "HMM posterior and Research OS calibration are not interchangeable."
+    },
+    {
+      "rule_id": "R-RESEARCH-OPENING",
+      "rule_version": 1,
+      "category": "RESEARCH_HYGIENE",
+      "check_id": "RESEARCH_OPENINGS",
+      "reason_codes": [
+        "HOLDOUT_CONTRACT_BREACH",
+        "HOLDOUT_CHRONOLOGY_BREACH",
+        "PROHIBITED_HOLDOUT_REOPEN"
+      ],
+      "severity": "HIGH",
+      "predicate": "Check registered access bindings/chronology; counts alone do not trigger.",
+      "unit": "events",
+      "input_selectors": [
+        "plugin_registry",
+        "research_flagship",
+        "research_repeat",
+        "research_prereg"
+      ],
+      "inherited_policy": null,
+      "remediation": "Restore audit binding or withdraw unsupported claim; retain openings.",
+      "limitations": "3 SDK openings, 46 flagship and 48 later scope are separate."
+    },
+    {
+      "rule_id": "R-RESEARCH-FAMILY",
+      "rule_version": 1,
+      "category": "RESEARCH_HYGIENE",
+      "check_id": "RESEARCH_FAMILY",
+      "reason_codes": [
+        "INCOMPLETE_CORRECTION_FAMILY"
+      ],
+      "severity": "HIGH",
+      "predicate": "Every preregistered trial_id must have retained result accounting when correction is claimed.",
+      "unit": "test_slots",
+      "input_selectors": [
+        "research_prereg",
+        "research_flagship"
+      ],
+      "inherited_policy": null,
+      "remediation": "Supply every failed/unavailable result slot or remove correction claim.",
+      "limitations": "No defensible independent count; null remains unavailable."
+    },
+    {
+      "rule_id": "R-RESEARCH-PREREG",
+      "rule_version": 1,
+      "category": "RESEARCH_HYGIENE",
+      "check_id": "RESEARCH_PREREGISTRATION",
+      "reason_codes": [
+        "REQUIRED_PREREGISTRATION_ABSENT",
+        "PREREGISTRATION_BINDING_INVALID",
+        "PREREGISTRATION_AFTER_OUTCOME"
+      ],
+      "severity": "HIGH",
+      "predicate": "Required confirmatory results bind pre-outcome preregistration and freeze.",
+      "unit": "status",
+      "input_selectors": [
+        "research_prereg",
+        "research_flagship",
+        "research_freeze",
+        "research_identities"
+      ],
+      "inherited_policy": null,
+      "remediation": "Witness pre-outcome contract or withdraw confirmatory claim.",
+      "limitations": "No invented preregistration requirement for descriptive computations."
+    },
+    {
+      "rule_id": "R-RESEARCH-GATE",
+      "rule_version": 1,
+      "category": "RESEARCH_HYGIENE",
+      "check_id": "RESEARCH_GATE",
+      "reason_codes": [
+        "CLOSED_GATE_CLAIM",
+        "CLAIM_AUTHORITY_ABSENT"
+      ],
+      "severity": "HIGH",
+      "predicate": "Published certification claim cannot contradict CLOSED or NOT_CONFIRMED.",
+      "unit": "status",
+      "input_selectors": [
+        "research_gate",
+        "factor_ledger"
+      ],
+      "inherited_policy": null,
+      "remediation": "Correct new claim and retain original frozen gate.",
+      "limitations": "Faithful closed-gate disclosure is not misconduct."
+    },
+    {
+      "rule_id": "R-RESEARCH-CLAIMS",
+      "rule_version": 1,
+      "category": "RESEARCH_HYGIENE",
+      "check_id": "RESEARCH_CLAIMS",
+      "reason_codes": [
+        "SCIENTIFIC_FLAG_PROMOTION",
+        "CLAIM_AUTHORITY_ABSENT"
+      ],
+      "severity": "CRITICAL",
+      "predicate": "All six Phase 7 flags false; upstream absent flags are unavailable, not certified.",
+      "unit": "boolean",
+      "input_selectors": [
+        "research_gate",
+        "factor_ledger",
+        "model_snapshot"
+      ],
+      "inherited_policy": null,
+      "remediation": "Block unsafe publication and restore the claim boundary.",
+      "limitations": "No keyword classification of titles or quoted claims."
+    },
+    {
+      "rule_id": "R-RESEARCH-FIXTURE-WARNING",
+      "rule_version": 1,
+      "category": "RESEARCH_HYGIENE",
+      "check_id": "RESEARCH_FIXTURE_WARNINGS",
+      "reason_codes": [
+        "REPEATED_HOLDOUT_OPENING"
+      ],
+      "severity": "HIGH",
+      "predicate": "Reference actual retained repeated-family warnings without changing original severity.",
+      "unit": "events",
+      "input_selectors": [
+        "plugin_registry"
+      ],
+      "inherited_policy": null,
+      "remediation": "Disclose retained engineering access warning.",
+      "limitations": "RETAINED_SYNTHETIC; outside real incident counts."
+    },
+    {
+      "rule_id": "R-PORTFOLIO-MARKS",
+      "rule_version": 1,
+      "category": "PORTFOLIO",
+      "check_id": "PORTFOLIO_QUOTED_MARKS",
+      "reason_codes": [
+        "UNPRICED_POSITION",
+        "QUOTE_PROVENANCE_ABSENT",
+        "QUOTE_COVERAGE_LOST",
+        "MODELLED_VALUE_USED_AS_QUOTE"
+      ],
+      "severity": "MEDIUM",
+      "predicate": "Public evaluator disabled: no portfolio quote-coverage contract.",
+      "unit": "status",
+      "input_selectors": [
+        "portfolio_absence"
+      ],
+      "inherited_policy": null,
+      "remediation": "Admit bound quoted book under separate approval.",
+      "limitations": "No entry/reference/modelled mark substitution."
+    },
+    {
+      "rule_id": "R-PORTFOLIO-VAR",
+      "rule_version": 1,
+      "category": "PORTFOLIO",
+      "check_id": "PORTFOLIO_VAR",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: no sealed portfolio/returns/method/horizon/mark contract; limit null.",
+      "unit": "status",
+      "input_selectors": [
+        "portfolio_absence"
+      ],
+      "inherited_policy": null,
+      "remediation": "Separately admit a retained portfolio result contract.",
+      "limitations": "No legacy API or Monte Carlo execution."
+    },
+    {
+      "rule_id": "R-PORTFOLIO-CVAR",
+      "rule_version": 1,
+      "category": "PORTFOLIO",
+      "check_id": "PORTFOLIO_CVAR",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: no portfolio/tail convention contract; limit null.",
+      "unit": "status",
+      "input_selectors": [
+        "portfolio_absence"
+      ],
+      "inherited_policy": null,
+      "remediation": "Separately admit retained tail and mark evidence.",
+      "limitations": "No public zero risk or example portfolio."
+    },
+    {
+      "rule_id": "R-PORTFOLIO-CONCENTRATION",
+      "rule_version": 1,
+      "category": "PORTFOLIO",
+      "check_id": "PORTFOLIO_CONCENTRATION",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: no public positions/denominator/limit contract.",
+      "unit": "status",
+      "input_selectors": [
+        "portfolio_absence"
+      ],
+      "inherited_policy": null,
+      "remediation": "Separately admit holdings and denominator.",
+      "limitations": "Do not import local 35/25 percent limits."
+    },
+    {
+      "rule_id": "R-PORTFOLIO-FACTORS",
+      "rule_version": 1,
+      "category": "PORTFOLIO",
+      "check_id": "PORTFOLIO_FACTOR_EXPOSURE",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: no security mapping/weighting; retained MOM assessment is context.",
+      "unit": "status",
+      "input_selectors": [
+        "factor_audit"
+      ],
+      "inherited_policy": null,
+      "remediation": "Separate mapping/research authorization.",
+      "limitations": "No factor regression or provider refresh."
+    },
+    {
+      "rule_id": "R-PORTFOLIO-LIQUIDITY",
+      "rule_version": 1,
+      "category": "PORTFOLIO",
+      "check_id": "PORTFOLIO_LIQUIDITY",
+      "reason_codes": [],
+      "severity": "INFO",
+      "predicate": "Disabled: no licensed liquidity and size policy contract.",
+      "unit": "status",
+      "input_selectors": [
+        "portfolio_absence"
+      ],
+      "inherited_policy": null,
+      "remediation": "Separately admit liquidity evidence.",
+      "limitations": "No inference from volume or invented liquidation horizon."
+    },
+    {
+      "rule_id": "R-SIMULATOR-DISAGREEMENT",
+      "rule_version": 1,
+      "category": "SIMULATOR",
+      "check_id": "SIMULATOR_REAL_DISAGREEMENT",
+      "reason_codes": [
+        "CONTRACTED_SIMULATOR_DISAGREEMENT"
+      ],
+      "severity": "INFO",
+      "predicate": "Disabled real strategy comparison; DEFERRED_PHASE9.",
+      "unit": "status",
+      "input_selectors": [
+        "simulator_history"
+      ],
+      "inherited_policy": null,
+      "remediation": "Dedicated Phase 9 matched comparison contract.",
+      "limitations": "No engines; NOT_COMPARABLE is not disagreement."
+    },
+    {
+      "rule_id": "R-SIMULATOR-HISTORY",
+      "rule_version": 1,
+      "category": "SIMULATOR",
+      "check_id": "SIMULATOR_HISTORY",
+      "reason_codes": [
+        "HISTORICAL_ENGINE_VERDICT_MISMATCH"
+      ],
+      "severity": "INFO",
+      "predicate": "Reference sealed comparisons/expected_status and original per-engine verdicts.",
+      "unit": "status",
+      "input_selectors": [
+        "simulator_history"
+      ],
+      "inherited_policy": null,
+      "remediation": "Preserve original engineering evidence.",
+      "limitations": "RETAINED_SYNTHETIC; 22 PASS and one intentional NOT_COMPARABLE."
+    },
+    {
+      "rule_id": "R-SYSTEM-INTEGRITY",
+      "rule_version": 1,
+      "category": "SYSTEM",
+      "check_id": "SYSTEM_INTEGRITY",
+      "reason_codes": [
+        "ARTIFACT_INTEGRITY_BREACH",
+        "HISTORY_CHAIN_INVALID",
+        "PUBLICATION_PERMISSION_INVALID",
+        "PUBLICATION_SCHEMA_INVALID"
+      ],
+      "severity": "CRITICAL",
+      "predicate": "Exact bytes/schema/grants/cutoff/history joins required.",
+      "unit": "status",
+      "input_selectors": [
+        "all_retained"
+      ],
+      "inherited_policy": null,
+      "remediation": "Stop unsafe publication and restore exact immutable evidence.",
+      "limitations": "Do not fall back to provider/model computation."
+    },
+    {
+      "rule_id": "R-SYSTEM-SWEEP",
+      "rule_version": 1,
+      "category": "SYSTEM",
+      "check_id": "SYSTEM_SWEEP",
+      "reason_codes": [
+        "REQUIRED_READER_FAILED",
+        "RULE_EVALUATION_FAILED",
+        "PUBLICATION_FAILED"
+      ],
+      "severity": "HIGH",
+      "predicate": "Retain actual failed read/evaluation/publication attempt; never empty success.",
+      "unit": "status",
+      "input_selectors": [
+        "all_retained"
+      ],
+      "inherited_policy": null,
+      "remediation": "Repair dependency and manually retry.",
+      "limitations": "Preserve last valid state and no clearing transitions."
+    },
+    {
+      "rule_id": "R-COVERAGE",
+      "rule_version": 1,
+      "category": "SYSTEM",
+      "check_id": "COVERAGE",
+      "reason_codes": [
+        "NO_PORTFOLIO_CONTRACT",
+        "PUBLIC_BOOK_ABSENT",
+        "HOLDINGS_CONTRACT_ABSENT",
+        "SECURITY_FACTOR_MAPPING_ABSENT",
+        "LIQUIDITY_EVIDENCE_ABSENT",
+        "QUOTE_PROVENANCE_ABSENT",
+        "NAV_CASH_EVIDENCE_ABSENT",
+        "DRIFT_REFERENCE_CONTRACT_ABSENT",
+        "DRIFT_COMPARISON_CONTRACT_ABSENT",
+        "DRIFT_TASK_UNSUPPORTED",
+        "CALIBRATION_REFERENCE_ABSENT",
+        "ABSTENTION_RECEIPTS_ABSENT",
+        "MODEL_DIAGNOSTIC_ABSENT",
+        "INSUFFICIENT_SAMPLE_EVIDENCE",
+        "CALENDAR_UNAVAILABLE",
+        "CURRENT_COMPARISON_UNAVAILABLE",
+        "INDEPENDENT_PROVIDER_COMPARISON_ABSENT",
+        "HISTORICAL_WINDOW_ONLY",
+        "SOURCE_SCHEMA_UNSUPPORTED",
+        "REQUIRED_RESEARCH_HISTORY_ABSENT",
+        "FAMILY_CONTRACT_ABSENT",
+        "DEFERRED_PHASE9",
+        "SYNTHETIC_COMPARISON_ONLY",
+        "NO_SUCCESSFUL_SWEEP",
+        "REQUIRED_READER_FAILED"
+      ],
+      "severity": "INFO",
+      "predicate": "Every required check has measured/partial/unavailable coverage; absence is not CLEAR.",
+      "unit": "status",
+      "input_selectors": [
+        "all_retained"
+      ],
+      "inherited_policy": null,
+      "remediation": "Supply the precise missing evidence contract without implicit execution.",
+      "limitations": "Category is the check category; no duplicate upstream source-health alert."
+    }
+  ],
+  "thresholds": {
+    "age_medium_days": 45,
+    "age_high_days": 120,
+    "occupancy_share": 0.05,
+    "occupancy_count": 30,
+    "switches": 5,
+    "switch_window": 20,
+    "ood_quantile": 0.999
+  },
+  "scheduled_sweep": "DISABLED",
+  "manual_sweep": "AVAILABLE"
+}

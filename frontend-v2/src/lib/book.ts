@@ -4,7 +4,7 @@
 // static reference level or simulated price ever stands in for a quote.
 
 import { unavailableInstrument } from "./market";
-import { getDemoBook, subscribeDemoBook } from "./demoBook";
+import { getDemoBook, subscribeDemoBook, subscribePaperBookBoundary } from "./demoBook";
 
 export type AssetClass = "EQUITY" | "COMMODITY" | "OPTION";
 
@@ -16,6 +16,9 @@ export type Position = {
   qty: number; // shares / contracts
   entry: number;
   mark: number;
+  quoteSource?: QuotedMark["source"];
+  quoteObservedAt?: string;
+  quoteLive?: boolean;
   pnl: number;
   mv: number; // market value (signed for shorts)
   gross: number; // |mv|
@@ -168,7 +171,49 @@ export type Book = {
   pnlDay: number;
   updatedAt: number;
 };
-let marketMarks = new Map<string, number>();
+export type QuotedMark = {
+  mark: number;
+  source: "FINNHUB" | "YFINANCE_EOD";
+  quote_ts: number | string;
+  live: boolean;
+};
+/** Preserve the supplied observation clock; a bare EOD day stays a day. */
+export function quoteObservedAt(value: number | string): string | null {
+  if (typeof value === "number") {
+    const millis = value < 10_000_000_000 ? value * 1000 : value;
+    return Number.isFinite(millis) && millis > 0 && millis <= 8.64e15
+      ? new Date(millis).toISOString()
+      : null;
+  }
+  if (!value.trim()) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const date = new Date(value + "T00:00:00Z");
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
+      ? value
+      : null;
+  }
+  // Offset-free date-times would silently borrow this browser's time zone.
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) ||
+    quoteObservedAt(value.slice(0, 10)) === null
+  )
+    return null;
+  const millis = Date.parse(value);
+  return Number.isFinite(millis) && millis > 0 ? new Date(millis).toISOString() : null;
+}
+export function admittedQuote(value: unknown): value is QuotedMark {
+  if (!value || typeof value !== "object") return false;
+  const quote = value as QuotedMark;
+  return (
+    Number.isFinite(quote.mark) &&
+    quote.mark > 0 &&
+    (quote.source === "FINNHUB" || quote.source === "YFINANCE_EOD") &&
+    (typeof quote.quote_ts === "number" || typeof quote.quote_ts === "string") &&
+    quoteObservedAt(quote.quote_ts) !== null &&
+    typeof quote.live === "boolean"
+  );
+}
+let marketMarks = new Map<string, QuotedMark>();
 
 function buildPositions(): { priced: Position[]; unpriced: UnpricedPosition[] } {
   const priced: Position[] = [];
@@ -177,7 +222,8 @@ function buildPositions(): { priced: Position[]; unpriced: UnpricedPosition[] } 
   // The authenticated paper book is authoritative. Empty means empty: never
   // inject sample equities, futures, or options into a user's risk totals.
   for (const position of getDemoBook()) {
-    const mark = marketMarks.get(position.symbol);
+    const quote = marketMarks.get(position.symbol);
+    const mark = quote?.mark;
     const commodity = COMMODITIES[position.symbol];
     // Name, beta and vol are model parameters; only the mark has to be a quote.
     const reference = commodity ? null : unavailableInstrument(position.symbol);
@@ -203,6 +249,9 @@ function buildPositions(): { priced: Position[]; unpriced: UnpricedPosition[] } 
       qty: position.qty,
       entry: position.entry,
       mark,
+      quoteSource: quote!.source,
+      quoteObservedAt: quoteObservedAt(quote!.quote_ts)!,
+      quoteLive: quote!.live,
       pnl: (mark - position.entry) * position.qty * multiplier,
       mv,
       gross: Math.abs(mv),
@@ -266,11 +315,23 @@ let overlays: HedgeOverlay[] = [];
 type Sub = (b: Book) => void;
 const subs = new Set<Sub>();
 
+/** Stored paper holdings with eligible observed quotes only. */
 export function getBook(): Book {
-  if (!overlays.length) return baseBook;
-  const all = [...baseBook.positions];
-  for (const o of overlays) all.push(...o.positions);
-  return summarize(all, baseBook.unpriced);
+  return baseBook;
+}
+/** Explicit hypothetical scenario: model-priced overlays never enter getBook(). */
+export function getScenarioBook(): Book {
+  const hypothetical = overlays.flatMap((overlay) => overlay.positions);
+  return hypothetical.length
+    ? summarize([...baseBook.positions, ...hypothetical], baseBook.unpriced)
+    : baseBook;
+}
+export function clearBookMarks() {
+  if (!marketMarks.size && !overlays.length) return;
+  marketMarks = new Map();
+  overlays = [];
+  baseBook = buildBook();
+  emit();
 }
 
 export function subscribe(fn: Sub) {
@@ -305,7 +366,7 @@ export function resetBook() {
 
 /** The latest tape mark for a symbol, held or not; null when the tape has not quoted it. */
 export function quotedMark(symbol: string): number | null {
-  return marketMarks.get(symbol) ?? null;
+  return marketMarks.get(symbol)?.mark ?? null;
 }
 
 const normCdf = (x: number) => {
@@ -339,16 +400,24 @@ export function modelPut(spot: number, strike: number, years: number, vol: numbe
 }
 
 /** Refresh marks for existing paper-book symbols without changing positions. */
-export function updateBookMarks(next: Record<string, number>) {
-  let changed = false;
-  const updated = new Map(marketMarks);
-  for (const [symbol, mark] of Object.entries(next)) {
-    if (!Number.isFinite(mark) || mark <= 0) continue;
-    if (updated.get(symbol) === mark) continue;
-    updated.set(symbol, mark);
-    changed = true;
+export function updateBookMarks(next: Record<string, QuotedMark>) {
+  // A refresh replaces coverage. Removed, invalid and unsupported quotes do not survive.
+  const updated = new Map<string, QuotedMark>();
+  for (const [symbol, quote] of Object.entries(next)) {
+    if (admittedQuote(quote)) updated.set(symbol, { ...quote });
   }
-  if (!changed) return;
+  const unchanged =
+    updated.size === marketMarks.size &&
+    [...updated].every(([symbol, quote]) => {
+      const old = marketMarks.get(symbol);
+      return (
+        old?.mark === quote.mark &&
+        old.source === quote.source &&
+        old.quote_ts === quote.quote_ts &&
+        old.live === quote.live
+      );
+    });
+  if (unchanged) return;
   marketMarks = updated;
   baseBook = buildBook();
   emit();
@@ -359,8 +428,10 @@ subscribeDemoBook(() => {
   emit();
 });
 
+subscribePaperBookBoundary(clearBookMarks);
+
 // ─── Risk math ────────────────────────────────────────────────────────
-export type VaRMethod = "PARAMETRIC" | "HISTORICAL" | "MONTE_CARLO";
+export type VaRMethod = "PARAMETRIC" | "FAT_TAIL_PROXY" | "MONTE_CARLO";
 
 function normInv(p: number) {
   // Beasley-Springer / Moro
@@ -441,7 +512,7 @@ export function var1d(book: Book, method: VaRMethod, conf: number): { var: numbe
   const paramVar = z * sigma;
   const paramES = (sigma * Math.exp(-0.5 * z * z)) / (Math.sqrt(2 * Math.PI) * (1 - conf));
   if (method === "PARAMETRIC") return { var: paramVar, es: paramES };
-  if (method === "HISTORICAL") {
+  if (method === "FAT_TAIL_PROXY") {
     // Deterministic fat-tailed proxy with a common market factor and idiosyncratic shocks.
     const rng = mulberry32(42);
     const pnls: number[] = [];

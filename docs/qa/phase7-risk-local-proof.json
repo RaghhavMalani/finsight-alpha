@@ -1,0 +1,11 @@
+{
+  "schema_version": "risk-local-proof/1",
+  "evidence_class": "SYNTHETIC_TEST_ONLY",
+  "status": "PASS",
+  "estimator_comparisons": 6,
+  "no_provider_calls": true,
+  "no_retained_scientific_evidence": true,
+  "replay_hydration_calls": 0,
+  "cancelled_delayed_writes": 0,
+  "identity_and_quote_boundary": "VERIFIED"
+}

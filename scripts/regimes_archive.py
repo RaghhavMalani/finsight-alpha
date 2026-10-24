@@ -105,6 +105,10 @@ def verify(root):
     additions = set(current["artifacts"]) - set(original["artifacts"])
     allowed = {PUBLIC + "/replay-manifest.json"}
     for identity in additions:
+        if identity.startswith("risk:"):
+            from scripts.risk_archive import verify_addition as risk_addition
+            allowed.add(risk_addition(root / PUBLIC, identity, current["artifacts"][identity]))
+            continue
         entry = current["artifacts"][identity]
         if identity.startswith("factors:"):
             from scripts.factors_archive import verify_addition as factors_addition
@@ -116,6 +120,10 @@ def verify(root):
         else:
             allowed.add(verify_addition(root / PUBLIC, identity, entry))
     for route, identity in current["routes"].items():
+        if route.startswith("/risk-manager/"):
+            from scripts.risk_archive import verify_route as risk_route
+            risk_route(route, current["routes"][route], current["artifacts"], root=root)
+            continue
         if same_json(original["routes"].get(route), identity):
             continue
         if route.startswith("/factor-evidence/"):
