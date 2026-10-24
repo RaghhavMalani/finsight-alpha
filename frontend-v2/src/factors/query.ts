@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useDataMode } from "../replay/mode";
 import { api } from "../lib/api";
-import { canonicalRoute, loadReplayManifest, readReplayArtifact } from "../replay/client";
+import { canonicalRoute } from "../replay/client";
+import { loadFactorReadManifest, readFactorArtifact } from "./manifest";
 import { validateEnvelope, type Term } from "../regimes/contracts";
 import {
   KNOWN_IDS,
@@ -20,7 +21,7 @@ import {
 export async function loadMetadata(k: Kind, c: Country, cutoff: string) {
   const id = KNOWN_IDS[c + "|" + cutoff]?.[k];
   if (!id) throw new Error("UNAVAILABLE: unreviewed cutoff");
-  const m = await loadReplayManifest(),
+  const m = await loadFactorReadManifest(),
     entry = m.artifacts[id],
     route = canonicalRoute(
       "/factor-evidence/" + k + "?country=" + c + "&as_of=" + encodeURIComponent(cutoff),
@@ -35,7 +36,7 @@ export async function loadMetadata(k: Kind, c: Country, cutoff: string) {
     entry.licence.permitted_uses?.join(",") !== "publish_derived"
   )
     throw new Error("Metadata publication binding unavailable");
-  return validateMetadata(await readReplayArtifact(id), k, c, cutoff);
+  return validateMetadata(await readFactorArtifact(id), k, c, cutoff);
 }
 type MetadataPanel = Exclude<Kind, "lineage">;
 export function useFactorMetadata(k: MetadataPanel, c: Country, cutoff: string, valid: boolean) {
@@ -75,12 +76,12 @@ export type Retained = {
 export async function loadRetained(c: Country, cutoff: string) {
   const b = KNOWN_BUNDLES[c]?.[cutoff];
   if (!b) throw new Error("No reviewed retained reference");
-  const m = await loadReplayManifest();
+  const m = await loadFactorReadManifest();
   for (const ref of Object.values(b.refs))
     if (stable(m.artifacts[ref.artifact_id]) !== stable(KNOWN_ENTRIES[ref.artifact_id]))
       throw new Error("Numerical entry or licence changed");
   const values = await Promise.all(
-    ["factors", "snapshot", "lineage"].map((k) => readReplayArtifact(b.refs[k].artifact_id)),
+    ["factors", "snapshot", "lineage"].map((k) => readFactorArtifact(b.refs[k].artifact_id)),
   );
   const [f, s, l] = values.map((v, i) =>
     validateEnvelope<Record<string, unknown>>(

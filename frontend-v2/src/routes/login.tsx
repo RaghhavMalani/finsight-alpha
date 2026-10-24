@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { api, type User } from "@/lib/api";
+import { localLiveAllowed, useDataMode } from "@/replay/mode";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -13,10 +14,14 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-const BOOT = ["FINSIGHT/OS v2.0", "AUTHENTICATING LINK…", "MARKET DATA … OK", "SESSION KEY … OK"];
+const BOOT = ["FINSIGHT/OS v2.0", "LOCAL AUTHENTICATION", "BACKEND SESSION REQUIRED"];
 
 function Login() {
   const navigate = useNavigate();
+  const dataMode = useDataMode();
+  const [localAvailable, setLocalAvailable] = useState(false);
+  const authAvailable = localAvailable && dataMode === "live";
+  useEffect(() => setLocalAvailable(localLiveAllowed()), []);
   const [step, setStep] = useState(0);
   const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
@@ -37,6 +42,7 @@ function Login() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!authAvailable) return;
     if (!email || !pass) {
       setError("Enter both an email and password.");
       cardRef.current?.classList.remove("animate-shake");
@@ -70,7 +76,7 @@ function Login() {
           <span>FINSIGHT · SESSION</span>
           <span className="flex items-center gap-2 text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-up animate-pulse-live" />
-            LIVE
+            {authAvailable ? "LOCAL LIVE" : "LOCAL ONLY"}
           </span>
         </div>
 
@@ -88,7 +94,26 @@ function Login() {
           )}
         </div>
 
-        {ready && (
+        {ready && !authAvailable && (
+          <section
+            className="space-y-4 font-mono text-xs leading-relaxed"
+            aria-label="Local authentication required"
+          >
+            <p>
+              Public Replay does not enable sign in or account creation. To use this account flow,
+              open a configured local installation with Local Live selected.
+            </p>
+            <Link to="/markets" className="inline-block text-primary underline">
+              Open public Replay →
+            </Link>
+            <p>
+              <Link to="/" className="text-faint underline">
+                ← Landing
+              </Link>
+            </p>
+          </section>
+        )}
+        {ready && authAvailable && (
           <form onSubmit={submit} className="space-y-5 animate-fade-in">
             <div>
               <label
@@ -125,7 +150,10 @@ function Login() {
               />
             </div>
             {error && (
-              <div className="border-l-2 border-down bg-down/10 px-3 py-2 font-mono text-xs text-down animate-fade-in">
+              <div
+                role="alert"
+                className="border-l-2 border-down bg-down/10 px-3 py-2 font-mono text-xs text-down animate-fade-in"
+              >
                 {error}
               </div>
             )}

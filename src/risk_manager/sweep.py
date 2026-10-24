@@ -6,7 +6,7 @@ from .policy import load,projection
 from .evidence import EvidenceReaders,freeze_inventory,forbidden_calls
 from .rules import evaluate
 from .monitoring import monitoring_operation
-from .reducer import reduce,observation_ref
+from .reducer import reduce,observation_ref,lifecycle_anchors,lifecycle_history,checked_lifecycle_ids
 from .publication import LICENCE,publish,read_artifact,writer_lock,validate_public,source_observation,validate_observation_sources
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -46,24 +46,30 @@ def previous(root, manifest):
     # A failed attempt is a witnessed System incident, even though it cannot
     # replace the successful state. Keep it until a positive repair observation.
     issues={i["issue_id"]:dict(i) for i in state["payload"]["issues"]} if state else {}
-    if state and any(ref["type"]=="RISK_OBSERVATION" for i in issues.values() for ref in i["evidence_refs"]):
-        validate_observation_sources(receipts)
+    validate_observation_sources(receipts)
+    owner_index=len(receipts)
+    if state:
         owners=[r for r in receipts if r["payload"]["status"]!="FAILED" and r["payload"]["state_ref"]==sid
                 and (r["payload"]["fingerprint"],r["evidence_cutoff"],r["published_at"])==
                     (state["payload"]["sweep_fingerprint"],state["evidence_cutoff"],state["published_at"])]
         if len(owners)!=1:
             raise ValueError("Compact Issue owning receipt missing or substituted")
+        owner_index=receipts.index(owners[0])
+        history=lifecycle_history(receipts[owner_index:])
         for issue in issues.values():
+            issue["observation_ids"]=checked_lifecycle_ids(issue,history)
             source=source_observation(issue,owners[0])
             if source:
                 issue["evidence_refs"]=[dict(ref) for ref in source["evidence_refs"]]
-    cursor=rid
-    while cursor:
-        r=read_artifact(root,manifest,cursor)["payload"]
+    # The successful owner already incorporates all older failures, including
+    # their resolutions. Apply only later failed witnesses, oldest to newest,
+    # so a newly reopened incident wins without resurrecting a repaired one.
+    for index in reversed(range(owner_index)):
+        r=receipts[index]["payload"]
         if r["failure"]:
-            issue=r["failure"]["issue"]
-            issues.setdefault(issue["issue_id"],issue)
-        cursor=r["prior_sweep_ref"]
+            issue=dict(r["failure"]["issue"])
+            issue["observation_ids"]=checked_lifecycle_ids(issue,lifecycle_history(receipts[index:]))
+            issues[issue["issue_id"]]=issue
     if issues:
         state=dict(state or {},payload=dict((state or {}).get("payload",{}),issues=[issues[k] for k in sorted(issues)]))
     return sid,rid,state,receipt,list(observations.values())
@@ -142,7 +148,7 @@ def _run(root=ROOT, *, clock_fn=now, publish_artifacts=True, failure_sink=None):
                     refs=([observation_ref(observation,fingerprint)] if observation and observation["issue_id"]==issue["issue_id"]
                           and canonical(observation["evidence_refs"])==canonical(issue["evidence_refs"])
                           else issue["evidence_refs"])
-                    projected_issues.append(dict(issue,evidence_refs=refs))
+                    projected_issues.append(dict(issue,evidence_refs=refs,observation_ids=lifecycle_anchors(issue)))
                 # The sealed leaf retains every coverage row and complete instructions.
                 # Loading those rows on demand avoids duplicating six preview checks here.
                 summary=[]
@@ -264,9 +270,10 @@ def failed_receipt(root,p,started,sid,rid,prior,before,exc,clock_fn,old=None):
         remediation=dict(state="REQUIRED",requirement_code=code,text="Repair the retained reader or publication boundary and rerun manually.",
                          evidence_required=["all_retained"]),origin_records=[],
         assertions=[dict(assertion_id=check,outcome="FINDING",unit="status",value="FAILED",comparison="EXACT",threshold="VERIFIED")]))
-    earlier=prior["payload"]["failure"]["issue"] if prior and prior["payload"]["failure"] else None
-    if not earlier and old:
-        earlier=next((i for i in old["payload"]["issues"] if i["issue_id"]==observation["issue_id"]),None)
+    earlier=next((i for i in old["payload"]["issues"] if i["issue_id"]==observation["issue_id"]),None) if old else None
+    if not earlier and prior and prior["payload"]["failure"]:
+        candidate=prior["payload"]["failure"]["issue"]
+        earlier=candidate if candidate["issue_id"]==observation["issue_id"] else None
     fields={k:observation[k] for k in ("issue_id","rule_id","rule_version","category","severity","scope","country","asset","model",
         "title","reason_code","reason","currency","availability","evidence_class","evidence_at","evidence_cutoff","policy_sha256",
         "evidence_refs","source_quality","remediation","origin_records")}
@@ -278,6 +285,7 @@ def failed_receipt(root,p,started,sid,rid,prior,before,exc,clock_fn,old=None):
         first_seen_at=earlier["first_seen_at"] if same else witness,first_seen_ref=earlier["first_seen_ref"] if same else ref,
         resolved_at=None,resolution_ref=None,occurrences=(earlier["occurrences"]+int(observation["observation_id"] not in previous_ids)) if same else 1,
         observation_ids=observation_ids,last_observation_id=observation["observation_id"])
+    issue["observation_ids"]=lifecycle_anchors(issue)
     Issue.model_validate(issue)
     end=clock_fn()
     try:

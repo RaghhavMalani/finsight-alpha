@@ -14,11 +14,64 @@ import {
 } from "../src/factors/contracts.ts";
 import { validateFactors } from "../src/regimes/contracts.ts";
 import { validateReplayManifest } from "../src/replay/contracts.ts";
+import {
+  deriveFactorReadManifest,
+  generateFactorReadManifest,
+  verifyFactorReadProjection,
+} from "./generate-factor-read-manifest.mjs";
+const { projection: factorProjection, raw: factorProjectionRaw } =
+  await generateFactorReadManifest();
+const { checkFactorReadManifest } = await import("../src/factors/manifest.ts");
 const root = new URL("../public/", import.meta.url),
   manifest = validateReplayManifest(
     JSON.parse(readFileSync(new URL("replay-manifest.json", root))),
   );
 let checks = 0;
+verifyFactorReadProjection(manifest, factorProjection);
+await checkFactorReadManifest(Uint8Array.from(factorProjectionRaw).buffer);
+await assert.rejects(() =>
+  checkFactorReadManifest(
+    Uint8Array.from(Buffer.concat([factorProjectionRaw, Buffer.from(" ")])).buffer,
+  ),
+);
+const sameLengthProjection = Buffer.from(factorProjectionRaw);
+sameLengthProjection[sameLengthProjection.length - 1] = 32;
+await assert.rejects(() => checkFactorReadManifest(Uint8Array.from(sameLengthProjection).buffer));
+const changedProjection = structuredClone(factorProjection);
+const firstMetadata = Object.keys(KNOWN_METADATA_ENTRIES)[0];
+changedProjection.artifacts[firstMetadata].scope = "LOCAL_ONLY";
+await assert.rejects(() =>
+  checkFactorReadManifest(Uint8Array.from(Buffer.from(JSON.stringify(changedProjection))).buffer),
+);
+assert.throws(() => verifyFactorReadProjection(manifest, changedProjection));
+for (const mutate of [
+  (value) => {
+    value.artifacts[firstMetadata].tenant_id = "other";
+  },
+  (value) => {
+    delete value.artifacts[Object.keys(KNOWN_ENTRIES)[0]];
+  },
+  (value) => {
+    delete value.routes[
+      Object.keys(value.routes).find((route) => route.startsWith("/factor-evidence/"))
+    ];
+  },
+]) {
+  const bad = structuredClone(manifest);
+  mutate(bad);
+  assert.throws(() => deriveFactorReadManifest(bad));
+}
+const grown = structuredClone(manifest);
+grown.artifacts["engineering:unrelated-history"] = structuredClone(
+  Object.values(manifest.artifacts).find((entry) => entry.status === "UNAVAILABLE"),
+);
+grown.routes["/engineering/unrelated-history"] = "engineering:unrelated-history";
+assert.deepEqual(
+  stable(deriveFactorReadManifest(grown)),
+  stable(factorProjection),
+  "Unrelated retained history cannot expand the Factor read view",
+);
+checks += 10;
 for (const country of ["US", "INDIA"])
   for (const cutoff of CUTOFFS) {
     for (const kind of ["catalog", "audit", "ledger", "lineage"]) {
@@ -148,7 +201,7 @@ if (urlIndex !== -1) {
     page.on("response", (r) => {
       if (
         measuring &&
-        /\/replay-manifest\.json|\/artifacts\/replay\/factors-|\/artifacts\/replay\/regimes-/.test(
+        /\/(?:replay-manifest|factor-read-manifest)\.json|\/artifacts\/replay\/factors-|\/artifacts\/replay\/regimes-/.test(
           r.url(),
         )
       )
@@ -201,6 +254,15 @@ if (urlIndex !== -1) {
       assert(
         !selectedRequests().some((url) => /\/assets\/risk-[^/]+\.js$/.test(url)),
         "Factors does not request the unrelated Risk bundle",
+      );
+      assert(
+        !selectedRequests().includes("/replay-manifest.json"),
+        "Unrelated global history metadata stays deferred",
+      );
+      assert.equal(
+        selectedRequests().filter((path) => path === "/factor-read-manifest.json").length,
+        1,
+        "One checked Factor read view is shared by shell and queries",
       );
       assert(dataBytes - before <= 512 * 1024);
       console.log(
@@ -272,6 +334,8 @@ if (urlIndex !== -1) {
       });
     await context.close();
     for (const sabotage of [
+      "projection-bytes",
+      "projection-checksum",
       "metadata-entry",
       "metadata-source",
       "metadata-clock",
@@ -288,7 +352,17 @@ if (urlIndex !== -1) {
       const cutoff = CUTOFFS.at(-1),
         catalogId = KNOWN_IDS["US|" + cutoff].catalog,
         ref = KNOWN_BUNDLES.US[cutoff].refs.factors;
-      if (
+      if (sabotage === "projection-bytes" || sabotage === "projection-checksum")
+        await c.route("**/factor-read-manifest.json", (route) =>
+          route.fulfill({
+            body:
+              sabotage === "projection-bytes"
+                ? Buffer.concat([factorProjectionRaw, Buffer.from(" ")])
+                : sameLengthProjection,
+            contentType: "application/json",
+          }),
+        );
+      else if (
         [
           "metadata-route",
           "reference-licence",
@@ -298,8 +372,8 @@ if (urlIndex !== -1) {
           "metadata-tenant",
         ].includes(sabotage)
       )
-        await c.route("**/replay-manifest.json", async (route) => {
-          const value = structuredClone(manifest);
+        await c.route("**/factor-read-manifest.json", async (route) => {
+          const value = structuredClone(factorProjection);
           if (sabotage === "metadata-route") {
             for (const key of Object.keys(value.routes))
               if (key.startsWith("/factor-evidence/catalog") && key.includes("country=US"))
@@ -364,7 +438,7 @@ if (urlIndex !== -1) {
     }
     await browser.close();
     console.log(
-      `${name}: real US/India, three cutoffs, catalogue/audit/ledger/lineage, 1440/390, lazy metadata requests/cache reuse, zero API/vendor traffic and twelve sabotage cases passed.`,
+      `${name}: real US/India, three cutoffs, catalogue/audit/ledger/lineage, 1440/390, lazy metadata requests/cache reuse, zero API/vendor traffic and fourteen sabotage cases passed.`,
     );
   }
 }

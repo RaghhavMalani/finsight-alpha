@@ -9,6 +9,7 @@ import json
 import re
 from .contracts import StateEnvelope,SweepEnvelope,canonical,decode,digest,counts,CLAIMS,identity,clock
 from .policy import load,validate_rule
+from .reducer import lifecycle_history,checked_lifecycle_ids
 from .monitoring import ALIASES, bundle_at, monitoring_catalog, monitoring_operation
 
 LICENCE=dict(status="FIRST_PARTY",permitted_uses=["publish_derived"],dataset_key="project:risk-manager-evidence",valid_through=None)
@@ -368,6 +369,10 @@ def publish(root, state, sweep, *, expected_manifest, interrupt=None, extra_stat
         receipts.append(prior_receipt)
         cursor=prior_receipt["payload"]["prior_sweep_ref"]
     validate_observation_sources(receipts)
+    history=lifecycle_history(receipts)
+    if state is not None:
+        for issue in checked_state["payload"]["issues"]:
+            checked_lifecycle_ids(issue,history)
     manifest_path=public/"replay-manifest.json"
     if manifest_path.read_bytes()!=expected_manifest:
         raise ValueError("Manifest moved during sweep")

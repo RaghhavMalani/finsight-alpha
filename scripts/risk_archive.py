@@ -5,6 +5,7 @@ import re
 from urllib.parse import urlsplit, parse_qs, urlencode
 from src.risk_manager.contracts import decode, digest, clock
 from src.risk_manager.evidence import freeze_inventory
+from src.risk_manager.reducer import lifecycle_history,checked_lifecycle_ids
 from src.risk_manager.publication import read_artifact,source_observation,validate_observation_sources
 
 IDENTITY = re.compile(r"risk:(state|sweep):[a-f0-9]{64}")
@@ -122,6 +123,7 @@ def verify_graph(values, expected_origins):
         payload = value["payload"]
         cursor = identity
         visited = set()
+        chain = []
         while cursor:
             if cursor in visited:
                 raise ValueError("Risk history cycle")
@@ -129,7 +131,9 @@ def verify_graph(values, expected_origins):
             parent = receipts.get(cursor)
             if not parent:
                 raise ValueError("Orphan prior sweep")
+            chain.append(parent)
             cursor = parent["payload"]["prior_sweep_ref"]
+        full_history = lifecycle_history(chain)
         if len({h["sweep_ref"] for h in payload["history_index"]}) != len(payload["history_index"]):
             raise ValueError("Duplicate history entry")
         for index, history in enumerate(payload["history_index"]):
@@ -158,6 +162,7 @@ def verify_graph(values, expected_origins):
             if payload["state_ref"] is not None:
                 used_states.add(payload["state_ref"])
             lifecycle(payload["failure"]["issue"])
+            checked_lifecycle_ids(payload["failure"]["issue"],full_history)
             continue
         state_value = states.get(payload["state_ref"])
         if not state_value:
@@ -192,6 +197,7 @@ def verify_graph(values, expected_origins):
             raise ValueError("Primary summary substituted")
         for issue in state["issues"]:
             lifecycle(issue)
+            checked_lifecycle_ids(issue,full_history)
             source_observation(issue,value)
         origins = [origin for issue in state["issues"] for origin in issue["origin_records"]
                    if origin["source"] != "phase2-fixture"]

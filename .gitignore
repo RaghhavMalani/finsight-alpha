@@ -68,3 +68,6 @@ frontend-v2/.env.local
 frontend-v2/src/risk-manager/monitoring-catalog.generated.ts
 frontend-v2/src/risk-manager/read-plan.generated.ts
 frontend-v2/public/risk-read-manifest.json
+# Derived from the same checked global manifest without changing retained history.
+frontend-v2/src/factors/read-plan.generated.ts
+frontend-v2/public/factor-read-manifest.json

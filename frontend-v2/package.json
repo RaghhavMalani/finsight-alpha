@@ -10,10 +10,10 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "postinstall": "node scripts/generate-risk-monitoring.mjs",
-    "prebuild": "node scripts/generate-risk-monitoring.mjs",
-    "prebuild:dev": "node scripts/generate-risk-monitoring.mjs",
-    "predev": "node scripts/generate-risk-monitoring.mjs"
+    "postinstall": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs",
+    "prebuild": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs",
+    "prebuild:dev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs",
+    "predev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

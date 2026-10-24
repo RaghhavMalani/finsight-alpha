@@ -53,7 +53,76 @@ def reduce(previous, observations, sweep_fingerprint, previous_observations=()):
                 old["occurrences"] += 1
                 transition = "UPDATED"
         if old:
-            Issue.model_validate(old)
+            # The internal list is hydrated from sealed receipts and can exceed
+            # the public schema bound. Validate the exact bounded public index.
+            checked_lifecycle_ids(old, {old["issue_id"]: old["observation_ids"]})
+            Issue.model_validate(dict(old, observation_ids=lifecycle_anchors(old)))
             transitions.append(dict(issue_id=o["issue_id"],transition=transition,observation_id=o["observation_id"],
                 previous_observation_id=last["observation_id"] if last else None,at=o["witnessed_at"]))
     return [issues[k] for k in sorted(issues)], transitions
+
+
+def lifecycle_anchors(issue):
+    """Canonical state index; complete ordered history belongs to sealed receipts."""
+    refs = [issue["first_seen_ref"]["observation_id"], issue["last_observation_id"]]
+    if issue["resolution_ref"]:
+        refs.append(issue["resolution_ref"]["observation_id"])
+    return list(dict.fromkeys(refs))
+
+
+def lifecycle_history(receipts):
+    """Rebuild applied lifecycle IDs from one reachable newest-first receipt chain.
+
+    Unapplied CLEAR and UNCHANGED observations are deliberately excluded. A
+    failed receipt adds its witnessed System incident without replacing a state.
+    """
+    history = {}
+    for receipt in reversed(receipts):
+        payload = receipt["payload"]
+        observations = {o["observation_id"]: o for o in payload["observations"]}
+        if len(observations) != len(payload["observations"]):
+            raise ValueError("Duplicate lifecycle observation")
+        if payload["failure"]:
+            issue = payload["failure"]["issue"]
+            observation = observations.get(issue["last_observation_id"])
+            if not observation or observation["issue_id"] != issue["issue_id"] or observation["outcome"] != "FINDING":
+                raise ValueError("Failure lifecycle witness missing or substituted")
+            ids = history.setdefault(issue["issue_id"], [])
+            if observation["observation_id"] not in ids:
+                ids.append(observation["observation_id"])
+            checked_lifecycle_ids(issue, history)
+        for transition in payload["transitions"]:
+            observation = observations.get(transition["observation_id"])
+            if not observation or observation["issue_id"] != transition["issue_id"]:
+                raise ValueError("Lifecycle transition witness missing or substituted")
+            kind = transition["transition"]
+            if kind == "UNCHANGED":
+                continue
+            issue_id = transition["issue_id"]
+            if kind == "NEW":
+                if issue_id in history or observation["outcome"] == "CLEAR":
+                    raise ValueError("Lifecycle creation duplicated or cleared")
+                history[issue_id] = []
+            elif kind not in {"UPDATED", "RESOLVED"} or issue_id not in history:
+                raise ValueError("Orphan lifecycle transition")
+            if kind == "RESOLVED" and (observation["outcome"], observation["availability"], observation["currency"]) != ("CLEAR", "AVAILABLE", "CURRENT"):
+                raise ValueError("Lifecycle resolution lacks positive complete evidence")
+            if kind == "UPDATED" and observation["outcome"] == "CLEAR":
+                raise ValueError("Lifecycle update substituted a clearing observation")
+            ids = history[issue_id]
+            if observation["observation_id"] not in ids:
+                ids.append(observation["observation_id"])
+    return history
+
+
+def checked_lifecycle_ids(issue, history):
+    """Accept exact legacy history or its exact anchors; never arbitrary subsets."""
+    expected = history.get(issue["issue_id"])
+    anchors = lifecycle_anchors(issue)
+    if (not expected or len(set(expected)) != len(expected)
+            or expected[0] != issue["first_seen_ref"]["observation_id"]
+            or expected[-1] != issue["last_observation_id"]
+            or any(value not in expected for value in anchors)
+            or issue["observation_ids"] not in (expected, anchors)):
+        raise ValueError("Issue lifecycle history omitted, reordered or substituted")
+    return list(expected)

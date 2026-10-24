@@ -29,31 +29,31 @@ const COMMANDS = [
   {
     id: "markets-options",
     label: "Open Markets · Options",
-    hint: "Quoted chain, pricer, payoff, IV surface",
+    hint: "Local Live · quoted chain, pricer, payoff, IV surface",
     to: "/markets/options",
   },
   {
     id: "markets-risk",
     label: "Open Markets · Risk",
-    hint: "VaR, stress, Monte Carlo, factors, portfolio",
+    hint: "Local Live · VaR, stress, Monte Carlo, factors, portfolio",
     to: "/markets/risk",
   },
   {
     id: "markets-backtest",
     label: "Open Markets · Backtest",
-    hint: "Indicator strategies against buy and hold",
+    hint: "Local Live · indicator strategies against buy and hold",
     to: "/markets/backtest",
   },
   {
     id: "markets-fundamentals",
     label: "Open Markets · Fundamentals",
-    hint: "EDGAR statements as of a date",
+    hint: "Local Live · EDGAR statements as of a date",
     to: "/markets/fundamentals",
   },
   {
     id: "markets-research",
     label: "Open Markets · Research",
-    hint: "Ask a company's 10-K and 10-Q",
+    hint: "Local Live · ask a company's 10-K and 10-Q",
     to: "/markets/research",
   },
   { id: "center", label: "Open Command Center", hint: "Forge overview", to: "/forge" },
@@ -76,7 +76,7 @@ const COMMANDS = [
   {
     id: "neural",
     label: "Open Neural Lab",
-    hint: "Edit and train a network, epoch by epoch",
+    hint: "Recorded Replay; editing and training require local Live",
     to: "/observatory",
   },
   {
