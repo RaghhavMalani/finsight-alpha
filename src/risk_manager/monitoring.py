@@ -2,7 +2,8 @@
 
 Only five exact routes can select sweep inputs. A current immutable Data receipt
 authorizes the seven existing Data publication aliases; no caller selectors,
-filesystem discovery, provider calls or wall-clock evaluation are involved.
+provider calls or wall-clock evaluation are involved. Fixed-directory sealed
+receipt history can prove carried lineage; it cannot select current inputs.
 """
 from __future__ import annotations
 from hashlib import sha256
@@ -250,10 +251,14 @@ def _payload(kind, payload, cutoff, *, legacy_health=False, profiles=None, cover
             elif row["rows"]!=0 or row["licence"]["status"]!="UNVERIFIED" or row["licence"]["permitted_uses"]:
                 raise ValueError("Restricted retained source admitted")
     elif kind=="lineage":
+        seen=set()
         keys=set("status signal_id signal_sha256 admission_id admission_seal source_version_id capture_sha256 schema_hash licence_resolution_hash source source_bytes".split())
         for row in payload["items"]:
             record(row,keys,keys)
             _source(row["source"],cutoff,profiles=profiles)
+            if row["signal_id"] in seen:
+                raise ValueError("Retained Data lineage duplicate")
+            seen.add(row["signal_id"])
             if row["status"]!="VERIFIED" or row["source_bytes"]!="LOCAL_ONLY" or any(not _hash(row[k]) for k in keys-{"status","source","source_bytes"}):
                 raise ValueError("Retained Data lineage invalid")
             if row["licence_resolution_hash"]!=digest(row["source"]["licence"]):
@@ -360,15 +365,11 @@ def read_data(root, manifest, identity, *, expected_kind=None):
         raise ValueError("Fixed illustrative cost metadata changed")
     return value
 
-def current_receipt(root, manifest, *, mirrors=True):
-    """One fixed pointer plus its exact content-addressed history receipt."""
-    raw=_read(root,"data/exports/data_organ_v0_1/receipt.json")
-    seal=sha256(raw).hexdigest()
-    if _read(root,"data/exports/data_organ_v0_1/receipt-"+seal+".json")!=raw:
-        raise ValueError("Current retained Data receipt is not sealed")
-    receipt=decode(raw)
+def _receipt_metadata(root, receipt):
+    """Strict shared receipt contract; only stdlib and Risk metadata helpers."""
     record(receipt,{"schema_version","admissions","as_of","computation_sources","entries","execution","holdout_openings","input_hash","journal_tip","model_runs","raw_inputs","source_versions"},
-        {"schema_version","as_of","entries","model_runs","holdout_openings","raw_inputs","source_versions"})
+        {"schema_version","admissions","as_of","computation_sources","entries","execution","holdout_openings","input_hash","journal_tip","model_runs","raw_inputs","source_versions"})
+    clock(receipt["as_of"])
     if receipt["schema_version"]!="data-organ-receipt/1" or type(receipt["model_runs"]) is not int or receipt["model_runs"]!=0 or type(receipt["holdout_openings"]) is not int or receipt["holdout_openings"]!=0 or receipt["raw_inputs"]!="LOCAL_ONLY":
         raise ValueError("Retained Data receipt crossed scientific/raw boundary")
     if set(receipt["entries"])!=set(ALL_KINDS):
@@ -393,28 +394,142 @@ def current_receipt(root, manifest, *, mirrors=True):
     versions={source["source_version_id"]:source for source in receipt["source_versions"]}
     if len(versions)!=len(receipt["source_versions"]):
         raise ValueError("Retained source version duplicate")
-    admissions={item["id"]:item for item in receipt["admissions"]}
-    if len(admissions)!=len(receipt["admissions"]):
-        raise ValueError("Retained admission duplicate")
-    for admission in admissions.values():
+    admissions={}
+    for admission in receipt["admissions"]:
         record(admission,{"id","seal","source_version_id","admitted_rows","quarantined_rows"},{"id","seal","source_version_id","admitted_rows","quarantined_rows"})
         if any(not _hash(admission[key]) for key in ("id","seal","source_version_id")) or not _count(admission["admitted_rows"]) or not _count(admission["quarantined_rows"]):
             raise ValueError("Retained admission identity/count invalid")
+        if admission["id"] in admissions:
+            raise ValueError("Retained admission duplicate")
+        if admission["source_version_id"] not in versions:
+            raise ValueError("Retained admission source version absent")
+        admissions[admission["id"]]=admission
+    return versions,admissions
+
+
+def _receipt_values(root, manifest, receipt, *, current=False):
+    values={}
     for kind in ALL_KINDS:
         spec=receipt["entries"][kind]
         identity=spec["artifact_id"]
         entry={k:v for k,v in spec.items() if k!="artifact_id"}
-        if entry!=manifest["artifacts"].get(identity) or manifest["routes"].get("/data/"+kind)!=identity:
-            raise ValueError("Current retained Data route/receipt substitution")
+        if entry!=manifest["artifacts"].get(identity) or (current and manifest["routes"].get("/data/"+kind)!=identity):
+            raise ValueError("Retained Data route/receipt substitution")
         value=read_data(root,manifest,identity,expected_kind=kind)
         if value["as_of"]!=receipt["as_of"] or value["input_hash"]!=receipt["input_hash"]:
             raise ValueError("Mixed retained Data publication bundle")
-        if kind=="lineage":
-            for row in value["payload"]["items"]:
-                admission=admissions.get(row["admission_id"])
-                retained=row in _snapshot(root,"lineage")["items"]
-                if not retained and (versions.get(row["source_version_id"])!=row["source"] or not admission or (admission["seal"],admission["source_version_id"])!=(row["admission_seal"],row["source_version_id"])):
-                    raise ValueError("Retained Data lineage/receipt admission substituted")
+        values[kind]=value
+    return values
+
+
+# This is the existing Data archive's sealed receipt namespace, not an input
+# selector. Bounds allow thousands of retained epochs without unbounded reads.
+_RECEIPT_DIRECTORY="data/exports/data_organ_v0_1"
+_HISTORY_RECEIPTS=4096
+_HISTORY_RECEIPT_BYTES=16*1024*1024
+_HISTORY_TOTAL_BYTES=128*1024*1024
+
+
+def _retained_lineage(root, manifest, receipt, rows, unresolved):
+    """Prove absent admissions from older manifest-bound immutable metadata."""
+    directory=Path(root)/_RECEIPT_DIRECTORY
+    if directory.is_symlink():
+        raise ValueError("Retained Data history path escape")
+    names=[]
+    for path in directory.iterdir():
+        if path.name.startswith("receipt-") and path.suffix==".json":
+            if not re.fullmatch(r"receipt-[a-f0-9]{64}\.json",path.name):
+                raise ValueError("Unreviewed retained Data receipt name")
+            names.append(path.name)
+            if len(names)>_HISTORY_RECEIPTS:
+                raise ValueError("Retained Data receipt history limit")
+    targets={row["signal_id"]:row for row in rows}
+    versions={row["source_version_id"]:row["source"] for row in rows}
+    bindings={row["admission_id"]:(row["admission_seal"],row["source_version_id"]) for row in rows}
+    seen_admissions={a["id"]:a for a in receipt["admissions"] if a["id"] in bindings}
+    witnesses=set()
+    total=0
+    baseline=clock(_snapshot(root,"receipt")["as_of"])
+    cutoff=clock(receipt["as_of"])
+    for name in sorted(names):
+        relative=_RECEIPT_DIRECTORY+"/"+name
+        path=Path(root)/relative
+        # Check size before read as well as exact bytes afterward.
+        if path.stat().st_size>_HISTORY_RECEIPT_BYTES:
+            raise ValueError("Retained Data receipt byte limit")
+        raw=_read(root,relative)
+        total+=len(raw)
+        if len(raw)>_HISTORY_RECEIPT_BYTES or total>_HISTORY_TOTAL_BYTES:
+            raise ValueError("Retained Data receipt byte limit")
+        if name!="receipt-"+sha256(raw).hexdigest()+".json":
+            raise ValueError("Retained Data receipt history substitution")
+        prior=decode(raw)
+        prior_cutoff=clock(prior["as_of"])
+        if prior_cutoff>cutoff:
+            raise ValueError("Future retained Data receipt")
+        if prior_cutoff<baseline:
+            # Original pre-monitoring history cannot expand the frozen exception.
+            continue
+        prior_versions,prior_admissions=_receipt_metadata(root,prior)
+        for kind,spec in prior["entries"].items():
+            identity=spec.get("artifact_id")
+            if not isinstance(identity,str) or not re.fullmatch("data-organ:"+kind+r":[a-f0-9]{64}",identity) or not _count(spec.get("bytes")):
+                raise ValueError("Retained Data history artifact identity invalid")
+            artifact=Path(root)/("frontend-v2/public/artifacts/replay/"+identity.replace(":","-")+".json")
+            size=artifact.stat().st_size
+            total+=size
+            if size!=spec["bytes"] or total>_HISTORY_TOTAL_BYTES:
+                raise ValueError("Retained Data history artifact byte limit")
+        values=_receipt_values(root,manifest,prior)
+        for identity,source in versions.items():
+            if identity in prior_versions and prior_versions[identity]!=source:
+                raise ValueError("Conflicting retained Data source version")
+        for identity,binding in bindings.items():
+            admission=prior_admissions.get(identity)
+            if admission is None:
+                continue
+            if (admission["seal"],admission["source_version_id"])!=binding or (identity in seen_admissions and seen_admissions[identity]!=admission):
+                raise ValueError("Conflicting retained Data admission")
+            seen_admissions[identity]=admission
+        for row in values["lineage"]["payload"]["items"]:
+            if row["signal_id"] not in targets:
+                continue
+            if row!=targets[row["signal_id"]]:
+                raise ValueError("Conflicting retained Data lineage row")
+            admission=prior_admissions.get(row["admission_id"])
+            if prior_cutoff<cutoff and admission and prior_versions.get(row["source_version_id"])==row["source"]:
+                if (admission["seal"],admission["source_version_id"])==(row["admission_seal"],row["source_version_id"]):
+                    witnesses.add(canonical(row))
+    if any(canonical(row) not in witnesses for row in unresolved):
+        raise ValueError("Retained Data lineage lacks a sealed prior admission")
+
+
+def current_receipt(root, manifest, *, mirrors=True):
+    """One fixed pointer selects current inputs; history only proves carried rows."""
+    raw=_read(root,"data/exports/data_organ_v0_1/receipt.json")
+    seal=sha256(raw).hexdigest()
+    if _read(root,"data/exports/data_organ_v0_1/receipt-"+seal+".json")!=raw:
+        raise ValueError("Current retained Data receipt is not sealed")
+    receipt=decode(raw)
+    versions,admissions=_receipt_metadata(root,receipt)
+    values=_receipt_values(root,manifest,receipt,current=True)
+    original=_snapshot(root,"lineage")["items"]
+    rows=[]
+    unresolved=[]
+    for row in values["lineage"]["payload"]["items"]:
+        if row in original:
+            continue
+        rows.append(row)
+        if versions.get(row["source_version_id"])!=row["source"]:
+            raise ValueError("Retained Data lineage/source version substituted")
+        admission=admissions.get(row["admission_id"])
+        if admission is None:
+            unresolved.append(row)
+        elif (admission["seal"],admission["source_version_id"])!=(row["admission_seal"],row["source_version_id"]):
+            raise ValueError("Retained Data lineage/receipt admission substituted")
+    if unresolved:
+        _retained_lineage(root,manifest,receipt,rows,unresolved)
+    for kind,value in values.items():
         if mirrors and decode(_read(root,"data/exports/data_organ_v0_1/"+kind+".json"))!=value["payload"]:
             raise ValueError("Current retained Data mirror substituted")
     if mirrors and decode(_read(root,"data/exports/data_organ_v0_1/manifest.json"))!=receipt["entries"]:
