@@ -24,7 +24,7 @@ export function SweepHistory({
         <h2 className="mono-caps text-[11px]">SEALED SWEEP HISTORY</h2>
         <p className="mt-1 text-[11px] text-muted-foreground">
           Phase 7 history starts at the actual first detection. Older source events remain origin
-          evidence.
+          evidence. Select an earlier sweep to continue through its sealed history.
         </p>
       </header>
       {rows.map((row) => (

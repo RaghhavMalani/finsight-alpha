@@ -22,6 +22,11 @@ const {
   utcMicros,
 } = await import("../src/risk-manager/contracts.ts");
 
+// Lossless generated sharing must preserve every admitted epoch and nested binding.
+const renderedCatalog = (await import("../src/risk-manager/monitoring-catalog.generated.ts"))
+  .MONITORING_CATALOG;
+assert.equal(stable(renderedCatalog), stable(MONITORING_CATALOG));
+
 const publicRoot = new URL("../public/", import.meta.url);
 const repo = new URL("../../", import.meta.url);
 const manifestBytes = readFileSync(new URL("replay-manifest.json", publicRoot));
@@ -46,7 +51,7 @@ const futureMonitoring = verifyFutureMonitoringAdmission(manifest, (url) =>
 );
 const { checkedIssueReferences } = await import("../src/risk-manager/evidence.ts");
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
-let checks = futureMonitoring.rejection_checks + 3;
+let checks = futureMonitoring.rejection_checks + 4;
 const values = new Map();
 for (const [id, entry] of Object.entries(manifest.artifacts)) {
   if (!["risk-state", "risk-sweep"].includes(entry.kind)) continue;

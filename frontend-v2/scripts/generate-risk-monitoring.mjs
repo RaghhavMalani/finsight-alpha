@@ -618,6 +618,49 @@ export function deriveMonitoringCatalog(manifestInput, readArtifact) {
   return { schema_version: "risk-monitoring-catalog/1", bundles };
 }
 
+/** Share exact repeated JSON subtrees without changing the complete admitted catalog. */
+function monitoringCatalogSource(catalog) {
+  const counts = new Map();
+  const postorder = new Map();
+  function visit(value) {
+    if (value === null || typeof value !== "object") return;
+    const signature = JSON.stringify(value);
+    counts.set(signature, (counts.get(signature) ?? 0) + 1);
+    for (const child of Object.values(value)) visit(child);
+    if (!postorder.has(signature)) postorder.set(signature, value);
+  }
+  visit(catalog);
+  const shared = new Map(
+    [...postorder.keys()]
+      .filter((signature) => counts.get(signature) > 1)
+      .map((signature, index) => [signature, "catalogShared" + index]),
+  );
+  function render(value, own = null) {
+    if (value === null || typeof value !== "object") return JSON.stringify(value);
+    const signature = JSON.stringify(value);
+    const name = shared.get(signature);
+    if (name && signature !== own) return name;
+    return Array.isArray(value)
+      ? "[" + value.map((child) => render(child)).join(",") + "]"
+      : "{" +
+          Object.entries(value)
+            .map(([key, child]) => JSON.stringify(key) + ":" + render(child))
+            .join(",") +
+          "}";
+  }
+  const declarations = [...shared].map(
+    ([signature, name]) =>
+      "const " + name + " = " + render(postorder.get(signature), signature) + " as const;\n",
+  );
+  return (
+    "// Generated from checked public retained bytes; do not edit or commit.\n" +
+    declarations.join("") +
+    "export const MONITORING_CATALOG = " +
+    render(catalog) +
+    " as const;\n"
+  );
+}
+
 /** Regenerate before every build/check; no committed epoch list can become a pin. */
 export async function generateMonitoringCatalog() {
   const publicRoot = fileURLToPath(new URL("../public/", import.meta.url));
@@ -641,19 +684,14 @@ export async function generateMonitoringCatalog() {
     readArtifact,
   );
   assert(snapshot.equals(readFileSync(snapshotPath)), "Manifest changed during catalog admission");
-  const source = await format(
-    "// Generated from checked public retained bytes; do not edit or commit.\nexport const MONITORING_CATALOG = " +
-      JSON.stringify(catalog) +
-      " as const;\n",
-    {
-      parser: "typescript",
-      printWidth: 100,
-      semi: true,
-      singleQuote: false,
-      trailingComma: "all",
-      endOfLine: "lf",
-    },
-  );
+  const source = await format(monitoringCatalogSource(catalog), {
+    parser: "typescript",
+    printWidth: 100,
+    semi: true,
+    singleQuote: false,
+    trailingComma: "all",
+    endOfLine: "lf",
+  });
   writeFileSync(
     new URL("../src/risk-manager/monitoring-catalog.generated.ts", import.meta.url),
     source,

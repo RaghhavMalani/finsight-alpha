@@ -39,6 +39,14 @@ def receipt_chain(manifest, values):
     return chain
 
 
+def assert_parent_navigation(manifest, values):
+    current=values[manifest["routes"]["/risk-manager/sweep"]]["payload"]
+    parent_ref=current["prior_sweep_ref"]
+    parent=values[parent_ref]["payload"]
+    assert current["history_index"]==[dict(sweep_id=parent["sweep_id"],sweep_ref=parent_ref,
+        state_ref=parent["state_ref"],published_at=parent["published_at"],status=parent["status"])]
+
+
 def exact_origins(root, values):
     manifest = decode((root / "frontend-v2/public/replay-manifest.json").read_bytes())
     origins = {}
@@ -149,6 +157,8 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
                           manifest["artifacts"][manifest["routes"]["/risk-manager/state"]]["url"].lstrip("/")).read_bytes())
     initial_by_id = {i["issue_id"]: i for i in initial_state["payload"]["issues"]}
     sealed_ids = set(initial_by_id)
+    _, initial_values = retained_values(tmp_path)
+    original_history = {row["payload"]["sweep_id"] for row in receipt_chain(manifest, initial_values)}
     current_data = decode((ROOT / "data/exports/data_organ_v0_1/issues.json").read_bytes())
     current_origins = current_data["items"]
     current_cutoff = manifest["artifacts"][manifest["routes"]["/data/issues"]]["as_of"]
@@ -165,6 +175,10 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
         result = sweep.run(tmp_path, clock_fn=lambda: witness)
         assert result["status"] == "PARTIAL", result
         manifest, values = retained_values(tmp_path)
+        assert_parent_navigation(manifest, values)
+        full_chain = receipt_chain(manifest, values)
+        assert len(full_chain) == len(original_history) + offset
+        assert original_history <= {row["payload"]["sweep_id"] for row in full_chain}
         state = values[manifest["routes"]["/risk-manager/state"]]
         origins = [o for i in state["payload"]["issues"] for o in i["origin_records"] if o["source"] != "phase2-fixture"]
         assert len(origins) == origin_count
@@ -323,6 +337,7 @@ def test_system_failure_recover_reopen_recover_and_consecutive_failure_chain(tmp
         result = sweep.run(tmp_path, clock_fn=lambda: witness, failure_sink=attempts.append)
         assert result["status"] == ("FAILED" if failure else "PARTIAL"), result
         selected, values = retained_values(tmp_path)
+        assert_parent_navigation(selected, values)
         assert selected["routes"]["/risk-manager/sweep"] in values
         assert verify_graph(values, exact_origins(tmp_path, values))
         return result, selected, values

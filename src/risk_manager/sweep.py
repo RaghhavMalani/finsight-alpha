@@ -24,6 +24,14 @@ def envelope(kind,payload,p, fingerprint, published_at):
         published_at=published_at,scope="RETAINED_RISK_EVIDENCE",sources=["project:risk-manager-evidence"],
         licence=LICENCE,claim_flags=dict(CLAIMS),payload=payload)
 
+def parent_history(prior, prior_ref):
+    """One exact navigation row; immutable prior_sweep_ref retains the full chain."""
+    if prior is None:
+        return []
+    payload=prior["payload"]
+    return [dict(sweep_id=payload["sweep_id"],sweep_ref=prior_ref,state_ref=payload["state_ref"],
+                 published_at=payload["published_at"],status=payload["status"])]
+
 def previous(root, manifest):
     sid=manifest["routes"].get("/risk-manager/state")
     rid=manifest["routes"].get("/risk-manager/sweep")
@@ -162,11 +170,7 @@ def _run(root=ROOT, *, clock_fn=now, publish_artifacts=True, failure_sink=None):
                 _,raw=validate_public(state,root,staged=staged)
                 state_ref="risk:state:"+sha256(raw).hexdigest()
                 sweep_id=digest(["risk-sweep/1",fingerprint,started,payload["state_id"]])
-                history=[]
-                if prior:
-                    q=prior["payload"]
-                    history=[dict(sweep_id=q["sweep_id"],sweep_ref=rid,state_ref=q["state_ref"],
-                        published_at=q["published_at"],status=q["status"])]+q["history_index"][:19]
+                history=parent_history(prior,rid)
                 proofs=dict.fromkeys(OPERATIONS,0)
                 proofs.update(before_inventory_sha256=before,after_inventory_sha256=after,forbidden_call_guard="ENFORCED")
                 receipt_payload=dict(sweep_id=sweep_id,fingerprint=fingerprint,status="PARTIAL",
@@ -299,7 +303,7 @@ def failed_receipt(root,p,started,sid,rid,prior,before,exc,clock_fn,old=None):
     sp=dict(sweep_id=digest([fingerprint,started]),fingerprint=fingerprint,status="FAILED",prior_sweep_ref=rid,
         state_ref=sid,started_at=started,completed_at=end,published_at=end,evaluation_cutoff=p["evaluation_cutoff"],
         inputs=[],evaluator_source_hash=evaluator_hash(root),policy_sha256=p["sha256"],observations=[observation],transitions=[],
-        transition_counts=dict(new=0,unchanged=0,updated=0,resolved=0),operation_proofs=proofs,history_index=[],
+        transition_counts=dict(new=0,unchanged=0,updated=0,resolved=0),operation_proofs=proofs,history_index=parent_history(prior,rid),
         failure=dict(reason_code=code,subsystem="retained-reader",issue=issue,last_valid_state_ref=sid,attempt_id=digest([started,code])))
     return envelope("risk-sweep",sp,p,fingerprint,end)
 
