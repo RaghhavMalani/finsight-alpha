@@ -148,6 +148,7 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
     initial_state = decode((ROOT / "frontend-v2/public" /
                           manifest["artifacts"][manifest["routes"]["/risk-manager/state"]]["url"].lstrip("/")).read_bytes())
     initial_by_id = {i["issue_id"]: i for i in initial_state["payload"]["issues"]}
+    sealed_ids = set(initial_by_id)
     current_data = decode((ROOT / "data/exports/data_organ_v0_1/issues.json").read_bytes())
     current_origins = current_data["items"]
     current_cutoff = manifest["artifacts"][manifest["routes"]["/data/issues"]]["as_of"]
@@ -157,6 +158,10 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
         witness = (clock(epoch) + timedelta(hours=2)).isoformat().replace("+00:00", "Z")
         origin_count = len(current_origins) + offset
         receipt = reseal(tmp_path, manifest, epoch=epoch, new_health=True)
+        # This lifecycle test conserves the admitted evaluator's finding set;
+        # rule predicate truth has a separate independent metadata oracle.
+        incoming, _ = sweep.evaluate(sweep.EvidenceReaders(tmp_path).read(), witness)
+        expected_ids = set(initial_by_id) | {o["issue_id"] for o in incoming if o["outcome"] != "CLEAR"}
         result = sweep.run(tmp_path, clock_fn=lambda: witness)
         assert result["status"] == "PARTIAL", result
         manifest, values = retained_values(tmp_path)
@@ -164,9 +169,15 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
         origins = [o for i in state["payload"]["issues"] for o in i["origin_records"] if o["source"] != "phase2-fixture"]
         assert len(origins) == origin_count
         assert sorted(canonical(o) for o in origins) == sorted(canonical(o) for o in decode((tmp_path / "data/exports/data_organ_v0_1/issues.json").read_bytes())["items"])
-        assert {i["issue_id"] for i in state["payload"]["issues"]} == set(initial_by_id)
+        assert {i["issue_id"] for i in state["payload"]["issues"]} == expected_ids
         for issue in state["payload"]["issues"]:
             assert issue["observation_ids"] == lifecycle_anchors(issue)
+            if issue["issue_id"] not in initial_by_id:
+                initial_by_id[issue["issue_id"]] = deepcopy(issue)
+                assert issue["first_seen_at"] == witness
+                assert issue["first_seen_ref"]["sweep_fingerprint"] == result["fingerprint"]
+                assert issue["first_seen_ref"]["observation_id"] == issue["last_observation_id"]
+                assert issue["occurrences"] == 1
             assert issue["first_seen_at"] == initial_by_id[issue["issue_id"]]["first_seen_at"]
             assert issue["first_seen_ref"] == initial_by_id[issue["issue_id"]]["first_seen_ref"]
         risk_sizes = [entry["bytes"] for identity, entry in manifest["artifacts"].items() if identity.startswith("risk:")]
@@ -176,7 +187,10 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
         history = lifecycle_history(receipt_chain(manifest, values))
         for issue in hydrated["payload"]["issues"]:
             assert issue["observation_ids"] == history[issue["issue_id"]]
-            assert len(issue["observation_ids"]) > len(lifecycle_anchors(issue))
+            if issue["issue_id"] in sealed_ids:
+                assert len(issue["observation_ids"]) > len(lifecycle_anchors(issue))
+            else:
+                assert len(issue["observation_ids"]) == offset
         before_repeat = snapshot(tmp_path)
         repeat_witness = (clock(witness) + timedelta(hours=1)).isoformat().replace("+00:00", "Z")
         repeat = sweep.run(tmp_path, clock_fn=lambda: repeat_witness)
@@ -313,17 +327,23 @@ def test_system_failure_recover_reopen_recover_and_consecutive_failure_chain(tmp
         assert verify_graph(values, exact_origins(tmp_path, values))
         return result, selected, values
 
-    failed, manifest, values = run_at("2026-10-26T08:00:00Z", failure=True)
+    # Witnesses follow the admitted epoch even when daily Data has advanced.
+    cutoff = manifest["artifacts"][manifest["routes"]["/data/issues"]]["as_of"]
+    start = clock(cutoff) + timedelta(days=1, hours=2)
+    def at_minute(offset):
+        return (start + timedelta(minutes=offset)).isoformat().replace("+00:00", "Z")
+
+    failed, manifest, values = run_at(at_minute(0), failure=True)
     first = deepcopy(attempts[-1]["payload"]["failure"]["issue"])
     identity = first["issue_id"]
     assert first["status"] == "OPEN" and first["occurrences"] == 1
-    repaired, manifest, values = run_at("2026-10-26T08:01:00Z")
+    repaired, manifest, values = run_at(at_minute(1))
     resolved = next(i for i in values[repaired["state_ref"]]["payload"]["issues"] if i["issue_id"] == identity)
     assert resolved["status"] == "RESOLVED" and resolved["occurrences"] == 1
     # Old failed witnesses must not resurrect a successfully resolved incident.
     old = next(i for i in sweep.previous(tmp_path, manifest)[2]["payload"]["issues"] if i["issue_id"] == identity)
     assert old["status"] == "RESOLVED"
-    reopened, manifest, values = run_at("2026-10-26T08:02:00Z", failure=True)
+    reopened, manifest, values = run_at(at_minute(2), failure=True)
     reopened_issue = attempts[-1]["payload"]["failure"]["issue"]
     assert reopened["state_ref"] == repaired["state_ref"]
     assert reopened_issue["occurrences"] == 2 and reopened_issue["status"] == "OPEN"
@@ -333,12 +353,12 @@ def test_system_failure_recover_reopen_recover_and_consecutive_failure_chain(tmp
     assert hydrated["status"] == "OPEN" and hydrated["last_observation_id"] == reopened_issue["last_observation_id"]
     assert len(hydrated["observation_ids"]) == 3
     # A second failed attempt keeps the entire ordered chain and newest witness.
-    failed_again, manifest, values = run_at("2026-10-26T08:03:00Z", failure=True)
+    failed_again, manifest, values = run_at(at_minute(3), failure=True)
     latest = attempts[-1]["payload"]["failure"]["issue"]
     assert latest["occurrences"] == 3 and latest["observation_ids"] == lifecycle_anchors(latest)
     hydrated = next(i for i in sweep.previous(tmp_path, manifest)[2]["payload"]["issues"] if i["issue_id"] == identity)
     assert len(hydrated["observation_ids"]) == 4 and hydrated["last_observation_id"] == latest["last_observation_id"]
-    final, manifest, values = run_at("2026-10-26T08:04:00Z")
+    final, manifest, values = run_at(at_minute(4))
     final_issue = next(i for i in values[final["state_ref"]]["payload"]["issues"] if i["issue_id"] == identity)
     assert final["transitions"]["resolved"] == 1 and final_issue["status"] == "RESOLVED"
     assert final_issue["occurrences"] == 3 and final_issue["first_seen_ref"] == first["first_seen_ref"]

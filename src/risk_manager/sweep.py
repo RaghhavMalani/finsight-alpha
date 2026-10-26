@@ -153,7 +153,9 @@ def _run(root=ROOT, *, clock_fn=now, publish_artifacts=True, failure_sink=None):
                 # Loading those rows on demand avoids duplicating six preview checks here.
                 summary=[]
                 payload=dict(state_id="0"*64,sweep_fingerprint=fingerprint,evaluation_cutoff=e.cutoff,
-                    policy=projection(p),issues=projected_issues,coverage=summary,counts=counts(issues),evidence_index=[page_ref],
+                    # The verified coverage leaf retains the complete reviewed rules.
+                    # The primary binds the same policy identity without duplicating it.
+                    policy=dict(projection(p),rules=[]),issues=projected_issues,coverage=summary,counts=counts(issues),evidence_index=[page_ref],
                     historical_origin_counts=origin_counts(e.values["data_issues"]["payload"]["items"]),prior_state_ref=sid)
                 payload["state_id"]=digest({k:v for k,v in payload.items() if k!="state_id"})
                 state=envelope("risk-state",payload,p,fingerprint,published)

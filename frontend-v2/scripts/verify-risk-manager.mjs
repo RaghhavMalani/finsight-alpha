@@ -85,6 +85,31 @@ for (const slot of coverage.payload.coverage.filter((slot) => slot.category === 
   assert.equal(slot.availability, "UNAVAILABLE");
   assert.equal(slot.outcome, "NOT_EVALUATED");
 }
+// A compact primary keeps the exact policy identity; the bound leaf retains every rule.
+const compactPolicyState = structuredClone(state);
+compactPolicyState.payload.policy.rules = [];
+const compactPayload = { ...compactPolicyState.payload };
+delete compactPayload.state_id;
+compactPolicyState.payload.state_id = hash(stable(compactPayload));
+assert.deepEqual(validateRisk(compactPolicyState, "risk-state"), compactPolicyState);
+await verifyRiskIdentity(compactPolicyState);
+assert.equal(stable(compactPolicyState.payload.issues), stable(state.payload.issues));
+for (const mutate of [
+  (v) => (v.payload.policy.sha256 = "a".repeat(64)),
+  (v) => (v.payload.policy.version = "0.2"),
+  (v) => (v.payload.policy.rules = [PINNED_POLICY.rules[0]]),
+  (v) => (v.payload.evidence_index = []),
+  (v) => v.payload.evidence_index.push(v.payload.evidence_index[0]),
+]) {
+  const copy = structuredClone(compactPolicyState);
+  mutate(copy);
+  assert.throws(() => validateRisk(copy, "risk-state"));
+  checks++;
+}
+const compactPolicyLeaf = structuredClone(coverage);
+compactPolicyLeaf.payload.policy.rules = [];
+assert.throws(() => validateRisk(compactPolicyLeaf, "risk-state"));
+checks += 4;
 // Existing typed observation links must retain the full source evidence without substitutions.
 const sourceIssue = state.payload.issues.find((issue) =>
   sweep.payload.observations.some(

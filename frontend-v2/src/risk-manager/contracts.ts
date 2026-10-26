@@ -2113,6 +2113,12 @@ export function stable(value: unknown): string {
   }
   return JSON.stringify(value);
 }
+// Immutable reviewed metadata is serialized once; payloads are checked on every read.
+const FULL_POLICY_KEY = stable(PINNED_POLICY);
+const COMPACT_POLICY_KEY = stable({ ...PINNED_POLICY, rules: [] });
+function literalEqual(a: unknown, b: unknown): boolean {
+  return a === b || (typeof a === "object" && typeof b === "object" && stable(a) === stable(b));
+}
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -2185,9 +2191,9 @@ function validate(
     }
     return fail("Unreviewed union at " + path);
   }
-  if ("const" in schema && stable(value) !== stable(schema.const))
+  if ("const" in schema && !literalEqual(value, schema.const))
     fail("Literal substitution at " + path);
-  if (schema.enum && !schema.enum.some((v) => stable(v) === stable(value)))
+  if (schema.enum && !schema.enum.some((v) => literalEqual(v, value)))
     fail("Unknown enum at " + path);
   if (schema.type === "object") {
     if (value === null || typeof value !== "object" || Array.isArray(value))
@@ -2593,9 +2599,11 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
     const state = v as State,
       p = state.payload,
       expected = new Map<string, number>();
-    if (stable(p.policy) !== stable(PINNED_POLICY) || state.input_hash !== p.sweep_fingerprint)
-      fail("State policy/fingerprint substituted.");
     const pages = p.evidence_index.filter((ref) => ref.selector_id === "risk_coverage");
+    const expectedPolicy =
+      pages.length && p.policy.rules.length === 0 ? COMPACT_POLICY_KEY : FULL_POLICY_KEY;
+    if (stable(p.policy) !== expectedPolicy || state.input_hash !== p.sweep_fingerprint)
+      fail("State policy/fingerprint substituted.");
     const coverageCategories = new Set(p.coverage.map((row) => row.category));
     if (pages.length) {
       if (
@@ -2620,7 +2628,7 @@ export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"):
       "coverage slot",
     );
     for (const issue of p.issues) {
-      issueValid(issue, p.policy, v.published_at);
+      issueValid(issue, PINNED_POLICY as unknown as State["payload"]["policy"], v.published_at);
       if (utcMicros(issue.evidence_cutoff) > utcMicros(v.evidence_cutoff))
         fail("Issue epoch exceeds selected state.");
       const key = [partition(issue), issue.category, issue.severity].join("|");

@@ -8,7 +8,7 @@ import base64
 import json
 import re
 from .contracts import StateEnvelope,SweepEnvelope,canonical,decode,digest,counts,CLAIMS,identity,clock
-from .policy import load,validate_rule
+from .policy import load,projection,validate_rule
 from .reducer import lifecycle_history,checked_lifecycle_ids
 from .monitoring import ALIASES, bundle_at, monitoring_catalog, monitoring_operation
 
@@ -191,7 +191,13 @@ def _validate_public(value, root, staged=None, *, catalog=None):
     if parsed["sources"]!=["project:risk-manager-evidence"]:
         raise ValueError("Unreviewed publication source")
     if parsed["kind"]=="risk-state":
-        if p["counts"]!=counts(p["issues"]) or p["policy"]["sha256"]!=policy["sha256"] or p["policy"]["rules"]!=policy["rules"]:
+        pages=[ref for ref in p["evidence_index"] if ref.get("selector_id")=="risk_coverage"]
+        full_policy=projection(policy)
+        compact_policy=dict(full_policy,rules=[])
+        # Only a primary with an exact bound coverage leaf can omit duplicate rules.
+        # The identity and the complete rules in that leaf remain mandatory.
+        if (p["counts"]!=counts(p["issues"]) or p["policy"] not in (full_policy,compact_policy)
+                or (p["policy"]==compact_policy and not pages)):
             raise ValueError("Counts/policy substitution")
         if len({i["issue_id"] for i in p["issues"]})!=len(p["issues"]):
             raise ValueError("Duplicate Issue identity")
@@ -212,7 +218,6 @@ def _validate_public(value, root, staged=None, *, catalog=None):
                     raise ValueError("Issue reference available after cutoff")
             validate_refs(i["evidence_refs"],root,staged=staged,cutoff=i["evidence_cutoff"],catalog=catalog)
         refs.extend(p["evidence_index"])
-        pages=[ref for ref in p["evidence_index"] if ref.get("selector_id")=="risk_coverage"]
         if pages:
             if len(pages)!=1 or len(p["evidence_index"])!=1:
                 raise ValueError("Primary coverage leaf substituted")
@@ -221,6 +226,8 @@ def _validate_public(value, root, staged=None, *, catalog=None):
             ref=pages[0]
             page=(staged[ref["artifact_id"]][0] if staged and ref["artifact_id"] in staged else
                 decode((Path(root)/"frontend-v2/public/artifacts/replay"/(ref["artifact_id"].replace(":","-")+".json")).read_bytes()))
+            if page["payload"]["policy"]!=full_policy:
+                raise ValueError("Coverage leaf omitted or substituted full policy")
             if (page["input_hash"],page["evidence_cutoff"])!=(parsed["input_hash"],parsed["evidence_cutoff"]):
                 raise ValueError("Coverage page fingerprint/cutoff substitution")
             if any(row not in page["payload"]["coverage"] for row in p["coverage"]):

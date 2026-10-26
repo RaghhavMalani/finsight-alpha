@@ -3,6 +3,7 @@ import { inspectRef, type RiskBundle } from "./client";
 import { checkedIssueReferences } from "./evidence";
 import { stamp, type Issue } from "./contracts";
 import { displayText, tone } from "./filters";
+import { PINNED_POLICY } from "./bindings";
 export function IssueInspector({
   issue,
   bundle,
@@ -87,7 +88,7 @@ export function IssueInspector({
       </aside>
     );
   const sourceRefs = checkedIssueReferences(issue, bundle.stateSweep);
-  const rule = bundle.state?.payload.policy.rules.find((r) => r.rule_id === issue.rule_id);
+  const rule = PINNED_POLICY.rules.find((r) => r.rule_id === issue.rule_id);
   return (
     <aside
       ref={panel}
