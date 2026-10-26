@@ -53,6 +53,7 @@ from backend.routes import (
     research,
     research_os,
     risk,
+    risk_manager,
     strategy,
     tape,
     universe,
@@ -160,7 +161,7 @@ app.add_middleware(
     allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Accept", "X-FinSight-Organization"],
+    allow_headers=["Content-Type", "Accept", "X-FinSight-Organization", "X-FinSight-Paper-Owner"],
 )
 
 
@@ -184,6 +185,7 @@ app.include_router(research.router)
 app.include_router(research_os.router)
 app.include_router(pricing.router)
 app.include_router(risk.router)
+app.include_router(risk_manager.router)
 app.include_router(news.router)
 app.include_router(portfolio.router)
 app.include_router(backtest.router)

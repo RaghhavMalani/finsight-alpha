@@ -24,6 +24,21 @@ async function apiError(response: Response): Promise<ApiError> {
   return new ApiError(detail || "API request failed", response.status);
 }
 
+// Session notifications stay generic: private books subscribe only inside the local lab.
+const sessionListeners = new Set<() => void>();
+let sessionUserId: number | null | undefined;
+export function subscribeSessionBoundary(callback: () => void) {
+  sessionListeners.add(callback);
+  return () => {
+    sessionListeners.delete(callback);
+  };
+}
+function sessionBoundary(next: number | null) {
+  const changed = sessionUserId !== undefined && sessionUserId !== next;
+  sessionUserId = next;
+  if (changed || next === null) sessionListeners.forEach((callback) => callback());
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (getDataMode() === "replay") {
     if (init?.method && init.method !== "GET")
@@ -45,11 +60,20 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!response.ok) {
+    if (response.status === 401) sessionBoundary(null);
     throw await apiError(response);
   }
   const payload = await response.json().catch(() => null);
   if (getDataMode() !== "live" || init?.signal?.aborted)
     throw new DOMException("Data mode changed", "AbortError");
+  if (path === "/auth/logout") sessionBoundary(null);
+  else if (
+    ["/auth/me", "/auth/login", "/auth/register"].includes(path) &&
+    payload &&
+    Number.isSafeInteger(payload.id)
+  ) {
+    sessionBoundary(payload.id);
+  }
   return payload as T;
 }
 

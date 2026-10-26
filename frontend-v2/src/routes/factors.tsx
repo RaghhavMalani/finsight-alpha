@@ -1,5 +1,5 @@
 import { createFileRoute, type SearchSchemaInput } from "@tanstack/react-router";
-import { ForgeShell } from "@/app/shell/ForgeShell";
+import { FactorsShell } from "@/factors/FactorsShell";
 import { FactorsWorkspace } from "@/factors/FactorsWorkspace";
 export const Route = createFileRoute("/factors")({
   validateSearch: (s: Record<string, unknown> & SearchSchemaInput) => ({
@@ -9,8 +9,8 @@ export const Route = createFileRoute("/factors")({
     panel: ["catalog", "audit", "ledger"].includes(String(s.panel)) ? String(s.panel) : "catalog",
   }),
   component: () => (
-    <ForgeShell>
+    <FactorsShell>
       <FactorsWorkspace />
-    </ForgeShell>
+    </FactorsShell>
   ),
 });

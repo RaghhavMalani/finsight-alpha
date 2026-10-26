@@ -1,0 +1,785 @@
+{
+  "artifacts": {
+    "audit_INDIA": {
+      "artifact_id": "factors:audit:67125260b6284aeca035991913b54c3c8f630db28047f8849662e9df73ea2397",
+      "entry": {
+        "as_of": "2026-10-12T14:39:49.953264Z",
+        "available_at": "2026-10-12T14:39:49.953264Z",
+        "bytes": 89884,
+        "input_hash": "9f913fdf35a3b1ed5876b95a88eaadfcfa7121c6179a3f87bb7d0af953114ddd",
+        "kind": "factors-audit",
+        "licence": {
+          "dataset_key": "project:factor-evidence",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-12T14:39:49.953264Z",
+        "reason": null,
+        "scope": "READ_ONLY_FACTOR_EVIDENCE",
+        "sha256": "67125260b6284aeca035991913b54c3c8f630db28047f8849662e9df73ea2397",
+        "sources": [
+          "iima:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/factors-audit-67125260b6284aeca035991913b54c3c8f630db28047f8849662e9df73ea2397.json"
+      }
+    },
+    "audit_US": {
+      "artifact_id": "factors:audit:119acc8600064ce74b97af202edfd97471bef6109256d548b90ba448137c1c8b",
+      "entry": {
+        "as_of": "2026-10-12T14:39:49.953264Z",
+        "available_at": "2026-10-12T14:39:49.953264Z",
+        "bytes": 89995,
+        "input_hash": "f33328de5f4e2691b4aee639aa8c54ec79e04cf1aaca516d80bce7334d54fb7e",
+        "kind": "factors-audit",
+        "licence": {
+          "dataset_key": "project:factor-evidence",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-12T14:39:49.953264Z",
+        "reason": null,
+        "scope": "READ_ONLY_FACTOR_EVIDENCE",
+        "sha256": "119acc8600064ce74b97af202edfd97471bef6109256d548b90ba448137c1c8b",
+        "sources": [
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/factors-audit-119acc8600064ce74b97af202edfd97471bef6109256d548b90ba448137c1c8b.json"
+      }
+    },
+    "data_coverage": {
+      "artifact_id": "data-organ:coverage:83ab6a4ec9c3b8393fc0a862c73c6265dc1b3b1556d9dd1b5f3262cfb66a43ab",
+      "entry": {
+        "as_of": "2026-10-13T07:48:05.159978Z",
+        "available_at": "2026-10-13T07:48:05.159978Z",
+        "bytes": 7252,
+        "input_hash": "ffb9cf8007c52138f224f094822edee58a205349521838e24e976955be23f587",
+        "kind": "data-organ-coverage",
+        "licence": {
+          "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+          "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+          "dataset_key": "project:data-organ-diagnostics",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://alfred.stlouisfed.org/series?seid=UNRATE",
+            "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+            "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+            "https://www.bls.gov/developers/",
+            "https://www.bls.gov/opub/copyright-information.htm"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-13T07:48:05.159978Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_DIAGNOSTICS",
+        "sha256": "83ab6a4ec9c3b8393fc0a862c73c6265dc1b3b1556d9dd1b5f3262cfb66a43ab",
+        "sources": [
+          "alfred:UNRATE",
+          "bls:LNS14000000",
+          "iima:daily-factors",
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/data-organ-coverage-83ab6a4ec9c3b8393fc0a862c73c6265dc1b3b1556d9dd1b5f3262cfb66a43ab.json"
+      }
+    },
+    "data_disagreement": {
+      "artifact_id": "data-organ:disagreement:4185baf65c0cb49aca214b65bd9833ac603b0bc71df58fd34903b7c5ad0df413",
+      "entry": {
+        "as_of": "2026-10-13T07:48:05.159978Z",
+        "available_at": "2026-10-13T07:48:05.159978Z",
+        "bytes": 951,
+        "input_hash": "ffb9cf8007c52138f224f094822edee58a205349521838e24e976955be23f587",
+        "kind": "data-organ-disagreement",
+        "licence": {
+          "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+          "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+          "dataset_key": "project:data-organ-diagnostics",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://alfred.stlouisfed.org/series?seid=UNRATE",
+            "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+            "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+            "https://www.bls.gov/developers/",
+            "https://www.bls.gov/opub/copyright-information.htm"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-13T07:48:05.159978Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_DIAGNOSTICS",
+        "sha256": "4185baf65c0cb49aca214b65bd9833ac603b0bc71df58fd34903b7c5ad0df413",
+        "sources": [
+          "alfred:UNRATE",
+          "bls:LNS14000000",
+          "iima:daily-factors",
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/data-organ-disagreement-4185baf65c0cb49aca214b65bd9833ac603b0bc71df58fd34903b7c5ad0df413.json"
+      }
+    },
+    "data_health": {
+      "artifact_id": "data-organ:health:c9353c7baae85b3f2462d70a6855a3d67a954bca7dc6331d8170ea00dfe5c70c",
+      "entry": {
+        "as_of": "2026-10-13T07:48:05.159978Z",
+        "available_at": "2026-10-13T07:48:05.159978Z",
+        "bytes": 4928,
+        "input_hash": "ffb9cf8007c52138f224f094822edee58a205349521838e24e976955be23f587",
+        "kind": "data-organ-health",
+        "licence": {
+          "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+          "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+          "dataset_key": "project:data-organ-diagnostics",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://alfred.stlouisfed.org/series?seid=UNRATE",
+            "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+            "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+            "https://www.bls.gov/developers/",
+            "https://www.bls.gov/opub/copyright-information.htm"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-13T07:48:05.159978Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_DIAGNOSTICS",
+        "sha256": "c9353c7baae85b3f2462d70a6855a3d67a954bca7dc6331d8170ea00dfe5c70c",
+        "sources": [
+          "alfred:UNRATE",
+          "bls:LNS14000000",
+          "iima:daily-factors",
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/data-organ-health-c9353c7baae85b3f2462d70a6855a3d67a954bca7dc6331d8170ea00dfe5c70c.json"
+      }
+    },
+    "data_issues": {
+      "artifact_id": "data-organ:issues:da23fd6cfa86b53fe1b569ab93ed343f3913ef0691c6036b7f45f91e83f42c30",
+      "entry": {
+        "as_of": "2026-10-13T07:48:05.159978Z",
+        "available_at": "2026-10-13T07:48:05.159978Z",
+        "bytes": 16086,
+        "input_hash": "ffb9cf8007c52138f224f094822edee58a205349521838e24e976955be23f587",
+        "kind": "data-organ-issues",
+        "licence": {
+          "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+          "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+          "dataset_key": "project:data-organ-diagnostics",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://alfred.stlouisfed.org/series?seid=UNRATE",
+            "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+            "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+            "https://www.bls.gov/developers/",
+            "https://www.bls.gov/opub/copyright-information.htm"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-13T07:48:05.159978Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_DIAGNOSTICS",
+        "sha256": "da23fd6cfa86b53fe1b569ab93ed343f3913ef0691c6036b7f45f91e83f42c30",
+        "sources": [
+          "alfred:UNRATE",
+          "bls:LNS14000000",
+          "iima:daily-factors",
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/data-organ-issues-da23fd6cfa86b53fe1b569ab93ed343f3913ef0691c6036b7f45f91e83f42c30.json"
+      }
+    },
+    "data_lineage": {
+      "artifact_id": "data-organ:lineage:45a4b8be6b4bc8a6afbe139782b0573d9e1495fc12380f704df91f71df586942",
+      "entry": {
+        "as_of": "2026-10-13T07:48:05.159978Z",
+        "available_at": "2026-10-13T07:48:05.159978Z",
+        "bytes": 13078,
+        "input_hash": "ffb9cf8007c52138f224f094822edee58a205349521838e24e976955be23f587",
+        "kind": "data-organ-lineage",
+        "licence": {
+          "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+          "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+          "dataset_key": "project:data-organ-diagnostics",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://alfred.stlouisfed.org/series?seid=UNRATE",
+            "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+            "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+            "https://www.bls.gov/developers/",
+            "https://www.bls.gov/opub/copyright-information.htm"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-13T07:48:05.159978Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_DIAGNOSTICS",
+        "sha256": "45a4b8be6b4bc8a6afbe139782b0573d9e1495fc12380f704df91f71df586942",
+        "sources": [
+          "alfred:UNRATE",
+          "bls:LNS14000000",
+          "iima:daily-factors",
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/data-organ-lineage-45a4b8be6b4bc8a6afbe139782b0573d9e1495fc12380f704df91f71df586942.json"
+      }
+    },
+    "ledger_INDIA": {
+      "artifact_id": "factors:ledger:5f278246a8c821189d3bbe72801c4f5269798348b521744288774c87de97515e",
+      "entry": {
+        "as_of": "2026-10-12T14:39:49.953264Z",
+        "available_at": "2026-10-12T14:39:49.953264Z",
+        "bytes": 15187,
+        "input_hash": "fca01ff0b22a88e0497dd9265b089db2d1d3906e8077f7344adc426b39d62d55",
+        "kind": "factors-ledger",
+        "licence": {
+          "dataset_key": "project:factor-evidence",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-12T14:39:49.953264Z",
+        "reason": null,
+        "scope": "READ_ONLY_FACTOR_EVIDENCE",
+        "sha256": "5f278246a8c821189d3bbe72801c4f5269798348b521744288774c87de97515e",
+        "sources": [
+          "iima:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/factors-ledger-5f278246a8c821189d3bbe72801c4f5269798348b521744288774c87de97515e.json"
+      }
+    },
+    "ledger_US": {
+      "artifact_id": "factors:ledger:df393ccc43960cdd85d43ef4e347335b596a1101c3ac6dfb1567af1967b1cfad",
+      "entry": {
+        "as_of": "2026-10-12T14:39:49.953264Z",
+        "available_at": "2026-10-12T14:39:49.953264Z",
+        "bytes": 15193,
+        "input_hash": "62245e8a2ae26bc3bfb673d4ce3e4f768a39c633e907465f692454d9b768e6c6",
+        "kind": "factors-ledger",
+        "licence": {
+          "dataset_key": "project:factor-evidence",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "status": "FIRST_PARTY",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-12T14:39:49.953264Z",
+        "reason": null,
+        "scope": "READ_ONLY_FACTOR_EVIDENCE",
+        "sha256": "df393ccc43960cdd85d43ef4e347335b596a1101c3ac6dfb1567af1967b1cfad",
+        "sources": [
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/factors-ledger-df393ccc43960cdd85d43ef4e347335b596a1101c3ac6dfb1567af1967b1cfad.json"
+      }
+    },
+    "lineage_INDIA": {
+      "artifact_id": "regimes:lineage:d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70",
+      "entry": {
+        "as_of": "2026-10-10T13:59:59.414508Z",
+        "available_at": "2026-10-10T13:59:59.414508Z",
+        "bytes": 24992,
+        "input_hash": "7c9cb93042c86c2e2e684eb033195a1fe30c651c46da48ab230ac2561bc4c98b",
+        "kind": "regimes-lineage",
+        "licence": {
+          "attribution": "Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.",
+          "basis": "Public research-factor library with requested citation; attributed derived research publication. No raw Prowess redistribution.",
+          "dataset_key": "iima:daily-factors",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/"
+          ],
+          "status": "ACTIVE",
+          "terms_url": "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-10T13:59:59.414508Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_REGIMES",
+        "sha256": "d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70",
+        "sources": [
+          "iima:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/regimes-lineage-d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70.json"
+      }
+    },
+    "lineage_US": {
+      "artifact_id": "regimes:lineage:78641d13868b0cf578015d7838e18ff0f6738b80f28036539176457d07ffa117",
+      "entry": {
+        "as_of": "2026-10-10T13:59:59.414508Z",
+        "available_at": "2026-10-10T13:59:59.414508Z",
+        "bytes": 26783,
+        "input_hash": "ce3992311dfbc8aaa8789450f3eac4972e6df0176b995c5be1d96d5be8ffe037",
+        "kind": "regimes-lineage",
+        "licence": {
+          "attribution": "Kenneth R. French Data Library; Fama and French research factors and momentum.",
+          "basis": "Public research-return library; attributed derived research publication. No raw CRSP redistribution.",
+          "dataset_key": "ken-french:daily-factors",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html"
+          ],
+          "status": "ACTIVE",
+          "terms_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-10T13:59:59.414508Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_REGIMES",
+        "sha256": "78641d13868b0cf578015d7838e18ff0f6738b80f28036539176457d07ffa117",
+        "sources": [
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/regimes-lineage-78641d13868b0cf578015d7838e18ff0f6738b80f28036539176457d07ffa117.json"
+      }
+    },
+    "model_INDIA": {
+      "artifact_id": "regimes:snapshot:188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6",
+      "entry": {
+        "as_of": "2026-10-10T13:59:59.414508Z",
+        "available_at": "2026-10-10T13:59:59.414508Z",
+        "bytes": 59565,
+        "input_hash": "7c9cb93042c86c2e2e684eb033195a1fe30c651c46da48ab230ac2561bc4c98b",
+        "kind": "regimes-snapshot",
+        "licence": {
+          "attribution": "Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.",
+          "basis": "Public research-factor library with requested citation; attributed derived research publication. No raw Prowess redistribution.",
+          "dataset_key": "iima:daily-factors",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/"
+          ],
+          "status": "ACTIVE",
+          "terms_url": "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-10T13:59:59.414508Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_REGIMES",
+        "sha256": "188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6",
+        "sources": [
+          "iima:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/regimes-snapshot-188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6.json"
+      }
+    },
+    "model_US": {
+      "artifact_id": "regimes:snapshot:12235bb5b98eceb46ac7c035e0a0cf94abb23639bc71090b9c4b2a21bf5b85ab",
+      "entry": {
+        "as_of": "2026-10-10T13:59:59.414508Z",
+        "available_at": "2026-10-10T13:59:59.414508Z",
+        "bytes": 58537,
+        "input_hash": "ce3992311dfbc8aaa8789450f3eac4972e6df0176b995c5be1d96d5be8ffe037",
+        "kind": "regimes-snapshot",
+        "licence": {
+          "attribution": "Kenneth R. French Data Library; Fama and French research factors and momentum.",
+          "basis": "Public research-return library; attributed derived research publication. No raw CRSP redistribution.",
+          "dataset_key": "ken-french:daily-factors",
+          "permitted_uses": [
+            "publish_derived"
+          ],
+          "source_urls": [
+            "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html"
+          ],
+          "status": "ACTIVE",
+          "terms_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "valid_through": null
+        },
+        "observed_at": "2026-10-10T13:59:59.414508Z",
+        "reason": null,
+        "scope": "REAL_DERIVED_REGIMES",
+        "sha256": "12235bb5b98eceb46ac7c035e0a0cf94abb23639bc71090b9c4b2a21bf5b85ab",
+        "sources": [
+          "ken-french:daily-factors"
+        ],
+        "status": "AVAILABLE",
+        "url": "/artifacts/replay/regimes-snapshot-12235bb5b98eceb46ac7c035e0a0cf94abb23639bc71090b9c4b2a21bf5b85ab.json"
+      }
+    }
+  },
+  "base": "16db82c5f2f50b98253df9989c586cd45aa98f6b",
+  "evaluation_cutoff": "2026-10-13T07:48:05.159978Z",
+  "files": {
+    "factor_policy": {
+      "bytes": 354022,
+      "path": "eval/factors/v0.1/policy.json",
+      "sha256": "5c3c39678d53505c894e04298c4871f2c3f4db133a3f09d7b7dc7d2aa5a27b7c"
+    },
+    "model_profile": {
+      "bytes": 4829,
+      "mode": "canonical_text",
+      "path": "eval/regimes/v0.1/profile.json",
+      "sha256": "b12b8ed73cf664e2058b03be3554d8a558ae0b69e94c5b7d117b45aff7d35496"
+    },
+    "plugin_registry": {
+      "bytes": 240963,
+      "path": "data/exports/nervous_system_v0_1/registry.json",
+      "sha256": "072b788ca5348f380d62520a7bb0fed6334c7eba09eb7fbd79198a998e748b7b"
+    },
+    "research_flagship": {
+      "bytes": 843017,
+      "path": "data/exports/research_os_v0_1/flagship.json",
+      "sha256": "a645b6124441ec892112a3ec41546ed4516b7de5f25baf82320ae6ae7b8812c2"
+    },
+    "research_freeze": {
+      "bytes": 226,
+      "path": "data/exports/research_os_v0_1/freeze-receipt.json",
+      "sha256": "95c1e0f830d90b7dc2ed3c696fcc9c5a74dbccb52f2eee7bba37f2a27f539878"
+    },
+    "research_gate": {
+      "bytes": 2744,
+      "path": "data/exports/research_os_v0_1_1/summary.json",
+      "sha256": "1328f5d4f78ee539573ff08e6f048556b81f7ca45ad4fdf8b0421c864512d3ef"
+    },
+    "research_identities": {
+      "bytes": 289,
+      "path": "data/exports/research_os_v0_1/identities.json",
+      "sha256": "35e93b369e99d2b81d66e74bc5508835f1d8313a96e90cbfbdd7e144879e07a4"
+    },
+    "research_prereg": {
+      "bytes": 10511,
+      "path": "data/exports/research_os_v0_1/preregistration.json",
+      "sha256": "2a4b3d6c6d8cac215e16b84171a8f5b685d4815f9de717af1aae2ad8db5b85b0"
+    },
+    "research_repeat": {
+      "bytes": 80613,
+      "path": "data/exports/research_os_v0_1/repeatability.json",
+      "sha256": "97d290ece4ee183ae3c207d82bca1d297d1babbd5fc7bf473147a3ae5f4ddc69"
+    },
+    "simulator_history": {
+      "bytes": 418194,
+      "path": "eval/certification/forge_v0_2_4/engine_probe_artifact.json",
+      "sha256": "b17e99976d3d0dc3c32c175533397e921053fde20916cbec479554ebe40a5e2a"
+    }
+  },
+  "health_history": {
+    "data-organ:health:12005eace6e49b0edc5b0667f0bdc4b6fd73b60d67857385c176858876222777": {
+      "as_of": "2026-10-10T05:49:00.384466Z",
+      "available_at": "2026-10-10T05:49:00.384466Z",
+      "bytes": 4927,
+      "input_hash": "b095e582cb53f7028932f763a5cca8511466cda4303a3bcbce93fba051e36349",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-10T05:49:00.384466Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "12005eace6e49b0edc5b0667f0bdc4b6fd73b60d67857385c176858876222777",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-12005eace6e49b0edc5b0667f0bdc4b6fd73b60d67857385c176858876222777.json"
+    },
+    "data-organ:health:5a6153684a37d7fee549610950e345a5217da7aea65cf25a1a5a687970b06b95": {
+      "as_of": "2026-10-11T07:17:30.281432Z",
+      "available_at": "2026-10-11T07:17:30.281432Z",
+      "bytes": 4927,
+      "input_hash": "ff58c4788775ffee4926be021d42988b505e8a973756a66114ba840a8d8a1f3e",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-11T07:17:30.281432Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "5a6153684a37d7fee549610950e345a5217da7aea65cf25a1a5a687970b06b95",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-5a6153684a37d7fee549610950e345a5217da7aea65cf25a1a5a687970b06b95.json"
+    },
+    "data-organ:health:606380bb5ce688165b0319fe1e4a3dce9c545d4455dc689760f51d0034676664": {
+      "as_of": "2026-10-12T07:27:02.603547Z",
+      "available_at": "2026-10-12T07:27:02.603547Z",
+      "bytes": 4928,
+      "input_hash": "bd8f672b287c8ddc468c9957ec181d445e4c6499ea15fd4e8e073cf6272b6d1c",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-12T07:27:02.603547Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "606380bb5ce688165b0319fe1e4a3dce9c545d4455dc689760f51d0034676664",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-606380bb5ce688165b0319fe1e4a3dce9c545d4455dc689760f51d0034676664.json"
+    },
+    "data-organ:health:8de93e4f7311296877cfcccf2fa4f641fbe22401aa7d8641b08a08458acb0afe": {
+      "as_of": "2026-10-09T16:50:03.749417Z",
+      "available_at": "2026-10-09T16:50:03.749417Z",
+      "bytes": 3296,
+      "input_hash": "e50805bda072db4102b79e757d7ed2f8b232cc76cdf22f4891171e2fb37b2376",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-09T16:50:03.749417Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "8de93e4f7311296877cfcccf2fa4f641fbe22401aa7d8641b08a08458acb0afe",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-8de93e4f7311296877cfcccf2fa4f641fbe22401aa7d8641b08a08458acb0afe.json"
+    },
+    "data-organ:health:c9353c7baae85b3f2462d70a6855a3d67a954bca7dc6331d8170ea00dfe5c70c": {
+      "as_of": "2026-10-13T07:48:05.159978Z",
+      "available_at": "2026-10-13T07:48:05.159978Z",
+      "bytes": 4928,
+      "input_hash": "ffb9cf8007c52138f224f094822edee58a205349521838e24e976955be23f587",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-13T07:48:05.159978Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "c9353c7baae85b3f2462d70a6855a3d67a954bca7dc6331d8170ea00dfe5c70c",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-c9353c7baae85b3f2462d70a6855a3d67a954bca7dc6331d8170ea00dfe5c70c.json"
+    },
+    "data-organ:health:d2731ac3cf17d75200d614f541499ff5502bf12aa10705a82967c9f3f07c365c": {
+      "as_of": "2026-10-09T17:14:29.787954Z",
+      "available_at": "2026-10-09T17:14:29.787954Z",
+      "bytes": 5994,
+      "input_hash": "d2d5eedc9ad3898c289603aabe2010d85ae46d8e3b4eed471933155581bf3eaf",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-09T17:14:29.787954Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "d2731ac3cf17d75200d614f541499ff5502bf12aa10705a82967c9f3f07c365c",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-d2731ac3cf17d75200d614f541499ff5502bf12aa10705a82967c9f3f07c365c.json"
+    },
+    "data-organ:health:d46f1b694061bc1b93fba6f9f0090e681261eed0acbc1ec7c0937d1c7ae666c3": {
+      "as_of": "2026-10-10T05:49:00.384466Z",
+      "available_at": "2026-10-10T05:49:00.384466Z",
+      "bytes": 4927,
+      "input_hash": "db4095e566b0539382cd6bb21b12acb7ecbd30ab16806d631ccda47845941df2",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-10T05:49:00.384466Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "d46f1b694061bc1b93fba6f9f0090e681261eed0acbc1ec7c0937d1c7ae666c3",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-d46f1b694061bc1b93fba6f9f0090e681261eed0acbc1ec7c0937d1c7ae666c3.json"
+    },
+    "data-organ:health:f2629306abcc8198f0f709c66d48da1863b3d6fb4df771061ebd0885661a604f": {
+      "as_of": "2026-10-10T05:49:00.384466Z",
+      "available_at": "2026-10-10T05:49:00.384466Z",
+      "bytes": 4927,
+      "input_hash": "bf1cc6280251da5a5e47d67863b486851273326340c25d4df47b1afaed4fcbec",
+      "kind": "data-organ-health",
+      "licence": {
+        "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
+        "basis": "First-party aggregated diagnostic metadata, respecting each numerical source grant. Restricted sources expose coverage limitations only.",
+        "dataset_key": "project:data-organ-diagnostics",
+        "permitted_uses": [
+          "publish_derived"
+        ],
+        "source_urls": [
+          "https://alfred.stlouisfed.org/series?seid=UNRATE",
+          "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/",
+          "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+          "https://www.bls.gov/developers/",
+          "https://www.bls.gov/opub/copyright-information.htm"
+        ],
+        "status": "FIRST_PARTY",
+        "valid_through": null
+      },
+      "observed_at": "2026-10-10T05:49:00.384466Z",
+      "reason": null,
+      "scope": "REAL_DERIVED_DIAGNOSTICS",
+      "sha256": "f2629306abcc8198f0f709c66d48da1863b3d6fb4df771061ebd0885661a604f",
+      "sources": [
+        "alfred:UNRATE",
+        "bls:LNS14000000",
+        "iima:daily-factors",
+        "ken-french:daily-factors"
+      ],
+      "status": "AVAILABLE",
+      "url": "/artifacts/replay/data-organ-health-f2629306abcc8198f0f709c66d48da1863b3d6fb4df771061ebd0885661a604f.json"
+    }
+  },
+  "schema_version": "risk-evidence-map/1"
+}

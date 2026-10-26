@@ -331,7 +331,9 @@ export default function GlobePage() {
             </div>
           </div>
           <Link to="/observatory" search={{ scene: "neural", ticker: "SPY" }} className="ge-cta">
-            Train a network on these inputs →
+            {mode === "replay"
+              ? "Inspect recorded neural trace →"
+              : "Train a network on these inputs →"}
           </Link>
           <p className="ge-fine">
             These aggregates describe the recorded window, not a forecast. Networks train on the

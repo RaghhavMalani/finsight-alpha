@@ -1,0 +1,103 @@
+{
+  "schema_version": "risk-ui-static-proof/1",
+  "checks": 169,
+  "risk_artifacts": 24,
+  "issues": 34,
+  "coverage_slots": 76,
+  "origin_proofs": [
+    {
+      "state_ref": "risk:state:0f69ee006943cf1c3e28221ee264ee622e2749373e95345f5c21f984fcd23a7a",
+      "cutoff": "2026-10-21T06:09:58.066349Z",
+      "origins": 43
+    },
+    {
+      "state_ref": "risk:state:35dbf3510813be500b67a3f858d6fc7b5b302f54dae418a9315df96911bca131",
+      "cutoff": "2026-10-19T06:20:06.850005Z",
+      "origins": 39
+    },
+    {
+      "state_ref": "risk:state:70ac82fde3f0f115fa4eda0beda7451f1b4d17bbecf260fd1e5534f761a2be0f",
+      "cutoff": "2026-10-23T06:09:03.047257Z",
+      "origins": 47
+    },
+    {
+      "state_ref": "risk:state:70c52275c95d883f456b87e8e7bb9cb0b4de87807fb3b621ad02ad80fde73ada",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    },
+    {
+      "state_ref": "risk:state:780f310e37113a1577d3e8a69b5bc89a4959dc827b1f88f254a5db9ca756fe26",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    },
+    {
+      "state_ref": "risk:state:a4f9ca119ef214f21a7eb1b8749f21e44d3643ec1e0c4b8ec9bc44e7d3d077ce",
+      "cutoff": "2026-10-22T06:12:54.143951Z",
+      "origins": 45
+    },
+    {
+      "state_ref": "risk:state:cdcd59d456e6e45bbe4416df067617410ec6090627a29e90810bf17e7735c100",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    },
+    {
+      "state_ref": "risk:state:f1923b048789e44e4e96a21f20647009b5a6b29d4bca5faad42e07390e83da87",
+      "cutoff": "2026-10-13T07:48:05.159978Z",
+      "origins": 27
+    }
+  ],
+  "compact_source_substitution_checks": 17,
+  "admitted_monitoring_epochs": [
+    "2026-10-13T07:48:05.159978Z",
+    "2026-10-14T06:16:11.008297Z",
+    "2026-10-15T05:59:07.293121Z",
+    "2026-10-16T05:58:56.339670Z",
+    "2026-10-17T05:42:24.055238Z",
+    "2026-10-18T06:03:45.703339Z",
+    "2026-10-19T06:20:06.850005Z",
+    "2026-10-20T06:10:32.259779Z",
+    "2026-10-21T06:09:58.066349Z",
+    "2026-10-22T06:12:54.143951Z",
+    "2026-10-23T06:09:03.047257Z"
+  ],
+  "initial_risk_bytes": 252912,
+  "total_initial_bytes": 316719,
+  "initial_manifest_bytes": 63807,
+  "global_manifest_bytes": 388407,
+  "initial_manifest_sha256": "dbb8cd664b19b8acf2a73d05c9994c1da10939620b195783348157c847fc9061",
+  "global_manifest_sha256": "1cdbd7463b084b587299251dad032ae3deb718d8578fa18435e8b53500a0e443",
+  "validation_max_ms": 9.720100000000002,
+  "synthetic_1000_filter_max_ms": 2.7344000000000506,
+  "synthetic_fixture_evidence_class": "SYNTHETIC_TEST_ONLY",
+  "actual_sweep": "8fc410360283ad12ba2c5629afb820ddd0b8a8274d2a3fca0adeb6c287ace15c",
+  "future_monitoring": {
+    "evidence_class": "SYNTHETIC_TEST_ONLY",
+    "original_epochs": 11,
+    "automatically_admitted_epochs": 12,
+    "admitted_cutoff": "2026-10-24T06:09:03.047Z",
+    "new_diagnostic_resolved": true,
+    "rejection_checks": 29,
+    "publication_writes": 0
+  },
+  "source_commit": "08f67ef21ca9801da713c42a35b579e01275fd07",
+  "verification_date": "2026-10-23",
+  "state_ref": "risk:state:70ac82fde3f0f115fa4eda0beda7451f1b4d17bbecf260fd1e5534f761a2be0f",
+  "sweep_ref": "risk:sweep:d98b8a07f32e0d66ed12778e3c383c24dab3d7cbecd7ea3f14c0137f0e7daef7",
+  "public_risk_chunk": {
+    "name": "risk-BY7NDphC.js",
+    "raw_bytes": 523818,
+    "gzip_bytes": 57280,
+    "limit_gzip_bytes": 65536
+  },
+  "gates": {
+    "payloads": "PASS",
+    "selected_pair": "PASS",
+    "total_initial": "PASS",
+    "public_javascript": "PASS",
+    "validation": "PASS",
+    "filters": "PASS",
+    "closed_schema": "PASS",
+    "future_admission": "PASS",
+    "source_observation_links": "PASS"
+  }
+}

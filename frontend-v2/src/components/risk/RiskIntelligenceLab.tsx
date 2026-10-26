@@ -207,6 +207,11 @@ export function RiskIntelligenceLab({ ticker }: { ticker: string }) {
 
   return (
     <div className="space-y-3">
+      <p className="border border-info/30 bg-info/5 p-3 text-xs text-muted-foreground">
+        LEGACY ON-DEMAND LOCAL LAB · Requests may run provider analytics and model calculations when
+        this tab is selected. These outputs are local model estimates; they are not retained Risk
+        Manager evidence or certification.
+      </p>
       <Panel
         code="SYS"
         title="Whole-system intelligence"
