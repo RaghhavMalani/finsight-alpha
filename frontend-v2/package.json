@@ -10,10 +10,12 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "postinstall": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs",
-    "prebuild": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs",
-    "prebuild:dev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs",
-    "predev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs"
+    "postinstall": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
+    "prebuild": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
+    "prebuild:dev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
+    "predev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
+    "generate:terminal": "node scripts/generate-terminal-index.mjs",
+    "typecheck": "node scripts/generate-terminal-index.mjs && tsc --noEmit"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

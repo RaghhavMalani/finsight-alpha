@@ -71,3 +71,12 @@ frontend-v2/public/risk-read-manifest.json
 # Derived from the same checked global manifest without changing retained history.
 frontend-v2/src/factors/read-plan.generated.ts
 frontend-v2/public/factor-read-manifest.json
+# Phase 7.5 bounded metadata/display projections, regenerated from exact public inputs.
+frontend-v2/src/app/terminal/generated/seed.generated.ts
+frontend-v2/src/app/terminal/generated/market.generated.ts
+frontend-v2/src/app/terminal/generated/regimes.generated.ts
+frontend-v2/src/app/terminal/generated/risk.generated.ts
+frontend-v2/src/app/terminal/generated/factors.generated.ts
+frontend-v2/src/app/terminal/generated/data.generated.ts
+frontend-v2/src/app/terminal/generated/recordings.generated.ts
+frontend-v2/src/app/terminal/generated/history.generated.ts
