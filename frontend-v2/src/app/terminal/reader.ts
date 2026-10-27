@@ -1999,6 +1999,8 @@ export async function verifyDisplayProjection(
   expectedBinding: ReplayEntry,
   expectedDigest: string,
 ): Promise<DisplayProjection> {
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 128 * 1024)
+    throw new Error("Display projection decoded size bound exceeded.");
   const p = object(value, [
     "schema_version",
     "generator_contract",

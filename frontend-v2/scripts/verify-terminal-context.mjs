@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { performance } from "node:perf_hooks";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -961,6 +962,17 @@ check("recorded run target path must agree with exact typed run", () => {
 // root agent. It grants no permission to modify production publication artifacts.
 const ARCHIVE_BASE = "e65e6651ccbe758e490b2b48c240aac514cab7c6";
 const RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
+const APPROVED_MODULE_NAMES = [
+  "seed",
+  "market",
+  "regimes",
+  "risk",
+  "factors",
+  "data",
+  "recordings",
+  "history",
+  "observatory-window",
+];
 const EXCLUDED_LOCAL_COMMIT = "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d";
 const APPROVED_PLAN = "docs/phase7-5-connected-quant-terminal-plan.md";
 const APPROVED_PLAN_SHA256 = "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5";
@@ -1341,7 +1353,7 @@ if (!coreOnly || projectionsOnly) {
     return { ...sealed, projectionDigest: await catalog.terminalDigest(sealed) };
   };
   await checkAsync(
-    "pure generator reads actual exact retained inputs and emits exactly eight admitted modules",
+    "pure generator emits eight metadata shards and only the approved ninth display module",
     async () => {
       generated = await generator.deriveTerminalCatalog(manifest, {
         manifestBytes: manifestRaw,
@@ -1351,13 +1363,36 @@ if (!coreOnly || projectionsOnly) {
         Object.keys(generated.shards).sort(),
         ["seed", "market", "regimes", "risk", "factors", "data", "recordings", "history"].sort(),
       );
+      assert.deepEqual(Object.keys(generated.modules).sort(), [...APPROVED_MODULE_NAMES].sort());
+      assert.deepEqual(
+        [...generator.TERMINAL_GENERATED_MODULE_NAMES].sort(),
+        [...APPROVED_MODULE_NAMES].sort(),
+      );
       projectionProof.generation = generated.report;
+      projectionProof.scopeAmendment = {
+        path: "frontend-v2/src/app/terminal/generated/observatory-window.generated.ts",
+        authorization:
+          "explicit human approval of the ninth lazy ignored build output; original plan hash unchanged",
+      };
       for (const [name, module] of Object.entries(generated.modules)) {
         assert(
           Buffer.byteLength(module) <= (name === "seed" ? 48 : 128) * 1024,
           name + " decoded module cap",
         );
+        assert(
+          gzipSync(module, { level: 9 }).length <= (name === "seed" ? 12 : 32) * 1024,
+          name + " gzip module cap",
+        );
         assert(!module.includes("ENGINEERING_PRIVACY_SENTINEL"));
+        if (name === "observatory-window") {
+          assert(generated.observatoryWindow);
+          await reader.verifyDisplayProjection(
+            generated.observatoryWindow,
+            manifest.artifacts["observatory:IN-MKT:hmm"],
+            generated.observatoryWindow.projectionDigest,
+          );
+          continue;
+        }
         const admitted = await catalog.validateTerminalShard(
           generated.shards[name],
           name,
@@ -1369,7 +1404,7 @@ if (!coreOnly || projectionsOnly) {
     },
   );
   await checkAsync(
-    "independent second pure rebuild is byte-for-byte deterministic across all eight modules",
+    "independent second pure rebuild is byte-for-byte deterministic across all nine modules",
     async () => {
       assert(generated, "Initial generation must pass before determinism can be claimed");
       rebuilt = await generator.deriveTerminalCatalog(manifest, {
@@ -1378,6 +1413,7 @@ if (!coreOnly || projectionsOnly) {
       });
       assert.deepEqual(rebuilt.modules, generated.modules);
       assert.deepEqual(rebuilt.shards, generated.shards);
+      assert.deepEqual(rebuilt.observatoryWindow, generated.observatoryWindow);
       projectionProof.deterministicModuleSha256 = Object.fromEntries(
         Object.entries(generated.modules).map(([name, module]) => [name, hash(module)]),
       );
@@ -1387,6 +1423,25 @@ if (!coreOnly || projectionsOnly) {
     "checked generated files match pure originals without modifying an output",
     async () => {
       assert(generated);
+      const generatedRoot = path.join(frontend, "src/app/terminal/generated");
+      assert.deepEqual(
+        readdirSync(generatedRoot)
+          .filter((name) => name.endsWith(".generated.ts"))
+          .sort(),
+        APPROVED_MODULE_NAMES.map((name) => name + ".generated.ts").sort(),
+      );
+      assert.deepEqual(
+        splitZ(git("ls-files", "-z", "--", "frontend-v2/src/app/terminal/generated")),
+        [],
+      );
+      for (const name of APPROVED_MODULE_NAMES)
+        assert.equal(
+          gitText(
+            "check-ignore",
+            "frontend-v2/src/app/terminal/generated/" + name + ".generated.ts",
+          ),
+          "frontend-v2/src/app/terminal/generated/" + name + ".generated.ts",
+        );
       for (const [name, module] of Object.entries(generated.modules))
         assert.equal(
           readFileSync(
@@ -1629,7 +1684,7 @@ if (!coreOnly || projectionsOnly) {
         dateRange: { start: 190, end: 250 },
         fullOriginalUnchanged: true,
         verification:
-          "runtimecontract directly tested; compiled ninthoutput approval remains a separate acceptance gate",
+          "runtimecontract independently tested; approved compiled ninthoutput is separately verified below",
       };
     },
   );
@@ -1670,6 +1725,137 @@ if (!coreOnly || projectionsOnly) {
     check(`India omitted/invalid traceStep${String(step)} cannot snap`, () =>
       assert.throws(() => reader.projectedTraceFrame(indiaWindow, step)),
     );
+  if (generated) {
+    await checkAsync(
+      "approved ninth output is the exact whole-field8/60 projection with both original axes",
+      async () => {
+        const p = generated.observatoryWindow;
+        assert(p);
+        assert.equal(p.source.artifactId, indiaTraceId);
+        assert.deepEqual(p.source.entry, manifest.artifacts[indiaTraceId]);
+        assert.equal(
+          catalog.stableTerminal(p.selectedFields),
+          catalog.stableTerminal(indiaSelected),
+        );
+        assert.equal(p.originalFrameCount, 100);
+        assert.equal(p.originalFullRowCount, 250);
+        assert.deepEqual(p.iterationRange, { start: 92, end: 100 });
+        assert.deepEqual(p.dateRange, { start: 190, end: 250 });
+        assert.deepEqual(p.range, p.dateRange);
+        const decodedSeed = decode(generated.shards.seed),
+          pin = decodedSeed.projectionPins[indiaTraceId + "|observatory-trace-window"];
+        assert.equal(pin, p.projectionDigest);
+        assert(
+          p.limitations.some((text) => text.includes("8 of 100") && text.includes("60 of 250")),
+        );
+        assert(
+          !Object.values(generated.shards).some((shard) =>
+            decode(shard).projections.some((item) => item.selector === "observatory-trace-window"),
+          ),
+          "Ninth window must stay separately lazy rather than duplicate all trace data into a metadata shard",
+        );
+        projectionProof.indiaWindow.compiledOutputVerified = true;
+        projectionProof.indiaWindow.outputSha256 = hash(generated.modules["observatory-window"]);
+        projectionProof.indiaWindow.decodedBytes = Buffer.byteLength(
+          generated.modules["observatory-window"],
+        );
+        projectionProof.indiaWindow.gzipBytes = gzipSync(generated.modules["observatory-window"], {
+          level: 9,
+        }).length;
+      },
+    );
+    await checkAsync(
+      "ninth compiled projection loads through its exact seed pin without any original or API fetch",
+      async () => {
+        const priorFetch = globalThis.fetch;
+        let attempts = 0;
+        globalThis.fetch = async () => {
+          attempts++;
+          throw new Error("Compiled display selection cannot fetch an original, manifest or API");
+        };
+        try {
+          const p = await reader.loadDisplayProjection(
+            "observatory-trace-window",
+            "IN-MKT",
+            indiaTraceId,
+          );
+          assert.equal(
+            catalog.stableTerminal(p),
+            catalog.stableTerminal(generated.observatoryWindow),
+          );
+          assert.equal(reader.projectedTraceFrame(p, 92).iteration, 93);
+          assert.equal(reader.projectedTraceFrame(p, 99).iteration, 100);
+          assert.equal(attempts, 0);
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      },
+    );
+    for (const [asset, id] of [
+      ["US-MKT", indiaTraceId],
+      ["SPY", indiaTraceId],
+      ["IN-MKT", "observatory:IN-MKT:signal"],
+      ["IN-MKT", "observatory:IN-MKT:neural"],
+      ["IN-MKT", "observatory:IN-MKT:h"],
+      ["IN-MKT", null],
+    ])
+      await checkAsync(`trace module exact selection rejects ${asset}/${String(id)}`, async () =>
+        assert.rejects(() => reader.loadDisplayProjection("observatory-trace-window", asset, id)),
+      );
+    await checkAsync(
+      "compiled projection pin substitution rejects without inspecting an original",
+      async () => {
+        const seed = await catalog.loadTerminalSeed(),
+          key = indiaTraceId + "|observatory-trace-window",
+          original = seed.projectionPins[key],
+          priorFetch = globalThis.fetch;
+        let attempts = 0;
+        globalThis.fetch = async () => {
+          attempts++;
+          throw new Error("No original fetch is permitted by this corruption case");
+        };
+        try {
+          seed.projectionPins[key] = sampleHash;
+          await assert.rejects(() =>
+            reader.loadDisplayProjection("observatory-trace-window", "IN-MKT", indiaTraceId),
+          );
+          assert.equal(attempts, 0);
+        } finally {
+          seed.projectionPins[key] = original;
+          globalThis.fetch = priorFetch;
+        }
+      },
+    );
+    await checkAsync(
+      "ninth module content corruption and wrong trusted digest reject",
+      async () => {
+        const p = clone(generated.observatoryWindow);
+        p.selectedFields.frames[0].means[0][0] += 1;
+        await assert.rejects(() =>
+          reader.verifyDisplayProjection(
+            p,
+            manifest.artifacts[indiaTraceId],
+            generated.observatoryWindow.projectionDigest,
+          ),
+        );
+        await assert.rejects(() =>
+          reader.verifyDisplayProjection(
+            generated.observatoryWindow,
+            manifest.artifacts[indiaTraceId],
+            sampleHash,
+          ),
+        );
+      },
+    );
+    for (const [selector, asset, id] of [
+      ["market-week-window", "US-MKT", "market:IN-MKT"],
+      ["regime-timeline-window", "US-MKT", manifest.routes["/regimes/timeline?asset=IN-MKT"]],
+      ["frozen-research-summary", "US-MKT", manifest.routes["/regimes/snapshot?asset=IN-MKT"]],
+    ])
+      await checkAsync(`explicit ${selector} artifact cannot bypass subject country`, async () =>
+        assert.rejects(() => reader.loadDisplayProjection(selector, asset, id)),
+      );
+  }
   if (generated) {
     const actualShards = Object.values(generated.shards),
       payloads = actualShards.map(decode),

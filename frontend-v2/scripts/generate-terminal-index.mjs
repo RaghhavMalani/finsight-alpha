@@ -5138,6 +5138,7 @@ const CLOSED_SOURCE_FIELDS = {
     "$.sources[]": { types: ["string"] },
   },
 };
+export const TERMINAL_GENERATED_MODULE_NAMES = [...SHARD_NAMES, "observatory-window"];
 const hash = (raw) => createHash("sha256").update(raw).digest("hex");
 const seal = (value) => hash(Buffer.from(stableTerminal(value)));
 const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -6120,7 +6121,6 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       if (id.startsWith("observatory:")) {
         const trace = await source(id);
         const [, asset, scene] = id.split(":");
-        // Authorized India HMM display awaits a separately approved storage location.
         entity("recordings", {
           id,
           type: "recorded-trace",
@@ -6207,14 +6207,46 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     binding(family, id);
     payloads[family].routes[route] = id;
   }
+  // Separately approved lazy display module. Its source is validated in full above the browser cap.
+  const traceId = "observatory:IN-MKT:hmm",
+    trace = await source(traceId),
+    traceEntry = manifest.artifacts[traceId];
+  assert.equal(trace.frames.length, 100, "Approved HMM original frame count changed");
+  assert.equal(trace.dates_tail.length, 250, "Approved HMM original date count changed");
+  const observatoryWindow = {
+    schema_version: "terminal-display/1",
+    generator_contract: TERMINAL_CONTRACT,
+    selector: "observatory-trace-window",
+    source: { artifactId: traceId, entry: traceEntry },
+    originalFullRowCount: 250,
+    range: { start: 190, end: 250 },
+    originalFrameCount: 100,
+    iterationRange: { start: 92, end: 100 },
+    dateRange: { start: 190, end: 250 },
+    limitations: [
+      "Authorized bounded India HMM display: 8 of 100 recorded iterations, final 60 of 250 recorded dates; exact global step offsets retained.",
+      "Build verified the full original source; this browser validates only this projection and its pinned binding.",
+      "The 2,315,028-byte complete original remains unchanged and exceeds the 2 MiB browser read cap. Out-of-window steps are unavailable; no step snapping.",
+    ],
+    selectedFields: {
+      ...trace,
+      dates_tail: trace.dates_tail.slice(190),
+      frames: trace.frames
+        .slice(92)
+        .map((frame) => ({ ...frame, posterior_tail: frame.posterior_tail.slice(190) })),
+    },
+  };
+  observatoryWindow.projectionDigest = seal(observatoryWindow);
+  const allProjections = [
+    ...Object.values(payloads).flatMap((payload) => payload.projections),
+    observatoryWindow,
+  ];
   payloads.seed.projectionPins = Object.fromEntries(
-    Object.values(payloads)
-      .flatMap((p) =>
-        p.projections.map((projection) => [
-          projection.source.artifactId + "|" + projection.selector,
-          projection.projectionDigest,
-        ]),
-      )
+    allProjections
+      .map((projection) => [
+        projection.source.artifactId + "|" + projection.selector,
+        projection.projectionDigest,
+      ])
       .sort(([a], [b]) => compare(a, b)),
   );
   const availableIds = Object.entries(manifest.artifacts)
@@ -6249,22 +6281,28 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
         unavailableOriginalCount: Object.keys(manifest.artifacts).length - availableIds.length,
       },
       retainedVersionChoices,
-      windows: Object.values(payloads).flatMap((p) =>
-        p.projections.map((projection) => ({
-          artifactId: projection.source.artifactId,
-          selector: projection.selector,
-          originalFullRowCount: projection.originalFullRowCount,
-          range: projection.range,
-          displayRowCount: projection.range.end - projection.range.start,
-          projectionDigest: projection.projectionDigest,
-        })),
-      ),
-      pendingScope:
-        "Authorized India HMM 8/60 projection is not generated or imported; standalone ninth-module storage remains unapproved.",
+      windows: allProjections.map((projection) => ({
+        artifactId: projection.source.artifactId,
+        selector: projection.selector,
+        originalFullRowCount: projection.originalFullRowCount,
+        range: projection.range,
+        displayRowCount: projection.range.end - projection.range.start,
+        projectionDigest: projection.projectionDigest,
+        ...(projection.iterationRange
+          ? {
+              originalFrameCount: projection.originalFrameCount,
+              iterationRange: projection.iterationRange,
+              dateRange: projection.dateRange,
+            }
+          : {}),
+      })),
+      displayModules: {},
+      scopeAmendment:
+        "Approved standalone ninth lazy observatory-window.generated.ts; exact India iterations[92,100)/100 and dates[190,250)/250, decimal values unchanged.",
       totalRecords: 0,
       totalEdges: 0,
       limitations: [
-        "Only declared public metadata and exact Market/Regime display windows are generated.",
+        "Only declared public metadata, exact Market/Regime display windows and the separately approved India HMM 8/60 display window are generated.",
         "A compiled binding is not browser verification of unfetched original bytes.",
         "Original reads above 2 MiB are unavailable in the browser; original bytes remain retained unchanged.",
       ],
@@ -6329,16 +6367,39 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     shards[name] = shard;
     modules[name] = output;
   }
+  const displayOutput =
+    "// Generated from checked retained public metadata; do not edit or commit.\n// prettier-ignore\nexport default " +
+    JSON.stringify(observatoryWindow) +
+    " as const;\n";
+  const displayBytes = Buffer.byteLength(displayOutput),
+    displayGzipBytes = gzipSync(displayOutput, { level: 9 }).length;
+  report.displayModules["observatory-window"] = {
+    records: 0,
+    edges: 0,
+    bindings: 1,
+    projections: 1,
+    decodedBytes: displayBytes,
+    unpackedJSONBytes: Buffer.byteLength(stableTerminal(observatoryWindow)),
+    gzipBytes: displayGzipBytes,
+    projectionDigest: observatoryWindow.projectionDigest,
+  };
+  if (displayBytes > 128 * 1024)
+    failures.push("Decoded display module budget: observatory-window=" + displayBytes);
+  if (displayGzipBytes > 32 * 1024)
+    failures.push("Gzip display module budget: observatory-window=" + displayGzipBytes);
+  const { verifyDisplayProjection } = await import("../src/app/terminal/reader.ts");
+  await verifyDisplayProjection(observatoryWindow, traceEntry, observatoryWindow.projectionDigest);
+  modules["observatory-window"] = displayOutput;
   assert(
     !failures.length,
     "STOP: terminal capacity admission failed; no outputs written. " +
-      JSON.stringify({ failures, shards: report.shards }),
+      JSON.stringify({ failures, shards: report.shards, displayModules: report.displayModules }),
   );
   assert(
     report.totalRecords <= 4096 && report.totalEdges <= 8192,
     "Terminal global navigation budget exceeded",
   );
-  return { shards, modules, report };
+  return { shards, modules, observatoryWindow, report };
 }
 export async function generateTerminalIndex({
   root = resolve(fileURLToPath(new URL("..", import.meta.url))),
@@ -6366,7 +6427,7 @@ export async function generateTerminalIndex({
   );
   const outputRoot = resolve(root, "src/app/terminal/generated");
   if (!check) mkdirSync(outputRoot, { recursive: true });
-  for (const name of SHARD_NAMES) {
+  for (const name of TERMINAL_GENERATED_MODULE_NAMES) {
     const path = resolve(outputRoot, name + ".generated.ts");
     if (check)
       assert.equal(
@@ -6388,7 +6449,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     retainedVersionChoices,
     totalRecords,
     totalEdges,
-    pendingScope,
+    scopeAmendment,
+    displayModules,
   } = result.report;
   console.log(
     JSON.stringify(
@@ -6400,7 +6462,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
         totalRecords,
         totalEdges,
         verifiedCompleteOriginals: sourceChecks.length,
-        pendingScope,
+        scopeAmendment,
+        displayModules,
       },
       null,
       2,

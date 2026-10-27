@@ -843,27 +843,28 @@ export async function selectProjection(
   asset: string,
   artifactId?: string,
 ): Promise<DisplayProjection> {
-  const shard = await loadTerminalShard(
-    selector === "market-week-window"
-      ? "market"
-      : selector === "observatory-trace-window"
-        ? "recordings"
-        : "regimes",
-  );
+  if (selector === "observatory-trace-window") {
+    if (asset !== "IN-MKT" || (artifactId !== undefined && artifactId !== "observatory:IN-MKT:hmm"))
+      throw new Error(
+        "Exact recorded trace display window is unavailable; no asset or artifact was substituted.",
+      );
+    const module = await import("./generated/observatory-window.generated.ts");
+    return module.default as unknown as DisplayProjection;
+  }
+  const shard = await loadTerminalShard(selector === "market-week-window" ? "market" : "regimes");
   const candidates = shard.projections.filter(
     (p) =>
       p.selector === selector &&
-      (artifactId
-        ? p.source.artifactId === artifactId
-        : (p.selectedFields as Record<string, unknown>).asset === asset ||
-          (p.selectedFields as Record<string, unknown>).ticker === asset ||
-          p.source.entry.sources.includes(
-            asset === "IN-MKT"
-              ? "iima:daily-factors"
-              : asset === "US-MKT"
-                ? "ken-french:daily-factors"
-                : "__unsupported__",
-          )),
+      (!artifactId || p.source.artifactId === artifactId) &&
+      ((p.selectedFields as Record<string, unknown>).asset === asset ||
+        (p.selectedFields as Record<string, unknown>).ticker === asset ||
+        p.source.entry.sources.includes(
+          asset === "IN-MKT"
+            ? "iima:daily-factors"
+            : asset === "US-MKT"
+              ? "ken-french:daily-factors"
+              : "__unsupported__",
+        )),
   );
   const selected = artifactId
     ? candidates

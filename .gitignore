@@ -80,3 +80,4 @@ frontend-v2/src/app/terminal/generated/factors.generated.ts
 frontend-v2/src/app/terminal/generated/data.generated.ts
 frontend-v2/src/app/terminal/generated/recordings.generated.ts
 frontend-v2/src/app/terminal/generated/history.generated.ts
+frontend-v2/src/app/terminal/generated/observatory-window.generated.ts
