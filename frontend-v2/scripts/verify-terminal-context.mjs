@@ -31,6 +31,7 @@ import {
 } from "../src/app/terminal/links.ts";
 
 const coreOnly = process.argv.includes("--core-only");
+const projectionsOnly = process.argv.includes("--projections-only");
 const completedAreas = new Set(["context", "compatibility", "links"]);
 const requiredAreas = [
   "context",
@@ -376,19 +377,73 @@ check("safe parser retains explicit error, never default US", () => {
   assert(v.error instanceof ContextError);
   assert.equal("context" in v, false);
 });
-check("context codec p95 bound", () => {
-  const value = parseInvestigationContext("risk", qRisk);
-  for (let i = 0; i < 30; i++) parseInvestigationContext("risk", contextQuery(value));
+check("context codec p95 bound on an admitted 4096-byte URL", () => {
+  const parsed = parseInvestigationContext("risk", qRisk);
+  const value = {
+    ...parsed,
+    compare: { artifactId: currentStateId },
+    origin: {
+      kind: "risk-issue",
+      issueId: observationIssue,
+      stateArtifactId: currentStateId,
+      sweepArtifactId: currentSweepId,
+    },
+    observationDate: "2026-10-26",
+    view: {
+      ...parsed.view,
+      query: "अ".repeat(160),
+      sort: "severity",
+      direction: "desc",
+      category: "ALL",
+      status: "OPEN",
+      evidenceClass: "REAL_RETAINED",
+      columns: [
+        "evidence_cutoff",
+        "last_observed_at",
+        "first_observed_at",
+        "remediation_hint",
+        "evidence_class",
+        "confidence_basis",
+        "origin_count",
+        "issue_id",
+        "category",
+        "severity",
+        "country",
+        "status",
+      ],
+    },
+  };
+  const canonical = contextQuery(value),
+    tokens = canonical.match(/%[A-Fa-f0-9]{2}|./g);
+  let inputBytes = Buffer.byteLength(canonical);
+  for (let i = 0; i < tokens.length && inputBytes + 2 <= 4096; i++)
+    if (/^[a-zA-Z0-9_.~-]$/.test(tokens[i])) {
+      tokens[i] = "%" + tokens[i].charCodeAt(0).toString(16).toUpperCase();
+      inputBytes += 2;
+    }
+  const input = tokens.join("") + "&".repeat(4096 - inputBytes);
+  assert.equal(Buffer.byteLength(input), 4096);
+  assert.equal(contextQuery(parseInvestigationContext("risk", input)), canonical);
+  const action = () => contextQuery(parseInvestigationContext("risk", input));
+  for (let i = 0; i < 30; i++) action();
   const samples = [];
   for (let i = 0; i < 100; i++) {
     const start = performance.now();
-    parseInvestigationContext("risk", contextQuery(value));
+    action();
     samples.push(performance.now() - start);
   }
   samples.sort((a, b) => a - b);
   const p95 = samples[Math.ceil(samples.length * 0.95) - 1];
   assert(p95 <= 2, `Context codec p95 ${p95}ms exceeds2ms`);
-  performanceProof.codec = { samples: samples.length, p95_ms: p95, limit_ms: 2 };
+  performanceProof.codec = {
+    samples: samples.length,
+    p95_ms: p95,
+    limit_ms: 2,
+    input_bytes: 4096,
+    canonical_bytes: Buffer.byteLength(canonical),
+    workload:
+      "parse and serialize; exact retained IDs, complete Risk origin,12columns,160code-unit multilingual query",
+  };
 });
 
 const pinnedRisk = parseInvestigationContext("risk", qRisk);
@@ -1253,8 +1308,889 @@ check("Risk/regime schedules remain disabled and existing scheduled Data is byte
 });
 if (failures.length === freezeFailureStart) completedAreas.add("freeze");
 
+const projectionProof = {
+  provenance: "ENGINEERING_QA_READ_ONLY_OR_IN_MEMORY_MUTATIONS_OF_ACTUAL_RETAINED_METADATA",
+};
+async function checkAsync(name, action) {
+  try {
+    await action();
+    passed.push(name);
+    checks++;
+  } catch (error) {
+    failures.push({ name, error: error instanceof Error ? error.stack : String(error) });
+  }
+}
+if (!coreOnly || projectionsOnly) {
+  const stageFailureStart = failures.length;
+  let generated, rebuilt;
+  const generator = await import("./generate-terminal-index.mjs");
+  const catalog = await import("../src/app/terminal/catalog.ts");
+  const reader = await import("../src/app/terminal/reader.ts");
+  const readArtifactBytes = (_id, entry) => readFileSync(path.join(frontend, "public", entry.url));
+  const clone = (v) => structuredClone(v);
+  const decode = (shard) =>
+    catalog.unpackTerminalPayload(shard.strings, shard.payload, shard.structures, shard.texts);
+  const reseal = async (value) => {
+    const { payloadDigest: _digest, ...sealed } = value;
+    return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
+  };
+  const repack = async (shard, payload) =>
+    reseal({ ...shard, ...catalog.packTerminalPayload(payload) });
+  const resealProjection = async (value) => {
+    const { projectionDigest: _digest, ...sealed } = value;
+    return { ...sealed, projectionDigest: await catalog.terminalDigest(sealed) };
+  };
+  await checkAsync(
+    "pure generator reads actual exact retained inputs and emits exactly eight admitted modules",
+    async () => {
+      generated = await generator.deriveTerminalCatalog(manifest, {
+        manifestBytes: manifestRaw,
+        readArtifactBytes,
+      });
+      assert.deepEqual(
+        Object.keys(generated.shards).sort(),
+        ["seed", "market", "regimes", "risk", "factors", "data", "recordings", "history"].sort(),
+      );
+      projectionProof.generation = generated.report;
+      for (const [name, module] of Object.entries(generated.modules)) {
+        assert(
+          Buffer.byteLength(module) <= (name === "seed" ? 48 : 128) * 1024,
+          name + " decoded module cap",
+        );
+        assert(!module.includes("ENGINEERING_PRIVACY_SENTINEL"));
+        const admitted = await catalog.validateTerminalShard(
+          generated.shards[name],
+          name,
+          generated.shards.seed.manifestBinding,
+        );
+        assert(admitted.entities.length <= 512);
+        assert(admitted.entities.every((e) => e.availability === "AVAILABLE"));
+      }
+    },
+  );
+  await checkAsync(
+    "independent second pure rebuild is byte-for-byte deterministic across all eight modules",
+    async () => {
+      assert(generated, "Initial generation must pass before determinism can be claimed");
+      rebuilt = await generator.deriveTerminalCatalog(manifest, {
+        manifestBytes: manifestRaw,
+        readArtifactBytes,
+      });
+      assert.deepEqual(rebuilt.modules, generated.modules);
+      assert.deepEqual(rebuilt.shards, generated.shards);
+      projectionProof.deterministicModuleSha256 = Object.fromEntries(
+        Object.entries(generated.modules).map(([name, module]) => [name, hash(module)]),
+      );
+    },
+  );
+  await checkAsync(
+    "checked generated files match pure originals without modifying an output",
+    async () => {
+      assert(generated);
+      for (const [name, module] of Object.entries(generated.modules))
+        assert.equal(
+          readFileSync(
+            path.join(frontend, "src/app/terminal/generated", name + ".generated.ts"),
+            "utf8",
+          ),
+          module,
+        );
+    },
+  );
+  await checkAsync("generator rejects complete-original checksum corruption", async () => {
+    await assert.rejects(() =>
+      generator.deriveTerminalCatalog(manifest, {
+        manifestBytes: manifestRaw,
+        readArtifactBytes(id, entry) {
+          const raw = readArtifactBytes(id, entry);
+          if (id === "market:US-MKT") {
+            const corrupt = Buffer.from(raw);
+            corrupt[corrupt.length - 2] ^= 1;
+            return corrupt;
+          }
+          return raw;
+        },
+      }),
+    );
+  });
+  await checkAsync("generator rejects complete-original declared byte mismatch", async () => {
+    await assert.rejects(() =>
+      generator.deriveTerminalCatalog(manifest, {
+        manifestBytes: manifestRaw,
+        readArtifactBytes(id, entry) {
+          const raw = readArtifactBytes(id, entry);
+          return id === "market:US-MKT" ? raw.subarray(1) : raw;
+        },
+      }),
+    );
+  });
+  await checkAsync(
+    "generator rejects substituted parsed manifest versus exact raw snapshot",
+    async () => {
+      const changed = clone(manifest);
+      changed.as_of = "2099-01-01T00:00:00Z";
+      await assert.rejects(() =>
+        generator.deriveTerminalCatalog(changed, { manifestBytes: manifestRaw, readArtifactBytes }),
+      );
+    },
+  );
+  for (const field of ["status", "licence", "kind"])
+    await checkAsync(`generator rejects unadmitted ${field} source metadata`, async () => {
+      const changed = clone(manifest),
+        entry = changed.artifacts["market:US-MKT"];
+      if (field === "status") entry.status = "UNAVAILABLE";
+      if (field === "licence") entry.licence.permitted_uses = [];
+      if (field === "kind") entry.kind = "unpublished-experiment";
+      const bytes = Buffer.from(JSON.stringify(changed));
+      await assert.rejects(() =>
+        generator.deriveTerminalCatalog(changed, { manifestBytes: bytes, readArtifactBytes }),
+      );
+    });
+  const sourceIds = [
+    "market:US-MKT",
+    manifest.routes["/regimes/timeline?asset=IN-MKT"],
+    manifest.routes["/data/issues"],
+    currentStateId,
+    Object.keys(manifest.artifacts).find((id) => id.startsWith("factors:catalog:")),
+    "forge:runs",
+    Object.keys(manifest.artifacts).find(
+      (id) => manifest.artifacts[id].kind === "hmm" && id.includes("US-MKT"),
+    ),
+  ];
+  for (const id of sourceIds) {
+    await checkAsync(`full source positive schema ${id}`, async () => {
+      assert(id);
+      await generator.validateTerminalSource(id, manifest.artifacts[id], artifact(id));
+    });
+    await checkAsync(`full source rejects unknown private top field ${id}`, async () => {
+      assert(id);
+      const value = artifact(id);
+      value.account = "ENGINEERING_PRIVACY_SENTINEL";
+      await assert.rejects(() =>
+        generator.validateTerminalSource(id, manifest.artifacts[id], value),
+      );
+    });
+  }
+  const representativeSources = new Map();
+  for (const [id, entry] of Object.entries(manifest.artifacts)) {
+    if (
+      entry.status !== "AVAILABLE" ||
+      !(
+        /^(data-organ-|regimes-|factors-)/.test(entry.kind) ||
+        ["risk-state", "risk-sweep", "market-series", "hmm", "signal"].includes(entry.kind) ||
+        id === "forge:runs"
+      )
+    )
+      continue;
+    const prior = representativeSources.get(entry.kind);
+    if (!prior || entry.as_of > prior[1].as_of) representativeSources.set(entry.kind, [id, entry]);
+  }
+  projectionProof.closedSourceRepresentativePaths = [];
+  for (const [kind, [id, entry]] of representativeSources)
+    await checkAsync(
+      `full original ${kind} rejects every representative nested unknown field`,
+      async () => {
+        const value = artifact(id),
+          paths = [];
+        await reader.validateFullOriginal(id, entry, value);
+        function walk(node, at = []) {
+          if (!node || typeof node !== "object") return;
+          if (Array.isArray(node)) {
+            if (node.length) walk(node[0], [...at, 0]);
+            return;
+          }
+          paths.push(at);
+          for (const [key, child] of Object.entries(node)) walk(child, [...at, key]);
+        }
+        walk(value);
+        assert(
+          paths.length <= 200,
+          "Representative schema path limit exceeded; review source coverage before increasing it",
+        );
+        for (const at of paths) {
+          const changed = clone(value);
+          let target = changed;
+          for (const key of at) target = target[key];
+          target.engineering_unknown_private_field = "ENGINEERING_PRIVACY_SENTINEL";
+          await assert.rejects(
+            () => generator.validateTerminalSource(id, entry, changed),
+            id + ":" + (at.join(".") || "$"),
+          );
+          await assert.rejects(
+            () => reader.validateFullOriginal(id, entry, changed),
+            "runtime " + id + ":" + (at.join(".") || "$"),
+          );
+        }
+        projectionProof.closedSourceRepresentativePaths.push({
+          kind,
+          id,
+          paths: paths.length,
+          arrayScope: "one representative per array structural path",
+        });
+      },
+    );
+  check(
+    "packing preserves exact IEEE-754 values and signed zero inside deduplicated structures",
+    () => {
+      const values = [
+        [-0, 0, Number.MIN_VALUE, Number.MAX_VALUE, Number.EPSILON, 0.1, 1.0000000000000002],
+        [{ v: -0 }, { v: 0 }],
+        [{ v: [-0, 0, 0.1] }, { v: [0, -0, 0.1] }],
+      ];
+      function equal(a, b) {
+        if (typeof a === "number") {
+          assert(Object.is(a, b), "Exact finite IEEE-754 value changed");
+          return;
+        }
+        if (a && typeof a === "object") {
+          assert.deepEqual(Object.keys(a), Object.keys(b));
+          for (const key of Object.keys(a)) equal(a[key], b[key]);
+          return;
+        }
+        assert.equal(a, b);
+      }
+      for (const value of values) {
+        const packed = catalog.packTerminalPayload(value);
+        equal(
+          value,
+          catalog.unpackTerminalPayload(
+            packed.strings,
+            packed.payload,
+            packed.structures,
+            packed.texts,
+          ),
+        );
+      }
+    },
+  );
+  for (const value of [NaN, Infinity, -Infinity, undefined])
+    check(`packing rejects unsupported nonfinite/undefined ${String(value)}`, () =>
+      assert.throws(() => catalog.packTerminalPayload({ value })),
+    );
+  for (const [name, strings, value, structures, texts] of [
+    ["cyclic structure", [], "@0", [[0, "@0"]], undefined],
+    ["noncanonical reference", ["x"], "$00", [], undefined],
+    ["out-of-bounds string", ["x"], "$1", [], undefined],
+    ["out-of-bounds fragment", ["x"], "$0", [], [[1]]],
+    ["unsafe object prototype", ["__proto__"], [1, 0, 1], [], undefined],
+    ["duplicate field", ["x"], [1, 0, 1, 0, 2], [], undefined],
+    ["nonfinite scalar", [], Infinity, [], undefined],
+  ])
+    check(`packed decoder rejects ${name}`, () =>
+      assert.throws(() => catalog.unpackTerminalPayload(strings, value, structures, texts)),
+    );
+  const indiaTraceId = "observatory:IN-MKT:hmm",
+    indiaTrace = artifact(indiaTraceId);
+  const indiaSelected = {
+    ...indiaTrace,
+    dates_tail: indiaTrace.dates_tail.slice(190, 250),
+    frames: indiaTrace.frames
+      .slice(92, 100)
+      .map((frame) => ({ ...frame, posterior_tail: frame.posterior_tail.slice(190, 250) })),
+  };
+  const indiaWindow = await resealProjection({
+    schema_version: "terminal-display/1",
+    generator_contract: "terminal-generator/1",
+    selector: "observatory-trace-window",
+    source: { artifactId: indiaTraceId, entry: manifest.artifacts[indiaTraceId] },
+    originalFullRowCount: 250,
+    originalFrameCount: 100,
+    range: { start: 190, end: 250 },
+    iterationRange: { start: 92, end: 100 },
+    dateRange: { start: 190, end: 250 },
+    limitations: [
+      "Engineering QA exact retained India8iteration/60date projection contract; full original remains unchanged.",
+    ],
+    selectedFields: indiaSelected,
+  });
+  await checkAsync(
+    "approved India HMM8/60 contract verifies exact unchanged source fields",
+    async () => {
+      await reader.verifyDisplayProjection(
+        indiaWindow,
+        manifest.artifacts[indiaTraceId],
+        indiaWindow.projectionDigest,
+      );
+      assert.equal(indiaTrace.frames.length, 100);
+      assert.equal(indiaTrace.dates_tail.length, 250);
+      assert.equal(
+        catalog.stableTerminal(indiaSelected.frames),
+        catalog.stableTerminal(
+          indiaTrace.frames
+            .slice(92, 100)
+            .map((frame) => ({ ...frame, posterior_tail: frame.posterior_tail.slice(190, 250) })),
+        ),
+      );
+      projectionProof.indiaWindow = {
+        source: indiaTraceId,
+        originalFrames: 100,
+        originalDates: 250,
+        iterationRange: { start: 92, end: 100 },
+        dateRange: { start: 190, end: 250 },
+        fullOriginalUnchanged: true,
+        verification:
+          "runtimecontract directly tested; compiled ninthoutput approval remains a separate acceptance gate",
+      };
+    },
+  );
+  for (const [name, mutate] of [
+    ["iteration offset", (p) => (p.iterationRange.start = 91)],
+    ["date offset", (p) => (p.dateRange.start = 189)],
+    ["original frame count", (p) => (p.originalFrameCount = 99)],
+    ["original date count", (p) => (p.originalFullRowCount = 251)],
+    ["global frame identity", (p) => (p.selectedFields.frames[0].iteration = 92)],
+    ["posterior date count", (p) => p.selectedFields.frames[0].posterior_tail.pop()],
+    ["posterior probability", (p) => (p.selectedFields.frames[0].posterior_tail[0][0] = 2)],
+    [
+      "unknown private frame field",
+      (p) => (p.selectedFields.frames[0].account = "ENGINEERING_PRIVACY_SENTINEL"),
+    ],
+    ["claim promotion", (p) => (p.selectedFields.claims.validated_alpha = true)],
+    ["security factor confusion", (p) => (p.selectedFields.provenance.coverage = "SECURITY")],
+    ["source market", (p) => (p.selectedFields.ticker = "US-MKT")],
+    ["future selected date", (p) => (p.selectedFields.dates_tail[0] = "2099-01-01T00:00:00Z")],
+  ])
+    await checkAsync(`approved India HMM rejects resealed wrong ${name}`, async () => {
+      const value = clone(indiaWindow);
+      mutate(value);
+      const sealed = await resealProjection(value);
+      await assert.rejects(() =>
+        reader.verifyDisplayProjection(
+          sealed,
+          manifest.artifacts[indiaTraceId],
+          sealed.projectionDigest,
+        ),
+      );
+    });
+  for (const step of [92, 99])
+    check(`India global zero-based traceStep${step} maps to exact original frame`, () =>
+      assert.equal(reader.projectedTraceFrame(indiaWindow, step).iteration, step + 1),
+    );
+  for (const step of [91, 100, -1, 92.1, NaN, Infinity, "92"])
+    check(`India omitted/invalid traceStep${String(step)} cannot snap`, () =>
+      assert.throws(() => reader.projectedTraceFrame(indiaWindow, step)),
+    );
+  if (generated) {
+    const actualShards = Object.values(generated.shards),
+      payloads = actualShards.map(decode),
+      allEntities = payloads.flatMap((p) => p.entities),
+      allEdges = payloads.flatMap((p) => p.edges);
+    await checkAsync(
+      "packed metadata expands without dropping any admitted exact field",
+      async () => {
+        for (const shard of actualShards) {
+          const payload = decode(shard),
+            packed = catalog.packTerminalPayload(payload);
+          assert.equal(
+            catalog.stableTerminal(
+              catalog.unpackTerminalPayload(
+                packed.strings,
+                packed.payload,
+                packed.structures,
+                packed.texts,
+              ),
+            ),
+            catalog.stableTerminal(payload),
+          );
+        }
+      },
+    );
+    check(
+      "catalogue preserves every original AVAILABLE binding and all current/historical aliases",
+      () => {
+        const bindings = Object.assign({}, ...payloads.map((p) => p.bindings)),
+          routes = Object.assign({}, ...payloads.map((p) => p.routes));
+        for (const [id, entry] of Object.entries(manifest.artifacts))
+          if (entry.status === "AVAILABLE")
+            assert.equal(catalog.stableTerminal(bindings[id]), catalog.stableTerminal(entry), id);
+        for (const [route, id] of Object.entries(manifest.routes))
+          if (manifest.artifacts[id].status === "AVAILABLE") assert.equal(routes[route], id, route);
+      },
+    );
+    check("exact historical Issue and factor choices preserve owning selection and cutoff", () => {
+      const choices = allEntities.filter((e) => e.versionChoices);
+      assert(choices.some((e) => e.type === "issue"));
+      assert(choices.some((e) => e.type === "factor" || e.type === "factor-definition"));
+      for (const entity of choices)
+        for (const choice of entity.versionChoices) {
+          const entry = manifest.artifacts[choice.artifactId];
+          const evidenceClock =
+            entity.type === "issue" ||
+            entity.type === "sweep" ||
+            (entry.kind.startsWith("factors-") && entity.type !== "artifact");
+          assert.equal(
+            choice.cutoff,
+            evidenceClock ? artifact(choice.artifactId).evidence_cutoff : entry.as_of,
+          );
+          assert.equal(choice.view.workspace, entity.workspace);
+          serializeInvestigationContext({
+            version: 1,
+            ...(entity.market ? { market: entity.market } : {}),
+            anchor: { artifactId: choice.artifactId },
+            view: choice.view,
+          });
+          if (choice.view.issueId) {
+            assert(choice.view.sweepId);
+            assert.equal(
+              manifest.routes["/risk-manager/state?sweep_id=" + choice.view.sweepId],
+              choice.artifactId,
+            );
+            const state = artifact(choice.artifactId);
+            assert(state.payload.issues.some((i) => i.issue_id === choice.view.issueId));
+          }
+        }
+    });
+    check("inherited missing IIMA diagnostic remains absent from AVAILABLE entities", () => {
+      assert(!allEntities.some((e) => e.id.includes("56f09551")));
+      assert(
+        !Object.keys(Object.assign({}, ...payloads.map((p) => p.bindings))).some((id) =>
+          id.includes("56f09551"),
+        ),
+      );
+    });
+    check(
+      "all declared edges use complete actual endpoints and fixed selector relation pairs",
+      () => {
+        const relations = {
+          REFERENCED_ARTIFACT: [
+            "risk_issue_evidence",
+            "factor_original_ref",
+            "recorded_task_artifact",
+            "frozen_research_summary",
+            "referenced_artifact",
+          ],
+          ISSUE_ORIGIN: ["risk_issue_origin"],
+          DECLARED_PRODUCER: ["declared_producer"],
+          DECLARED_SOURCE_VERSION: ["declared_source_version"],
+          DECLARED_ADMISSION: ["declared_admission"],
+          DECLARED_CAPTURE: ["declared_capture"],
+          PRESENT_IN: ["present_in"],
+        };
+        for (const p of payloads) {
+          const keys = new Set(p.entities.map((e) => e.key));
+          for (const edge of p.edges) {
+            assert(keys.has(edge.from));
+            assert(keys.has(edge.to));
+            assert(relations[edge.relation]?.includes(edge.selector));
+            assert(p.bindings[edge.artifactId]);
+          }
+        }
+        assert(allEdges.length > 0);
+      },
+    );
+    const seed = generated.shards.seed,
+      seedPayload = decode(seed);
+    for (const [name, mutate] of [
+      ["unknown private payload field", (p) => (p.account = "ENGINEERING_PRIVACY_SENTINEL")],
+      [
+        "unknown private view field",
+        (p) => (p.entities[0].view.account = "ENGINEERING_PRIVACY_SENTINEL"),
+      ],
+      ["invented experiment type", (p) => (p.entities[0].type = "unpublished-experiment")],
+      ["private namespace", (p) => (p.entities[0].namespace = "private-account")],
+      [
+        "unknown private bundle",
+        (p) => p.bundles.push({ account: "ENGINEERING_PRIVACY_SENTINEL" }),
+      ],
+      [
+        "unknown projection contract",
+        (p) =>
+          p.projections.push({
+            schema_version: "private-account/1",
+            token: "ENGINEERING_PRIVACY_SENTINEL",
+          }),
+      ],
+      [
+        "invalid projection pin",
+        (p) => (p.projectionPins = { account: "ENGINEERING_PRIVACY_SENTINEL" }),
+      ],
+      [
+        "wrong exact version cutoff",
+        (p) => {
+          const e = p.entities.find((e) => e.artifactId);
+          e.versionChoices = [
+            { artifactId: e.artifactId, cutoff: "1900-01-01T00:00:00Z", view: e.view },
+          ];
+        },
+      ],
+      ["duplicate entity key", (p) => p.entities.push(clone(p.entities[0]))],
+      ["unavailable entity", (p) => (p.entities[0].availability = "UNAVAILABLE")],
+      [
+        "unknown route binding",
+        (p) => (p.routes["/data/health"] = "data-organ:health:" + sampleHash),
+      ],
+      [
+        "entity record overflow",
+        (p) =>
+          (p.entities = Array.from({ length: 513 }, (_, i) => ({
+            ...p.entities[0],
+            key: "engineering-overflow-" + i,
+          }))),
+      ],
+    ])
+      await checkAsync(`resealed shard schema rejects ${name}`, async () => {
+        const p = clone(seedPayload);
+        mutate(p);
+        await assert.rejects(async () =>
+          catalog.validateTerminalShard(await repack(seed, p), "seed", seed.manifestBinding),
+        );
+      });
+    const edgeShard = actualShards.find((s) => decode(s).edges.length),
+      edgePayload = decode(edgeShard);
+    for (const [name, mutate] of [
+      ["arbitrary JSON pointer selector", (p) => (p.edges[0].selector = "/payload/private")],
+      ["unknown relationship", (p) => (p.edges[0].relation = "AFFECTS_COMPUTATION")],
+      ["same-source fabricated relationship", (p) => (p.edges[0].selector = "same_source_name")],
+      ["orphan endpoint", (p) => (p.edges[0].to = "unpublished-experiment|unknown")],
+    ])
+      await checkAsync(`resealed edge schema rejects ${name}`, async () => {
+        const p = clone(edgePayload);
+        mutate(p);
+        await assert.rejects(async () =>
+          catalog.validateTerminalShard(
+            await repack(edgeShard, p),
+            edgeShard.name,
+            seed.manifestBinding,
+          ),
+        );
+      });
+    await checkAsync("shard integrity rejects modified dictionary without resealing", async () => {
+      const value = clone(seed);
+      value.strings[0] += "X";
+      await assert.rejects(() =>
+        catalog.validateTerminalShard(value, "seed", seed.manifestBinding),
+      );
+    });
+    await checkAsync("shards reject a different pinned manifest snapshot", async () => {
+      await assert.rejects(() =>
+        catalog.validateTerminalShard(seed, "seed", {
+          ...seed.manifestBinding,
+          sha256: sampleHash,
+        }),
+      );
+    });
+    const projections = payloads.flatMap((p) => p.projections);
+    for (const projection of projections)
+      await checkAsync(
+        `actual projection exact pinned binding/digest ${projection.source.artifactId}|${projection.selector}`,
+        async () => {
+          await reader.verifyDisplayProjection(
+            projection,
+            manifest.artifacts[projection.source.artifactId],
+            projection.projectionDigest,
+          );
+          const original = artifact(projection.source.artifactId),
+            selected = projection.selectedFields;
+          assert.equal(projection.range.end, projection.originalFullRowCount);
+          if (projection.selector === "market-week-window")
+            assert.equal(
+              catalog.stableTerminal(selected.weeks),
+              catalog.stableTerminal(original.weeks.slice(projection.range.start)),
+            );
+          if (projection.selector === "frozen-research-summary")
+            assert.equal(
+              catalog.stableTerminal(selected),
+              catalog.stableTerminal(original.payload.frozen_research),
+            );
+          if (projection.selector === "regime-timeline-window") {
+            assert.deepEqual(selected.dates, original.payload.dates.slice(projection.range.start));
+            assert.equal(selected.dates.length, 100);
+            for (const name of ["hmm2", "hmm4"]) {
+              const from = Math.max(0, projection.range.start - original.payload[name].offset);
+              assert.deepEqual(
+                selected[name].state_codes,
+                original.payload[name].state_codes.slice(from),
+              );
+              assert.deepEqual(
+                selected[name].confidence,
+                original.payload[name].confidence.slice(from),
+              );
+              assert.equal(
+                selected[name].offset,
+                Math.max(0, original.payload[name].offset - projection.range.start),
+              );
+            }
+          }
+        },
+      );
+    const marketProjection = projections.find(
+        (p) => p.selector === "market-week-window" && p.selectedFields.ticker === "US-MKT",
+      ),
+      regimeProjection = projections.find(
+        (p) => p.selector === "regime-timeline-window" && p.selectedFields.asset === "IN-MKT",
+      );
+    for (const [name, base, mutate] of [
+      [
+        "nontrace iteration axis",
+        marketProjection,
+        (p) => (p.iterationRange = { account: "ENGINEERING_PRIVACY_SENTINEL" }),
+      ],
+      [
+        "nontrace frame count",
+        marketProjection,
+        (p) => (p.originalFrameCount = "ENGINEERING_PRIVACY_SENTINEL"),
+      ],
+      ["nontrace date axis", marketProjection, (p) => (p.dateRange = { start: 190, end: 250 })],
+      [
+        "private nested Market method",
+        marketProjection,
+        (p) => (p.selectedFields.method.account = "ENGINEERING_PRIVACY_SENTINEL"),
+      ],
+      [
+        "unknown Market regime structure",
+        marketProjection,
+        (p) => (p.selectedFields.weeks[0].regime = { token: "ENGINEERING_PRIVACY_SENTINEL" }),
+      ],
+      [
+        "wrong Market factor for exact source",
+        marketProjection,
+        (p) => (p.selectedFields.ticker = "IN-MKT"),
+      ],
+      [
+        "unknown Regime run selector",
+        regimeProjection,
+        (p) => (p.selectedFields.run_ids.token = "ENGINEERING_PRIVACY_SENTINEL"),
+      ],
+      [
+        "Regime probability over one",
+        regimeProjection,
+        (p) => (p.selectedFields.hmm2.confidence[0] = 1.1),
+      ],
+      [
+        "Regime nonexistent state",
+        regimeProjection,
+        (p) => (p.selectedFields.hmm2.state_codes[0] = 999),
+      ],
+      [
+        "Regime future momentum date",
+        regimeProjection,
+        (p) => (p.selectedFields.momentum_signal_tail = [["2099-01-01", 999]]),
+      ],
+      [
+        "Regime unverified calendar promotion",
+        regimeProjection,
+        (p) => (p.selectedFields.observation_unit = "exchange_sessions"),
+      ],
+      [
+        "Regime asset differs from exact India binding",
+        regimeProjection,
+        (p) => (p.selectedFields.asset = "US-MKT"),
+      ],
+      [
+        "Regime labels private shape",
+        regimeProjection,
+        (p) => (p.selectedFields.hmm2.labels = { token: "ENGINEERING_PRIVACY_SENTINEL" }),
+      ],
+    ])
+      await checkAsync(`resealed projection schema rejects ${name}`, async () => {
+        assert(base);
+        const value = clone(base);
+        mutate(value);
+        const sealed = await resealProjection(value);
+        await assert.rejects(() =>
+          reader.verifyDisplayProjection(sealed, sealed.source.entry, sealed.projectionDigest),
+        );
+      });
+    await checkAsync(
+      "projection byte corruption rejects the unchanged compiled digest pin",
+      async () => {
+        const p = clone(marketProjection);
+        p.selectedFields.weeks[0].relative_performance += 1;
+        await assert.rejects(() =>
+          reader.verifyDisplayProjection(p, p.source.entry, p.projectionDigest),
+        );
+      },
+    );
+    await checkAsync(
+      "projection cannot substitute original entry against exact pinned binding",
+      async () => {
+        const p = clone(marketProjection);
+        p.source.entry = manifest.artifacts["market:IN-MKT"];
+        await assert.rejects(() =>
+          reader.verifyDisplayProjection(
+            p,
+            manifest.artifacts["market:US-MKT"],
+            p.projectionDigest,
+          ),
+        );
+      },
+    );
+    await checkAsync(
+      "declared traversal rejects bound widening and explicit cancellation",
+      async () => {
+        for (const options of [
+          { depth: 5 },
+          { nodes: 257 },
+          { edges: 513 },
+          { bytes: 512 * 1024 + 1 },
+        ])
+          await assert.rejects(() =>
+            catalog.traverseDeclared("engineering-invalid", ["seed"], options),
+          );
+        await assert.rejects(() =>
+          catalog.traverseDeclared(seedPayload.entities[0].key, ["seed"], {
+            signal: AbortSignal.abort(),
+          }),
+        );
+      },
+    );
+    await checkAsync(
+      "bound original reader verifies actual selected bytes and omits credentials",
+      async () => {
+        const id = manifest.routes["/data/issues"],
+          entry = manifest.artifacts[id],
+          raw = readArtifactBytes(id, entry),
+          priorFetch = globalThis.fetch,
+          requests = [];
+        globalThis.fetch = async (url, options) => {
+          requests.push({ url, credentials: options?.credentials });
+          assert.equal(url, entry.url);
+          assert.equal(options?.credentials, "omit");
+          assert(!options?.method || options.method === "GET");
+          return new Response(raw, { status: 200 });
+        };
+        try {
+          const actual = await reader.readBoundArtifact(id);
+          assert.equal(catalog.stableTerminal(actual), catalog.stableTerminal(artifact(id)));
+          assert.equal(requests.length, 1);
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+        projectionProof.originalReaderUnitTraffic = {
+          provenance:
+            "actual retained byte response; engineering unit transport, no browser availability claim",
+          requests,
+        };
+      },
+    );
+    await checkAsync(
+      "bound original reader rejects checksum corruption and excess response bytes",
+      async () => {
+        const id = manifest.routes["/data/issues"],
+          entry = manifest.artifacts[id],
+          raw = readArtifactBytes(id, entry),
+          priorFetch = globalThis.fetch;
+        try {
+          const corrupt = Buffer.from(raw);
+          corrupt[corrupt.length - 2] ^= 1;
+          globalThis.fetch = async () => new Response(corrupt, { status: 200 });
+          await assert.rejects(() => reader.readBoundArtifact(id));
+          globalThis.fetch = async () =>
+            new Response(Buffer.alloc(2 * 1024 * 1024 + 1), { status: 200 });
+          await assert.rejects(() => reader.readBoundArtifact(id));
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      },
+    );
+    await checkAsync(
+      "bound original reader rejects caller substitution and oversized India original before fetch",
+      async () => {
+        const priorFetch = globalThis.fetch;
+        let attempted = 0;
+        globalThis.fetch = async () => {
+          attempted++;
+          throw new Error("No original fetch authorized by this negative unit case");
+        };
+        try {
+          const id = manifest.routes["/data/issues"],
+            entry = manifest.artifacts[id];
+          await assert.rejects(() =>
+            reader.readBoundArtifact(id, { binding: { ...entry, as_of: "2099-01-01T00:00:00Z" } }),
+          );
+          assert(manifest.artifacts["observatory:IN-MKT:hmm"].bytes > 2 * 1024 * 1024);
+          await assert.rejects(() => reader.readBoundArtifact("observatory:IN-MKT:hmm"));
+          assert.equal(attempted, 0);
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      },
+    );
+    await checkAsync(
+      "actual declared graph fails visibly when depth frontier leaves an unvisited neighbor",
+      async () => {
+        const shard = actualShards.find((s) => s.name === "risk"),
+          payload = decode(shard);
+        assert(payload.edges.length);
+        await assert.rejects(
+          () => catalog.traverseDeclared(payload.edges[0].from, ["risk"], { depth: 0 }),
+          /depth/i,
+        );
+      },
+    );
+    await checkAsync(
+      "completed real inverse adjacency does not falsely overflow on visited backedges",
+      async () => {
+        const payload = decode(generated.shards.risk),
+          adj = new Map(payload.entities.map((e) => [e.key, new Set()]));
+        for (const edge of payload.edges) {
+          adj.get(edge.from).add(edge.to);
+          adj.get(edge.to).add(edge.from);
+        }
+        let complete;
+        for (const [start, neighbors] of adj) {
+          if (!neighbors.size) continue;
+          const nodes = new Set([start, ...neighbors]);
+          if ([...neighbors].every((key) => [...adj.get(key)].every((next) => nodes.has(next)))) {
+            complete = { start, nodes };
+            break;
+          }
+        }
+        assert(complete, "Require an actual closed radius1 component, not an invented dependency");
+        const result = await catalog.traverseDeclared(complete.start, ["risk"], { depth: 1 });
+        assert.deepEqual(result.nodes, [...complete.nodes].sort());
+        assert(result.edges.length > 0);
+        projectionProof.traversalActualBoundary = {
+          depth0Rejects: true,
+          completedRadius1Nodes: result.nodes.length,
+          completedRadius1Edges: result.edges.length,
+        };
+      },
+    );
+    await checkAsync(
+      "generic terminal World original inspection is unsupported before artifact fetch",
+      async () => {
+        const priorFetch = globalThis.fetch;
+        let attempts = 0;
+        globalThis.fetch = async () => {
+          attempts++;
+          throw new Error("No World artifact fetch is authorized by this negative unit case");
+        };
+        try {
+          for (const id of ["world:quakes", "world:satellites"]) {
+            assert.equal(manifest.artifacts[id].status, "AVAILABLE");
+            await assert.rejects(
+              () => reader.readBoundArtifact(id),
+              /unsupported|declared|World|kind/i,
+            );
+          }
+          assert.equal(attempts, 0);
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      },
+    );
+    await checkAsync(
+      "generic terminal World full validator rejects malformed payloads",
+      async () => {
+        for (const id of ["world:quakes", "world:satellites"]) {
+          const value = artifact(id);
+          value.payload = { account: "ENGINEERING_PRIVACY_SENTINEL" };
+          await assert.rejects(() =>
+            reader.validateFullOriginal(id, manifest.artifacts[id], value),
+          );
+        }
+      },
+    );
+    if (failures.length === stageFailureStart) {
+      completedAreas.add("projections");
+      completedAreas.add("index");
+    }
+  }
+}
+
 const missingAreas = requiredAreas.filter((area) => !completedAreas.has(area));
-if (!coreOnly)
+if (!coreOnly && !projectionsOnly)
   check("complete approved static-verification coverage", () =>
     assert.deepEqual(
       missingAreas,
@@ -1264,7 +2200,13 @@ if (!coreOnly)
   );
 const report = {
   schema_version: "phase75-terminal-context-proof/1",
-  phase: coreOnly ? "CONTEXT_COMPATIBILITY_LINKS_AND_FREEZE" : "FULL_TERMINAL_STATIC",
+  status: failures.length ? "FAIL" : missingAreas.length ? "INCOMPLETE" : "PASS",
+  stageStatus: failures.length ? "FAIL" : "PASS",
+  phase: projectionsOnly
+    ? "CONTRACTS_FREEZE_PROJECTIONS_INDEX"
+    : coreOnly
+      ? "CONTEXT_COMPATIBILITY_LINKS_AND_FREEZE"
+      : "FULL_TERMINAL_STATIC",
   completedAreas: [...completedAreas],
   missingAreas,
   manifest_sha256: hash(manifestRaw),
@@ -1273,6 +2215,7 @@ const report = {
   failures,
   performance: performanceProof,
   freeze: freezeProof,
+  projections: projectionProof,
 };
 const proofDir = path.resolve(root, process.env.TERMINAL_PROOF_DIR ?? ".tmp/phase75/context");
 mkdirSync(proofDir, { recursive: true });
@@ -1280,6 +2223,8 @@ writeFileSync(path.join(proofDir, "context-proof.json"), JSON.stringify(report, 
 console.log(
   JSON.stringify({
     phase: report.phase,
+    status: report.status,
+    stageStatus: report.stageStatus,
     missingAreas,
     checks,
     failures: failures.map((x) => ({ name: x.name, error: x.error.split("\n")[0] })),
