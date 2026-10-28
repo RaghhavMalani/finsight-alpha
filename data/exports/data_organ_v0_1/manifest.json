@@ -1,10 +1,10 @@
 {
   "costs": {
-    "artifact_id": "data-organ:costs:6002118f518bcf474f56003b21a13cd7613f4c7d93907ba8f446bca1fcfd7af7",
-    "as_of": "2026-10-27T06:26:57.031947Z",
-    "available_at": "2026-10-27T06:26:57.031947Z",
+    "artifact_id": "data-organ:costs:808599d3aaf8585240fcf2f01e031b704d17b239385a3e225ba7ef04daaffdde",
+    "as_of": "2026-10-28T06:57:47.435348Z",
+    "available_at": "2026-10-28T06:57:47.435348Z",
     "bytes": 4082,
-    "input_hash": "ac5d54cb0436bff66d6cc3c4689658fabbc8e1cea7352f952b48eff6a0ce5912",
+    "input_hash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
     "kind": "data-organ-costs",
     "licence": {
       "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
@@ -23,10 +23,10 @@
       "status": "FIRST_PARTY",
       "valid_through": null
     },
-    "observed_at": "2026-10-27T06:26:57.031947Z",
+    "observed_at": "2026-10-28T06:57:47.435348Z",
     "reason": null,
     "scope": "REAL_DERIVED_DIAGNOSTICS",
-    "sha256": "6002118f518bcf474f56003b21a13cd7613f4c7d93907ba8f446bca1fcfd7af7",
+    "sha256": "808599d3aaf8585240fcf2f01e031b704d17b239385a3e225ba7ef04daaffdde",
     "sources": [
       "alfred:UNRATE",
       "bls:LNS14000000",
@@ -34,14 +34,14 @@
       "ken-french:daily-factors"
     ],
     "status": "AVAILABLE",
-    "url": "/artifacts/replay/data-organ-costs-6002118f518bcf474f56003b21a13cd7613f4c7d93907ba8f446bca1fcfd7af7.json"
+    "url": "/artifacts/replay/data-organ-costs-808599d3aaf8585240fcf2f01e031b704d17b239385a3e225ba7ef04daaffdde.json"
   },
   "coverage": {
-    "artifact_id": "data-organ:coverage:b6c9ad440ec2165ddd525bbe81ca0e41b6fe6e6db50ffcfebffd07227d6544b5",
-    "as_of": "2026-10-27T06:26:57.031947Z",
-    "available_at": "2026-10-27T06:26:57.031947Z",
+    "artifact_id": "data-organ:coverage:bff9c7bcb28c466ab05bf6ccab233774981ea0d4e1cd3b023613c2b7c1dbc04d",
+    "as_of": "2026-10-28T06:57:47.435348Z",
+    "available_at": "2026-10-28T06:57:47.435348Z",
     "bytes": 7252,
-    "input_hash": "ac5d54cb0436bff66d6cc3c4689658fabbc8e1cea7352f952b48eff6a0ce5912",
+    "input_hash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
     "kind": "data-organ-coverage",
     "licence": {
       "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
@@ -60,10 +60,10 @@
       "status": "FIRST_PARTY",
       "valid_through": null
     },
-    "observed_at": "2026-10-27T06:26:57.031947Z",
+    "observed_at": "2026-10-28T06:57:47.435348Z",
     "reason": null,
     "scope": "REAL_DERIVED_DIAGNOSTICS",
-    "sha256": "b6c9ad440ec2165ddd525bbe81ca0e41b6fe6e6db50ffcfebffd07227d6544b5",
+    "sha256": "bff9c7bcb28c466ab05bf6ccab233774981ea0d4e1cd3b023613c2b7c1dbc04d",
     "sources": [
       "alfred:UNRATE",
       "bls:LNS14000000",
@@ -71,14 +71,14 @@
       "ken-french:daily-factors"
     ],
     "status": "AVAILABLE",
-    "url": "/artifacts/replay/data-organ-coverage-b6c9ad440ec2165ddd525bbe81ca0e41b6fe6e6db50ffcfebffd07227d6544b5.json"
+    "url": "/artifacts/replay/data-organ-coverage-bff9c7bcb28c466ab05bf6ccab233774981ea0d4e1cd3b023613c2b7c1dbc04d.json"
   },
   "disagreement": {
-    "artifact_id": "data-organ:disagreement:033140f811a7ff89109b451fbadd7b5b5fe62736816504959e2bf86470de92cc",
-    "as_of": "2026-10-27T06:26:57.031947Z",
-    "available_at": "2026-10-27T06:26:57.031947Z",
+    "artifact_id": "data-organ:disagreement:829eae1fa2e75b7fa429bca9b587d87ed65f5b9b164df63c9895f3183380c6bd",
+    "as_of": "2026-10-28T06:57:47.435348Z",
+    "available_at": "2026-10-28T06:57:47.435348Z",
     "bytes": 951,
-    "input_hash": "ac5d54cb0436bff66d6cc3c4689658fabbc8e1cea7352f952b48eff6a0ce5912",
+    "input_hash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
     "kind": "data-organ-disagreement",
     "licence": {
       "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
@@ -97,10 +97,10 @@
       "status": "FIRST_PARTY",
       "valid_through": null
     },
-    "observed_at": "2026-10-27T06:26:57.031947Z",
+    "observed_at": "2026-10-28T06:57:47.435348Z",
     "reason": null,
     "scope": "REAL_DERIVED_DIAGNOSTICS",
-    "sha256": "033140f811a7ff89109b451fbadd7b5b5fe62736816504959e2bf86470de92cc",
+    "sha256": "829eae1fa2e75b7fa429bca9b587d87ed65f5b9b164df63c9895f3183380c6bd",
     "sources": [
       "alfred:UNRATE",
       "bls:LNS14000000",
@@ -108,14 +108,14 @@
       "ken-french:daily-factors"
     ],
     "status": "AVAILABLE",
-    "url": "/artifacts/replay/data-organ-disagreement-033140f811a7ff89109b451fbadd7b5b5fe62736816504959e2bf86470de92cc.json"
+    "url": "/artifacts/replay/data-organ-disagreement-829eae1fa2e75b7fa429bca9b587d87ed65f5b9b164df63c9895f3183380c6bd.json"
   },
   "health": {
-    "artifact_id": "data-organ:health:be6319f9a3f79c9a10a3749eb9c749efc6f58c8dbb60d0b6990a5a45791d9ee3",
-    "as_of": "2026-10-27T06:26:57.031947Z",
-    "available_at": "2026-10-27T06:26:57.031947Z",
+    "artifact_id": "data-organ:health:85e8148c9d8af457ddfa0fc11afd45dc05ca2f787d460f5cb2a3b6a4a6bddb2d",
+    "as_of": "2026-10-28T06:57:47.435348Z",
+    "available_at": "2026-10-28T06:57:47.435348Z",
     "bytes": 4928,
-    "input_hash": "ac5d54cb0436bff66d6cc3c4689658fabbc8e1cea7352f952b48eff6a0ce5912",
+    "input_hash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
     "kind": "data-organ-health",
     "licence": {
       "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
@@ -134,10 +134,10 @@
       "status": "FIRST_PARTY",
       "valid_through": null
     },
-    "observed_at": "2026-10-27T06:26:57.031947Z",
+    "observed_at": "2026-10-28T06:57:47.435348Z",
     "reason": null,
     "scope": "REAL_DERIVED_DIAGNOSTICS",
-    "sha256": "be6319f9a3f79c9a10a3749eb9c749efc6f58c8dbb60d0b6990a5a45791d9ee3",
+    "sha256": "85e8148c9d8af457ddfa0fc11afd45dc05ca2f787d460f5cb2a3b6a4a6bddb2d",
     "sources": [
       "alfred:UNRATE",
       "bls:LNS14000000",
@@ -145,14 +145,14 @@
       "ken-french:daily-factors"
     ],
     "status": "AVAILABLE",
-    "url": "/artifacts/replay/data-organ-health-be6319f9a3f79c9a10a3749eb9c749efc6f58c8dbb60d0b6990a5a45791d9ee3.json"
+    "url": "/artifacts/replay/data-organ-health-85e8148c9d8af457ddfa0fc11afd45dc05ca2f787d460f5cb2a3b6a4a6bddb2d.json"
   },
   "issues": {
-    "artifact_id": "data-organ:issues:1b1572068b102d97a8ed5092df25224a93af5619b8db97e11555f6e122b30f7e",
-    "as_of": "2026-10-27T06:26:57.031947Z",
-    "available_at": "2026-10-27T06:26:57.031947Z",
-    "bytes": 35658,
-    "input_hash": "ac5d54cb0436bff66d6cc3c4689658fabbc8e1cea7352f952b48eff6a0ce5912",
+    "artifact_id": "data-organ:issues:5a2d4028f87051ebbdf62d8efaa0321d6ebd905f150ea8e0128b6fbeedace937",
+    "as_of": "2026-10-28T06:57:47.435348Z",
+    "available_at": "2026-10-28T06:57:47.435348Z",
+    "bytes": 37056,
+    "input_hash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
     "kind": "data-organ-issues",
     "licence": {
       "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
@@ -171,10 +171,10 @@
       "status": "FIRST_PARTY",
       "valid_through": null
     },
-    "observed_at": "2026-10-27T06:26:57.031947Z",
+    "observed_at": "2026-10-28T06:57:47.435348Z",
     "reason": null,
     "scope": "REAL_DERIVED_DIAGNOSTICS",
-    "sha256": "1b1572068b102d97a8ed5092df25224a93af5619b8db97e11555f6e122b30f7e",
+    "sha256": "5a2d4028f87051ebbdf62d8efaa0321d6ebd905f150ea8e0128b6fbeedace937",
     "sources": [
       "alfred:UNRATE",
       "bls:LNS14000000",
@@ -182,14 +182,14 @@
       "ken-french:daily-factors"
     ],
     "status": "AVAILABLE",
-    "url": "/artifacts/replay/data-organ-issues-1b1572068b102d97a8ed5092df25224a93af5619b8db97e11555f6e122b30f7e.json"
+    "url": "/artifacts/replay/data-organ-issues-5a2d4028f87051ebbdf62d8efaa0321d6ebd905f150ea8e0128b6fbeedace937.json"
   },
   "lineage": {
-    "artifact_id": "data-organ:lineage:acf06f3305567660559118060fe75f68d0bc52d4c58f66031d1e241f7c7dd357",
-    "as_of": "2026-10-27T06:26:57.031947Z",
-    "available_at": "2026-10-27T06:26:57.031947Z",
+    "artifact_id": "data-organ:lineage:b58cadfc5d6b3d43489ec41037e3995631c58141dfd710c41df29430b12cd2e9",
+    "as_of": "2026-10-28T06:57:47.435348Z",
+    "available_at": "2026-10-28T06:57:47.435348Z",
     "bytes": 13078,
-    "input_hash": "ac5d54cb0436bff66d6cc3c4689658fabbc8e1cea7352f952b48eff6a0ce5912",
+    "input_hash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
     "kind": "data-organ-lineage",
     "licence": {
       "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
@@ -208,10 +208,10 @@
       "status": "FIRST_PARTY",
       "valid_through": null
     },
-    "observed_at": "2026-10-27T06:26:57.031947Z",
+    "observed_at": "2026-10-28T06:57:47.435348Z",
     "reason": null,
     "scope": "REAL_DERIVED_DIAGNOSTICS",
-    "sha256": "acf06f3305567660559118060fe75f68d0bc52d4c58f66031d1e241f7c7dd357",
+    "sha256": "b58cadfc5d6b3d43489ec41037e3995631c58141dfd710c41df29430b12cd2e9",
     "sources": [
       "alfred:UNRATE",
       "bls:LNS14000000",
@@ -219,14 +219,14 @@
       "ken-french:daily-factors"
     ],
     "status": "AVAILABLE",
-    "url": "/artifacts/replay/data-organ-lineage-acf06f3305567660559118060fe75f68d0bc52d4c58f66031d1e241f7c7dd357.json"
+    "url": "/artifacts/replay/data-organ-lineage-b58cadfc5d6b3d43489ec41037e3995631c58141dfd710c41df29430b12cd2e9.json"
   },
   "revisions": {
-    "artifact_id": "data-organ:revisions:f1fe68f41fab3cf92e0359ab68e52291ec07bc40d080e66e0485e19b4fd8ca4d",
-    "as_of": "2026-10-27T06:26:57.031947Z",
-    "available_at": "2026-10-27T06:26:57.031947Z",
+    "artifact_id": "data-organ:revisions:649633859f2e628dac3b4e78dae38ea61e812517bed112a5d6a5775c04db3e2d",
+    "as_of": "2026-10-28T06:57:47.435348Z",
+    "available_at": "2026-10-28T06:57:47.435348Z",
     "bytes": 1313,
-    "input_hash": "ac5d54cb0436bff66d6cc3c4689658fabbc8e1cea7352f952b48eff6a0ce5912",
+    "input_hash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
     "kind": "data-organ-revisions",
     "licence": {
       "attribution": "U.S. Bureau of Labor Statistics, Unemployment Rate (UNRATE), retrieved from ALFRED, Federal Reserve Bank of St. Louis.; U.S. Bureau of Labor Statistics, seasonally adjusted civilian unemployment rate LNS14000000.; Agarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.; Kenneth R. French Data Library; Fama and French research factors and momentum.",
@@ -245,10 +245,10 @@
       "status": "FIRST_PARTY",
       "valid_through": null
     },
-    "observed_at": "2026-10-27T06:26:57.031947Z",
+    "observed_at": "2026-10-28T06:57:47.435348Z",
     "reason": null,
     "scope": "REAL_DERIVED_DIAGNOSTICS",
-    "sha256": "f1fe68f41fab3cf92e0359ab68e52291ec07bc40d080e66e0485e19b4fd8ca4d",
+    "sha256": "649633859f2e628dac3b4e78dae38ea61e812517bed112a5d6a5775c04db3e2d",
     "sources": [
       "alfred:UNRATE",
       "bls:LNS14000000",
@@ -256,6 +256,6 @@
       "ken-french:daily-factors"
     ],
     "status": "AVAILABLE",
-    "url": "/artifacts/replay/data-organ-revisions-f1fe68f41fab3cf92e0359ab68e52291ec07bc40d080e66e0485e19b4fd8ca4d.json"
+    "url": "/artifacts/replay/data-organ-revisions-649633859f2e628dac3b4e78dae38ea61e812517bed112a5d6a5775c04db3e2d.json"
   }
 }
