@@ -11,6 +11,8 @@ import {
   WORKSPACE_PATHS,
   parseInvestigationContext,
   parseRouterContext,
+  parseTerminalSearch,
+  stringifyTerminalSearch,
   safeParseInvestigationContext,
   serializeInvestigationContext,
   contextQuery,
@@ -20,6 +22,15 @@ import {
   isArtifactId,
   isObservationDate,
 } from "../src/app/terminal/context.ts";
+
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  defaultParseSearch,
+  defaultStringifySearch,
+} from "@tanstack/react-router";
 
 import { adaptContext, anchorAppliesTo } from "../src/app/terminal/compatibility.ts";
 import {
@@ -33,6 +44,7 @@ import {
 
 const coreOnly = process.argv.includes("--core-only");
 const projectionsOnly = process.argv.includes("--projections-only");
+const navigationOnly = process.argv.includes("--navigation-only");
 const completedAreas = new Set(["context", "compatibility", "links"]);
 const requiredAreas = [
   "context",
@@ -69,6 +81,12 @@ let checks = 0;
 const passed = [],
   failures = [];
 const performanceProof = {};
+const transportProof = {
+  typedQueries: [],
+  rawRejections: [],
+  legacy: [],
+  frameworkSsrRawValidation: "REQUIRES_BUILT_BROWSER_CHECKS",
+};
 function check(name, action) {
   try {
     action();
@@ -198,6 +216,72 @@ for (const [workspace, input] of positives) {
     assert.deepEqual(parseRouterContext(workspace, serializeInvestigationContext(value)), value);
   });
 }
+for (const query of [
+  "1",
+  "1.0",
+  "true",
+  "null",
+  '{"a": 1}',
+  "[1, 2]",
+  "0001",
+  "ordinary text",
+  "  padded text  ",
+  "日本語 1.0",
+]) {
+  check(`typed router transport preserves exact query ${JSON.stringify(query)}`, () => {
+    const value = parseInvestigationContext("risk", { ctx: "1", q: query, panel: "feed" });
+    const wire = stringifyTerminalSearch(serializeInvestigationContext(value));
+    assert.equal(new URLSearchParams(wire).get("ctx"), "1");
+    assert(!wire.includes("%221%22"), "Version must not acquire JSON string quotation");
+    const transported = parseTerminalSearch(wire);
+    assert.equal(transported.ctx, "1");
+    assert.equal(transported.q, query);
+    assert.deepEqual(parseRouterContext("risk", transported), value);
+    transportProof.typedQueries.push({ query, wire });
+  });
+}
+for (const raw of ["?ctx=1&ctx=1", "?ctx=1&q=1&q=2", "?ctx=1&q=1&%71=2"]) {
+  check(`typed router transport preserves duplicates for rejection ${raw}`, () => {
+    const transported = parseTerminalSearch(raw);
+    assert(Array.isArray(transported.ctx) || Array.isArray(transported.q));
+    assert.throws(() => parseRouterContext("risk", transported));
+    assert.throws(() => parseInvestigationContext("risk", raw));
+    assert.throws(() => parseInvestigationContext("risk", stringifyTerminalSearch(transported)));
+    transportProof.rawRejections.push(raw);
+  });
+}
+for (const raw of [
+  "",
+  "?ticker=in-mkt",
+  "?ticker=RELIANCE.NS",
+  "?q=1.0&n=7&flag=true",
+  "?q=%7B%22a%22%3A1%7D",
+  "?scene=hmm&ticker=US-MKT&step=3",
+]) {
+  check(`router legacy parsing remains unchanged ${raw || "bare"}`, () => {
+    assert.deepEqual(parseTerminalSearch(raw), defaultParseSearch(raw));
+    const legacy = defaultParseSearch(raw);
+    assert.equal(stringifyTerminalSearch(legacy), defaultStringifySearch(legacy));
+    transportProof.legacy.push(raw);
+  });
+}
+check("central router uses only the approved contextual parser/stringifier hooks", () => {
+  const source = readFileSync(path.join(frontend, "src/router.tsx"), "utf8");
+  assert(/parseSearch:\s*parseTerminalSearch/.test(source));
+  assert(/stringifySearch:\s*stringifyTerminalSearch/.test(source));
+  const shell = readFileSync(path.join(frontend, "src/app/terminal/TerminalShell.tsx"), "utf8");
+  assert(/createIsomorphicFn\(\)/.test(shell));
+  assert(/\.server\(\(\)\s*=>\s*new URL\(getRequest\(\)\.url\)\.search\)/.test(shell));
+  assert(/\.client\(\(\)\s*=>\s*undefined\)/.test(shell));
+  assert(
+    /rawSearch\s*=\s*requestSearch\(\)\s*\?\?\s*router\.history\.location\.search/.test(shell),
+  );
+  assert(
+    shell.indexOf("safeParseInvestigationContext(workspace, rawSearch)") <
+      shell.indexOf("new URLSearchParams(rawSearch)"),
+  );
+});
+
 check("lowercase legacy market factor normalizes before country", () => {
   const v = parseInvestigationContext("factors", "ticker=in-mkt");
   assert.deepEqual(v.subject, { kind: "market-factor", id: "IN-MKT" });
@@ -974,6 +1058,7 @@ const APPROVED_MODULE_NAMES = [
   "observatory-window",
 ];
 const EXCLUDED_LOCAL_COMMIT = "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d";
+const APPROVED_SCOPE_AMENDMENTS = ["frontend-v2/src/router.tsx"];
 const APPROVED_PLAN = "docs/phase7-5-connected-quant-terminal-plan.md";
 const APPROVED_PLAN_SHA256 = "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5";
 const git = (...args) => execFileSync("git", args, { cwd: root, maxBuffer: 64 * 1024 * 1024 });
@@ -998,6 +1083,7 @@ const freezeProof = {
   reconciledMain: RECONCILED_MAIN,
   excludedLocalCommit: EXCLUDED_LOCAL_COMMIT,
   operationsPerformedByThisVerifier: 0,
+  approvedExactSourceAmendments: APPROVED_SCOPE_AMENDMENTS,
   provenance:
     "ENGINEERING_QA_READ_ONLY; upstream Data publication is independent of this implementation",
 };
@@ -1024,7 +1110,12 @@ check("exact approved plan has not been rewritten to bless extra scope", () => {
   assert.equal(new Set([...approvedAdd, ...approvedChange]).size, 78);
 });
 function verifyScope(changed, untracked, deleted = []) {
-  const allowed = new Set([...approvedAdd, ...approvedChange, APPROVED_PLAN]);
+  const allowed = new Set([
+    ...approvedAdd,
+    ...approvedChange,
+    APPROVED_PLAN,
+    ...APPROVED_SCOPE_AMENDMENTS,
+  ]);
   assert.deepEqual(deleted, [], "No original source or history may be deleted");
   assert.deepEqual(
     [...new Set([...changed, ...untracked])].filter((p) => !allowed.has(p)),
@@ -1085,6 +1176,10 @@ for (const [label, extra, deleted] of [
   check(`scope sabotage rejects ${label}`, () =>
     assert.throws(() => verifyScope(extra, [], deleted)),
   );
+check("central router amendment allows only its one exact path", () => {
+  assert.deepEqual(APPROVED_SCOPE_AMENDMENTS, ["frontend-v2/src/router.tsx"]);
+  assert.throws(() => verifyScope(["frontend-v2/src/router-helper.ts"], []));
+});
 check("all nine protected frontend sources retain exact checkout bytes", () => {
   const protectedPaths = [
     "app/shell/ForgeShell.tsx",
@@ -1332,6 +1427,68 @@ async function checkAsync(name, action) {
     failures.push({ name, error: error instanceof Error ? error.stack : String(error) });
   }
 }
+const memoryRouter = (raw) => {
+  const rootRoute = createRootRoute();
+  const route = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/risk",
+    validateSearch: (search) => search,
+  });
+  return createRouter({
+    routeTree: rootRoute.addChildren([route]),
+    history: createMemoryHistory({ initialEntries: ["/risk" + raw] }),
+    parseSearch: parseTerminalSearch,
+    stringifySearch: stringifyTerminalSearch,
+    isServer: true,
+  });
+};
+await checkAsync(
+  "actual TanStack router generates exact canonical typed links on server",
+  async () => {
+    const router = memoryRouter("");
+    await router.load();
+    for (const query of transportProof.typedQueries) {
+      const selected = parseInvestigationContext("risk", {
+        ctx: "1",
+        q: query.query,
+        panel: "feed",
+      });
+      const location = router.buildLocation({
+        to: "/risk",
+        search: serializeInvestigationContext(selected),
+      });
+      assert.equal(new URLSearchParams(location.searchStr).get("ctx"), "1");
+      assert.deepEqual(parseInvestigationContext("risk", location.searchStr), selected);
+      assert.equal(location.search.q, query.query);
+    }
+    transportProof.actualServerLinkGeneration = true;
+  },
+);
+for (const raw of [
+  "?ctx=1&q=%GG",
+  "?ctx=1&q=%C0%AF",
+  "?ctx=1&q=%ED%A0%80",
+  "?ctx=1&q=1&q=2",
+  "?ticker=%ZZ",
+  "?ticker=%C0%AF",
+  "?ticker=US-MKT&ticker=IN-MKT",
+]) {
+  await checkAsync(
+    `TanStack memory history retains rejectable original raw URL ${raw}`,
+    async () => {
+      const router = memoryRouter(raw);
+      await router.load();
+      assert.equal(router.history.location.search, raw);
+      assert.equal(safeParseInvestigationContext("risk", router.history.location.search).ok, false);
+      transportProof.rawRejections.push({
+        raw,
+        originalHistoryRetained: true,
+        normalizedState: router.state.location.searchStr,
+      });
+    },
+  );
+}
+
 if (!coreOnly || projectionsOnly) {
   const stageFailureStart = failures.length;
   let generated, rebuilt;
@@ -1862,6 +2019,80 @@ if (!coreOnly || projectionsOnly) {
       allEntities = payloads.flatMap((p) => p.entities),
       allEdges = payloads.flatMap((p) => p.edges);
     await checkAsync(
+      "all eight real navigation shards merge without duplicate ownership conflicts",
+      async () => {
+        const loaded = await Promise.all(catalog.SHARD_NAMES.map(catalog.loadTerminalShard)),
+          merged = catalog.catalogEntities(loaded);
+        assert(merged.length > 0);
+        assert.equal(new Set(merged.map((entity) => entity.key)).size, merged.length);
+        assert.equal(
+          catalog.stableTerminal(catalog.catalogEntities([...loaded].reverse())),
+          catalog.stableTerminal(merged),
+          "Global catalogue merge must not depend on shard load order",
+        );
+        projectionProof.globalCatalog = {
+          navigationShards: loaded.length,
+          mergedEntities: merged.length,
+          exactOwnership: true,
+          orderIndependent: true,
+        };
+      },
+    );
+    check(
+      "cross-shard artifact references retain their owning country, publication and evidence clocks",
+      () => {
+        const byKey = new Map();
+        for (let i = 0; i < payloads.length; i++)
+          for (const entity of payloads[i].entities) {
+            if (entity.type !== "artifact") continue;
+            const entry = manifest.artifacts[entity.artifactId];
+            assert(entry);
+            assert.equal(entity.id, entity.artifactId);
+            assert.equal(entity.namespace, entry.kind);
+            assert.equal(entity.cutoff, entry.as_of);
+            const source = artifact(entity.artifactId);
+            if (entry.kind.startsWith("factors-")) {
+              assert.equal(entity.market, source.country);
+              assert.equal(entity.workspace, "factors");
+              assert.equal(entity.view.workspace, "factors");
+              assert.equal(entity.view.cutoff, source.evidence_cutoff);
+              assert.equal(entity.view.panel, entry.kind.slice(8));
+            }
+            if (entry.kind.startsWith("regimes-")) {
+              assert.equal(entity.workspace, "regimes");
+              assert.equal(entity.view.workspace, "regimes");
+              assert.equal(entity.view.cutoff, source.as_of);
+              if (["US-MKT", "IN-MKT"].includes(source.payload.asset))
+                assert.equal(entity.market, source.payload.asset === "IN-MKT" ? "INDIA" : "US");
+            }
+            if (entry.kind.startsWith("data-organ-")) {
+              assert.equal(entity.workspace, "data");
+              assert.equal(entity.view.workspace, "data");
+              assert.equal(entity.view.panel, entry.kind.slice(11));
+              assert.equal(entity.view.dataWindowEnd, undefined);
+            }
+            const identity = {
+              id: entity.id,
+              type: entity.type,
+              namespace: entity.namespace,
+              market: entity.market,
+              artifactId: entity.artifactId,
+              cutoff: entity.cutoff,
+              workspace: entity.workspace,
+              view: entity.view,
+            };
+            const prior = byKey.get(entity.key);
+            if (prior)
+              assert.equal(
+                catalog.stableTerminal(identity),
+                catalog.stableTerminal(prior),
+                entity.key + " owner differs between reference shard and owning workspace",
+              );
+            else byKey.set(entity.key, identity);
+          }
+      },
+    );
+    await checkAsync(
       "packed metadata expands without dropping any admitted exact field",
       async () => {
         for (const shard of actualShards) {
@@ -2375,8 +2606,759 @@ if (!coreOnly || projectionsOnly) {
   }
 }
 
+const navigationProof = {
+  provenance: "ENGINEERING_QA_ACTUAL_RETAINED_CATALOG_AND_PURE_NAVIGATION_ONLY",
+};
+if ((!coreOnly && !projectionsOnly) || navigationOnly) {
+  const search = await import("../src/app/terminal/search.ts"),
+    commands = await import("../src/app/terminal/commands.ts"),
+    capabilities = await import("../src/app/terminal/capabilities.ts"),
+    catalog = await import("../src/app/terminal/catalog.ts"),
+    reader = await import("../src/app/terminal/reader.ts"),
+    legacy = await import("../src/app/command/mnemonics.ts");
+  let data, shards;
+  await checkAsync("navigation service composes all real validated shards", async () => {
+    shards = await Promise.all(catalog.SHARD_NAMES.map(catalog.loadTerminalShard));
+    data = {
+      entities: catalog.catalogEntities(shards),
+      bindings: Object.assign({}, ...shards.map((s) => s.bindings)),
+      routes: Object.assign({}, ...shards.map((s) => s.routes)),
+      projectionPins: Object.assign({}, ...shards.map((s) => s.projectionPins)),
+    };
+    assert(data.entities.length > 1000);
+    assert.equal(Object.keys(data.bindings).length, 326);
+    navigationProof.entities = data.entities.length;
+    navigationProof.bindings = 326;
+  });
+  if (data) {
+    const clone = (value) => structuredClone(value),
+      ctx = parseInvestigationContext("risk", ""),
+      history = { ...data, scope: "history", limit: 50 };
+    let failureStart = failures.length;
+    check(
+      "search full ID outranks mnemonic, label prefix, token prefix and substring classes",
+      () => {
+        assert.equal(search.searchLoaded(observationIssue, ctx, history).results[0].rank, 0);
+        assert.equal(search.searchLoaded("IN-MKT", ctx, history).results[0].rank, 1);
+        for (const [query, rank] of [
+          ["regim", 2],
+          ["metadata", 3],
+          ["tain", 4],
+        ])
+          assert(
+            search.searchLoaded(query, ctx, history).results.some((result) => result.rank === rank),
+          );
+      },
+    );
+    check("loaded search ordering is independent of catalogue load order", () => {
+      assert.equal(
+        catalog.stableTerminal(search.searchLoaded("factor", ctx, history)),
+        catalog.stableTerminal(
+          search.searchLoaded("factor", ctx, {
+            ...history,
+            entities: [...data.entities].reverse(),
+          }),
+        ),
+      );
+    });
+    check("historical Factor semantic identity keeps three country-correct exact choices", () => {
+      const r = search.searchLoaded("india:mom", ctx, history).results;
+      assert.equal(r.length, 1);
+      assert.equal(r[0].market, "INDIA");
+      assert.equal(r[0].choices.length, 3);
+      assert(r[0].requiresChoice);
+      assert.equal(r[0].target, undefined);
+      for (const choice of r[0].choices) {
+        const source = artifact(choice.artifactId);
+        assert.equal(source.country, "INDIA");
+        assert.equal(choice.cutoff, source.evidence_cutoff);
+        assert.equal(choice.target.context.market, "INDIA");
+        assert.equal(choice.target.context.anchor.artifactId, choice.artifactId);
+      }
+    });
+    check(
+      "current Issue search excludes old sweep aliases and preserves an explicitly pinned old state",
+      () => {
+        const entity = data.entities.find(
+          (e) =>
+            e.type === "issue" &&
+            e.versionChoices?.length > 1 &&
+            artifact(currentStateId).payload.issues.some((i) => i.issue_id === e.id),
+        );
+        assert(entity);
+        const current = search
+          .searchLoaded(entity.id, ctx, { ...data, scope: "current" })
+          .results.find((r) => r.type === "issue");
+        assert(current);
+        assert.equal(current.choices.length, 1);
+        assert.equal(current.target.context.anchor.artifactId, currentStateId);
+        const old = entity.versionChoices.find((c) => c.artifactId !== currentStateId);
+        assert(old);
+        const pinned = parseInvestigationContext(
+          "risk",
+          qs({ ctx: "1", artifact: old.artifactId, sweep: old.view.sweepId, issue: entity.id }),
+        );
+        const r = search
+          .searchLoaded(entity.id, pinned, { ...data, scope: "current" })
+          .results.find((r) => r.type === "issue");
+        assert.equal(r.target.context.anchor.artifactId, old.artifactId);
+        assert.equal(r.target.context.view.sweepId, old.view.sweepId);
+      },
+    );
+    check(
+      "search target memo cannot freeze caller context or retain a changed complete origin",
+      () => {
+        const mutable = clone(originContext);
+        const select = () =>
+          search
+            .searchLoaded("IN-MKT", mutable, history)
+            .results.find((result) => result.type === "market-factor").target;
+        const first = select();
+        assert(first);
+        assert.equal(Object.isFrozen(mutable), false);
+        assert.equal(Object.isFrozen(mutable.origin), false);
+        assert.equal(Object.isFrozen(first), true);
+        assert.equal(Object.isFrozen(first.context.origin), true);
+        assert.throws(() => {
+          first.context.market = "US";
+        });
+        const changed = "risk-issue:" + "b".repeat(64);
+        mutable.origin.issueId = changed;
+        const next = select();
+        assert.equal(next.context.origin.issueId, changed);
+        assert.notEqual(next, first);
+        assert.equal(first.context.origin.issueId, sourceOrigin.issueId);
+        assert.equal(Object.isFrozen(mutable.origin), false);
+      },
+    );
+    check("search cached navigation never bypasses current binding status or licence", () => {
+      const selected = data.entities.find(
+        (entity) => entity.type === "recorded-trace" && entity.id === "observatory:US-MKT:hmm",
+      );
+      assert(selected);
+      const bindings = clone(data.bindings);
+      const options = { ...history, bindings };
+      const query = () =>
+        search
+          .searchLoaded(selected.id, originContext, options)
+          .results.find((result) => result.id === selected.id);
+      assert(query().target);
+      const admitted = clone(bindings[selected.artifactId]);
+      bindings[selected.artifactId].status = "UNAVAILABLE";
+      assert.equal(query(), undefined);
+      bindings[selected.artifactId] = {
+        ...admitted,
+        licence: { ...admitted.licence, status: "UNKNOWN" },
+      };
+      assert.equal(query(), undefined);
+      bindings[selected.artifactId] = admitted;
+      assert(query().target);
+    });
+
+    check("reference listings do not become quote or recording availability", () => {
+      const r = search
+        .searchLoaded("SPY", ctx, history)
+        .results.find((x) => x.type === "reference-listing");
+      assert(r);
+      assert.equal(r.availability, "REFERENCE");
+      assert.equal(r.target.context.subject.kind, "reference-listing");
+      assert(/identity|reference/i.test(r.capability.reason));
+      assert.equal(search.searchLoaded("observatory:SPY:hmm", ctx, history).results.length, 0);
+      assert.equal(
+        search.searchLoaded("observatory:IN-MKT:neural", ctx, history).results.length,
+        0,
+      );
+    });
+    check("search unavailable command stays disabled with a reason", () => {
+      const r = search.searchLoaded("EXECUTION", ctx, history).results[0];
+      assert.equal(r.availability, "DISABLED");
+      assert.equal(r.target, undefined);
+      assert.equal(r.capability.enabled, false);
+      assert(r.capability.disabledReason);
+    });
+    for (const query of [null, 1, [], {}, "x".repeat(161), "a\u0000b", "\ud800", "\ufffd"])
+      check(`search rejects invalid raw query ${JSON.stringify(query)}`, () =>
+        assert.throws(() => search.searchLoaded(query, ctx, data)),
+      );
+    for (const options of [
+      { limit: 0 },
+      { limit: 51 },
+      { limit: 1.5 },
+      { scope: "private" },
+      { entities: Array(4097).fill(data.entities[0]) },
+    ])
+      check("search rejects review-bound widening " + JSON.stringify(Object.keys(options)), () =>
+        assert.throws(() => search.searchLoaded("factor", ctx, { ...data, ...options })),
+      );
+    check("private input text and unknown injected kinds cannot expose an index result", () => {
+      assert.equal(search.searchLoaded("ENGINEERING_PRIVATE_BOOK_TOKEN", ctx, history).total, 0);
+      const e = {
+        ...data.entities[0],
+        type: "private-account",
+        namespace: "private",
+        label: "ENGINEERING_PRIVATE_BOOK_TOKEN",
+      };
+      assert.equal(
+        search.searchLoaded("ENGINEERING_PRIVATE_BOOK_TOKEN", ctx, { ...data, entities: [e] })
+          .total,
+        0,
+      );
+    });
+    await checkAsync(
+      "async search loads only seed until explicit nonempty/workspace search",
+      async () => {
+        const calls = [],
+          service = search.createTerminalSearchService({
+            loadShard: async (name) => {
+              calls.push(name);
+              return shards.find((s) => s.name === name);
+            },
+          });
+        await service.search("", ctx);
+        assert.deepEqual(calls, ["seed"]);
+        await service.search(observationIssue, ctx, { workspaces: ["risk"] });
+        assert.deepEqual(calls, ["seed", "risk"]);
+        assert(service.loadedEntities().some((e) => e.type === "issue"));
+      },
+    );
+    await checkAsync("superseded and explicitly cancelled searches reject AbortError", async () => {
+      for (const cancel of ["newer", "cancel", "signal"]) {
+        let release;
+        const blocked = new Promise((resolve) => {
+          release = resolve;
+        });
+        const service = search.createTerminalSearchService({
+            loadShard: async (name) =>
+              name === "risk" ? blocked : shards.find((s) => s.name === name),
+          }),
+          controller = new AbortController();
+        const pending = service
+          .search(observationIssue, ctx, { workspaces: ["risk"], signal: controller.signal })
+          .then(
+            (value) => ({ value }),
+            (error) => ({ error }),
+          );
+        if (cancel === "newer") await service.search("IN-MKT", ctx, { workspaces: [] });
+        if (cancel === "cancel") service.cancel();
+        if (cancel === "signal") controller.abort();
+        release(shards.find((s) => s.name === "risk"));
+        const result = await pending;
+        assert.equal(result.error?.name, "AbortError");
+      }
+    });
+    await checkAsync(
+      "pre-aborted search and unknown workspace cannot select arbitrary loaders",
+      async () => {
+        let calls = 0;
+        const service = search.createTerminalSearchService({
+          loadShard: async (name) => {
+            calls++;
+            return shards.find((s) => s.name === name);
+          },
+        });
+        await assert.rejects(() => service.search("x", ctx, { signal: AbortSignal.abort() }), {
+          name: "AbortError",
+        });
+        assert.equal(calls, 0);
+        await assert.rejects(() => service.load(["https://provider.invalid/private"]));
+      },
+    );
+    check("loaded real search p95 stays within30ms across sixty varied queries", () => {
+      const queries = [
+        observationIssue,
+        "IN-MKT",
+        "india:mom",
+        "metadata",
+        "tain",
+        "regim",
+        "factor",
+        "capture",
+        "source",
+        "recorded",
+        "US-MKT",
+        "IIMA",
+      ];
+      for (const q of queries) search.searchLoaded(q, originContext, { ...data, scope: "history" });
+      const times = [];
+      for (let i = 0; i < 60; i++) {
+        const start = performance.now();
+        search.searchLoaded(queries[i % queries.length], originContext, {
+          ...data,
+          scope: "history",
+        });
+        times.push(performance.now() - start);
+      }
+      times.sort((a, b) => a - b);
+      const p95 = times[Math.ceil(times.length * 0.95) - 1];
+      navigationProof.searchPerformance = {
+        samples: 60,
+        p95_ms: p95,
+        limit_ms: 30,
+        entities: data.entities.length,
+        queries,
+        environment: { node: process.version, platform: process.platform, arch: process.arch },
+      };
+      assert(p95 <= 30, `Loadedsearch p95 ${p95}ms exceeds30ms`);
+    });
+    if (failures.length === failureStart) completedAreas.add("search");
+    failureStart = failures.length;
+    const commandOptions = { ...data, legacyParser: legacy.parseCommand };
+    for (const country of ["US", "INDIA"])
+      for (const suffix of ["", " GO", " <GO>"])
+        check(`country Regime grammar ${country}${suffix}`, () => {
+          const r = commands.resolveTerminalCommand(country + " REG" + suffix, ctx, commandOptions);
+          assert.equal(r.status, "READY");
+          assert.equal(r.target.workspace, "regimes");
+          assert.equal(r.target.context.market, country);
+          assert.equal(r.target.context.subject.id, country === "US" ? "US-MKT" : "IN-MKT");
+        });
+    for (const filter of ["HIGH", "MEDIUM", "LOW", "MODEL", "DATA", "SYSTEM"])
+      check("Risk filter grammar " + filter, () => {
+        const r = commands.resolveTerminalCommand("RISK " + filter, ctx, commandOptions);
+        assert.equal(r.status, "READY");
+        assert.equal(r.target.workspace, "risk");
+        assert.equal(
+          r.target.context.view[
+            ["HIGH", "MEDIUM", "LOW"].includes(filter) ? "severity" : "category"
+          ],
+          filter,
+        );
+      });
+    check("Data exact source and unique alias resolve the same current publication", () => {
+      const a = commands.resolveTerminalCommand("DATA IIMA", ctx, commandOptions),
+        b = commands.resolveTerminalCommand("DATA iima:daily-factors GO", ctx, commandOptions);
+      assert.equal(a.status, "READY");
+      assert.equal(b.status, "READY");
+      assert.equal(targetHref(a.target), targetHref(b.target));
+      assert.equal(a.target.context.view.sourceId, "iima:daily-factors");
+      assert.equal(a.target.context.anchor.artifactId, data.routes["/data/coverage"]);
+    });
+    for (const country of ["US", "INDIA"])
+      check("country-qualified Factor grammar " + country, () => {
+        const r = commands.resolveTerminalCommand(
+          `FACTOR ${country.toLowerCase()}:mom ${country}`,
+          ctx,
+          commandOptions,
+        );
+        assert.equal(r.status, "READY");
+        assert.equal(r.target.workspace, "factors");
+        assert.equal(r.target.context.market, country);
+        assert.equal(r.target.context.view.factorId, country.toLowerCase() + ":mom");
+        const value = artifact(r.target.context.anchor.artifactId);
+        assert.equal(r.target.context.view.cutoff, value.evidence_cutoff);
+      });
+    check("exact Issue command picks current or explicitly pinned actual owning sweep", () => {
+      const e = data.entities.find(
+        (e) =>
+          e.type === "issue" &&
+          e.versionChoices?.length > 1 &&
+          artifact(currentStateId).payload.issues.some((i) => i.issue_id === e.id),
+      );
+      const a = commands.resolveTerminalCommand("ISSUE " + e.id, ctx, commandOptions);
+      assert.equal(a.status, "READY");
+      assert.equal(a.target.context.anchor.artifactId, currentStateId);
+      const old = e.versionChoices.find((v) => v.artifactId !== currentStateId),
+        pinned = parseInvestigationContext(
+          "risk",
+          qs({ artifact: old.artifactId, sweep: old.view.sweepId, issue: e.id }),
+        );
+      const b = commands.resolveTerminalCommand("ISSUE " + e.id, pinned, commandOptions);
+      assert.equal(b.status, "READY");
+      assert.equal(b.target.context.anchor.artifactId, old.artifactId);
+      assert.equal(b.target.context.view.sweepId, old.view.sweepId);
+    });
+    for (const [namespace, type] of [
+      ["regime", "model-run"],
+      ["agent", "recorded-agent-run"],
+    ])
+      check("namespaced run grammar " + namespace, () => {
+        const e = data.entities.find(
+          (e) =>
+            e.type === type &&
+            (namespace === "agent" ? e.namespace === "agent" : e.namespace === "regime"),
+        );
+        assert(e);
+        const r = commands.resolveTerminalCommand(`RUN ${namespace}:${e.id}`, ctx, commandOptions);
+        assert(["READY", "CHOOSE"].includes(r.status));
+        if (r.status === "READY") {
+          assert.equal(r.target.context.view.runId, e.id);
+          assert.equal(r.target.workspace, namespace === "agent" ? "agents" : "regimes");
+          if (namespace === "agent") assert.equal(r.target.to, "/runs/" + e.id);
+        } else assert(r.choices.length > 1);
+        const wrong = commands.resolveTerminalCommand(
+          `RUN ${namespace === "agent" ? "regime" : "agent"}:${e.id}`,
+          ctx,
+          commandOptions,
+        );
+        assert.equal(wrong.status, "REJECTED");
+      });
+    check("CHANGES requires exact verified compatible anchors and country", () => {
+      assert.equal(
+        commands.resolveTerminalCommand("CHANGES INDIA", ctx, commandOptions).status,
+        "CHOOSE",
+      );
+      const prior = currentState.payload.prior_state_ref;
+      assert(prior);
+      const compare = parseInvestigationContext(
+        "risk",
+        qs({ market: "INDIA", artifact: currentStateId, compare: prior }),
+      );
+      const verified = (a, b, w) =>
+        a === currentStateId &&
+        b === prior &&
+        w === "risk" &&
+        currentState.payload.policy.sha256 === artifact(prior).payload.policy.sha256;
+      const r = commands.resolveTerminalCommand("CHANGES INDIA", compare, {
+        ...commandOptions,
+        comparisonCompatible: verified,
+      });
+      assert.equal(r.status, "READY");
+      assert.equal(r.target.context.view.panel, "changes");
+      assert.equal(r.target.context.compare.artifactId, prior);
+      assert.equal(
+        commands.resolveTerminalCommand("CHANGES US", compare, {
+          ...commandOptions,
+          comparisonCompatible: verified,
+        }).status,
+        "CHOOSE",
+      );
+      assert.equal(
+        commands.resolveTerminalCommand("CHANGES INDIA", compare, {
+          ...commandOptions,
+          comparisonCompatible: () => "yes",
+        }).status,
+        "CHOOSE",
+      );
+    });
+    check("COMPARE opens only the admitted matrix with an explicit publication grant", () => {
+      const r = commands.resolveTerminalCommand("COMPARE US INDIA REG", ctx, commandOptions);
+      assert.equal(r.status, "READY");
+      assert.equal(r.target.context.anchor.artifactId, data.routes["/regimes/matrix"]);
+      assert.equal(r.target.context.view.mode, "compare");
+      const id = data.routes["/regimes/matrix"],
+        bad = {
+          ...data.bindings,
+          [id]: {
+            ...data.bindings[id],
+            licence: { ...data.bindings[id].licence, permitted_uses: [] },
+          },
+        };
+      assert.notEqual(
+        commands.resolveTerminalCommand("COMPARE US INDIA REG", ctx, {
+          ...commandOptions,
+          bindings: bad,
+        }).status,
+        "READY",
+      );
+    });
+    for (const text of ["RELIANCE IN DES", "SPY US GP", "IN-MKT GP", "AAPL US OMON", "AAPL US FA"])
+      check("preserved legacy navigation " + text, () => {
+        const r = commands.resolveTerminalCommand(text, ctx, commandOptions);
+        assert(["READY", "LEGACY_READY"].includes(r.status));
+        if (r.status === "LEGACY_READY") {
+          assert.equal(r.capability.label, "LOCAL_LIVE_ONLY");
+          assert.equal(r.capability.enabled, false);
+          assert(r.navigation.to.startsWith("/markets/"));
+        } else targetHref(r.target);
+      });
+    for (const text of ["RELIANCE IN DES", "SPY OMON", "SPY FA", "SPY RISK", "RELIANCE IN DATA"]) {
+      check("explicit listing command preserves complete starting Issue origin " + text, () => {
+        const starting = { ...clone(originContext), compare: { artifactId: previousStateId } };
+        const result = commands.resolveTerminalCommand(text, starting, commandOptions);
+        assert(["READY", "LEGACY_READY"].includes(result.status));
+        const targetContext =
+          result.status === "READY" ? result.target.context : result.navigation.context;
+        assert.deepEqual(targetContext.origin, sourceOrigin);
+        assert.equal(targetContext.anchor, undefined);
+        assert.equal(targetContext.compare, undefined);
+        assert.equal(targetContext.subject.kind, "reference-listing");
+        assert.notEqual(
+          targetContext.origin,
+          starting.origin,
+          "The parsed origin must be an independent tuple",
+        );
+        assert.deepEqual(
+          parseInvestigationContext(
+            targetContext.view.workspace,
+            serializeInvestigationContext(targetContext),
+          ).origin,
+          sourceOrigin,
+        );
+      });
+    }
+
+    check(
+      "aggregate Observatory resolves exact India while security gets an honest coverage chooser",
+      () => {
+        const a = commands.resolveTerminalCommand("IN-MKT OBS", ctx, commandOptions);
+        assert.equal(a.status, "READY");
+        assert.equal(a.target.context.anchor.artifactId, "observatory:IN-MKT:hmm");
+        const b = commands.resolveTerminalCommand("SPY OBS", ctx, commandOptions);
+        assert.equal(b.status, "CHOOSE");
+        assert(b.choices.length);
+        assert(
+          b.choices.every(
+            (c) =>
+              c.target?.context.anchor?.artifactId?.startsWith("observatory:") &&
+              !c.target.context.anchor.artifactId.includes(":SPY:"),
+          ),
+        );
+      },
+    );
+    const rejected = [
+      "",
+      "FACTOR AAPL US",
+      "FACTOR us:mom INDIA",
+      "FACTOR india:mom",
+      "DATA UNKNOWN_PROVIDER",
+      "DATA http://backend.invalid/private",
+      "ISSUE risk-issue:" + sampleHash.slice(0, 16),
+      "ISSUE risk-issue:" + sampleHash,
+      "RUN plugin:" + sampleHash,
+      "RUN regime:" + sampleHash,
+      "RUN agent:abc",
+      "RISK CRITICAL",
+      "COMPARE INDIA US FACTOR",
+      "US REG GO GO",
+      "US GO REG",
+      "AAPL US UNKNOWN",
+      "x".repeat(161),
+      "DATA\u0000IIMA",
+    ];
+    for (const text of rejected)
+      check("command rejection " + JSON.stringify(text), () => {
+        const r = commands.resolveTerminalCommand(text, ctx, commandOptions);
+        assert.equal(r.status, "REJECTED");
+        assert(r.reason);
+        assert(r.correction);
+        assert.equal(r.target, undefined);
+      });
+    for (const verb of [
+      "BUY",
+      "SELL",
+      "TRADE",
+      "ORDER",
+      "EXECUTE",
+      "TRAIN",
+      "FIT",
+      "REFRESH",
+      "CAPTURE",
+      "DEPLOY",
+    ])
+      check("execution verb never dispatches legacy parser " + verb, () => {
+        let calls = 0;
+        const r = commands.resolveTerminalCommand(verb + " AAPL", ctx, {
+          ...commandOptions,
+          legacyParser: () => {
+            calls++;
+            throw new Error("No execution dispatch is authorized");
+          },
+        });
+        assert.equal(r.status, "REJECTED");
+        assert.equal(calls, 0);
+      });
+    check("private context injection cannot survive a command target", () => {
+      const r = commands.resolveTerminalCommand(
+        "INDIA REG",
+        { ...ctx, account: "ENGINEERING_PRIVATE_SENTINEL" },
+        commandOptions,
+      );
+      assert.equal(r.status, "REJECTED");
+      assert(!JSON.stringify(r).includes("ENGINEERING_PRIVATE_SENTINEL"));
+    });
+    if (failures.length === failureStart) completedAreas.add("commands");
+    failureStart = failures.length;
+    check("capability registry preserves five labels and all six false claims", () => {
+      assert(Object.isFrozen(capabilities.SCIENTIFIC_CLAIMS));
+      assert.equal(Object.keys(capabilities.SCIENTIFIC_CLAIMS).length, 6);
+      assert(Object.values(capabilities.SCIENTIFIC_CLAIMS).every((v) => v === false));
+      assert.throws(() => capabilities.capabilityFor({ feature: "unreviewed-business-operation" }));
+    });
+    check("Phase5 six-component truth remains country-specific and explicitly partial", () => {
+      const actual = Object.fromEntries(
+        capabilities.PHASE5_COMPONENTS.map((c) => [c.id, c.status]),
+      );
+      assert.deepEqual(actual, {
+        volatility: { US: "AVAILABLE", INDIA: "PARTIAL" },
+        seasonality: { US: "UNAVAILABLE", INDIA: "UNAVAILABLE" },
+        neutrality: { US: "PARTIAL", INDIA: "PARTIAL" },
+        momentum: { US: "PARTIAL", INDIA: "PARTIAL" },
+        fracture: { US: "PARTIAL", INDIA: "PARTIAL" },
+        hawkes: { US: "UNAVAILABLE", INDIA: "UNAVAILABLE" },
+      });
+      assert(capabilities.PHASE5_COMPONENTS.every((c) => c.limitation));
+    });
+    for (const feature of [
+      "legacy-demo-history",
+      "legacy-demo-compare",
+      "factor-local-assessment",
+      "public-login",
+      "execution",
+      "neural-trace",
+    ])
+      check("unavailable capability remains disabled even in localLive " + feature, () => {
+        const c = capabilities.capabilityFor({
+          feature,
+          selectionAvailable: true,
+          environment: { hostname: "localhost", localLiveFlag: true, mode: "live" },
+        });
+        assert.equal(c.label, "UNAVAILABLE");
+        assert.equal(c.enabled, false);
+        assert(c.disabledReason);
+      });
+    for (const feature of [
+      "paper-book",
+      "market-options",
+      "market-fundamentals",
+      "market-private-risk",
+      "local-live",
+      "fresh-quotes",
+      "model-training",
+      "agent-execution",
+    ])
+      check("remote modes cannot enable local capability " + feature, () => {
+        for (const hostname of [
+          "finsight-alpha-web.vercel.app",
+          "localhost.example.com",
+          "127.0.0.1.evil",
+        ]) {
+          const c = capabilities.capabilityFor({
+            feature,
+            environment: { hostname, localLiveFlag: true, mode: "live" },
+          });
+          assert.equal(c.label, "LOCAL_LIVE_ONLY");
+          assert.equal(c.enabled, false);
+        }
+        assert.equal(
+          capabilities.capabilityFor({
+            feature,
+            environment: { hostname: "localhost", localLiveFlag: false, mode: "live" },
+          }).enabled,
+          false,
+        );
+        assert.equal(
+          capabilities.capabilityFor({
+            feature,
+            environment: { hostname: "localhost", localLiveFlag: true, mode: "replay" },
+          }).enabled,
+          false,
+        );
+      });
+    check(
+      "original inspection capability agrees with strict reader for all326 actual bindings",
+      () => {
+        let supported = 0;
+        for (const [id, binding] of Object.entries(data.bindings)) {
+          const c = capabilities.capabilityFor({
+            feature: "original-inspection",
+            artifactId: id,
+            binding,
+          });
+          assert.equal(c.enabled, reader.canInspectOriginal(id, binding), id);
+          assert(c.requiredMode);
+          assert(c.allowedActionClass);
+          assert(c.verificationBasis?.detail);
+          if (c.enabled) supported++;
+          else assert(c.disabledReason);
+        }
+        assert.equal(supported, 301);
+        navigationProof.originalInspection = {
+          bindings: 326,
+          supported,
+          unsupported: 326 - supported,
+        };
+      },
+    );
+    for (const id of [
+      "observatory:US-MKT:hmm",
+      "observatory:US-MKT:signal",
+      "observatory:IN-MKT:hmm",
+      "observatory:IN-MKT:signal",
+    ])
+      check("recorded trace capability requires exact kind/asset/clock " + id, () => {
+        const [, asset, scene] = id.split(":"),
+          context = parseInvestigationContext(
+            "observatory",
+            qs({ subject: "market-factor:" + asset, artifact: id, trace: id, scene }),
+          ),
+          binding = manifest.artifacts[id],
+          request = {
+            feature: "recorded-trace",
+            context,
+            binding,
+            selectionAvailable: true,
+            hasDisplayProjection: !!data.projectionPins[id + "|observatory-trace-window"],
+          };
+        const c = capabilities.capabilityFor(request);
+        assert.equal(c.label, "PUBLIC_REPLAY");
+        assert.equal(c.enabled, true);
+        assert.equal(c.evidenceRef.artifactId, id);
+        if (id === "observatory:IN-MKT:hmm") {
+          assert(/92|final|last/i.test(c.reason));
+          assert.equal(
+            capabilities.capabilityFor({ ...request, hasDisplayProjection: false }).enabled,
+            false,
+          );
+        }
+        for (const wrong of [
+          manifest.artifacts[
+            asset === "IN-MKT" ? "observatory:US-MKT:hmm" : "observatory:IN-MKT:hmm"
+          ],
+          manifest.artifacts["market:" + asset],
+        ])
+          assert.equal(capabilities.capabilityFor({ ...request, binding: wrong }).enabled, false);
+        assert.equal(
+          capabilities.capabilityFor({ ...request, context: { ...context, anchor: undefined } })
+            .enabled,
+          false,
+        );
+        assert.equal(
+          capabilities.capabilityFor({
+            ...request,
+            context: { ...context, view: { ...context.view, cutoff: "2099-01-01T00:00:00Z" } },
+          }).enabled,
+          false,
+        );
+      });
+    check("401 evidence never verifies business operations or grants remote paper access", () => {
+      const boundary = capabilities.capabilityFor({ feature: "hosted-auth-boundary" }),
+        health = capabilities.capabilityFor({ feature: "hosted-health" });
+      assert.equal(boundary.label, "HOSTED_AUTH_REQUIRED");
+      assert.equal(boundary.enabled, false);
+      assert(/401|boundary/.test(boundary.reason));
+      assert.equal(health.label, "HOSTED_API_VERIFIED");
+      assert(/health/.test(health.reason));
+      assert.equal(
+        capabilities.capabilityFor({
+          feature: "paper-book",
+          environment: { hostname: "example.vercel.app", localLiveFlag: true, mode: "live" },
+        }).enabled,
+        false,
+      );
+    });
+    check(
+      "public derivative permission fails closed for missing, unknown, expired and malformed grants",
+      () => {
+        const entry = manifest.artifacts["market:US-MKT"];
+        assert(capabilities.publicDerivativeAvailable(entry));
+        for (const patch of [
+          { status: "UNAVAILABLE" },
+          { bytes: 0 },
+          { sha256: "bad" },
+          { licence: { ...entry.licence, status: "UNKNOWN" } },
+          { licence: { ...entry.licence, permitted_uses: [] } },
+          { licence: { ...entry.licence, permitted_uses: undefined } },
+          { licence: { ...entry.licence, valid_through: "1900-01-01T00:00:00Z" } },
+        ])
+          assert.equal(capabilities.publicDerivativeAvailable({ ...entry, ...patch }), false);
+      },
+    );
+    if (failures.length === failureStart) completedAreas.add("capabilities");
+  }
+}
+
 const missingAreas = requiredAreas.filter((area) => !completedAreas.has(area));
-if (!coreOnly && !projectionsOnly)
+if (!coreOnly && !projectionsOnly && !navigationOnly)
   check("complete approved static-verification coverage", () =>
     assert.deepEqual(
       missingAreas,
@@ -2385,14 +3367,17 @@ if (!coreOnly && !projectionsOnly)
     ),
   );
 const report = {
+  transport: transportProof,
   schema_version: "phase75-terminal-context-proof/1",
   status: failures.length ? "FAIL" : missingAreas.length ? "INCOMPLETE" : "PASS",
   stageStatus: failures.length ? "FAIL" : "PASS",
-  phase: projectionsOnly
-    ? "CONTRACTS_FREEZE_PROJECTIONS_INDEX"
-    : coreOnly
-      ? "CONTEXT_COMPATIBILITY_LINKS_AND_FREEZE"
-      : "FULL_TERMINAL_STATIC",
+  phase: navigationOnly
+    ? "CONTRACTS_PROJECTIONS_SEARCH_COMMANDS_CAPABILITIES"
+    : projectionsOnly
+      ? "CONTRACTS_FREEZE_PROJECTIONS_INDEX"
+      : coreOnly
+        ? "CONTEXT_COMPATIBILITY_LINKS_AND_FREEZE"
+        : "FULL_TERMINAL_STATIC",
   completedAreas: [...completedAreas],
   missingAreas,
   manifest_sha256: hash(manifestRaw),
@@ -2402,6 +3387,7 @@ const report = {
   performance: performanceProof,
   freeze: freezeProof,
   projections: projectionProof,
+  navigation: navigationProof,
 };
 const proofDir = path.resolve(root, process.env.TERMINAL_PROOF_DIR ?? ".tmp/phase75/context");
 mkdirSync(proofDir, { recursive: true });

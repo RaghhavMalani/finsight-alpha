@@ -4754,5 +4754,107 @@
     },
     "originalFrameCount": 100,
     "originalDateCount": 250
+  },
+  "approved_router_scope_amendment": {
+    "path": "frontend-v2/src/router.tsx",
+    "approved": true,
+    "reason": "Central typed URL parse/stringify preserves textual protocol across SSR/client; defaultJSONstringification quotedctx1.",
+    "originalPlanUnchanged": true,
+    "legacyWithoutCtxUnchanged": true,
+    "scientificChanges": false
+  },
+  "router_shell_checkpoint": {
+    "date_ist": "2026-10-28",
+    "status": "PASS_FOCUSED_STAGE_7_8_AND_STATIC_NAVIGATION_ONLY",
+    "static": {
+      "checks": 459,
+      "stageStatus": "PASS",
+      "missingAreas": [
+        "changes",
+        "preferences",
+        "exports"
+      ],
+      "performance": {
+        "codec": {
+          "samples": 100,
+          "p95_ms": 0.21750000000000114,
+          "limit_ms": 2,
+          "input_bytes": 4096,
+          "canonical_bytes": 2468,
+          "workload": "parse and serialize; exact retained IDs, complete Risk origin,12columns,160code-unit multilingual query"
+        }
+      },
+      "failures": []
+    },
+    "risk": {
+      "status": "PASS_FOCUSED_RISK_ROUTER",
+      "cases": [
+        "bare Risk canonicalizes exact ctx without quoting and validates one bounded pair",
+        "country/severity are exact typed query state and retain after refresh",
+        "selected Issue remains exact after refresh and inspector close/back/forward",
+        "numeric-looking search string is not coerced through navigation/refresh",
+        "history panel and earlier sweep restore with back and forward",
+        "explicit coverage read and bookmarked coverage gate preserve exact selection",
+        "unknown selected Issue stays unavailable without replacement",
+        "foreign anchor rejects before Risk payload read",
+        "malformed legacy percent rejects before payload and hydrates consistently",
+        "malformed legacy UTF8 rejects before payload and hydrates consistently",
+        "duplicate legacy identity rejects before payload and hydrates consistently",
+        "malformed typed percent rejects before payload and hydrates consistently",
+        "malformed typed UTF8 rejects before payload and hydrates consistently",
+        "duplicate typed query rejects before payload and hydrates consistently",
+        "valid context remains usable after malformed requests"
+      ],
+      "initial_json_bytes": 297579,
+      "blocked": [],
+      "page_errors": [],
+      "failures": []
+    },
+    "factors": {
+      "status": "PASS_FOCUSED_STAGE7_8_ONLY",
+      "cases": [
+        "01-bare",
+        "02-lowercase-india",
+        "03-old-exact-anchor",
+        "03b-anchor-infers-own-audit-panel",
+        "04-contradiction",
+        "05-foreign-anchor",
+        "05b-anchor-panel-conflict",
+        "06-malformed-percent",
+        "07-malformed-utf8",
+        "08-duplicate",
+        "09-native-links-keys",
+        "10b-copied-newtab",
+        "10-copy-newtab-history",
+        "11-typed-wire-0",
+        "11-typed-wire-1",
+        "11-typed-wire-2",
+        "11-typed-wire-3",
+        "11-typed-wire-4",
+        "11-typed-wire-5",
+        "11-typed-wire-6",
+        "11-typed-wire-7",
+        "12-typed-malformed-percent",
+        "13-typed-malformed-utf8",
+        "14-typed-duplicate"
+      ],
+      "original_sha_byte_checks": 34,
+      "blocked": [],
+      "page_errors": [],
+      "console_errors": [],
+      "failures": [],
+      "pre_validation_bare_url": "http://127.0.0.1:4174/factors"
+    },
+    "source_sha256": {
+      "frontend-v2/src/router.tsx": "af9713b6c8bc7f134e0e01eac80eff0afec7d5577079c0acaf282bad1b4e3794",
+      "frontend-v2/src/app/terminal/context.ts": "d4a4c2d0295d8069ea3a8159b4bb19456a15c85f6d2afa558addc9c15263aabc",
+      "frontend-v2/src/app/terminal/TerminalShell.tsx": "f5aac9ee5e87dc8a537bfebeb5508871b010d62782eed4b41994cd7fbc442ed0",
+      "frontend-v2/src/factors/FactorsWorkspace.tsx": "c52fc052758548df6f82c73290081df5091cc14ca90a9ef660ecde955763ea33",
+      "frontend-v2/src/risk-manager/RiskWorkspace.tsx": "a0286e4b0385c6a614634e74bf195cb401fc3494fc393aae0c3e211c8865fba7",
+      "frontend-v2/src/app/terminal/commands.ts": "4d23b91d5a3aed26b85985ab4613ce44c5432fab8f3e941e3345b0c3467e0dfa",
+      "frontend-v2/src/app/terminal/search.ts": "456496cbdedf09f3ebba1e919aac78f6be870a5e2e93a8d889752bd079ff6e09"
+    },
+    "router_ssr_basis": "Start normalizes query escapes before its server history. The approved TerminalShell server-only isomorphic branch reads the request-scoped original URL; browser reads original TanStack history. Complete malformed/duplicate requests reject consistently, without hydration recovery or fallback payloads.",
+    "pending": "Unified command/palette/Market search UI browser integration, remaining workspace adapters, comparisons, tables/layout/charts, preferences/exports, full browser/performance/freeze, clean-clone, exact-head CI and source-bound Vercel verification. No final acceptance or PR readiness claim."
   }
 }

@@ -5398,6 +5398,41 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
   }
   function artifactEntity(name, id, workspace, view, market) {
     const e = binding(name, id);
+    // An artifact's identity belongs to its checked source, never to the Issue that references it.
+    if (e.kind.startsWith("factors-")) {
+      assert(values.has(id), "Factor artifact metadata requires its full validated owner");
+      const kind = e.kind.slice(8),
+        selection = Object.entries(KNOWN_IDS).find(([, ids]) => ids[kind] === id)?.[0];
+      assert(selection, "Factor artifact has no reviewed source selection");
+      const [country, cutoff] = selection.split("|");
+      market = country;
+      workspace = "factors";
+      view = { workspace: "factors", panel: kind, cutoff };
+    } else if (e.kind.startsWith("regimes-")) {
+      const value = values.get(id);
+      assert(value, "Regime artifact metadata requires its full validated owner");
+      const kind = e.kind.slice(8);
+      market = marketFor(value.payload.asset);
+      workspace = "regimes";
+      view = {
+        workspace: "regimes",
+        panel:
+          kind === "timeline"
+            ? "timeline"
+            : kind === "lineage"
+              ? "evidence"
+              : kind === "factors"
+                ? "factors"
+                : "overview",
+        cutoff: value.as_of,
+      };
+    } else if (e.kind.startsWith("data-organ-")) {
+      const value = values.get(id);
+      assert(value, "Data artifact metadata requires its full validated owner");
+      market = undefined;
+      workspace = "data";
+      view = { workspace: "data", panel: value.kind };
+    }
     return entity(name, {
       id,
       type: "artifact",

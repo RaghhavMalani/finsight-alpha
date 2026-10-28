@@ -1,0 +1,239 @@
+.terminal-shell {
+  --terminal-gutter: 24px;
+  font-size: 13px;
+}
+.terminal-shell .shell-bar {
+  min-height: 40px;
+  padding: 0 var(--terminal-gutter);
+  gap: 12px;
+}
+.terminal-shell .shell-link {
+  min-height: 40px;
+  padding: 0 9px;
+  font-size: 12px;
+}
+.terminal-shell .shell-link kbd {
+  font-size: 11px;
+}
+.terminal-shell .shell-controls {
+  max-width: none;
+  padding: 6px var(--terminal-gutter) 0;
+  position: relative;
+  z-index: 35;
+  background: var(--sh-bg);
+}
+.terminal-shell .shell-command-row {
+  min-height: 32px;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.terminal-shell .shell-command-row input {
+  padding: 2px;
+}
+.terminal-shell .shell-command-help {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.terminal-shell .shell-command:focus-within .shell-command-help,
+.terminal-shell .shell-command-error {
+  position: absolute;
+  z-index: 45;
+  left: var(--terminal-gutter);
+  top: 38px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 8px 12px;
+  clip-path: none;
+  border: 1px solid var(--sh-line-2);
+  background: var(--sh-panel);
+  font-size: 12px;
+}
+.terminal-shell .shell-main {
+  width: 100%;
+  max-width: none;
+  padding: 12px var(--terminal-gutter) 24px;
+}
+.terminal-shell .shell-main-bleed {
+  min-height: 0;
+  flex: 1;
+}
+.terminal-shell .shell-foot {
+  margin: 0 var(--terminal-gutter);
+  font-size: 11px;
+  padding: 8px 0;
+}
+.terminal-context {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+}
+.terminal-subject {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.terminal-subject b {
+  font-size: 13px;
+  color: var(--sh-amber);
+}
+.terminal-subject > span {
+  color: var(--sh-muted);
+}
+.terminal-context .shell-mode {
+  margin: 0;
+}
+.terminal-context .shell-mode button {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+.terminal-clock {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.terminal-clock > span {
+  color: var(--sh-muted);
+}
+.terminal-clock b {
+  font-weight: 500;
+  font-family: var(--font-mono);
+}
+.terminal-context-detail {
+  position: relative;
+  margin-left: auto;
+}
+.terminal-context-detail > summary {
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 4px 0;
+}
+.terminal-context-detail > div {
+  position: absolute;
+  z-index: 50;
+  top: 100%;
+  right: 0;
+  width: min(720px, calc(100vw - 32px));
+  max-height: 70dvh;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--sh-line-2);
+  background: var(--sh-panel);
+  font-size: 13px;
+  box-shadow: 0 8px 24px #0008;
+}
+.terminal-context-detail p {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.terminal-context-detail code {
+  font-size: 11px;
+}
+.terminal-adopt {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+}
+.terminal-adopt button,
+.terminal-notice button,
+.terminal-copy {
+  border: 1px solid var(--sh-line-2);
+  padding: 4px 8px;
+  background: none;
+  color: var(--sh-fg);
+  font-size: 11px;
+  cursor: pointer;
+}
+.terminal-copy {
+  white-space: nowrap;
+}
+.terminal-compatibility {
+  font-size: 11px;
+  padding: 4px 0;
+  margin: 0;
+  color: #e5be73;
+}
+.terminal-notice {
+  border: 1px solid #705522;
+  background: #17130c;
+  padding: 20px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.terminal-notice h1 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.terminal-notice p {
+  max-width: 90ch;
+  margin: 8px 0;
+}
+@media (min-width: 1920px) {
+  .terminal-shell {
+    --terminal-gutter: 32px;
+  }
+}
+@media (max-width: 1100px) {
+  .terminal-shell .shell-brand b {
+    display: none;
+  }
+  .terminal-shell .shell-link {
+    padding: 0 7px;
+  }
+  .terminal-clock {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .terminal-shell {
+    --terminal-gutter: 12px;
+  }
+  .terminal-shell .shell-bar {
+    padding: 0 12px;
+    gap: 6px;
+  }
+  .terminal-shell .shell-link {
+    min-height: 44px;
+  }
+  .terminal-shell .shell-link kbd {
+    display: none;
+  }
+  .terminal-shell .shell-k {
+    padding: 4px;
+  }
+  .terminal-context {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding: 4px 0;
+  }
+  .terminal-context-detail {
+    margin-left: 0;
+  }
+  .terminal-context-detail > div {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: 110px;
+    width: auto;
+  }
+  .terminal-copy {
+    margin-left: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .terminal-shell *,
+  .terminal-shell *::before,
+  .terminal-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -47,3 +47,17 @@ A standalone exact candidate measures 58,352 decoded /25,250 gzip bytes, SHA `a6
 ## Remaining final gates
 
 Shell, search/commands, workspace integration, capability actions, tables/layout/charts/preferences/exports and full validation remain incomplete. No final browser, CI, Vercel or review-readiness result is claimed. The PR has not been created or pushed; when created it must remain DRAFT, OPEN, UNMERGED, with auto-merge disabled.
+
+## Approved router transport amendment
+
+Real browser testing found that the default TanStack JSON serializer emitted `ctx=%221%22`, rejected by the strict version codec, and normalized numeric-looking search text. The user explicitly approved adding only `frontend-v2/src/router.tsx` to the CHANGE manifest. Three configuration lines bind transport helpers in the already-approved context module. Typed values remain exact strings, legacy queries without `ctx` retain their original parser/serializer, and the shell reads raw query bytes from TanStack-owned history so malformed escapes and duplicates still reject. No scientific, backend, environment or deployment-protection scope changes are included. The original approved plan remains byte-identical.
+
+## Router and bounded shell checkpoint — 28 October 2026
+
+The approved router amendment preserves textual typed query values (`ctx=1`, numeric-looking and JSON-looking search text) while leaving legacy transport unchanged. TanStack Start normalizes malformed escapes before constructing server history; the shared shell therefore reads the original request query through a server-only, request-scoped isomorphic branch and uses TanStack history in the browser. Malformed and duplicate URLs reject consistently before workspace payloads, with no hydration mismatch. Server request code is absent from the 111 built browser JavaScript assets inspected.
+
+The static navigation stage passes 459 checks, including full Issue-origin retention across five legacy listing commands and unchanged scope/freeze guards. Loaded full-origin search p95 is 9.42 ms against 30 ms; codec p95 is 0.29 ms against 2 ms. These are controlled static-service measurements, not the final browser navigation performance gate.
+
+Focused production-build Chrome checks pass 15 Risk cases and 24 Factor cases. Risk initial JSON remains 297,579 bytes with no global manifest read. Factors validates the original before pinning its explicit country/cutoff/metadata anchor, rejects contradictory or foreign anchors without fallback, preserves exact copy/new-tab/refresh/history, and passes 34 original SHA/byte checks. Both flows record zero API attempts, page errors or hydration errors. Native F5/F7 remain available to the browser. The focused tests do not establish the full browser, density or action matrix.
+
+The shared command/palette/Market search UI is now in integration. Remaining workspace adapters, comparisons, tables, layout, chart cursors, preferences, exports, full QA, clean-clone and exact-head CI/deployment verification remain pending. The implementation is local; no Phase 7.5 PR has been published or marked ready. `6f99daa` remains excluded, and the eventual PR remains draft and unmerged.

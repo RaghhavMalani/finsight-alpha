@@ -1,3 +1,4 @@
+import { defaultParseSearch, defaultStringifySearch } from "@tanstack/router-core";
 import { resolveInstrument, type ExchangeCode } from "../../markets/instruments.ts";
 
 export const WORKSPACE_PATHS = {
@@ -779,4 +780,31 @@ export function workspaceOf(pathname: string): TerminalWorkspace | null {
       ([, path]) => pathname === path || pathname.startsWith(path + "/"),
     )?.[0] as TerminalWorkspace | undefined) ?? null
   );
+}
+
+/** Typed investigation transport stays textual; legacy routes retain their existing JSON semantics. */
+export function parseTerminalSearch(raw: string): Record<string, unknown> {
+  const params = new URLSearchParams(raw);
+  if (!params.has("ctx")) return defaultParseSearch(raw);
+  const result: Record<string, unknown> = Object.create(null);
+  for (const [key, value] of params) {
+    if (Object.hasOwn(result, key)) {
+      const previous = result[key];
+      result[key] = Array.isArray(previous) ? [...previous, value] : [previous, value];
+    } else result[key] = value;
+  }
+  return result;
+}
+export function stringifyTerminalSearch(search: Record<string, unknown>): string {
+  if (!Object.hasOwn(search, "ctx")) return defaultStringifySearch(search);
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(search)) {
+    if (value === undefined) continue;
+    for (const item of Array.isArray(value) ? value : [value]) {
+      const text = typeof item === "string" ? item : JSON.stringify(item);
+      if (text !== undefined) params.append(key, text);
+    }
+  }
+  const query = params.toString();
+  return query ? "?" + query : "";
 }
