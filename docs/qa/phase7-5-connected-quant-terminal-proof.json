@@ -25,14 +25,14 @@
   "initial_clean": true,
   "schema_version": "phase75-implementation-proof/1",
   "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
-  "status": "IN_PROGRESS",
+  "status": "STOPPED_AT_APPROVED_JS_BUDGET_GATE",
   "unrelated_wip_imported": false,
   "checkpoint_head": "a8fd2dfb59085efb0793564904c7dd59412224a0",
-  "reconciled_main": "49d7e7467181e73a8c5c1d771f226ec87c181961",
+  "reconciled_main": "830ea0f02af0cb57fcbfffaddb25693414831713",
   "current_manifest": {
-    "sha256": "c07a8034417a60d656a6f954bf10fc5d194ce39bdafc96bab294bba789010b34",
-    "bytes": 439879,
-    "artifacts": 346,
+    "sha256": "51369f56a90a180c5ae7905e7dc4a3ea0130edb5e7aba7de64694d4979c03fb1",
+    "bytes": 452093,
+    "artifacts": 353,
     "routes": 146
   },
   "upstream_reconciliation": {
@@ -4856,5 +4856,2309 @@
     },
     "router_ssr_basis": "Start normalizes query escapes before its server history. The approved TerminalShell server-only isomorphic branch reads the request-scoped original URL; browser reads original TanStack history. Complete malformed/duplicate requests reject consistently, without hydration recovery or fallback payloads.",
     "pending": "Unified command/palette/Market search UI browser integration, remaining workspace adapters, comparisons, tables/layout/charts, preferences/exports, full browser/performance/freeze, clean-clone, exact-head CI and source-bound Vercel verification. No final acceptance or PR readiness claim."
+  },
+  "current_worktree_head": "0f1ca904a5f8021e74dbf06301781d8e6b7cb75b",
+  "upstream_reconciliation_oct28": {
+    "schema_version": "phase75-independent-upstream-data-premerge/1",
+    "status": "PASS_PREMERGE_READ_ONLY",
+    "base": "49d7e7467181e73a8c5c1d771f226ec87c181961",
+    "upstream": "830ea0f02af0cb57fcbfffaddb25693414831713",
+    "implementationHead": "7d66cd6db874d2bf1e6d4dc4798fa7e2da9c3c5e",
+    "readOnly": true,
+    "mergePerformed": false,
+    "scientificOperationPerformedByPhase75": false,
+    "checks": [
+      "upstream is the independent descendant of the already reconciled main",
+      "excluded local closure is absent from upstream and implementation ancestry",
+      "no existing file is deleted and only six current Data aliases/manifests change",
+      "all additions are seven derived Data envelopes and four sealed raw Data reports",
+      "all prior346 manifest entries remain exactly identical",
+      "all146 route keys survive with exactly seven current Data aliases advanced",
+      "manifest schema and nonpublication metadata stay unchanged",
+      "whole new costs derived envelope validates with exact binding/hash/bytes/licence",
+      "whole new coverage derived envelope validates with exact binding/hash/bytes/licence",
+      "whole new disagreement derived envelope validates with exact binding/hash/bytes/licence",
+      "whole new health derived envelope validates with exact binding/hash/bytes/licence",
+      "whole new issues derived envelope validates with exact binding/hash/bytes/licence",
+      "whole new lineage derived envelope validates with exact binding/hash/bytes/licence",
+      "whole new revisions derived envelope validates with exact binding/hash/bytes/licence",
+      "current raw health alias equals its new sealed report",
+      "current raw issues alias equals its new sealed report",
+      "current raw lineage alias equals its new sealed report",
+      "current raw receipt alias equals its new sealed report",
+      "every prior public and sealed raw history file remains byte-identical"
+    ],
+    "newDerivedArtifacts": [
+      {
+        "id": "data-organ:costs:808599d3aaf8585240fcf2f01e031b704d17b239385a3e225ba7ef04daaffdde",
+        "kind": "costs",
+        "bytes": 4082,
+        "sha256": "808599d3aaf8585240fcf2f01e031b704d17b239385a3e225ba7ef04daaffdde",
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "availableAt": "2026-10-28T06:57:47.435348Z",
+        "inputHash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
+        "wholeEnvelopeValidated": true
+      },
+      {
+        "id": "data-organ:coverage:bff9c7bcb28c466ab05bf6ccab233774981ea0d4e1cd3b023613c2b7c1dbc04d",
+        "kind": "coverage",
+        "bytes": 7252,
+        "sha256": "bff9c7bcb28c466ab05bf6ccab233774981ea0d4e1cd3b023613c2b7c1dbc04d",
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "availableAt": "2026-10-28T06:57:47.435348Z",
+        "inputHash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
+        "wholeEnvelopeValidated": true
+      },
+      {
+        "id": "data-organ:disagreement:829eae1fa2e75b7fa429bca9b587d87ed65f5b9b164df63c9895f3183380c6bd",
+        "kind": "disagreement",
+        "bytes": 951,
+        "sha256": "829eae1fa2e75b7fa429bca9b587d87ed65f5b9b164df63c9895f3183380c6bd",
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "availableAt": "2026-10-28T06:57:47.435348Z",
+        "inputHash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
+        "wholeEnvelopeValidated": true
+      },
+      {
+        "id": "data-organ:health:85e8148c9d8af457ddfa0fc11afd45dc05ca2f787d460f5cb2a3b6a4a6bddb2d",
+        "kind": "health",
+        "bytes": 4928,
+        "sha256": "85e8148c9d8af457ddfa0fc11afd45dc05ca2f787d460f5cb2a3b6a4a6bddb2d",
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "availableAt": "2026-10-28T06:57:47.435348Z",
+        "inputHash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
+        "wholeEnvelopeValidated": true
+      },
+      {
+        "id": "data-organ:issues:5a2d4028f87051ebbdf62d8efaa0321d6ebd905f150ea8e0128b6fbeedace937",
+        "kind": "issues",
+        "bytes": 37056,
+        "sha256": "5a2d4028f87051ebbdf62d8efaa0321d6ebd905f150ea8e0128b6fbeedace937",
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "availableAt": "2026-10-28T06:57:47.435348Z",
+        "inputHash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
+        "wholeEnvelopeValidated": true
+      },
+      {
+        "id": "data-organ:lineage:b58cadfc5d6b3d43489ec41037e3995631c58141dfd710c41df29430b12cd2e9",
+        "kind": "lineage",
+        "bytes": 13078,
+        "sha256": "b58cadfc5d6b3d43489ec41037e3995631c58141dfd710c41df29430b12cd2e9",
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "availableAt": "2026-10-28T06:57:47.435348Z",
+        "inputHash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
+        "wholeEnvelopeValidated": true
+      },
+      {
+        "id": "data-organ:revisions:649633859f2e628dac3b4e78dae38ea61e812517bed112a5d6a5775c04db3e2d",
+        "kind": "revisions",
+        "bytes": 1313,
+        "sha256": "649633859f2e628dac3b4e78dae38ea61e812517bed112a5d6a5775c04db3e2d",
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "availableAt": "2026-10-28T06:57:47.435348Z",
+        "inputHash": "7ce0fd45799f049f4e6fef784fc761ab34382cbad2abaa30829cf09205ab7d95",
+        "wholeEnvelopeValidated": true
+      }
+    ],
+    "changedRoutes": [
+      "/data/costs",
+      "/data/coverage",
+      "/data/disagreement",
+      "/data/health",
+      "/data/issues",
+      "/data/lineage",
+      "/data/revisions"
+    ],
+    "fileCounts": {
+      "before": 1982,
+      "after": 1993,
+      "added": 11,
+      "modified": 6,
+      "deleted": 0
+    },
+    "priorPublicFilesPreserved": 326,
+    "priorRawSealedHistoryFilesPreserved": 94,
+    "manifests": {
+      "before": {
+        "sha256": "c07a8034417a60d656a6f954bf10fc5d194ce39bdafc96bab294bba789010b34",
+        "bytes": 439879,
+        "asOf": "2026-10-27T06:26:57.031947Z",
+        "artifacts": 346,
+        "routes": 146
+      },
+      "after": {
+        "sha256": "51369f56a90a180c5ae7905e7dc4a3ea0130edb5e7aba7de64694d4979c03fb1",
+        "bytes": 452093,
+        "asOf": "2026-10-28T06:57:47.435348Z",
+        "artifacts": 353,
+        "routes": 146
+      }
+    },
+    "changedPaths": [
+      "data/exports/data_organ_v0_1/health-f10a4fde31449a472526734555fac9ee49d4aff40ade097f99f0ec95f1567b5f.json",
+      "data/exports/data_organ_v0_1/health.json",
+      "data/exports/data_organ_v0_1/issues-05fd40da35dcbb6ca06970c0e129a7298aa51cd07e0da96ba1b01719579f89e7.json",
+      "data/exports/data_organ_v0_1/issues.json",
+      "data/exports/data_organ_v0_1/lineage-7b47ad625da1bd6d69626b63916f98b758c5d5349a778bd8c61ee095feef23ae.json",
+      "data/exports/data_organ_v0_1/lineage.json",
+      "data/exports/data_organ_v0_1/manifest.json",
+      "data/exports/data_organ_v0_1/receipt-02d02b09ed7536d5940566f54b9c29a70a4df0300f7e2da2df7b8a0500b4fa5a.json",
+      "data/exports/data_organ_v0_1/receipt.json",
+      "frontend-v2/public/artifacts/replay/data-organ-costs-808599d3aaf8585240fcf2f01e031b704d17b239385a3e225ba7ef04daaffdde.json",
+      "frontend-v2/public/artifacts/replay/data-organ-coverage-bff9c7bcb28c466ab05bf6ccab233774981ea0d4e1cd3b023613c2b7c1dbc04d.json",
+      "frontend-v2/public/artifacts/replay/data-organ-disagreement-829eae1fa2e75b7fa429bca9b587d87ed65f5b9b164df63c9895f3183380c6bd.json",
+      "frontend-v2/public/artifacts/replay/data-organ-health-85e8148c9d8af457ddfa0fc11afd45dc05ca2f787d460f5cb2a3b6a4a6bddb2d.json",
+      "frontend-v2/public/artifacts/replay/data-organ-issues-5a2d4028f87051ebbdf62d8efaa0321d6ebd905f150ea8e0128b6fbeedace937.json",
+      "frontend-v2/public/artifacts/replay/data-organ-lineage-b58cadfc5d6b3d43489ec41037e3995631c58141dfd710c41df29430b12cd2e9.json",
+      "frontend-v2/public/artifacts/replay/data-organ-revisions-649633859f2e628dac3b4e78dae38ea61e812517bed112a5d6a5775c04db3e2d.json",
+      "frontend-v2/public/replay-manifest.json"
+    ],
+    "commit": "commit 830ea0f02af0cb57fcbfffaddb25693414831713\nAuthor:     Raghhav Malani <96712854+RaghhavMalani@users.noreply.github.com>\nAuthorDate: Wed Oct 28 06:59:42 2026 +0000\nCommit:     Raghhav Malani <96712854+RaghhavMalani@users.noreply.github.com>\nCommitDate: Wed Oct 28 06:59:42 2026 +0000\n\n    chore: publish derived organ health and sealed regime evidence"
+  },
+  "archive_after_main830": {
+    "status": "VERIFIED",
+    "base": "16db82c5f2f50b98253df9989c586cd45aa98f6b",
+    "frozen_files": 930,
+    "prior_artifacts": 221,
+    "prior_routes": 126,
+    "withdrawals": 6,
+    "risk_artifacts": 27,
+    "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+    "d6": "DISABLED / DEFERRED"
+  },
+  "lossless_history_codec": {
+    "status": "PASS_INDEPENDENT_LOSSLESS_CODEC",
+    "referenceCommit": "7d66cd6db874d2bf1e6d4dc4798fa7e2da9c3c5e",
+    "checks": [
+      "all nine generated modules are byte-identical over two complete source-validated in-memory runs",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in seed",
+      "legacy seed output reproduces the pre-merge capacity measurement exactly",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in market",
+      "legacy market output reproduces the pre-merge capacity measurement exactly",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in regimes",
+      "legacy regimes output reproduces the pre-merge capacity measurement exactly",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in risk",
+      "legacy risk output reproduces the pre-merge capacity measurement exactly",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in factors",
+      "legacy factors output reproduces the pre-merge capacity measurement exactly",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in data",
+      "legacy data output reproduces the pre-merge capacity measurement exactly",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in recordings",
+      "legacy recordings output reproduces the pre-merge capacity measurement exactly",
+      "every unpacked entity/edge/binding/route/projection/bundle remains exact in history",
+      "legacy history output reproduces the pre-merge capacity measurement exactly",
+      "zero digest uses exact versioned canonical32-byte base64url fragment",
+      "literal collision and boundary roundtrip 0",
+      "literal collision and boundary roundtrip 1",
+      "literal collision and boundary roundtrip 2",
+      "literal collision and boundary roundtrip 3",
+      "literal collision and boundary roundtrip 4",
+      "literal collision and boundary roundtrip 5",
+      "literal collision and boundary roundtrip 6",
+      "literal collision and boundary roundtrip 7",
+      "literal collision and boundary roundtrip 8",
+      "literal collision and boundary roundtrip 9",
+      "literal collision and boundary roundtrip 10",
+      "literal collision and boundary roundtrip 11",
+      "literal collision and boundary roundtrip 12",
+      "literal collision and boundary roundtrip 13",
+      "literal collision and boundary roundtrip 14",
+      "literal collision and boundary roundtrip 15",
+      "literal collision and boundary roundtrip 16",
+      "malformed or oversized fragment rejects !1/2",
+      "malformed or oversized fragment rejects !1AAAAAAAAAA/44",
+      "malformed or oversized fragment rejects !1AAAAAAAAAA/46",
+      "malformed or oversized fragment rejects !1AAAAAAAAAA/45",
+      "malformed or oversized fragment rejects !1AAAAAAAAAA/45",
+      "malformed or oversized fragment rejects !1AAAAAAAAAA/45",
+      "malformed or oversized fragment rejects !1AAAAAAAAAA/45",
+      "malformed or oversized fragment rejects !1AAAAAAAAAA/45",
+      "malformed or oversized fragment rejects !2AAAAAAAAAA/45",
+      "malformed or oversized fragment rejects !x/2",
+      "malformed or oversized fragment rejects !/1",
+      "malformed or oversized fragment rejects xxxxxxxxxxxx/8193",
+      "malformed or oversized fragment rejects !!xxxxxxxxxx/8194",
+      "one escape only never interprets a literal marker or reference a second time",
+      "text expansion bound remains8192 after hash decoding",
+      "dictionary count remains20000",
+      "all exact IEEE values and negative zero remain unchanged with hash-like metadata"
+    ],
+    "history": {
+      "before_bytes": 134615,
+      "bytes": 128022,
+      "gzip": 30387,
+      "cap_bytes": 131072,
+      "gzip_cap": 32768
+    },
+    "source_semantics": "All eight navigation payloads and all numerical IEEE values, including signed zero, match the immutable prior codec. Both nine-module generations are byte-identical. No entity, edge, version, field or original is removed.",
+    "proof_sha256": "34b65c0e40e7e5fc3a1c33ec1312ee95180c7d15da5987f8c8fbfba539fcd4b8"
+  },
+  "current_static_stage": {
+    "status": "PASS",
+    "checks": 519,
+    "missingAreas": [
+      "changes",
+      "preferences",
+      "exports"
+    ],
+    "performance": {
+      "codec": {
+        "samples": 100,
+        "p95_ms": 0.2363999999997759,
+        "limit_ms": 2,
+        "input_bytes": 4096,
+        "canonical_bytes": 2468,
+        "workload": "parse and serialize; exact retained IDs, complete Risk origin,12columns,160code-unit multilingual query"
+      }
+    },
+    "failures": [],
+    "proof_sha256": "b36adbbd9c844d0cabae7a2a4cf9d6012a3e31ee501ad26b516420864edcca75",
+    "navigation": {
+      "provenance": "ENGINEERING_QA_ACTUAL_RETAINED_CATALOG_AND_PURE_NAVIGATION_ONLY",
+      "entities": 1116,
+      "bindings": 333,
+      "searchPerformance": {
+        "samples": 60,
+        "p95_ms": 7.928299999999581,
+        "limit_ms": 30,
+        "entities": 1116,
+        "queries": [
+          "risk-issue:1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9",
+          "IN-MKT",
+          "india:mom",
+          "metadata",
+          "tain",
+          "regim",
+          "factor",
+          "capture",
+          "source",
+          "recorded",
+          "US-MKT",
+          "IIMA"
+        ],
+        "environment": {
+          "node": "v24.14.1",
+          "platform": "win32",
+          "arch": "x64"
+        }
+      },
+      "originalInspection": {
+        "bindings": 333,
+        "supported": 308,
+        "unsupported": 25
+      }
+    }
+  },
+  "stage9_browser": {
+    "status": "PASS_FOCUSED_STAGE9_UI",
+    "cases": [
+      {
+        "name": "palette Escape preserves selected Risk Issue and restores focus",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&sweep=ab2776d927361b3a6848594e0f73ddc3395ac3cbb3eeabf042cdbbef798499e0&issue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&panel=feed"
+      },
+      {
+        "name": "India palette Observatory preserves exact aggregate and complete Issue origin in a native link",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&sweep=ab2776d927361b3a6848594e0f73ddc3395ac3cbb3eeabf042cdbbef798499e0&issue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&panel=feed"
+      },
+      {
+        "name": "blank palette has one Execution explanation option",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&sweep=ab2776d927361b3a6848594e0f73ddc3395ac3cbb3eeabf042cdbbef798499e0&issue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&panel=feed"
+      },
+      {
+        "name": "rapid query Enter cannot activate previous palette results",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&sweep=ab2776d927361b3a6848594e0f73ddc3395ac3cbb3eeabf042cdbbef798499e0&issue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&panel=feed"
+      },
+      {
+        "name": "reference listing Observatory workspace presents aggregate choices without selecting the first",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/factors?ctx=1&market=US&subject=reference-listing%3ASPY%3AUP&ticker=SPY&exchange=UP&artifact=factors%3Acatalog%3A238aaae552b87e2963fc78fb636c6769bd1a1f51794e56b07ec1fc175ab8a031&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471&at=2026-10-10T13%3A59%3A59.414508Z&country=US"
+      },
+      {
+        "name": "legacy listing command preserves complete Issue origin and exact listing URL",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets?ctx=1&market=INDIA&subject=reference-listing%3ARELIANCE.NS%3AIS&ticker=RELIANCE.NS&exchange=IS&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471"
+      },
+      {
+        "name": "unified Market search keeps reference NSE/BSE identities and exact native URLs",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets?ctx=1&market=INDIA&subject=reference-listing%3ARELIANCE.NS%3AIS&ticker=RELIANCE.NS&exchange=IS&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471"
+      },
+      {
+        "name": "unknown Market search cannot silently select another identity",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets?ctx=1&market=INDIA&subject=reference-listing%3ARELIANCE.NS%3AIS&ticker=RELIANCE.NS&exchange=IS&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471"
+      },
+      {
+        "name": "exact Market aggregate search wins over other metadata with the same text",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=market%3AIN-MKT&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471&panel=overview"
+      },
+      {
+        "name": "Market history search exposes exact Factor versions and Ctrl-click preserves origin in a new tab",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=market%3AIN-MKT&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471&panel=overview"
+      },
+      {
+        "name": "Market search recovers when rapid edits return to the prior query or add whitespace",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=market%3AIN-MKT&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471&panel=overview"
+      },
+      {
+        "name": "Market path retains complete context for in-mkt",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets/IN-MKT?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&q=1.0&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471"
+      },
+      {
+        "name": "Market path retains complete context for IN-MKT",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets/IN-MKT?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&q=1.0&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471"
+      },
+      {
+        "name": "malformed query cannot be repaired by lowercase Market path redirect",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets/in-mkt?ctx=1&q=%ZZ"
+      },
+      {
+        "name": "foreign Market anchor cannot fetch a default market payload",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&artifact=regimes%3Asnapshot%3A188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6&originIssue=risk-issue%3A1280694fa6a643441cea3c8d97539d57ec36a693792f548ca5441e7b730f10d9&originState=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&originSweep=risk%3Asweep%3Acf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471"
+      },
+      {
+        "name": "bare Market visibly labels the US aggregate default without inventing SPY context",
+        "status": "PASS",
+        "url": "http://127.0.0.1:4174/markets"
+      }
+    ],
+    "originalChecks": 13,
+    "blocked": 0,
+    "pageErrors": 0,
+    "unexpectedConsoleErrors": 0,
+    "expectedDocumentErrors": [
+      {
+        "caseName": "malformed query cannot be repaired by lowercase Market path redirect",
+        "url": "http://127.0.0.1:4174/markets/in-mkt?ctx=1&q=%ZZ",
+        "status": 404,
+        "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      }
+    ],
+    "expectedMalformedMarketResponse": {
+      "url": "http://127.0.0.1:4174/markets/in-mkt?ctx=1&q=%ZZ",
+      "status": 404,
+      "codecDiagnostic": "Investigation URL has malformed UTF-8 or percent encoding.",
+      "originalRawURLUnchanged": true
+    },
+    "historyFrames": 57,
+    "visibleHistorySamples": 25,
+    "initialRisk": {
+      "responses": 31,
+      "gzipBytes": 220602
+    },
+    "firstPaletteInteraction": {
+      "responses": 3,
+      "gzipBytes": 24594
+    },
+    "previewBuildBasis": "Root-confirmed preview76133: reconciledmain830, lossless canonical hash fragments, equivalent35-node reader split, current aggregate/hot-path fixes, exact response-query invalidation and Market404 rejection.",
+    "budgetAcceptance": false,
+    "limitations": [
+      "Focused Chrome integration only; no full matrix, density, table, or final acceptance claim.",
+      "Observatory tests inspect exact native hrefs and chooser behavior without following into the pending bounded trace adapter; they do not establish end-to-end HMM reading."
+    ],
+    "proof_path": ".tmp/phase75/stage9-ui/browser-proof.json",
+    "proof_sha256": "c32034d4e5c48fc6769c997e3b03cf0a7934de5ec7b4deefc6c738c36028006f",
+    "source_checkpoint_head": "0f1ca904a5f8021e74dbf06301781d8e6b7cb75b",
+    "production_asset_source_hashes_match_current": true,
+    "acceptance_scope": "Focused Stage9 Chrome production-build integration. Full three-browser, workspace/action, density and navigation-performance matrix remain pending."
+  },
+  "js_budget": {
+    "status": "FAIL_STOP_INTEGRATION",
+    "unchanged_limits": {
+      "shared_gzip": 24576,
+      "workspace_gzip": 65536
+    },
+    "current_lower_bounds": {
+      "shared_gzip": 41213,
+      "risk_gzip": 80907,
+      "factors_gzip": 66068
+    },
+    "over_cap": {
+      "shared_gzip": 16637,
+      "risk_gzip": 15371,
+      "factors_gzip": 532
+    },
+    "reader_reduction_gzip": 4814,
+    "budget_proof_path": ".tmp/phase75/stage9-ui/main830-codec-stale-budget-audit.json",
+    "budget_proof_sha256": "5db9c10cb46da2dceeb19540b58123c1245569e9a9dbd057592bf0c075b8a41c",
+    "production_asset_audit": {
+      "schema_version": "phase75-main830-codec-stale-budget-audit/1",
+      "status": "FAIL_STAGE9_JS_BUDGETS_METADATA_CAPS_PASS",
+      "recordedAt": "2026-10-29T02:31:44.186Z",
+      "sourceHead": "f4f1eac47043241e766cbcc8d1d85e8c92d5ba01",
+      "sourceState": "Checkpoint HEAD plus locally modified Stage9 source; exact source hashes below. Not exact-head CI/final acceptance.",
+      "sourceHashes": [
+        {
+          "path": "frontend-v2/src/router.tsx",
+          "bytes": 584,
+          "sha256": "af9713b6c8bc7f134e0e01eac80eff0afec7d5577079c0acaf282bad1b4e3794"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/context.ts",
+          "bytes": 31786,
+          "sha256": "d4a4c2d0295d8069ea3a8159b4bb19456a15c85f6d2afa558addc9c15263aabc"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/compatibility.ts",
+          "bytes": 8083,
+          "sha256": "c67ca8ff2efedc5b3a7bfece8373f3e5c32b937beb90ae6ff3cc42ed3c4068f7"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/links.ts",
+          "bytes": 8020,
+          "sha256": "5406a87411dab0262c03da7245aea4eba0ad38912ee6232381761aab8df56904"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/catalog.ts",
+          "bytes": 34223,
+          "sha256": "463bb9661e76d0ff2e524e33b6656d09ad05affae21211dc4bbbc0609056248d"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/reader.ts",
+          "bytes": 71671,
+          "sha256": "a0768f64c1c1fd2432174ed5b3d65796f75a6d600c620a807a5a92840c56a7cc"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/search.ts",
+          "bytes": 19551,
+          "sha256": "cfd2c15765cd642dd044c7b3cdd5fe40c0023505bbd6446b00e3a8f7af5e4ef8"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/commands.ts",
+          "bytes": 19813,
+          "sha256": "4d23b91d5a3aed26b85985ab4613ce44c5432fab8f3e941e3345b0c3467e0dfa"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/capabilities.ts",
+          "bytes": 16221,
+          "sha256": "e22d46a7b9c4fbdd2c25f7136a310abc0b59a078ab3dbebe4f7764ef3e4f5c11"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/TerminalShell.tsx",
+          "bytes": 17117,
+          "sha256": "c7419d41f3260b0c855d29cbbbea5872957f8f8a6fc1cd18971816356b7392d8"
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/ContextBar.tsx",
+          "bytes": 5288,
+          "sha256": "e988558bf36df752a7740246db1b43c86bcc434ab32ed9197451703ae6c06c3a"
+        },
+        {
+          "path": "frontend-v2/src/app/command/CommandLine.tsx",
+          "bytes": 5215,
+          "sha256": "023a3ea0d2ff561da44b59bf92877b9bd41a20927b68db2d1892781cb32f29ca"
+        },
+        {
+          "path": "frontend-v2/src/app/command/ForgeCommandPalette.tsx",
+          "bytes": 16882,
+          "sha256": "74475a0fa305cc2364541b7c5fac44fd02ed3258ac8e6632a9a9c412de575d25"
+        },
+        {
+          "path": "frontend-v2/src/app/command/mnemonics.ts",
+          "bytes": 2463,
+          "sha256": "291177586bb01322911cd2e55521ed5213df3512722ec40d39fcd5cf34a0de4c"
+        },
+        {
+          "path": "frontend-v2/src/app/workspaces.ts",
+          "bytes": 2173,
+          "sha256": "6f7125b29662b3f14e39f80bea0e2d7b64c3f2d9fa9bb36bcd424e47e9b72699"
+        },
+        {
+          "path": "frontend-v2/src/markets/TickerSearch.tsx",
+          "bytes": 15498,
+          "sha256": "95e4848ea5d12548ea1bb6c741bd34e09e62f0ea4bc57b053b2fefb644ae977e"
+        },
+        {
+          "path": "frontend-v2/src/risk-manager/RiskWorkspace.tsx",
+          "bytes": 32078,
+          "sha256": "a0286e4b0385c6a614634e74bf195cb401fc3494fc393aae0c3e211c8865fba7"
+        },
+        {
+          "path": "frontend-v2/src/factors/FactorsWorkspace.tsx",
+          "bytes": 14635,
+          "sha256": "c52fc052758548df6f82c73290081df5091cc14ca90a9ef660ecde955763ea33"
+        },
+        {
+          "path": "frontend-v2/scripts/generate-terminal-index.mjs",
+          "bytes": 261665,
+          "sha256": "6aad9a5967ec90e0186dde94d4b6471788405cddf5abd2f555ca93a20265c5fd"
+        },
+        {
+          "path": "frontend-v2/scripts/verify-factors.mjs",
+          "bytes": 19885,
+          "sha256": "783f7cab5360ac4bc5a9e3686350da1a90fc5907693e2f4feb36dddaf9c18432"
+        }
+      ],
+      "buildLog": {
+        "path": ".tmp/phase75/stage9-ui/main830-codec-stale-build.log",
+        "bytes": 56069,
+        "sha256": "ff534d528918c5fd3c9386da13aea656df6feddb9c127023843273efa2778a97"
+      },
+      "manifest": {
+        "sha256": "51369f56a90a180c5ae7905e7dc4a3ea0130edb5e7aba7de64694d4979c03fb1",
+        "bytes": 452093,
+        "asOf": "2026-10-28T06:57:47.435348Z"
+      },
+      "method": {
+        "clientOnly": true,
+        "gzip": "node:zlib gzipSync(raw), default settings; sum unique emitted client JS assets separately, as existing Factor verifier. No combined compression or threshold change.",
+        "core": "context, links, search/capabilities, commands, catalog and projection reader; shell/command UI and exact initial seed included in full shared count.",
+        "factor": "Existing factors-/RetainedDiagnostics-/LineageDrawer- and factor-metadata|factor-retained content rule, then add each attributable shared asset once.",
+        "lowerBound": "Pre-existing React/TanStack/common dependencies excluded. Other generated metadata is listed separately and excluded only to establish strict lower bounds, never to manufacture a PASS.",
+        "moduleGzip": "Generated-module gates retain existing generator level9 gzip method; actual emitted client asset default-gzip measurements are also listed."
+      },
+      "parts": {
+        "coreCode": 27555,
+        "shellAndCommandUI": 9804,
+        "seedMetadata": 3854,
+        "corePlusSeed": 31409
+      },
+      "checks": {
+        "shared": {
+          "gzip": 41213,
+          "limit": 24576,
+          "over": 16637,
+          "headroom": 0,
+          "status": "FAIL",
+          "assets": [
+            "TerminalShell-SaRp6ELG.js",
+            "seed.generated-CIv8_AbZ.js",
+            "catalog-DErrml_Y.js",
+            "commands-BcFX6bqU.js",
+            "context-Bxg_MIav.js",
+            "links-DKMiVem4.js",
+            "reader-C7ZV5Xz9.js",
+            "search-DkehpaH1.js"
+          ]
+        },
+        "factorLegacyAllFeatureGate": {
+          "gzip": 24855,
+          "limit": 65536,
+          "over": 0,
+          "headroom": 40681,
+          "status": "PASS_LOWER_BOUND_ONLY",
+          "assets": [
+            "factors-VJdxG5sm.js",
+            "LineageDrawer-BfMGk4dC.js",
+            "query-Byrn5HlT.js",
+            "RetainedDiagnostics-Drzc8sFr.js"
+          ]
+        },
+        "factorPlusShared": {
+          "gzip": 66068,
+          "limit": 65536,
+          "over": 532,
+          "headroom": 0,
+          "status": "FAIL",
+          "assets": [
+            "factors-VJdxG5sm.js",
+            "LineageDrawer-BfMGk4dC.js",
+            "query-Byrn5HlT.js",
+            "RetainedDiagnostics-Drzc8sFr.js",
+            "TerminalShell-SaRp6ELG.js",
+            "seed.generated-CIv8_AbZ.js",
+            "catalog-DErrml_Y.js",
+            "commands-BcFX6bqU.js",
+            "context-Bxg_MIav.js",
+            "links-DKMiVem4.js",
+            "reader-C7ZV5Xz9.js",
+            "search-DkehpaH1.js"
+          ]
+        },
+        "riskPlusShared": {
+          "gzip": 80907,
+          "limit": 65536,
+          "over": 15371,
+          "headroom": 0,
+          "status": "FAIL",
+          "assets": [
+            "risk-CVERfm31.js",
+            "TerminalShell-SaRp6ELG.js",
+            "seed.generated-CIv8_AbZ.js",
+            "catalog-DErrml_Y.js",
+            "commands-BcFX6bqU.js",
+            "context-Bxg_MIav.js",
+            "links-DKMiVem4.js",
+            "reader-C7ZV5Xz9.js",
+            "search-DkehpaH1.js"
+          ]
+        }
+      },
+      "sharedAssets": [
+        {
+          "name": "TerminalShell-SaRp6ELG.js",
+          "decoded": 27007,
+          "gzip": 9804,
+          "sha256": "e62776a6c2f5c08b279600fbdc454b51a737f81a8f9753775158fd86387cc977",
+          "imports": [
+            "jsx-runtime-n5LQ9ujS.js",
+            "link-DIv42wgR.js",
+            "useMatch-_t8iZQDk.js",
+            "context-Bxg_MIav.js",
+            "useSelector-SMYh0rPl.js",
+            "useParams-CbkD5rfR.js",
+            "useNavigate-IpFqW5Td.js",
+            "QueryClientProvider-CwfsagZF.js",
+            "mode-ApWZQzau.js",
+            "preload-helper-Czpn1I53.js",
+            "instruments-BNqRWfgg.js",
+            "links-DKMiVem4.js",
+            "factor-series-BaUqAhqC.js"
+          ],
+          "dynamicImports": [
+            "search-DkehpaH1.js",
+            "commands-BcFX6bqU.js",
+            "search-DkehpaH1.js",
+            "commands-BcFX6bqU.js",
+            "catalog-DErrml_Y.js"
+          ],
+          "exports": [
+            "a",
+            "i",
+            "n",
+            "o",
+            "r",
+            "t"
+          ]
+        },
+        {
+          "name": "seed.generated-CIv8_AbZ.js",
+          "decoded": 11781,
+          "gzip": 3854,
+          "sha256": "0c35b671f7d8bcfefede1a577429991f267f9a98c0ffe6cbc815bb41acc8f74a",
+          "imports": [],
+          "dynamicImports": [],
+          "exports": [
+            "default"
+          ]
+        },
+        {
+          "name": "catalog-DErrml_Y.js",
+          "decoded": 14693,
+          "gzip": 5224,
+          "sha256": "44c7e5b035aeb8fc8ee6abbe7c3ce89cde3b17c8691a740cadca6605ebb0ec83",
+          "imports": [
+            "jsx-runtime-n5LQ9ujS.js",
+            "context-Bxg_MIav.js",
+            "preload-helper-Czpn1I53.js"
+          ],
+          "dynamicImports": [
+            "reader-C7ZV5Xz9.js",
+            "seed.generated-CIv8_AbZ.js",
+            "market.generated-B4ZRYihA.js",
+            "regimes.generated-C0Q-5NOY.js",
+            "risk.generated-BC2sERj4.js",
+            "factors.generated-BeNw5k11.js",
+            "data.generated-tCzf4_F-.js",
+            "recordings.generated-Cp1oZ-l1.js",
+            "history.generated-6rQL4gcT.js"
+          ],
+          "exports": [
+            "a",
+            "i",
+            "n",
+            "r",
+            "t"
+          ]
+        },
+        {
+          "name": "commands-BcFX6bqU.js",
+          "decoded": 9367,
+          "gzip": 3972,
+          "sha256": "d4f6accc2da7300f363c808045f9ec77dbbb3ff1b9014139de50325a5be67763",
+          "imports": [
+            "context-Bxg_MIav.js",
+            "links-DKMiVem4.js",
+            "search-DkehpaH1.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "COMMAND_HELP",
+            "commandWorkspaces",
+            "resolveTerminalCommand"
+          ]
+        },
+        {
+          "name": "context-Bxg_MIav.js",
+          "decoded": 17101,
+          "gzip": 6568,
+          "sha256": "7f4b26b41a0af613bc72bd1e6b2c0ef85d0a7b85fcc9df5fb4756a4627185eef",
+          "imports": [
+            "instruments-BNqRWfgg.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "_",
+            "a",
+            "c",
+            "d",
+            "f",
+            "g",
+            "h",
+            "i",
+            "l",
+            "m",
+            "n",
+            "o",
+            "p",
+            "r",
+            "s",
+            "t",
+            "u",
+            "v"
+          ]
+        },
+        {
+          "name": "links-DKMiVem4.js",
+          "decoded": 2449,
+          "gzip": 1177,
+          "sha256": "87781d2ba7aab7c0066af951b3f8c5fc90226dfc0b0e9eefd949bb78c5156526",
+          "imports": [
+            "context-Bxg_MIav.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "a",
+            "i",
+            "n",
+            "o",
+            "r",
+            "t"
+          ]
+        },
+        {
+          "name": "reader-C7ZV5Xz9.js",
+          "decoded": 12748,
+          "gzip": 4260,
+          "sha256": "7b7476b8196ac4213e1ea72f59b1a85afcd1da416ee25ee081488b48ca9571b2",
+          "imports": [
+            "catalog-DErrml_Y.js",
+            "contracts-CVS_WHkW.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "verifyDisplayProjection"
+          ]
+        },
+        {
+          "name": "search-DkehpaH1.js",
+          "decoded": 16257,
+          "gzip": 6354,
+          "sha256": "926e3daf34c7c659da77876a998d4883010ec23de09c0b639e9b2a7976ceabc8",
+          "imports": [
+            "context-Bxg_MIav.js",
+            "instruments-BNqRWfgg.js",
+            "links-DKMiVem4.js",
+            "catalog-DErrml_Y.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "createTerminalSearchService",
+            "entityTarget",
+            "n",
+            "searchLoaded",
+            "t",
+            "terminalSearch"
+          ]
+        }
+      ],
+      "factorLegacyFeatureAssets": [
+        {
+          "name": "factors-VJdxG5sm.js",
+          "decoded": 17419,
+          "gzip": 5636,
+          "sha256": "83d6263c5422458b2452e032fd51fb5ac3ca0988ef3f51393790b23e007a1d3a",
+          "imports": [
+            "jsx-runtime-n5LQ9ujS.js",
+            "context-Bxg_MIav.js",
+            "TerminalShell-SaRp6ELG.js",
+            "mode-ApWZQzau.js",
+            "preload-helper-Czpn1I53.js",
+            "query-Byrn5HlT.js"
+          ],
+          "dynamicImports": [
+            "RetainedDiagnostics-Drzc8sFr.js",
+            "LineageDrawer-BfMGk4dC.js"
+          ],
+          "exports": [
+            "component"
+          ]
+        },
+        {
+          "name": "LineageDrawer-BfMGk4dC.js",
+          "decoded": 2315,
+          "gzip": 1072,
+          "sha256": "93ae98e7ffd09c89baf3e9a025e3766460d6ab9ab51e003acf8d07971df9508f",
+          "imports": [
+            "jsx-runtime-n5LQ9ujS.js",
+            "query-Byrn5HlT.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "LineageDrawer"
+          ]
+        },
+        {
+          "name": "query-Byrn5HlT.js",
+          "decoded": 111193,
+          "gzip": 16526,
+          "sha256": "826ffd1b47d986f17d444c50c29bdced1f89502683708b14b90ae037eb388ef6",
+          "imports": [
+            "useQuery-DK8qW8Pb.js",
+            "mode-ApWZQzau.js",
+            "contracts-CVS_WHkW.js",
+            "client-DnuZJJC4.js",
+            "api-DMLGcZxR.js",
+            "contracts-0Y_et4cj.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "a",
+            "i",
+            "n",
+            "o",
+            "r",
+            "s",
+            "t"
+          ]
+        },
+        {
+          "name": "RetainedDiagnostics-Drzc8sFr.js",
+          "decoded": 4305,
+          "gzip": 1621,
+          "sha256": "356360c4ba3d825f8563ff0a3d6d9f5d4b235f8814d63e1f46777877fe3b8217",
+          "imports": [
+            "jsx-runtime-n5LQ9ujS.js",
+            "query-Byrn5HlT.js"
+          ],
+          "dynamicImports": [],
+          "exports": [
+            "RetainedDiagnostics"
+          ]
+        }
+      ],
+      "riskFeatureAssets": [
+        {
+          "name": "risk-CVERfm31.js",
+          "decoded": 223107,
+          "gzip": 39694,
+          "sha256": "8d753da237623909a3f14e62ea47697be30affb2e035d7d3ecba1c82ac02561c",
+          "imports": [
+            "jsx-runtime-n5LQ9ujS.js",
+            "context-Bxg_MIav.js",
+            "TerminalShell-SaRp6ELG.js",
+            "mode-ApWZQzau.js",
+            "preload-helper-Czpn1I53.js",
+            "contracts-CVS_WHkW.js",
+            "client-DnuZJJC4.js"
+          ],
+          "dynamicImports": [
+            "catalog-DErrml_Y.js",
+            "LocalRiskLab-DcZYedPy.js"
+          ],
+          "exports": [
+            "component"
+          ]
+        }
+      ],
+      "otherIdentifiedBaselineDependency": [
+        {
+          "name": "instruments-BNqRWfgg.js",
+          "decoded": 2982,
+          "gzip": 1380,
+          "sha256": "278ef97ce45f61e13cd760dfae1a090241f2193bb761c5a20689681286370560",
+          "imports": [],
+          "dynamicImports": [],
+          "exports": [
+            "i",
+            "n",
+            "r",
+            "t"
+          ]
+        }
+      ],
+      "metadataModules": [
+        {
+          "name": "seed",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/seed.generated.ts",
+          "decoded": 11897,
+          "reportedDecoded": 11897,
+          "gzipLevel9": 3919,
+          "reportedGzip": 3919,
+          "sha256": "c9e29f36b4362d863c697cfd043081f24b62f81fc5591233f79c4222c55b10f2",
+          "decodedLimit": 49152,
+          "gzipLimit": 12288,
+          "records": 34,
+          "recordLimit": 512,
+          "edges": 0,
+          "bindings": 2,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "seed.generated-CIv8_AbZ.js",
+              "decoded": 11781,
+              "gzip": 3854,
+              "sha256": "0c35b671f7d8bcfefede1a577429991f267f9a98c0ffe6cbc815bb41acc8f74a",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "market",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/market.generated.ts",
+          "decoded": 20309,
+          "reportedDecoded": 20309,
+          "gzipLevel9": 8518,
+          "reportedGzip": 8518,
+          "sha256": "f374686f068127044465d1f0b879bfd8709dcc217b733128b70ffb4c3690fb19",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 2,
+          "recordLimit": 512,
+          "edges": 0,
+          "bindings": 2,
+          "projections": 2,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "market.generated-B4ZRYihA.js",
+              "decoded": 19990,
+              "gzip": 8465,
+              "sha256": "0c41d74613545b094196007be5d73427b61365f43d9dad38707eabe9a2b2db93",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "regimes",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/regimes.generated.ts",
+          "decoded": 100077,
+          "reportedDecoded": 100077,
+          "gzipLevel9": 30319,
+          "reportedGzip": 30319,
+          "sha256": "343026684f648b27287727c7343e6d55909acdf3a5f5618c5d194f89b84fd05f",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 84,
+          "recordLimit": 512,
+          "edges": 126,
+          "bindings": 33,
+          "projections": 4,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "regimes.generated-C0Q-5NOY.js",
+              "decoded": 97830,
+              "gzip": 30366,
+              "sha256": "331986737a37386ccf8b29e8ebfed33ff4d20b7fb3f5cfc8cc50163c1d2c1091",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "risk",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/risk.generated.ts",
+          "decoded": 78665,
+          "reportedDecoded": 78665,
+          "gzipLevel9": 17267,
+          "reportedGzip": 17267,
+          "sha256": "b3900412b2416586bb586d602ab4ea8ec9d76f5cc83120d45522c651b9a2691b",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 110,
+          "recordLimit": 512,
+          "edges": 88,
+          "bindings": 31,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "risk.generated-BC2sERj4.js",
+              "decoded": 78548,
+              "gzip": 17353,
+              "sha256": "aa9505e1bf7ce65bb5d8f0ddf9810017b672d92f3ebf72a89609bc0b33db3b6c",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "factors",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/factors.generated.ts",
+          "decoded": 88483,
+          "reportedDecoded": 88483,
+          "gzipLevel9": 16570,
+          "reportedGzip": 16570,
+          "sha256": "7f5226c03bf72510614891cb13cc58151fb942bd80104227df6c71dfabf9f1f7",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 247,
+          "recordLimit": 512,
+          "edges": 75,
+          "bindings": 30,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "factors.generated-BeNw5k11.js",
+              "decoded": 88367,
+              "gzip": 16725,
+              "sha256": "9bb4a46cf54a8435a8a340fad426e15befac93e76c9d75a6a6af50b090593ee6",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/data.generated.ts",
+          "decoded": 108669,
+          "reportedDecoded": 108669,
+          "gzipLevel9": 27533,
+          "reportedGzip": 27533,
+          "sha256": "34bff83e5957c53b20474647f0142cbcadfd013155820898bfd63b4921ca5b50",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 253,
+          "recordLimit": 512,
+          "edges": 18,
+          "bindings": 161,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "data.generated-tCzf4_F-.js",
+              "decoded": 108553,
+              "gzip": 27647,
+              "sha256": "1f02534597f9509bdcfc3f6afd03896116ac82211298dc197ca827e3d372c716",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "recordings",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/recordings.generated.ts",
+          "decoded": 52705,
+          "reportedDecoded": 52705,
+          "gzipLevel9": 14337,
+          "reportedGzip": 14337,
+          "sha256": "bed4e95cf6dd075c597681f1da65fb7399917e357a90b9de4e582a0981cf61b7",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 120,
+          "recordLimit": 512,
+          "edges": 108,
+          "bindings": 66,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "recordings.generated-Cp1oZ-l1.js",
+              "decoded": 52589,
+              "gzip": 14385,
+              "sha256": "6667f525a26a0a0d0b4b9b2bb2069cd2d9cf6f6b024e51df54349cfa66b0241f",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "history",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/history.generated.ts",
+          "decoded": 128022,
+          "reportedDecoded": 128022,
+          "gzipLevel9": 30387,
+          "reportedGzip": 30387,
+          "sha256": "7d45d3dd2841a401447b578d6ff125f6d27835cd5a1f3be9b6aae82e5aeb53cf",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 282,
+          "recordLimit": 512,
+          "edges": 462,
+          "bindings": 42,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "history.generated-6rQL4gcT.js",
+              "decoded": 127906,
+              "gzip": 31020,
+              "sha256": "849e7063e077870522a1530e97af1dac51a7fbb6d411da183e0fb4c06332f5cc",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "observatory-window",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/observatory-window.generated.ts",
+          "decoded": 58387,
+          "reportedDecoded": 58387,
+          "gzipLevel9": 25294,
+          "reportedGzip": 25294,
+          "sha256": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 0,
+          "recordLimit": 512,
+          "edges": 0,
+          "bindings": 1,
+          "projections": 1,
+          "status": "PASS",
+          "emittedAssets": []
+        }
+      ],
+      "metadataGlobal": {
+        "availableOriginals": 333,
+        "uniqueCompiledBindings": 333,
+        "unavailableOriginals": 20,
+        "totalRecords": 1132,
+        "recordLimit": 4096,
+        "totalEdges": 877,
+        "edgeLimit": 8192,
+        "retainedVersionChoices": 2053,
+        "completeOriginalChecks": 252
+      },
+      "comparison": {
+        "previousProofs": [
+          {
+            "path": ".tmp/phase75/stage9-ui/budget-attribution-audit.json",
+            "sha256": "6fc91d9e539aa90e6ae4f1c93c661b54c0525e0e29639a1a379a3ca256a709fd",
+            "preserved": true
+          },
+          {
+            "path": ".tmp/phase75/stage9-ui/reader-candidate-budget-audit.json",
+            "sha256": "55a0543dd84b8c29131cdd9bf18f7466589679fc3d15c2c9ef7cb30dd2cfbf8e",
+            "preserved": true
+          }
+        ],
+        "previousReducedBuild": {
+          "shared": 41049,
+          "factor": 65908,
+          "risk": 80111
+        },
+        "current": {
+          "shared": 41213,
+          "factor": 66068,
+          "risk": 80907
+        },
+        "warning": "The checkpoint includes legitimate main830 publication, lossless codec and stale-result/aggregate/UI fixes; JS deltas cannot be attributed solely to codec. Metadata capacity repair is not a shared executable-JS budget win."
+      },
+      "codecMetadataEffect": {
+        "sameMain830Before": {
+          "historyDecoded": 134615,
+          "historyGzipLevel9": 31622,
+          "records": 282,
+          "edges": 462,
+          "bindings": 42
+        },
+        "after": {
+          "historyDecoded": 128022,
+          "historyGzipLevel9": 30387,
+          "records": 282,
+          "edges": 462,
+          "bindings": 42
+        },
+        "unpackedHistoryBytes": 553428,
+        "encodedHashFragments": 347,
+        "hashFragmentCharactersSaved": 19,
+        "allOriginalStringsAndIEEEValues": "Preserved per own84 + independent verifier proofs; no source artifact or ID semantics changed."
+      },
+      "readerClosure": {
+        "actualExports": [
+          "verifyDisplayProjection"
+        ],
+        "future": "Only projection verification is currently emitted. Activating full-original reader, comparisons, table, preference, export or EvidenceLink UI later requires fresh closure attribution; no future/full-milestone JS PASS claimed."
+      },
+      "limitations": [
+        "Original24KiB shared and64KiB workspace caps remain unchanged.",
+        "All current JS counts are strict lowerbounds and already fail; no shared code is divided between routes to dilute attribution.",
+        "Common initial224KiB and complete browser/action/performance acceptance are outside this audit.",
+        "Ignored generated module caps pass; this does not establish full Phase7.5 completion or permit Stage10 activation."
+      ]
+    },
+    "rejected_structural_prototypes": {
+      "schema_version": "phase75-budget-structural-rewrite-review/1",
+      "status": "REJECTED_NO_EQUIVALENT_CAP_COMPLIANT_CANDIDATE_DEMONSTRATED",
+      "sourceHead": "f4f1eac47043241e766cbcc8d1d85e8c92d5ba01",
+      "activeRuntimeSourceChanged": false,
+      "sourceHashesUnchanged": true,
+      "activeSourceHashes": [
+        {
+          "path": "frontend-v2/src/app/terminal/context.ts",
+          "baselineSha256": "d4a4c2d0295d8069ea3a8159b4bb19456a15c85f6d2afa558addc9c15263aabc",
+          "currentSha256": "d4a4c2d0295d8069ea3a8159b4bb19456a15c85f6d2afa558addc9c15263aabc",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/compatibility.ts",
+          "baselineSha256": "c67ca8ff2efedc5b3a7bfece8373f3e5c32b937beb90ae6ff3cc42ed3c4068f7",
+          "currentSha256": "c67ca8ff2efedc5b3a7bfece8373f3e5c32b937beb90ae6ff3cc42ed3c4068f7",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/links.ts",
+          "baselineSha256": "5406a87411dab0262c03da7245aea4eba0ad38912ee6232381761aab8df56904",
+          "currentSha256": "5406a87411dab0262c03da7245aea4eba0ad38912ee6232381761aab8df56904",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/catalog.ts",
+          "baselineSha256": "463bb9661e76d0ff2e524e33b6656d09ad05affae21211dc4bbbc0609056248d",
+          "currentSha256": "463bb9661e76d0ff2e524e33b6656d09ad05affae21211dc4bbbc0609056248d",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/reader.ts",
+          "baselineSha256": "a0768f64c1c1fd2432174ed5b3d65796f75a6d600c620a807a5a92840c56a7cc",
+          "currentSha256": "a0768f64c1c1fd2432174ed5b3d65796f75a6d600c620a807a5a92840c56a7cc",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/search.ts",
+          "baselineSha256": "cfd2c15765cd642dd044c7b3cdd5fe40c0023505bbd6446b00e3a8f7af5e4ef8",
+          "currentSha256": "cfd2c15765cd642dd044c7b3cdd5fe40c0023505bbd6446b00e3a8f7af5e4ef8",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/commands.ts",
+          "baselineSha256": "4d23b91d5a3aed26b85985ab4613ce44c5432fab8f3e941e3345b0c3467e0dfa",
+          "currentSha256": "4d23b91d5a3aed26b85985ab4613ce44c5432fab8f3e941e3345b0c3467e0dfa",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/capabilities.ts",
+          "baselineSha256": "e22d46a7b9c4fbdd2c25f7136a310abc0b59a078ab3dbebe4f7764ef3e4f5c11",
+          "currentSha256": "e22d46a7b9c4fbdd2c25f7136a310abc0b59a078ab3dbebe4f7764ef3e4f5c11",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/TerminalShell.tsx",
+          "baselineSha256": "c7419d41f3260b0c855d29cbbbea5872957f8f8a6fc1cd18971816356b7392d8",
+          "currentSha256": "c7419d41f3260b0c855d29cbbbea5872957f8f8a6fc1cd18971816356b7392d8",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/ContextBar.tsx",
+          "baselineSha256": "e988558bf36df752a7740246db1b43c86bcc434ab32ed9197451703ae6c06c3a",
+          "currentSha256": "e988558bf36df752a7740246db1b43c86bcc434ab32ed9197451703ae6c06c3a",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/command/CommandLine.tsx",
+          "baselineSha256": "023a3ea0d2ff561da44b59bf92877b9bd41a20927b68db2d1892781cb32f29ca",
+          "currentSha256": "023a3ea0d2ff561da44b59bf92877b9bd41a20927b68db2d1892781cb32f29ca",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/command/ForgeCommandPalette.tsx",
+          "baselineSha256": "74475a0fa305cc2364541b7c5fac44fd02ed3258ac8e6632a9a9c412de575d25",
+          "currentSha256": "74475a0fa305cc2364541b7c5fac44fd02ed3258ac8e6632a9a9c412de575d25",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/command/mnemonics.ts",
+          "baselineSha256": "291177586bb01322911cd2e55521ed5213df3512722ec40d39fcd5cf34a0de4c",
+          "currentSha256": "291177586bb01322911cd2e55521ed5213df3512722ec40d39fcd5cf34a0de4c",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/workspaces.ts",
+          "baselineSha256": "6f7125b29662b3f14e39f80bea0e2d7b64c3f2d9fa9bb36bcd424e47e9b72699",
+          "currentSha256": "6f7125b29662b3f14e39f80bea0e2d7b64c3f2d9fa9bb36bcd424e47e9b72699",
+          "unchanged": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/generated/seed.generated.ts",
+          "baselineSha256": "c9e29f36b4362d863c697cfd043081f24b62f81fc5591233f79c4222c55b10f2",
+          "currentSha256": "c9e29f36b4362d863c697cfd043081f24b62f81fc5591233f79c4222c55b10f2",
+          "unchanged": true
+        }
+      ],
+      "productionBudgetReference": {
+        "proof": ".tmp/phase75/stage9-ui/main830-codec-stale-budget-audit.json",
+        "shared": {
+          "gzip": 41213,
+          "limit": 24576,
+          "over": 16637,
+          "headroom": 0,
+          "status": "FAIL",
+          "assets": [
+            "TerminalShell-SaRp6ELG.js",
+            "seed.generated-CIv8_AbZ.js",
+            "catalog-DErrml_Y.js",
+            "commands-BcFX6bqU.js",
+            "context-Bxg_MIav.js",
+            "links-DKMiVem4.js",
+            "reader-C7ZV5Xz9.js",
+            "search-DkehpaH1.js"
+          ]
+        },
+        "factors": {
+          "gzip": 66068,
+          "limit": 65536,
+          "over": 532,
+          "headroom": 0,
+          "status": "FAIL",
+          "assets": [
+            "factors-VJdxG5sm.js",
+            "LineageDrawer-BfMGk4dC.js",
+            "query-Byrn5HlT.js",
+            "RetainedDiagnostics-Drzc8sFr.js",
+            "TerminalShell-SaRp6ELG.js",
+            "seed.generated-CIv8_AbZ.js",
+            "catalog-DErrml_Y.js",
+            "commands-BcFX6bqU.js",
+            "context-Bxg_MIav.js",
+            "links-DKMiVem4.js",
+            "reader-C7ZV5Xz9.js",
+            "search-DkehpaH1.js"
+          ]
+        },
+        "risk": {
+          "gzip": 80907,
+          "limit": 65536,
+          "over": 15371,
+          "headroom": 0,
+          "status": "FAIL",
+          "assets": [
+            "risk-CVERfm31.js",
+            "TerminalShell-SaRp6ELG.js",
+            "seed.generated-CIv8_AbZ.js",
+            "catalog-DErrml_Y.js",
+            "commands-BcFX6bqU.js",
+            "context-Bxg_MIav.js",
+            "links-DKMiVem4.js",
+            "reader-C7ZV5Xz9.js",
+            "search-DkehpaH1.js"
+          ]
+        }
+      },
+      "prototypeMetrics": {
+        "method": "Same baseline/candidate TypeScript transpileModule module99,target9,react-jsx,removeComments; installed Rolldown1.1.5 minify:true,esm,moduleSideEffects:false. Default node:zlib gzipSync per emitted chunk, summed separately. Existing dependencies externalized consistently. Exact initial seed retained. Not production-build acceptance.",
+        "variants": [
+          {
+            "name": "Original graph",
+            "natural": 41895,
+            "consolidated": 36512,
+            "naturalDelta": 0,
+            "consolidatedDelta": 0,
+            "consolidatedOverCap": 11936
+          },
+          {
+            "name": "Context field-contract codec",
+            "natural": 41912,
+            "consolidated": 36550,
+            "naturalDelta": 17,
+            "consolidatedDelta": 38,
+            "consolidatedOverCap": 11974
+          },
+          {
+            "name": "Palette state consolidation",
+            "natural": 41972,
+            "consolidated": 36599,
+            "naturalDelta": 77,
+            "consolidatedDelta": 87,
+            "consolidatedOverCap": 12023
+          },
+          {
+            "name": "State plus shared command glue",
+            "natural": 41949,
+            "consolidated": 36556,
+            "naturalDelta": 54,
+            "consolidatedDelta": 44,
+            "consolidatedOverCap": 11980
+          }
+        ],
+        "wholeGraphConsolidationSaving": 5383,
+        "remainingAfterBestDemonstratedGrouping": 11936
+      },
+      "retainedRequirements": [
+        "All existing tagged URL,plain-object/property descriptor,UTF8,length,privacy,duplicate key,legacy transport,origin,country/subject/namespace,date,table bounds and pair-ownership guards remain. Same normalized value/error code/error message equality is tested.",
+        "All palette markup,aria/native href/click modifier,keyboard,Escape,focus,debounce,AbortController,race/scope and historical controls remain in the UI state candidate. Command navigation call ordering and exception behavior are checked independently.",
+        "No runtime code-as-data/eval,history/entity pruning,metadata weakening,threshold raise,chunk attribution hiding,protected source edit,scientific/source artifact change,private API or environment/schedule change."
+      ],
+      "validation": {
+        "contextDifferential": {
+          "status": "PASS",
+          "assertions": 15805,
+          "corpusCases": 915,
+          "acceptedVariants": 1790,
+          "proof": "context-differential.json"
+        },
+        "contextTypecheck": {
+          "status": "PASS_NO_NEW_DIAGNOSTICS",
+          "baselineDiagnostics": 0,
+          "candidateDiagnostics": 0,
+          "candidateOnly": 0,
+          "proof": "typecheck.json",
+          "initialHarness": "typecheck-initial-harness.json preserves an initial harness config-path problem; repaired with real tsconfig path, never source changes."
+        },
+        "uiTypecheck": {
+          "baseline": {
+            "diagnosticsCount": 0,
+            "diagnostics": []
+          },
+          "state": {
+            "diagnosticsCount": 0,
+            "diagnostics": []
+          },
+          "shared": {
+            "diagnosticsCount": 0,
+            "diagnostics": []
+          }
+        },
+        "uiDifferential": {
+          "markupAndGuards": {
+            "tags": {
+              "equal": true,
+              "original": 22,
+              "candidate": 22,
+              "sha256": "db1a1965025091961f4354ff644549f07ae1601c632516641104b7fce3ed910b"
+            },
+            "attributes": {
+              "equal": true,
+              "original": 44,
+              "candidate": 44,
+              "sha256": "9cf265be3f1d5121b9522437525abe9440dd55e3d5c64813059e6699a3f21376"
+            },
+            "conditions": {
+              "equal": true,
+              "original": 27,
+              "candidate": 27,
+              "sha256": "0ba5c5718d84f2b4cf91fe63a4ca42c8bb39395911e86cacb9b7e9448bc19d25"
+            },
+            "handlerKeys": {
+              "equal": true,
+              "original": 8,
+              "candidate": 8,
+              "sha256": "b4ae5006e89f1f0ec4c809e619195b6c969bec965f0f9d835d7e8ee2e5667fc0"
+            }
+          },
+          "navigationCases": 32,
+          "proof": "ui/ui-differential.json"
+        },
+        "existingNavigationVerifier": {
+          "passed": 518,
+          "failed": 1,
+          "failures": [
+            {
+              "name": "loaded real search p95 stays within30ms across sixty varied queries",
+              "error": "AssertionError [ERR_ASSERTION]: Loadedsearch p95 36.063200000000506ms exceeds30ms"
+            }
+          ],
+          "codec": {
+            "samples": 100,
+            "p95_ms": 0.22939999999999827,
+            "limit_ms": 2,
+            "input_bytes": 4096,
+            "canonical_bytes": 2468,
+            "workload": "parse and serialize; exact retained IDs, complete Risk origin,12columns,160code-unit multilingual query"
+          },
+          "proof": "static-candidate/context-proof.json",
+          "limitation": "Candidate context loaded in memory at original module URL. Existing source-text checks still inspect unchanged active sources. This is not full source/browser acceptance. Timing failure is preserved without rerunning until green."
+        }
+      },
+      "architectureBoundary": {
+        "finding": "No demonstrated feasible equivalent architecture within approved file scope. Existing metadata/grammar designs already share most syntax; replacing repeated setters/spec objects with general dispatch adds bytes after gzip. Wholesale cross-module validation rearchitecture is theoretical and unmeasured, not a credible cap-compliant proposal.",
+        "explanations": [
+          "Single complete static graph still exceeds cap by11,936B before new rewrites.",
+          "Actual production shell/command UI is9,804B; deleting all of it nonfunctionally still leaves31,409B shared,6,833B above cap. This is diagnostic only, not a feature proposal.",
+          "Build-time verification cannot remove required browser projection/digest/binding checks; full original reads retain complete original validation.",
+          "Further lazy splitting cannot reduce attributed complete shared or aggregate workspace transfer under the unchanged counting rule."
+        ],
+        "extraExistingPathProposal": null,
+        "notMathematicalImpossibilityProof": true
+      },
+      "decision": {
+        "applyPrototype": false,
+        "continueMilestone": false,
+        "stopRule": "Plan41: A failing budget is a finding to repair or bring back for scope approval, not a reason to raise thresholds, omit old epochs or repeatedly rerun until green."
+      }
+    },
+    "rejected_structural_prototypes_sha256": "c8f0a3aecc07a5833a4d0980a485b57b6b190ee9097fc4e30277d1d62b6b5005",
+    "stop_basis": {
+      "source": "User-approved implementation brief, PERFORMANCE, lines1190–1196; immutable approved plan §41",
+      "exact_instruction": "If a legitimate implementation cannot satisfy one: STOP and report it.",
+      "decision": "Preserve the passing codec and focused UI checkpoint, stop further integration, retain all failed budget and prototype evidence, and keep every cap and freeze unchanged.",
+      "finding_limit": "No demonstrated feasible equivalent architecture meets the caps within approved scope. This is not a proof of mathematical impossibility."
+    },
+    "notes": "The lossless metadata capacity repair is independent of executable-JS failure. No dependency is excluded because it is lazy/shared, no history or validation is pruned, and no thresholds are raised. Full-reader/comparison/table/preferences/export activation will require a fresh asset closure audit."
+  },
+  "checkpoint_source_head": "0f1ca904a5f8021e74dbf06301781d8e6b7cb75b",
+  "reconciliation_checked_at": "2026-10-29T02:49:31.999Z",
+  "checkpoint_engineering": {
+    "typecheck": {
+      "status": "PASS",
+      "exit_code": 0,
+      "log": ".tmp/phase75/stage9-close/typecheck.log",
+      "log_sha256": "3d2f6992c528e1e861a06fcbaf70851b5ec2f819a4c511152f6b748e8b5172c6"
+    },
+    "lint": {
+      "status": "PASS_WITH_WARNINGS",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 3,
+      "warning_rule": "react-refresh/only-export-components",
+      "log": ".tmp/phase75/stage9-close/lint.log",
+      "log_sha256": "cebb913fc42b1fe432986a3c89cef4f2b66651b8eff916d212beee724d7096b2"
+    },
+    "generated_source_modules": {
+      "status": "PASS",
+      "count": 9,
+      "history_decoded_bytes": 128022,
+      "history_gzip_bytes": 30387,
+      "modules": [
+        {
+          "name": "seed",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/seed.generated.ts",
+          "decoded": 11897,
+          "reportedDecoded": 11897,
+          "gzipLevel9": 3919,
+          "reportedGzip": 3919,
+          "sha256": "c9e29f36b4362d863c697cfd043081f24b62f81fc5591233f79c4222c55b10f2",
+          "decodedLimit": 49152,
+          "gzipLimit": 12288,
+          "records": 34,
+          "recordLimit": 512,
+          "edges": 0,
+          "bindings": 2,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "seed.generated-CIv8_AbZ.js",
+              "decoded": 11781,
+              "gzip": 3854,
+              "sha256": "0c35b671f7d8bcfefede1a577429991f267f9a98c0ffe6cbc815bb41acc8f74a",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "market",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/market.generated.ts",
+          "decoded": 20309,
+          "reportedDecoded": 20309,
+          "gzipLevel9": 8518,
+          "reportedGzip": 8518,
+          "sha256": "f374686f068127044465d1f0b879bfd8709dcc217b733128b70ffb4c3690fb19",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 2,
+          "recordLimit": 512,
+          "edges": 0,
+          "bindings": 2,
+          "projections": 2,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "market.generated-B4ZRYihA.js",
+              "decoded": 19990,
+              "gzip": 8465,
+              "sha256": "0c41d74613545b094196007be5d73427b61365f43d9dad38707eabe9a2b2db93",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "regimes",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/regimes.generated.ts",
+          "decoded": 100077,
+          "reportedDecoded": 100077,
+          "gzipLevel9": 30319,
+          "reportedGzip": 30319,
+          "sha256": "343026684f648b27287727c7343e6d55909acdf3a5f5618c5d194f89b84fd05f",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 84,
+          "recordLimit": 512,
+          "edges": 126,
+          "bindings": 33,
+          "projections": 4,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "regimes.generated-C0Q-5NOY.js",
+              "decoded": 97830,
+              "gzip": 30366,
+              "sha256": "331986737a37386ccf8b29e8ebfed33ff4d20b7fb3f5cfc8cc50163c1d2c1091",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "risk",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/risk.generated.ts",
+          "decoded": 78665,
+          "reportedDecoded": 78665,
+          "gzipLevel9": 17267,
+          "reportedGzip": 17267,
+          "sha256": "b3900412b2416586bb586d602ab4ea8ec9d76f5cc83120d45522c651b9a2691b",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 110,
+          "recordLimit": 512,
+          "edges": 88,
+          "bindings": 31,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "risk.generated-BC2sERj4.js",
+              "decoded": 78548,
+              "gzip": 17353,
+              "sha256": "aa9505e1bf7ce65bb5d8f0ddf9810017b672d92f3ebf72a89609bc0b33db3b6c",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "factors",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/factors.generated.ts",
+          "decoded": 88483,
+          "reportedDecoded": 88483,
+          "gzipLevel9": 16570,
+          "reportedGzip": 16570,
+          "sha256": "7f5226c03bf72510614891cb13cc58151fb942bd80104227df6c71dfabf9f1f7",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 247,
+          "recordLimit": 512,
+          "edges": 75,
+          "bindings": 30,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "factors.generated-BeNw5k11.js",
+              "decoded": 88367,
+              "gzip": 16725,
+              "sha256": "9bb4a46cf54a8435a8a340fad426e15befac93e76c9d75a6a6af50b090593ee6",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/data.generated.ts",
+          "decoded": 108669,
+          "reportedDecoded": 108669,
+          "gzipLevel9": 27533,
+          "reportedGzip": 27533,
+          "sha256": "34bff83e5957c53b20474647f0142cbcadfd013155820898bfd63b4921ca5b50",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 253,
+          "recordLimit": 512,
+          "edges": 18,
+          "bindings": 161,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "data.generated-tCzf4_F-.js",
+              "decoded": 108553,
+              "gzip": 27647,
+              "sha256": "1f02534597f9509bdcfc3f6afd03896116ac82211298dc197ca827e3d372c716",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "recordings",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/recordings.generated.ts",
+          "decoded": 52705,
+          "reportedDecoded": 52705,
+          "gzipLevel9": 14337,
+          "reportedGzip": 14337,
+          "sha256": "bed4e95cf6dd075c597681f1da65fb7399917e357a90b9de4e582a0981cf61b7",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 120,
+          "recordLimit": 512,
+          "edges": 108,
+          "bindings": 66,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "recordings.generated-Cp1oZ-l1.js",
+              "decoded": 52589,
+              "gzip": 14385,
+              "sha256": "6667f525a26a0a0d0b4b9b2bb2069cd2d9cf6f6b024e51df54349cfa66b0241f",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "history",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/history.generated.ts",
+          "decoded": 128022,
+          "reportedDecoded": 128022,
+          "gzipLevel9": 30387,
+          "reportedGzip": 30387,
+          "sha256": "7d45d3dd2841a401447b578d6ff125f6d27835cd5a1f3be9b6aae82e5aeb53cf",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 282,
+          "recordLimit": 512,
+          "edges": 462,
+          "bindings": 42,
+          "projections": 0,
+          "status": "PASS",
+          "emittedAssets": [
+            {
+              "name": "history.generated-6rQL4gcT.js",
+              "decoded": 127906,
+              "gzip": 31020,
+              "sha256": "849e7063e077870522a1530e97af1dac51a7fbb6d411da183e0fb4c06332f5cc",
+              "imports": [],
+              "dynamicImports": [],
+              "exports": [
+                "default"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "observatory-window",
+          "sourcePath": "frontend-v2/src/app/terminal/generated/observatory-window.generated.ts",
+          "decoded": 58387,
+          "reportedDecoded": 58387,
+          "gzipLevel9": 25294,
+          "reportedGzip": 25294,
+          "sha256": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+          "decodedLimit": 131072,
+          "gzipLimit": 32768,
+          "records": 0,
+          "recordLimit": 512,
+          "edges": 0,
+          "bindings": 1,
+          "projections": 1,
+          "status": "PASS",
+          "emittedAssets": []
+        }
+      ]
+    },
+    "plan_sha256": "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5",
+    "pr_policy": {
+      "draft": true,
+      "merged": false,
+      "auto_merge": false,
+      "ready_for_review": false
+    },
+    "ci_and_deployment": "Not final/exact-head verified. Phase7.5 implementation remains incomplete.",
+    "scope": {
+      "changed_files": 32,
+      "unapproved_paths": [],
+      "deleted_paths": [],
+      "approved_router_amendment": true,
+      "ninth_generated_module_amendment": true
+    }
+  },
+  "checkpoint_independent_audit": {
+    "schema_version": "phase75-stage9-independent-checkpoint-audit/1",
+    "status": "PASS_CHECKPOINT_SAFEGUARDS_JS_BUDGETS_FAIL",
+    "recordedAt": "2026-10-29T02:51:00.791Z",
+    "sourceHead": "0f1ca904a5f8021e74dbf06301781d8e6b7cb75b",
+    "checks": 2583,
+    "failures": [],
+    "evidence": [
+      {
+        "path": ".tmp/phase75/stage9-ui/main830-codec-stale-budget-audit.json",
+        "sha256": "5db9c10cb46da2dceeb19540b58123c1245569e9a9dbd057592bf0c075b8a41c"
+      },
+      {
+        "path": ".tmp/phase75/main830-full-staged/context-proof.json",
+        "sha256": "b36adbbd9c844d0cabae7a2a4cf9d6012a3e31ee501ad26b516420864edcca75"
+      },
+      {
+        "path": ".tmp/phase75/stage9-ui/browser-proof.json",
+        "sha256": "c32034d4e5c48fc6769c997e3b03cf0a7934de5ec7b4deefc6c738c36028006f"
+      },
+      {
+        "path": ".tmp/phase75/hash-fragments/codec-proof.json",
+        "sha256": "57ae540b9f97c6a2e71c3309475bc5123b9564e5def1b3adb2fe5c3f7e1759ca"
+      },
+      {
+        "path": ".tmp/phase75/hash-fragments-independent/proof.json",
+        "sha256": "34b65c0e40e7e5fc3a1c33ec1312ee95180c7d15da5987f8c8fbfba539fcd4b8"
+      }
+    ],
+    "sourceFreshness": {
+      "budgetSourceBase": "f4f1eac47043241e766cbcc8d1d85e8c92d5ba01",
+      "currentHead": "0f1ca904a5f8021e74dbf06301781d8e6b7cb75b",
+      "budgetSourceBaseIsAncestor": true,
+      "budgetSourceHashes": 20,
+      "allMatch": true,
+      "files": [
+        {
+          "path": "frontend-v2/src/router.tsx",
+          "expected": "af9713b6c8bc7f134e0e01eac80eff0afec7d5577079c0acaf282bad1b4e3794",
+          "actual": "af9713b6c8bc7f134e0e01eac80eff0afec7d5577079c0acaf282bad1b4e3794",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/context.ts",
+          "expected": "d4a4c2d0295d8069ea3a8159b4bb19456a15c85f6d2afa558addc9c15263aabc",
+          "actual": "d4a4c2d0295d8069ea3a8159b4bb19456a15c85f6d2afa558addc9c15263aabc",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/compatibility.ts",
+          "expected": "c67ca8ff2efedc5b3a7bfece8373f3e5c32b937beb90ae6ff3cc42ed3c4068f7",
+          "actual": "c67ca8ff2efedc5b3a7bfece8373f3e5c32b937beb90ae6ff3cc42ed3c4068f7",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/links.ts",
+          "expected": "5406a87411dab0262c03da7245aea4eba0ad38912ee6232381761aab8df56904",
+          "actual": "5406a87411dab0262c03da7245aea4eba0ad38912ee6232381761aab8df56904",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/catalog.ts",
+          "expected": "463bb9661e76d0ff2e524e33b6656d09ad05affae21211dc4bbbc0609056248d",
+          "actual": "463bb9661e76d0ff2e524e33b6656d09ad05affae21211dc4bbbc0609056248d",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/reader.ts",
+          "expected": "a0768f64c1c1fd2432174ed5b3d65796f75a6d600c620a807a5a92840c56a7cc",
+          "actual": "a0768f64c1c1fd2432174ed5b3d65796f75a6d600c620a807a5a92840c56a7cc",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/search.ts",
+          "expected": "cfd2c15765cd642dd044c7b3cdd5fe40c0023505bbd6446b00e3a8f7af5e4ef8",
+          "actual": "cfd2c15765cd642dd044c7b3cdd5fe40c0023505bbd6446b00e3a8f7af5e4ef8",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/commands.ts",
+          "expected": "4d23b91d5a3aed26b85985ab4613ce44c5432fab8f3e941e3345b0c3467e0dfa",
+          "actual": "4d23b91d5a3aed26b85985ab4613ce44c5432fab8f3e941e3345b0c3467e0dfa",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/capabilities.ts",
+          "expected": "e22d46a7b9c4fbdd2c25f7136a310abc0b59a078ab3dbebe4f7764ef3e4f5c11",
+          "actual": "e22d46a7b9c4fbdd2c25f7136a310abc0b59a078ab3dbebe4f7764ef3e4f5c11",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/TerminalShell.tsx",
+          "expected": "c7419d41f3260b0c855d29cbbbea5872957f8f8a6fc1cd18971816356b7392d8",
+          "actual": "c7419d41f3260b0c855d29cbbbea5872957f8f8a6fc1cd18971816356b7392d8",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/ContextBar.tsx",
+          "expected": "e988558bf36df752a7740246db1b43c86bcc434ab32ed9197451703ae6c06c3a",
+          "actual": "e988558bf36df752a7740246db1b43c86bcc434ab32ed9197451703ae6c06c3a",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/command/CommandLine.tsx",
+          "expected": "023a3ea0d2ff561da44b59bf92877b9bd41a20927b68db2d1892781cb32f29ca",
+          "actual": "023a3ea0d2ff561da44b59bf92877b9bd41a20927b68db2d1892781cb32f29ca",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/command/ForgeCommandPalette.tsx",
+          "expected": "74475a0fa305cc2364541b7c5fac44fd02ed3258ac8e6632a9a9c412de575d25",
+          "actual": "74475a0fa305cc2364541b7c5fac44fd02ed3258ac8e6632a9a9c412de575d25",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/command/mnemonics.ts",
+          "expected": "291177586bb01322911cd2e55521ed5213df3512722ec40d39fcd5cf34a0de4c",
+          "actual": "291177586bb01322911cd2e55521ed5213df3512722ec40d39fcd5cf34a0de4c",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/app/workspaces.ts",
+          "expected": "6f7125b29662b3f14e39f80bea0e2d7b64c3f2d9fa9bb36bcd424e47e9b72699",
+          "actual": "6f7125b29662b3f14e39f80bea0e2d7b64c3f2d9fa9bb36bcd424e47e9b72699",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/markets/TickerSearch.tsx",
+          "expected": "95e4848ea5d12548ea1bb6c741bd34e09e62f0ea4bc57b053b2fefb644ae977e",
+          "actual": "95e4848ea5d12548ea1bb6c741bd34e09e62f0ea4bc57b053b2fefb644ae977e",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/risk-manager/RiskWorkspace.tsx",
+          "expected": "a0286e4b0385c6a614634e74bf195cb401fc3494fc393aae0c3e211c8865fba7",
+          "actual": "a0286e4b0385c6a614634e74bf195cb401fc3494fc393aae0c3e211c8865fba7",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/src/factors/FactorsWorkspace.tsx",
+          "expected": "c52fc052758548df6f82c73290081df5091cc14ca90a9ef660ecde955763ea33",
+          "actual": "c52fc052758548df6f82c73290081df5091cc14ca90a9ef660ecde955763ea33",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/scripts/generate-terminal-index.mjs",
+          "expected": "6aad9a5967ec90e0186dde94d4b6471788405cddf5abd2f555ca93a20265c5fd",
+          "actual": "6aad9a5967ec90e0186dde94d4b6471788405cddf5abd2f555ca93a20265c5fd",
+          "match": true
+        },
+        {
+          "path": "frontend-v2/scripts/verify-factors.mjs",
+          "expected": "783f7cab5360ac4bc5a9e3686350da1a90fc5907693e2f4feb36dddaf9c18432",
+          "actual": "783f7cab5360ac4bc5a9e3686350da1a90fc5907693e2f4feb36dddaf9c18432",
+          "match": true
+        }
+      ],
+      "limits": "Existing519proof doesnotstorea complete tested-sourcehashmap. Currenthashes match the frozenbudgetcheckpoint; itsmanifest/allnineoutputhashes match now. Thisaudit doesnot claim anew519execution."
+    },
+    "verification": {
+      "static": {
+        "checks": 519,
+        "stageStatus": "PASS",
+        "overallStatus": "INCOMPLETE",
+        "missingAreas": [
+          "changes",
+          "preferences",
+          "exports"
+        ]
+      },
+      "browser": {
+        "cases": 16,
+        "status": "PASS_FOCUSED_STAGE9_UI",
+        "unexpectedPageErrors": 0,
+        "unexpectedConsoleErrors": 0,
+        "blocked": 0,
+        "expectedMalformedDocumentResponse": {
+          "url": "http://127.0.0.1:4174/markets/in-mkt?ctx=1&q=%ZZ",
+          "status": 404,
+          "codecDiagnostic": "Investigation URL has malformed UTF-8 or percent encoding.",
+          "originalRawURLUnchanged": true
+        },
+        "limits": [
+          "Focused Chrome integration only; no full matrix, density, table, or final acceptance claim.",
+          "Observatory tests inspect exact native hrefs and chooser behavior without following into the pending bounded trace adapter; they do not establish end-to-end HMM reading."
+        ]
+      },
+      "codec": {
+        "ownCases": 84,
+        "independentCases": 52,
+        "status": "PASS_INDEPENDENT_LOSSLESS_CODEC",
+        "metadataOnly": true
+      }
+    },
+    "moduleCaps": [
+      {
+        "name": "seed",
+        "decoded": 11897,
+        "gzip": 3919,
+        "records": 34,
+        "sha256": "c9e29f36b4362d863c697cfd043081f24b62f81fc5591233f79c4222c55b10f2"
+      },
+      {
+        "name": "market",
+        "decoded": 20309,
+        "gzip": 8518,
+        "records": 2,
+        "sha256": "f374686f068127044465d1f0b879bfd8709dcc217b733128b70ffb4c3690fb19"
+      },
+      {
+        "name": "regimes",
+        "decoded": 100077,
+        "gzip": 30319,
+        "records": 84,
+        "sha256": "343026684f648b27287727c7343e6d55909acdf3a5f5618c5d194f89b84fd05f"
+      },
+      {
+        "name": "risk",
+        "decoded": 78665,
+        "gzip": 17267,
+        "records": 110,
+        "sha256": "b3900412b2416586bb586d602ab4ea8ec9d76f5cc83120d45522c651b9a2691b"
+      },
+      {
+        "name": "factors",
+        "decoded": 88483,
+        "gzip": 16570,
+        "records": 247,
+        "sha256": "7f5226c03bf72510614891cb13cc58151fb942bd80104227df6c71dfabf9f1f7"
+      },
+      {
+        "name": "data",
+        "decoded": 108669,
+        "gzip": 27533,
+        "records": 253,
+        "sha256": "34bff83e5957c53b20474647f0142cbcadfd013155820898bfd63b4921ca5b50"
+      },
+      {
+        "name": "recordings",
+        "decoded": 52705,
+        "gzip": 14337,
+        "records": 120,
+        "sha256": "bed4e95cf6dd075c597681f1da65fb7399917e357a90b9de4e582a0981cf61b7"
+      },
+      {
+        "name": "history",
+        "decoded": 128022,
+        "gzip": 30387,
+        "records": 282,
+        "sha256": "7d45d3dd2841a401447b578d6ff125f6d27835cd5a1f3be9b6aae82e5aeb53cf"
+      },
+      {
+        "name": "observatory-window",
+        "decoded": 58387,
+        "gzip": 25294,
+        "records": 0,
+        "sha256": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02"
+      }
+    ],
+    "freeze": {
+      "planSha256": "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5",
+      "protectedSources": [
+        {
+          "path": "frontend-v2/src/app/shell/ForgeShell.tsx",
+          "sha256": "8ff7d29f58a6ace9ac22d88f29e87f1e13ff2e36dddae93626974c9dd998aee2",
+          "archiveBaseSha256": "8ff7d29f58a6ace9ac22d88f29e87f1e13ff2e36dddae93626974c9dd998aee2"
+        },
+        {
+          "path": "frontend-v2/src/markets/queries.ts",
+          "sha256": "2813ce7b5586b56f96d0116facf3976cc49af7ed39193d7617617c18ecb4980a",
+          "archiveBaseSha256": "2813ce7b5586b56f96d0116facf3976cc49af7ed39193d7617617c18ecb4980a"
+        },
+        {
+          "path": "frontend-v2/src/replay/client.ts",
+          "sha256": "85f8fcd4860aab0aa20c7a072338018cac4b1d51d13f482da44ad4b64aac3cb9",
+          "archiveBaseSha256": "85f8fcd4860aab0aa20c7a072338018cac4b1d51d13f482da44ad4b64aac3cb9"
+        },
+        {
+          "path": "frontend-v2/src/replay/contracts.ts",
+          "sha256": "11f8b4fa7c71fd1facce5c5ef1fb42b0f89b1dd2f380ad1048effc5f40e2ea33",
+          "archiveBaseSha256": "11f8b4fa7c71fd1facce5c5ef1fb42b0f89b1dd2f380ad1048effc5f40e2ea33"
+        },
+        {
+          "path": "frontend-v2/src/replay/FactorRegimeEvidence.tsx",
+          "sha256": "0b6b087176475641492987e50f00f5fe806b19bc07544782bddfe4e2c67b6176",
+          "archiveBaseSha256": "0b6b087176475641492987e50f00f5fe806b19bc07544782bddfe4e2c67b6176"
+        },
+        {
+          "path": "frontend-v2/src/replay/SourceCredit.tsx",
+          "sha256": "4d19324a60a5c2837d0930d376d931657e33909ec1b639ea52945d26fdc6adec",
+          "archiveBaseSha256": "4d19324a60a5c2837d0930d376d931657e33909ec1b639ea52945d26fdc6adec"
+        },
+        {
+          "path": "frontend-v2/src/replay/factor-series.ts",
+          "sha256": "d57d14cb2dd0fda33e90fb6c90f82f1e978fb35c4a1ea2a6acd6225533bdcf59",
+          "archiveBaseSha256": "d57d14cb2dd0fda33e90fb6c90f82f1e978fb35c4a1ea2a6acd6225533bdcf59"
+        },
+        {
+          "path": "frontend-v2/src/replay/mode.tsx",
+          "sha256": "6b11eec3502b5315cbe742180e392385f5bca91788801e0f6a8b7a089ff60353",
+          "archiveBaseSha256": "6b11eec3502b5315cbe742180e392385f5bca91788801e0f6a8b7a089ff60353"
+        },
+        {
+          "path": "frontend-v2/src/replay/observatory.ts",
+          "sha256": "45dc09df9b12b269c613744f224aa0c41bebd72ab45439d996af942b040b1646",
+          "archiveBaseSha256": "45dc09df9b12b269c613744f224aa0c41bebd72ab45439d996af942b040b1646"
+        }
+      ],
+      "scientificFiles": 930,
+      "scientificInventorySha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+      "phase5Files": 684,
+      "availableOriginals": 333,
+      "immutableRiskArtifacts": 27,
+      "excludedCommit": "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d",
+      "excludedObjectAvailable": true,
+      "excludedIsAncestor": false
+    },
+    "scope": {
+      "changed": [
+        ".gitignore",
+        "docs/phase7-5-connected-quant-terminal-plan.md",
+        "docs/phase7-5-connected-quant-terminal.md",
+        "docs/qa/phase7-5-connected-quant-terminal-proof.json",
+        "frontend-v2/package.json",
+        "frontend-v2/scripts/generate-terminal-index.mjs",
+        "frontend-v2/scripts/verify-terminal-browser.mjs",
+        "frontend-v2/scripts/verify-terminal-context.mjs",
+        "frontend-v2/src/app/command/CommandLine.tsx",
+        "frontend-v2/src/app/command/ForgeCommandPalette.tsx",
+        "frontend-v2/src/app/command/mnemonics.ts",
+        "frontend-v2/src/app/terminal/ContextBar.tsx",
+        "frontend-v2/src/app/terminal/EvidenceLink.tsx",
+        "frontend-v2/src/app/terminal/TerminalShell.tsx",
+        "frontend-v2/src/app/terminal/capabilities.ts",
+        "frontend-v2/src/app/terminal/catalog.ts",
+        "frontend-v2/src/app/terminal/commands.ts",
+        "frontend-v2/src/app/terminal/compatibility.ts",
+        "frontend-v2/src/app/terminal/context.ts",
+        "frontend-v2/src/app/terminal/links.ts",
+        "frontend-v2/src/app/terminal/reader.ts",
+        "frontend-v2/src/app/terminal/search.ts",
+        "frontend-v2/src/app/terminal/terminal.css",
+        "frontend-v2/src/factors/FactorsShell.tsx",
+        "frontend-v2/src/factors/FactorsWorkspace.tsx",
+        "frontend-v2/src/markets/TickerSearch.tsx",
+        "frontend-v2/src/risk-manager/RiskShell.tsx",
+        "frontend-v2/src/risk-manager/RiskWorkspace.tsx",
+        "frontend-v2/src/router.tsx",
+        "frontend-v2/src/routes/factors.tsx",
+        "frontend-v2/src/routes/markets.tsx",
+        "frontend-v2/src/routes/risk.tsx"
+      ],
+      "untracked": [],
+      "deleted": [],
+      "temporaryRootScratchAbsent": true
+    },
+    "plan41": {
+      "path": "docs/phase7-5-connected-quant-terminal-plan.md",
+      "lines": {
+        "section": 522,
+        "workspace": 538,
+        "shared": 539,
+        "stop": 545
+      },
+      "workspaceRequirement": "- Keep existing Risk selected state+receipt ≤256 KiB, total initial data ≤512 KiB, synchronous validation ≤50ms and filter interaction ≤100ms. Keep the original 64 KiB incremental executable workspace cap for both Risk and Factors, counting new terminal dependencies attributable to that route rather than hiding them in a shared chunk.",
+      "sharedRequirement": "- New shared terminal functionality ≤24 KiB gzip, included in those aggregate workspace caps. Common initial JS target ≤224 KiB gzip for the five main evidence routes; legacy 3D/trace code must remain deferred. Risk currently totals 179,157 gzip JS bytes; current compound Regimes totals 243,970 and needs lazy separation to meet the proposed target.",
+      "stopRequirement": "Generator field-selection/roundtrip checks prove a window or index is an exact projection of its verified source; it cannot grant new publication rights or fabricate a result. Full numerical history is retained, accessible and explicitly distinguished from the initial display window. A failing budget is a finding to repair or bring back for scope approval, not a reason to raise thresholds, omit old epochs or repeatedly rerun until green.",
+      "interpretation": "24KiB covers newshared functionality andis includedin each64KiB aggregate. Initial/lazyplacement isnot anexclusion. Catalogue-only Factor count isinsufficient. Latest countsare conservative fullidentifiedshared lowerbounds; they already fail, andexcluded baselinecommon/othermetadata cannot turnfailure intoPASS."
+    },
+    "budgets": {
+      "shared": {
+        "gzip": 41213,
+        "limit": 24576,
+        "over": 16637,
+        "headroom": 0,
+        "status": "FAIL",
+        "assets": [
+          "TerminalShell-SaRp6ELG.js",
+          "seed.generated-CIv8_AbZ.js",
+          "catalog-DErrml_Y.js",
+          "commands-BcFX6bqU.js",
+          "context-Bxg_MIav.js",
+          "links-DKMiVem4.js",
+          "reader-C7ZV5Xz9.js",
+          "search-DkehpaH1.js"
+        ]
+      },
+      "factor": {
+        "gzip": 66068,
+        "limit": 65536,
+        "over": 532,
+        "headroom": 0,
+        "status": "FAIL",
+        "assets": [
+          "factors-VJdxG5sm.js",
+          "LineageDrawer-BfMGk4dC.js",
+          "query-Byrn5HlT.js",
+          "RetainedDiagnostics-Drzc8sFr.js",
+          "TerminalShell-SaRp6ELG.js",
+          "seed.generated-CIv8_AbZ.js",
+          "catalog-DErrml_Y.js",
+          "commands-BcFX6bqU.js",
+          "context-Bxg_MIav.js",
+          "links-DKMiVem4.js",
+          "reader-C7ZV5Xz9.js",
+          "search-DkehpaH1.js"
+        ]
+      },
+      "risk": {
+        "gzip": 80907,
+        "limit": 65536,
+        "over": 15371,
+        "headroom": 0,
+        "status": "FAIL",
+        "assets": [
+          "risk-CVERfm31.js",
+          "TerminalShell-SaRp6ELG.js",
+          "seed.generated-CIv8_AbZ.js",
+          "catalog-DErrml_Y.js",
+          "commands-BcFX6bqU.js",
+          "context-Bxg_MIav.js",
+          "links-DKMiVem4.js",
+          "reader-C7ZV5Xz9.js",
+          "search-DkehpaH1.js"
+        ]
+      },
+      "corePlusSeed": 31409
+    },
+    "limitations": [
+      "Thisis a read-only evidence/hash/freeze audit, not a fullmilestone or newCI/browsermatrix run.",
+      "Stage9 functional/projection metadata checks pass; approved JSbudget overages remain a stop condition for Stage10.",
+      "No caps, guard, sourceartifact, feature scope or approvalplan waschanged.",
+      "No commit, push, PRstate mutation or publication was performed."
+    ],
+    "proof_sha256": "6fa2ac250957228ac3fda24c464d873395b6728d9c40f59e24c1235df90b9407"
   }
 }

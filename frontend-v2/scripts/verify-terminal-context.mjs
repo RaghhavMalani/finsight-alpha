@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { performance } from "node:perf_hooks";
+import ts from "typescript";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
@@ -32,6 +33,7 @@ import {
   defaultStringifySearch,
 } from "@tanstack/react-router";
 
+import { checkedIssueReferences } from "../src/risk-manager/evidence.ts";
 import { adaptContext, anchorAppliesTo } from "../src/app/terminal/compatibility.ts";
 import {
   buildInvestigationTarget,
@@ -532,7 +534,18 @@ check("context codec p95 bound on an admitted 4096-byte URL", () => {
 });
 
 const pinnedRisk = parseInvestigationContext("risk", qRisk);
-const dataIssueId = manifest.routes["/data/issues"];
+const declaredDataRefs = checkedIssueReferences(issue, currentSweep).filter(
+  (ref) => ref.type === "REPLAY_ARTIFACT" && ref.kind === "data-organ-issues",
+);
+assert.equal(
+  declaredDataRefs.length,
+  1,
+  "Risk origin fixture needs one exact declared Data container",
+);
+const dataIssueId = declaredDataRefs[0].artifact_id;
+const declaredDataBinding = manifest.artifacts[dataIssueId];
+assert.equal(declaredDataRefs[0].sha256, declaredDataBinding.sha256);
+assert.equal(declaredDataRefs[0].bytes, declaredDataBinding.bytes);
 const dataItems = artifact(dataIssueId).payload.items;
 const upstreamOrigin = issue.origin_records.find((o) => dataItems.some((d) => d.id === o.id));
 assert(upstreamOrigin, "Current pinned Risk Issue has an exact retained Data origin");
@@ -552,6 +565,13 @@ const verifyOrigin = (proof) =>
   proof.source.artifactId === currentStateId &&
   proof.source.entityId === observationIssue &&
   proof.destination.artifactId === dataIssueId &&
+  checkedIssueReferences(issue, currentSweep).some(
+    (ref) =>
+      ref.type === "REPLAY_ARTIFACT" &&
+      ref.artifact_id === dataIssueId &&
+      ref.sha256 === declaredDataBinding.sha256 &&
+      ref.bytes === declaredDataBinding.bytes,
+  ) &&
   issue.origin_records.some((o) => o.id === proof.destination.entityId) &&
   dataItems.some((o) => o.id === proof.destination.entityId);
 const destinationView = {
@@ -1045,7 +1065,9 @@ check("recorded run target path must agree with exact typed run", () => {
 // The implementation base is the independently published Data epoch merged by the
 // root agent. It grants no permission to modify production publication artifacts.
 const ARCHIVE_BASE = "e65e6651ccbe758e490b2b48c240aac514cab7c6";
-const RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
+const PREVIOUS_RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
+const RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
+const CURRENT_AVAILABLE_BINDINGS = 333;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1224,13 +1246,13 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const added = Object.keys(admittedManifest.artifacts).filter(
     (id) => !(id in baseManifest.artifacts),
   );
-  assert.equal(added.length, 7);
+  assert.equal(added.length, 14);
   assert.deepEqual(
     added.map((id) => admittedManifest.artifacts[id].kind).sort(),
-    dataKinds.map((kind) => "data-organ-" + kind).sort(),
+    [...dataKinds, ...dataKinds].map((kind) => "data-organ-" + kind).sort(),
   );
   const clocks = new Set(added.map((id) => admittedManifest.artifacts[id].as_of));
-  assert.equal(clocks.size, 1);
+  assert.equal(clocks.size, 2);
   for (const kind of dataKinds)
     assert(
       added.includes(admittedManifest.routes["/data/" + kind]),
@@ -1244,7 +1266,7 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const upstreamPaths = splitZ(
     git("diff", "--no-renames", "--name-only", "-z", ARCHIVE_BASE, RECONCILED_MAIN),
   );
-  assert.equal(upstreamPaths.length, 17);
+  assert.equal(upstreamPaths.length, 28);
   assert(
     upstreamPaths.every(
       (p) =>
@@ -1258,11 +1280,53 @@ check("admitted main publication preserves every old entry and all non-Data alia
         ),
     ),
   );
+  const previous = JSON.parse(
+    git("show", PREVIOUS_RECONCILED_MAIN + ":frontend-v2/public/replay-manifest.json"),
+  );
+  assert.equal(Object.keys(previous.artifacts).length, 346);
+  for (const [id, entry] of Object.entries(previous.artifacts))
+    assert.deepEqual(admittedManifest.artifacts[id], entry, "Prior346 entry " + id);
+  const mutableDataPaths = ["health", "issues", "lineage", "receipt", "manifest"]
+    .map((kind) => "data/exports/data_organ_v0_1/" + kind + ".json")
+    .concat("frontend-v2/public/replay-manifest.json")
+    .sort();
+  const epochs = [
+    [ARCHIVE_BASE, PREVIOUS_RECONCILED_MAIN],
+    [PREVIOUS_RECONCILED_MAIN, RECONCILED_MAIN],
+  ];
+  for (const [from, to] of epochs) {
+    assert.deepEqual(
+      splitZ(git("diff", "--no-renames", "--name-only", "--diff-filter=MD", "-z", from, to)).sort(),
+      mutableDataPaths,
+      "Every prior sealed/raw/public file must remain exact",
+    );
+    const before = JSON.parse(git("show", from + ":frontend-v2/public/replay-manifest.json"));
+    const after = JSON.parse(git("show", to + ":frontend-v2/public/replay-manifest.json"));
+    assert.deepEqual(Object.keys(after.routes).sort(), Object.keys(before.routes).sort());
+    assert.deepEqual(
+      Object.keys(before.routes)
+        .filter((route) => before.routes[route] !== after.routes[route])
+        .sort(),
+      dataKinds.map((kind) => "/data/" + kind).sort(),
+    );
+    const epochIds = Object.keys(after.artifacts).filter(
+      (id) => !Object.hasOwn(before.artifacts, id),
+    );
+    assert.equal(epochIds.length, 7);
+    assert.deepEqual(
+      epochIds.map((id) => after.artifacts[id].kind).sort(),
+      dataKinds.map((kind) => "data-organ-" + kind).sort(),
+    );
+    assert.equal(new Set(epochIds.map((id) => after.artifacts[id].as_of)).size, 1);
+    for (const [id, entry] of Object.entries(before.artifacts))
+      assert.deepEqual(after.artifacts[id], entry);
+  }
   freezeProof.independentUpstreamPublication = {
     commit: RECONCILED_MAIN,
     paths: upstreamPaths,
     addedArtifacts: added,
-    asOf: [...clocks][0],
+    asOf: admittedManifest.as_of,
+    publicationEpochs: [...clocks].sort(),
     oldArtifactsPreserved: 339,
     originalRoutes: 146,
   };
@@ -1282,6 +1346,7 @@ check("all original public artifact bindings and available bytes remain exact", 
     if (id.startsWith("risk:")) risk++;
   }
   assert.equal(risk, 27);
+  assert.equal(available, CURRENT_AVAILABLE_BINDINGS);
   freezeProof.availableOriginalArtifactsChecked = available;
   freezeProof.immutableRiskArtifacts = risk;
 });
@@ -1495,6 +1560,227 @@ if (!coreOnly || projectionsOnly) {
   const generator = await import("./generate-terminal-index.mjs");
   const catalog = await import("../src/app/terminal/catalog.ts");
   const reader = await import("../src/app/terminal/reader.ts");
+  const readerReferenceSha = "7d66cd6db874d2bf1e6d4dc4798fa7e2da9c3c5e";
+  const parseSource = (name, source) =>
+    ts.createSourceFile(name, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const priorReader = parseSource(
+    "reader.before.ts",
+    gitText("show", readerReferenceSha + ":frontend-v2/src/app/terminal/reader.ts"),
+  );
+  const actualReader = parseSource(
+    "reader.ts",
+    readFileSync(path.join(frontend, "src/app/terminal/reader.ts"), "utf8"),
+  );
+  const functionNamed = (source, name) =>
+    source.statements.find(
+      (statement) => ts.isFunctionDeclaration(statement) && statement.name?.text === name,
+    );
+  const priorClosed = functionNamed(priorReader, "closedOriginal");
+  const literal = (node) => {
+    assert(node, "Required literal grammar is missing");
+    if (ts.isNumericLiteral(node)) return Number(node.text);
+    if (ts.isStringLiteral(node)) return node.text;
+    if (
+      ts.isPrefixUnaryExpression(node) &&
+      node.operator === ts.SyntaxKind.MinusToken &&
+      ts.isNumericLiteral(node.operand)
+    )
+      return -Number(node.operand.text);
+    if (ts.isArrayLiteralExpression(node)) return node.elements.map(literal);
+    if (ts.isObjectLiteralExpression(node))
+      return Object.fromEntries(
+        node.properties.map((property) => {
+          assert(
+            ts.isPropertyAssignment(property),
+            "Grammar must remain closed literal schema metadata",
+          );
+          assert(ts.isIdentifier(property.name) || ts.isStringLiteral(property.name));
+          return [property.name.text, literal(property.initializer)];
+        }),
+      );
+    throw new Error("Grammar contains unreviewed executable or non-literal metadata");
+  };
+  const constantsIn = (fn) => {
+    assert(fn?.body);
+    const constants = {};
+    for (const statement of fn.body.statements)
+      if (ts.isVariableStatement(statement))
+        for (const declaration of statement.declarationList.declarations)
+          if (
+            ts.isIdentifier(declaration.name) &&
+            ["roots", "nodes"].includes(declaration.name.text)
+          )
+            constants[declaration.name.text] = literal(declaration.initializer);
+    assert(constants.roots && constants.nodes);
+    return constants;
+  };
+  const previousGrammar = constantsIn(priorClosed),
+    fullGrammar = constantsIn(functionNamed(actualReader, "fullOriginalGrammar")),
+    displayGrammar = constantsIn(functionNamed(actualReader, "displayOriginalGrammar"));
+  const displayPaths = {
+    "market-series": ["$.method", "$.weeks"],
+    "regimes-timeline": ["$.payload"],
+    "regimes-snapshot": ["$.payload.frozen_research"],
+    "trace-hmm": ["$"],
+  };
+  const verifyDisplayGrammar = (candidate) => {
+    const reachable = new Set();
+    const visit = (index) => {
+      assert(Number.isInteger(index) && index >= 0 && index < previousGrammar.nodes.length);
+      if (reachable.has(index)) return;
+      reachable.add(index);
+      const rule = previousGrammar.nodes[index];
+      for (const child of Object.values(rule[1])) visit(child);
+      if (rule[3] >= 0) visit(rule[3]);
+    };
+    for (const [contract, paths] of Object.entries(displayPaths))
+      for (const at of paths) visit(previousGrammar.roots[contract][at]);
+    const mapping = [...reachable].sort((left, right) => left - right),
+      inverse = new Map(mapping.map((original, index) => [original, index]));
+    assert.equal(mapping.length, 35);
+    const nodes = mapping.map((original) => {
+      const rule = previousGrammar.nodes[original];
+      return [
+        rule[0],
+        Object.fromEntries(
+          Object.entries(rule[1]).map(([key, child]) => [key, inverse.get(child)]),
+        ),
+        rule[2],
+        rule[3] < 0 ? rule[3] : inverse.get(rule[3]),
+      ];
+    });
+    const roots = Object.fromEntries(
+      Object.entries(displayPaths).map(([contract, paths]) => [
+        contract,
+        Object.fromEntries(
+          paths.map((at) => [at, inverse.get(previousGrammar.roots[contract][at])]),
+        ),
+      ]),
+    );
+    assert.deepEqual(candidate, { roots, nodes });
+    return mapping;
+  };
+  check(
+    "reader split preserves every complete-original root and all155 closed schema nodes",
+    () => {
+      assert.equal(previousGrammar.nodes.length, 155);
+      assert.deepEqual(fullGrammar, previousGrammar);
+    },
+  );
+  check(
+    "display grammar is exactly the independently reached35nodes for five original paths",
+    () => {
+      const mapping = verifyDisplayGrammar(displayGrammar);
+      projectionProof.readerGrammar = {
+        referenceCommit: readerReferenceSha,
+        originalNodes: fullGrammar.nodes.length,
+        displayNodes: displayGrammar.nodes.length,
+        paths: displayPaths,
+        independentNewToOriginalNodeIndices: mapping,
+        fullOriginalUnchanged: true,
+      };
+    },
+  );
+  const printer = ts.createPrinter({ removeComments: true, newLine: ts.NewLineKind.LineFeed });
+  const printed = (node, source) => printer.printNode(ts.EmitHint.Unspecified, node, source);
+  check("closed structural visitor body retains the exact pre-split validation semantics", () => {
+    const oldVisit = priorClosed.body.statements.find(
+      (statement) => ts.isFunctionDeclaration(statement) && statement.name?.text === "visit",
+    );
+    const validator = functionNamed(actualReader, "validateClosedStructure");
+    const newVisit = validator.body.statements.find(
+      (statement) => ts.isFunctionDeclaration(statement) && statement.name?.text === "visit",
+    );
+    assert.equal(printed(newVisit, actualReader), printed(oldVisit, priorReader));
+    assert.equal(validator.body.statements.length, 2);
+    assert.match(printed(validator.body.statements[1], actualReader), /^visit\(value, root\);$/);
+  });
+  check("full-original read guards and API functions remain structurally unchanged", () => {
+    for (const name of ["fullOriginalGrammar", "displayOriginalGrammar"]) {
+      const fn = functionNamed(actualReader, name);
+      assert.equal(fn.body.statements.length, 3);
+      assert(
+        ts.isVariableStatement(fn.body.statements[0]) &&
+          ts.isVariableStatement(fn.body.statements[1]),
+      );
+      assert.equal(printed(fn.body.statements[2], actualReader), "return { roots, nodes };");
+    }
+    for (const statement of priorReader.statements) {
+      if (!ts.isFunctionDeclaration(statement) || statement.name?.text === "closedOriginal")
+        continue;
+      const name = statement.name.text,
+        actual = functionNamed(actualReader, name);
+      assert(actual, name + " was removed");
+      const expected = printed(statement, priorReader);
+      assert.equal(
+        printed(actual, actualReader),
+        name === "verifyDisplayProjection"
+          ? expected.replaceAll("closedOriginal(", "closedDisplayOriginal(")
+          : expected,
+        name,
+      );
+    }
+    for (const [name, factory] of [
+      ["closedOriginal", "fullOriginalGrammar"],
+      ["closedDisplayOriginal", "displayOriginalGrammar"],
+    ]) {
+      const body = printed(functionNamed(actualReader, name).body, actualReader);
+      assert.equal(
+        body.replace(/\s+/g, ""),
+        `{const{roots,nodes}=${factory}();validateClosedStructure(value,roots[contract]?.[path],nodes);}`,
+      );
+    }
+  });
+  for (const [name, mutate] of [
+    [
+      "type flags",
+      (value) => {
+        value.nodes[0][0] |= 16;
+      },
+    ],
+    [
+      "unknown field",
+      (value) => {
+        value.nodes.find((node) => Object.keys(node[1]).length)[1].account = 0;
+      },
+    ],
+    [
+      "missing required field",
+      (value) => {
+        value.nodes.find((node) => node[2].length)[2].pop();
+      },
+    ],
+    [
+      "array item",
+      (value) => {
+        value.nodes.find((node) => node[3] > 0)[3] = 0;
+      },
+    ],
+    [
+      "missing node",
+      (value) => {
+        value.nodes.pop();
+      },
+    ],
+    [
+      "unreviewed root",
+      (value) => {
+        value.roots["forge-runs"] = { $: 0 };
+      },
+    ],
+    [
+      "wrong root",
+      (value) => {
+        value.roots["trace-hmm"].$ = 0;
+      },
+    ],
+  ])
+    check("display grammar sabotage rejects " + name, () => {
+      const changed = structuredClone(displayGrammar);
+      mutate(changed);
+      assert.throws(() => verifyDisplayGrammar(changed));
+    });
+
   const readArtifactBytes = (_id, entry) => readFileSync(path.join(frontend, "public", entry.url));
   const clone = (v) => structuredClone(v);
   const decode = (shard) =>
@@ -1775,6 +2061,75 @@ if (!coreOnly || projectionsOnly) {
       }
     },
   );
+  const zeroDigest = "0".repeat(64),
+    canonicalHashFragment = "!1" + "A".repeat(43);
+  check("hash fragments use canonical version1 encoding for exactly32 bytes", () =>
+    assert.deepEqual(catalog.packTerminalPayload(zeroDigest).strings, [canonicalHashFragment]),
+  );
+  const collisionValues = [
+    "",
+    zeroDigest,
+    "a".repeat(64),
+    "A".repeat(64),
+    "f".repeat(64) + zeroDigest,
+    "prefix:" + zeroDigest + ":suffix",
+    canonicalHashFragment,
+    "!!" + canonicalHashFragment,
+    "!2future",
+    "!",
+    "!!",
+    "!-0",
+    "$0",
+    "@0",
+    "日本語 !1 μ",
+    "x".repeat(8192),
+    "!" + "x".repeat(8191),
+  ];
+  for (const [index, value] of collisionValues.entries())
+    check("hash-fragment exact collision/Unicode/boundary roundtrip " + index, () => {
+      const packed = catalog.packTerminalPayload(value);
+      assert.equal(
+        catalog.unpackTerminalPayload(
+          packed.strings,
+          packed.payload,
+          packed.structures,
+          packed.texts,
+        ),
+        value,
+      );
+    });
+  for (const [index, value] of [
+    "!1",
+    "!1" + "A".repeat(42),
+    "!1" + "A".repeat(44),
+    "!1" + "A".repeat(42) + "=",
+    "!1" + "A".repeat(42) + "B",
+    "!1" + "A".repeat(42) + "+",
+    "!1" + "A".repeat(42) + "/",
+    "!1" + "A".repeat(41) + "==",
+    "!2" + "A".repeat(43),
+    "!x",
+    "!",
+    "x".repeat(8193),
+    "!!" + "x".repeat(8192),
+  ].entries())
+    check("malformed/noncanonical/oversized hash fragment rejects " + index, () =>
+      assert.throws(() => catalog.unpackTerminalPayload([value], "$0", [], [[0]])),
+    );
+  check("literal marker is escaped and decoded exactly once", () => {
+    assert.equal(
+      catalog.unpackTerminalPayload(["!!1" + "A".repeat(43)], "$0", [], [[0]]),
+      canonicalHashFragment,
+    );
+    assert.equal(catalog.unpackTerminalPayload(["!!!-0"], "$0", [], [[0]]), "!!-0");
+  });
+  check("fragment decoding retains dictionary and joined text bounds", () => {
+    assert.throws(() => catalog.unpackTerminalPayload(Array(20001).fill("x"), "$0", [], [[0]]));
+    assert.throws(() =>
+      catalog.unpackTerminalPayload([canonicalHashFragment], "$0", [], [Array(129).fill(0)]),
+    );
+  });
+
   for (const value of [NaN, Infinity, -Infinity, undefined])
     check(`packing rejects unsupported nonfinite/undefined ${String(value)}`, () =>
       assert.throws(() => catalog.packTerminalPayload({ value })),
@@ -2626,9 +2981,9 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
       projectionPins: Object.assign({}, ...shards.map((s) => s.projectionPins)),
     };
     assert(data.entities.length > 1000);
-    assert.equal(Object.keys(data.bindings).length, 326);
+    assert.equal(Object.keys(data.bindings).length, CURRENT_AVAILABLE_BINDINGS);
     navigationProof.entities = data.entities.length;
-    navigationProof.bindings = 326;
+    navigationProof.bindings = CURRENT_AVAILABLE_BINDINGS;
   });
   if (data) {
     const clone = (value) => structuredClone(value),
@@ -2650,6 +3005,107 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           );
       },
     );
+    for (const market of ["US", "INDIA"]) {
+      check(
+        `current search preserves admitted ${market} aggregate identity from a listing context`,
+        () => {
+          const id = market === "INDIA" ? "IN-MKT" : "US-MKT";
+          const listingContext = {
+            ...clone(originContext),
+            market: "INDIA",
+            subject: { kind: "reference-listing", providerSymbol: "RELIANCE.NS", venue: "IS" },
+            anchor: undefined,
+            compare: undefined,
+            view: { workspace: "market" },
+          };
+          for (const source of [ctx, listingContext]) {
+            const response = search.searchLoaded(id, source, {
+              ...data,
+              scope: "current",
+              limit: 20,
+            });
+            assert.equal(response.results[0]?.id, id);
+            const result = response.results.find(
+              (item) => item.id === id && item.type === "market-factor",
+            );
+            assert(
+              result?.target,
+              "An admitted exact aggregate cannot be hidden by unrelated current aliases",
+            );
+            assert.equal(result.capability.label, "PUBLIC_REPLAY");
+            assert.equal(result.target.context.subject.id, id);
+            assert.equal(result.target.context.market, market);
+            assert.equal(result.target.context.anchor.artifactId, "market:" + id);
+            assert.deepEqual(result.target.context.origin, source.origin);
+          }
+        },
+      );
+    }
+
+    for (const market of ["US", "INDIA"]) {
+      for (const [field, patch] of [
+        [
+          "scope",
+          (entry) => {
+            entry.scope = "PRIVATE";
+          },
+        ],
+        [
+          "source",
+          (entry) => {
+            entry.sources = [market === "US" ? "IIMA" : "KENNETH_FRENCH"];
+          },
+        ],
+        [
+          "kind",
+          (entry) => {
+            entry.kind = "regimes-snapshot";
+          },
+        ],
+        [
+          "licence",
+          (entry) => {
+            entry.licence.status = "WITHDRAWN";
+          },
+        ],
+        [
+          "url",
+          (entry) => {
+            entry.url = "/artifacts/replay/unbound-market-revision.json";
+          },
+        ],
+        [
+          "as_of",
+          (entry) => {
+            entry.as_of = "2026-10-08T04:10:01Z";
+          },
+        ],
+      ]) {
+        check(`current ${market} aggregate exception rejects wrong ${field}`, () => {
+          const id = market === "INDIA" ? "IN-MKT" : "US-MKT";
+          const bindings = clone(data.bindings);
+          patch(bindings["market:" + id]);
+          const result = search
+            .searchLoaded(id, ctx, { ...data, bindings, scope: "current" })
+            .results.find((item) => item.type === "market-factor" && item.id === id);
+          assert.equal(result, undefined);
+        });
+      }
+    }
+
+    for (const market of ["US", "INDIA"]) {
+      check(`current ${market} aggregate exception rejects wrong country metadata`, () => {
+        const id = market === "INDIA" ? "IN-MKT" : "US-MKT";
+        const entities = clone(data.entities);
+        entities.find((item) => item.type === "market-factor" && item.id === id).market =
+          market === "US" ? "INDIA" : "US";
+        const result = search
+          .searchLoaded(id, ctx, { ...data, entities, scope: "current" })
+          .results.find((item) => item.type === "market-factor" && item.id === id);
+        assert.equal(result, undefined);
+      });
+    }
+
     check("loaded search ordering is independent of catalogue load order", () => {
       assert.equal(
         catalog.stableTerminal(search.searchLoaded("factor", ctx, history)),
@@ -3245,7 +3701,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         );
       });
     check(
-      "original inspection capability agrees with strict reader for all326 actual bindings",
+      "original inspection capability agrees with strict reader for all333 actual bindings",
       () => {
         let supported = 0;
         for (const [id, binding] of Object.entries(data.bindings)) {
@@ -3261,11 +3717,11 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        assert.equal(supported, 301);
+        assert.equal(supported, 308);
         navigationProof.originalInspection = {
-          bindings: 326,
+          bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,
-          unsupported: 326 - supported,
+          unsupported: CURRENT_AVAILABLE_BINDINGS - supported,
         };
       },
     );
