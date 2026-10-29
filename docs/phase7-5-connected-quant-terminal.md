@@ -1,6 +1,6 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
-Status: STOPPED AT THE APPROVED JAVASCRIPT BUDGET GATE. No final QA, CI, deployment or review-readiness claim is made by this checkpoint. The eventual PR must remain DRAFT, OPEN, UNMERGED, with auto-merge disabled.
+Status: STOPPED AT THE APPROVED JAVASCRIPT AND HISTORY CAPACITY GATES. No final QA, CI, deployment or review-readiness claim is made by this checkpoint. The eventual PR must remain DRAFT, OPEN, UNMERGED, with auto-merge disabled.
 
 ## Product integration and scientific boundary
 
@@ -85,3 +85,20 @@ The guard-equivalent display-reader split already saved 4,814 gzip bytes. A whol
 The approved implementation brief states: “If a legitimate implementation cannot satisfy one: STOP and report it.” Integration stops at this gate. No cap is raised, no validation or scientific history is removed, and no shared/lazy dependency is omitted to manufacture a pass. Exact production source/asset hashes, metadata sizes, passing focused browser cases and rejected candidates are embedded in the companion proof. Upcoming Risk/Data/Regime/Factor/Research/Observatory adapters, comparison/table/chart/preferences/export work and final CI/deployment checks remain incomplete. The prepared EvidenceLink component is not wired or included in a future budget acceptance claim. Any published checkpoint must remain DRAFT, OPEN, UNMERGED, auto-merge disabled, and not ready for review.
 
 An independent checkpoint audit matches all 20 production-budget source hashes, all nine generated outputs, 333 available originals, 930 frozen scientific files and all nine protected frontend sources. The current diff contains 32 approved paths and no deletions. The single authorized Phase 7.5 draft PR is a checkpoint for this incomplete implementation; the failed JS gates remain explicit and no review-ready status is requested.
+
+## Latest main reconciliation and additional capacity blocker
+
+The final pre-push fetch advanced main to `32c3f827985dd5fbee0354780765e49e679cad57`. Before merging, an independent 1,867-check audit passed: all 353 prior manifest entries, 146 route keys, 333 prior public originals, 98 sealed raw histories and protected scientific sources remain exact. Seven new complete Data envelopes pass the unchanged whole-source guards. Merge `6e923aea77ee7445564f28d7598729b37a57588e` reconciles that independently published epoch. The current manifest has 360 entries, including 340 AVAILABLE and 20 UNAVAILABLE, with 146 routes. Phase 7.5 performed no capture or scientific publication.
+
+This new epoch introduces an additional capacity failure under the unchanged codec and limits:
+
+| Current history module gate | Actual bytes | Approved cap | Result |
+|---|---:|---:|---|
+| Decoded source | 133,320 | 131,072 | FAIL by 2,248 |
+| Gzip source | 31,693 | 32,768 | PASS |
+
+The other eight modules pass their caps. Two premerge derivations each read the same 259 exact originals and produce identical capacity metrics and failure messages. The generator remains fail-closed: no module outputs are returned or written, so module-byte equality is not claimed for this failed epoch. The real postmerge generator check also exits 1 for exactly this decoded history overflow. Current build/install/typecheck lifecycle prerequisites are therefore blocked; old generated files are not accepted as current outputs.
+
+The current contracts/context/compatibility/freeze stage passes 202 checks, the updated verifier file passes lint, and the original archive verifier freshly passes all 930 frozen files with the original scientific inventory. Earlier 519-check navigation, 16-case Stage 9 browser, TypeScript and whole-frontend lint results remain explicitly tied to main830 and its exact production source/assets. The 41,213 /80,907 /66,068 gzip JS figures above are the last measured production failures at that earlier epoch; a fresh final-head build and browser rerun are unavailable while generation fails.
+
+Both executable-JS and latest history capacity failures are retained as blockers. No cap, history, licence, original guard, archive baseline or protected source is relaxed. The approved source baseline advances only through all three independently checked Data epochs; original e65 archive and reader7d references remain pinned. `6f99daa` stays excluded. The draft PR presents an incomplete, blocked checkpoint and makes no final CI, Vercel or review-readiness claim.

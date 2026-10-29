@@ -1065,9 +1065,10 @@ check("recorded run target path must agree with exact typed run", () => {
 // The implementation base is the independently published Data epoch merged by the
 // root agent. It grants no permission to modify production publication artifacts.
 const ARCHIVE_BASE = "e65e6651ccbe758e490b2b48c240aac514cab7c6";
-const PREVIOUS_RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
-const RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
-const CURRENT_AVAILABLE_BINDINGS = 333;
+const FIRST_RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
+const PREVIOUS_RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
+const RECONCILED_MAIN = "32c3f827985dd5fbee0354780765e49e679cad57";
+const CURRENT_AVAILABLE_BINDINGS = 340;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1246,13 +1247,13 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const added = Object.keys(admittedManifest.artifacts).filter(
     (id) => !(id in baseManifest.artifacts),
   );
-  assert.equal(added.length, 14);
+  assert.equal(added.length, 21);
   assert.deepEqual(
     added.map((id) => admittedManifest.artifacts[id].kind).sort(),
-    [...dataKinds, ...dataKinds].map((kind) => "data-organ-" + kind).sort(),
+    [...dataKinds, ...dataKinds, ...dataKinds].map((kind) => "data-organ-" + kind).sort(),
   );
   const clocks = new Set(added.map((id) => admittedManifest.artifacts[id].as_of));
-  assert.equal(clocks.size, 2);
+  assert.equal(clocks.size, 3);
   for (const kind of dataKinds)
     assert(
       added.includes(admittedManifest.routes["/data/" + kind]),
@@ -1266,7 +1267,7 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const upstreamPaths = splitZ(
     git("diff", "--no-renames", "--name-only", "-z", ARCHIVE_BASE, RECONCILED_MAIN),
   );
-  assert.equal(upstreamPaths.length, 28);
+  assert.equal(upstreamPaths.length, 39);
   assert(
     upstreamPaths.every(
       (p) =>
@@ -1283,15 +1284,16 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const previous = JSON.parse(
     git("show", PREVIOUS_RECONCILED_MAIN + ":frontend-v2/public/replay-manifest.json"),
   );
-  assert.equal(Object.keys(previous.artifacts).length, 346);
+  assert.equal(Object.keys(previous.artifacts).length, 353);
   for (const [id, entry] of Object.entries(previous.artifacts))
-    assert.deepEqual(admittedManifest.artifacts[id], entry, "Prior346 entry " + id);
+    assert.deepEqual(admittedManifest.artifacts[id], entry, "Prior353 entry " + id);
   const mutableDataPaths = ["health", "issues", "lineage", "receipt", "manifest"]
     .map((kind) => "data/exports/data_organ_v0_1/" + kind + ".json")
     .concat("frontend-v2/public/replay-manifest.json")
     .sort();
   const epochs = [
-    [ARCHIVE_BASE, PREVIOUS_RECONCILED_MAIN],
+    [ARCHIVE_BASE, FIRST_RECONCILED_MAIN],
+    [FIRST_RECONCILED_MAIN, PREVIOUS_RECONCILED_MAIN],
     [PREVIOUS_RECONCILED_MAIN, RECONCILED_MAIN],
   ];
   for (const [from, to] of epochs) {
@@ -3701,7 +3703,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         );
       });
     check(
-      "original inspection capability agrees with strict reader for all333 actual bindings",
+      "original inspection capability agrees with strict reader for all340 actual bindings",
       () => {
         let supported = 0;
         for (const [id, binding] of Object.entries(data.bindings)) {
