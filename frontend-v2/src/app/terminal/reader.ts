@@ -11,7 +11,7 @@ import {
 
 // Closed public field/type grammar, shared structurally across the reviewed complete-source contracts.
 // It is schema metadata only; no numerical source evidence is copied here.
-function closedOriginal(value: unknown, contract: string, path = "$"): void {
+function fullOriginalGrammar() {
   const roots: Record<string, Record<string, number>> = {
     "forge-runs": { $: 10 },
     "market-series": { $: 23, "$.method": 18, "$.weeks": 22 },
@@ -1759,6 +1759,10 @@ function closedOriginal(value: unknown, contract: string, path = "$"): void {
       -1,
     ],
   ];
+  return { roots, nodes };
+}
+type ClosedNode = [number, Record<string, number>, string[], number];
+function validateClosedStructure(value: unknown, root: number, nodes: ClosedNode[]): void {
   function visit(v: unknown, index: number): void {
     const rule = nodes[index];
     if (!rule) throw new Error("Unreviewed complete-source schema path.");
@@ -1790,7 +1794,335 @@ function closedOriginal(value: unknown, contract: string, path = "$"): void {
       for (const [key, child] of Object.entries(o)) visit(child, rule[1][key]);
     }
   }
-  visit(value, roots[contract]?.[path]);
+  visit(value, root);
+}
+// Exactly the reachable nodes for the five display paths; complete-original contracts remain separate.
+function displayOriginalGrammar() {
+  const roots: Record<string, Record<string, number>> = {
+    "market-series": { "$.method": 10, "$.weeks": 14 },
+    "regimes-timeline": { "$.payload": 34 },
+    "regimes-snapshot": { "$.payload.frozen_research": 25 },
+    "trace-hmm": { $: 22 },
+  };
+  const nodes: ClosedNode[] = [
+    [8, {}, [], -1],
+    [2, {}, [], -1],
+    [4, {}, [], -1],
+    [16, {}, [], 0],
+    [32, { rows: 2, start: 0 }, ["rows", "start"], -1],
+    [32, { HML: 4, MKT: 4, MOM: 4, SMB: 4 }, ["HML", "MKT", "MOM", "SMB"], -1],
+    [32, { captured_at: 0, sha256: 0, source_url: 0 }, ["captured_at", "sha256", "source_url"], -1],
+    [16, {}, [], 6],
+    [
+      32,
+      {
+        as_of: 0,
+        country: 0,
+        coverage: 0,
+        disclosure: 0,
+        evidence_mode: 0,
+        evidence_quality: 3,
+        factor_coverage: 5,
+        input_hash: 0,
+        latest_availability: 0,
+        latest_observation: 0,
+        library_start: 0,
+        market_end: 0,
+        market_start: 0,
+        missing_market_rows: 2,
+        observations: 2,
+        price_basis: 0,
+        raw_snapshot_ids: 3,
+        return_definition: 0,
+        series_label: 0,
+        source: 3,
+        source_captures: 7,
+        source_urls: 3,
+        split_clock: 0,
+      },
+      [
+        "as_of",
+        "country",
+        "coverage",
+        "disclosure",
+        "evidence_mode",
+        "evidence_quality",
+        "factor_coverage",
+        "input_hash",
+        "latest_availability",
+        "latest_observation",
+        "library_start",
+        "market_end",
+        "market_start",
+        "missing_market_rows",
+        "observations",
+        "price_basis",
+        "raw_snapshot_ids",
+        "return_definition",
+        "series_label",
+        "source",
+        "source_captures",
+        "source_urls",
+        "split_clock",
+      ],
+      -1,
+    ],
+    [
+      32,
+      {
+        as_of: 0,
+        converged: 1,
+        feature_names: 3,
+        fit_rows: 2,
+        n_states: 2,
+        seed: 2,
+        source_coverage: 8,
+        source_input_hash: 0,
+        status: 0,
+        trace_sha256: 0,
+      },
+      [
+        "as_of",
+        "converged",
+        "feature_names",
+        "fit_rows",
+        "n_states",
+        "seed",
+        "source_coverage",
+        "source_input_hash",
+        "status",
+        "trace_sha256",
+      ],
+      -1,
+    ],
+    [
+      32,
+      {
+        annualization_sessions: 2,
+        base: 2,
+        granularity: 0,
+        hmm: 9,
+        regime_semantics: 0,
+        volatility_window_sessions: 2,
+      },
+      [
+        "annualization_sessions",
+        "base",
+        "granularity",
+        "hmm",
+        "regime_semantics",
+        "volatility_window_sessions",
+      ],
+      -1,
+    ],
+    [5, {}, [], -1],
+    [9, {}, [], -1],
+    [
+      32,
+      { drawdown: 2, realized_volatility: 11, regime: 12, relative_performance: 2, week: 0 },
+      ["drawdown", "realized_volatility", "regime", "relative_performance", "week"],
+      -1,
+    ],
+    [16, {}, [], 13],
+    [
+      32,
+      { causal_claim_eligible: 1, market_claim_eligible: 1, validated_alpha: 1 },
+      ["causal_claim_eligible", "market_claim_eligible", "validated_alpha"],
+      -1,
+    ],
+    [16, {}, [], 2],
+    [16, {}, [], 16],
+    [
+      32,
+      {
+        converged: 1,
+        convergence_delta: 11,
+        covariance_diagonal: 17,
+        iteration: 2,
+        loglik: 2,
+        means: 17,
+        posterior_tail: 17,
+        transmat: 17,
+      },
+      [
+        "converged",
+        "convergence_delta",
+        "covariance_diagonal",
+        "iteration",
+        "loglik",
+        "means",
+        "posterior_tail",
+        "transmat",
+      ],
+      -1,
+    ],
+    [16, {}, [], 18],
+    [32, { "0": 0, "1": 0, "2": 0, "3": 0 }, ["0", "1", "2", "3"], -1],
+    [
+      32,
+      { features: 3, mean: 16, scale: 16, variance: 16 },
+      ["features", "mean", "scale", "variance"],
+      -1,
+    ],
+    [
+      32,
+      {
+        as_of: 0,
+        claims: 15,
+        converged: 1,
+        dates_tail: 3,
+        feature_names: 3,
+        feature_start: 0,
+        fit_rows: 2,
+        frames: 19,
+        kind: 0,
+        labels: 20,
+        latest_feature: 0,
+        max_iter: 2,
+        n_states: 2,
+        provenance: 8,
+        scaler: 21,
+        scaler_hash: 0,
+        schema_version: 0,
+        seed: 2,
+        semantics: 0,
+        source: 0,
+        ticker: 0,
+        tolerance: 2,
+      },
+      [
+        "as_of",
+        "claims",
+        "converged",
+        "dates_tail",
+        "feature_names",
+        "feature_start",
+        "fit_rows",
+        "frames",
+        "kind",
+        "labels",
+        "latest_feature",
+        "max_iter",
+        "n_states",
+        "provenance",
+        "scaler",
+        "scaler_hash",
+        "schema_version",
+        "seed",
+        "semantics",
+        "source",
+        "ticker",
+        "tolerance",
+      ],
+      -1,
+    ],
+    [
+      32,
+      { factors: 0, hmm2: 0, hmm4: 0, momentum: 0, volatility: 0 },
+      ["factors", "hmm2", "hmm4", "momentum", "volatility"],
+      -1,
+    ],
+    [
+      32,
+      { CROSS_MARKET: 0, ECONOMIC: 0, REGIME_DEPENDENCE: 0, STATISTICAL: 0 },
+      ["CROSS_MARKET", "ECONOMIC", "REGIME_DEPENDENCE", "STATISTICAL"],
+      -1,
+    ],
+    [
+      32,
+      {
+        inference_replacement: 0,
+        note: 0,
+        research_os: 0,
+        sha256: 0,
+        source: 0,
+        title: 0,
+        verdicts: 24,
+      },
+      ["inference_replacement", "note", "research_os", "sha256", "source", "title", "verdicts"],
+      -1,
+    ],
+    [
+      32,
+      { confidence: 16, labels: 3, offset: 2, state_codes: 16 },
+      ["confidence", "labels", "offset", "state_codes"],
+      -1,
+    ],
+    [12, {}, [], -1],
+    [16, {}, [], 27],
+    [16, {}, [], 28],
+    [16, {}, [], 11],
+    [
+      32,
+      {
+        cluster_score: 2,
+        ewma_vol: 2,
+        garch_vol: 2,
+        observed_at: 0,
+        rv_20: 2,
+        rv_5: 2,
+        rv_60: 2,
+        state: 0,
+        vol_z: 2,
+      },
+      [
+        "cluster_score",
+        "ewma_vol",
+        "garch_vol",
+        "observed_at",
+        "rv_20",
+        "rv_5",
+        "rv_60",
+        "state",
+        "vol_z",
+      ],
+      -1,
+    ],
+    [16, {}, [], 31],
+    [
+      32,
+      { rv_20: 30, rv_unit: 0, state_codes: 16, states: 3, tail: 32 },
+      ["rv_20", "rv_unit", "state_codes", "states", "tail"],
+      -1,
+    ],
+    [
+      32,
+      {
+        asset: 0,
+        dates: 3,
+        hmm2: 26,
+        hmm4: 26,
+        momentum_signal_tail: 29,
+        observation_unit: 0,
+        path_semantics: 0,
+        posterior_semantics: 0,
+        run_ids: 23,
+        volatility: 33,
+      },
+      [
+        "asset",
+        "dates",
+        "hmm2",
+        "hmm4",
+        "momentum_signal_tail",
+        "observation_unit",
+        "path_semantics",
+        "posterior_semantics",
+        "run_ids",
+        "volatility",
+      ],
+      -1,
+    ],
+  ];
+  return { roots, nodes };
+}
+function closedOriginal(value: unknown, contract: string, path = "$"): void {
+  const { roots, nodes } = fullOriginalGrammar();
+  validateClosedStructure(value, roots[contract]?.[path], nodes);
+}
+function closedDisplayOriginal(value: unknown, contract: string, path = "$"): void {
+  const { roots, nodes } = displayOriginalGrammar();
+  validateClosedStructure(value, roots[contract]?.[path], nodes);
 }
 
 const MAX_ORIGINAL_BYTES = 2 * 1024 * 1024;
@@ -2060,8 +2392,8 @@ export async function verifyDisplayProjection(
       v.weeks.length > 52
     )
       throw new Error("Market display window changed.");
-    closedOriginal(v.method, "market-series", "$.method");
-    closedOriginal(v.weeks, "market-series", "$.weeks");
+    closedDisplayOriginal(v.method, "market-series", "$.method");
+    closedDisplayOriginal(v.weeks, "market-series", "$.weeks");
     const method = v.method as Record<string, unknown>,
       hmm = method.hmm as Record<string, unknown>,
       coverage = hmm.source_coverage as Record<string, unknown>;
@@ -2112,7 +2444,7 @@ export async function verifyDisplayProjection(
       "run_ids",
       "volatility",
     ]);
-    closedOriginal(v, "regimes-timeline", "$.payload");
+    closedDisplayOriginal(v, "regimes-timeline", "$.payload");
     const asset = expectedBinding.sources.includes("iima:daily-factors")
       ? "IN-MKT"
       : expectedBinding.sources.includes("ken-french:daily-factors")
@@ -2193,7 +2525,7 @@ export async function verifyDisplayProjection(
     const v = p.selectedFields as Record<string, unknown>,
       iterations = object(p.iterationRange, ["start", "end"]),
       dates = object(p.dateRange, ["start", "end"]);
-    closedOriginal(v, "trace-hmm");
+    closedDisplayOriginal(v, "trace-hmm");
     if (
       source.artifactId !== "observatory:IN-MKT:hmm" ||
       expectedBinding.kind !== "hmm" ||
@@ -2282,7 +2614,7 @@ export async function verifyDisplayProjection(
       "title",
       "verdicts",
     ]);
-    closedOriginal(v, "regimes-snapshot", "$.payload.frozen_research");
+    closedDisplayOriginal(v, "regimes-snapshot", "$.payload.frozen_research");
     const verdicts = object(v.verdicts, [
       "CROSS_MARKET",
       "ECONOMIC",
