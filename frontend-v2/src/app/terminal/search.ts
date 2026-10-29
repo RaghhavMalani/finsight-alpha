@@ -253,6 +253,33 @@ function currentAnchors(routes: SearchCatalog["routes"]): Set<string> {
       .map(([, id]) => id),
   );
 }
+/** These two admitted fixed market IDs have no manifest route aliases or historical revisions. */
+function currentMarketFactor(
+  entity: TerminalEntity,
+  choice: Pick<SearchChoice, "artifactId" | "cutoff" | "view">,
+  binding: ReplayEntry | undefined,
+): boolean {
+  const india = entity.id === "IN-MKT";
+  return (
+    (india || entity.id === "US-MKT") &&
+    entity.type === "market-factor" &&
+    entity.namespace === "market-factor" &&
+    entity.workspace === "market" &&
+    entity.market === (india ? "INDIA" : "US") &&
+    entity.artifactId === `market:${entity.id}` &&
+    choice.artifactId === entity.artifactId &&
+    choice.view.workspace === "market" &&
+    choice.cutoff === entity.cutoff &&
+    publicDerivativeAvailable(binding) &&
+    binding.kind === "market-series" &&
+    binding.scope === "FACTOR_RESEARCH" &&
+    binding.as_of === choice.cutoff &&
+    binding.url === `/artifacts/replay/market-${entity.id}.json` &&
+    binding.sources.length === 1 &&
+    binding.sources[0] === (india ? "IIMA" : "KENNETH_FRENCH") &&
+    binding.licence.dataset_key === (india ? "iima:daily-factors" : "ken-french:daily-factors")
+  );
+}
 /** Synchronous search over already validated bounded metadata; no network or fuzzy inference. */
 export function searchLoaded(
   query: string,
@@ -271,8 +298,8 @@ export function searchLoaded(
     options.entities.length > 4096
   )
     throw new Error("Search scope/capacity exceeds its reviewed bound.");
-  const groups = new Map<string, TerminalEntity[]>(),
-    current = currentAnchors(options.routes);
+  const groups = new Map<string, { values: TerminalEntity[]; score: number }>(),
+    current = scope === "current" ? currentAnchors(options.routes) : new Set<string>();
   for (const entity of options.entities) {
     if (
       entity.availability !== "AVAILABLE" ||
@@ -286,26 +313,25 @@ export function searchLoaded(
     if (!normalized && !["workspace", "reference-listing", "market-factor"].includes(entity.type))
       continue;
     if (options.types && !options.types.includes(entity.type)) continue;
+    const score = rank(entity, normalized);
+    if (!Number.isFinite(score)) continue;
     if (
       entity.artifactId
         ? !publicDerivativeAvailable(options.bindings[entity.artifactId])
         : !["workspace", "reference-listing"].includes(entity.type)
     )
       continue;
-    if (!Number.isFinite(rank(entity, normalized))) continue;
-    const key = [entity.type, entity.namespace, entity.id, entity.market ?? "ALL"].join("|");
-    const values = groups.get(key) ?? [];
-    values.push(entity);
-    groups.set(key, values);
+    const key = [entity.type, entity.namespace, entity.id, entity.market ?? "ALL"].join("|"),
+      group = groups.get(key);
+    if (group) {
+      group.values.push(entity);
+      group.score = Math.min(group.score, score);
+    } else groups.set(key, { values: [entity], score });
   }
   const results: SearchResult[] = [];
   let total = 0;
   const ordered = [...groups]
-    .map(([key, values]) => ({
-      key,
-      values,
-      score: Math.min(...values.map((value) => rank(value, normalized))),
-    }))
+    .map(([key, group]) => ({ key, ...group }))
     .sort(
       (a, b) =>
         a.score - b.score ||
@@ -335,6 +361,7 @@ export function searchLoaded(
           current.size &&
           choice.artifactId &&
           !current.has(choice.artifactId) &&
+          !currentMarketFactor(value, choice, options.bindings[choice.artifactId]) &&
           context.anchor?.artifactId !== choice.artifactId &&
           !["recorded-trace", "recorded-agent-run", "recorded-task"].includes(entity.type)
         )

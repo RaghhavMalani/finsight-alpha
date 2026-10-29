@@ -237,3 +237,28 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+.terminal-shell .terminal-command-choices {
+  position: absolute;
+  z-index: 50;
+  top: 76px;
+  left: var(--terminal-gutter);
+  width: min(760px, calc(100vw - 2 * var(--terminal-gutter)));
+  max-height: 50dvh;
+  overflow: auto;
+  margin: 0;
+  padding: 8px 12px;
+  list-style: none;
+  border: 1px solid var(--sh-line-2);
+  background: var(--sh-panel);
+  font-size: 13px;
+}
+.terminal-shell .terminal-command-choices li {
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+.terminal-shell .terminal-command-choices a {
+  color: var(--sh-amber);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

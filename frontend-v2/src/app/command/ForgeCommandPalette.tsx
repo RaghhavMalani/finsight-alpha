@@ -1,233 +1,247 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WORKSPACES } from "@/app/workspaces";
-import { parseCommand } from "./mnemonics";
-import { setCurrentTicker, useCurrentTicker } from "@/replay/mode";
+import { parseLegacyCommand } from "./mnemonics";
+import { useInvestigation } from "../terminal/TerminalShell";
+import { targetHref, type InvestigationTarget } from "../terminal/links";
+import type { CommandResolution, LegacyMarketNavigation } from "../terminal/commands";
+import type { Capability } from "../terminal/capabilities";
+import { localLiveAllowed, setCurrentTicker, useDataMode } from "@/replay/mode";
+import { subjectTicker } from "../terminal/context";
 
-const MARKET_SCREENS = {
-  "markets-overview": "/markets",
-  "markets-options": "/markets/options",
-  "markets-risk": "/markets/risk",
-  "markets-backtest": "/markets/backtest",
-  "markets-fundamentals": "/markets/fundamentals",
-  "markets-research": "/markets/research",
-} as const;
-
-const COMMANDS = [
-  ...WORKSPACES.map((w) => ({
-    id: `workspace:${w.id}`,
-    label: `${w.key} · ${w.label}`,
-    hint: w.command,
-    to: w.to,
-  })),
-  {
-    id: "markets-overview",
-    label: "Open Markets · Overview",
-    hint: "Weekly derived Replay or sourced local Live quotes",
-    to: "/markets",
-  },
-  {
-    id: "markets-options",
-    label: "Open Markets · Options",
-    hint: "Local Live · quoted chain, pricer, payoff, IV surface",
-    to: "/markets/options",
-  },
-  {
-    id: "markets-risk",
-    label: "Open Markets · Risk",
-    hint: "Local Live · VaR, stress, Monte Carlo, factors, portfolio",
-    to: "/markets/risk",
-  },
-  {
-    id: "markets-backtest",
-    label: "Open Markets · Backtest",
-    hint: "Local Live · indicator strategies against buy and hold",
-    to: "/markets/backtest",
-  },
-  {
-    id: "markets-fundamentals",
-    label: "Open Markets · Fundamentals",
-    hint: "Local Live · EDGAR statements as of a date",
-    to: "/markets/fundamentals",
-  },
-  {
-    id: "markets-research",
-    label: "Open Markets · Research",
-    hint: "Local Live · ask a company's 10-K and 10-Q",
-    to: "/markets/research",
-  },
-  { id: "center", label: "Open Command Center", hint: "Forge overview", to: "/forge" },
-  { id: "runs", label: "Open Runs", hint: "Immutable trajectories", to: "/runs" },
-  { id: "bench", label: "Open Bench", hint: "Frozen v0.2.5 baseline", to: "/bench" },
-  { id: "worlds", label: "Open Worlds", hint: "World references", to: "/worlds" },
-  { id: "artifacts", label: "Open Artifacts", hint: "Bound evidence", to: "/artifacts" },
-  {
-    id: "observatory",
-    label: "Open Model Observatory",
-    hint: "HMM, GBM and neural training traces",
-    to: "/observatory",
-  },
-  {
-    id: "reality",
-    label: "Open Reality Ladder",
-    hint: "Frozen v0.2.4.1 artifact",
-    to: "/reality/forge-v0.2.4.1",
-  },
-  {
-    id: "neural",
-    label: "Open Neural Lab",
-    hint: "Recorded Replay; editing and training require local Live",
-    to: "/observatory",
-  },
-  {
-    id: "globe",
-    label: "Open God's Eye",
-    hint: "Checked World snapshot or local Live feeds",
-    to: "/globe",
-  },
-  {
-    id: "dynamics",
-    label: "Open Dynamics Lab",
-    hint: "Regime and event-process research",
-    to: "/dynamics",
-  },
-  {
-    id: "risk",
-    label: "Open Risk Manager",
-    hint: "Issues, evidence coverage and sealed history",
-    to: "/risk",
-  },
-] as const;
-
+type Item = {
+  key: string;
+  label: string;
+  detail: string;
+  target?: InvestigationTarget;
+  legacy?: LegacyMarketNavigation;
+  capability?: Capability;
+  choices?: Item[];
+};
+const href = (item: Item) =>
+  item.target
+    ? targetHref(item.target)
+    : item.legacy
+      ? item.legacy.to + "?" + new URLSearchParams(item.legacy.search).toString()
+      : undefined;
+function resolutionItems(result: CommandResolution, query: string): Item[] {
+  const workspace = WORKSPACES.find((w) =>
+    [w.command, w.label].includes(query.trim().toUpperCase() as never),
+  );
+  const label = workspace ? `${workspace.key} · ${workspace.label}` : `GO · ${query.trim()}`;
+  if (result.status === "READY")
+    return [
+      {
+        key: "command",
+        label,
+        detail: result.note ?? result.capability.reason,
+        target: result.target,
+        capability: result.capability,
+      },
+    ];
+  if (result.status === "LEGACY_READY")
+    return [
+      {
+        key: "command",
+        label,
+        detail: result.note,
+        legacy: result.navigation,
+        capability: result.capability,
+      },
+    ];
+  return result.choices.map((choice, index) => ({
+    key: `command-choice-${index}`,
+    label: choice.label,
+    detail: [
+      choice.cutoff ? `Retained selection time ${choice.cutoff}` : "",
+      choice.artifactId ?? "",
+      choice.reason ?? "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    target: choice.target,
+  }));
+}
 export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const investigation = useInvestigation();
   const navigate = useNavigate();
-  const currentTicker = useCurrentTicker();
+  const mode = useDataMode();
   const [query, setQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [history, setHistory] = useState(false);
+  const [items, setItems] = useState<Item[]>([]);
+  const [active, setActive] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [choices, setChoices] = useState<Item[]>();
+  const [acceptedScope, setAcceptedScope] = useState("");
+  const scopeKey = JSON.stringify([
+    open,
+    query,
+    history,
+    investigation.key,
+    investigation.navigationContext,
+    mode,
+  ]);
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-  const mnemonic = useMemo(() => {
-    try {
-      return query.trim() ? parseCommand(query, currentTicker) : null;
-    } catch {
-      return null;
-    }
-  }, [query, currentTicker]);
-
-  const results = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return COMMANDS;
-    const pages = COMMANDS.filter((command) =>
-      `${command.label} ${command.hint}`.toLowerCase().includes(normalized),
-    );
-    return mnemonic
-      ? [
-          {
-            id: "mnemonic",
-            label: `GO · ${query.trim().toUpperCase()}`,
-            hint: mnemonic.instrument
-              ? `${mnemonic.instrument.exchange} · ${mnemonic.instrument.currency}`
-              : "Open workspace",
-            to: mnemonic.to,
-          },
-          ...pages,
-        ]
-      : pages;
-  }, [query, mnemonic]);
-
+  const restoreRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
-    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    restoreRef.current = document.activeElement as HTMLElement | null;
     setQuery("");
-    setActiveIndex(0);
-    requestAnimationFrame(() => inputRef.current?.focus());
-    return () => restoreFocusRef.current?.focus();
+    setHistory(false);
+    setActive(0);
+    setChoices(undefined);
+    setItems([]);
+    setBusy(true);
+    const frame = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(frame);
+      restoreRef.current?.focus();
+    };
   }, [open]);
-
   useEffect(() => {
-    if (activeIndex >= results.length) setActiveIndex(Math.max(0, results.length - 1));
-  }, [activeIndex, results.length]);
-
-  if (!open) return null;
-
-  const execute = (id: (typeof COMMANDS)[number]["id"]) => {
-    if (id === "mnemonic" && mnemonic) {
-      if (mnemonic.instrument) setCurrentTicker(mnemonic.instrument.providerSymbol);
+    if (!open) return;
+    const controller = new AbortController();
+    setBusy(true);
+    setMessage("");
+    setItems([]);
+    setChoices(undefined);
+    setActive(0);
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          if (investigation.error) throw new Error(investigation.error);
+          const [{ terminalSearch }, { resolveTerminalCommand }] = await Promise.all([
+            import("../terminal/search"),
+            import("../terminal/commands"),
+          ]);
+          const response = await terminalSearch.search(query, investigation.navigationContext, {
+            history,
+            limit: 30,
+            signal: controller.signal,
+            ...(!query.trim()
+              ? { workspaces: ["observatory"] as const, types: ["workspace"] }
+              : {}),
+          });
+          if (controller.signal.aborted) return;
+          const catalog = terminalSearch.catalog();
+          const resolve = (text: string) =>
+            resolveTerminalCommand(text, investigation.navigationContext, {
+              ...catalog,
+              legacyParser: parseLegacyCommand,
+              environment: {
+                hostname: window.location.hostname,
+                localLiveFlag: localLiveAllowed(),
+                mode,
+              },
+            });
+          const command = query.trim() ? resolve(query) : undefined;
+          const commandItems = command ? resolutionItems(command, query) : [];
+          const searchItems: Item[] = response.results.map((result) => {
+            const workspace =
+              result.type === "workspace" ? WORKSPACES.find((w) => w.id === result.id) : undefined;
+            // Workspace labels are presentation; all destinations still use the shared resolver.
+            const resolved = workspace ? resolve(workspace.command) : undefined;
+            const explicit = resolved ? resolutionItems(resolved, workspace!.command) : [];
+            const target = resolved?.status === "READY" ? resolved.target : undefined;
+            const capability =
+              resolved?.status === "READY" ? resolved.capability : result.capability;
+            const detail =
+              resolved && (resolved.status === "CHOOSE" || resolved.status === "REJECTED")
+                ? `${resolved.reason} ${resolved.correction}`
+                : `${result.kind.toUpperCase()} · ${capability.label} · ${result.market ?? "No market filter"}${result.cutoff ? ` · Retained selection time ${result.cutoff}` : ""} · ${capability.reason}`;
+            return {
+              key: result.key,
+              label: workspace ? `${workspace.key} · ${workspace.label}` : result.label,
+              detail,
+              ...(workspace
+                ? target
+                  ? { target }
+                  : { choices: explicit }
+                : { target: result.target }),
+              capability,
+              ...(!workspace && result.requiresChoice
+                ? {
+                    choices: result.choices.map((choice) => ({
+                      key: choice.key,
+                      label: result.label,
+                      detail: `${choice.market ?? result.market ?? "No market"} · ${choice.cutoff ?? "No selected clock"} · ${choice.artifactId ?? "Reference identity"}`,
+                      target: choice.target,
+                    })),
+                  }
+                : {}),
+            };
+          });
+          const seen = new Set<string>();
+          const merged = [...commandItems, ...searchItems].filter((item) => {
+            const key = href(item) ?? item.key;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setItems(merged);
+          setActive(0);
+          setAcceptedScope(scopeKey);
+          setMessage(
+            command && (command.status === "CHOOSE" || command.status === "REJECTED")
+              ? `${command.reason} ${command.correction}`
+              : response.limited
+                ? `${response.total} matching identities; showing ${response.results.length}. Refine the query to see other results.`
+                : "Reference identities do not imply evidence coverage. Clocks belong to each exact selection.",
+          );
+        } catch (error) {
+          if (
+            !controller.signal.aborted &&
+            !(error instanceof DOMException && error.name === "AbortError")
+          ) {
+            setItems([]);
+            setAcceptedScope(scopeKey);
+            setMessage(error instanceof Error ? error.message : "Navigation metadata unavailable.");
+          }
+        } finally {
+          if (!controller.signal.aborted) setBusy(false);
+        }
+      })();
+    }, 80);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [open, query, history, investigation.navigationContext, investigation.error, mode, scopeKey]);
+  const shown = acceptedScope === scopeKey ? (choices ?? items) : [];
+  useEffect(() => {
+    dialogRef.current
+      ?.querySelector(`[id="forge-command-${active}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [active, items, choices]);
+  useEffect(() => {
+    if (open && !dialogRef.current?.contains(document.activeElement)) inputRef.current?.focus();
+  }, [open, items, choices]);
+  const execute = (item: Item) => {
+    if (busy || acceptedScope !== scopeKey) return;
+    if (item.choices?.length) {
+      setChoices(item.choices);
+      setActive(0);
+      setMessage("Choose an exact retained artifact and its own clock. No cutoff was substituted.");
+      return;
+    }
+    if (item.target) {
+      const ticker = subjectTicker(item.target.context.subject);
+      if (ticker) setCurrentTicker(ticker);
+      investigation.openTarget(item.target);
       onClose();
-      void navigate({ to: mnemonic.to, search: mnemonic.search as never });
-      return;
-    }
-    if (id.startsWith("workspace:")) {
-      const workspace = WORKSPACES.find((w) => `workspace:${w.id}` === id);
-      if (workspace) {
-        onClose();
-        void navigate({ to: workspace.to, search: { ticker: currentTicker } as never });
-      }
-      return;
-    }
-    onClose();
-    if (id in MARKET_SCREENS) {
-      void navigate({
-        to: MARKET_SCREENS[id as keyof typeof MARKET_SCREENS],
-        search: { ticker: currentTicker },
-      });
-      return;
-    }
-    switch (id) {
-      case "center":
-        void navigate({ to: "/forge", search: { run: undefined, node: 1 } });
-        break;
-      case "runs":
-        void navigate({
-          to: "/runs",
-          search: {
-            model: undefined,
-            verdict: undefined,
-            task: undefined,
-            taskClass: undefined,
-            seed: undefined,
-            verified: undefined,
-          },
-        });
-        break;
-      case "bench":
-        void navigate({ to: "/bench" });
-        break;
-      case "worlds":
-        void navigate({ to: "/worlds" });
-        break;
-      case "artifacts":
-        void navigate({ to: "/artifacts" });
-        break;
-      case "observatory":
-        void navigate({ to: "/observatory", search: { scene: "hmm", ticker: "SPY" } });
-        break;
-      case "reality":
-        void navigate({
-          to: "/reality/$artifactId",
-          params: { artifactId: "forge-v0.2.4.1" },
-          search: { checkpoint: undefined, metric: "sharpe" },
-        });
-        break;
-      case "neural":
-        void navigate({ to: "/observatory", search: { scene: "neural", ticker: "SPY" } });
-        break;
-      case "globe":
-        void navigate({ to: "/globe" });
-        break;
-      case "dynamics":
-        void navigate({ to: "/dynamics" });
-        break;
-      case "risk":
-        void navigate({ to: "/risk" });
-        break;
+    } else if (item.legacy) {
+      const ticker = subjectTicker(item.legacy.context.subject);
+      if (ticker) setCurrentTicker(ticker);
+      void navigate({ to: item.legacy.to, search: item.legacy.search as never });
+      onClose();
     }
   };
-
+  if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-start bg-black/70 px-4 pt-[12vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-start bg-black/70 px-4 pt-[8vh] backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -237,35 +251,43 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
         role="dialog"
         aria-modal="true"
         aria-labelledby="forge-command-title"
-        className="w-full max-w-2xl border border-[#3b4651] bg-[#0B0D10] shadow-[0_28px_90px_rgba(0,0,0,0.6)]"
+        className="w-full max-w-3xl border border-[#3b4651] bg-[#0B0D10] shadow-xl"
         onKeyDown={(event) => {
+          event.stopPropagation();
           if (event.key === "Escape") {
             event.preventDefault();
-            onClose();
+            if (choices) {
+              setChoices(undefined);
+              setActive(0);
+            } else onClose();
             return;
           }
-          if (event.key === "ArrowDown") {
+          if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
             event.preventDefault();
-            setActiveIndex((value) => Math.min(value + 1, results.length - 1));
+            setActive((index) =>
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? Math.max(0, shown.length - 1)
+                  : Math.max(
+                      0,
+                      Math.min(shown.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)),
+                    ),
+            );
             return;
           }
-          if (event.key === "ArrowUp") {
+          if (event.key === "Enter" && event.target === inputRef.current && shown[active]) {
             event.preventDefault();
-            setActiveIndex((value) => Math.max(value - 1, 0));
-            return;
-          }
-          if (event.key === "Enter" && results[activeIndex]) {
-            event.preventDefault();
-            execute(results[activeIndex].id);
+            execute(shown[active]);
             return;
           }
           if (event.key === "Tab") {
             const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-              'input, button, [href], [tabindex]:not([tabindex="-1"])',
+              'input, button:not([disabled]), a[href], [tabindex="0"]',
             );
             if (!focusable?.length) return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
+            const first = focusable[0],
+              last = focusable[focusable.length - 1];
             if (event.shiftKey && document.activeElement === first) {
               event.preventDefault();
               last.focus();
@@ -276,77 +298,134 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
           }
         }}
       >
-        <div className="flex items-center justify-between border-b border-[#1D232B] px-4 py-3">
+        <header className="flex items-center justify-between border-b border-[#1D232B] px-4 py-3">
           <div>
-            <div
-              id="forge-command-title"
-              className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#F0A929]"
-            >
+            <h2 id="forge-command-title" className="font-mono text-sm text-[#F0A929]">
               Terminal command
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Choose a workspace or enter a ticker command. F5 and F7 stay with your browser.
+            </h2>
+            <p className="text-xs text-[#a6afb8]">
+              Admitted evidence and navigation. F5 and F7 stay with your browser.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="border border-[#29313a] px-2 py-1 font-mono text-[9px] uppercase text-[#9ba5af] hover:border-[#F0A929] hover:text-[#F0A929] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F0A929]"
-          >
+          <button type="button" onClick={onClose} className="border px-3 py-1 text-sm">
             Esc
           </button>
-        </div>
-        <label className="block border-b border-[#1D232B] p-4">
-          <span className="sr-only">Find a Forge destination</span>
+        </header>
+        <label className="block border-b border-[#1D232B] px-4 py-3">
+          <span className="sr-only">Search destinations or enter command</span>
           <input
             ref={inputRef}
             role="combobox"
             aria-autocomplete="list"
             aria-controls="forge-command-results"
             aria-expanded="true"
-            aria-activedescendant={
-              results[activeIndex] ? `forge-command-${results[activeIndex].id}` : undefined
-            }
+            aria-activedescendant={shown[active] ? `forge-command-${active}` : undefined}
             value={query}
+            maxLength={160}
             onChange={(event) => {
               setQuery(event.target.value);
-              setActiveIndex(0);
+              setItems([]);
+              setBusy(true);
+              setChoices(undefined);
+              setActive(0);
             }}
-            placeholder="RELIANCE IN DES · SPY REG · FACT · EXEC"
-            className="w-full bg-transparent font-mono text-sm text-[#E6E8EB] outline-none placeholder:text-[#48515C]"
+            placeholder="INDIA REG · RISK HIGH · DATA IIMA · exact ID"
+            className="w-full bg-transparent text-sm text-[#E6E8EB] outline-none"
           />
         </label>
-        <div
-          className="px-4 py-2 font-mono text-[9px] uppercase tracking-[0.12em] text-[#59636e]"
-          aria-live="polite"
-        >
-          {results.length} {results.length === 1 ? "destination" : "destinations"}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 text-xs text-[#a6afb8]">
+          <span role="status">
+            {busy
+              ? "Checking admitted metadata…"
+              : `${shown.length} destinations${history ? " · retained history" : " · current admitted selections"}`}
+          </span>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={history}
+              onChange={(event) => {
+                setHistory(event.target.checked);
+                setItems([]);
+                setBusy(true);
+                setChoices(undefined);
+              }}
+            />
+            Include retained history
+          </label>
+          {choices && (
+            <button
+              type="button"
+              onClick={() => {
+                setChoices(undefined);
+                setActive(0);
+              }}
+            >
+              Back to results
+            </button>
+          )}
         </div>
+        <p className="px-4 pb-2 text-xs text-[#a6afb8]" aria-live="polite">
+          {message}
+        </p>
         <div
           id="forge-command-results"
           role="listbox"
-          className="max-h-[46vh] overflow-y-auto border-t border-[#1D232B] p-2"
+          aria-busy={busy}
+          className="max-h-[55vh] overflow-auto border-t border-[#1D232B] p-2"
         >
-          {results.map((command, index) => (
-            <button
-              key={command.id}
-              id={`forge-command-${command.id}`}
-              role="option"
-              aria-selected={index === activeIndex}
-              type="button"
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => execute(command.id)}
-              className={`flex w-full items-center justify-between gap-5 px-3 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F0A929] ${
-                index === activeIndex ? "bg-[#111820]" : "hover:bg-[#0d1217]"
-              }`}
-            >
-              <span className="text-sm font-medium text-[#dfe3e7]">{command.label}</span>
-              <span className="font-mono text-[9px] text-[#65707c]">{command.hint}</span>
-            </button>
-          ))}
-          {results.length === 0 && (
-            <p className="px-3 py-8 text-center text-sm text-[#7B8490]">
-              Unknown command. Use TICKER [US/UN/UQ/UP/IN/IS/IB] FUNCTION, or choose a workspace.
+          {shown.map((item, index) => {
+            const destination = href(item),
+              disabled = !destination && !item.choices?.length;
+            const content = (
+              <>
+                <span className="block text-sm text-[#e6e8eb]">{item.label}</span>
+                <span className="mt-1 block break-words text-xs text-[#a6afb8]">{item.detail}</span>
+              </>
+            );
+            const props = {
+              id: `forge-command-${index}`,
+              role: "option",
+              "aria-selected": index === active,
+              "aria-disabled": disabled,
+              onMouseEnter: () => setActive(index),
+              className: `block w-full px-3 py-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#F0A929] ${index === active ? "bg-[#17212b]" : "hover:bg-[#111820]"}`,
+            };
+            return destination ? (
+              <a
+                key={item.key}
+                {...props}
+                href={destination}
+                onClick={(event) => {
+                  if (
+                    event.button === 0 &&
+                    !event.ctrlKey &&
+                    !event.metaKey &&
+                    !event.shiftKey &&
+                    !event.altKey
+                  ) {
+                    event.preventDefault();
+                    execute(item);
+                  }
+                }}
+              >
+                {content}
+              </a>
+            ) : (
+              <button
+                key={item.key}
+                {...props}
+                type="button"
+                disabled={disabled}
+                onClick={() => execute(item)}
+              >
+                {content}
+              </button>
+            );
+          })}
+          {!busy && !shown.length && (
+            <p className="px-3 py-6 text-sm text-[#a6afb8]">
+              No eligible result. Use a complete identifier, a supported command, or change the
+              explicit history scope.
             </p>
           )}
         </div>

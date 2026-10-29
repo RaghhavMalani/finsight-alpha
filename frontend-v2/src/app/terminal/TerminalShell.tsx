@@ -69,7 +69,7 @@ const NO_BINDINGS: ContextBindings = {};
 const noopRegistration = () => () => undefined;
 
 // Start normalizes query escapes before building its server history. Read the request only on the server.
-const requestSearch = createIsomorphicFn()
+export const requestSearch = createIsomorphicFn()
   .server(() => new URL(getRequest().url).search)
   .client(() => undefined);
 
