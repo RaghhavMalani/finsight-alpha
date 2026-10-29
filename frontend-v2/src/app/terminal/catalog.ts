@@ -213,6 +213,34 @@ function text(value: unknown, maximum = 4096): value is string {
     ![...value].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
   );
 }
+// !1 is a versioned 32-byte hash fragment; !! escapes a literal leading ! exactly once.
+function encodeHashFragment(hex: string): string {
+  const bytes = hex
+    .match(/../g)!
+    .map((pair) => String.fromCharCode(parseInt(pair, 16)))
+    .join("");
+  return "!1" + btoa(bytes).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+function decodeTerminalFragment(fragment: string): string {
+  let value = fragment;
+  if (fragment.startsWith("!!")) value = fragment.slice(1);
+  else if (fragment.startsWith("!1")) {
+    const encoded = fragment.slice(2);
+    if (!/^[A-Za-z0-9_-]{43}$/.test(encoded)) throw new Error("Malformed terminal hash fragment.");
+    let bytes: string;
+    try {
+      bytes = atob(encoded.replaceAll("-", "+").replaceAll("_", "/") + "=");
+    } catch {
+      throw new Error("Malformed terminal hash fragment.");
+    }
+    if (bytes.length !== 32) throw new Error("Terminal hash fragment byte count changed.");
+    value = Array.from(bytes, (byte) => byte.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+    if (encodeHashFragment(value) !== fragment)
+      throw new Error("Noncanonical terminal hash fragment.");
+  } else if (fragment.startsWith("!")) throw new Error("Unknown terminal fragment encoding.");
+  if (value.length > 8192) throw new Error("Terminal decoded fragment bound exceeded.");
+  return value;
+}
 export function packTerminalPayload(value: unknown): {
   strings: string[];
   texts: number[][];
@@ -278,7 +306,9 @@ export function packTerminalPayload(value: unknown): {
         let n = fragmentIds.get(part);
         if (n === undefined) {
           n = fragments.length;
-          fragments.push(part);
+          fragments.push(
+            HASH.test(part) ? encodeHashFragment(part) : part.startsWith("!") ? "!" + part : part,
+          );
           fragmentIds.set(part, n);
         }
         return n;
@@ -294,10 +324,11 @@ export function unpackTerminalPayload(
 ): unknown {
   if (
     strings.length > 20000 ||
-    strings.some((s) => typeof s !== "string" || s.length > 8192) ||
+    strings.some((s) => typeof s !== "string" || s.length > 8193) ||
     structures.length > 20000
   )
     throw new Error("Terminal dictionary is outside its bound.");
+  const fragments = strings.map(decodeTerminalFragment);
   const dictionary = texts
     ? texts.map((parts) => {
         if (
@@ -306,11 +337,11 @@ export function unpackTerminalPayload(
           parts.some((i) => !count(i, strings.length - 1))
         )
           throw new Error("Invalid terminal text fragments.");
-        const value = parts.map((i) => strings[i]).join("");
+        const value = parts.map((i) => fragments[i]).join("");
         if (value.length > 8192) throw new Error("Terminal text expansion bound exceeded.");
         return value;
       })
-    : strings;
+    : fragments;
   if (dictionary.length > 20000) throw new Error("Terminal text dictionary bound exceeded.");
   let visited = 0;
   const active = new Set<number>();

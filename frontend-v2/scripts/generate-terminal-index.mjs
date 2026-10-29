@@ -28,6 +28,25 @@ import {
   validateTerminalShard,
 } from "../src/app/terminal/catalog.ts";
 
+/** Roundtrip identity includes signed zero and every finite IEEE value, not just JSON equivalence. */
+function assertExactRoundtrip(source, decoded) {
+  if (typeof source === "number") {
+    assert(Object.is(source, decoded), "Terminal IEEE value changed");
+    return;
+  }
+  if (source && typeof source === "object") {
+    assert.equal(Array.isArray(decoded), Array.isArray(source), "Terminal collection type changed");
+    assert(decoded && typeof decoded === "object", "Terminal object changed");
+    const keys = Object.keys(source).sort();
+    assert.deepEqual(Object.keys(decoded).sort(), keys, "Terminal fields changed");
+    if (Array.isArray(source))
+      assert.equal(decoded.length, source.length, "Terminal array length changed");
+    for (const key of keys) assertExactRoundtrip(source[key], decoded[key]);
+    return;
+  }
+  assert.equal(decoded, source, "Terminal scalar changed");
+}
+
 // Closed field/type declarations reviewed against the pinned public source contracts.
 const CLOSED_SOURCE_FIELDS = {
   "forge-runs": {
@@ -6361,6 +6380,10 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     if (payload.entities.length > 512)
       failures.push("Entity budget: " + name + "=" + payload.entities.length);
     const packed = packTerminalPayload(payload);
+    assertExactRoundtrip(
+      payload,
+      unpackTerminalPayload(packed.strings, packed.payload, packed.structures, packed.texts),
+    );
     assert.equal(
       stableTerminal(
         unpackTerminalPayload(packed.strings, packed.payload, packed.structures, packed.texts),
@@ -6389,6 +6412,9 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       projections: payload.projections.length,
       decodedBytes: bytes,
       unpackedJSONBytes: Buffer.byteLength(stableTerminal(payload)),
+      fragmentEncoding: "terminal-fragment/1",
+      encodedHashFragments: packed.strings.filter((part) => part.startsWith("!1")).length,
+      escapedLiteralFragments: packed.strings.filter((part) => part.startsWith("!!")).length,
       gzipBytes,
     };
     report.totalRecords += payload.entities.length;
