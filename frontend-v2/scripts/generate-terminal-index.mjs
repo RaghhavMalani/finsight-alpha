@@ -5276,16 +5276,146 @@ function unique(items, key) {
   for (const item of items) {
     const k = key(item),
       prior = result.get(k);
-    if (prior)
+    if (prior) {
+      assertExactRoundtrip(prior, item);
       assert.equal(
         stableTerminal(prior),
         stableTerminal(item),
         "Conflicting retained metadata: " + k,
       );
+    }
     result.set(k, item);
   }
   return [...result.values()];
 }
+function normalizedTerminalPayload(payload) {
+  return {
+    ...payload,
+    bindings: Object.fromEntries(
+      Object.entries(payload.bindings).sort(([a], [b]) => compare(a, b)),
+    ),
+    routes: Object.fromEntries(Object.entries(payload.routes).sort(([a], [b]) => compare(a, b))),
+    entities: unique(payload.entities, (entity) => entity.key).sort((a, b) =>
+      compare(a.key, b.key),
+    ),
+    edges: unique(payload.edges, stableTerminal).sort((a, b) =>
+      compare(stableTerminal(a), stableTerminal(b)),
+    ),
+    projections: [...payload.projections].sort((a, b) =>
+      compare(a.source.artifactId + a.selector, b.source.artifactId + b.selector),
+    ),
+    bundles: [...payload.bundles].sort((a, b) => compare(a.anchor, b.anchor)),
+  };
+}
+/** Build/test-only exact union. Conflicts reject rather than choosing newer retained values. */
+export function unionTerminalHistory(payloads) {
+  const combined = newPayload();
+  for (const payload of payloads) {
+    for (const field of ["bindings", "routes", "projectionPins"]) {
+      if (field === "projectionPins" && payload[field] === undefined) continue;
+      combined[field] ??= {};
+      for (const [key, value] of Object.entries(payload[field])) {
+        if (Object.hasOwn(combined[field], key)) assertExactRoundtrip(combined[field][key], value);
+        combined[field][key] = value;
+      }
+    }
+    for (const field of ["entities", "edges", "projections", "bundles"])
+      combined[field].push(...payload[field]);
+  }
+  combined.projections = unique(
+    combined.projections,
+    (p) => p.source.artifactId + "|" + p.selector,
+  );
+  combined.bundles = unique(combined.bundles, (bundle) => bundle.anchor);
+  return normalizedTerminalPayload(combined);
+}
+/** Current route compatibility versus retained selections; never byte/hash/position buckets. */
+export function partitionTerminalHistory(payload, currentArtifactIds) {
+  const original = normalizedTerminalPayload(payload),
+    required = new Set(currentArtifactIds),
+    history = newPayload(),
+    archive = newPayload(),
+    entities = new Map(original.entities.map((e) => [e.key, e]));
+  const sideFor = (id) => (required.has(id) ? history : archive);
+  const addBinding = (part, id) => {
+    assert(
+      Object.hasOwn(original.bindings, id),
+      "History partition reference is not exactly bound: " + id,
+    );
+    part.bindings[id] = original.bindings[id];
+  };
+  const addEntity = (part, entity) => {
+    assert(entity, "History partition has a dangling declared endpoint");
+    if (!part.entities.some((prior) => prior.key === entity.key)) part.entities.push(entity);
+    if (entity.artifactId) addBinding(part, entity.artifactId);
+    for (const choice of entity.versionChoices ?? []) addBinding(part, choice.artifactId);
+  };
+  for (const [id, binding] of Object.entries(original.bindings)) sideFor(id).bindings[id] = binding;
+  for (const [route, id] of Object.entries(original.routes)) {
+    const part = sideFor(id);
+    part.routes[route] = id;
+    addBinding(part, id);
+  }
+  for (const entity of original.entities) {
+    const part =
+      entity.artifactId === null ||
+      required.has(entity.artifactId) ||
+      entity.versionChoices?.some((choice) => required.has(choice.artifactId))
+        ? history
+        : archive;
+    addEntity(part, entity);
+  }
+  for (const edge of original.edges) {
+    const part = sideFor(edge.artifactId);
+    part.edges.push(edge);
+    addBinding(part, edge.artifactId);
+    addEntity(part, entities.get(edge.from));
+    addEntity(part, entities.get(edge.to));
+  }
+  for (const projection of original.projections) {
+    const part = sideFor(projection.source.artifactId);
+    part.projections.push(projection);
+    addBinding(part, projection.source.artifactId);
+  }
+  for (const bundle of original.bundles) {
+    const part = sideFor(bundle.anchor);
+    part.bundles.push(bundle);
+    for (const id of Object.values(bundle.artifacts)) addBinding(part, id);
+  }
+  if (original.projectionPins !== undefined)
+    for (const [key, digest] of Object.entries(original.projectionPins)) {
+      const part = sideFor(key.slice(0, key.lastIndexOf("|")));
+      part.projectionPins ??= {};
+      part.projectionPins[key] = digest;
+    }
+  const result = {
+    history: normalizedTerminalPayload(history),
+    archive: normalizedTerminalPayload(archive),
+  };
+  const union = unionTerminalHistory([result.history, result.archive]);
+  assertExactRoundtrip(original, union);
+  assert.equal(stableTerminal(union), stableTerminal(original), "History semantic union is lossy");
+  return {
+    ...result,
+    proof: {
+      rule: "CURRENT_REQUIRED_ROUTE_NAVIGATION versus RETAINED_ARCHIVE; manifest current-route IDs and exact declared endpoint/binding closure only",
+      originalDigest: seal(original),
+      unionDigest: seal(union),
+      original: {
+        records: original.entities.length,
+        edges: original.edges.length,
+        bindings: Object.keys(original.bindings).length,
+        versionChoices: original.entities.reduce((n, e) => n + (e.versionChoices?.length ?? 0), 0),
+      },
+      currentRequiredArtifactIds: [...required]
+        .filter((id) => Object.hasOwn(original.bindings, id))
+        .sort(compare),
+      exactUnion: true,
+      signedZeroAndIEEE: "Object.is recursively compared before encoding",
+    },
+  };
+}
+
 export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtifactBytes }) {
   validateReplayManifest(manifest);
   assert(
@@ -6322,6 +6452,19 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       ),
     ),
   ).size;
+  const logicalHistory = normalizedTerminalPayload(payloads.history),
+    historyPartition = partitionTerminalHistory(logicalHistory, Object.values(manifest.routes));
+  payloads.history = historyPartition.history;
+  payloads["history-archive"] = historyPartition.archive;
+  const navigationSeal = {
+    schema_version: "terminal-navigation-seed/1",
+    generator_contract: TERMINAL_CONTRACT,
+    manifestBinding,
+    bindings: payloads.seed.bindings,
+  };
+  const navigationSeed = { ...navigationSeal, payloadDigest: seal(navigationSeal) };
+  assertExactRoundtrip(navigationSeed.bindings, payloads.seed.bindings);
+  assert.equal(navigationSeed.manifestBinding, manifestBinding);
   const shards = {},
     modules = {},
     failures = [],
@@ -6335,6 +6478,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
         unavailableOriginalCount: Object.keys(manifest.artifacts).length - availableIds.length,
       },
       retainedVersionChoices,
+      historyPartition: historyPartition.proof,
       windows: allProjections.map((projection) => ({
         artifactId: projection.source.artifactId,
         selector: projection.selector,
@@ -6352,7 +6496,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       })),
       displayModules: {},
       scopeAmendment:
-        "Approved standalone ninth lazy observatory-window.generated.ts; exact India iterations[92,100)/100 and dates[190,250)/250, decimal values unchanged.",
+        "Approved ninth observatory-window.generated.ts and tenth semantic history-archive.generated.ts. Original India8/60 display and every retained historical metadata value remain exact.",
       totalRecords: 0,
       totalEdges: 0,
       limitations: [
@@ -6362,21 +6506,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       ],
     };
   for (const name of SHARD_NAMES) {
-    const payload = payloads[name];
-    payload.bindings = Object.fromEntries(
-      Object.entries(payload.bindings).sort(([a], [b]) => compare(a, b)),
-    );
-    payload.routes = Object.fromEntries(
-      Object.entries(payload.routes).sort(([a], [b]) => compare(a, b)),
-    );
-    payload.entities = unique(payload.entities, (e) => e.key).sort((a, b) => compare(a.key, b.key));
-    payload.edges = unique(payload.edges, stableTerminal).sort((a, b) =>
-      compare(stableTerminal(a), stableTerminal(b)),
-    );
-    payload.projections.sort((a, b) =>
-      compare(a.source.artifactId + a.selector, b.source.artifactId + b.selector),
-    );
-    payload.bundles.sort((a, b) => compare(a.anchor, b.anchor));
+    const payload = normalizedTerminalPayload(payloads[name]);
     if (payload.entities.length > 512)
       failures.push("Entity budget: " + name + "=" + payload.entities.length);
     const packed = packTerminalPayload(payload);
@@ -6402,7 +6532,12 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     const output =
       "// Generated from checked retained public metadata; do not edit or commit.\n// prettier-ignore\nexport default " +
       JSON.stringify(shard) +
-      " as const;\n";
+      " as const;\n" +
+      (name === "seed"
+        ? "// Compact closed navigation envelope; its digest binds exact generated seed metadata.\n// prettier-ignore\nexport const navigationSeed = " +
+          JSON.stringify(navigationSeed) +
+          " as const;\n"
+        : "");
     const bytes = Buffer.byteLength(output),
       gzipBytes = gzipSync(output, { level: 9 }).length;
     report.shards[name] = {
@@ -6425,6 +6560,10 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       failures.push("Gzip module budget: " + name + "=" + gzipBytes);
     if (bytes <= (name === "seed" ? 48 : 128) * 1024 && payload.entities.length <= 512)
       await validateTerminalShard(shard, name, manifestBinding);
+    if (name === "history" || name === "history-archive") {
+      report.shards[name].decodedHeadroomBytes = 128 * 1024 - bytes;
+      report.shards[name].decodedHeadroomRatio = (128 * 1024 - bytes) / (128 * 1024);
+    }
     shards[name] = shard;
     modules[name] = output;
   }
@@ -6460,7 +6599,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     report.totalRecords <= 4096 && report.totalEdges <= 8192,
     "Terminal global navigation budget exceeded",
   );
-  return { shards, modules, observatoryWindow, report };
+  return { shards, modules, observatoryWindow, navigationSeed, logicalHistory, report };
 }
 export async function generateTerminalIndex({
   root = resolve(fileURLToPath(new URL("..", import.meta.url))),

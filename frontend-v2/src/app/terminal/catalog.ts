@@ -17,6 +17,7 @@ export const SHARD_NAMES = [
   "data",
   "recordings",
   "history",
+  "history-archive",
 ] as const;
 export type TerminalShardName = (typeof SHARD_NAMES)[number];
 export const RELATIONS = [
@@ -790,6 +791,7 @@ const loaders = {
   data: () => import("./generated/data.generated.ts"),
   recordings: () => import("./generated/recordings.generated.ts"),
   history: () => import("./generated/history.generated.ts"),
+  "history-archive": () => import("./generated/history-archive.generated.ts"),
 };
 const pending = new Map<TerminalShardName, Promise<TerminalShard>>();
 export function loadTerminalShard(name: TerminalShardName): Promise<TerminalShard> {
@@ -850,6 +852,7 @@ export function catalogEntities(shards: readonly TerminalShard[]): TerminalEntit
   return [...result.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
 }
 export async function findArtifactBinding(id: string): Promise<ReplayEntry> {
+  if (!isArtifactId(id)) throw new Error("Exact retained artifact identity is invalid.");
   const family: TerminalShardName = id.startsWith("data-organ:")
     ? "data"
     : id.startsWith("risk:")
@@ -864,7 +867,8 @@ export async function findArtifactBinding(id: string): Promise<ReplayEntry> {
   const shard = await loadTerminalShard(family),
     entry =
       shard.bindings[id] ??
-      (family === "recordings" ? (await loadTerminalShard("history")).bindings[id] : undefined);
+      (family === "recordings" ? (await loadTerminalShard("history")).bindings[id] : undefined) ??
+      (await loadTerminalShard("history-archive")).bindings[id];
   if (!entry)
     throw new Error("Exact retained artifact is unavailable; latest was not substituted.");
   return entry;

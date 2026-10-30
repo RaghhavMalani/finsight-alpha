@@ -507,7 +507,7 @@ export function createTerminalSearchService(
           if (!Object.hasOwn(SHARDS, name)) throw new Error("Unknown search workspace.");
           return SHARDS[name];
         }),
-        ...(history ? ["history" as const] : []),
+        ...(history ? ["history" as const, "history-archive" as const] : []),
       ]),
     ];
     const shards = await Promise.all(
