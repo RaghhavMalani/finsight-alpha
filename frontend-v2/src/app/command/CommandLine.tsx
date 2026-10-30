@@ -31,9 +31,15 @@ export function CommandLine() {
     setBusy(true);
     try {
       if (investigation.error) throw new Error(investigation.error);
-      const [{ terminalSearch }, { commandWorkspaces, resolveTerminalCommand }] = await Promise.all(
-        [import("../terminal/search"), import("../terminal/commands")],
-      );
+      const [
+        { terminalSearch },
+        { commandWorkspaces, resolveTerminalCommand },
+        { parseLegacyCommand },
+      ] = await Promise.all([
+        import("../terminal/search"),
+        import("../terminal/commands"),
+        import("./mnemonics"),
+      ]);
       const catalog = await terminalSearch.load(
         commandWorkspaces(text),
         /^(?:ISSUE|RUN|DATA|FACTOR|CHANGES)\b/i.test(text.trim()),

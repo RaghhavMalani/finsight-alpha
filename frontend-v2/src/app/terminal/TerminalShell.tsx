@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -12,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { CommandLine } from "../command/CommandLine";
-import { ForgeCommandPalette } from "../command/ForgeCommandPalette";
+import type { ForgeCommandPalette } from "../command/ForgeCommandPalette";
 import { FUNCTION_KEYS, isTextField, WORKSPACES } from "../workspaces";
 import { changeDataMode, localLiveAllowed, setCurrentTicker, useDataMode } from "../../replay/mode";
 import type { ReplayManifest } from "../../replay/contracts";
@@ -187,15 +188,178 @@ export function useInvestigation(): TerminalInvestigation {
 }
 
 type Snapshot = Pick<ReplayManifest, "artifacts"> & { as_of: string; basis?: string };
-async function loadNavigationSeed(): Promise<Snapshot> {
-  const { loadTerminalSeed } = await import("./catalog");
-  const seed = await loadTerminalSeed();
+/** Closed navigation metadata only; this never verifies or fetches an original evidence payload. */
+export async function validateNavigationSeed(value: unknown): Promise<Snapshot> {
+  const object = (value: unknown, keys: readonly string[]) => {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      Object.keys(value).length !== keys.length ||
+      Object.keys(value).some((key) => !keys.includes(key))
+    )
+      throw new Error("Navigation seed contains an undeclared or missing field.");
+    return value as Record<string, unknown>;
+  };
+  const text = (v: unknown, max = 4096): v is string =>
+    typeof v === "string" &&
+    v.length > 0 &&
+    v.length <= max &&
+    ![...v].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127);
+  const hash = (v: unknown) => typeof v === "string" && /^[a-f0-9]{64}$/.test(v);
+  const date = (v: unknown) => text(v) && Number.isFinite(Date.parse(v));
+  const stable = (v: unknown) =>
+    JSON.stringify(v, (_key, item: unknown) =>
+      item && typeof item === "object" && !Array.isArray(item)
+        ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+        : item,
+    );
+  if (new TextEncoder().encode(JSON.stringify(value)).length > 48 * 1024)
+    throw new Error("Navigation seed byte bound exceeded.");
+  const seed = object(value, [
+    "schema_version",
+    "generator_contract",
+    "manifestBinding",
+    "bindings",
+    "payloadDigest",
+  ]);
+  const manifest = object(seed.manifestBinding, ["sha256", "bytes", "asOf"]);
+  if (
+    seed.schema_version !== "terminal-navigation-seed/1" ||
+    seed.generator_contract !== "terminal-generator/1" ||
+    !hash(seed.payloadDigest) ||
+    !hash(manifest.sha256) ||
+    !Number.isSafeInteger(manifest.bytes) ||
+    Number(manifest.bytes) <= 0 ||
+    Number(manifest.bytes) > 2 * 1024 * 1024 ||
+    !date(manifest.asOf)
+  )
+    throw new Error("Navigation seed identity or source binding is invalid.");
+  const bindings = object(seed.bindings, ["market:IN-MKT", "market:US-MKT"]);
+  for (const [id, entry] of Object.entries(bindings)) {
+    const india = id === "market:IN-MKT";
+    const r = object(entry, [
+      "status",
+      "kind",
+      "url",
+      "sha256",
+      "bytes",
+      "sources",
+      "licence",
+      "input_hash",
+      "as_of",
+      "observed_at",
+      "available_at",
+      "reason",
+      "scope",
+    ]);
+    const licence = object(r.licence, [
+      "status",
+      "permitted_uses",
+      "dataset_key",
+      "valid_through",
+      "attribution",
+      "source_urls",
+      "terms_url",
+      "basis",
+    ]);
+    if (
+      r.status !== "AVAILABLE" ||
+      r.kind !== "market-series" ||
+      r.scope !== "FACTOR_RESEARCH" ||
+      r.url !== "/artifacts/replay/market-" + id.slice(7) + ".json" ||
+      !Array.isArray(r.sources) ||
+      r.sources.length !== 1 ||
+      r.sources[0] !== (india ? "IIMA" : "KENNETH_FRENCH") ||
+      licence.dataset_key !== (india ? "iima:daily-factors" : "ken-french:daily-factors") ||
+      !text(r.url) ||
+      !/^\/artifacts\/replay\/[a-zA-Z0-9_.-]+\.json$/.test(r.url) ||
+      !hash(r.sha256) ||
+      !hash(r.input_hash) ||
+      !Number.isSafeInteger(r.bytes) ||
+      Number(r.bytes) <= 0 ||
+      Number(r.bytes) > 16 * 1024 * 1024 ||
+      !Array.isArray(r.sources) ||
+      !r.sources.length ||
+      !r.sources.every((source) => text(source, 160)) ||
+      !date(r.as_of) ||
+      !date(r.observed_at) ||
+      !date(r.available_at) ||
+      r.reason !== null ||
+      !["ACTIVE", "FIRST_PARTY", "PUBLIC_DOMAIN", "TEST_ONLY"].includes(String(licence.status)) ||
+      !Array.isArray(licence.permitted_uses) ||
+      !licence.permitted_uses.every((use) => text(use)) ||
+      !licence.permitted_uses.includes("publish_derived") ||
+      !text(licence.dataset_key) ||
+      !text(licence.attribution) ||
+      !text(licence.basis) ||
+      !text(licence.terms_url) ||
+      !Array.isArray(licence.source_urls) ||
+      !licence.source_urls.length ||
+      !licence.source_urls.every((url) => text(url)) ||
+      (licence.valid_through !== null &&
+        (!date(licence.valid_through) ||
+          Date.parse(String(licence.valid_through)) <= Date.parse(String(r.as_of))))
+    )
+      throw new Error("Navigation source is not an available admitted public derivative.");
+  }
+  const seal = {
+    schema_version: seed.schema_version,
+    generator_contract: seed.generator_contract,
+    manifestBinding: manifest,
+    bindings,
+  };
+  const digest = Array.from(
+    new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(stable(seal)))),
+    (byte) => byte.toString(16).padStart(2, "0"),
+  ).join("");
+  if (digest !== seed.payloadDigest) throw new Error("Navigation seed digest mismatch.");
   return {
-    artifacts: seed.bindings,
-    as_of: seed.manifestBinding.asOf,
+    artifacts: bindings as Snapshot["artifacts"],
+    as_of: String(manifest.asOf),
     basis: "Build-verified navigation seed",
   };
 }
+async function loadNavigationSeed(): Promise<Snapshot> {
+  const { navigationSeed } = await import("./generated/seed.generated.ts");
+  return validateNavigationSeed(navigationSeed);
+}
+function PaletteLoading({ message, onClose }: { message?: string; onClose: () => void }) {
+  const close = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    close.current?.focus();
+  }, []);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-start bg-black/70 px-4 pt-[8vh]">
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label="Terminal command"
+        aria-busy={!message}
+        className="w-full max-w-3xl border border-[#3b4651] bg-[#0B0D10] p-4"
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (event.key === "Escape") {
+            event.preventDefault();
+            onClose();
+          }
+          if (event.key === "Tab") {
+            event.preventDefault();
+            close.current?.focus();
+          }
+        }}
+      >
+        <p role={message ? "alert" : "status"}>
+          {message ? "Command palette unavailable: " + message : "Loading terminal commands…"}
+        </p>
+        <button type="button" ref={close} onClick={onClose}>
+          Close · Esc
+        </button>
+      </section>
+    </div>
+  );
+}
+
 const AGENT_PAGES = [
   ["Center", "/forge"],
   ["Runs", "/runs"],
@@ -218,6 +382,34 @@ export function TerminalShell({
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [Palette, setPalette] = useState<typeof ForgeCommandPalette>();
+  const [paletteError, setPaletteError] = useState<string>();
+  const paletteRestore = useRef<HTMLElement | null>(null);
+  const openPalette = useCallback(() => {
+    if (paletteOpen) return;
+    paletteRestore.current = document.activeElement as HTMLElement | null;
+    setPaletteError(undefined);
+    setPaletteOpen(true);
+  }, [paletteOpen]);
+  const closePalette = useCallback(() => {
+    setPaletteOpen(false);
+    queueMicrotask(() => paletteRestore.current?.focus());
+  }, []);
+  useEffect(() => {
+    if (!paletteOpen || Palette) return;
+    let active = true;
+    import("../command/ForgeCommandPalette")
+      .then((module) => {
+        if (active) setPalette(() => module.ForgeCommandPalette);
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setPaletteError(error instanceof Error ? error.message : "Command palette unavailable.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [paletteOpen, Palette]);
   const [ready, setReady] = useState(false);
   const [liveAllowed, setLiveAllowed] = useState(false);
   const [copyState, setCopyState] = useState("");
@@ -300,7 +492,7 @@ export function TerminalShell({
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        setPaletteOpen(true);
+        openPalette();
         return;
       }
       if (
@@ -323,7 +515,7 @@ export function TerminalShell({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [route, target]);
+  }, [route, target, openPalette]);
   const workspace = route.context.view.workspace;
   const copyLink = async () => {
     try {
@@ -378,7 +570,9 @@ export function TerminalShell({
           <button
             type="button"
             className="shell-k"
-            onClick={() => setPaletteOpen(true)}
+            onClick={openPalette}
+            aria-haspopup="dialog"
+            aria-expanded={paletteOpen}
             aria-label="Open command palette"
           >
             <kbd>⌘K / Ctrl K</kbd>
@@ -453,7 +647,12 @@ export function TerminalShell({
             <span>Source, clocks and limitations stay with each selection</span>
           </footer>
         )}
-        <ForgeCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+        {paletteOpen &&
+          (Palette ? (
+            <Palette open onClose={closePalette} returnFocus={paletteRestore.current} />
+          ) : (
+            <PaletteLoading message={paletteError} onClose={closePalette} />
+          ))}
       </div>
     </InvestigationProvider>
   );

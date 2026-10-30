@@ -62,7 +62,15 @@ function resolutionItems(result: CommandResolution, query: string): Item[] {
     target: choice.target,
   }));
 }
-export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ForgeCommandPalette({
+  open,
+  onClose,
+  returnFocus,
+}: {
+  open: boolean;
+  onClose: () => void;
+  returnFocus?: HTMLElement | null;
+}) {
   const investigation = useInvestigation();
   const navigate = useNavigate();
   const mode = useDataMode();
@@ -87,7 +95,7 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
   const restoreRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
-    restoreRef.current = document.activeElement as HTMLElement | null;
+    restoreRef.current = returnFocus ?? (document.activeElement as HTMLElement | null);
     setQuery("");
     setHistory(false);
     setActive(0);
@@ -99,7 +107,7 @@ export function ForgeCommandPalette({ open, onClose }: { open: boolean; onClose:
       cancelAnimationFrame(frame);
       restoreRef.current?.focus();
     };
-  }, [open]);
+  }, [open, returnFocus]);
   useEffect(() => {
     if (!open) return;
     const controller = new AbortController();
