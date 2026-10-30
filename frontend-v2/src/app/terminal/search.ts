@@ -12,12 +12,7 @@ import {
   type TerminalShard,
   type TerminalShardName,
 } from "./catalog.ts";
-import {
-  capabilityFor,
-  publicDerivativeAvailable,
-  type Capability,
-  type CapabilityFeature,
-} from "./capabilities.ts";
+import type { Capability, CapabilityFeature, capabilityFor } from "./capabilities.ts";
 import {
   serializeInvestigationContext,
   type InvestigationContext,
@@ -27,6 +22,7 @@ import {
 import { buildInvestigationTarget, type InvestigationTarget } from "./links.ts";
 
 export type SearchCatalog = {
+  capabilityResolver?: typeof capabilityFor;
   navigation?: readonly NavigationRecord[];
   entities: readonly TerminalEntity[];
   bindings: Readonly<Record<string, ReplayEntry>>;
@@ -132,7 +128,63 @@ function queryText(query: string): string {
     throw new Error("Search text must be valid public text of at most 160 characters.");
   return query.trim().toLowerCase();
 }
-function feature(entity: TerminalEntity): CapabilityFeature {
+function publicDerivativeAvailable(entry: ReplayEntry | undefined): entry is ReplayEntry {
+  return (
+    !!entry &&
+    entry.status === "AVAILABLE" &&
+    typeof entry.sha256 === "string" &&
+    /^[a-f0-9]{64}$/.test(entry.sha256) &&
+    Number.isSafeInteger(entry.bytes) &&
+    entry.bytes > 0 &&
+    Number.isFinite(Date.parse(entry.as_of)) &&
+    ["ACTIVE", "FIRST_PARTY", "PUBLIC_DOMAIN", "TEST_ONLY"].includes(entry.licence?.status) &&
+    Array.isArray(entry.licence.permitted_uses) &&
+    entry.licence.permitted_uses.includes("publish_derived") &&
+    typeof entry.licence.dataset_key === "string" &&
+    entry.licence.dataset_key.length > 0 &&
+    (entry.licence.valid_through === null ||
+      (Number.isFinite(Date.parse(entry.licence.valid_through)) &&
+        Date.parse(entry.licence.valid_through) > Date.parse(entry.as_of)))
+  );
+}
+
+/** Navigation presentation only; business/runtime actions retain the full capability resolver. */
+export function navigationCapability(
+  state: "PUBLIC_REPLAY" | "LOCAL_LIVE_ONLY" | "UNAVAILABLE",
+  entity: Pick<TerminalEntity, "type" | "workspace">,
+): Capability {
+  if (!["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"].includes(state))
+    throw new Error("Unknown navigation availability.");
+  const reason = {
+    PUBLIC_REPLAY: "Verified retained Replay destination.",
+    LOCAL_LIVE_ONLY: "Available only in configured Local Live.",
+    UNAVAILABLE: "No admitted destination for this selection.",
+  }[state];
+  if (!reason) throw new Error("Unknown navigation availability.");
+  return {
+    feature: entity.workspace === "execution" ? "execution" : feature(entity),
+    label: state,
+    enabled: state === "PUBLIC_REPLAY",
+    readOnly: true,
+    reason,
+    disabledReason: state === "PUBLIC_REPLAY" ? null : reason,
+    allowedActionClass: "navigate",
+    requiredMode:
+      state === "LOCAL_LIVE_ONLY"
+        ? "local-live"
+        : entity.type === "workspace" || entity.type === "reference-listing"
+          ? "none"
+          : "replay",
+    verificationBasis: {
+      date: "2026-10-31",
+      kind: "approved-source-review",
+      detail:
+        "BUILD-VERIFIED NAVIGATION METADATA; original evidence is checked only on explicit inspection.",
+    },
+  };
+}
+
+function feature(entity: Pick<TerminalEntity, "type" | "workspace">): CapabilityFeature {
   if (["workspace", "reference-listing"].includes(entity.type)) return "reference-navigation";
   if (entity.type === "recorded-trace") return "recorded-trace";
   return (
@@ -403,14 +455,22 @@ export function searchLoaded(
       choices.find((choice) => choice.artifactId === context.anchor?.artifactId) ?? choices[0];
     const target = selected.target!,
       binding = selected.artifactId ? options.bindings[selected.artifactId] : undefined;
-    const capability = capabilityFor({
-      feature: feature(entity),
-      context: target.context,
-      binding,
-      selectionAvailable: true,
-      hasDisplayProjection:
-        !!options.projectionPins?.[`${selected.artifactId}|observatory-trace-window`],
-    });
+    const capability = options.capabilityResolver
+      ? options.capabilityResolver({
+          feature: feature(entity),
+          context: target.context,
+          binding,
+          selectionAvailable: true,
+          hasDisplayProjection:
+            !!options.projectionPins?.[`${selected.artifactId}|observatory-trace-window`],
+        })
+      : navigationCapability(
+          ["workspace", "reference-listing", "market-factor"].includes(entity.type) &&
+            entity.workspace !== "execution"
+            ? "PUBLIC_REPLAY"
+            : "UNAVAILABLE",
+          entity,
+        );
     const requiresChoice =
       choices.length > 1 &&
       !choices.some((choice) => choice.artifactId === context.anchor?.artifactId);
@@ -458,7 +518,9 @@ export function searchLoaded(
       artifactId: null,
       cutoff: null,
       availability: "DISABLED",
-      capability: capabilityFor({ feature: "execution" }),
+      capability: options.capabilityResolver
+        ? options.capabilityResolver({ feature: "execution" })
+        : navigationCapability("UNAVAILABLE", { type: "workspace", workspace: "execution" }),
       rank: normalized === "exec" || normalized === "execution" ? 1 : 4,
       requiresChoice: false,
       choices: [],
@@ -489,13 +551,17 @@ export function searchLoaded(
 export function deriveNavigationRecords(
   options: SearchCatalog,
   scope: SearchScope = "current",
+  capabilityResolver?: typeof capabilityFor,
 ): NavigationRecord[] {
+  if (!capabilityResolver)
+    throw new Error("Build/history derivation requires complete source capability authority.");
   const context: InvestigationContext = { version: 1, view: { workspace: "risk" } },
     found = new Map<string, NavigationRecord>();
   for (const entity of options.entities) {
     const result = searchLoaded(entity.id, context, {
       ...options,
       navigation: undefined,
+      capabilityResolver,
       scope,
       limit: 50,
     }).results.find(
@@ -660,39 +726,15 @@ function searchNavigation(
     };
     const target = entityTarget(entity, context, selected);
     materializedTargets++;
-    const base = capabilityFor({
-      feature: record.type === "recorded-trace" ? "recorded-agent-runs" : feature(entity),
-      context: target.context,
-      selectionAvailable: state === "PUBLIC_REPLAY",
-    });
-    const capability: Capability = {
-      ...base,
-      feature: feature(entity),
-      label: state === "PUBLIC_REPLAY" ? base.label : state,
-      enabled: state === "PUBLIC_REPLAY" && base.enabled,
-      allowedActionClass: "navigate",
-      evidenceRef: undefined,
-      verificationBasis: {
-        date: "2026-10-30",
-        kind: "approved-source-review",
-        detail:
-          "BUILD-VERIFIED NAVIGATION METADATA. Generator checked complete source contracts and exact bindings; the browser has not fetched or verified the original artifact.",
-      },
-      reason:
-        "BUILD-VERIFIED NAVIGATION METADATA · " +
-        (state === "PUBLIC_REPLAY"
-          ? "Exact read-only destination; original evidence is checked only on detailed inspection."
-          : "This exact destination is unavailable; no replacement was selected."),
-    };
-    capability.disabledReason = capability.enabled ? null : capability.reason;
-    if (capability.enabled)
-      for (let i = 0; i < choices.length; i++) {
-        if (i === selectedIndex) choices[i].target = target;
-        else {
-          choices[i].target = entityTarget(entity, context, choices[i]);
-          materializedTargets++;
-        }
+    const capability = navigationCapability(state, entity);
+    for (let i = 0; i < choices.length; i++) {
+      if (i === selectedIndex && record.choices[i].availability === "PUBLIC_REPLAY")
+        choices[i].target = target;
+      else if (record.choices[i].availability === "PUBLIC_REPLAY") {
+        choices[i].target = entityTarget(entity, context, choices[i]);
+        materializedTargets++;
       }
+    }
     const requiresChoice =
       choices.length > 1 &&
       !choices.some((choice) => choice.artifactId === context.anchor?.artifactId);
@@ -769,17 +811,18 @@ export function createTerminalSearchService(
     if (signal?.aborted) aborted();
     if (names.some((name) => !Object.hasOwn(SHARDS, name)))
       throw new Error("Unknown search workspace.");
-    const seed = loaded.get("seed") ?? (await loadShard("seed"));
-    if (seed.name !== "seed") throw new Error("Search seed identity mismatch.");
-    loaded.set("seed", seed);
     navigation ??= await loadNavigation();
     if (history && !retained) {
+      const seed = loaded.get("seed") ?? (await loadShard("seed"));
+      if (seed.name !== "seed") throw new Error("Search seed identity mismatch.");
+      loaded.set("seed", seed);
       for (const name of ["history", "history-archive"] as const) {
         const shard = loaded.get(name) ?? (await loadShard(name));
         if (shard.name !== name) throw new Error("Search history identity mismatch.");
         loaded.set(name, shard);
       }
-      const alternatives = deriveNavigationRecords(rawCatalog(), "history"),
+      const { capabilityFor } = await import("./capabilities.ts");
+      const alternatives = deriveNavigationRecords(rawCatalog(), "history", capabilityFor),
         merged = new Map(navigation.map((record) => [record.key, record]));
       const supplement = await loadRetainedSearchNavigation();
       for (const record of [...alternatives, ...supplement]) {

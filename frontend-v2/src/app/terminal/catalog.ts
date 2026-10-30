@@ -1091,7 +1091,7 @@ export type NavigationProjection = PackedNavigation & {
 };
 export async function validateNavigationProjection(
   value: unknown,
-  expectedManifest: PackedShard["manifestBinding"],
+  expectedManifest?: PackedShard["manifestBinding"],
 ): Promise<NavigationRecord[]> {
   if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 131072)
     throw new Error("Search navigation decoded bound exceeded.");
@@ -1108,13 +1108,24 @@ export async function validateNavigationProjection(
     "selections",
     "columns",
   ]);
+  const manifest = record(raw.manifestBinding, ["sha256", "bytes", "asOf"]);
+  if (
+    Object.keys(manifest).length !== 3 ||
+    !HASH.test(String(manifest.sha256)) ||
+    !count(manifest.bytes, 2097152) ||
+    manifest.bytes === 0 ||
+    !text(manifest.asOf, 80) ||
+    !Number.isFinite(Date.parse(manifest.asOf))
+  )
+    throw new Error("Search navigation manifest binding is invalid.");
   if (
     Object.keys(raw).length !== 11 ||
     raw.schema_version !== "terminal-search-navigation/1" ||
     raw.generator_contract !== TERMINAL_CONTRACT ||
     !HASH.test(String(raw.payloadDigest)) ||
     !HASH.test(String(raw.logicalDigest)) ||
-    stableTerminal(raw.manifestBinding) !== stableTerminal(expectedManifest)
+    (expectedManifest !== undefined &&
+      stableTerminal(raw.manifestBinding) !== stableTerminal(expectedManifest))
   )
     throw new Error("Search navigation identity changed.");
   const { payloadDigest, ...sealed } = raw;
@@ -1134,8 +1145,8 @@ export async function validateNavigationProjection(
 }
 let navigationPending: Promise<NavigationRecord[]> | undefined;
 export function loadSearchNavigation(): Promise<NavigationRecord[]> {
-  navigationPending ??= Promise.all([import("./generated/search.generated.ts"), loadTerminalSeed()])
-    .then(([module, seed]) => validateNavigationProjection(module.default, seed.manifestBinding))
+  navigationPending ??= import("./generated/search.generated.ts")
+    .then((module) => validateNavigationProjection(module.default))
     .catch((error: unknown) => {
       navigationPending = undefined;
       throw error;

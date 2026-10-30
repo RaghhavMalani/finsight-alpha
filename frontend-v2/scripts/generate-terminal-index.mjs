@@ -32,6 +32,7 @@ import {
 } from "../src/app/terminal/catalog.ts";
 
 import { deriveNavigationRecords } from "../src/app/terminal/search.ts";
+import { capabilityFor } from "../src/app/terminal/capabilities.ts";
 
 /** Roundtrip identity includes signed zero and every finite IEEE value, not just JSON equivalence. */
 function assertExactRoundtrip(source, decoded) {
@@ -7240,7 +7241,11 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     routes: Object.assign({}, ...currentShards.map((p) => p.routes)),
     projectionPins: payloads.seed.projectionPins,
   };
-  const currentSearchRecords = deriveNavigationRecords(currentSearchSource);
+  const currentSearchRecords = deriveNavigationRecords(
+    currentSearchSource,
+    "current",
+    capabilityFor,
+  );
   const searchSelectionIds = [
     ...new Set(
       currentSearchRecords.flatMap((record) =>
@@ -7306,12 +7311,17 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     routes: Object.assign({}, ...shards.map((shard) => shard.routes)),
     projectionPins: payloads.seed.projectionPins,
   });
-  const fullRetainedNavigation = deriveNavigationRecords(catalogFor(allShards), "history");
+  const fullRetainedNavigation = deriveNavigationRecords(
+    catalogFor(allShards),
+    "history",
+    capabilityFor,
+  );
   const baselineRetained = deriveNavigationRecords(
     catalogFor(
       allShards.filter((shard) => ["seed", "history", "history-archive"].includes(shard.name)),
     ),
     "history",
+    capabilityFor,
   );
   const knownChoices = new Map();
   for (const record of [...currentSearchRecords, ...baselineRetained]) {

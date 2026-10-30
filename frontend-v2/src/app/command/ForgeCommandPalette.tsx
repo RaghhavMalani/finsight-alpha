@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { WORKSPACES } from "@/app/workspaces";
 import { commandIntent } from "./CommandLine";
 import { useInvestigation } from "../terminal/TerminalShell";
-import { targetHref, type InvestigationTarget } from "../terminal/links";
+import { buildInvestigationTarget, targetHref, type InvestigationTarget } from "../terminal/links";
 import type { CommandResolution, LegacyMarketNavigation } from "../terminal/commands";
 import type { Capability } from "../terminal/capabilities";
 import { localLiveAllowed, setCurrentTicker, useDataMode } from "@/replay/mode";
@@ -128,7 +128,21 @@ export function ForgeCommandPalette({
           let searchItems: Item[] = [];
           let limitedMessage =
             "Reference identities do not imply evidence coverage. Clocks belong to each exact selection.";
-          if (intent === "terminal") {
+          if (!query.trim() && !history) {
+            searchItems = WORKSPACES.map((workspace) => ({
+              key: "workspace|" + workspace.id,
+              label: workspace.key + " · " + workspace.label,
+              detail:
+                workspace.id === "execution"
+                  ? "UNAVAILABLE · Execution is future work."
+                  : "Workspace navigation; destination checks its exact evidence.",
+              ...(workspace.id !== "execution"
+                ? {
+                    target: buildInvestigationTarget(investigation.navigationContext, workspace.id),
+                  }
+                : {}),
+            }));
+          } else if (intent === "terminal") {
             const { resolveCommandInput } = await import("../terminal/commands");
             command = await resolveCommandInput(query, investigation.navigationContext, {
               history,
