@@ -1068,8 +1068,9 @@ check("recorded run target path must agree with exact typed run", () => {
 const ARCHIVE_BASE = "e65e6651ccbe758e490b2b48c240aac514cab7c6";
 const FIRST_RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
 const PREVIOUS_RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
-const RECONCILED_MAIN = "32c3f827985dd5fbee0354780765e49e679cad57";
-const CURRENT_AVAILABLE_BINDINGS = 340;
+const THIRD_RECONCILED_MAIN = "32c3f827985dd5fbee0354780765e49e679cad57";
+const RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
+const CURRENT_AVAILABLE_BINDINGS = 347;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1250,13 +1251,15 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const added = Object.keys(admittedManifest.artifacts).filter(
     (id) => !(id in baseManifest.artifacts),
   );
-  assert.equal(added.length, 21);
+  assert.equal(added.length, 28);
   assert.deepEqual(
     added.map((id) => admittedManifest.artifacts[id].kind).sort(),
-    [...dataKinds, ...dataKinds, ...dataKinds].map((kind) => "data-organ-" + kind).sort(),
+    [...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds]
+      .map((kind) => "data-organ-" + kind)
+      .sort(),
   );
   const clocks = new Set(added.map((id) => admittedManifest.artifacts[id].as_of));
-  assert.equal(clocks.size, 3);
+  assert.equal(clocks.size, 4);
   for (const kind of dataKinds)
     assert(
       added.includes(admittedManifest.routes["/data/" + kind]),
@@ -1270,7 +1273,7 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const upstreamPaths = splitZ(
     git("diff", "--no-renames", "--name-only", "-z", ARCHIVE_BASE, RECONCILED_MAIN),
   );
-  assert.equal(upstreamPaths.length, 39);
+  assert.equal(upstreamPaths.length, 50);
   assert(
     upstreamPaths.every(
       (p) =>
@@ -1297,7 +1300,8 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const epochs = [
     [ARCHIVE_BASE, FIRST_RECONCILED_MAIN],
     [FIRST_RECONCILED_MAIN, PREVIOUS_RECONCILED_MAIN],
-    [PREVIOUS_RECONCILED_MAIN, RECONCILED_MAIN],
+    [PREVIOUS_RECONCILED_MAIN, THIRD_RECONCILED_MAIN],
+    [THIRD_RECONCILED_MAIN, RECONCILED_MAIN],
   ];
   for (const [from, to] of epochs) {
     assert.deepEqual(
@@ -1583,6 +1587,161 @@ if (amendmentOnly) {
     commands = await import("../src/app/terminal/commands.ts"),
     catalog = await import("../src/app/terminal/catalog.ts"),
     search = await import("../src/app/terminal/search.ts");
+
+  const projectionRaw = () =>
+    JSON.parse(
+      readFileSync(
+        path.join(frontend, "src/app/terminal/generated/search.generated.ts"),
+        "utf8",
+      ).match(/export default (.+) as const;/)[1],
+    );
+  const resealNavigation = async (value) => {
+    const { payloadDigest: _old, ...sealed } = value;
+    return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
+  };
+  await checkAsync(
+    "self-contained search projection verifies closed binding and both digests with no second module/network",
+    async () => {
+      const oldFetch = globalThis.fetch;
+      let fetches = 0;
+      globalThis.fetch = async () => {
+        fetches++;
+        throw new Error("No validation network permitted");
+      };
+      try {
+        const rows = await catalog.validateNavigationProjection(projectionRaw());
+        assert.equal(rows.length, 523);
+        assert.equal(fetches, 0);
+      } finally {
+        globalThis.fetch = oldFetch;
+      }
+    },
+  );
+  for (const [name, mutate] of [
+    ["manifest bytes", (value) => (value.manifestBinding.bytes = -1)],
+    ["manifest unknown field", (value) => (value.manifestBinding.scientific = [1])],
+    ["logical digest", (value) => (value.logicalDigest = "a".repeat(64))],
+    ["raw scientific array", (value) => (value.weekly_values = [1, 2])],
+  ])
+    await checkAsync("self-contained projection rejects resealed " + name, async () => {
+      const raw = projectionRaw();
+      mutate(raw);
+      const sealed = await resealNavigation(raw);
+      await assert.rejects(() => catalog.validateNavigationProjection(sealed));
+    });
+  for (const [name, mutate] of [
+    ["manifest SHA", (value) => (value.manifestBinding.sha256 = "a".repeat(64))],
+    ["payload digest", (value) => (value.payloadDigest = "a".repeat(64))],
+  ])
+    await checkAsync("self-contained projection rejects unsealed " + name, async () => {
+      const raw = projectionRaw();
+      mutate(raw);
+      await assert.rejects(() => catalog.validateNavigationProjection(raw));
+    });
+  for (const [name, mutate] of [
+    ["availability", (rows) => (rows[0].choices[0].availability = "LOCAL_LIVE_ONLY")],
+    ["unknown capability", (rows) => (rows[0].choices[0].availability = "HOSTED_API_VERIFIED")],
+    ["exact ID", (rows) => (rows.at(-1).id = "changed-id")],
+    ["unknown type", (rows) => (rows[0].type = "private-account")],
+    ["unknown workspace", (rows) => (rows[0].choices[0].view.workspace = "private")],
+    ["canonical order", (rows) => rows.reverse()],
+  ])
+    await checkAsync("self-contained projection rejects repacked " + name, async () => {
+      const raw = projectionRaw(),
+        rows = structuredClone(await catalog.validateNavigationProjection(raw));
+      mutate(rows);
+      Object.assign(raw, catalog.packNavigationRecords(rows));
+      const sealed = await resealNavigation(raw);
+      await assert.rejects(() => catalog.validateNavigationProjection(sealed));
+    });
+  await checkAsync(
+    "build rejects a well-shaped resealed foreign search manifest epoch",
+    async () => {
+      const raw = projectionRaw(),
+        expected = structuredClone(raw.manifestBinding);
+      raw.manifestBinding.sha256 = "b".repeat(64);
+      const sealed = await resealNavigation(raw);
+      await assert.rejects(() => catalog.validateNavigationProjection(sealed, expected));
+    },
+  );
+  check("cold search has no static capability import or full resolver evaluation", () => {
+    const source = readFileSync(path.join(frontend, "src/app/terminal/search.ts"), "utf8"),
+      tree = ts.createSourceFile(
+        "search.ts",
+        source,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+      );
+    for (const node of tree.statements)
+      if (ts.isImportDeclaration(node) && node.moduleSpecifier.text.includes("capabilities"))
+        assert(node.importClause.isTypeOnly);
+    const node = tree.statements.find(
+      (node) => ts.isFunctionDeclaration(node) && node.name?.text === "searchNavigation",
+    );
+    assert(node);
+    assert(!node.getText(tree).includes("capabilityFor("));
+  });
+  check("cold navigation loader imports only search projection, never seed", () => {
+    const source = readFileSync(path.join(frontend, "src/app/terminal/catalog.ts"), "utf8"),
+      tree = ts.createSourceFile(
+        "catalog.ts",
+        source,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+      ),
+      node = tree.statements.find(
+        (node) => ts.isFunctionDeclaration(node) && node.name?.text === "loadSearchNavigation",
+      );
+    assert(node);
+    assert(node.getText(tree).includes("search.generated"));
+    assert(!/loadTerminalSeed|seed.generated/.test(node.getText(tree)));
+  });
+  for (const state of ["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"])
+    check("navigation label never upgrades " + state, () => {
+      const cap = search.navigationCapability(state, {
+        type: "market-factor",
+        workspace: "market",
+      });
+      assert.equal(cap.label, state);
+      assert.equal(cap.enabled, state === "PUBLIC_REPLAY");
+      assert.equal(cap.allowedActionClass, "navigate");
+      assert.equal(cap.evidenceRef, undefined);
+    });
+
+  check(
+    "mixed navigation choices keep unavailable disabled and exact public alternative enabled",
+    () => {
+      const original = projectionRaw(),
+        rows = catalog.unpackNavigationRecords(original, original.recordCount),
+        record = structuredClone(rows.find((r) => r.type === "market-factor" && r.id === "US-MKT"));
+      const first = record.choices[0];
+      first.availability = "UNAVAILABLE";
+      record.choices.push({
+        ...structuredClone(first),
+        artifactId: "market:IN-MKT",
+        availability: "PUBLIC_REPLAY",
+      });
+      const response = search.searchLoaded(
+        "US-MKT",
+        { version: 1, view: { workspace: "risk" } },
+        { entities: [], bindings: {}, navigation: [record] },
+      );
+      const result = response.results[0];
+      assert.equal(result.choices.length, 2);
+      assert.equal(result.choices[0].target, undefined);
+      assert(result.choices[1].target);
+      assert(result.requiresChoice);
+      assert.equal(result.capability.label, "UNAVAILABLE");
+    },
+  );
+  for (const state of ["HOSTED_API_VERIFIED", "toString", "__proto__"])
+    check("unknown navigation capability never enables " + state, () =>
+      assert.throws(() =>
+        search.navigationCapability(state, { type: "workspace", workspace: "market" }),
+      ),
+    );
   const sourceIds = [
     Object.keys(manifest.artifacts).find((id) => id.startsWith("forge:run:")),
     "world:quakes",
@@ -1683,7 +1842,7 @@ if (amendmentOnly) {
       assert(marker > 0);
       assert.equal(
         hash(bytes.subarray(0, marker)),
-        "2e54d53a53ad830e575ed80832225006ad0deec90bd81787a177f68c2453820c",
+        "6f730278eaec8a506c8d3d99f01a9b419981016893d5a165b76616988deab7a1",
       );
       assert.equal(
         hash(
@@ -1691,19 +1850,19 @@ if (amendmentOnly) {
             path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
           ),
         ),
-        "959d93bc0a57bacf5422e730c9117b72e09301a8d653ac81c791df4e74fe8742",
+        "c9c40f9182c568904fea9d6ba8e8225336f377bfef84026e317661a29e6533b9",
       );
       assert(bytes.length <= 131072);
       assert(gzipSync(bytes, { level: 9 }).length <= 32768);
       const records = await catalog.loadRetainedSearchNavigation();
-      assert.equal(records.length, 544);
+      assert.equal(records.length, 551);
       assert.equal(
         records.reduce((n, r) => n + r.choices.length, 0),
-        958,
+        965,
       );
       searchAmendmentProof.history = {
-        records: 544,
-        choices: 958,
+        records: 551,
+        choices: 965,
         wholeModuleDecodedBytes: bytes.length,
         wholeModuleGzipBytes: gzipSync(bytes, { level: 9 }).length,
         unchangedDefault: true,
@@ -2089,7 +2248,7 @@ if (!coreOnly || projectionsOnly) {
             generated.searchProjection,
             generated.shards.seed.manifestBinding,
           );
-          assert.equal(records.length, 521);
+          assert.equal(records.length, 523);
           assert.deepEqual(JSON.parse(JSON.stringify(records)), generated.currentSearchRecords);
           continue;
         }
@@ -3558,12 +3717,22 @@ const navigationProof = {
   provenance: "ENGINEERING_QA_ACTUAL_RETAINED_CATALOG_AND_PURE_NAVIGATION_ONLY",
 };
 if ((!coreOnly && !projectionsOnly) || navigationOnly) {
-  const search = await import("../src/app/terminal/search.ts"),
+  const searchModule = await import("../src/app/terminal/search.ts"),
     commands = await import("../src/app/terminal/commands.ts"),
     capabilities = await import("../src/app/terminal/capabilities.ts"),
     catalog = await import("../src/app/terminal/catalog.ts"),
     reader = await import("../src/app/terminal/reader.ts"),
     legacy = await import("../src/app/command/mnemonics.ts");
+  const search = {
+    ...searchModule,
+    searchLoaded: (query, context, options) =>
+      searchModule.searchLoaded(query, context, {
+        ...options,
+        capabilityResolver: capabilities.capabilityFor,
+      }),
+    deriveNavigationRecords: (options, scope) =>
+      searchModule.deriveNavigationRecords(options, scope, capabilities.capabilityFor),
+  };
   let data, shards;
   await checkAsync("navigation service composes all real validated shards", async () => {
     shards = await Promise.all(catalog.SHARD_NAMES.map(catalog.loadTerminalShard));
@@ -4509,7 +4678,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        assert.equal(supported, 315); // Main32c retains the prior308 and adds seven guarded Data originals.
+        assert.equal(supported, 322); // Main00aa retains the prior315 and adds seven guarded Data originals.
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,

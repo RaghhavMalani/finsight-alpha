@@ -1,7 +1,44 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
-Status: PARTIAL SEARCH CAPACITY REPAIR; BLOCKED AT THE COLD GLOBAL SEARCH GATE. Stage 10 remains STOPPED. PR #30 remains DRAFT, OPEN, UNMERGED, with auto-merge disabled.
+Status: COLD GLOBAL SEARCH REPAIR PASSES; INITIAL 24/64 KiB ATTRIBUTION REMAINS INDETERMINATE. Stage 10 remains STOPPED. PR #30 remains DRAFT, OPEN, UNMERGED, with auto-merge disabled.
 
+
+## 2026-10-31 — Reconciled cold discovery repair (PASS; initial attribution pending)
+
+Runtime source commit: `227377d10c29a59fc8cda60fd9a33d7d128fa104`. Merge commit `d9307007158dd8fef4708e25542781aac70245a8` reconciles main `00aa3ea6e7490f4ac47cdd9992b848317031270f` before optimization. The read-only admission audit passes **1,892 checks**:360prior manifest entries,340prior available originals,146route keys and every old sealed file are retained. Seven Data envelopes and four sealed raw reports are added; only six mutable aliases/manifests change. New manifest:367entries /347AVAILABLE /20UNAVAILABLE /146routes,476,521bytes,SHA `41ed0f1b3aa66b44603723b254ad27efcc064f1b8c0e7460bbaf4eda50511f54`,as-of2026-10-30T07:19:03.724605Z. No scientific workflow was rerun.
+
+Reconciliation, two deterministic complete generations and the930-file freeze passed before cold capacity was remeasured. The fresh reconciled baseline still failed at **38,598 gzip bytes**; this is retained separately from the older38,508 failure.
+
+The repair uses the generated availability label directly for navigation presentation. Full runtime/business capability evaluation remains authoritative in commands, explicit history derivation and destination actions. The full capabilities source is unchanged. A build/history authority callback preserves the existing complete-source capability evaluation while avoiding its runtime import for ordinary global search. The empty palette uses static WORKSPACES and typed shell context. Search validates its own closed manifest envelope, canonical records and both digests, without a seed request. The generator still cross-checks against its exact input manifest, complete original contracts, source choices and full capability authority.
+
+**Every one of the11 generated metadata modules remains byte-identical to the reconciled pre-optimization generation.** No entity, choice, country, namespace, status, selector or provenance binding was removed. No history redesign, new tracked runtime file, generated module, public artifact, backend/environment/protection change or scientific publication was introduced.
+
+| Measured fresh path | Decoded JS | Gzip JS | Limit | Result |
+|---|---:|---:|---:|---|
+| Empty Risk /Factors palette |10,085|4,046|32,768|PASS|
+| Cold global palette + first query, Risk /Factors |86,051|**31,507**|32,768|**PASS**|
+| Risk RISK HIGH command |19,953|8,146|32,768|PASS|
+| Market identity search |34,893|11,946|32,768|PASS|
+
+The cold global union is four actual emitted bodies: `ForgeCommandPalette-D3vPtqAR.js`, `search-CKaQcyC3.js`, `catalog-CB-JFseV.js`, `search.generated-CpDThoKE.js`. First-query incremental code/metadata is27,461gzip; it is charged together with the4,046palette bytes. Hard-cap headroom is **1,261 bytes**; the preferred2KiB headroom is not claimed. Risk command uses `commands-BBqNjatr.js` and `capabilities-CzHS0cbL.js`; its23-byte emitted-size increase versus8,123 is reported, with command/capability source behavior unchanged. Market search uses only search/catalog machinery plus its independently required seed identities.
+
+Fresh Risk and Factors discovery each request search.generated exactly once, with **seed before/during search0/0, full capability runtime before/during0/0, history0, recordings0, original readers0, workspace evidence/display shards0, original scientific fetches0, private/provider/API/mutation requests0 and legacy mnemonic/factor-series0**. Both filename and emitted-body markers check the full capability boundary. Explicit history remains separately requested. All actual body SHA/byte checks match the exact client graph; the source maps analysis independently matches126unchanged emitted JS bodies.
+
+Search projection: **523 current identities** (two legitimate new Data origins), **43,449 decoded /15,808 gzip**, against131,072 /16,384. Logical digest `39aecae6d64e474e03d7e4b2a4abf0d1ee49c7fb66df57602569f8d17aaf2ac3`; payload digest `e7e3e696740307c892004a7ee112ca99f2e21079bcb7dcb0461d33333008567f`. All89current artifact selections have full source authority;322complete originals are validated overall. The browser label remains BUILD-VERIFIED NAVIGATION METADATA and does not attest that original evidence/provider data was fetched.
+
+The first60-query Chrome run over523entities records **median1.2 /p952.0 /max2.4ms**, below30ms, with at most20materialized targets. Environment: HeadlessChrome156,Windows,24logical processors,1440x1000,DPR1. All30usable warm palette opens pass with p9598.6ms <=150; cold readiness also meets400ms after transfer. No benchmark was repeated to seek green. US-MKT/IN-MKT, Market product scoping, stale-result clearing, exact links and Escape focus restoration pass.
+
+History is verified through the same approved mechanism. The legitimate epoch yields a lossless309-entity /498-edge /44-binding /663-choice logical union, digest `80749441687c0e26e428feb07671abaeae1991c42bb2167b6fe8bbc87ff31afb`. Default history retains16entities /0edges /16bindings; its prefix is11,797decoded /4,021gzip, SHA `6f730278eaec8a506c8d3d99f01a9b419981016893d5a165b76616988deab7a1`. The existing named retainedNavigation export now holds551records /965choices. Whole history module:73,796decoded /25,307gzip. Archive:293entities /498edges /28bindings,128,075decoded /29,911gzip, SHA `c9c40f9182c568904fea9d6ba8e8225336f377bfef84026e317661a29e6533b9`. Archive decoded headroom is2,997bytes /2.29%; the unchanged hard caps pass. Full retained search matches **1,101 identities /2,151 choices**. Changes are attributable to the new main publication; all11outputs are identical before/after the runtime repair.
+
+**Verification:** all560static checks remain; all237targeted/freeze checks pass (the previous214 plus new cases). New checks cover self-contained validation, absence of seed/full-capability dependencies, exact build manifest authority, tampered binding/availability/IDs/type/workspace/array fields/canonical order/digests, unknown capability labels and mixed enabled/disabled choices. Typecheck/build pass; lint0errors /5Fast Refresh warnings. The930-file freeze again preserves221originals /126routes /6withdrawals /27Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`.
+
+### Separate initial-JS gate remains indeterminate
+
+After the cold gate passed, a read-only hidden-source-map build produced **byte-identical JS for all126measured bodies**. Complete byte ownership is recorded, with vendor exclusions requiring unchanged main package-lock content and exact installed-source/source-map content equality. The main `index-WpfGPQ0B.js` body is340,277decoded /105,862gzip:320,170verified vendor-source bytes,16,256project-source bytes and3,851unmapped bytes. Source ownership covers every emitted byte. Other mixed assets are retained in the proof.
+
+This does not create an accepted per-owner split of the actual mixed gzip stream. No filename exemption, proportional estimate or fragment gzip is promoted to an initial-cap PASS, and the whole framework total is not labelled an owned-code FAIL. The24KiB terminal-core /64KiB Risk/Factors gates therefore remain **INDETERMINATE**. Source maps are archived only in ignored local QA files; normal public build output is restored, all126JSbody hashes remain exact, and no source maps/public artifacts are published. No build configuration or runtime code was changed for this analysis. A separately reviewed packaging separation or accepted complete attribution method remains the next gate; Stage10 stays stopped.
+
+The proof's `cold_search_runtime_repair_oct31` entry preserves the admission audit, both before/after generation maps, all request/body lists, latency samples, tamper results, source hashes and complete ownership summaries/reproducer. Every earlier failed measurement remains intact. All scientific-operation increments remain zero, all six claims false, D6disabled/deferred, Risk/regime scheduling disabled. The excluded local closure commit is still absent. PR#30 remains draft/open/unmerged, auto-merge disabled; full integration, browser matrix, clean-clone, exact-head CI and Vercel acceptance are not claimed.
 
 ## 2026-10-30 — Navigation projection amendment checkpoint (BLOCKED)
 

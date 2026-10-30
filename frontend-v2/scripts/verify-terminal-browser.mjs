@@ -529,6 +529,9 @@ function collectClientBudgetGraph({
             category: classify(name, code),
             newTerminalMarker: newTerminalMarker.test(code),
             scientificDisplayPayload: generated.test(name) && scientificPayload(code),
+            fullCapabilityRuntime:
+              code.includes("Observed 401 authentication boundary only") ||
+              code.includes("No installed tenant-local assessment exists"),
             imports: uniq(imports),
             dynamicImports: uniq(dynamicImports),
           },
@@ -621,6 +624,11 @@ function collectClientBudgetGraph({
           assets.get(name).category === "UNCLASSIFIED_COUNT_CONSERVATIVELY",
       );
       const checks = [];
+      if (["palette", "current-search", "metadata-search"].includes(phase.name))
+        checks.push({
+          name: "no_full_business_capability_runtime_in_metadata_discovery",
+          pass: !names.some((name) => assets.get(name).fullCapabilityRuntime),
+        });
       if (["palette", "current-search", "metadata-search", "command"].includes(phase.name))
         checks.push({
           name: "no_workspace_scientific_display_payload_in_interaction",
@@ -967,6 +975,14 @@ async function capacityStage() {
           });
           continue;
         }
+        assert(
+          !palette.requests.some((entry) =>
+            /\/(?:search|catalog|capabilities|commands|mnemonics|factor-series)-|\.generated-/.test(
+              entry.url,
+            ),
+          ),
+          "Empty palette requires only static workspace UI/context",
+        );
         const dialog = fixture.page.getByRole("dialog", { name: "Terminal command", exact: true });
         const current = await phase(fixture, journey, "current-search", async () => {
           await dialog.getByRole("combobox").fill("IN-MKT");
@@ -986,6 +1002,45 @@ async function capacityStage() {
           ),
           "Ordinary palette and metadata query must not import legacy parser or command resolver",
         );
+        const initialAssets = new Set(
+          journey.phases
+            .find((phase) => phase.name === "initial")
+            .requests.map((entry) => entry.url),
+        );
+        const cold = [...palette.requests, ...current.requests];
+        assert.equal(
+          cold.filter((entry) => /\/search\.generated-/.test(entry.url)).length,
+          1,
+          "First query must request exactly one self-contained search envelope",
+        );
+        assert(
+          !cold.some((entry) =>
+            /\/(?:capabilities|reader|mnemonics|factor-series|commands)-/.test(entry.url),
+          ),
+          "No full capabilities/readers/legacy machinery in ordinary cold search",
+        );
+        assert(
+          !cold.some(
+            (entry) => /\/seed\.generated-/.test(entry.url) && !initialAssets.has(entry.url),
+          ),
+          "Search must not request a second seed metadata module",
+        );
+        assert(
+          !cold.some((entry) =>
+            /\/(?:market|regimes|risk|factors|data|recordings|observatory-window|history|history-archive)\.generated-/.test(
+              entry.url,
+            ),
+          ),
+          "Cold global network whitelist excludes all evidence/history/display shards",
+        );
+        journey.coldWhitelist = {
+          searchProjectionRequests: 1,
+          capabilityRequests: 0,
+          searchOnlySeedRequests: 0,
+          initialSeedRequests: [...initialAssets].filter((url) => /\/seed\.generated-/.test(url))
+            .length,
+          scientificOrHistoryRequests: 0,
+        };
         assert.equal(await dialog.getByRole("combobox").inputValue(), "IN-MKT");
         await fixture.page.waitForFunction(() =>
           [...document.querySelectorAll('#forge-command-results [role="option"]')].some((element) =>
