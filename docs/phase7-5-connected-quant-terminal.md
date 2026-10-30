@@ -1,6 +1,6 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
-Status: STOPPED AT THE APPROVED JAVASCRIPT AND HISTORY CAPACITY GATES. No final QA, CI, deployment or review-readiness claim is made by this checkpoint. The eventual PR must remain DRAFT, OPEN, UNMERGED, with auto-merge disabled.
+Status: PARTIAL CAPACITY REPAIR; BLOCKED AT INTERACTION AND SEARCH GATES. No final QA, CI, deployment or review-readiness claim is made by this checkpoint. The eventual PR must remain DRAFT, OPEN, UNMERGED, with auto-merge disabled.
 
 ## Product integration and scientific boundary
 
@@ -102,3 +102,38 @@ The other eight modules pass their caps. Two premerge derivations each read the 
 The current contracts/context/compatibility/freeze stage passes 202 checks, the updated verifier file passes lint, and the original archive verifier freshly passes all 930 frozen files with the original scientific inventory. Earlier 519-check navigation, 16-case Stage 9 browser, TypeScript and whole-frontend lint results remain explicitly tied to main830 and its exact production source/assets. The 41,213 /80,907 /66,068 gzip JS figures above are the last measured production failures at that earlier epoch; a fresh final-head build and browser rerun are unavailable while generation fails.
 
 Both executable-JS and latest history capacity failures are retained as blockers. No cap, history, licence, original guard, archive baseline or protected source is relaxed. The approved source baseline advances only through all three independently checked Data epochs; original e65 archive and reader7d references remain pinned. `6f99daa` stays excluded. The draft PR presents an incomplete, blocked checkpoint and makes no final CI, Vercel or review-readiness claim.
+
+## Approved capacity repair — 30 October 2026
+
+Status: PARTIAL REPAIR, STILL BLOCKED. The capacity amendment permits one additional ignored generated output, history-archive.generated.ts, and separates the always-on 24,576-byte terminal core from the 32,768-byte explicit command/search class. The user confirmed that the unchanged 65,536-byte Risk/Factors initial cap retains route-attributable accounting, while the interaction cap counts executable code and generated metadata JS together. All actual browser JS, including common assets, is also reported. The original approved plan remains byte-identical.
+
+The history repair passes its current limits without dropping retained selections:
+
+| Module | Records | Edges | Bindings | Version choices | Decoded bytes | Gzip bytes |
+|---|---:|---:|---:|---:|---:|---:|
+| history | 16 | 0 | 16 | 16 | 11,797 | 4,021 |
+| history-archive | 280 | 480 | 27 | 623 | 122,982 | 28,642 |
+| Exact logical union | 296 | 480 | 43 | 639 | — | — |
+
+Partitioning uses current manifest route requirements and exact declared endpoint/binding closure versus retained archive selections. It uses no byte target, hash bucket, random bucket or row truncation. The union digest equals the original logical history digest, `be13c8367301999aa16f50d93166e92fb6374d334efc17b30b116ec60c6189cb`, with recursive Object.is equality preserving signed zero and IEEE values. Two consecutive complete rebuilds produce identical bytes for all ten generated modules; each validates 259 complete source originals. Both history modules retain the unchanged 131,072-byte decoded /32,768-byte gzip /512-record caps. The archive has 6.17% decoded headroom, below the preferred 10%; no further split is performed.
+
+TerminalShell now imports the palette only after its action or Ctrl/Cmd+K. The accessible loading state preserves Escape/focus, and the keyboard path uses the same focus-capture callback as the button. The visible command line loads its resolver and legacy parser on submission. The shell's default navigation path reads the named compact envelope in the existing seed module, validates its closed contract, digest, manifest/source bindings and admitted availability/licence metadata, and imports no general catalogue or full reader for that purpose. Full original inspection still uses the unchanged complete reader and whole-source checks. Browser requests, HTML preloads and execution coverage confirm optional command/search code and archive are absent from the tested initial Risk/Factors contexts. Current-only search does not request the archive; an explicit history checkbox does.
+
+The amended architecture still fails the interaction gate:
+
+| Actual fresh entry | Decoded JS bytes | Default gzip JS bytes | Cap | Over cap |
+|---|---:|---:|---:|---:|
+| Risk palette, ten checked options | 117,717 | 39,140 | 32,768 | 6,372 |
+| Factors palette, ten checked options | 117,717 | 39,140 | 32,768 | 6,372 |
+| Risk command submission | 134,808 | 38,376 | 32,768 | 5,608 |
+| Market metadata search | 493,643 | 131,742 | 32,768 | 98,974 |
+
+These are actual first-entry code-plus-metadata transfers, with each emitted client asset compressed using the unchanged default-gzip method. The palette request list includes the palette, mnemonic parser, factor-series helper, search, catalogue, commands, seed and recordings modules. Current search also transfers the Market/Regime modules containing scientific display arrays and reader machinery, contrary to the new interaction boundary. The measured alternative putting all science-free Market/Regime metadata in the seed fails its unchanged caps at 53,306 decoded /14,298 gzip bytes and was not activated.
+
+Initial 24/64 KiB acceptance remains INDETERMINATE. Known owned whole-asset lower bounds are 16,274 gzip bytes for the core, 56,688 for initial Risk and 40,056 for initial Factors. Actual all-initial JS totals are 194,058 and 184,743 respectively. The 105,878-byte gzip entry chunk mixes framework/bootstrap code with Phase 7.5 route/router helpers; the whole chunk is not silently exempted or misreported as terminal code. Fragment compression is diagnostic only. The complete import graph, body hashes, request/preload/execution lists and this ownership limitation are preserved in the proof.
+
+Current core/context/freeze verification passes 205 checks. Production build, TypeScript and lint pass; lint reports four Fast Refresh warnings and no errors. The archive verifier again passes the original 930-file scientific inventory. The static navigation attempt retains its loaded-search p95 failure of 34.3631 ms against 30 ms across sixty queries; no search performance retry was made. Its stale expected original-inspection count was corrected from 308 to 315 for the independently admitted seven Data originals; all 340 per-binding agreements had passed.
+
+Strict cold palette checks now require actual checked options, idle results and focused input. Risk/Factors show ten options, restore focus and respond 42.8/41.2 ms after the last chunk transfer, within the 400 ms target. API attempts, page errors and console errors are zero. The earlier 30-sample aria/focus-only warm observation of 152.9 ms against 150 ms is retained with its readiness limitation and is not promoted to usable-response acceptance. The earlier transient Factors 4,780-byte phase is explicitly not accepted as a usable palette; the strict cold result is 39,140 bytes for both workspaces.
+
+The repair stops here under the amendment's failure rule. Stage 10 has not resumed. No cap, feature, epoch, history, source/hash/schema/licence validation or freeze is relaxed. No further generated shard or tracked capacity source file is added. Scientific-operation increments remain zero, all six claims remain false, D6 stays deferred/disabled and the Risk/regime schedules stay disabled. Main remains reconciled at 32c3f82 and 6f99daa remains excluded. PR #30 remains DRAFT, OPEN, UNMERGED and auto-merge disabled; no final CI, Vercel or review-readiness claim is made.

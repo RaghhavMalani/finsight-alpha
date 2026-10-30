@@ -1078,6 +1078,7 @@ const APPROVED_MODULE_NAMES = [
   "data",
   "recordings",
   "history",
+  "history-archive",
   "observatory-window",
 ];
 const EXCLUDED_LOCAL_COMMIT = "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d";
@@ -1482,6 +1483,98 @@ check("Risk/regime schedules remain disabled and existing scheduled Data is byte
 });
 if (failures.length === freezeFailureStart) completedAreas.add("freeze");
 
+check(
+  "always-on shell and visible command line do not statically import optional interaction tooling",
+  () => {
+    for (const relative of [
+      "src/app/terminal/TerminalShell.tsx",
+      "src/app/command/CommandLine.tsx",
+    ]) {
+      const source = readFileSync(path.join(frontend, relative), "utf8");
+      const tree = ts.createSourceFile(
+        relative,
+        source,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX,
+      );
+      for (const statement of tree.statements) {
+        if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier))
+          continue;
+        const target = statement.moduleSpecifier.text;
+        if (/\/(?:ForgeCommandPalette|commands|search|catalog|reader)$/.test(target))
+          assert(
+            statement.importClause?.isTypeOnly,
+            relative + " imports optional runtime " + target,
+          );
+      }
+    }
+  },
+);
+check("always-on navigation seed loads only its exact existing generated seed file", () => {
+  const source = readFileSync(path.join(frontend, "src/app/terminal/TerminalShell.tsx"), "utf8");
+  const tree = ts.createSourceFile(
+    "TerminalShell.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const declaration = tree.statements.find(
+    (node) => ts.isFunctionDeclaration(node) && node.name?.text === "loadNavigationSeed",
+  );
+  assert(declaration);
+  const imports = [];
+  const visit = (node) => {
+    if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword)
+      imports.push(node.arguments[0]?.text);
+    ts.forEachChild(node, visit);
+  };
+  visit(declaration);
+  assert.deepEqual(imports, ["./generated/seed.generated.ts"]);
+  assert(
+    !/\b(?:loadTerminalSeed|validateTerminalShard|verifyDisplayProjection|fetch)\s*\(/.test(
+      declaration.getText(tree),
+    ),
+  );
+});
+
+check("Ctrl or Cmd K uses the same focus-capturing palette opener as the visible action", () => {
+  const source = readFileSync(path.join(frontend, "src/app/terminal/TerminalShell.tsx"), "utf8");
+  const tree = ts.createSourceFile(
+    "TerminalShell.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  let keyboard;
+  const find = (node) => {
+    if (ts.isVariableDeclaration(node) && node.name.getText(tree) === "onKey")
+      keyboard = node.initializer;
+    ts.forEachChild(node, find);
+  };
+  find(tree);
+  assert(keyboard && ts.isArrowFunction(keyboard));
+  const branch = keyboard.body.statements.find(
+    (node) =>
+      ts.isIfStatement(node) &&
+      node.expression.getText(tree).includes('event.key.toLowerCase() === "k"'),
+  );
+  assert(branch, "Find the actual Ctrl/Cmd+K branch");
+  const calls = [];
+  const inspect = (node) => {
+    if (ts.isCallExpression(node)) calls.push(node.expression.getText(tree));
+    ts.forEachChild(node, inspect);
+  };
+  inspect(branch.thenStatement);
+  assert.equal(calls.filter((name) => name === "openPalette").length, 1);
+  assert(
+    !calls.includes("setPaletteOpen"),
+    "A direct state setter bypasses focus capture during lazy loading",
+  );
+});
+
 const projectionProof = {
   provenance: "ENGINEERING_QA_READ_ONLY_OR_IN_MEMORY_MUTATIONS_OF_ACTUAL_RETAINED_METADATA",
 };
@@ -1798,7 +1891,7 @@ if (!coreOnly || projectionsOnly) {
     return { ...sealed, projectionDigest: await catalog.terminalDigest(sealed) };
   };
   await checkAsync(
-    "pure generator emits eight metadata shards and only the approved ninth display module",
+    "pure generator emits the approved nine metadata shards and separate Observatory display module",
     async () => {
       generated = await generator.deriveTerminalCatalog(manifest, {
         manifestBytes: manifestRaw,
@@ -1806,7 +1899,17 @@ if (!coreOnly || projectionsOnly) {
       });
       assert.deepEqual(
         Object.keys(generated.shards).sort(),
-        ["seed", "market", "regimes", "risk", "factors", "data", "recordings", "history"].sort(),
+        [
+          "seed",
+          "market",
+          "regimes",
+          "risk",
+          "factors",
+          "data",
+          "recordings",
+          "history",
+          "history-archive",
+        ].sort(),
       );
       assert.deepEqual(Object.keys(generated.modules).sort(), [...APPROVED_MODULE_NAMES].sort());
       assert.deepEqual(
@@ -1818,6 +1921,11 @@ if (!coreOnly || projectionsOnly) {
         path: "frontend-v2/src/app/terminal/generated/observatory-window.generated.ts",
         authorization:
           "explicit human approval of the ninth lazy ignored build output; original plan hash unchanged",
+      };
+      projectionProof.historyCapacityAmendment = {
+        path: "frontend-v2/src/app/terminal/generated/history-archive.generated.ts",
+        authorization:
+          "explicit human approval of semantic current/required navigation versus retained archive; original plan and per-module caps unchanged",
       };
       for (const [name, module] of Object.entries(generated.modules)) {
         assert(
@@ -1849,7 +1957,7 @@ if (!coreOnly || projectionsOnly) {
     },
   );
   await checkAsync(
-    "independent second pure rebuild is byte-for-byte deterministic across all nine modules",
+    "independent second pure rebuild is byte-for-byte deterministic across all ten approved modules",
     async () => {
       assert(generated, "Initial generation must pass before determinism can be claimed");
       rebuilt = await generator.deriveTerminalCatalog(manifest, {
@@ -1897,6 +2005,339 @@ if (!coreOnly || projectionsOnly) {
         );
     },
   );
+
+  if (generated) {
+    const exactValue = (left, right, where = "$") => {
+      if (typeof left === "number") {
+        assert(Object.is(left, right), where + " numeric identity");
+        return;
+      }
+      if (left && typeof left === "object") {
+        assert(right && typeof right === "object", where + " object identity");
+        assert.equal(Array.isArray(left), Array.isArray(right), where + " collection type");
+        assert.deepEqual(Object.keys(left).sort(), Object.keys(right).sort(), where + " keys");
+        for (const key of Object.keys(left)) exactValue(left[key], right[key], where + "." + key);
+        return;
+      }
+      assert.equal(left, right, where);
+    };
+    const independentlyUnionHistory = (parts) => {
+      const result = {
+        bindings: {},
+        routes: {},
+        entities: [],
+        edges: [],
+        projections: [],
+        bundles: [],
+      };
+      for (const field of ["bindings", "routes", "projectionPins"]) {
+        const values = new Map();
+        for (const part of parts) {
+          if (field === "projectionPins" && part[field] === undefined) continue;
+          for (const [key, value] of Object.entries(part[field])) {
+            if (values.has(key)) exactValue(values.get(key), value, field + "." + key);
+            values.set(key, value);
+          }
+        }
+        if (field !== "projectionPins" || parts.some((part) => part[field] !== undefined))
+          result[field] = Object.fromEntries(
+            [...values].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+          );
+      }
+      const keyFor = {
+        entities: (value) => value.key,
+        edges: (value) => catalog.stableTerminal(value),
+        projections: (value) => value.source.artifactId + "|" + value.selector,
+        bundles: (value) => value.anchor,
+      };
+      for (const field of Object.keys(keyFor)) {
+        const values = new Map();
+        for (const part of parts)
+          for (const value of part[field]) {
+            const key = keyFor[field](value);
+            if (values.has(key)) exactValue(values.get(key), value, field + "." + key);
+            values.set(key, value);
+          }
+        result[field] = [...values.values()].sort((a, b) => {
+          const left = field === "edges" ? catalog.stableTerminal(a) : keyFor[field](a);
+          const right = field === "edges" ? catalog.stableTerminal(b) : keyFor[field](b);
+          return left < right ? -1 : left > right ? 1 : 0;
+        });
+      }
+      return result;
+    };
+    const historyParts = [
+      decode(generated.shards.history),
+      decode(generated.shards["history-archive"]),
+    ];
+    check(
+      "semantic history union exactly preserves every original record, binding, edge, route and version choice",
+      () => {
+        assert(
+          generated.logicalHistory,
+          "Pure generator must expose the original logical payload for independent equality",
+        );
+        const independentlyMerged = independentlyUnionHistory(historyParts);
+        exactValue(independentlyMerged, generated.logicalHistory);
+        assert.equal(
+          catalog.stableTerminal(independentlyMerged),
+          catalog.stableTerminal(generated.logicalHistory),
+        );
+        const merged = generator.unionTerminalHistory(historyParts);
+        exactValue(merged, independentlyMerged);
+        assert.equal(
+          generated.report.historyPartition.originalDigest,
+          hash(catalog.stableTerminal(generated.logicalHistory)),
+        );
+        assert.equal(
+          generated.report.historyPartition.unionDigest,
+          hash(catalog.stableTerminal(independentlyMerged)),
+        );
+        projectionProof.historyPartition = {
+          ...generated.report.historyPartition,
+          independentlyComparedEveryValue: true,
+          signedZeroAndIEEEComparison:
+            "recursive Object.is on every numeric value; no JSON-only numeric identity claim",
+          shards: ["history", "history-archive"].map((name) => ({
+            name,
+            ...generated.report.shards[name],
+            decodedCap: 131072,
+            gzipCap: 32768,
+            decodedHeadroomBytes: 131072 - generated.report.shards[name].decodedBytes,
+            decodedHeadroomFraction: (131072 - generated.report.shards[name].decodedBytes) / 131072,
+            tenPercentHeadroomTargetMet: generated.report.shards[name].decodedBytes <= 131072 * 0.9,
+          })),
+        };
+      },
+    );
+    check(
+      "history partition follows current manifest identities and complete declared closure without arbitrary byte buckets",
+      () => {
+        const ids = new Set(Object.values(manifest.routes));
+        const [current, archive] = historyParts;
+        for (const [id, binding] of Object.entries(generated.logicalHistory.bindings))
+          exactValue(
+            (ids.has(id) ? current : archive).bindings[id],
+            binding,
+            "semantic binding " + id,
+          );
+        for (const [route, id] of Object.entries(generated.logicalHistory.routes))
+          assert.equal((ids.has(id) ? current : archive).routes[route], id, route);
+        for (const entity of generated.logicalHistory.entities) {
+          const isRequired =
+            entity.artifactId === null ||
+            ids.has(entity.artifactId) ||
+            entity.versionChoices?.some((choice) => ids.has(choice.artifactId));
+          const part = isRequired ? current : archive;
+          exactValue(
+            part.entities.find((item) => item.key === entity.key),
+            entity,
+            entity.key,
+          );
+        }
+        for (const edge of generated.logicalHistory.edges) {
+          const part = ids.has(edge.artifactId) ? current : archive;
+          assert(
+            part.edges.some(
+              (item) => catalog.stableTerminal(item) === catalog.stableTerminal(edge),
+            ),
+          );
+          assert(part.entities.some((item) => item.key === edge.from));
+          assert(part.entities.some((item) => item.key === edge.to));
+          assert(part.bindings[edge.artifactId]);
+        }
+        const reversed = clone(generated.logicalHistory);
+        for (const key of ["entities", "edges", "projections", "bundles"]) reversed[key].reverse();
+        reversed.bindings = Object.fromEntries(Object.entries(reversed.bindings).reverse());
+        const again = generator.partitionTerminalHistory(reversed, [...ids].reverse());
+        exactValue(again.history, current);
+        exactValue(again.archive, archive);
+      },
+    );
+    check(
+      "history union rejects conflicting duplicate bindings and IEEE signed-zero substitutions",
+      () => {
+        const baseline = {
+          bindings: { probe: { value: -0 } },
+          routes: {},
+          entities: [],
+          edges: [],
+          projections: [],
+          bundles: [],
+        };
+        const identical = clone(baseline),
+          conflict = clone(baseline);
+        conflict.bindings.probe.value = 0;
+        assert(
+          Object.is(generator.unionTerminalHistory([baseline, identical]).bindings.probe.value, -0),
+        );
+        assert.throws(() => generator.unionTerminalHistory([baseline, conflict]));
+        for (const value of [
+          Number.MIN_VALUE,
+          Number.MAX_VALUE,
+          -Number.MIN_VALUE,
+          Math.PI,
+          0,
+          -0,
+        ]) {
+          const unit = { ...clone(baseline), bindings: { probe: { value } } };
+          const partition = generator.partitionTerminalHistory(unit, []);
+          const union = generator.unionTerminalHistory([partition.history, partition.archive]);
+          exactValue(union, unit);
+        }
+      },
+    );
+    check(
+      "history union independently detects a dropped retained entity, edge, binding or version choice",
+      () => {
+        const [current, archive] = historyParts;
+        for (const [label, mutate] of [
+          ["entity", (value) => value.entities.pop()],
+          ["edge", (value) => value.edges.pop()],
+          ["binding", (value) => delete value.bindings[Object.keys(value.bindings).at(-1)]],
+          [
+            "version choice",
+            (value) => {
+              const item = value.entities.find((entity) => entity.versionChoices?.length);
+              assert(item);
+              item.versionChoices.pop();
+            },
+          ],
+        ]) {
+          const altered = clone(archive);
+          mutate(altered);
+          assert.throws(
+            () =>
+              exactValue(independentlyUnionHistory([current, altered]), generated.logicalHistory),
+            label,
+          );
+        }
+      },
+    );
+    const shellSource = readFileSync(
+      path.join(frontend, "src/app/terminal/TerminalShell.tsx"),
+      "utf8",
+    );
+    const shellTree = ts.createSourceFile(
+      "TerminalShell.tsx",
+      shellSource,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
+    );
+    const seedValidator = shellTree.statements.find(
+      (node) => ts.isFunctionDeclaration(node) && node.name?.text === "validateNavigationSeed",
+    );
+    assert(seedValidator, "Always-on seed validator must be separately testable");
+    const seedJavaScript = ts.transpileModule(seedValidator.getText(shellTree), {
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const { validateNavigationSeed } = await import(
+      "data:text/javascript;base64," + Buffer.from(seedJavaScript).toString("base64")
+    );
+    const resealNavigation = async (value) => {
+      const { payloadDigest: _digest, ...sealed } = value;
+      return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
+    };
+    await checkAsync(
+      "compact navigation seed independently matches exact generated default seed and source manifest without any original fetch",
+      async () => {
+        const seed = generated.navigationSeed;
+        assert(seed);
+        exactValue(seed.bindings, decode(generated.shards.seed).bindings);
+        exactValue(seed.manifestBinding, generated.shards.seed.manifestBinding);
+        for (const [id, binding] of Object.entries(seed.bindings))
+          exactValue(binding, manifest.artifacts[id]);
+        const { payloadDigest, ...sealed } = seed;
+        assert.equal(payloadDigest, await catalog.terminalDigest(sealed));
+        const priorFetch = globalThis.fetch;
+        let attempts = 0;
+        globalThis.fetch = async () => {
+          attempts++;
+          throw new Error("Compact navigation metadata may not fetch a whole original");
+        };
+        try {
+          const snapshot = await validateNavigationSeed(seed);
+          exactValue(snapshot.artifacts, seed.bindings);
+          assert.equal(snapshot.as_of, seed.manifestBinding.asOf);
+          assert.equal(attempts, 0);
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+        projectionProof.compactNavigationSeed = {
+          schema_version: seed.schema_version,
+          manifestBinding: seed.manifestBinding,
+          payloadDigest,
+          bindings: Object.keys(seed.bindings),
+          validatorSourceSha256: hash(seedValidator.getText(shellTree)),
+          sourceModuleSha256: hash(generated.modules.seed),
+          wholeOriginalFetches: attempts,
+        };
+      },
+    );
+    for (const [label, mutate] of [
+      ["schema version", (value) => (value.schema_version = "terminal-navigation-seed/2")],
+      ["generator contract", (value) => (value.generator_contract = "terminal-generator/2")],
+      ["unknown field", (value) => (value.account = "ENGINEERING_PRIVATE_SENTINEL")],
+      ["missing digest", (value) => delete value.payloadDigest],
+      ["missing source binding", (value) => delete value.bindings["market:IN-MKT"]],
+      [
+        "unknown source identity",
+        (value) => (value.bindings["market:SPY"] = value.bindings["market:US-MKT"]),
+      ],
+      [
+        "foreign source URL",
+        (value) => (value.bindings["market:IN-MKT"].url = "https://provider.invalid/private"),
+      ],
+      [
+        "source swap",
+        (value) => {
+          const old = value.bindings["market:IN-MKT"];
+          value.bindings["market:IN-MKT"] = value.bindings["market:US-MKT"];
+          value.bindings["market:US-MKT"] = old;
+        },
+      ],
+      ["wrong source", (value) => (value.bindings["market:IN-MKT"].sources = ["KENNETH_FRENCH"])],
+      [
+        "wrong dataset",
+        (value) =>
+          (value.bindings["market:IN-MKT"].licence.dataset_key = "ken-french:daily-factors"),
+      ],
+      ["unavailable", (value) => (value.bindings["market:IN-MKT"].status = "UNAVAILABLE")],
+      ["wrong kind", (value) => (value.bindings["market:IN-MKT"].kind = "risk-state")],
+      ["private scope", (value) => (value.bindings["market:IN-MKT"].scope = "PRIVATE_BOOK")],
+      ["unknown licence", (value) => (value.bindings["market:IN-MKT"].licence.status = "UNKNOWN")],
+      ["missing grant", (value) => (value.bindings["market:IN-MKT"].licence.permitted_uses = [])],
+      [
+        "expired grant",
+        (value) => (value.bindings["market:IN-MKT"].licence.valid_through = "1900-01-01T00:00:00Z"),
+      ],
+      ["bad hash", (value) => (value.bindings["market:IN-MKT"].sha256 = "not-a-hash")],
+      ["invalid bytes", (value) => (value.bindings["market:IN-MKT"].bytes = 0)],
+      ["bad clock", (value) => (value.bindings["market:IN-MKT"].as_of = "invalid-date")],
+      ["bad manifest hash", (value) => (value.manifestBinding.sha256 = "bad")],
+      ["bad manifest bytes", (value) => (value.manifestBinding.bytes = 0)],
+      [
+        "oversized envelope",
+        (value) => (value.bindings["market:IN-MKT"].licence.attribution = "x".repeat(49152)),
+      ],
+    ])
+      await checkAsync(
+        "compact navigation seed closed-contract sabotage rejects " + label,
+        async () => {
+          const changed = clone(generated.navigationSeed);
+          mutate(changed);
+          const candidate = label === "missing digest" ? changed : await resealNavigation(changed);
+          await assert.rejects(() => validateNavigationSeed(candidate));
+        },
+      );
+    await checkAsync("compact navigation digest corruption rejects without resealing", async () => {
+      const changed = clone(generated.navigationSeed);
+      changed.bindings["market:IN-MKT"].bytes++;
+      await assert.rejects(() => validateNavigationSeed(changed));
+    });
+  }
+
   await checkAsync("generator rejects complete-original checksum corruption", async () => {
     await assert.rejects(() =>
       generator.deriveTerminalCatalog(manifest, {
@@ -2376,7 +2817,7 @@ if (!coreOnly || projectionsOnly) {
       allEntities = payloads.flatMap((p) => p.entities),
       allEdges = payloads.flatMap((p) => p.edges);
     await checkAsync(
-      "all eight real navigation shards merge without duplicate ownership conflicts",
+      "all nine real navigation shards merge without duplicate ownership conflicts",
       async () => {
         const loaded = await Promise.all(catalog.SHARD_NAMES.map(catalog.loadTerminalShard)),
           merged = catalog.catalogEntities(loaded);
@@ -3279,6 +3720,104 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         assert(service.loadedEntities().some((e) => e.type === "issue"));
       },
     );
+
+    await checkAsync(
+      "current-only search never requests archive and explicit retained scope loads exactly the approved archive",
+      async () => {
+        const calls = [];
+        const service = search.createTerminalSearchService({
+          loadShard: async (name) => {
+            calls.push(name);
+            const shard = shards.find((value) => value.name === name);
+            assert(shard);
+            return shard;
+          },
+        });
+        await service.search("IN-MKT", ctx);
+        assert(!calls.includes("history-archive"));
+        await service.search("india:mom", ctx, { history: true });
+        assert.equal(calls.filter((name) => name === "history-archive").length, 1);
+        assert(calls.includes("history"));
+        const before = calls.length;
+        await service.search("IN-MKT", ctx, { history: false });
+        assert.equal(
+          calls.length,
+          before,
+          "A loaded archive may remain cached but no new archive read is triggered by current search",
+        );
+        const result = await service.search("india:mom", ctx, { history: true });
+        assert.equal(result.scope, "history");
+        assert(result.results.some((value) => value.id === "india:mom"));
+        navigationProof.historyLoader = {
+          calls,
+          currentOnlyArchiveRequests: 0,
+          explicitHistoryArchiveRequests: 1,
+        };
+      },
+    );
+    await checkAsync(
+      "exact historical binding fallback requests archive only after exact family/current-navigation miss",
+      async () => {
+        const source = readFileSync(path.join(frontend, "src/app/terminal/catalog.ts"), "utf8");
+        const tree = ts.createSourceFile(
+          "catalog.ts",
+          source,
+          ts.ScriptTarget.Latest,
+          true,
+          ts.ScriptKind.TS,
+        );
+        const declaration = tree.statements.find(
+          (node) => ts.isFunctionDeclaration(node) && node.name?.text === "findArtifactBinding",
+        );
+        assert(declaration);
+        const emitted = ts.transpileModule(declaration.getText(tree), {
+          compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+        }).outputText;
+        const requests = [];
+        const byName = new Map(shards.map((shard) => [shard.name, shard]));
+        const module = await import(
+          "data:text/javascript;base64," +
+            Buffer.from(
+              "const loadTerminalShard=(...args)=>globalThis.__terminalEngineeringShardLoad(...args); const isArtifactId=(value)=>globalThis.__terminalEngineeringIsArtifactId(value);\n" +
+                emitted,
+            ).toString("base64")
+        );
+        const oldLoad = globalThis.__terminalEngineeringShardLoad,
+          oldId = globalThis.__terminalEngineeringIsArtifactId;
+        globalThis.__terminalEngineeringShardLoad = async (name) => {
+          requests.push(name);
+          assert(byName.has(name));
+          return byName.get(name);
+        };
+        globalThis.__terminalEngineeringIsArtifactId = isArtifactId;
+        try {
+          const currentId = manifest.routes["/risk-manager/state"];
+          assert.equal(
+            await module.findArtifactBinding(currentId),
+            byName.get("risk").bindings[currentId],
+          );
+          assert.deepEqual(requests.splice(0), ["risk"]);
+          const archived = Object.keys(byName.get("history-archive").bindings).find(
+            (id) =>
+              !byName.get("recordings").bindings[id] &&
+              !byName.get("history").bindings[id] &&
+              !/^(?:risk|regimes|factors|market|data-organ):/.test(id),
+          );
+          assert(archived, "Use an actual exact retained archive binding");
+          assert.equal(
+            await module.findArtifactBinding(archived),
+            byName.get("history-archive").bindings[archived],
+          );
+          assert.deepEqual(requests.splice(0), ["recordings", "history", "history-archive"]);
+          await assert.rejects(() => module.findArtifactBinding("data-organ:issues:" + sampleHash));
+          assert(requests.includes("history-archive"));
+        } finally {
+          globalThis.__terminalEngineeringShardLoad = oldLoad;
+          globalThis.__terminalEngineeringIsArtifactId = oldId;
+        }
+      },
+    );
+
     await checkAsync("superseded and explicitly cancelled searches reject AbortError", async () => {
       for (const cancel of ["newer", "cancel", "signal"]) {
         let release;
@@ -3719,7 +4258,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        assert.equal(supported, 308);
+        assert.equal(supported, 315); // Main32c retains the prior308 and adds seven guarded Data originals.
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,
