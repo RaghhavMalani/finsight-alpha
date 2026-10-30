@@ -82,3 +82,5 @@ frontend-v2/src/app/terminal/generated/recordings.generated.ts
 frontend-v2/src/app/terminal/generated/history.generated.ts
 frontend-v2/src/app/terminal/generated/observatory-window.generated.ts
 frontend-v2/src/app/terminal/generated/history-archive.generated.ts
+
+frontend-v2/src/app/terminal/generated/search.generated.ts

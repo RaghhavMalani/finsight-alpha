@@ -19,7 +19,7 @@ import {
   type TerminalWorkspace,
 } from "./context.ts";
 import { buildInvestigationTarget, type InvestigationTarget } from "./links.ts";
-import { searchLoaded, type SearchCatalog, type SearchResult } from "./search.ts";
+import type { searchLoaded, SearchCatalog, SearchResult } from "./search.ts";
 
 export type LegacyCommandTarget = {
   to: string;
@@ -52,7 +52,8 @@ export type CommandResolution =
   | { status: "CHOOSE"; reason: string; correction: string; choices: CommandChoice[] }
   | { status: "REJECTED"; reason: string; correction: string; choices: CommandChoice[] };
 export type CommandOptions = SearchCatalog & {
-  legacyParser: LegacyCommandParser;
+  legacyParser?: LegacyCommandParser;
+  search?: typeof searchLoaded;
   environment?: CapabilityEnvironment;
   comparisonCompatible?: (left: string, right: string, workspace: TerminalWorkspace) => boolean;
 };
@@ -122,12 +123,15 @@ function exactResults(
   context: InvestigationContext,
   options: CommandOptions,
 ): SearchResult[] {
-  return searchLoaded(id, context, {
-    ...options,
-    scope: "history",
-    types,
-    limit: 50,
-  }).results.filter((result) => result.id.toLowerCase() === id.toLowerCase());
+  if (!options.search) throw new Error("Exact navigation metadata has not been loaded.");
+  return options
+    .search(id, context, {
+      ...options,
+      scope: "history",
+      types,
+      limit: 50,
+    })
+    .results.filter((result) => result.id.toLowerCase() === id.toLowerCase());
 }
 function pick(
   results: readonly SearchResult[],
@@ -151,7 +155,11 @@ function pick(
         choice.target?.context.view.workspace === "risk" &&
         choice.target.context.view.sweepId === context.view.sweepId),
   );
-  const currentState = options.routes?.["/risk-manager/state"];
+  const currentState =
+    options.routes?.["/risk-manager/state"] ??
+    options.navigation?.find(
+      (record) => record.type === "artifact" && record.id.startsWith("risk:state:"),
+    )?.choices[0].artifactId;
   const preferred = selected.length
     ? selected
     : current
@@ -264,7 +272,18 @@ export function resolveTerminalCommand(
           entity.type === "data-source" &&
           entity.availability === "AVAILABLE" &&
           !!entity.artifactId &&
-          publicDerivativeAvailable(options.bindings[entity.artifactId]) &&
+          (options.navigation
+            ? options.navigation.some(
+                (record) =>
+                  record.id === entity.id &&
+                  record.type === "data-source" &&
+                  record.choices.some(
+                    (choice) =>
+                      choice.artifactId === entity.artifactId &&
+                      choice.availability === "PUBLIC_REPLAY",
+                  ),
+              )
+            : publicDerivativeAvailable(options.bindings[entity.artifactId])) &&
           (entity.id.toLowerCase() === input || entity.id.split(":")[0].toLowerCase() === input),
       );
       const identities = [...new Set(sources.map((entity) => entity.id))];
@@ -400,6 +419,19 @@ export function resolveTerminalCommand(
         );
       const id = options.routes?.["/regimes/matrix"],
         entry = id ? options.bindings[id] : undefined;
+      if (!id && !options.entities.length && !Object.keys(options.bindings).length)
+        return ready(
+          buildInvestigationTarget(
+            {
+              version: 1,
+              view: { workspace: "regimes", panel: "overview", mode: "compare" },
+              ...(context.origin ? { origin: context.origin } : {}),
+            },
+            "regimes",
+          ),
+          "regime-dashboard",
+          "Navigate to the retained Regimes matrix. The destination selects and validates its exact publication; independent clocks remain labelled.",
+        );
       if (!id || !publicDerivativeAvailable(entry))
         return choose(
           "Load the admitted Regimes matrix before opening comparison.",
@@ -420,6 +452,18 @@ export function resolveTerminalCommand(
         "Retained cross-market matrix with independently labelled cutoffs and calendars; no synchronized economic comparison.",
       );
     }
+    const workspaceOnlyTarget = WORKSPACES.find(
+      (workspace) =>
+        tokens.length === 1 && (workspace.command === head || workspace.label === head),
+    );
+    if (workspaceOnlyTarget)
+      return ready(
+        buildInvestigationTarget(context, workspaceOnlyTarget.id as TerminalWorkspace),
+        workspaceOnlyTarget.id === "execution" ? "execution" : "reference-navigation",
+        "Workspace navigation only; destination evidence availability is checked separately.",
+      );
+    if (!options.legacyParser)
+      return fail("Enter a complete supported command or choose a navigation result.");
     // The caller supplies the unchanged legacy parser, preventing an import cycle with mnemonics.
     const legacy = options.legacyParser(text, subjectTicker(context.subject) ?? "SPY"),
       destination = workspaceOf(legacy.to);
@@ -453,7 +497,9 @@ export function resolveTerminalCommand(
     }
     if (destination === "observatory") {
       // Empty search intentionally excludes evidence, so use the exact subject ID query for eligible recordings.
-      const eligible = searchLoaded(subjectTicker(parsed.subject) ?? "recorded trace", parsed, {
+      if (!options.search)
+        throw new Error("Exact recording navigation metadata has not been loaded.");
+      const eligible = options.search(subjectTicker(parsed.subject) ?? "recorded trace", parsed, {
         ...options,
         scope: "current",
         types: ["recorded-trace"],
@@ -469,7 +515,7 @@ export function resolveTerminalCommand(
         return { status: "READY", target: matching[0].target!, capability: matching[0].capability };
       const all = eligible.length
         ? eligible
-        : searchLoaded("recorded", parsed, {
+        : options.search("recorded", parsed, {
             ...options,
             scope: "current",
             types: ["recorded-trace"],
@@ -508,4 +554,91 @@ export function resolveTerminalCommand(
       "Use a supported exact command; listing/exchange conflicts and ambiguous IDs cannot be coerced.",
     );
   }
+}
+
+/** Intent staging, navigation only. Pure commands never import search or the legacy parser. */
+export async function resolveCommandInput(
+  text: string,
+  context: InvestigationContext,
+  options: { legacy?: boolean; history?: boolean; environment?: CapabilityEnvironment } = {},
+): Promise<CommandResolution> {
+  const needsMetadata =
+    /^(?:ISSUE|DATA|FACTOR|RUN|CHANGES)\b/i.test(text.trim()) ||
+    (options.legacy && /\bOBS(?:\s+(?:GO|<GO>))?\s*$/i.test(text));
+  let catalog: SearchCatalog = { entities: [], bindings: {} };
+  let search: typeof searchLoaded | undefined;
+  if (needsMetadata) {
+    const module = await import("./search.ts");
+    const input = text
+      .trim()
+      .replace(/\s+(?:GO|<GO>)$/i, "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .join(" ");
+    const pinnedIssue =
+      !!context.anchor &&
+      context.view.workspace === "risk" &&
+      input.slice(0, 6).toUpperCase() === "ISSUE " &&
+      input.slice(6) === context.view.issueId;
+    const pinnedRun =
+      !!context.anchor &&
+      ["regimes", "agents"].includes(context.view.workspace) &&
+      "runId" in context.view &&
+      input.endsWith(":" + context.view.runId) &&
+      /^RUN (?:regime|agent):[a-f0-9]{64}$/i.test(input);
+    catalog = await module.terminalSearch.load(
+      [],
+      options.history === true || pinnedIssue || pinnedRun,
+    );
+    // Compact records remain navigation records; no fake full ReplayEntry is synthesized.
+    if (catalog.navigation)
+      catalog = {
+        ...catalog,
+        entities: catalog.navigation.map((record) => ({
+          ...record,
+          key: [
+            record.type,
+            record.namespace,
+            record.id,
+            record.choices[0].artifactId ?? "static-reference",
+          ].join("|"),
+          artifactId: record.choices[0].artifactId,
+          cutoff: record.choices[0].cutoff,
+          view: record.choices[0].view,
+          availability: "AVAILABLE" as const,
+        })),
+      };
+    search = module.searchLoaded;
+  }
+  const legacyParser = options.legacy
+    ? (await import("../command/mnemonics.ts")).parseLegacyCommand
+    : undefined;
+  const commandOptions = { ...catalog, search, legacyParser, environment: options.environment };
+  const result = resolveTerminalCommand(text, context, commandOptions);
+  // A complete exact retained ID is an explicit history selection. Never retry malformed or fuzzy input.
+  const tokens = text.trim().split(/\s+/).filter(Boolean);
+  if (["GO", "<GO>"].includes(tokens.at(-1)?.toUpperCase() ?? "")) tokens.pop();
+  const exactRetained =
+    (tokens[0]?.toUpperCase() === "ISSUE" && tokens.length === 2 && isIssueId(tokens[1])) ||
+    (tokens[0]?.toUpperCase() === "RUN" &&
+      tokens.length === 2 &&
+      /^(?:regime|agent):[a-f0-9]{64}$/i.test(tokens[1]) &&
+      isHashId(tokens[1].split(":")[1]));
+  if (!options.history && exactRetained && result.status === "REJECTED") {
+    const module = await import("./search.ts"),
+      retained = await module.terminalSearch.load([], true);
+    const resolved = resolveTerminalCommand(text, context, {
+      ...retained,
+      search: module.searchLoaded,
+      legacyParser,
+      environment: options.environment,
+    });
+    if (resolved.status === "READY")
+      return {
+        ...resolved,
+        note: "Exact retained-ID navigation; history metadata was explicitly selected by the complete identifier. No latest replacement or clock substitution.",
+      };
+    return resolved;
+  }
+  return result;
 }

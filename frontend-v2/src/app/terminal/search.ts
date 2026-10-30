@@ -3,6 +3,9 @@ import type { ReplayEntry } from "../../replay/contracts.ts";
 import { WORKSPACES } from "../workspaces.ts";
 import {
   catalogEntities,
+  loadSearchNavigation,
+  loadRetainedSearchNavigation,
+  type NavigationRecord,
   loadTerminalShard,
   stableTerminal,
   type TerminalEntity,
@@ -24,6 +27,7 @@ import {
 import { buildInvestigationTarget, type InvestigationTarget } from "./links.ts";
 
 export type SearchCatalog = {
+  navigation?: readonly NavigationRecord[];
   entities: readonly TerminalEntity[];
   bindings: Readonly<Record<string, ReplayEntry>>;
   routes?: Readonly<Record<string, string>>;
@@ -61,6 +65,7 @@ export type SearchResponse = {
   results: SearchResult[];
   total: number;
   limited: boolean;
+  materializedTargets: number;
 };
 export type LoadedSearchOptions = SearchCatalog & {
   scope?: SearchScope;
@@ -128,7 +133,7 @@ function queryText(query: string): string {
   return query.trim().toLowerCase();
 }
 function feature(entity: TerminalEntity): CapabilityFeature {
-  if (entity.type === "reference-listing") return "reference-navigation";
+  if (["workspace", "reference-listing"].includes(entity.type)) return "reference-navigation";
   if (entity.type === "recorded-trace") return "recorded-trace";
   return (
     {
@@ -213,7 +218,10 @@ function searchTarget(
   memo.targets.set(key, target);
   return target;
 }
-function rank(entity: TerminalEntity, query: string): number {
+function rank(
+  entity: Pick<TerminalEntity, "id" | "label" | "type" | "key" | "namespace">,
+  query: string,
+): number {
   if (!query) return 4;
   const id = entity.id.toLowerCase(),
     label = entity.label.toLowerCase();
@@ -286,6 +294,7 @@ export function searchLoaded(
   context: InvestigationContext,
   options: LoadedSearchOptions,
 ): SearchResponse {
+  if (options.navigation) return searchNavigation(query, context, options.navigation, options);
   const contextWire = stableTerminal(serializeInvestigationContext(context));
   const normalized = queryText(query),
     scope = options.scope ?? "current",
@@ -298,6 +307,11 @@ export function searchLoaded(
     options.entities.length > 4096
   )
     throw new Error("Search scope/capacity exceeds its reviewed bound.");
+  const available = new Map<string, boolean>();
+  const admitted = (id: string) => {
+    if (!available.has(id)) available.set(id, publicDerivativeAvailable(options.bindings[id]));
+    return available.get(id) === true;
+  };
   const groups = new Map<string, { values: TerminalEntity[]; score: number }>(),
     current = scope === "current" ? currentAnchors(options.routes) : new Set<string>();
   for (const entity of options.entities) {
@@ -317,7 +331,7 @@ export function searchLoaded(
     if (!Number.isFinite(score)) continue;
     if (
       entity.artifactId
-        ? !publicDerivativeAvailable(options.bindings[entity.artifactId])
+        ? !admitted(entity.artifactId)
         : !["workspace", "reference-listing"].includes(entity.type)
     )
       continue;
@@ -354,8 +368,7 @@ export function searchLoaded(
             )),
       ];
       for (const choice of choices) {
-        if (choice.artifactId && !publicDerivativeAvailable(options.bindings[choice.artifactId]))
-          continue;
+        if (choice.artifactId && !admitted(choice.artifactId)) continue;
         if (
           scope === "current" &&
           current.size &&
@@ -465,34 +478,288 @@ export function searchLoaded(
     results: results.slice(0, limit),
     total,
     limited: total > limit,
+    materializedTargets: results.reduce(
+      (n, result) => n + result.choices.filter((choice) => choice.target).length,
+      0,
+    ),
+  };
+}
+
+/** Build-only semantic oracle over the complete already-validated source catalog. */
+export function deriveNavigationRecords(
+  options: SearchCatalog,
+  scope: SearchScope = "current",
+): NavigationRecord[] {
+  const context: InvestigationContext = { version: 1, view: { workspace: "risk" } },
+    found = new Map<string, NavigationRecord>();
+  for (const entity of options.entities) {
+    const result = searchLoaded(entity.id, context, {
+      ...options,
+      navigation: undefined,
+      scope,
+      limit: 50,
+    }).results.find(
+      (result) =>
+        result.type === entity.type &&
+        result.namespace === entity.namespace &&
+        result.id === entity.id &&
+        result.market === entity.market,
+    );
+    if (!result || found.has(result.key)) continue;
+    const choices = result.choices.map(({ artifactId, cutoff, view }) => ({
+      artifactId,
+      cutoff,
+      view,
+      availability: result.capability.label as "PUBLIC_REPLAY" | "LOCAL_LIVE_ONLY" | "UNAVAILABLE",
+    }));
+    if (!choices.length) continue;
+    found.set(result.key, {
+      key: result.key,
+      id: result.id,
+      type: result.type,
+      namespace: result.namespace,
+      label: result.label,
+      workspace: choices[0].view.workspace,
+      ...(result.market ? { market: result.market } : {}),
+      choices,
+    });
+  }
+  return [...found.values()].sort((a, b) => compare(a.key, b.key));
+}
+const normalizedRecords = new WeakMap<
+  readonly NavigationRecord[],
+  ReadonlyMap<string, { id: string; label: string; text: string; tokens: string[]; key: string }>
+>();
+function navigationStrings(records: readonly NavigationRecord[]) {
+  let cached = normalizedRecords.get(records);
+  if (!cached) {
+    cached = new Map(
+      records.map((record) => {
+        const id = record.id.toLowerCase(),
+          label = record.label.toLowerCase(),
+          text = id + " " + label + " " + record.namespace.toLowerCase();
+        return [
+          record.key,
+          { id, label, text, tokens: text.split(/[\s:|/._-]+/), key: record.key.toLowerCase() },
+        ];
+      }),
+    );
+    normalizedRecords.set(records, cached);
+  }
+  return cached;
+}
+/** Rank compact records first. Only the selected top limit can materialize typed targets/capabilities. */
+function searchNavigation(
+  query: string,
+  context: InvestigationContext,
+  records: readonly NavigationRecord[],
+  options: LoadedSearchOptions,
+): SearchResponse {
+  serializeInvestigationContext(context);
+  const normalized = queryText(query),
+    scope = options.scope ?? "current",
+    limit = options.limit ?? 20;
+  if (
+    !["current", "history"].includes(scope) ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 50 ||
+    records.length > 4096
+  )
+    throw new Error("Search scope/capacity exceeds its reviewed bound.");
+  const texts = navigationStrings(records);
+  const candidates = records.flatMap((record) => {
+    if (
+      (!normalized && !["workspace", "reference-listing", "market-factor"].includes(record.type)) ||
+      (options.types && !options.types.includes(record.type))
+    )
+      return [];
+    const text = texts.get(record.key)!;
+    const navigation = ["workspace", "reference-listing", "market-factor"].includes(record.type),
+      mnemonic =
+        record.type === "workspace"
+          ? WORKSPACES.find((w) => w.id === record.id)?.command.toLowerCase()
+          : undefined;
+    const score = !normalized
+      ? 4
+      : normalized === text.id ||
+          normalized === text.key ||
+          normalized === mnemonic ||
+          normalized === (record.namespace + ":" + record.id).toLowerCase()
+        ? navigation
+          ? 1
+          : 0
+        : text.label.startsWith(normalized)
+          ? 2
+          : text.tokens.some((token) => token.startsWith(normalized))
+            ? 3
+            : text.text.includes(normalized)
+              ? 4
+              : Infinity;
+    return Number.isFinite(score) ? [{ record, score }] : [];
+  });
+  const execution = WORKSPACES.find((workspace) => workspace.id === "execution")!;
+  const executionIncluded =
+    (!options.types || options.types.includes("workspace")) &&
+    (!normalized || ["exec", "execution"].some((word) => word.includes(normalized)));
+  if (executionIncluded)
+    candidates.push({
+      record: {
+        key: "workspace|terminal|execution|ALL",
+        id: execution.id,
+        type: "workspace",
+        namespace: "terminal",
+        label: "EXECUTION · unavailable / future explanation",
+        workspace: "execution",
+        choices: [
+          {
+            artifactId: null,
+            cutoff: null,
+            view: { workspace: "execution" },
+            availability: "UNAVAILABLE",
+          },
+        ],
+      },
+      score: normalized === "exec" || normalized === "execution" ? 1 : 4,
+    });
+  candidates.sort(
+    (a, b) =>
+      a.score - b.score ||
+      compare(a.record.type, b.record.type) ||
+      compare(a.record.id, b.record.id) ||
+      compare(a.record.namespace, b.record.namespace) ||
+      compare(a.record.key, b.record.key),
+  );
+  let materializedTargets = 0;
+  const results = candidates.slice(0, limit).map(({ record, score }): SearchResult => {
+    const choices = record.choices.map((choice): SearchChoice => ({
+      key: record.key + "|" + (choice.artifactId ?? "static-reference"),
+      ...(record.market ? { market: record.market } : {}),
+      artifactId: choice.artifactId,
+      cutoff: choice.cutoff,
+      view: choice.view,
+    }));
+    const selectedIndex = Math.max(
+        0,
+        choices.findIndex((choice) => choice.artifactId === context.anchor?.artifactId),
+      ),
+      selected = choices[selectedIndex],
+      state = record.choices[selectedIndex].availability;
+    const entity: TerminalEntity = {
+      ...record,
+      key: [
+        record.type,
+        record.namespace,
+        record.id,
+        selected.artifactId ?? "static-reference",
+      ].join("|"),
+      artifactId: selected.artifactId,
+      cutoff: selected.cutoff,
+      view: selected.view,
+      availability: "AVAILABLE",
+    };
+    const target = entityTarget(entity, context, selected);
+    materializedTargets++;
+    const base = capabilityFor({
+      feature: record.type === "recorded-trace" ? "recorded-agent-runs" : feature(entity),
+      context: target.context,
+      selectionAvailable: state === "PUBLIC_REPLAY",
+    });
+    const capability: Capability = {
+      ...base,
+      feature: feature(entity),
+      label: state === "PUBLIC_REPLAY" ? base.label : state,
+      enabled: state === "PUBLIC_REPLAY" && base.enabled,
+      allowedActionClass: "navigate",
+      evidenceRef: undefined,
+      verificationBasis: {
+        date: "2026-10-30",
+        kind: "approved-source-review",
+        detail:
+          "BUILD-VERIFIED NAVIGATION METADATA. Generator checked complete source contracts and exact bindings; the browser has not fetched or verified the original artifact.",
+      },
+      reason:
+        "BUILD-VERIFIED NAVIGATION METADATA · " +
+        (state === "PUBLIC_REPLAY"
+          ? "Exact read-only destination; original evidence is checked only on detailed inspection."
+          : "This exact destination is unavailable; no replacement was selected."),
+    };
+    capability.disabledReason = capability.enabled ? null : capability.reason;
+    if (capability.enabled)
+      for (let i = 0; i < choices.length; i++) {
+        if (i === selectedIndex) choices[i].target = target;
+        else {
+          choices[i].target = entityTarget(entity, context, choices[i]);
+          materializedTargets++;
+        }
+      }
+    const requiresChoice =
+      choices.length > 1 &&
+      !choices.some((choice) => choice.artifactId === context.anchor?.artifactId);
+    return {
+      key: record.key,
+      id: record.id,
+      type: record.type,
+      namespace: record.namespace,
+      label: record.label,
+      kind:
+        record.type === "workspace"
+          ? "navigation"
+          : record.type === "reference-listing"
+            ? "reference"
+            : "evidence",
+      ...(record.market ? { market: record.market } : {}),
+      artifactId: selected.artifactId,
+      cutoff: selected.cutoff,
+      availability: !capability.enabled
+        ? "DISABLED"
+        : record.type === "reference-listing"
+          ? "REFERENCE"
+          : "AVAILABLE",
+      capability,
+      rank: score,
+      ...(capability.enabled && !requiresChoice ? { target } : {}),
+      requiresChoice,
+      choices,
+    };
+  });
+  return {
+    query: normalized,
+    scope,
+    results,
+    total: candidates.length,
+    limited: candidates.length > limit,
+    materializedTargets,
   };
 }
 function aborted(): never {
   throw new DOMException("Search cancelled or superseded.", "AbortError");
 }
 export function createTerminalSearchService(
-  options: { loadShard?: (name: TerminalShardName) => Promise<TerminalShard> } = {},
+  options: {
+    loadShard?: (name: TerminalShardName) => Promise<TerminalShard>;
+    loadNavigation?: () => Promise<NavigationRecord[]>;
+  } = {},
 ) {
   const loaded = new Map<TerminalShardName, TerminalShard>(),
     loadShard = options.loadShard ?? loadTerminalShard;
-  let generation = 0;
-  function catalog(): SearchCatalog {
-    const shards = [...loaded.values()],
-      bindings: Record<string, ReplayEntry> = {},
-      routes: Record<string, string> = {},
-      projectionPins: Record<string, string> = {};
-    for (const shard of shards) {
-      for (const [id, entry] of Object.entries(shard.bindings)) {
-        if (bindings[id] && stableTerminal(bindings[id]) !== stableTerminal(entry))
-          throw new Error("Conflicting exact search artifact bindings.");
-        bindings[id] = entry;
-      }
-      Object.assign(routes, shard.routes);
-      Object.assign(projectionPins, shard.projectionPins);
-    }
-    const entities = catalogEntities(shards);
-    if (entities.length > 4096) throw new Error("Search index exceeds4096 entity records.");
-    return { entities, bindings, routes, projectionPins };
+  const loadNavigation = options.loadNavigation ?? loadSearchNavigation;
+  let navigation: readonly NavigationRecord[] | undefined,
+    retained: readonly NavigationRecord[] | undefined,
+    generation = 0;
+  function rawCatalog(): SearchCatalog {
+    const shards = [...loaded.values()];
+    return {
+      entities: catalogEntities(shards),
+      bindings: Object.assign({}, ...shards.map((s) => s.bindings)),
+      routes: Object.assign({}, ...shards.map((s) => s.routes)),
+      projectionPins: Object.assign({}, ...shards.map((s) => s.projectionPins)),
+    };
+  }
+  function catalog(history = false): SearchCatalog {
+    const raw = rawCatalog();
+    if (!navigation) return raw;
+    return { ...raw, navigation: history && retained ? retained : navigation };
   }
   async function load(
     names: readonly TerminalWorkspace[] = [],
@@ -500,31 +767,50 @@ export function createTerminalSearchService(
     signal?: AbortSignal,
   ) {
     if (signal?.aborted) aborted();
-    const requested = [
-      ...new Set<TerminalShardName>([
-        "seed",
-        ...names.map((name) => {
-          if (!Object.hasOwn(SHARDS, name)) throw new Error("Unknown search workspace.");
-          return SHARDS[name];
-        }),
-        ...(history ? ["history" as const, "history-archive" as const] : []),
-      ]),
-    ];
-    const shards = await Promise.all(
-      requested.map(async (name) => {
+    if (names.some((name) => !Object.hasOwn(SHARDS, name)))
+      throw new Error("Unknown search workspace.");
+    const seed = loaded.get("seed") ?? (await loadShard("seed"));
+    if (seed.name !== "seed") throw new Error("Search seed identity mismatch.");
+    loaded.set("seed", seed);
+    navigation ??= await loadNavigation();
+    if (history && !retained) {
+      for (const name of ["history", "history-archive"] as const) {
         const shard = loaded.get(name) ?? (await loadShard(name));
-        if (shard.name !== name || shard.entities.length > 512)
-          throw new Error("Search shard identity/capacity mismatch.");
-        return shard;
-      }),
-    );
+        if (shard.name !== name) throw new Error("Search history identity mismatch.");
+        loaded.set(name, shard);
+      }
+      const alternatives = deriveNavigationRecords(rawCatalog(), "history"),
+        merged = new Map(navigation.map((record) => [record.key, record]));
+      const supplement = await loadRetainedSearchNavigation();
+      for (const record of [...alternatives, ...supplement]) {
+        const prior = merged.get(record.key);
+        if (!prior) {
+          merged.set(record.key, record);
+          continue;
+        }
+        const choices = new Map(
+          [...prior.choices, ...record.choices].map((choice) => [
+            choice.artifactId ?? "static-reference",
+            choice,
+          ]),
+        );
+        merged.set(record.key, {
+          ...prior,
+          choices: [...choices.values()].sort(
+            (a, b) =>
+              compare(b.cutoff ?? "", a.cutoff ?? "") ||
+              compare(a.artifactId ?? "", b.artifactId ?? ""),
+          ),
+        });
+      }
+      retained = [...merged.values()].sort((a, b) => compare(a.key, b.key));
+    }
     if (signal?.aborted) aborted();
-    for (const shard of shards) loaded.set(shard.name, shard);
-    return catalog();
+    return catalog(history);
   }
   return {
     catalog,
-    loadedEntities: () => catalog().entities,
+    loadedEntities: () => rawCatalog().entities,
     load,
     cancel: () => {
       generation++;
@@ -534,19 +820,38 @@ export function createTerminalSearchService(
       context: InvestigationContext,
       searchOptions: TerminalSearchOptions = {},
     ): Promise<SearchResponse> {
-      const normalized = queryText(query),
-        ticket = ++generation;
-      const names =
-        searchOptions.workspaces ??
-        (normalized ? (Object.keys(SHARDS) as TerminalWorkspace[]) : []);
-      const data = await load(names, searchOptions.history === true, searchOptions.signal);
+      queryText(query);
+      const ticket = ++generation;
+      if (searchOptions.workspaces?.some((name) => !Object.hasOwn(SHARDS, name)))
+        throw new Error("Unknown search workspace.");
+      const marketOnly =
+        !!searchOptions.types?.length &&
+        searchOptions.types.every((type) => ["reference-listing", "market-factor"].includes(type));
+      const emptyCurrent = (!query.trim() && !searchOptions.history) || marketOnly;
+      if (emptyCurrent) {
+        if (searchOptions.signal?.aborted) aborted();
+        const seed = loaded.get("seed") ?? (await loadShard("seed"));
+        loaded.set("seed", seed);
+      }
+      const data = emptyCurrent
+        ? {
+            entities: catalogEntities([loaded.get("seed")!]),
+            bindings: loaded.get("seed")!.bindings,
+            routes: loaded.get("seed")!.routes,
+          }
+        : await load(
+            searchOptions.workspaces ?? [],
+            searchOptions.history === true,
+            searchOptions.signal,
+          );
       if (ticket !== generation || searchOptions.signal?.aborted) aborted();
-      return searchLoaded(query, context, {
+      const response = searchLoaded(query, context, {
         ...data,
         scope: searchOptions.history ? "history" : "current",
         limit: searchOptions.limit,
         types: searchOptions.types,
       });
+      return response;
     },
   };
 }

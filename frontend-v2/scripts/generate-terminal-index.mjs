@@ -26,7 +26,12 @@ import {
   packTerminalPayload,
   unpackTerminalPayload,
   validateTerminalShard,
+  catalogEntities,
+  packNavigationRecords,
+  validateNavigationProjection,
 } from "../src/app/terminal/catalog.ts";
+
+import { deriveNavigationRecords } from "../src/app/terminal/search.ts";
 
 /** Roundtrip identity includes signed zero and every finite IEEE value, not just JSON equivalence. */
 function assertExactRoundtrip(source, decoded) {
@@ -5157,7 +5162,595 @@ const CLOSED_SOURCE_FIELDS = {
     "$.sources[]": { types: ["string"] },
   },
 };
-export const TERMINAL_GENERATED_MODULE_NAMES = [...SHARD_NAMES, "observatory-window"];
+// Closed retained Forge observer and World publisher shapes; changes require explicit source review.
+Object.assign(CLOSED_SOURCE_FIELDS, {
+  "forge-run": {
+    $: {
+      types: ["object"],
+      keys: [
+        "artifact_hash",
+        "artifact_id",
+        "episode_key",
+        "model_turns",
+        "record_hash",
+        "redactions",
+        "run",
+        "schema_version",
+        "seed",
+        "source_schema_version",
+        "task_class",
+        "task_id",
+        "verification",
+      ],
+      required: [
+        "artifact_hash",
+        "artifact_id",
+        "episode_key",
+        "model_turns",
+        "record_hash",
+        "redactions",
+        "run",
+        "schema_version",
+        "seed",
+        "source_schema_version",
+        "task_class",
+        "task_id",
+        "verification",
+      ],
+    },
+    "$.artifact_hash": { types: ["string"] },
+    "$.artifact_id": { types: ["string"] },
+    "$.episode_key": { types: ["string"] },
+    "$.model_turns": { types: ["array"] },
+    "$.model_turns[]": {
+      types: ["object"],
+      keys: [
+        "api_evidence",
+        "cost_source",
+        "cost_usd",
+        "latency_seconds",
+        "provider_request_id",
+        "sequence",
+        "text",
+        "tokens_in",
+        "tokens_out",
+      ],
+      required: [
+        "api_evidence",
+        "cost_source",
+        "cost_usd",
+        "latency_seconds",
+        "provider_request_id",
+        "sequence",
+        "text",
+        "tokens_in",
+        "tokens_out",
+      ],
+    },
+    "$.model_turns[].api_evidence": {
+      types: ["object"],
+      keys: [
+        "billed_cost_usd",
+        "cost_basis",
+        "provider_request_id",
+        "raw_response_sha256",
+        "reasoning_tokens",
+        "request_sha256",
+        "response_id",
+        "response_model",
+        "seed_semantics",
+      ],
+      required: [
+        "billed_cost_usd",
+        "cost_basis",
+        "provider_request_id",
+        "raw_response_sha256",
+        "reasoning_tokens",
+        "request_sha256",
+        "response_id",
+        "response_model",
+        "seed_semantics",
+      ],
+    },
+    "$.model_turns[].api_evidence.billed_cost_usd": { types: ["null"] },
+    "$.model_turns[].api_evidence.cost_basis": { types: ["string"] },
+    "$.model_turns[].api_evidence.provider_request_id": { types: ["string"] },
+    "$.model_turns[].api_evidence.raw_response_sha256": { types: ["string"] },
+    "$.model_turns[].api_evidence.reasoning_tokens": { types: ["number"] },
+    "$.model_turns[].api_evidence.request_sha256": { types: ["string"] },
+    "$.model_turns[].api_evidence.response_id": { types: ["string"] },
+    "$.model_turns[].api_evidence.response_model": { types: ["string"] },
+    "$.model_turns[].api_evidence.seed_semantics": { types: ["string"] },
+    "$.model_turns[].cost_source": { types: ["string"] },
+    "$.model_turns[].cost_usd": { types: ["number"] },
+    "$.model_turns[].latency_seconds": { types: ["number"] },
+    "$.model_turns[].provider_request_id": { types: ["string"] },
+    "$.model_turns[].sequence": { types: ["number"] },
+    "$.model_turns[].text": { types: ["string"] },
+    "$.model_turns[].tokens_in": { types: ["number"] },
+    "$.model_turns[].tokens_out": { types: ["number"] },
+    "$.record_hash": { types: ["string"] },
+    "$.redactions": { types: ["array"] },
+    "$.redactions[]": { types: ["string"] },
+    "$.run": {
+      types: ["object"],
+      keys: [
+        "actions",
+        "certification_artifact_hash",
+        "completed",
+        "decision",
+        "failure_reason",
+        "model_identity",
+        "model_identity_hash",
+        "prompt_version",
+        "reality_ladder_artifact_hash",
+        "schema_version",
+        "seed",
+        "system_prompt_hash",
+        "task_hash",
+        "task_id",
+        "tool_schema_hash",
+        "trajectory_hash",
+        "usage",
+        "world_hash",
+      ],
+      required: [
+        "actions",
+        "certification_artifact_hash",
+        "completed",
+        "decision",
+        "failure_reason",
+        "model_identity",
+        "model_identity_hash",
+        "prompt_version",
+        "reality_ladder_artifact_hash",
+        "schema_version",
+        "seed",
+        "system_prompt_hash",
+        "task_hash",
+        "task_id",
+        "tool_schema_hash",
+        "trajectory_hash",
+        "usage",
+        "world_hash",
+      ],
+    },
+    "$.run.actions": { types: ["array"] },
+    "$.run.actions[]": {
+      types: ["object"],
+      keys: [
+        "arguments",
+        "engine_run",
+        "high_fidelity_run",
+        "result",
+        "result_hash",
+        "sequence",
+        "status",
+        "tool",
+      ],
+      required: [
+        "arguments",
+        "engine_run",
+        "high_fidelity_run",
+        "result",
+        "result_hash",
+        "sequence",
+        "status",
+        "tool",
+      ],
+    },
+    "$.run.actions[].arguments": { types: ["object"], keys: ["reason", "verdict"], required: [] },
+    "$.run.actions[].engine_run": { types: ["boolean"] },
+    "$.run.actions[].high_fidelity_run": { types: ["boolean"] },
+    "$.run.actions[].result": {
+      types: ["object"],
+      keys: [
+        "certification_artifact_hash",
+        "certification_level",
+        "engine",
+        "engine_fingerprint_hash",
+        "evidence_hash",
+        "evidence_quality",
+        "execution_mode",
+        "metrics",
+        "minimum_certification",
+        "observations",
+        "reality_ladder_artifact_hash",
+        "reason",
+        "stage",
+        "task",
+        "task_hash",
+        "verdict",
+      ],
+      required: [],
+    },
+    "$.run.actions[].result.task": {
+      types: ["object"],
+      keys: [
+        "acceptance_criteria",
+        "allowed_engines",
+        "budget",
+        "execution_mode",
+        "hypothesis",
+        "objective",
+        "primary_metric",
+        "reality_ladder_artifact_hash",
+        "schema_version",
+        "task_id",
+      ],
+      required: [
+        "acceptance_criteria",
+        "allowed_engines",
+        "budget",
+        "execution_mode",
+        "hypothesis",
+        "objective",
+        "primary_metric",
+        "reality_ladder_artifact_hash",
+        "schema_version",
+        "task_id",
+      ],
+    },
+    "$.run.actions[].result.task.acceptance_criteria": { types: ["string"] },
+    "$.run.actions[].result.task.allowed_engines": {
+      types: ["object"],
+      keys: ["hftbacktest", "nautilus", "vectorbt"],
+      required: ["vectorbt"],
+    },
+    "$.run.actions[].result.task.allowed_engines.nautilus": {
+      types: ["object"],
+      keys: ["minimum_certification"],
+      required: ["minimum_certification"],
+    },
+    "$.run.actions[].result.task.allowed_engines.nautilus.minimum_certification": {
+      types: ["string"],
+    },
+    "$.run.actions[].result.task.allowed_engines.vectorbt": {
+      types: ["object"],
+      keys: ["minimum_certification"],
+      required: ["minimum_certification"],
+    },
+    "$.run.actions[].result.task.allowed_engines.vectorbt.minimum_certification": {
+      types: ["string"],
+    },
+    "$.run.actions[].result.task.budget": {
+      types: ["object"],
+      keys: [
+        "max_cost_usd",
+        "max_engine_runs",
+        "max_high_fidelity_runs",
+        "max_tokens",
+        "max_tool_calls",
+        "max_wall_seconds",
+      ],
+      required: [
+        "max_cost_usd",
+        "max_engine_runs",
+        "max_high_fidelity_runs",
+        "max_tokens",
+        "max_tool_calls",
+        "max_wall_seconds",
+      ],
+    },
+    "$.run.actions[].result.task.budget.max_cost_usd": { types: ["number"] },
+    "$.run.actions[].result.task.budget.max_engine_runs": { types: ["number"] },
+    "$.run.actions[].result.task.budget.max_high_fidelity_runs": { types: ["number"] },
+    "$.run.actions[].result.task.budget.max_tokens": { types: ["number"] },
+    "$.run.actions[].result.task.budget.max_tool_calls": { types: ["number"] },
+    "$.run.actions[].result.task.budget.max_wall_seconds": { types: ["number"] },
+    "$.run.actions[].result.task.execution_mode": { types: ["string"] },
+    "$.run.actions[].result.task.hypothesis": { types: ["string"] },
+    "$.run.actions[].result.task.objective": { types: ["string"] },
+    "$.run.actions[].result.task.primary_metric": { types: ["string"] },
+    "$.run.actions[].result.task.reality_ladder_artifact_hash": { types: ["string"] },
+    "$.run.actions[].result.task.schema_version": { types: ["string"] },
+    "$.run.actions[].result.task.task_id": { types: ["string"] },
+    "$.run.actions[].result.task_hash": { types: ["string"] },
+    "$.run.actions[].result_hash": { types: ["string"] },
+    "$.run.actions[].sequence": { types: ["number"] },
+    "$.run.actions[].status": { types: ["string"] },
+    "$.run.actions[].tool": { types: ["string"] },
+    "$.run.actions[].result.certification_level": { types: ["string"] },
+    "$.run.actions[].result.engine": { types: ["string"] },
+    "$.run.actions[].result.engine_fingerprint_hash": { types: ["string"] },
+    "$.run.actions[].result.evidence_hash": { types: ["string"] },
+    "$.run.actions[].result.evidence_quality": { types: ["string"] },
+    "$.run.actions[].result.execution_mode": { types: ["string"] },
+    "$.run.actions[].result.metrics": {
+      types: ["object"],
+      keys: ["alpha_survival_ratio", "max_drawdown", "sharpe"],
+      required: ["alpha_survival_ratio", "max_drawdown", "sharpe"],
+    },
+    "$.run.actions[].result.metrics.alpha_survival_ratio": { types: ["number"] },
+    "$.run.actions[].result.metrics.max_drawdown": { types: ["number"] },
+    "$.run.actions[].result.metrics.sharpe": { types: ["number"] },
+    "$.run.actions[].result.minimum_certification": { types: ["string"] },
+    "$.run.actions[].result.observations": { types: ["number"] },
+    "$.run.actions[].result.reality_ladder_artifact_hash": { types: ["string"] },
+    "$.run.actions[].result.stage": { types: ["string"] },
+    "$.run.actions[].result.reason": { types: ["string"] },
+    "$.run.actions[].arguments.reason": { types: ["string"] },
+    "$.run.actions[].arguments.verdict": { types: ["string"] },
+    "$.run.actions[].result.verdict": { types: ["string"] },
+    "$.run.certification_artifact_hash": { types: ["string"] },
+    "$.run.completed": { types: ["boolean"] },
+    "$.run.decision": {
+      types: ["object"],
+      keys: ["reason", "verdict"],
+      required: ["reason", "verdict"],
+    },
+    "$.run.decision.reason": { types: ["string"] },
+    "$.run.decision.verdict": { types: ["string"] },
+    "$.run.failure_reason": { types: ["null"] },
+    "$.run.model_identity": {
+      types: ["object"],
+      keys: [
+        "cached_input_usd_per_million_tokens",
+        "input_usd_per_million_tokens",
+        "model",
+        "model_kind",
+        "model_version",
+        "output_usd_per_million_tokens",
+        "provider",
+        "reasoning_effort",
+        "seed_supported",
+        "temperature",
+      ],
+      required: [
+        "cached_input_usd_per_million_tokens",
+        "input_usd_per_million_tokens",
+        "model",
+        "model_kind",
+        "model_version",
+        "output_usd_per_million_tokens",
+        "provider",
+        "reasoning_effort",
+        "seed_supported",
+        "temperature",
+      ],
+    },
+    "$.run.model_identity.cached_input_usd_per_million_tokens": { types: ["number"] },
+    "$.run.model_identity.input_usd_per_million_tokens": { types: ["number"] },
+    "$.run.model_identity.model": { types: ["string"] },
+    "$.run.model_identity.model_kind": { types: ["string"] },
+    "$.run.model_identity.model_version": { types: ["string"] },
+    "$.run.model_identity.output_usd_per_million_tokens": { types: ["number"] },
+    "$.run.model_identity.provider": { types: ["string"] },
+    "$.run.model_identity.reasoning_effort": { types: ["string"] },
+    "$.run.model_identity.seed_supported": { types: ["boolean"] },
+    "$.run.model_identity.temperature": { types: ["null"] },
+    "$.run.model_identity_hash": { types: ["string"] },
+    "$.run.prompt_version": { types: ["string"] },
+    "$.run.reality_ladder_artifact_hash": { types: ["string"] },
+    "$.run.schema_version": { types: ["string"] },
+    "$.run.seed": { types: ["number"] },
+    "$.run.system_prompt_hash": { types: ["string"] },
+    "$.run.task_hash": { types: ["string"] },
+    "$.run.task_id": { types: ["string"] },
+    "$.run.tool_schema_hash": { types: ["string"] },
+    "$.run.trajectory_hash": { types: ["string"] },
+    "$.run.usage": {
+      types: ["object"],
+      keys: [
+        "cached_input_tokens",
+        "engine_runs",
+        "high_fidelity_runs",
+        "inference_cost_usd",
+        "model_calls",
+        "reasoning_tokens",
+        "tokens_in",
+        "tokens_out",
+        "tool_calls",
+        "total_tokens",
+        "wall_seconds",
+      ],
+      required: [
+        "cached_input_tokens",
+        "engine_runs",
+        "high_fidelity_runs",
+        "inference_cost_usd",
+        "model_calls",
+        "reasoning_tokens",
+        "tokens_in",
+        "tokens_out",
+        "tool_calls",
+        "total_tokens",
+        "wall_seconds",
+      ],
+    },
+    "$.run.usage.cached_input_tokens": { types: ["number"] },
+    "$.run.usage.engine_runs": { types: ["number"] },
+    "$.run.usage.high_fidelity_runs": { types: ["number"] },
+    "$.run.usage.inference_cost_usd": { types: ["number"] },
+    "$.run.usage.model_calls": { types: ["number"] },
+    "$.run.usage.reasoning_tokens": { types: ["number"] },
+    "$.run.usage.tokens_in": { types: ["number"] },
+    "$.run.usage.tokens_out": { types: ["number"] },
+    "$.run.usage.tool_calls": { types: ["number"] },
+    "$.run.usage.total_tokens": { types: ["number"] },
+    "$.run.usage.wall_seconds": { types: ["number"] },
+    "$.run.world_hash": { types: ["string"] },
+    "$.schema_version": { types: ["string"] },
+    "$.seed": { types: ["number"] },
+    "$.source_schema_version": { types: ["string"] },
+    "$.task_class": { types: ["string"] },
+    "$.task_id": { types: ["string"] },
+    "$.verification": {
+      types: ["object"],
+      keys: [
+        "abstention_accurate",
+        "behavioral_score",
+        "checks",
+        "correct_acceptance",
+        "correct_rejection",
+        "critical_gate_failure",
+        "expected_verdict",
+        "false_alpha_acceptance",
+        "submitted_verdict",
+        "task_id",
+        "trajectory_hash",
+        "unnecessary_high_fidelity_promotion",
+        "verified_research_success",
+      ],
+      required: [
+        "abstention_accurate",
+        "behavioral_score",
+        "checks",
+        "correct_acceptance",
+        "correct_rejection",
+        "critical_gate_failure",
+        "expected_verdict",
+        "false_alpha_acceptance",
+        "submitted_verdict",
+        "task_id",
+        "trajectory_hash",
+        "unnecessary_high_fidelity_promotion",
+        "verified_research_success",
+      ],
+    },
+    "$.verification.abstention_accurate": { types: ["boolean"] },
+    "$.verification.behavioral_score": { types: ["number"] },
+    "$.verification.checks": {
+      types: ["object"],
+      keys: [
+        "artifact_binding",
+        "budget",
+        "completed",
+        "decision_binding",
+        "efficient_routing",
+        "model_action_binding",
+        "model_identity",
+        "model_metering",
+        "prompt_identity",
+        "required_evidence",
+        "sealed_data_hidden",
+        "task_identity",
+        "tool_schema_identity",
+        "trajectory_actions",
+        "usage_counters",
+        "verdict",
+      ],
+      required: [
+        "artifact_binding",
+        "budget",
+        "completed",
+        "decision_binding",
+        "efficient_routing",
+        "model_action_binding",
+        "model_identity",
+        "model_metering",
+        "prompt_identity",
+        "required_evidence",
+        "sealed_data_hidden",
+        "task_identity",
+        "tool_schema_identity",
+        "trajectory_actions",
+        "usage_counters",
+        "verdict",
+      ],
+    },
+    "$.verification.checks.artifact_binding": { types: ["boolean"] },
+    "$.verification.checks.budget": { types: ["boolean"] },
+    "$.verification.checks.completed": { types: ["boolean"] },
+    "$.verification.checks.decision_binding": { types: ["boolean"] },
+    "$.verification.checks.efficient_routing": { types: ["boolean"] },
+    "$.verification.checks.model_action_binding": { types: ["boolean"] },
+    "$.verification.checks.model_identity": { types: ["boolean"] },
+    "$.verification.checks.model_metering": { types: ["boolean"] },
+    "$.verification.checks.prompt_identity": { types: ["boolean"] },
+    "$.verification.checks.required_evidence": { types: ["boolean"] },
+    "$.verification.checks.sealed_data_hidden": { types: ["boolean"] },
+    "$.verification.checks.task_identity": { types: ["boolean"] },
+    "$.verification.checks.tool_schema_identity": { types: ["boolean"] },
+    "$.verification.checks.trajectory_actions": { types: ["boolean"] },
+    "$.verification.checks.usage_counters": { types: ["boolean"] },
+    "$.verification.checks.verdict": { types: ["boolean"] },
+    "$.verification.correct_acceptance": { types: ["boolean"] },
+    "$.verification.correct_rejection": { types: ["boolean"] },
+    "$.verification.critical_gate_failure": { types: ["boolean"] },
+    "$.verification.expected_verdict": { types: ["string"] },
+    "$.verification.false_alpha_acceptance": { types: ["boolean"] },
+    "$.verification.submitted_verdict": { types: ["string"] },
+    "$.verification.task_id": { types: ["string"] },
+    "$.verification.trajectory_hash": { types: ["string"] },
+    "$.verification.unnecessary_high_fidelity_promotion": { types: ["boolean"] },
+    "$.verification.verified_research_success": { types: ["boolean"] },
+    "$.run.actions[].result.task.allowed_engines.hftbacktest": {
+      types: ["object"],
+      keys: ["minimum_certification"],
+      required: ["minimum_certification"],
+    },
+    "$.run.actions[].result.task.allowed_engines.hftbacktest.minimum_certification": {
+      types: ["string"],
+    },
+    "$.run.actions[].result.certification_artifact_hash": { types: ["string"] },
+  },
+  "world-quakes": {
+    $: {
+      types: ["object"],
+      keys: ["as_of", "events", "method", "schema_version"],
+      required: ["as_of", "events", "method", "schema_version"],
+    },
+    "$.as_of": { types: ["string"] },
+    "$.events": { types: ["array"] },
+    "$.events[]": {
+      types: ["object"],
+      keys: ["depthKm", "lat", "lon", "mag", "place", "stableId", "time"],
+      required: ["depthKm", "lat", "lon", "mag", "place", "stableId", "time"],
+    },
+    "$.events[].depthKm": { types: ["number"] },
+    "$.events[].lat": { types: ["number"] },
+    "$.events[].lon": { types: ["number"] },
+    "$.events[].mag": { types: ["number"] },
+    "$.events[].place": { types: ["string"] },
+    "$.events[].stableId": { types: ["string"] },
+    "$.events[].time": { types: ["number"] },
+    "$.method": { types: ["string"] },
+    "$.schema_version": { types: ["string"] },
+  },
+  "world-satellites": {
+    $: {
+      types: ["object"],
+      keys: ["as_of", "captures", "method", "satellites", "schema_version"],
+      required: ["as_of", "captures", "method", "satellites", "schema_version"],
+    },
+    "$.as_of": { types: ["string"] },
+    "$.captures": { types: ["array"] },
+    "$.captures[]": {
+      types: ["object"],
+      keys: ["captured_at", "sha256", "source_url"],
+      required: ["captured_at", "sha256", "source_url"],
+    },
+    "$.captures[].captured_at": { types: ["string"] },
+    "$.captures[].sha256": { types: ["string"] },
+    "$.captures[].source_url": { types: ["string"] },
+    "$.method": { types: ["string"] },
+    "$.satellites": { types: ["array"] },
+    "$.satellites[]": {
+      types: ["object"],
+      keys: ["altitudeKm", "epoch", "group", "id", "lat", "lon", "name", "trail"],
+      required: ["altitudeKm", "epoch", "group", "id", "lat", "lon", "name", "trail"],
+    },
+    "$.satellites[].altitudeKm": { types: ["number"] },
+    "$.satellites[].epoch": { types: ["string"] },
+    "$.satellites[].group": { types: ["string"] },
+    "$.satellites[].id": { types: ["string"] },
+    "$.satellites[].lat": { types: ["number"] },
+    "$.satellites[].lon": { types: ["number"] },
+    "$.satellites[].name": { types: ["string"] },
+    "$.satellites[].trail": { types: ["array"] },
+    "$.satellites[].trail[]": {
+      types: ["object"],
+      keys: ["altitudeKm", "lat", "lon"],
+      required: ["altitudeKm", "lat", "lon"],
+    },
+    "$.satellites[].trail[].altitudeKm": { types: ["number"] },
+    "$.satellites[].trail[].lat": { types: ["number"] },
+    "$.satellites[].trail[].lon": { types: ["number"] },
+    "$.schema_version": { types: ["string"] },
+  },
+});
+export const TERMINAL_GENERATED_MODULE_NAMES = [...SHARD_NAMES, "observatory-window", "search"];
 const hash = (raw) => createHash("sha256").update(raw).digest("hex");
 const seal = (value) => hash(Buffer.from(stableTerminal(value)));
 const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -5265,6 +5858,53 @@ export async function validateTerminalSource(id, entry, value) {
   } else if (id === "forge:runs") {
     closedSource(value, "forge-runs");
     adaptRunIndex(value);
+  } else if (id.startsWith("forge:run:")) {
+    closedSource(value, "forge-run");
+    const { adaptRun } = await import("../src/forge/data/forge-adapters.ts");
+    const run = adaptRun(value);
+    assert.equal(run.runId, id.slice("forge:run:".length));
+    assert.equal(entry.kind, "projection");
+    assert.equal(entry.scope, "FROZEN_RESEARCH");
+    assert.equal(entry.licence.dataset_key, "finsight:research");
+    assert.equal(stableTerminal(entry.sources), stableTerminal(["FinSight frozen research"]));
+  } else if (id === "world:quakes" || id === "world:satellites") {
+    closedSource(value, id === "world:quakes" ? "world-quakes" : "world-satellites");
+    assert.equal(value.as_of, entry.as_of);
+    assert.equal(entry.scope, "REAL");
+    if (id === "world:quakes") {
+      assert.equal(value.schema_version, "world-replay/1");
+      assert.equal(entry.kind, "world-events");
+      assert.equal(entry.licence.dataset_key, "usgs:comcat");
+      assert.deepEqual(entry.sources, ["USGS ComCat"]);
+      assert(Array.isArray(value.events));
+      for (const event of value.events)
+        assert(
+          typeof event.stableId === "string" &&
+            event.stableId.length > 0 &&
+            [event.lat, event.lon, event.mag, event.depthKm, event.time].every(Number.isFinite) &&
+            Math.abs(event.lat) <= 90 &&
+            Math.abs(event.lon) <= 180 &&
+            event.mag >= 4.5 &&
+            event.time <= Date.parse(entry.as_of),
+        );
+    } else {
+      assert.equal(value.schema_version, "satellite-replay/1");
+      assert.equal(entry.kind, "satellite-projection");
+      assert.equal(entry.licence.dataset_key, "celestrak:gp");
+      assert.deepEqual(entry.sources, ["CelesTrak", "USSPACECOM / Space-Track.org"]);
+      assert(Array.isArray(value.satellites) && value.satellites.length > 0);
+      for (const satellite of value.satellites)
+        assert(
+          typeof satellite.id === "string" &&
+            typeof satellite.name === "string" &&
+            Number.isFinite(Date.parse(satellite.epoch)) &&
+            Date.parse(satellite.epoch) <= Date.parse(entry.as_of) &&
+            [satellite.lat, satellite.lon, satellite.altitudeKm].every(Number.isFinite) &&
+            Math.abs(satellite.lat) <= 90 &&
+            Math.abs(satellite.lon) <= 180 &&
+            Array.isArray(satellite.trail),
+        );
+    }
   } else throw new Error("No approved source projection contract: " + id);
   return value;
 }
@@ -6496,7 +7136,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       })),
       displayModules: {},
       scopeAmendment:
-        "Approved ninth observatory-window.generated.ts and tenth semantic history-archive.generated.ts. Original India8/60 display and every retained historical metadata value remain exact.",
+        "Approved ninth observatory-window.generated.ts, tenth semantic history-archive.generated.ts and eleventh compact search.generated.ts. Original India8/60 display and every retained historical metadata value remain exact.",
       totalRecords: 0,
       totalEdges: 0,
       limitations: [
@@ -6590,6 +7230,151 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
   const { verifyDisplayProjection } = await import("../src/app/terminal/reader.ts");
   await verifyDisplayProjection(observatoryWindow, traceEntry, observatoryWindow.projectionDigest);
   modules["observatory-window"] = displayOutput;
+  // CURRENT means the complete existing current surface, not first-N records or a size-selected subset.
+  const currentShards = Object.entries(payloads)
+    .filter(([name]) => !["history", "history-archive"].includes(name))
+    .map(([name, payload]) => ({ ...payload, name, manifestBinding }));
+  const currentSearchSource = {
+    entities: catalogEntities(currentShards),
+    bindings: Object.assign({}, ...currentShards.map((p) => p.bindings)),
+    routes: Object.assign({}, ...currentShards.map((p) => p.routes)),
+    projectionPins: payloads.seed.projectionPins,
+  };
+  const currentSearchRecords = deriveNavigationRecords(currentSearchSource);
+  const searchSelectionIds = [
+    ...new Set(
+      currentSearchRecords.flatMap((record) =>
+        record.choices.flatMap((choice) => (choice.artifactId ? [choice.artifactId] : [])),
+      ),
+    ),
+  ].sort(compare);
+  for (const id of searchSelectionIds) await source(id);
+  assert(
+    searchSelectionIds.every((id) => closedReadSet.has(id)),
+    "Search navigation has an unverified complete source",
+  );
+  const searchSeal = {
+    schema_version: "terminal-search-navigation/1",
+    generator_contract: TERMINAL_CONTRACT,
+    manifestBinding,
+    recordCount: currentSearchRecords.length,
+    logicalDigest: seal(currentSearchRecords),
+    ...packNavigationRecords(currentSearchRecords),
+  };
+  const searchProjection = { ...searchSeal, payloadDigest: seal(searchSeal) };
+  const searchOutput =
+    "// BUILD-VERIFIED NAVIGATION METADATA; not browser verification of original artifacts.\n// prettier-ignore\nexport default " +
+    JSON.stringify(searchProjection) +
+    " as const;\n";
+  const searchBytes = Buffer.byteLength(searchOutput),
+    searchGzipBytes = gzipSync(searchOutput, { level: 9 }).length;
+  const searchDecoded = await validateNavigationProjection(searchProjection, manifestBinding);
+  assertExactRoundtrip(currentSearchRecords, searchDecoded);
+  assert.equal(
+    seal(searchDecoded),
+    seal(currentSearchRecords),
+    "Current search semantic set changed",
+  );
+  report.searchNavigation = {
+    records: currentSearchRecords.length,
+    decodedBytes: searchBytes,
+    gzipBytes: searchGzipBytes,
+    logicalDigest: searchProjection.logicalDigest,
+    payloadDigest: searchProjection.payloadDigest,
+    sourceEntities: currentSearchSource.entities.length,
+    semanticSetEqual: true,
+    completeOriginalSelections: searchSelectionIds.length,
+    completeSourceAuthority: true,
+    canonicalSort: "ascending exact stable group key",
+    scientificPayloadFields: 0,
+    types: Object.fromEntries(
+      [...new Set(currentSearchRecords.map((r) => r.type))]
+        .sort(compare)
+        .map((type) => [type, currentSearchRecords.filter((r) => r.type === type).length]),
+    ),
+  };
+  if (searchBytes > 131072)
+    failures.push("Decoded search navigation module budget: search=" + searchBytes);
+  if (searchGzipBytes > 16384)
+    failures.push("Gzip search navigation module budget: search=" + searchGzipBytes);
+  modules.search = searchOutput;
+  // Explicit human approval: append navigation metadata; the accepted default history partition is untouched.
+  const allShards = SHARD_NAMES.map((name) => ({ ...payloads[name], name, manifestBinding }));
+  const catalogFor = (shards) => ({
+    entities: catalogEntities(shards),
+    bindings: Object.assign({}, ...shards.map((shard) => shard.bindings)),
+    routes: Object.assign({}, ...shards.map((shard) => shard.routes)),
+    projectionPins: payloads.seed.projectionPins,
+  });
+  const fullRetainedNavigation = deriveNavigationRecords(catalogFor(allShards), "history");
+  const baselineRetained = deriveNavigationRecords(
+    catalogFor(
+      allShards.filter((shard) => ["seed", "history", "history-archive"].includes(shard.name)),
+    ),
+    "history",
+  );
+  const knownChoices = new Map();
+  for (const record of [...currentSearchRecords, ...baselineRetained]) {
+    const choices = knownChoices.get(record.key) ?? new Set();
+    for (const choice of record.choices) choices.add(stableTerminal(choice));
+    knownChoices.set(record.key, choices);
+  }
+  const supplementalRecords = fullRetainedNavigation.flatMap((record) => {
+    const choices = record.choices.filter(
+      (choice) => !knownChoices.get(record.key)?.has(stableTerminal(choice)),
+    );
+    return choices.length ? [{ ...record, choices }] : [];
+  });
+  for (const id of new Set(
+    supplementalRecords.flatMap((record) =>
+      record.choices.flatMap((choice) => (choice.artifactId ? [choice.artifactId] : [])),
+    ),
+  ))
+    await source(id);
+  const retainedSeal = {
+    schema_version: "terminal-search-navigation/1",
+    generator_contract: TERMINAL_CONTRACT,
+    manifestBinding,
+    recordCount: supplementalRecords.length,
+    logicalDigest: seal(supplementalRecords),
+    ...packNavigationRecords(supplementalRecords),
+  };
+  const retainedNavigation = { ...retainedSeal, payloadDigest: seal(retainedSeal) };
+  assertExactRoundtrip(
+    supplementalRecords,
+    await validateNavigationProjection(retainedNavigation, manifestBinding),
+  );
+  const historyDefaultOutput = modules.history;
+  modules.history +=
+    "// Approved retained navigation supplement; accepted default history payload is unchanged.\n// prettier-ignore\nexport const retainedNavigation = " +
+    JSON.stringify(retainedNavigation) +
+    " as const;\n";
+  const historyBytes = Buffer.byteLength(modules.history),
+    historyGzip = gzipSync(modules.history, { level: 9 }).length;
+  report.shards.history.defaultPayloadDecodedBytes = report.shards.history.decodedBytes;
+  report.shards.history.defaultPayloadGzipBytes = report.shards.history.gzipBytes;
+  report.shards.history.defaultOutputSha256 = hash(historyDefaultOutput);
+  report.shards.history.decodedBytes = historyBytes;
+  report.shards.history.gzipBytes = historyGzip;
+  report.shards.history.decodedHeadroomBytes = 131072 - historyBytes;
+  report.shards.history.decodedHeadroomRatio = (131072 - historyBytes) / 131072;
+  report.retainedNavigation = {
+    records: supplementalRecords.length,
+    choices: supplementalRecords.reduce((n, record) => n + record.choices.length, 0),
+    logicalDigest: retainedNavigation.logicalDigest,
+    payloadDigest: retainedNavigation.payloadDigest,
+    defaultPartitionUnchanged: true,
+    defaultOutputSha256: hash(historyDefaultOutput),
+    archiveOutputSha256: hash(modules["history-archive"]),
+    wholeModuleDecodedBytes: historyBytes,
+    wholeModuleGzipBytes: historyGzip,
+    fullRetainedRecords: fullRetainedNavigation.length,
+    fullRetainedChoices: fullRetainedNavigation.reduce((n, record) => n + record.choices.length, 0),
+  };
+  if (historyBytes > 131072)
+    failures.push("Decoded whole history module with approved supplement=" + historyBytes);
+  if (historyGzip > 32768)
+    failures.push("Gzip whole history module with approved supplement=" + historyGzip);
   assert(
     !failures.length,
     "STOP: terminal capacity admission failed; no outputs written. " +
@@ -6599,7 +7384,17 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     report.totalRecords <= 4096 && report.totalEdges <= 8192,
     "Terminal global navigation budget exceeded",
   );
-  return { shards, modules, observatoryWindow, navigationSeed, logicalHistory, report };
+  return {
+    shards,
+    modules,
+    observatoryWindow,
+    navigationSeed,
+    logicalHistory,
+    currentSearchRecords,
+    searchProjection,
+    retainedNavigation,
+    report,
+  };
 }
 export async function generateTerminalIndex({
   root = resolve(fileURLToPath(new URL("..", import.meta.url))),
@@ -6651,6 +7446,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     totalEdges,
     scopeAmendment,
     displayModules,
+    searchNavigation,
+    retainedNavigation,
   } = result.report;
   console.log(
     JSON.stringify(
@@ -6664,6 +7461,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
         verifiedCompleteOriginals: sourceChecks.length,
         scopeAmendment,
         displayModules,
+        searchNavigation,
+        retainedNavigation,
       },
       null,
       2,

@@ -1,10 +1,32 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseLegacyCommand } from "./mnemonics";
+import { WORKSPACES } from "../workspaces";
 import { useInvestigation } from "../terminal/TerminalShell";
 import type { CommandResolution } from "../terminal/commands";
 import { localLiveAllowed, setCurrentTicker, useDataMode } from "@/replay/mode";
 import { subjectTicker } from "../terminal/context";
+
+/** Cheap loading intent only. The unchanged mnemonic parser alone validates listing/exchange grammar. */
+export function commandIntent(text: string): "terminal" | "legacy" | "metadata" {
+  const tokens = text.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  if (["GO", "<GO>"].includes(tokens.at(-1) ?? "")) tokens.pop();
+  if (!tokens.length) return "metadata";
+  if (
+    /^(?:ISSUE|FACTOR|RUN|CHANGES|COMPARE|BUY|SELL|TRADE|ORDER|EXECUTE|TRAIN|FIT|REFRESH|CAPTURE|DEPLOY)$/.test(
+      tokens[0],
+    ) ||
+    (tokens.length > 1 && ["RISK", "DATA"].includes(tokens[0])) ||
+    (tokens.length === 2 && ["US", "INDIA"].includes(tokens[0]) && tokens[1] === "REG") ||
+    (tokens.length === 1 &&
+      WORKSPACES.some((w) => w.command === tokens[0] || w.label === tokens[0]))
+  )
+    return "terminal";
+  return tokens.length >= 2 &&
+    tokens.length <= 3 &&
+    /^(?:DES|GP|OMON|FA|REG|GE|RISK|FACT|EXEC|RES|OBS|AGENTS|DATA)$/.test(tokens.at(-1) ?? "")
+    ? "legacy"
+    : "metadata";
+}
 
 export function CommandLine() {
   const [text, setText] = useState("");
@@ -31,29 +53,16 @@ export function CommandLine() {
     setBusy(true);
     try {
       if (investigation.error) throw new Error(investigation.error);
-      const [
-        { terminalSearch },
-        { commandWorkspaces, resolveTerminalCommand },
-        { parseLegacyCommand },
-      ] = await Promise.all([
-        import("../terminal/search"),
-        import("../terminal/commands"),
-        import("./mnemonics"),
-      ]);
-      const catalog = await terminalSearch.load(
-        commandWorkspaces(text),
-        /^(?:ISSUE|RUN|DATA|FACTOR|CHANGES)\b/i.test(text.trim()),
-      );
-      if (ticket !== request.current) return;
-      const result = resolveTerminalCommand(text, investigation.navigationContext, {
-        ...catalog,
-        legacyParser: parseLegacyCommand,
+      const { resolveCommandInput } = await import("../terminal/commands");
+      const result = await resolveCommandInput(text, investigation.navigationContext, {
+        legacy: commandIntent(text) === "legacy",
         environment: {
           hostname: window.location.hostname,
           localLiveFlag: localLiveAllowed(),
           mode,
         },
       });
+      if (ticket !== request.current) return;
       setResolution(result);
       if (result.status === "READY") {
         const ticker = subjectTicker(result.target.context.subject);

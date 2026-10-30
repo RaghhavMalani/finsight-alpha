@@ -782,6 +782,382 @@ export async function validateTerminalShard(
     manifestBinding: manifest as PackedShard["manifestBinding"],
   };
 }
+
+/** Closed build-verified navigation projection. No ReplayEntry or scientific payload is encoded. */
+export type NavigationChoice = {
+  artifactId: string | null;
+  cutoff: string | null;
+  view: InvestigationView;
+  availability: "PUBLIC_REPLAY" | "LOCAL_LIVE_ONLY" | "UNAVAILABLE";
+};
+export type NavigationRecord = Pick<
+  TerminalEntity,
+  "id" | "type" | "namespace" | "label" | "workspace" | "market"
+> & {
+  key: string;
+  choices: NavigationChoice[];
+};
+export type PackedNavigation = {
+  strings: string[];
+  hashes: string[];
+  views: string[];
+  selections: string[];
+  columns: string[];
+};
+/** Template references are exact equality compression, not inferred entity relationships. */
+export function packNavigationRecords(records: readonly NavigationRecord[]): PackedNavigation {
+  const strings: string[] = [],
+    indexes = new Map<string, number>(),
+    views: string[] = [],
+    selections: string[] = [];
+  const intern = (value: string) => {
+    let n = indexes.get(value);
+    if (n === undefined) {
+      n = strings.length;
+      strings.push(value);
+      indexes.set(value, n);
+    }
+    return n;
+  };
+  const integers = (values: number[]) => values.map((n) => (n + 4).toString(36)).join(".");
+  const unique = (values: string[], value: string) => {
+    const n = values.indexOf(value);
+    if (n >= 0) return n;
+    values.push(value);
+    return values.length - 1;
+  };
+  const rows = records.map(
+    (record) =>
+      [
+        intern(record.type),
+        intern(record.namespace),
+        intern(record.id),
+        intern(record.label.replaceAll("%", "%%").split(record.id).join("%i%")),
+        record.market === "US" ? 1 : record.market === "INDIA" ? 2 : 0,
+        record.choices.map((choice) => [
+          unique(
+            selections,
+            integers([
+              choice.artifactId === null ? -1 : intern(choice.artifactId),
+              choice.cutoff === null ? -1 : intern(choice.cutoff),
+            ]),
+          ),
+          unique(
+            views,
+            integers(
+              Object.entries(choice.view)
+                .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+                .flatMap(([key, value]) => [
+                  intern(key),
+                  value === record.id
+                    ? -1
+                    : value === choice.cutoff
+                      ? -2
+                      : value === choice.artifactId
+                        ? -3
+                        : intern(String(value)),
+                ]),
+            ),
+          ),
+          ["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"].indexOf(choice.availability),
+        ]),
+      ] as const,
+  );
+  const hashes: string[] = [];
+  const encoded = strings.map((value) =>
+    value.replaceAll("!", "!!").replace(/[a-f0-9]{64}/g, (hex) => {
+      const bytes = hex
+        .match(/../g)!
+        .map((pair) => String.fromCharCode(parseInt(pair, 16)))
+        .join("");
+      const n = unique(
+        hashes,
+        btoa(bytes).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, ""),
+      );
+      return "!" + n.toString(36) + "!";
+    }),
+  );
+  return {
+    strings: encoded,
+    hashes,
+    views,
+    selections,
+    columns: [
+      ...Array.from({ length: 5 }, (_, i) => integers(rows.map((row) => row[i] as number))),
+      rows.map((row) => integers(row[5].flat())).join("/"),
+    ],
+  };
+}
+export function unpackNavigationRecords(
+  value: PackedNavigation,
+  expectedCount: number,
+): NavigationRecord[] {
+  const integers = (wire: string, maximum = 20000): number[] => {
+    if (typeof wire !== "string" || wire.length > 128 * 1024)
+      throw new Error("Invalid navigation integer wire.");
+    const values = wire
+      ? wire.split(".").map((token) => {
+          const n = parseInt(token, 36);
+          if (
+            !/^[0-9a-z]+$/.test(token) ||
+            !Number.isSafeInteger(n) ||
+            n.toString(36) !== token ||
+            n < 1 ||
+            n > maximum + 4
+          )
+            throw new Error("Invalid navigation index.");
+          return n - 4;
+        })
+      : [];
+    if (values.length > 20000) throw new Error("Navigation integer bound exceeded.");
+    return values;
+  };
+  if (
+    !count(expectedCount, 4096) ||
+    expectedCount < 1 ||
+    !Array.isArray(value.strings) ||
+    value.strings.length > 12000 ||
+    !Array.isArray(value.hashes) ||
+    value.hashes.length > 4096 ||
+    !Array.isArray(value.views) ||
+    value.views.length > 4096 ||
+    !Array.isArray(value.selections) ||
+    value.selections.length > 4096 ||
+    !Array.isArray(value.columns) ||
+    value.columns.length !== 6
+  )
+    throw new Error("Invalid navigation collections.");
+  const hashes = value.hashes.map((wire) => {
+    if (typeof wire !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(wire))
+      throw new Error("Invalid navigation hash.");
+    const bytes = atob(wire.replaceAll("-", "+").replaceAll("_", "/") + "=");
+    const hex = Array.from(bytes, (byte) => byte.charCodeAt(0).toString(16).padStart(2, "0")).join(
+      "",
+    );
+    if (bytes.length !== 32 || encodeHashFragment(hex).slice(2) !== wire)
+      throw new Error("Noncanonical navigation hash.");
+    return hex;
+  });
+  const strings = value.strings.map((wire) => {
+    if (typeof wire !== "string" || wire.length > 8192) throw new Error("Invalid navigation text.");
+    let out = "";
+    for (let i = 0; i < wire.length; i++) {
+      if (wire[i] !== "!") {
+        out += wire[i];
+        continue;
+      }
+      if (wire[i + 1] === "!") {
+        out += "!";
+        i++;
+        continue;
+      }
+      const end = wire.indexOf("!", i + 1),
+        token = wire.slice(i + 1, end),
+        n = parseInt(token, 36);
+      if (
+        end < 0 ||
+        !/^[0-9a-z]+$/.test(token) ||
+        !count(n, hashes.length - 1) ||
+        n.toString(36) !== token
+      )
+        throw new Error("Invalid navigation hash reference.");
+      out += hashes[n];
+      i = end;
+    }
+    if (!text(out, 8192)) throw new Error("Invalid expanded navigation text.");
+    return out;
+  });
+  const stringAt = (n: number) => {
+    if (!count(n, strings.length - 1)) throw new Error("Invalid navigation text reference.");
+    return strings[n];
+  };
+  const views = value.views.map((wire) => {
+    const values = integers(wire);
+    if (!values.length || values.length % 2 || values.length > 50)
+      throw new Error("Invalid navigation view.");
+    return values;
+  });
+  const selections = value.selections.map((wire) => {
+    const values = integers(wire);
+    if (values.length !== 2 || values.some((n) => n < -1))
+      throw new Error("Invalid navigation selection.");
+    const artifactId = values[0] === -1 ? null : stringAt(values[0]),
+      cutoff = values[1] === -1 ? null : stringAt(values[1]);
+    if (
+      (artifactId !== null && !isArtifactId(artifactId)) ||
+      (cutoff !== null && !Number.isFinite(Date.parse(cutoff))) ||
+      (artifactId === null) !== (cutoff === null)
+    )
+      throw new Error("Invalid exact navigation selection.");
+    return { artifactId, cutoff };
+  });
+  const columns = value.columns.slice(0, 5).map((wire) => integers(wire)),
+    choiceRows = value.columns[5].split("/");
+  if (
+    columns.some((column) => column.length !== expectedCount) ||
+    choiceRows.length !== expectedCount
+  )
+    throw new Error("Navigation record count changed.");
+  let priorKey = "";
+  return choiceRows.map((wire, row) => {
+    const type = stringAt(columns[0][row]),
+      namespace = stringAt(columns[1][row]),
+      id = stringAt(columns[2][row]),
+      template = stringAt(columns[3][row]),
+      marketCode = columns[4][row];
+    if (
+      !ENTITY_TYPES.has(type) ||
+      !NAMESPACES.has(namespace) ||
+      ![0, 1, 2].includes(marketCode) ||
+      !text(id, 180)
+    )
+      throw new Error("Invalid navigation identity.");
+    let label = "";
+    for (let i = 0; i < template.length; i++) {
+      if (template[i] !== "%") label += template[i];
+      else if (template[i + 1] === "%") {
+        label += "%";
+        i++;
+      } else if (template.slice(i, i + 3) === "%i%") {
+        label += id;
+        i += 2;
+      } else throw new Error("Invalid navigation label template.");
+    }
+    const market =
+      marketCode === 1 ? ("US" as const) : marketCode === 2 ? ("INDIA" as const) : undefined;
+    const key = [type, namespace, id, market ?? "ALL"].join("|");
+    if (key <= priorKey || !text(label))
+      throw new Error("Navigation canonical order/label changed.");
+    priorKey = key;
+    const values = integers(wire),
+      choices: NavigationChoice[] = [];
+    if (!values.length || values.length % 3 || values.length > 1536)
+      throw new Error("Navigation choices exceed their bound.");
+    for (let i = 0; i < values.length; i += 3) {
+      const [selectionIndex, viewIndex, capability] = values.slice(i, i + 3);
+      if (
+        !count(selectionIndex, selections.length - 1) ||
+        !count(viewIndex, views.length - 1) ||
+        ![0, 1, 2].includes(capability)
+      )
+        throw new Error("Invalid navigation choice reference.");
+      const selection = selections[selectionIndex],
+        view: Record<string, string> = Object.create(null) as Record<string, string>;
+      const entries = views[viewIndex];
+      for (let j = 0; j < entries.length; j += 2) {
+        const field = stringAt(entries[j]),
+          n = entries[j + 1],
+          v =
+            n === -1
+              ? id
+              : n === -2
+                ? selection.cutoff
+                : n === -3
+                  ? selection.artifactId
+                  : stringAt(n);
+        if (
+          ["__proto__", "prototype", "constructor"].includes(field) ||
+          Object.hasOwn(view, field) ||
+          typeof v !== "string"
+        )
+          throw new Error("Invalid navigation selector.");
+        view[field] = v;
+      }
+      serializeInvestigationContext({
+        version: 1,
+        ...(market ? { market } : {}),
+        ...(selection.artifactId ? { anchor: { artifactId: selection.artifactId } } : {}),
+        view: view as InvestigationView,
+      });
+      choices.push({
+        ...selection,
+        view: view as InvestigationView,
+        availability: (["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"] as const)[capability],
+      });
+    }
+    const workspace = choices[0].view.workspace;
+    if (choices.some((choice) => choice.view.workspace !== workspace))
+      throw new Error("Navigation workspace identity changed.");
+    return { key, id, type, namespace, label, workspace, ...(market ? { market } : {}), choices };
+  });
+}
+export type NavigationProjection = PackedNavigation & {
+  schema_version: "terminal-search-navigation/1";
+  generator_contract: typeof TERMINAL_CONTRACT;
+  manifestBinding: PackedShard["manifestBinding"];
+  recordCount: number;
+  logicalDigest: string;
+  payloadDigest: string;
+};
+export async function validateNavigationProjection(
+  value: unknown,
+  expectedManifest: PackedShard["manifestBinding"],
+): Promise<NavigationRecord[]> {
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 131072)
+    throw new Error("Search navigation decoded bound exceeded.");
+  const raw = record(value, [
+    "schema_version",
+    "generator_contract",
+    "manifestBinding",
+    "recordCount",
+    "logicalDigest",
+    "payloadDigest",
+    "strings",
+    "hashes",
+    "views",
+    "selections",
+    "columns",
+  ]);
+  if (
+    Object.keys(raw).length !== 11 ||
+    raw.schema_version !== "terminal-search-navigation/1" ||
+    raw.generator_contract !== TERMINAL_CONTRACT ||
+    !HASH.test(String(raw.payloadDigest)) ||
+    !HASH.test(String(raw.logicalDigest)) ||
+    stableTerminal(raw.manifestBinding) !== stableTerminal(expectedManifest)
+  )
+    throw new Error("Search navigation identity changed.");
+  const { payloadDigest, ...sealed } = raw;
+  if ((await terminalDigest(sealed)) !== payloadDigest)
+    throw new Error("Search navigation digest mismatch.");
+  const records = unpackNavigationRecords(raw as PackedNavigation, raw.recordCount as number);
+  if ((await terminalDigest(records)) !== raw.logicalDigest)
+    throw new Error("Search navigation semantic set changed.");
+  const freeze = (value: unknown) => {
+    if (value && typeof value === "object") {
+      for (const child of Object.values(value)) freeze(child);
+      Object.freeze(value);
+    }
+  };
+  freeze(records);
+  return records;
+}
+let navigationPending: Promise<NavigationRecord[]> | undefined;
+export function loadSearchNavigation(): Promise<NavigationRecord[]> {
+  navigationPending ??= Promise.all([import("./generated/search.generated.ts"), loadTerminalSeed()])
+    .then(([module, seed]) => validateNavigationProjection(module.default, seed.manifestBinding))
+    .catch((error: unknown) => {
+      navigationPending = undefined;
+      throw error;
+    });
+  return navigationPending;
+}
+
+let retainedNavigationPending: Promise<NavigationRecord[]> | undefined;
+export function loadRetainedSearchNavigation(): Promise<NavigationRecord[]> {
+  retainedNavigationPending ??= Promise.all([
+    import("./generated/history.generated.ts"),
+    loadTerminalSeed(),
+  ])
+    .then(([module, seed]) =>
+      validateNavigationProjection(module.retainedNavigation, seed.manifestBinding),
+    )
+    .catch((error: unknown) => {
+      retainedNavigationPending = undefined;
+      throw error;
+    });
+  return retainedNavigationPending;
+}
 const loaders = {
   seed: () => import("./generated/seed.generated.ts"),
   market: () => import("./generated/market.generated.ts"),

@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { WORKSPACES } from "@/app/workspaces";
-import { parseLegacyCommand } from "./mnemonics";
+import { commandIntent } from "./CommandLine";
 import { useInvestigation } from "../terminal/TerminalShell";
 import { targetHref, type InvestigationTarget } from "../terminal/links";
 import type { CommandResolution, LegacyMarketNavigation } from "../terminal/commands";
@@ -17,6 +17,7 @@ type Item = {
   legacy?: LegacyMarketNavigation;
   capability?: Capability;
   choices?: Item[];
+  legacyText?: string;
 };
 const href = (item: Item) =>
   item.target
@@ -90,6 +91,8 @@ export function ForgeCommandPalette({
     investigation.navigationContext,
     mode,
   ]);
+  const currentScope = useRef(scopeKey);
+  currentScope.current = scopeKey;
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -120,67 +123,83 @@ export function ForgeCommandPalette({
       void (async () => {
         try {
           if (investigation.error) throw new Error(investigation.error);
-          const [{ terminalSearch }, { resolveTerminalCommand }] = await Promise.all([
-            import("../terminal/search"),
-            import("../terminal/commands"),
-          ]);
-          const response = await terminalSearch.search(query, investigation.navigationContext, {
-            history,
-            limit: 30,
-            signal: controller.signal,
-            ...(!query.trim()
-              ? { workspaces: ["observatory"] as const, types: ["workspace"] }
-              : {}),
-          });
-          if (controller.signal.aborted) return;
-          const catalog = terminalSearch.catalog();
-          const resolve = (text: string) =>
-            resolveTerminalCommand(text, investigation.navigationContext, {
-              ...catalog,
-              legacyParser: parseLegacyCommand,
+          const intent = commandIntent(query);
+          let command: CommandResolution | undefined;
+          let searchItems: Item[] = [];
+          let limitedMessage =
+            "Reference identities do not imply evidence coverage. Clocks belong to each exact selection.";
+          if (intent === "terminal") {
+            const { resolveCommandInput } = await import("../terminal/commands");
+            command = await resolveCommandInput(query, investigation.navigationContext, {
+              history,
               environment: {
                 hostname: window.location.hostname,
                 localLiveFlag: localLiveAllowed(),
                 mode,
               },
             });
-          const command = query.trim() ? resolve(query) : undefined;
+          } else if (intent === "legacy") {
+            // Parsing is deferred until explicit submission; the canonical parser owns all aliases and validation.
+            searchItems = [
+              {
+                key: "legacy-intent",
+                label: "GO · " + query.trim(),
+                detail: "Press Enter to check the existing listing / exchange / function grammar.",
+                legacyText: query,
+              },
+            ];
+          } else {
+            const { terminalSearch } = await import("../terminal/search");
+            const response = await terminalSearch.search(query, investigation.navigationContext, {
+              history,
+              limit: 30,
+              signal: controller.signal,
+              ...(!query.trim() ? { types: ["workspace"] } : {}),
+            });
+            searchItems = response.results.map((result) => {
+              const workspace =
+                result.type === "workspace"
+                  ? WORKSPACES.find((w) => w.id === result.id)
+                  : undefined;
+              return {
+                key: result.key,
+                label: workspace ? workspace.key + " · " + workspace.label : result.label,
+                detail:
+                  "BUILD-VERIFIED NAVIGATION METADATA · " +
+                  result.capability.label +
+                  " · " +
+                  (result.market ?? "No market filter") +
+                  (result.cutoff ? " · Retained selection time " + result.cutoff : "") +
+                  " · " +
+                  result.capability.reason,
+                target: result.target,
+                capability: result.capability,
+                ...(result.requiresChoice
+                  ? {
+                      choices: result.choices.map((choice) => ({
+                        key: choice.key,
+                        label: result.label,
+                        detail:
+                          (choice.market ?? result.market ?? "No market") +
+                          " · " +
+                          (choice.cutoff ?? "No selected clock") +
+                          " · " +
+                          (choice.artifactId ?? "Reference identity"),
+                        target: choice.target,
+                      })),
+                    }
+                  : {}),
+              };
+            });
+            if (response.limited)
+              limitedMessage =
+                response.total +
+                " matching identities; showing " +
+                response.results.length +
+                ". Refine the query to see other results.";
+          }
+          if (controller.signal.aborted) return;
           const commandItems = command ? resolutionItems(command, query) : [];
-          const searchItems: Item[] = response.results.map((result) => {
-            const workspace =
-              result.type === "workspace" ? WORKSPACES.find((w) => w.id === result.id) : undefined;
-            // Workspace labels are presentation; all destinations still use the shared resolver.
-            const resolved = workspace ? resolve(workspace.command) : undefined;
-            const explicit = resolved ? resolutionItems(resolved, workspace!.command) : [];
-            const target = resolved?.status === "READY" ? resolved.target : undefined;
-            const capability =
-              resolved?.status === "READY" ? resolved.capability : result.capability;
-            const detail =
-              resolved && (resolved.status === "CHOOSE" || resolved.status === "REJECTED")
-                ? `${resolved.reason} ${resolved.correction}`
-                : `${result.kind.toUpperCase()} · ${capability.label} · ${result.market ?? "No market filter"}${result.cutoff ? ` · Retained selection time ${result.cutoff}` : ""} · ${capability.reason}`;
-            return {
-              key: result.key,
-              label: workspace ? `${workspace.key} · ${workspace.label}` : result.label,
-              detail,
-              ...(workspace
-                ? target
-                  ? { target }
-                  : { choices: explicit }
-                : { target: result.target }),
-              capability,
-              ...(!workspace && result.requiresChoice
-                ? {
-                    choices: result.choices.map((choice) => ({
-                      key: choice.key,
-                      label: result.label,
-                      detail: `${choice.market ?? result.market ?? "No market"} · ${choice.cutoff ?? "No selected clock"} · ${choice.artifactId ?? "Reference identity"}`,
-                      target: choice.target,
-                    })),
-                  }
-                : {}),
-            };
-          });
           const seen = new Set<string>();
           const merged = [...commandItems, ...searchItems].filter((item) => {
             const key = href(item) ?? item.key;
@@ -194,9 +213,7 @@ export function ForgeCommandPalette({
           setMessage(
             command && (command.status === "CHOOSE" || command.status === "REJECTED")
               ? `${command.reason} ${command.correction}`
-              : response.limited
-                ? `${response.total} matching identities; showing ${response.results.length}. Refine the query to see other results.`
-                : "Reference identities do not imply evidence coverage. Clocks belong to each exact selection.",
+              : limitedMessage,
           );
         } catch (error) {
           if (
@@ -226,8 +243,50 @@ export function ForgeCommandPalette({
   useEffect(() => {
     if (open && !dialogRef.current?.contains(document.activeElement)) inputRef.current?.focus();
   }, [open, items, choices]);
-  const execute = (item: Item) => {
+  const execute = async (item: Item) => {
     if (busy || acceptedScope !== scopeKey) return;
+    if (item.legacyText) {
+      setBusy(true);
+      try {
+        const { resolveCommandInput } = await import("../terminal/commands");
+        const result = await resolveCommandInput(item.legacyText, investigation.navigationContext, {
+          legacy: true,
+          history,
+          environment: {
+            hostname: window.location.hostname,
+            localLiveFlag: localLiveAllowed(),
+            mode,
+          },
+        });
+        if (currentScope.current !== scopeKey) return;
+        const resolved = resolutionItems(result, item.legacyText);
+        setItems(resolved);
+        setChoices(undefined);
+        setActive(0);
+        setMessage(
+          result.status === "CHOOSE" || result.status === "REJECTED"
+            ? result.reason + " " + result.correction
+            : (result.note ?? result.capability.reason),
+        );
+        if (result.status === "READY") {
+          const ticker = subjectTicker(result.target.context.subject);
+          if (ticker) setCurrentTicker(ticker);
+          investigation.openTarget(result.target);
+          onClose();
+        } else if (result.status === "LEGACY_READY") {
+          const ticker = subjectTicker(result.navigation.context.subject);
+          if (ticker) setCurrentTicker(ticker);
+          void navigate({ to: result.navigation.to, search: result.navigation.search as never });
+          onClose();
+        }
+      } catch (error) {
+        if (currentScope.current === scopeKey)
+          setMessage(error instanceof Error ? error.message : "Command unavailable.");
+      } finally {
+        if (currentScope.current === scopeKey) setBusy(false);
+      }
+      return;
+    }
     if (item.choices?.length) {
       setChoices(item.choices);
       setActive(0);
@@ -286,7 +345,7 @@ export function ForgeCommandPalette({
           }
           if (event.key === "Enter" && event.target === inputRef.current && shown[active]) {
             event.preventDefault();
-            execute(shown[active]);
+            void execute(shown[active]);
             return;
           }
           if (event.key === "Tab") {
@@ -383,7 +442,7 @@ export function ForgeCommandPalette({
         >
           {shown.map((item, index) => {
             const destination = href(item),
-              disabled = !destination && !item.choices?.length;
+              disabled = !destination && !item.choices?.length && !item.legacyText;
             const content = (
               <>
                 <span className="block text-sm text-[#e6e8eb]">{item.label}</span>
@@ -412,7 +471,7 @@ export function ForgeCommandPalette({
                     !event.altKey
                   ) {
                     event.preventDefault();
-                    execute(item);
+                    void execute(item);
                   }
                 }}
               >
@@ -424,7 +483,7 @@ export function ForgeCommandPalette({
                 {...props}
                 type="button"
                 disabled={disabled}
-                onClick={() => execute(item)}
+                onClick={() => void execute(item)}
               >
                 {content}
               </button>

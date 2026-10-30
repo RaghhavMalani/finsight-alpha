@@ -20,8 +20,8 @@ function replayOptions(response: SearchResponse): SearchOption[] {
   return response.results.flatMap((result) => {
     const kind =
       result.availability === "REFERENCE"
-        ? "REFERENCE IDENTITY | coverage not implied"
-        : result.capability.label;
+        ? "BUILD-VERIFIED NAVIGATION METADATA | reference identity; coverage not implied"
+        : "BUILD-VERIFIED NAVIGATION METADATA | " + result.capability.label;
     return result.requiresChoice
       ? result.choices.map((choice) => ({
           key: choice.key,
@@ -97,6 +97,7 @@ export default function TickerSearch({
       .then(({ terminalSearch }) =>
         terminalSearch.search(query, navigationContext, {
           history,
+          types: ["reference-listing", "market-factor"],
           limit: 20,
           signal: controller.signal,
         }),
@@ -194,7 +195,11 @@ export default function TickerSearch({
     setSearchError(null);
     try {
       const { terminalSearch } = await import("../app/terminal/search"),
-        value = await terminalSearch.search(text, navigationContext, { history, limit: 20 });
+        value = await terminalSearch.search(text, navigationContext, {
+          history,
+          types: ["reference-listing", "market-factor"],
+          limit: 20,
+        });
       if (
         ticket !== request.current ||
         currentDraft.current.trim() !== text ||
@@ -310,11 +315,7 @@ export default function TickerSearch({
                 Include retained history
               </label>
             )}
-            <ul
-              id={`${id}-list`}
-              role="listbox"
-              aria-label="Matching instruments and retained evidence"
-            >
+            <ul id={`${id}-list`} role="listbox" aria-label="Matching Market identities">
               {items.map((item, index) => (
                 <li
                   key={item.key}
