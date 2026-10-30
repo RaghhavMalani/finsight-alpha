@@ -44,7 +44,8 @@ import {
   RELATIONS,
 } from "../src/app/terminal/links.ts";
 
-const coreOnly = process.argv.includes("--core-only");
+const amendmentOnly = process.argv.includes("--amendment-contracts-only");
+const coreOnly = process.argv.includes("--core-only") || amendmentOnly;
 const projectionsOnly = process.argv.includes("--projections-only");
 const navigationOnly = process.argv.includes("--navigation-only");
 const completedAreas = new Set(["context", "compatibility", "links"]);
@@ -1080,6 +1081,7 @@ const APPROVED_MODULE_NAMES = [
   "history",
   "history-archive",
   "observatory-window",
+  "search",
 ];
 const EXCLUDED_LOCAL_COMMIT = "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d";
 const APPROVED_SCOPE_AMENDMENTS = ["frontend-v2/src/router.tsx"];
@@ -1575,6 +1577,141 @@ check("Ctrl or Cmd K uses the same focus-capturing palette opener as the visible
   );
 });
 
+const searchAmendmentProof = {};
+if (amendmentOnly) {
+  const generator = await import("./generate-terminal-index.mjs"),
+    commands = await import("../src/app/terminal/commands.ts"),
+    catalog = await import("../src/app/terminal/catalog.ts"),
+    search = await import("../src/app/terminal/search.ts");
+  const sourceIds = [
+    Object.keys(manifest.artifacts).find((id) => id.startsWith("forge:run:")),
+    "world:quakes",
+    "world:satellites",
+  ];
+  for (const id of sourceIds) {
+    await checkAsync("current navigation full source positive " + id, async () => {
+      await generator.validateTerminalSource(id, manifest.artifacts[id], artifact(id));
+    });
+    await checkAsync(
+      "current navigation closed source rejects unknown private field " + id,
+      async () => {
+        const value = artifact(id);
+        value.engineering_private = "sentinel";
+        await assert.rejects(() =>
+          generator.validateTerminalSource(id, manifest.artifacts[id], value),
+        );
+      },
+    );
+  }
+  await checkAsync(
+    "async complete-ID commands preserve pinned historical anchors with lowercase and whitespace grammar",
+    async () => {
+      const data = await search.terminalSearch.load([], true);
+      let cases = 0;
+      for (const type of ["issue", "model-run"]) {
+        const record = data.navigation.find(
+          (record) =>
+            record.type === type &&
+            (type !== "model-run" || record.namespace === "regime") &&
+            record.choices.some(
+              (choice) =>
+                choice.artifactId &&
+                choice.artifactId !== currentStateId &&
+                choice.view.workspace === (type === "issue" ? "risk" : "regimes"),
+            ),
+        );
+        assert(record);
+        const choice = record.choices.find(
+          (choice) => choice.artifactId && choice.artifactId !== currentStateId,
+        );
+        const context = {
+          version: 1,
+          ...(record.market ? { market: record.market } : {}),
+          anchor: { artifactId: choice.artifactId },
+          view: choice.view,
+        };
+        const input =
+          type === "issue" ? "issue  " + record.id + " <go>" : "run REGIME:" + record.id + " go";
+        const result = await commands.resolveCommandInput(input, context);
+        assert.equal(result.status, "READY");
+        assert.equal(result.target.context.anchor.artifactId, choice.artifactId);
+        cases++;
+      }
+      searchAmendmentProof.pinnedExactCommands = cases;
+    },
+  );
+  await checkAsync(
+    "async legacy navigation retains every existing function and rejects factor/exchange coercion",
+    async () => {
+      const functions = [
+          "DES",
+          "GP",
+          "OMON",
+          "FA",
+          "REG",
+          "GE",
+          "RISK",
+          "FACT",
+          "EXEC",
+          "RES",
+          "OBS",
+          "AGENTS",
+          "DATA",
+        ],
+        context = { version: 1, view: { workspace: "risk" } };
+      for (const fn of functions) {
+        const result = await commands.resolveCommandInput("SPY US " + fn, context, {
+          legacy: true,
+        });
+        assert.notEqual(result.status, "REJECTED", fn);
+        if (fn === "OBS") assert.equal(result.status, "CHOOSE");
+      }
+      for (const text of ["US-MKT US GP", "IN-MKT IN GP", "US-MKT OMON"]) {
+        const result = await commands.resolveCommandInput(text, context, { legacy: true });
+        assert.equal(result.status, "REJECTED", text);
+      }
+      searchAmendmentProof.legacyFunctions = functions;
+    },
+  );
+  await checkAsync(
+    "approved history navigation export preserves fixed default payload and archive hashes and whole-file caps",
+    async () => {
+      const bytes = readFileSync(
+        path.join(frontend, "src/app/terminal/generated/history.generated.ts"),
+      );
+      const marker = bytes.indexOf("// Approved retained navigation supplement;");
+      assert(marker > 0);
+      assert.equal(
+        hash(bytes.subarray(0, marker)),
+        "2e54d53a53ad830e575ed80832225006ad0deec90bd81787a177f68c2453820c",
+      );
+      assert.equal(
+        hash(
+          readFileSync(
+            path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
+          ),
+        ),
+        "959d93bc0a57bacf5422e730c9117b72e09301a8d653ac81c791df4e74fe8742",
+      );
+      assert(bytes.length <= 131072);
+      assert(gzipSync(bytes, { level: 9 }).length <= 32768);
+      const records = await catalog.loadRetainedSearchNavigation();
+      assert.equal(records.length, 544);
+      assert.equal(
+        records.reduce((n, r) => n + r.choices.length, 0),
+        958,
+      );
+      searchAmendmentProof.history = {
+        records: 544,
+        choices: 958,
+        wholeModuleDecodedBytes: bytes.length,
+        wholeModuleGzipBytes: gzipSync(bytes, { level: 9 }).length,
+        unchangedDefault: true,
+        unchangedArchive: true,
+      };
+    },
+  );
+}
 const projectionProof = {
   provenance: "ENGINEERING_QA_READ_ONLY_OR_IN_MEMORY_MUTATIONS_OF_ACTUAL_RETAINED_METADATA",
 };
@@ -1933,7 +2070,8 @@ if (!coreOnly || projectionsOnly) {
           name + " decoded module cap",
         );
         assert(
-          gzipSync(module, { level: 9 }).length <= (name === "seed" ? 12 : 32) * 1024,
+          gzipSync(module, { level: 9 }).length <=
+            (name === "seed" ? 12 : name === "search" ? 16 : 32) * 1024,
           name + " gzip module cap",
         );
         assert(!module.includes("ENGINEERING_PRIVACY_SENTINEL"));
@@ -1944,6 +2082,15 @@ if (!coreOnly || projectionsOnly) {
             manifest.artifacts["observatory:IN-MKT:hmm"],
             generated.observatoryWindow.projectionDigest,
           );
+          continue;
+        }
+        if (name === "search") {
+          const records = await catalog.validateNavigationProjection(
+            generated.searchProjection,
+            generated.shards.seed.manifestBinding,
+          );
+          assert.equal(records.length, 521);
+          assert.deepEqual(JSON.parse(JSON.stringify(records)), generated.currentSearchRecords);
           continue;
         }
         const admitted = await catalog.validateTerminalShard(
@@ -1957,7 +2104,7 @@ if (!coreOnly || projectionsOnly) {
     },
   );
   await checkAsync(
-    "independent second pure rebuild is byte-for-byte deterministic across all ten approved modules",
+    "independent second pure rebuild is byte-for-byte deterministic across all eleven approved modules",
     async () => {
       assert(generated, "Initial generation must pass before determinism can be claimed");
       rebuilt = await generator.deriveTerminalCatalog(manifest, {
@@ -1967,6 +2114,9 @@ if (!coreOnly || projectionsOnly) {
       assert.deepEqual(rebuilt.modules, generated.modules);
       assert.deepEqual(rebuilt.shards, generated.shards);
       assert.deepEqual(rebuilt.observatoryWindow, generated.observatoryWindow);
+      projectionProof.secondDeterministicModuleSha256 = Object.fromEntries(
+        Object.entries(rebuilt.modules).map(([name, module]) => [name, hash(module)]),
+      );
       projectionProof.deterministicModuleSha256 = Object.fromEntries(
         Object.entries(generated.modules).map(([name, module]) => [name, hash(module)]),
       );
@@ -3704,7 +3854,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
       );
     });
     await checkAsync(
-      "async search loads only seed until explicit nonempty/workspace search",
+      "async search loads seed then compact navigation and never workspace display shards",
       async () => {
         const calls = [],
           service = search.createTerminalSearchService({
@@ -3716,8 +3866,8 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         await service.search("", ctx);
         assert.deepEqual(calls, ["seed"]);
         await service.search(observationIssue, ctx, { workspaces: ["risk"] });
-        assert.deepEqual(calls, ["seed", "risk"]);
-        assert(service.loadedEntities().some((e) => e.type === "issue"));
+        assert.deepEqual(calls, ["seed"]);
+        assert(service.catalog().navigation.some((e) => e.type === "issue"));
       },
     );
 
@@ -3825,8 +3975,8 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           release = resolve;
         });
         const service = search.createTerminalSearchService({
-            loadShard: async (name) =>
-              name === "risk" ? blocked : shards.find((s) => s.name === name),
+            loadShard: async (name) => shards.find((s) => s.name === name),
+            loadNavigation: async () => blocked,
           }),
           controller = new AbortController();
         const pending = service
@@ -3835,10 +3985,10 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
             (value) => ({ value }),
             (error) => ({ error }),
           );
-        if (cancel === "newer") await service.search("IN-MKT", ctx, { workspaces: [] });
+        if (cancel === "newer") await service.search("", ctx, { workspaces: [] });
         if (cancel === "cancel") service.cancel();
         if (cancel === "signal") controller.abort();
-        release(shards.find((s) => s.name === "risk"));
+        release(await catalog.loadSearchNavigation());
         const result = await pending;
         assert.equal(result.error?.name, "AbortError");
       }
@@ -3860,7 +4010,8 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         await assert.rejects(() => service.load(["https://provider.invalid/private"]));
       },
     );
-    check("loaded real search p95 stays within30ms across sixty varied queries", () => {
+    const navigationRecords = await catalog.loadSearchNavigation();
+    check("loaded compact search p95 stays within30ms across sixty varied queries", () => {
       const queries = [
         observationIssue,
         "IN-MKT",
@@ -3875,31 +4026,131 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         "US-MKT",
         "IIMA",
       ];
-      for (const q of queries) search.searchLoaded(q, originContext, { ...data, scope: "history" });
-      const times = [];
+      const options = {
+        entities: [],
+        bindings: {},
+        navigation: navigationRecords,
+        scope: "current",
+      };
+      for (const query of queries) search.searchLoaded(query, originContext, options);
+      const samples = [],
+        materialized = [];
       for (let i = 0; i < 60; i++) {
         const start = performance.now();
-        search.searchLoaded(queries[i % queries.length], originContext, {
-          ...data,
-          scope: "history",
-        });
-        times.push(performance.now() - start);
+        const response = search.searchLoaded(queries[i % queries.length], originContext, options);
+        samples.push(performance.now() - start);
+        materialized.push(response.materializedTargets);
+        assert(response.results.length <= 20);
       }
-      times.sort((a, b) => a - b);
-      const p95 = times[Math.ceil(times.length * 0.95) - 1];
+      const sorted = [...samples].sort((a, b) => a - b),
+        p95 = sorted[Math.ceil(sorted.length * 0.95) - 1];
       navigationProof.searchPerformance = {
         samples: 60,
+        median_ms: (sorted[29] + sorted[30]) / 2,
         p95_ms: p95,
+        max_ms: sorted.at(-1),
         limit_ms: 30,
-        entities: data.entities.length,
+        entities: navigationRecords.length,
+        materializedTargets: materialized,
         queries,
         environment: { node: process.version, platform: process.platform, arch: process.arch },
       };
-      assert(p95 <= 30, `Loadedsearch p95 ${p95}ms exceeds30ms`);
+      assert(p95 <= 30, "Loaded compact search p95 " + p95 + "ms exceeds30ms");
     });
+    await checkAsync(
+      "compact current navigation exactly matches every baseline current identity and exact choice",
+      async () => {
+        const current = shards.filter(
+          (shard) => !["history", "history-archive"].includes(shard.name),
+        );
+        const expected = search.deriveNavigationRecords({
+          entities: catalog.catalogEntities(current),
+          bindings: Object.assign({}, ...current.map((shard) => shard.bindings)),
+          routes: Object.assign({}, ...current.map((shard) => shard.routes)),
+          projectionPins: Object.assign({}, ...current.map((shard) => shard.projectionPins)),
+        });
+        assert.equal(catalog.stableTerminal(navigationRecords), catalog.stableTerminal(expected));
+        navigationProof.currentSearchProjection = {
+          records: expected.length,
+          exactSet: true,
+          digest: await catalog.terminalDigest(expected),
+          buildVerifiedNavigationMetadata: true,
+        };
+        for (const id of ["US-MKT", "IN-MKT"]) {
+          const result = search
+            .searchLoaded(id, ctx, { entities: [], bindings: {}, navigation: navigationRecords })
+            .results.find((result) => result.id === id);
+          assert(result.target);
+          assert(
+            result.capability.verificationBasis.detail.includes(
+              "BUILD-VERIFIED NAVIGATION METADATA",
+            ),
+          );
+          assert.equal(result.capability.evidenceRef, undefined);
+        }
+      },
+    );
+    await checkAsync(
+      "explicit history retains every prior searchable identity and exact retained target",
+      async () => {
+        const expected = search.deriveNavigationRecords(data, "history"),
+          service = search.createTerminalSearchService();
+        const actual = (await service.load([], true)).navigation;
+        const missing = [];
+        for (const record of expected) {
+          const found = actual.find((value) => value.key === record.key);
+          for (const choice of record.choices)
+            if (
+              !found?.choices.some(
+                (value) =>
+                  value.artifactId === choice.artifactId &&
+                  catalog.stableTerminal(value.view) === catalog.stableTerminal(choice.view),
+              )
+            )
+              missing.push({ key: record.key, artifactId: choice.artifactId, view: choice.view });
+        }
+        navigationProof.retainedSearchCoverage = {
+          expectedRecords: expected.length,
+          actualRecords: actual.length,
+          missingChoices: missing.length,
+          missing,
+        };
+        assert.equal(
+          missing.length,
+          0,
+          "Existing historical search choices must not be silently omitted; accepted history payloads stay unchanged",
+        );
+      },
+    );
+    for (const [name, change] of [
+      ["unknown field", (value) => (value.private_field = "never")],
+      ["record count", (value) => value.recordCount--],
+      ["noncanonical integer", (value) => (value.columns[0] = "00." + value.columns[0])],
+      ["hash alias", (value) => (value.hashes[0] += "=")],
+      ["unknown view", (value) => (value.views[0] = "0.0")],
+      ["manifest mismatch", (value) => (value.manifestBinding.sha256 = "a".repeat(64))],
+    ])
+      await checkAsync("compact navigation rejects " + name, async () => {
+        const raw = JSON.parse(
+          readFileSync(
+            path.join(frontend, "src/app/terminal/generated/search.generated.ts"),
+            "utf8",
+          ).match(/export default (.+) as const;/)[1],
+        );
+        change(raw);
+        const { payloadDigest: _digest, ...sealed } = raw;
+        raw.payloadDigest = await catalog.terminalDigest(sealed);
+        await assert.rejects(() =>
+          catalog.validateNavigationProjection(raw, shards[0].manifestBinding),
+        );
+      });
     if (failures.length === failureStart) completedAreas.add("search");
     failureStart = failures.length;
-    const commandOptions = { ...data, legacyParser: legacy.parseCommand };
+    const commandOptions = {
+      ...data,
+      search: search.searchLoaded,
+      legacyParser: legacy.parseCommand,
+    };
     for (const country of ["US", "INDIA"])
       for (const suffix of ["", " GO", " <GO>"])
         check(`country Regime grammar ${country}${suffix}`, () => {
@@ -4385,6 +4636,7 @@ const report = {
   freeze: freezeProof,
   projections: projectionProof,
   navigation: navigationProof,
+  searchAmendment: searchAmendmentProof,
 };
 const proofDir = path.resolve(root, process.env.TERMINAL_PROOF_DIR ?? ".tmp/phase75/context");
 mkdirSync(proofDir, { recursive: true });

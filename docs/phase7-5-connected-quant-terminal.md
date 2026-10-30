@@ -1,6 +1,39 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
-Status: PARTIAL CAPACITY REPAIR; BLOCKED AT INTERACTION AND SEARCH GATES. No final QA, CI, deployment or review-readiness claim is made by this checkpoint. The eventual PR must remain DRAFT, OPEN, UNMERGED, with auto-merge disabled.
+Status: PARTIAL SEARCH CAPACITY REPAIR; BLOCKED AT THE COLD GLOBAL SEARCH GATE. Stage 10 remains STOPPED. PR #30 remains DRAFT, OPEN, UNMERGED, with auto-merge disabled.
+
+
+## 2026-10-30 — Navigation projection amendment checkpoint (BLOCKED)
+
+Runtime source commit: `89f6229c4438a3fd6bbdc46c9726099be83bc425`. Current main remains `32c3f827985dd5fbee0354780765e49e679cad57`; no main reconciliation was needed. The excluded local commit and original approved-plan hash remain unchanged. This is a local production-build checkpoint, with no final CI/deployment/readiness claim.
+
+The new ignored `search.generated.ts` holds **521 current navigation identities**, 43,303 decoded bytes /15,724 gzip bytes, under 131,072 /16,384. Logical digest: `54bc4f21b090e89374a5352a9aaa7503610a88cd9a0f5305ed25845033288499`. The decoded set contains every and only the prior current surface, with no scientific arrays, full ReplayEntry, licences, sources, edges, bundles or provenance bodies. All 89 exact current artifact selections pass complete-source authority checks; generation validates 315 existing full originals overall. Labels state **BUILD-VERIFIED NAVIGATION METADATA** and do not claim browser verification of original evidence.
+
+Search no longer loads workspace shards to rank current destinations. Empty palette uses navigation identities; free text loads the compact projection; grammar/context commands resolve independently; the unchanged mnemonic parser loads only for explicit legacy submission. Market search uses the seed's reference listings and US-MKT/IN-MKT identities, with global Risk/Data/audit/recording metadata excluded from that product flow. Stable ranking precedes target/capability materialization.
+
+A complete retained search audit found **958 choices** outside the accepted history payloads. The user explicitly approved a named `retainedNavigation` export in the existing history module. It holds 544 navigation records and restores all **1,079 retained identities /2,118 exact choices**, without omission. The default history payload still has16 entities /0edges /16bindings, and the archive280entities /480edges /27bindings; their exact union remains296entities /480edges /43bindings /639version choices, digest `be13c8367301999aa16f50d93166e92fb6374d334efc17b30b116ec60c6189cb`. No repartition occurred. Default history output SHA `2e54d53a53ad830e575ed80832225006ad0deec90bd81787a177f68c2453820c` and archive SHA `959d93bc0a57bacf5422e730c9117b72e09301a8d653ac81c791df4e74fe8742` remain exact. Whole history file, including the approved export: **72,695 decoded /24,938 gzip**; archive remains122,982 /28,642. Both whole-file byte caps hold. Counts for the accepted default TerminalEntity collections remain16/280; the separate approved navigation projection's544 records are reported explicitly.
+
+**Cold global search still fails the unchanged combined interaction cap.** Each asset is charged once by actual emitted JS body, default gzip, including generated metadata:
+
+| Fresh path | Decoded JS | Gzip JS | Limit | Result |
+|---|---:|---:|---:|---|
+| Empty Risk palette |64,952|23,074|32,768|PASS|
+| Empty Factors palette |64,952|23,074|32,768|PASS|
+| Risk RISK HIGH command |19,919|8,123|32,768|PASS|
+| Market identity metadata search |41,086|14,769|32,768|PASS|
+| Cold global palette plus first query, Risk/Factors |105,887|**38,508**|32,768|**FAIL +5,740**|
+
+The cold global union is `ForgeCommandPalette-PuIguHos.js`, `search-gtIZnyX9.js`, `catalog-B9zPZx1J.js`, `capabilities-C6-kVpR8.js`, `seed.generated-CBv0g-xJ.js`, `search.generated-DLJkOHrz.js`. The first query's15,434 additional gzip bytes are not free merely because the empty palette is usable. Full request/import lists, bodies' SHA/decoded/gzip counts, preloads, execution coverage and both rebuild hash maps for all11 modules are in the proof's `search_capacity_amendment` object. Final exact emitted-asset fingerprint: `271af304605111091d09823224345fec661e4d029349c4099883a79fb42c1cba`.
+
+The first full browser report exposed38,507 combined bytes but mistakenly compared its PASS flag with the incremental15,434 bytes. That report and raw measurements remain untouched as negative harness evidence. The verifier now compares PASS against its reported combined total, asserts the invariant, and a fresh network-only capture fails both current-search journeys at38,508. No further capacity optimization was attempted after identifying this failure.
+
+Scientific display payload requests in palette/current-search/Market-search/command: **zero**. Current search/archive boundary, US-MKT and IN-MKT targets, stale-result invalidation, Escape focus restoration and nine whole-original SHA checks pass. API/blocked requests, page errors and console errors are zero.
+
+The single sixty-query Chrome measurement over521 entities records **median4.05 /p955.8 /max6.3 ms**, at most20 materialized targets. Environment: HeadlessChrome156 /Windows /24 logical processors /1440x1000 /DPR1. Node's independent sixty-query stage has median4.5918 /p957.0598 /max7.9727 ms. The30 usable warm palette opens have p95122.1ms <=150; cold palettes also meet400ms after transfer. The final network capture did not repeat either latency benchmark to seek green. Its search JS body SHA is identical to the measured performance module. These are stage observations, not final-head/full-browser-matrix acceptance.
+
+**Validation:** 560 static navigation/contracts/projection checks pass;214 final targeted contracts/freeze checks pass, including all13 legacy function codes and exact historical command anchors with lowercase/whitespace. The initial pinned-whitespace failure is retained. Typecheck and production build pass; lint has0errors /5Fast Refresh warnings. Two complete rebuilds are byte-identical across all11 modules. The930-file archive verification again preserves221 originals /126 routes /6withdrawals /27Risk artifacts and inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`.
+
+**STOP:** initial24KiB core /64KiB Risk/Factors attribution remains INDETERMINATE and was not reopened, because the interaction architecture has not passed. Stage10 stays stopped for another explicit review. Caps, history, entities, source validation and protected frontend hashes are preserved. No new tracked runtime file, additional search shard, backend/publication/environment/protection change, or scientific operation occurred. All six claims remain false; D6 deferred/disabled; Risk and regime schedules disabled. Every previous capacity/search/timing failure remains in this report/proof with its original revision qualification.
 
 ## Product integration and scientific boundary
 

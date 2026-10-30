@@ -466,7 +466,7 @@ function collectClientBudgetGraph({
   const uniq = (list) => [...new Set(list)];
   const join = (name) => directory.replace(/[\\/]$/, "") + "/" + name;
   const generated =
-    /^(?:seed|market|regimes|risk|factors|data|recordings|history|history-archive|observatory-window)\.generated-/;
+    /^(?:seed|market|regimes|risk|factors|data|recordings|history|history-archive|observatory-window|search)\.generated-/;
   const owned =
     /^(?:TerminalShell|ContextBar|CommandLine|ForgeCommandPalette|mnemonics|context|compatibility|links|capabilities|catalog|search|commands|reader|changes|preferences|exports|CapabilityAction|EvidenceLink)-/;
   const common =
@@ -476,7 +476,7 @@ function collectClientBudgetGraph({
   const scientificPayload = (code) =>
     code.includes("terminal-display/1") &&
     code.includes("selectedFields") &&
-    /market-week-window|regime-timeline-window/.test(code);
+    /market-week-window|regime-timeline-window|observatory-trace-window/.test(code);
   const classify = (name, code) => {
     if (generated.test(name)) return "generated_metadata_JS";
     if (owned.test(name)) return "terminal_code";
@@ -560,7 +560,7 @@ function collectClientBudgetGraph({
   };
   const roots = (re) => [...assets.keys()].filter((name) => re.test(name));
   const forbiddenInitial = roots(
-    /^(?:ForgeCommandPalette|search|commands|history-archive\.generated)-/,
+    /^(?:ForgeCommandPalette|search|commands|search\.generated|history-archive\.generated|history\.generated)-/,
   );
   const forbiddenCurrentSearch = roots(/^history-archive\.generated-/);
   const phases = [];
@@ -626,6 +626,15 @@ function collectClientBudgetGraph({
           name: "no_workspace_scientific_display_payload_in_interaction",
           pass: scientificDisplayPayloads.length === 0,
         });
+      if (["palette", "current-search", "metadata-search", "command"].includes(phase.name))
+        checks.push({
+          name: "no_workspace_evidence_shard_requested_merely_for_search",
+          pass: !requests.some((name) =>
+            /^(?:market|regimes|risk|factors|data|recordings|observatory-window)\.generated-/.test(
+              name,
+            ),
+          ),
+        });
       if (phase.name === "initial") {
         checks.push({
           name: "no_initial_interaction_or_archive_request",
@@ -683,12 +692,18 @@ function collectClientBudgetGraph({
                   pass: metrics(attributable).gzipDefaultBytes <= 65536,
                 },
               }
-            : ["palette", "metadata-search", "command"].includes(phase.name)
+            : ["palette", "current-search", "metadata-search", "command"].includes(phase.name)
               ? {
                   firstInvocationCodeAndMetadata: {
-                    gzip: metrics(firstRequired).gzipDefaultBytes,
+                    gzip:
+                      phase.name === "current-search"
+                        ? cumulativeInteractionRequiredJS.gzipDefaultBytes
+                        : metrics(firstRequired).gzipDefaultBytes,
                     limit: 32768,
-                    pass: metrics(firstRequired).gzipDefaultBytes <= 32768,
+                    pass:
+                      (phase.name === "current-search"
+                        ? cumulativeInteractionRequiredJS.gzipDefaultBytes
+                        : metrics(firstRequired).gzipDefaultBytes) <= 32768,
                   },
                 }
               : {},
@@ -754,12 +769,16 @@ function collectClientBudgetGraph({
 
 async function capacityStage() {
   const coldOnly = process.argv.includes("--cold-palette-only");
+  const networkOnly = process.argv.includes("--capacity-network-only");
   report.mode = coldOnly ? "CAPACITY_COLD_PALETTE_STAGE" : "CAPACITY_REPAIR_STAGE";
   report.capacity = {
     schema_version: "phase75-capacity-browser/1",
     accountingStatus: "MEASURED_NETWORK_PENDING_COMPLETE_ASSET_ATTRIBUTION",
     paletteReadinessSelfTest: paletteReadinessSelfTest(),
-    warmMeasurementStatus: coldOnly ? "NOT_RUN_COLD_ONLY" : "ACTUAL_CHECKED_OPTIONS_READINESS",
+    warmMeasurementStatus:
+      coldOnly || networkOnly
+        ? "NOT_RUN_RETAIN_PREVIOUS_USABLE_READINESS_MEASUREMENT"
+        : "ACTUAL_CHECKED_OPTIONS_READINESS",
     journeys: [],
     warmPalette: { sampleCount: 0, samples: [], limitMs: 150 },
     limits: {
@@ -774,7 +793,8 @@ async function capacityStage() {
   };
   const browser = await chromium.launch({ headless: true, channel: "chrome" });
   const archive = /\/history-archive\.generated[-.]/;
-  const optional = /\/(?:ForgeCommandPalette|search|commands|catalog|reader)-[^/]+\.js(?:$|\?)/;
+  const optional =
+    /\/(?:ForgeCommandPalette|search|commands|catalog|reader|search\.generated|history\.generated)-[^/]+\.js(?:$|\?)/;
   const jsAsset = (value) => /\.m?js(?:$|\?)/.test(value);
   const p95 = (values) => [...values].sort((a, b) => a - b)[Math.ceil(values.length * 0.95) - 1];
   const percentile = (phase) => {
@@ -960,6 +980,91 @@ async function capacityStage() {
           !current.requests.some((entry) => archive.test(entry.url)),
           "Current-only metadata search must not load history archive",
         );
+        assert(
+          ![...palette.requests, ...current.requests].some((entry) =>
+            /\/(?:mnemonics|factor-series|commands)-/.test(entry.url),
+          ),
+          "Ordinary palette and metadata query must not import legacy parser or command resolver",
+        );
+        assert.equal(await dialog.getByRole("combobox").inputValue(), "IN-MKT");
+        await fixture.page.waitForFunction(() =>
+          [...document.querySelectorAll('#forge-command-results [role="option"]')].some((element) =>
+            element.textContent.includes("IN-MKT"),
+          ),
+        );
+        if (workspace === "risk" && !networkOnly) {
+          const searchUrl =
+            current.responses.find((entry) => /\/search-[^/]+\.js(?:$|\?)/.test(entry.url))?.url ??
+            palette.responses.find((entry) => /\/search-[^/]+\.js(?:$|\?)/.test(entry.url))?.url;
+          assert(searchUrl, "Use the exact emitted module already requested by the UI");
+          const querySet = [
+            Object.values(manifest.artifacts).length
+              ? JSON.parse(
+                  readFileSync(
+                    path.join(
+                      frontend,
+                      "public",
+                      manifest.artifacts[manifest.routes["/risk-manager/state"]].url,
+                    ),
+                  ),
+                ).payload.issues.find(
+                  (issue) => issue.country === "INDIA" && issue.severity === "HIGH",
+                ).issue_id
+              : "issue",
+            "IN-MKT",
+            "india:mom",
+            "metadata",
+            "tain",
+            "regim",
+            "factor",
+            "capture",
+            "source",
+            "recorded",
+            "US-MKT",
+            "IIMA",
+          ];
+          report.capacity.searchPerformance = await fixture.page.evaluate(
+            async ({ url, queries }) => {
+              const module = await import(url),
+                data = module.terminalSearch.catalog(),
+                context = { version: 1, view: { workspace: "risk" } };
+              const options = { ...data, scope: "current", limit: 20 };
+              for (const query of queries) module.searchLoaded(query, context, options);
+              const samples = [],
+                materializedTargets = [];
+              for (let i = 0; i < 60; i++) {
+                const start = performance.now(),
+                  response = module.searchLoaded(queries[i % queries.length], context, options);
+                samples.push(performance.now() - start);
+                materializedTargets.push(response.materializedTargets);
+              }
+              const ordered = [...samples].sort((a, b) => a - b);
+              return {
+                samples: 60,
+                queries,
+                medianMs: (ordered[29] + ordered[30]) / 2,
+                p95Ms: ordered[Math.ceil(ordered.length * 0.95) - 1],
+                maxMs: ordered.at(-1),
+                entityCount: data.navigation.length,
+                materializedTargets,
+                rawSamplesMs: samples,
+                environment: {
+                  userAgent: navigator.userAgent,
+                  hardwareConcurrency: navigator.hardwareConcurrency,
+                  devicePixelRatio,
+                  viewport: { width: innerWidth, height: innerHeight },
+                },
+                method:
+                  "Single deterministic60-query run after one12-query warmup; rank before materialization; no repeated profiling to seek green",
+              };
+            },
+            { url: searchUrl, queries: querySet },
+          );
+          assert(
+            report.capacity.searchPerformance.p95Ms <= 30,
+            "Loaded browser search p95 exceeds30ms",
+          );
+        }
         const retained = await phase(fixture, journey, "history", async () => {
           await dialog
             .getByRole("checkbox", { name: "Include retained history", exact: true })
@@ -979,7 +1084,7 @@ async function capacityStage() {
           "History metadata search must not fetch scientific originals",
         );
         await closePalette(fixture.page, restore);
-        if (workspace === "risk") {
+        if (workspace === "risk" && !networkOnly) {
           for (let i = 0; i < 30; i++) {
             await restore.focus();
             const warm = await phase(fixture, journey, "warm-palette", () =>
@@ -1098,6 +1203,61 @@ async function capacityStage() {
           !metadata.responses.some((entry) => originals.has(new URL(entry.url).pathname)),
           "Metadata search may not fetch workspace scientific originals",
         );
+        assert(
+          !metadata.requests.some((entry) =>
+            /\/(?:search|risk|factors|data|regimes|recordings)\.generated-/.test(entry.url),
+          ),
+          "Market identity search must use only its admitted seed identities",
+        );
+        const marketInput = marketFixture.page.getByRole("combobox", {
+          name: "Ticker or company",
+          exact: true,
+        });
+        const identityReady = async (id) => {
+          await marketFixture.page.waitForFunction(
+            (id) =>
+              [...document.querySelectorAll('.mk-search-popup [role="option"]')].some(
+                (element) => element.querySelector("b")?.textContent === id,
+              ),
+            id,
+          );
+        };
+        await identityReady("IN-MKT");
+        await marketInput.fill("US-MKT");
+        assert.equal(
+          await marketFixture.page
+            .locator('.mk-search-popup [role="option"] b')
+            .filter({ hasText: "IN-MKT" })
+            .count(),
+          0,
+          "Changing text clears stale Market results immediately",
+        );
+        await identityReady("US-MKT");
+        await marketInput.fill("IN-MKT");
+        await marketInput.fill("IN-MKT ");
+        await marketInput.fill("IN-MKT");
+        await identityReady("IN-MKT");
+        assert.equal(
+          await marketFixture.page
+            .locator('.mk-search-popup [role="option"] b')
+            .filter({ hasText: "US-MKT" })
+            .count(),
+          0,
+        );
+        const marketTargets = await marketFixture.page
+          .locator('.mk-search-popup [role="option"] a')
+          .evaluateAll((elements) => elements.map((element) => element.getAttribute("href")));
+        assert(
+          marketTargets.length > 0 &&
+            marketTargets.every((href) => new URL(href, base).pathname === "/markets"),
+        );
+        report.capacity.marketIdentityChecks = {
+          US_MKT: true,
+          IN_MKT: true,
+          staleResultsCleared: true,
+          rapidReturnToPriorQuery: true,
+          targets: marketTargets,
+        };
         clean(marketFixture);
         report.cases.push({
           name: marketJourney.name,
@@ -1139,24 +1299,24 @@ async function capacityStage() {
         name: "capacity asset graph/network equivalence",
         error: "Observed asset body/preload/import/scope assertions failed; retain exact graph.",
       });
-    for (const measured of graph.phases) {
-      if (measured.phase === "initial") {
-        if (!["risk", "factors"].includes(measured.workspace))
-          delete measured.numericGates.initialWorkspace;
+    for (const measured of graph.phases)
+      if (measured.phase === "initial")
         for (const gate of Object.values(measured.numericGates)) {
-          gate.conservativeUpperBound = true;
-          gate.unclassifiedAssets = measured.unclassified;
-          gate.status = gate.pass
-            ? "PASS_CONSERVATIVE_BOUND"
-            : measured.unclassified.length
-              ? "INDETERMINATE_MIXED_OR_UNCLASSIFIED_ASSETS"
-              : "FAIL";
+          gate.conservativeCandidate = gate.gzip;
+          gate.pass = null;
+          gate.status = "INDETERMINATE_SEPARATE_MIXED_ENTRY_ATTRIBUTION_REQUIRED";
         }
-      }
-    }
+    for (const measured of graph.phases)
+      for (const gate of Object.values(measured.numericGates))
+        if (typeof gate.pass === "boolean")
+          assert.equal(
+            gate.pass,
+            gate.gzip <= gate.limit,
+            "Budget pass must match the reported combined required-byte total",
+          );
     for (const measured of graph.phases)
       for (const [name, gate] of Object.entries(measured.numericGates))
-        if (!gate.pass)
+        if (gate.pass === false)
           report.failures.push({
             name: measured.journey + "/" + measured.phase + "/" + name,
             error:
