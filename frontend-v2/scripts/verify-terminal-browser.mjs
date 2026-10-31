@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+  existsSync,
+  copyFileSync,
+  unlinkSync,
+} from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
@@ -12,6 +20,11 @@ const option = (key) => {
   const i = process.argv.indexOf(key);
   return i < 0 ? undefined : process.argv[i + 1];
 };
+// CI uses the same build and initial-journey verifier, with no added Vite plugin.
+if (process.argv.includes("--verify-initial-packaging")) {
+  await verifyInitialPackagingBuild();
+  process.exit(0);
+}
 assert(option("--url"), "Pass --url for the built preview or source-verified deployment");
 const input = new URL(option("--url"));
 assert(
@@ -131,7 +144,7 @@ function allowed(request) {
     /^\/(?:$|markets(?:\/[A-Za-z0-9^][A-Za-z0-9.^=-]{0,24})?|dynamics|factors|risk|data|research|observatory|globe|forge|runs(?:\/[a-f0-9]{64})?|bench(?:\/[A-Za-z0-9:_.-]{1,128})?|worlds|artifacts|reality\/[A-Za-z0-9:_.-]{1,180}|execution|login)\/?$/.test(
       p,
     ) ||
-    /^\/(?:assets|fonts)\/[a-zA-Z0-9_./-]+$/.test(p) ||
+    /^\/(?:assets|fonts)\/[a-zA-Z0-9_./~-]+$/.test(p) ||
     /^\/artifacts\/replay\/[a-zA-Z0-9_.-]+\.json$/.test(p) ||
     /^\/(?:replay-manifest|risk-read-manifest|factor-read-manifest)\.json$/.test(p) ||
     /^\/(?:favicon\.(?:ico|svg|png)|robots\.txt)$/.test(p)
@@ -152,6 +165,8 @@ function urlFor(workspace, route) {
 async function pageFor(browser, viewport) {
   const context = await browser.newContext({ viewport, reducedMotion: "reduce" }),
     page = await context.newPage();
+  page.setDefaultTimeout(20000);
+  page.setDefaultNavigationTimeout(20000);
   const requests = [],
     responses = [],
     pending = [],
@@ -773,6 +788,770 @@ function collectClientBudgetGraph({
         : "FAIL"
       : "NOT_RUN",
   };
+}
+
+const INITIAL_LOCK_SHA = "547adfe24ac710f657915a3af141ff94d9adc2cb19f3b4c69802ccf4a8aae5f4";
+// Whole bodies only. Rendered-module provenance covers compiler glue that a
+// source map leaves unmapped; virtual/unresolved modules are charged in full.
+function classifyInitialBodies(directory, moduleProof, mapDirectory) {
+  const lockBytes = readFileSync(path.join(frontend, "package-lock.json"));
+  const lock = JSON.parse(lockBytes);
+  assert.equal(
+    sha(lockBytes.toString().replaceAll("\r\n", "\n")),
+    INITIAL_LOCK_SHA,
+    "Approved package-lock must remain unchanged",
+  );
+  const packageProof = (file) => {
+    let folder = path.dirname(path.resolve(file));
+    while (folder.startsWith(path.resolve(frontend))) {
+      const candidate = path.join(folder, "package.json");
+      const key = path.relative(frontend, folder).replaceAll("\\", "/");
+      if (existsSync(candidate) && lock.packages[key]?.version) break;
+      folder = path.dirname(folder);
+    }
+    const key = path.relative(frontend, folder).replaceAll("\\", "/");
+    const packageJSON = existsSync(path.join(folder, "package.json"))
+      ? JSON.parse(readFileSync(path.join(folder, "package.json")))
+      : null;
+    assert(
+      key.startsWith("node_modules/") &&
+        packageJSON &&
+        lock.packages[key]?.version === packageJSON.version,
+      "Installed vendor package identity must match unchanged lock: " + file,
+    );
+    return { key, name: packageJSON.name, version: packageJSON.version };
+  };
+  return moduleProof.chunks.map((chunk) => {
+    const filename = path.basename(chunk.fileName),
+      bytes = readFileSync(path.join(directory, filename));
+    assert.equal(sha(bytes), chunk.sha256, "Module proof must describe actual emitted body");
+    const moduleList = Object.entries(chunk.modules)
+      .filter(([, m]) => m.renderedLength > 0)
+      .map(([id, m]) => ({
+        id,
+        renderedLength: m.renderedLength,
+        codeSha256: m.code ? sha(m.code) : null,
+      }));
+    const modules = moduleList.map((module) => {
+      const physical = module.id.replace(/\?.*$/, "");
+      const vendor =
+        physical.replaceAll("\\", "/").includes("/node_modules/") && existsSync(physical);
+      return {
+        ...module,
+        owner: vendor ? "VENDOR" : "PROJECT_OR_CONSERVATIVELY_CHARGED",
+        ...(vendor ? { package: packageProof(physical) } : {}),
+      };
+    });
+    const mapPath = path.join(mapDirectory, filename + ".map");
+    if (!existsSync(mapPath))
+      return {
+        filename,
+        sha256: sha(bytes),
+        decodedBytes: bytes.length,
+        gzipBytes: gzipSync(bytes).length,
+        ownership:
+          modules.length && modules.every((m) => m.owner === "PROJECT_OR_CONSERVATIVELY_CHARGED")
+            ? "PROJECT_OWNED"
+            : "UNKNOWN",
+        reason:
+          "No map is emitted for this virtual/compiler helper. Complete body charged as project when rendered module provenance is exclusively project/virtual; vendor exclusion is forbidden without the independent map.",
+        modules,
+      };
+    const map = JSON.parse(readFileSync(mapPath));
+    assert.equal(map.sources.length, map.sourcesContent.length);
+    const sources = map.sources.map((source, i) => {
+      const physical = path.resolve(directory, source.replace(/\?.*$/, ""));
+      const vendor = physical.replaceAll("\\", "/").includes("/node_modules/");
+      const content = map.sourcesContent[i];
+      const exact =
+        existsSync(physical) &&
+        typeof content === "string" &&
+        readFileSync(physical, "utf8").replaceAll("\r\n", "\n") ===
+          content.replaceAll("\r\n", "\n");
+      return {
+        source,
+        contentSha256: typeof content === "string" ? sha(content) : null,
+        owner: vendor && exact ? "VENDOR" : "PROJECT_OR_CONSERVATIVELY_CHARGED",
+        diskContentMatch: exact,
+        ...(vendor && exact ? { package: packageProof(physical) } : {}),
+      };
+    });
+    const owners = [...modules, ...sources].map((m) => m.owner);
+    const vendor = owners.includes("VENDOR"),
+      project = owners.includes("PROJECT_OR_CONSERVATIVELY_CHARGED") || !owners.length;
+    const ownership = vendor ? (project ? "MIXED" : "VENDOR_ONLY") : "PROJECT_OWNED";
+    return {
+      filename,
+      sha256: sha(bytes),
+      decodedBytes: bytes.length,
+      gzipBytes: gzipSync(bytes).length,
+      ownership,
+      modules,
+      sources,
+      imports: chunk.imports,
+      dynamicImports: chunk.dynamicImports,
+      mapSha256: sha(readFileSync(mapPath)),
+      reason:
+        ownership === "VENDOR_ONLY"
+          ? "Every rendered module and every mapped source is installed lock-verified third-party code; exact map source contents verified. Full unmodified emitter module provenance independently covers unmapped compiler glue. No project source or project/unknown virtual module. No gzip allocation or filename exemption."
+          : ownership === "MIXED"
+            ? "Vendor plus project/virtual/unresolved source in the same emitted body. Attribution rejected."
+            : "Complete body conservatively charged, including all virtual, bootstrap, unresolved and unmapped code.",
+    };
+  });
+}
+function terminalStaticClosure() {
+  const visited = new Set();
+  const visit = (file) => {
+    file = path.resolve(file);
+    if (visited.has(file) || !existsSync(file)) return;
+    visited.add(file);
+    const source = ts.createSourceFile(
+      file,
+      readFileSync(file, "utf8"),
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    for (const node of source.statements) {
+      if (!ts.isImportDeclaration(node) && !ts.isExportDeclaration(node)) continue;
+      if (node.isTypeOnly || node.importClause?.isTypeOnly) continue;
+      const bindings = node.importClause?.namedBindings;
+      if (
+        bindings &&
+        ts.isNamedImports(bindings) &&
+        !node.importClause.name &&
+        bindings.elements.every((e) => e.isTypeOnly)
+      )
+        continue;
+      const name = node.moduleSpecifier?.text;
+      if (typeof name !== "string") continue;
+      const base = name.startsWith("@/")
+        ? path.join(frontend, "src", name.slice(2))
+        : name.startsWith(".")
+          ? path.resolve(path.dirname(file), name)
+          : null;
+      if (!base) continue;
+      const resolved = [
+        base,
+        base + ".ts",
+        base + ".tsx",
+        path.join(base, "index.ts"),
+        path.join(base, "index.tsx"),
+      ].find((p) => existsSync(p) && /\.[cm]?[jt]sx?$/.test(p));
+      if (resolved) visit(resolved);
+    }
+  };
+  visit(path.join(frontend, "src/app/terminal/TerminalShell.tsx"));
+  visit(path.join(frontend, "src/app/terminal/context.ts"));
+  return [...visited].map((f) => f.replaceAll("\\", "/")).sort();
+}
+function exactInitialGate(journeys, assets, baseline) {
+  const bySHA = new Map(assets.map((a) => [a.sha256, a]));
+  const totals = journeys.map((journey) => {
+    const bodies = [...new Set(journey.bodies.map((b) => b.sha256))].map((digest) => {
+      const body = bySHA.get(digest);
+      assert(body, "Initial browser body absent from ownership build");
+      return body;
+    });
+    const before = baseline.initialOwnership.journeys.find(
+      (j) => j.workspace === journey.workspace,
+    );
+    assert(before);
+    const project = bodies.filter((b) => b.ownership === "PROJECT_OWNED"),
+      vendor = bodies.filter((b) => b.ownership === "VENDOR_ONLY");
+    const invalid = bodies.filter((b) => ["MIXED", "UNKNOWN"].includes(b.ownership));
+    const forbidden = bodies.flatMap((b) =>
+      b.modules
+        .filter((m) =>
+          /(?:\/node_modules\/(?:three|@react-three|three-stdlib|world-atlas|satellite\.js)\/|\/components\/globe\/|\/app\/command\/(?:ForgeCommandPalette|mnemonics)|\/app\/terminal\/(?:search|commands|generated\/(?:search|history)|reader)|\/risk-manager\/LocalRiskLab)/.test(
+            m.id.replaceAll("\\", "/"),
+          ),
+        )
+        .map((m) => ({ body: b.filename, module: m.id })),
+    );
+    const gzip = bodies.reduce((n, b) => n + b.gzipBytes, 0),
+      projectGzip = project.reduce((n, b) => n + b.gzipBytes, 0),
+      vendorGzip = vendor.reduce((n, b) => n + b.gzipBytes, 0);
+    return {
+      workspace: journey.workspace,
+      bodies,
+      projectGzip,
+      vendorGzip,
+      totalGzip: gzip,
+      requestCount: journey.requestCount,
+      invalid,
+      forbidden,
+      regression: {
+        baselineGzip: before.gzip,
+        baselineRequests: before.requestCount,
+        deltaGzip: gzip - before.gzip,
+        allowedGzip: Math.min(before.gzip * 0.05, 8192),
+        deltaRequests: journey.requestCount - before.requestCount,
+      },
+      behaviorEquivalent: journey.behaviorEquivalent === true,
+      projectCap: {
+        gzip: invalid.length ? null : projectGzip,
+        knownProjectGzip: projectGzip,
+        status: invalid.length ? "INDETERMINATE" : projectGzip <= 65536 ? "PASS" : "FAIL",
+        limit: 65536,
+        pass: invalid.length ? null : projectGzip <= 65536,
+      },
+    };
+  });
+  assert.deepEqual(totals.map((t) => t.workspace).sort(), ["factors", "risk"]);
+  const r = totals.find((t) => t.workspace === "risk"),
+    f = totals.find((t) => t.workspace === "factors");
+  const shared = r.bodies.filter(
+    (a) =>
+      a.ownership === "PROJECT_OWNED" &&
+      f.bodies.some((b) => b.sha256 === a.sha256 && b.ownership === "PROJECT_OWNED"),
+  );
+  const closure = terminalStaticClosure();
+  const terminalSpecific = [
+    ...new Map(
+      [...r.bodies, ...f.bodies]
+        .filter(
+          (b) =>
+            b.ownership === "PROJECT_OWNED" &&
+            b.modules.some((m) =>
+              closure.includes(m.id.replace(/\?.*$/, "").replaceAll("\\", "/")),
+            ),
+        )
+        .map((b) => [b.sha256, b]),
+    ).values(),
+  ];
+  const core = [...new Map([...shared, ...terminalSpecific].map((b) => [b.sha256, b])).values()];
+  const terminalGzip = core.reduce((n, b) => n + b.gzipBytes, 0);
+  const unresolved = totals.some((t) => t.invalid.length > 0);
+  const failures = [];
+  for (const t of totals) {
+    if (t.invalid.length) failures.push(t.workspace + ": mixed/unknown initial ownership");
+    if (t.projectCap.pass === false) failures.push(t.workspace + ": project initial exceeds65536");
+    if (t.forbidden.length) failures.push(t.workspace + ": eager optional dependency");
+    if (t.regression.deltaGzip > t.regression.allowedGzip)
+      failures.push(t.workspace + ": total gzip regression");
+    if (t.regression.deltaRequests > 4) failures.push(t.workspace + ": request-count regression");
+    if (!t.behaviorEquivalent) failures.push(t.workspace + ": behavior/evidence not equivalent");
+  }
+  if (!unresolved && terminalGzip > 24576) failures.push("terminal core exceeds24576");
+  return {
+    status: failures.length ? "FAIL" : "PASS",
+    method:
+      "Actual emitted whole-body SHA unions; default deterministic gzip. Conservative shared initial project set plus complete always-on terminal closure bodies. No proportional, fragment or filename accounting.",
+    routes: totals,
+    terminal: {
+      gzip: unresolved ? null : terminalGzip,
+      knownProjectGzip: terminalGzip,
+      status: unresolved ? "INDETERMINATE" : terminalGzip <= 24576 ? "PASS" : "FAIL",
+      limit: 24576,
+      pass: unresolved ? null : terminalGzip <= 24576,
+      shared: shared.map((b) => b.filename),
+      terminalSpecific: terminalSpecific.map((b) => b.filename),
+      bodies: core.map((b) => ({ filename: b.filename, sha256: b.sha256, gzipBytes: b.gzipBytes })),
+      staticModuleClosure: closure,
+    },
+    failures,
+  };
+}
+function initialGateSelfTest() {
+  const module = (id) => ({ id: path.join(frontend, id).replaceAll("\\", "/") });
+  const fixture = () => {
+    const assets = [
+      {
+        filename: "core.js",
+        sha256: "core",
+        gzipBytes: 24576,
+        ownership: "PROJECT_OWNED",
+        modules: [module("src/app/terminal/TerminalShell.tsx")],
+      },
+      {
+        filename: "risk.js",
+        sha256: "risk",
+        gzipBytes: 40960,
+        ownership: "PROJECT_OWNED",
+        modules: [module("src/risk-manager/RiskWorkspace.tsx")],
+      },
+      {
+        filename: "factors.js",
+        sha256: "factors",
+        gzipBytes: 40960,
+        ownership: "PROJECT_OWNED",
+        modules: [module("src/factors/FactorsWorkspace.tsx")],
+      },
+      {
+        filename: "arbitrary-name.js",
+        sha256: "vendor",
+        gzipBytes: 20000,
+        ownership: "VENDOR_ONLY",
+        modules: [module("node_modules/react/index.js")],
+      },
+    ];
+    const journeys = ["risk", "factors"].map((workspace) => ({
+      workspace,
+      bodies: ["core", workspace, "vendor"].map((sha256) => ({ sha256 })),
+      requestCount: 3,
+      behaviorEquivalent: true,
+    }));
+    const baseline = {
+      initialOwnership: {
+        journeys: ["risk", "factors"].map((workspace) => ({
+          workspace,
+          gzip: 85536,
+          requestCount: 3,
+        })),
+      },
+    };
+    return { assets, journeys, baseline };
+  };
+  const run = (change) => {
+    const f = fixture();
+    change?.(f);
+    return exactInitialGate(f.journeys, f.assets, f.baseline);
+  };
+  const checks = [];
+  const test = (name, action) => {
+    action();
+    checks.push({ name, pass: true });
+  };
+  test("exact whole-body boundaries include core and pass without filename exemptions", () =>
+    assert.equal(run().status, "PASS"));
+  for (const [index, name] of [
+    [0, "terminal"],
+    [1, "risk"],
+    [2, "factors"],
+  ])
+    test(name + " one-byte excess rejected", () =>
+      assert.equal(run((f) => f.assets[index].gzipBytes++).status, "FAIL"),
+    );
+  for (const ownership of ["MIXED", "UNKNOWN"])
+    test(ownership + " rejected", () =>
+      assert.equal(run((f) => (f.assets[3].ownership = ownership)).status, "FAIL"),
+    );
+  test("request increase5 rejected", () =>
+    assert.equal(run((f) => (f.journeys[0].requestCount += 5)).status, "FAIL"));
+  test("total regression beyond stricter bound rejected", () =>
+    assert.equal(run((f) => (f.assets[3].gzipBytes += 8193)).status, "FAIL"));
+  test("eager visualization caught by module provenance regardless of chunk name", () =>
+    assert.equal(
+      run((f) => (f.assets[3].modules = [module("node_modules/three/build/three.module.js")]))
+        .status,
+      "FAIL",
+    ));
+  test("behavior mismatch rejected", () =>
+    assert.equal(run((f) => (f.journeys[1].behaviorEquivalent = false)).status, "FAIL"));
+  test("duplicated always-on terminal code charged in both route-specific bodies", () => {
+    const f = fixture();
+    f.assets[1].modules = [module("src/app/terminal/context.ts")];
+    f.assets[2].modules = [module("src/app/terminal/context.ts")];
+    const result = exactInitialGate(f.journeys, f.assets, f.baseline);
+    assert.equal(result.terminal.gzip, 106496);
+    assert.equal(result.terminal.bodies.length, 3);
+    assert.equal(result.status, "FAIL");
+  });
+  return checks;
+}
+
+async function verifyInitialPackagingBuild() {
+  const root = fileURLToPath(new URL("../../", import.meta.url)),
+    front = path.join(root, "frontend-v2"),
+    out = path.join(front, ".vercel/output/static/assets"),
+    proof = path.join(root, process.env.TERMINAL_BROWSER_PROOF_DIR ?? ".tmp/phase75/initial-ci");
+  mkdirSync(proof, { recursive: true });
+  const maps = path.join(proof, "hidden-maps");
+  mkdirSync(maps, { recursive: true });
+  const { createBuilder, version } = await import("vite");
+  const capture = async (hidden) => {
+    const builder = await createBuilder({ build: hidden ? { sourcemap: "hidden" } : {} }, false),
+      original = builder.build.bind(builder),
+      chunks = [];
+    builder.build = async (environment) => {
+      const result = await original(environment);
+      if (environment.name === "client")
+        for (const value of Array.isArray(result) ? result : [result])
+          for (const c of value.output ?? [])
+            if (c.type === "chunk")
+              chunks.push({
+                name: c.name,
+                fileName: c.fileName,
+                sha256: createHash("sha256").update(c.code).digest("hex"),
+                modules: c.modules,
+                moduleIds: c.moduleIds,
+                imports: c.imports,
+                dynamicImports: c.dynamicImports,
+              });
+      return result;
+    };
+    await builder.buildApp();
+    return {
+      viteVersion: version,
+      moduleCapture:
+        "Unmodified ViteBuilder.build return value; no added plugin or rendering hook.",
+      chunks,
+    };
+  };
+  const previous = process.cwd();
+  let hidden, normal;
+  try {
+    process.chdir(front);
+    hidden = await capture(true);
+    for (const name of readdirSync(out).filter((n) => n.endsWith(".map")))
+      copyFileSync(path.join(out, name), path.join(maps, name));
+  } finally {
+    // Normal output is restored even when ownership analysis fails; maps stay private QA.
+    process.chdir(front);
+    normal = await capture(false);
+    process.chdir(previous);
+  }
+  const signature = (proof) =>
+    proof.chunks.map(({ modules, ...rest }) => ({
+      ...rest,
+      modules: Object.entries(modules).map(([id, m]) => ({
+        id,
+        renderedLength: m.renderedLength,
+        renderedExports: m.renderedExports,
+      })),
+    }));
+  assert(
+    JSON.stringify(signature(hidden)) === JSON.stringify(signature(normal)),
+    "Two complete builds must preserve emitted body digests, module ownership, families and dependency graph",
+  );
+  assert(
+    !readdirSync(out).some((n) => n.endsWith(".map")),
+    "Normal output must not publish source maps",
+  );
+  writeFileSync(path.join(proof, "normal-modules.json"), JSON.stringify(normal));
+  const child = spawn(process.execPath, [path.join(front, "scripts/preview-built.mjs")], {
+    cwd: front,
+    stdio: ["ignore", "pipe", "inherit"],
+    windowsHide: true,
+  });
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(Error("Preview readiness timeout")), 20000);
+      child.once("exit", () => {
+        clearTimeout(timeout);
+        reject(Error("Preview exited"));
+      });
+      child.stdout.on("data", (chunk) => {
+        if (String(chunk).includes("Production build:")) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+    });
+    const args = [
+      fileURLToPath(import.meta.url),
+      "--url",
+      "http://127.0.0.1:4174",
+      "--initial-only",
+      "--initial-baseline",
+      "docs/qa/phase7-5-connected-quant-terminal-proof.json",
+      "--ownership-dir",
+      proof,
+    ];
+    const code = await new Promise((resolve, reject) => {
+      const run = spawn(process.execPath, args, {
+        cwd: root,
+        stdio: "inherit",
+        windowsHide: true,
+        env: { ...process.env, TERMINAL_BROWSER_PROOF_DIR: proof },
+      });
+      run.once("error", reject);
+      run.once("exit", resolve);
+    });
+    assert.equal(code, 0, "Exact initial packaging gate failed");
+  } finally {
+    child.kill();
+  }
+}
+
+// Fresh, no-interaction production journeys for the physical ownership amendment.
+// This is part of the existing verifier; it never opens palette/search/history.
+async function initialOwnershipStage() {
+  report.initialGateSelfTests = initialGateSelfTest();
+  report.mode = "INITIAL_OWNERSHIP_PRODUCTION_STAGE";
+  report.initialOwnership = { journeys: [], baseline: option("--initial-baseline") ?? null };
+  const browser = await chromium.launch({ headless: true, channel: "chrome" });
+  try {
+    for (const [workspace, route] of [
+      ["risk", "/risk"],
+      ["factors", "/factors"],
+    ]) {
+      const fixture = await pageFor(browser, { width: 1440, height: 1000 });
+      try {
+        await fixture.page.coverage.startJSCoverage({ resetOnNavigation: false });
+        const startedAt = Date.now();
+        await fixture.page.goto(urlFor(workspace, route), { waitUntil: "domcontentloaded" });
+        await fixture.page.waitForFunction(
+          () =>
+            document.querySelector('[data-testid="terminal-shell"]')?.getAttribute("data-ready") ===
+            "true",
+        );
+        await fixture.page
+          .getByRole("region", { name: "Investigation context", exact: true })
+          .waitFor();
+        if (workspace === "risk") {
+          await fixture.page.getByRole("region", { name: "Immune status", exact: true }).waitFor();
+          await fixture.page
+            .getByRole("region", { name: "Risk issue feed", exact: true })
+            .waitFor();
+          await fixture.page.getByTestId("risk-issue-select").first().waitFor();
+          await fixture.page.getByRole("button", { name: "Issue console", exact: true }).waitFor();
+        } else {
+          await fixture.page.locator('[data-factor-workspace][data-state="ready"]').waitFor();
+          await fixture.page.locator('.factor-source-row[aria-pressed="true"]').waitFor();
+          await fixture.page
+            .getByRole("heading", { name: "Source library", exact: true })
+            .waitFor();
+        }
+        await fixture.page.waitForLoadState("networkidle");
+        await Promise.all(fixture.pending);
+        const usableAt = Date.now(),
+          idleRequests = fixture.requests.length;
+        await fixture.page.waitForTimeout(1200);
+        await Promise.all(fixture.pending);
+        assert.equal(fixture.requests.length, idleRequests, "No delayed initial optional prefetch");
+        assert.deepEqual(fixture.responseErrors, []);
+        const coverage = await fixture.page.coverage.stopJSCoverage();
+        const snapshot = await fixture.page.evaluate(() => ({
+          url: location.pathname + location.search,
+          text: document.body.innerText,
+          inputs: [...document.querySelectorAll("select,input")].map((e) => ({
+            tag: e.tagName,
+            label: e.getAttribute("aria-label"),
+            value: e.value,
+            disabled: e.disabled,
+          })),
+          links: [...document.querySelectorAll("a[href]")].map((e) => ({
+            text: e.textContent,
+            href: e.getAttribute("href"),
+          })),
+          issueRows: [...document.querySelectorAll("[data-risk-feed] tbody tr")].map(
+            (e) => e.innerText,
+          ),
+          selectedFactor:
+            document.querySelector('.factor-source-row[aria-pressed="true"]')?.textContent ?? null,
+          context:
+            document.querySelector('[aria-label="Investigation context"]')?.textContent ?? null,
+        }));
+        const bodies = [
+          ...new Map(fixture.responses.filter((r) => r.js).map((r) => [r.sha256, r])).values(),
+        ].sort((a, b) => a.url.localeCompare(b.url));
+        for (const body of bodies) {
+          const filename = path.basename(new URL(body.url).pathname);
+          assert.equal(
+            sha(readFileSync(path.join(frontend, ".vercel/output/static/assets", filename))),
+            body.sha256,
+            "Browser body equals local production body",
+          );
+        }
+        const requests = fixture.requests.filter((r) => /\.m?js(?:$|\?)/.test(r.url));
+        assert.equal(
+          requests.length,
+          bodies.length,
+          "Every initial JS request has one complete unique body",
+        );
+        assert(
+          !requests.some((r) =>
+            /\/(?:ForgeCommandPalette|search\.generated|history(?:-archive)?\.generated|mnemonics|LocalRiskLab)-/.test(
+              r.url,
+            ),
+          ),
+          "No interaction/archive/engine tooling initially",
+        );
+        const evidence = fixture.responses
+          .filter((r) => originals.has(new URL(r.url).pathname))
+          .map((r) => ({
+            artifactId: originals.get(new URL(r.url).pathname).id,
+            sha256: r.sha256,
+            bytes: r.bytes,
+          }))
+          .sort((a, b) => a.artifactId.localeCompare(b.artifactId));
+        assert(evidence.length > 0, "Genuine checked Replay evidence required");
+        report.initialOwnership.journeys.push({
+          workspace,
+          url: fixture.page.url(),
+          startedAt,
+          usableAt,
+          usableMs: usableAt - startedAt,
+          snapshot,
+          evidence,
+          bodies,
+          requestCount: requests.length,
+          gzip: bodies.reduce((n, r) => n + r.gzipDefaultBytes, 0),
+          decoded: bodies.reduce((n, r) => n + r.bytes, 0),
+          requests: fixture.requests,
+          executedScripts: coverage
+            .filter((e) => e.functions.some((fn) => fn.ranges.some((r) => r.count > 0)))
+            .map((e) => e.url),
+          htmlPreloads: [...new Set(fixture.responses.flatMap((r) => r.htmlPreloads ?? []))],
+        });
+      } catch (error) {
+        report.failures.push({
+          name: workspace + " fresh initial",
+          error: error.stack ?? String(error),
+        });
+      } finally {
+        await fixture.context.close();
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+  for (const key of ["blockedRequests", "pageErrors", "consoleErrors"])
+    if (report[key].length) report.failures.push({ name: key, error: JSON.stringify(report[key]) });
+  if (option("--initial-baseline")) {
+    const inputBaseline = JSON.parse(
+      readFileSync(path.resolve(repo, option("--initial-baseline"))),
+    );
+    const baseline = inputBaseline.initial_packaging_amendment_oct31?.baseline ?? inputBaseline;
+    for (const journey of report.initialOwnership.journeys) {
+      const before = baseline.initialOwnership.journeys.find(
+        (j) => j.workspace === journey.workspace,
+      );
+      try {
+        assert(before, "Baseline journey required");
+        assert.deepEqual(
+          journey.snapshot,
+          before.snapshot,
+          "Packaging must preserve complete rendered state, typed URL, mode, selections, labels and links",
+        );
+        assert.deepEqual(
+          journey.evidence,
+          before.evidence,
+          "Exact evidence IDs, bytes and hashes unchanged",
+        );
+        journey.behaviorEquivalent = true;
+        journey.regression = {
+          baselineGzip: before.gzip,
+          baselineRequests: before.requestCount,
+          deltaGzip: journey.gzip - before.gzip,
+          allowedGzip: Math.min(before.gzip * 0.05, 8192),
+          deltaRequests: journey.requestCount - before.requestCount,
+        };
+        assert(
+          journey.regression.deltaGzip <= journey.regression.allowedGzip,
+          "Total initial load regression exceeds stricter5%/8KiB",
+        );
+        assert(journey.regression.deltaRequests <= 4, "Initial request regression exceeds+4");
+      } catch (error) {
+        report.failures.push({
+          name: journey.workspace + " equivalence/regression",
+          error: error.stack ?? String(error),
+        });
+      }
+    }
+  }
+  if (option("--ownership-dir")) {
+    const directory = path.join(frontend, ".vercel/output/static/assets"),
+      proof = option("--ownership-dir");
+    const modules = JSON.parse(readFileSync(path.join(proof, "normal-modules.json")));
+    const inputBaseline = JSON.parse(
+      readFileSync(path.resolve(repo, option("--initial-baseline"))),
+    );
+    const baseline = inputBaseline.initial_packaging_amendment_oct31?.baseline ?? inputBaseline;
+    const initialNames = new Set(
+      report.initialOwnership.journeys.flatMap((j) =>
+        j.bodies.map((b) => path.basename(new URL(b.url).pathname)),
+      ),
+    );
+    const assets = classifyInitialBodies(
+      directory,
+      {
+        ...modules,
+        chunks: modules.chunks.filter((c) => initialNames.has(path.basename(c.fileName))),
+      },
+      path.join(proof, "hidden-maps"),
+    );
+    report.initialOwnership.exact = exactInitialGate(
+      report.initialOwnership.journeys,
+      assets,
+      baseline,
+    );
+    for (const error of report.initialOwnership.exact.failures)
+      report.failures.push({ name: "exact initial ownership", error });
+  }
+  report.stageStatus = report.failures.length ? "FAIL" : "PASS_INITIAL_NETWORK_AND_BEHAVIOR";
+  report.status = "INCOMPLETE";
+  writeFileSync(
+    path.join(proofRoot, "terminal-initial-browser-proof.json"),
+    JSON.stringify(report, null, 2) + "\n",
+  );
+  console.log(
+    JSON.stringify({
+      stageStatus: report.stageStatus,
+      journeys: report.initialOwnership.journeys.map((j) => ({
+        workspace: j.workspace,
+        gzip: j.gzip,
+        requests: j.requestCount,
+        regression: j.regression,
+      })),
+      failures: report.failures,
+      proofRoot,
+    }),
+  );
+  assert.equal(
+    report.failures.length,
+    0,
+    "Initial production network/behavior verification failed",
+  );
+}
+if (option("--attribute-recorded-initial")) {
+  const saved = JSON.parse(readFileSync(option("--attribute-recorded-initial")));
+  const proof = option("--ownership-dir");
+  const modules = JSON.parse(readFileSync(path.join(proof, "normal-modules.json")));
+  const inputBaseline = JSON.parse(readFileSync(option("--initial-baseline")));
+  const baseline = inputBaseline.initial_packaging_amendment_oct31?.baseline ?? inputBaseline;
+  const initialNames = new Set(
+    saved.initialOwnership.journeys.flatMap((j) =>
+      j.bodies.map((b) => path.basename(new URL(b.url).pathname)),
+    ),
+  );
+  const assets = classifyInitialBodies(
+    path.join(frontend, ".vercel/output/static/assets"),
+    {
+      ...modules,
+      chunks: modules.chunks.filter((c) => initialNames.has(path.basename(c.fileName))),
+    },
+    path.join(proof, "hidden-maps"),
+  );
+  const exact = exactInitialGate(saved.initialOwnership.journeys, assets, baseline);
+  writeFileSync(
+    path.join(proofRoot, "terminal-exact-initial-proof.json"),
+    JSON.stringify(exact, null, 2) + "\n",
+  );
+  console.log(
+    JSON.stringify({
+      status: exact.status,
+      routes: exact.routes.map(
+        ({ workspace, projectGzip, vendorGzip, totalGzip, requestCount, invalid, forbidden }) => ({
+          workspace,
+          projectGzip,
+          vendorGzip,
+          totalGzip,
+          requestCount,
+          invalid: invalid.length,
+          forbidden: forbidden.length,
+        }),
+      ),
+      terminalGzip: exact.terminal.gzip,
+      failures: exact.failures,
+    }),
+  );
+  process.exit(exact.failures.length ? 1 : 0);
+}
+if (process.argv.includes("--initial-gate-self-test")) {
+  const checks = initialGateSelfTest();
+  writeFileSync(
+    path.join(proofRoot, "initial-gate-self-test.json"),
+    JSON.stringify({ status: "PASS", checks }, null, 2) + "\n",
+  );
+  console.log(JSON.stringify({ status: "PASS_INITIAL_GATE_SELF_TEST", checks: checks.length }));
+  process.exit(0);
+}
+if (process.argv.includes("--initial-only")) {
+  await initialOwnershipStage();
+  process.exit(0);
 }
 
 async function capacityStage() {
