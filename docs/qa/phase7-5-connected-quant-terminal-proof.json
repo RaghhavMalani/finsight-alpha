@@ -121153,6 +121153,135 @@
       "autoMerge": false
     },
     "finalGatesVerified": false,
-    "remainingBlocker": "No accepted packaging. A resolves ownership but fails real24/64KiB caps, total-load and request-count guards; reverted production retains mixed attribution. Separate optimization review required."
+    "remainingBlocker": "No accepted packaging. A resolves ownership but fails real24/64KiB caps, total-load and request-count guards; reverted production retains mixed attribution. Separate optimization review required. Main advanced after measurements to ec961d3caacd825233c788f195c5af0dd87998c3; reconciliation remains pending under the explicit STOP.",
+    "latestMainAudit": {
+      "status": "READ_ONLY_RETENTION_VERIFIED_RECONCILIATION_PENDING",
+      "measuredMain": "00aa3ea6e7490f4ac47cdd9992b848317031270f",
+      "latestMain": "ec961d3caacd825233c788f195c5af0dd87998c3",
+      "advancedAfterCandidateMeasurements": true,
+      "priorEntriesPreserved": 367,
+      "priorAvailableOriginalBlobsIdentical": 347,
+      "priorSealedRawHistoriesPreserved": 96,
+      "newAvailableArtifacts": 7,
+      "newOriginalBytesAndShaVerified": true,
+      "routeKeys": 146,
+      "movedRoutes": [
+        {
+          "route": "/data/costs",
+          "from": "data-organ:costs:4177253570f13fe46c858a8e94fe7d876fd5e6c57d94685ea45947fa582cc556",
+          "to": "data-organ:costs:4f1a3ca26e272870405d03425a11a5bdb0880d97bbb425354cef4fe7f37658f4"
+        },
+        {
+          "route": "/data/coverage",
+          "from": "data-organ:coverage:51d6b89df14ce1d2c45ff0b0102903c1f8aa9d1873ff58ff5fee89c105dadb3b",
+          "to": "data-organ:coverage:fa8c8d34d6c720d3d55468fd82a46f891ea8481c93b658bbe3823d3e8ba0efee"
+        },
+        {
+          "route": "/data/disagreement",
+          "from": "data-organ:disagreement:9467115d4cb1df54b78f7f5fed94cab56b0bcc3e72d086a1f0a178f4f91de39d",
+          "to": "data-organ:disagreement:fac46a67047f0488262bfa92813ff799371ae35499b6b8a5a775df517c7aa37b"
+        },
+        {
+          "route": "/data/health",
+          "from": "data-organ:health:a9c7cc90c5a378d85a19f56dac24d295b03464b00ac8c658e2988434ea0280a6",
+          "to": "data-organ:health:503e12a04390d871a8aefca2b950e7a2d9410a4d2a6e2d8fc9d29a83abbacf7a"
+        },
+        {
+          "route": "/data/issues",
+          "from": "data-organ:issues:08e265a8ed43ce3c0761c408c77ee9019c500d346a09168dbf54d10787b377be",
+          "to": "data-organ:issues:7d6f3e57e25a957cb424b85f90e63e132d25bd7e571d67ecfe02550333cad1ff"
+        },
+        {
+          "route": "/data/lineage",
+          "from": "data-organ:lineage:5f846de30137634ca5e6d0242f31047b46e750dc9df11486a9306c8b5bb9b3ac",
+          "to": "data-organ:lineage:a298b7f1a3586b7656811c53e3f96b7a1d6be7e1647ba0cf7f20e357c1bb6d07"
+        },
+        {
+          "route": "/data/revisions",
+          "from": "data-organ:revisions:2e9b519f790a301247561c692288c064b0b987d59dd9437aa8a9ab7d532c2f0f",
+          "to": "data-organ:revisions:42d289f47e7a2dcb94adae5ce16caad097ada143c1d3dfb50a2b11e5a66e8a4e"
+        }
+      ],
+      "changedPaths": [
+        {
+          "status": "A",
+          "path": "data/exports/data_organ_v0_1/health-e1df571de632a56c3cde18b91741ab7e5e06e50bedf522ab8d9e109a00404e60.json"
+        },
+        {
+          "status": "M",
+          "path": "data/exports/data_organ_v0_1/health.json"
+        },
+        {
+          "status": "A",
+          "path": "data/exports/data_organ_v0_1/issues-f89a369a51b1a2cca43833fe8fc6f296423d780487f6184c58f84b3ca41338c5.json"
+        },
+        {
+          "status": "M",
+          "path": "data/exports/data_organ_v0_1/issues.json"
+        },
+        {
+          "status": "A",
+          "path": "data/exports/data_organ_v0_1/lineage-2acdae572c0982a18a78a09b4a0353e51eec15ee6d9eca556f4fce8c0d0807bb.json"
+        },
+        {
+          "status": "M",
+          "path": "data/exports/data_organ_v0_1/lineage.json"
+        },
+        {
+          "status": "M",
+          "path": "data/exports/data_organ_v0_1/manifest.json"
+        },
+        {
+          "status": "A",
+          "path": "data/exports/data_organ_v0_1/receipt-2bd96e006ef39fbc1bc243b1971c4e26dea0da9622990b7c08bfb3308bda8e27.json"
+        },
+        {
+          "status": "M",
+          "path": "data/exports/data_organ_v0_1/receipt.json"
+        },
+        {
+          "status": "A",
+          "path": "frontend-v2/public/artifacts/replay/data-organ-costs-4f1a3ca26e272870405d03425a11a5bdb0880d97bbb425354cef4fe7f37658f4.json"
+        },
+        {
+          "status": "A",
+          "path": "frontend-v2/public/artifacts/replay/data-organ-coverage-fa8c8d34d6c720d3d55468fd82a46f891ea8481c93b658bbe3823d3e8ba0efee.json"
+        },
+        {
+          "status": "A",
+          "path": "frontend-v2/public/artifacts/replay/data-organ-disagreement-fac46a67047f0488262bfa92813ff799371ae35499b6b8a5a775df517c7aa37b.json"
+        },
+        {
+          "status": "A",
+          "path": "frontend-v2/public/artifacts/replay/data-organ-health-503e12a04390d871a8aefca2b950e7a2d9410a4d2a6e2d8fc9d29a83abbacf7a.json"
+        },
+        {
+          "status": "A",
+          "path": "frontend-v2/public/artifacts/replay/data-organ-issues-7d6f3e57e25a957cb424b85f90e63e132d25bd7e571d67ecfe02550333cad1ff.json"
+        },
+        {
+          "status": "A",
+          "path": "frontend-v2/public/artifacts/replay/data-organ-lineage-a298b7f1a3586b7656811c53e3f96b7a1d6be7e1647ba0cf7f20e357c1bb6d07.json"
+        },
+        {
+          "status": "A",
+          "path": "frontend-v2/public/artifacts/replay/data-organ-revisions-42d289f47e7a2dcb94adae5ce16caad097ada143c1d3dfb50a2b11e5a66e8a4e.json"
+        },
+        {
+          "status": "M",
+          "path": "frontend-v2/public/replay-manifest.json"
+        }
+      ],
+      "latestManifest": {
+        "sha256": "0f4d484322f4fe0a0b9e451535ddf4ecbbb4552c1e87f03da8593a8e9ffc56ea",
+        "bytes": 488735,
+        "artifacts": 374,
+        "available": 354,
+        "asOf": "2026-10-31T07:07:00.827359Z"
+      },
+      "worktreeMerged": false,
+      "reason": "STOP applies after exact real capacity and regression failures. Do not change candidate inputs or reopen accepted search/history; retain latest-main advance as a separate integration blocker."
+    },
+    "currentMainReconciled": false
   }
 }

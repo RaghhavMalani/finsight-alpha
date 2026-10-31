@@ -4,7 +4,7 @@
 
 **NO-GO.** Framework isolation makes Candidate A's initial ownership exact, but actual project code fails all three unchanged caps. Total user download and request-count guards also fail. Candidate B is **not run**: A resolves ownership, and the amendment requires STOP on a genuine size failure. No packaging strategy is accepted. The original Vite configuration and production output are restored; the active mixed build's project attribution remains **INDETERMINATE**. No whole-framework size is relabelled a project-owned failure.
 
-Main remains `00aa3ea6e7490f4ac47cdd9992b848317031270f`. Verification implementation: `5506a3666197a55890fa5dc38a042c437832d49e`. Application source, package-lock, plugins, Nitro Vercel preset, SSR entry, routing, React behavior, environment and scientific artifacts are unchanged. PR #30 stays draft/open/unmerged, auto-merge off. Excluded commit `6f99daa` remains excluded.
+The fixed measurement tree is reconciled with main `00aa3ea6e7490f4ac47cdd9992b848317031270f`. Verification implementation: `5506a3666197a55890fa5dc38a042c437832d49e`. Application source, package-lock, plugins, Nitro Vercel preset, SSR entry, routing, React behavior, environment and scientific artifacts are unchanged. PR #30 stays draft/open/unmerged, auto-merge off. Excluded commit `6f99daa` remains excluded.
 
 | Candidate A exact gate | Actual gzip bytes | Unchanged cap | Excess |
 |---|---:|---:|---:|
@@ -18,6 +18,8 @@ Main remains `00aa3ea6e7490f4ac47cdd9992b848317031270f`. Verification implementa
 | factors | 71,403 | 126,316 | 197,719 | 49 | 184,863 /33 | +12,856 /+16 |
 
 Both totals exceed the stricter 5%/8KiB regression bound of8,192bytes. Both add16requests, exceeding+4. Factors' increase is6.95%; Risk's6.38%. These are retained rejected measurements, not accepted performance.
+
+**Late main advance:** after candidate measurements, main advanced to `ec961d3caacd825233c788f195c5af0dd87998c3`. A read-only Git-blob audit preserves all367prior manifest entries,347available original blobs,96sealed Data histories and146route keys; it verifies seven added Data originals and seven changed current Data aliases across17paths, with no source/evaluation change. This is retention evidence, not a completed admission/reconciliation. The branch is now one commit behind main. Because the real capacity failures require STOP, no integration merge, regenerated input epoch or additional candidate measurement is performed. Main reconciliation is an additional GO blocker; the exact measurements above remain tied to00aa.
 
 Candidate A uses the supported client-only `vite.environments.client.build.rolldownOptions.output.codeSplitting` groups. The exact previous hidden-map analysis proves the selected React/react-dom, scheduler, @tanstack, seroval/seroval-plugins, Sonner and use-sync-external-store families participate in initial Replay. Entry-aware grouping and disabled recursive capture leave other dependencies on automatic lazy boundaries. No universal vendor chunk, added plugin or dependency is used. The complete candidate config, predeclaration and one complete fresh-browser measurement are retained in `initial_packaging_amendment_oct31` in the existing proof; the candidate is reverted rather than activated. Supported API references: [Vite build options](https://vite.dev/config/build-options.html), [Rolldown manual splitting](https://rolldown.rs/in-depth/manual-code-splitting).
 
