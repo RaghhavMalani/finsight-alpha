@@ -1,5 +1,127 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## October 31 packaging amendment — Candidate A rejected; Stage 10 stopped
+
+**NO-GO.** Framework isolation makes Candidate A's initial ownership exact, but actual project code fails all three unchanged caps. Total user download and request-count guards also fail. Candidate B is **not run**: A resolves ownership, and the amendment requires STOP on a genuine size failure. No packaging strategy is accepted. The original Vite configuration and production output are restored; the active mixed build's project attribution remains **INDETERMINATE**. No whole-framework size is relabelled a project-owned failure.
+
+Main remains `00aa3ea6e7490f4ac47cdd9992b848317031270f`. Verification implementation: `5506a3666197a55890fa5dc38a042c437832d49e`. Application source, package-lock, plugins, Nitro Vercel preset, SSR entry, routing, React behavior, environment and scientific artifacts are unchanged. PR #30 stays draft/open/unmerged, auto-merge off. Excluded commit `6f99daa` remains excluded.
+
+| Candidate A exact gate | Actual gzip bytes | Unchanged cap | Excess |
+|---|---:|---:|---:|
+| Terminal core |43,252|24,576|18,676|
+| Risk complete project initial, including core |84,311|65,536|18,775|
+| Factors complete project initial, including core |71,403|65,536|5,867|
+
+| Candidate A route | Project gzip | Vendor gzip | Total gzip | JS requests | Before gzip /requests | Increase bytes /requests |
+|---|---:|---:|---:|---:|---:|---:|
+| risk | 84,311 | 122,971 | 207,282 | 44 | 194,851 /28 | +12,431 /+16 |
+| factors | 71,403 | 126,316 | 197,719 | 49 | 184,863 /33 | +12,856 /+16 |
+
+Both totals exceed the stricter 5%/8KiB regression bound of8,192bytes. Both add16requests, exceeding+4. Factors' increase is6.95%; Risk's6.38%. These are retained rejected measurements, not accepted performance.
+
+Candidate A uses the supported client-only `vite.environments.client.build.rolldownOptions.output.codeSplitting` groups. The exact previous hidden-map analysis proves the selected React/react-dom, scheduler, @tanstack, seroval/seroval-plugins, Sonner and use-sync-external-store families participate in initial Replay. Entry-aware grouping and disabled recursive capture leave other dependencies on automatic lazy boundaries. No universal vendor chunk, added plugin or dependency is used. The complete candidate config, predeclaration and one complete fresh-browser measurement are retained in `initial_packaging_amendment_oct31` in the existing proof; the candidate is reverted rather than activated. Supported API references: [Vite build options](https://vite.dev/config/build-options.html), [Rolldown manual splitting](https://rolldown.rs/in-depth/manual-code-splitting).
+
+Risk readiness requires verified current Replay summary, Immune status, Issue console and populated usable Issue feed. Factors readiness requires the ready catalogue and selected factor evidence. Each fresh context starts empty; no palette/search/history, hover or cache is used. Full rendered text, typed URL, mode, controls, context, availability labels, Issue rows, factor selection, evidence links and every requested original ID/SHA/byte count are equal before/after. The static asset guard permits real emitted tilde names; optional dependency checks use module provenance, not entry-set suffixes. No provider/private/scientific calls occur. All six claim flags remain false; D6 and both schedules stay disabled.
+
+Every initial body has exact ownership: zero MIXED/UNKNOWN for Candidate A. Installed package identities match the unchanged lock; mapped vendor source contents match disk exactly. Unmodified ViteBuilder return values provide complete rendered-module provenance without a plugin/hook. Only bodies whose complete executable module set and mapped sources are vendor may be excluded; compiler glue is covered by that independent emitter provenance. Virtual/unresolved compiler helper bodies are charged fully as project code, including1,097gzip bytes for the two helpers without maps. No source percentages, fragment gzip or filename exemption is used.
+
+Terminal core is the SHA union of shared initial project bodies plus bodies containing the static initial shell/context closure. In A, all terminal-specific bodies are already in the22-body shared set; total43,252gzip. Both route caps include this complete core. Duplicate terminal bodies would each count; the self-test verifies this.
+
+Two complete clean production builds (hidden diagnostic maps, then normal output) produce the same144final JS body digests, module ownership sets, logical chunk families, imports and dynamic-import graph. Two internal pre-emission world-atlas URL placeholder strings differ; every final emitted body remains byte-identical. Heavy Three/React Three/Drei/globe/Observatory dependencies, history/search/palette/legacy and execution engine modules remain absent from initial Risk/Factors. No maps are tracked, deployed or left in normal public output.
+
+The rejected candidate is preserved below at whole-body granularity. Full source lists, per-package versions, map/content digests, all request/preload/execution observations and exact evidence snapshots are in the proof. R/F indicate the fresh route requiring the body.
+
+| Emitted body | Ownership | R | F | Decoded bytes | Gzip bytes | Complete SHA256 |
+|---|---|---|---|---:|---:|---|
+| `api-uCskoLiE.js` | PROJECT_OWNED |  | Y | 1,433 | 781 | `5a7adf87bea4b29119cf26ca4d8fa47f7443a4483c944d5296a7e70b4578f4a4` |
+| `bench._benchmarkId-DlHk-iFQ.js` | PROJECT_OWNED | Y | Y | 3,062 | 1,146 | `7cdb1ce2f62a11f51dec383498358f50bf5b5fc573990013162fc872994f6bbc` |
+| `client-DnuZJJC4.js` | PROJECT_OWNED | Y | Y | 2,256 | 1,136 | `dabdd1357c8e8d0b8f05b69a67d462a6753f2860114dd183bf08a0465d5532bb` |
+| `context-Ds-Fy7p1.js` | PROJECT_OWNED | Y | Y | 16,316 | 6,305 | `3dfefbecaeb9d500bc49724ac182b6189ceaf8fe33a8c73667e7417e498b09c0` |
+| `contracts-0Y_et4cj.js` | PROJECT_OWNED |  | Y | 7,715 | 3,316 | `8c74d4982120fd16fe994d80730b55ce2e89edc5f5d21f8fd37b8715c5804686` |
+| `contracts-CGi5jbv7.js` | PROJECT_OWNED | Y | Y | 15,677 | 5,828 | `74a4d90d0086a71c2b38849149d6feb427e859a4777a8d4bb9800672a151eeee` |
+| `contracts-CVS_WHkW.js` | PROJECT_OWNED | Y | Y | 4,918 | 2,056 | `59498803b8f9714f6e41973203c0bb4876cd9738a14cacfdda8af97f7fa333b7` |
+| `factors-JMP_ct66.js` | PROJECT_OWNED |  | Y | 17,958 | 5,779 | `2614a64b6d2fd35340aceb7690ffb46e995ffadfb1ddf548b2dc8a793a248ea6` |
+| `forge-rKOOW6IL.js` | PROJECT_OWNED | Y | Y | 3,170 | 1,203 | `70fa527de3fe1ed1cbe7f3d2cb9eea0bddcedceeffa0ec44268efabfb85d0987` |
+| `index-b-IBQ-tQ.js` | PROJECT_OWNED | Y | Y | 16,528 | 4,962 | `3352b459894901e7a05a52c76296594dbc91a005202aa85c7436560e3634b7af` |
+| `instruments-BNqRWfgg.js` | PROJECT_OWNED | Y | Y | 2,982 | 1,380 | `278ef97ce45f61e13cd760dfae1a090241f2193bb761c5a20689681286370560` |
+| `links-Du0uG42u.js` | PROJECT_OWNED | Y | Y | 1,099 | 561 | `2aeeb6c88ffa37981431a45d246693f34246572637d2e6a94f6adaf514347d49` |
+| `markets-zqWHq4aw.js` | PROJECT_OWNED | Y | Y | 4,554 | 1,617 | `ca6aec38c2767fd832a8b3a3280b2da200cc3124d36794f6bde456b6014df2c7` |
+| `markets._ticker-Dkcylhrg.js` | PROJECT_OWNED | Y | Y | 1,589 | 725 | `8764cc6a40a1b1a962f7a654c8d5d1ce0df7dff7c7981601c4aa1e971bfb31de` |
+| `markets.index-b15lt1us.js` | PROJECT_OWNED | Y | Y | 1,375 | 630 | `9fd912e1be4d0e8035108d4f457af40998beb55b4bbeafd54a80841e520e2e09` |
+| `mode-BrpsJuN7.js` | PROJECT_OWNED | Y | Y | 789 | 499 | `5933c67c5f4bc7f848c619cf5029b888eaa071bbb1c3f567fffe7bf0b3ae8c85` |
+| `observatory-CFG71zGh.js` | PROJECT_OWNED | Y | Y | 977 | 590 | `a2163a007de45238ef04c34dbc9610ea600f58c6d0f624ed9eb42f133f17b62b` |
+| `preload-helper-Czpn1I53.js` | PROJECT_OWNED | Y | Y | 1,196 | 675 | `aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152` |
+| `query-DkmPzxGu.js` | PROJECT_OWNED |  | Y | 111,285 | 16,592 | `2dfc352ec8cd08882dd03a3dc9b60594606b63d0900d2cef968ecab7128b7b92` |
+| `reality._artifactId-DOXIp75G.js` | PROJECT_OWNED | Y | Y | 3,202 | 1,200 | `ba29ab0fac3ec7d9a2e5a3cd69179493a2075df98e99eddc29b9b50035c7642e` |
+| `RetainedDiagnostics-JiL3zrUi.js` | PROJECT_OWNED |  | Y | 4,394 | 1,683 | `b0535587515c7306aa487938526ab2a54120170730f9675d03daed95fe63fc3d` |
+| `ripple-0B0clhCR.js` | PROJECT_OWNED | Y | Y | 530 | 379 | `d680999be877a8dadebb36aaf5e1bf2f4806be0eb2b52db24b50e8e562d922d2` |
+| `risk-C0N0W-Pv.js` | PROJECT_OWNED | Y |  | 236,488 | 41,059 | `caf72e78320c3871a6fd54e3a79a6750d3ad34834b142f0147ec8329835ea120` |
+| `rolldown-runtime-QTnfLwEv.js` | PROJECT_OWNED | Y | Y | 694 | 422 | `5db5ba82eef00d1dee7e86e663098c9427d01183a88d357437daff295aec3e75` |
+| `runs._runId-fLSdKhWl.js` | PROJECT_OWNED | Y | Y | 3,189 | 1,220 | `fd112fab2ec25b7558a2cedcd6324d9544acd7c8ce1e9ebc4f9adb96b6373acf` |
+| `runs.index-DveobGY7.js` | PROJECT_OWNED | Y | Y | 3,453 | 1,291 | `3023783f381600b8e2694aaad4f46c459bf9e41b6a775031d0a12de64aa60176` |
+| `TerminalShell-RtnTE8xb.js` | PROJECT_OWNED | Y | Y | 23,782 | 8,731 | `ad71fb8335003eb1370b29d87ce899ef58f40c3e0b15832336d15fb162ced581` |
+| `vendor-framework~index-CMSyeXkN.js` | VENDOR_ONLY | Y | Y | 106,924 | 35,250 | `06d774c049e4e6c6bfa1fd52a8a22e7eccbd0e290a182069839bbad7f73c7355` |
+| `vendor-framework~index~bench~login~runs~worlds~runs.index~runs._runId~risk~LocalRiskLab~res~g7nnsqrw-CIxEorsV.js` | VENDOR_ONLY | Y | Y | 7,899 | 2,990 | `746b3bf847361bcee24b6a188dce1a6cae9bac7fa8972753abc7718e70fbed8b` |
+| `vendor-framework~index~bench~login~runs~worlds~runs.index~runs._runId~risk~LocalRiskLab~res~m4zozcb9-p8Cqmyo1.js` | VENDOR_ONLY | Y | Y | 900 | 495 | `a20fe0fed244aa670dfbb93b1c925a2c45f6c0319caac6136efa5fe94b91fd70` |
+| `vendor-framework~index~bench~login~runs~worlds~runs.index~runs._runId~risk~LocalRiskLab~res~o2h20sj3-HGN73gMW.js` | VENDOR_ONLY | Y | Y | 1,759 | 810 | `617d891bd36e8553c78c7eb07999513a20fba19dc7bf2b64fe740d92be0715be` |
+| `vendor-framework~index~bench~runs~markets-DUuLK7xy.js` | VENDOR_ONLY | Y | Y | 4,979 | 1,941 | `fff81b04064572245ea5c6ff1ada249626b2576df94b2eb720605768627977dc` |
+| `vendor-framework~index~bench~runs~runs.index~runs._runId~reality._artifactId~observatory~ma~fqze8n7g-DLTE-HSj.js` | VENDOR_ONLY | Y | Y | 32 | 52 | `2eb1d17f334d79f5c2b7c68aa45a2b50b46a7b2416a9a0f5e7de6ff7f2430322` |
+| `vendor-framework~index~bench~runs~worlds~runs.index~runs._runId~risk~research~reality._arti~de70rc7p-CCrNN9XU.js` | VENDOR_ONLY | Y | Y | 275 | 212 | `b8dcd8d709b9f5f756c1990da2f785d0d2fa43fffa18baecd8db61e318dd24ed` |
+| `vendor-framework~index~LocalRiskLab-dunb-ndK.js` | VENDOR_ONLY | Y | Y | 32,775 | 9,254 | `a6f9f7263bfdb54665cfe6f21a634e7ce0c3a12cd3ca0fc19f9f9bf311dbf1dd` |
+| `vendor-framework~index~LocalRiskLab~TrajectoryGraph3D~PotentialLandscape3D-hgVlrdL4.js` | VENDOR_ONLY | Y | Y | 3,679 | 1,428 | `952c1e2911cdb18380f98883654c37a58bad8335b61a9598b41237c77e080125` |
+| `vendor-framework~index~login~worlds~runs.index~runs._runId~risk~LocalRiskLab~research~reali~7tu7gaeg-D4dnA11O.js` | VENDOR_ONLY | Y | Y | 9,472 | 4,338 | `8640663bc66ab86a35e16ff5e4ac2f8f66fd1020db38092eb1804554ab0c6000` |
+| `vendor-framework~index~login~worlds~runs.index~runs._runId~risk~research~reality._artifactI~g1s1leec-bk0WWn8A.js` | VENDOR_ONLY | Y | Y | 447 | 278 | `8fc79eb201cdbf5c4dc825dccfb355d358e1fb4eec808de9af9c202c384e0fec` |
+| `vendor-framework~index~markets~RiskScreen~ResearchScreen~OptionsScreen~FundamentalsScreen~B~bw044foi-FBbVcLD3.js` | VENDOR_ONLY | Y | Y | 3,470 | 1,186 | `46e4efeb15dd322f8b4fa936c288c3834b74bd7d76c7c5bef464e52ca448191a` |
+| `vendor-framework~index~runs.index~runs._runId~reality._artifactId~observatory~markets~marke~cesbdy4u-Ca7cig_d.js` | VENDOR_ONLY | Y | Y | 4,475 | 1,638 | `c0e4586a2a34411a5a6b05a9b8df91862111bd5a81e23a10cd498d77a7852feb` |
+| `vendor-framework~index~runs.index~runs._runId~reality._artifactId~observatory~markets~RiskS~dcjn7khe-D6OkoXuV.js` | VENDOR_ONLY | Y | Y | 310 | 231 | `59e11708ffba35427e257d57f4e4c0a43e310de3d4678a49ef607e45229854b2` |
+| `vendor-framework~index~TrajectoryGraph3D~PotentialLandscape3D-B1-vS4XD.js` | VENDOR_ONLY | Y | Y | 179,089 | 55,964 | `d77cb5e93f3cb0e1a14a676d95d2c7768e0ae2e06029bae7e06e58f6b6bce802` |
+| `vendor-framework~index~worlds~runs.index~runs._runId~LocalRiskLab~reality._artifactId~marke~kexmzehl-ChMwgRNV.js` | VENDOR_ONLY | Y | Y | 14,717 | 4,994 | `6a413c0168378e07e38a452746242150a75b0ed62328bdeb83e5b3cc8cfb51ad` |
+| `vendor-framework~index~worlds~runs.index~runs._runId~risk~LocalRiskLab~research~reality._ar~cj54yhtk-DdtgQ-Hx.js` | VENDOR_ONLY | Y | Y | 513 | 359 | `1d4e8da2f8dcfac60c6194cdd61a8da731f7b655b41d98cf110c5185a73e012c` |
+| `vendor-framework~index~worlds~runs.index~runs._runId~risk~research~reality._artifactId~mark~ccie10vi-DDs38RHf.js` | VENDOR_ONLY | Y | Y | 390 | 265 | `300b3b896176599d82aa15eeef876e3adb503be51eab0c080341169f51dee6aa` |
+| `vendor-framework~index~worlds~runs.index~runs._runId~risk~research~reality._artifactId~mark~f887qbzp-h71yyqxh.js` | VENDOR_ONLY | Y | Y | 930 | 514 | `cacebb02a1804f22b2ff49a7514a6cee0ce5ac63abad6b508a70b1744fe99f35` |
+| `vendor-framework~index~worlds~runs.index~runs._runId~risk~research~reality._artifactId~obse~fwm1mbii-8MQ97vxR.js` | VENDOR_ONLY | Y | Y | 350 | 257 | `6665a81921a67e2d422d66c55b174684a8dfeb56da382aadaa5e9c30d585a7bb` |
+| `vendor-framework~index~worlds~runs.index~runs._runId~risk~research~reality._artifactId~obse~gqo1b70r-LNzuAcxG.js` | VENDOR_ONLY | Y | Y | 1,027 | 515 | `e136955446bf6569b23032306cdad37229d7e3fd6afbeb9bee6e42b7bcee5d39` |
+| `vendor-framework~worlds~runs.index~runs._runId~LocalRiskLab~reality._artifactId~markets~Rep~lijjf5qh-B0dtcDN3.js` | VENDOR_ONLY |  | Y | 9,146 | 3,345 | `76d507bac5a5a456986ca9a2c111608fa5ab004b6af5fbba573f241a8d7c8a7b` |
+| `workspaces-SOzXBCru.js` | PROJECT_OWNED | Y | Y | 1,348 | 696 | `c5c4f67332beecd724c4ffb6ffa6cceddd79bff19687e6ba01722e2e0c21338f` |
+
+Project-owned module breakdown (complete bodies; no fragment accounting):
+
+- `api-uCskoLiE.js` (781 gzip): `frontend-v2/src/lib/api.ts`.
+- `bench._benchmarkId-DlHk-iFQ.js` (1,146 gzip): `frontend-v2/src/routes/bench.$benchmarkId.tsx`.
+- `client-DnuZJJC4.js` (1,136 gzip): `frontend-v2/src/replay/client.ts`.
+- `context-Ds-Fy7p1.js` (6,305 gzip): `frontend-v2/src/app/terminal/context.ts`.
+- `contracts-0Y_et4cj.js` (3,316 gzip): `frontend-v2/src/regimes/contracts.ts`.
+- `contracts-CGi5jbv7.js` (5,828 gzip): `frontend-v2/src/markets/contracts.ts`.
+- `contracts-CVS_WHkW.js` (2,056 gzip): `frontend-v2/src/replay/contracts.ts`.
+- `factors-JMP_ct66.js` (5,779 gzip): `frontend-v2/src/factors/FactorsShell.tsx`, `frontend-v2/src/factors/EvidenceCatalogue.tsx`, `frontend-v2/src/factors/OutputAudit.tsx`, `frontend-v2/src/factors/EvidenceLedger.tsx`, `frontend-v2/src/factors/FactorsWorkspace.tsx`, `frontend-v2/src/routes/factors.tsx?tsr-split=component`.
+- `forge-rKOOW6IL.js` (1,203 gzip): `frontend-v2/src/routes/forge.tsx`.
+- `index-b-IBQ-tQ.js` (4,962 gzip): `frontend-v2/src/start.ts`, `frontend-v2/src/styles.css?url`, `frontend-v2/src/lib/lovable-error-reporting.ts`, `frontend-v2/src/routes/__root.tsx`, `frontend-v2/src/routes/index.tsx`, `frontend-v2/src/routes/artifacts.tsx`, `frontend-v2/src/routes/bench.tsx`, `frontend-v2/src/routes/data.tsx`, `frontend-v2/src/routes/dynamics.tsx`, `frontend-v2/src/routes/execution.tsx`, `frontend-v2/src/routes/factors.tsx`, `frontend-v2/src/routes/globe.tsx`, `frontend-v2/src/routes/login.tsx`, `frontend-v2/src/routes/research.tsx`, `frontend-v2/src/routes/risk.tsx`, `frontend-v2/src/routes/runs.tsx`, `frontend-v2/src/routes/worlds.tsx`, `frontend-v2/src/routes/bench.index.tsx`, `frontend-v2/src/routes/markets.backtest.tsx`, `frontend-v2/src/routes/markets.fundamentals.tsx`, `frontend-v2/src/routes/markets.options.tsx`, `frontend-v2/src/routes/markets.research.tsx`, `frontend-v2/src/routes/markets.risk.tsx`, `frontend-v2/src/routeTree.gen.ts`, `frontend-v2/src/router.tsx`.
+- `instruments-BNqRWfgg.js` (1,380 gzip): `frontend-v2/src/markets/instruments.ts`.
+- `links-Du0uG42u.js` (561 gzip): `frontend-v2/src/app/terminal/links.ts`.
+- `markets-zqWHq4aw.js` (1,617 gzip): `frontend-v2/src/routes/markets.tsx?tsr-shared=1`, `frontend-v2/src/routes/markets.tsx`.
+- `markets._ticker-Dkcylhrg.js` (725 gzip): `frontend-v2/src/routes/markets.$ticker.tsx`.
+- `markets.index-b15lt1us.js` (630 gzip): `frontend-v2/src/routes/markets.index.tsx`.
+- `mode-BrpsJuN7.js` (499 gzip): `frontend-v2/src/replay/mode.tsx`.
+- `observatory-CFG71zGh.js` (590 gzip): `frontend-v2/src/routes/observatory.tsx`.
+- `preload-helper-Czpn1I53.js` (675 gzip): `virtual:vite/preload-helper.js`.
+- `query-DkmPzxGu.js` (16,592 gzip): `frontend-v2/src/factors/read-plan.generated.ts`, `frontend-v2/src/factors/manifest.ts`, `frontend-v2/src/factors/contracts.ts`, `frontend-v2/src/factors/query.ts`.
+- `reality._artifactId-DOXIp75G.js` (1,200 gzip): `frontend-v2/src/routes/reality.$artifactId.tsx`.
+- `RetainedDiagnostics-JiL3zrUi.js` (1,683 gzip): `frontend-v2/src/factors/RetainedDiagnostics.tsx`.
+- `ripple-0B0clhCR.js` (379 gzip): `frontend-v2/src/lib/ripple.ts`.
+- `risk-C0N0W-Pv.js` (41,059 gzip): `frontend-v2/src/risk-manager/strict-json.ts`, `frontend-v2/src/risk-manager/bindings.ts`, `frontend-v2/src/risk-manager/monitoring-catalog.generated.ts`, `frontend-v2/src/risk-manager/contracts.ts`, `frontend-v2/src/risk-manager/read-plan.generated.ts`, `frontend-v2/src/risk-manager/manifest.ts`, `frontend-v2/src/risk-manager/RiskShell.tsx`, `frontend-v2/src/risk-manager/evidence.ts`, `frontend-v2/src/risk-manager/client.ts`, `frontend-v2/src/risk-manager/filters.ts`, `frontend-v2/src/risk-manager/IssueFeed.tsx`, `frontend-v2/src/risk-manager/IssueInspector.tsx`, `frontend-v2/src/risk-manager/CoverageMatrix.tsx`, `frontend-v2/src/risk-manager/SweepHistory.tsx`, `frontend-v2/src/risk-manager/RiskWorkspace.tsx`, `frontend-v2/src/routes/risk.tsx?tsr-split=component`.
+- `rolldown-runtime-QTnfLwEv.js` (422 gzip): `virtual:rolldown/runtime.js`.
+- `runs._runId-fLSdKhWl.js` (1,220 gzip): `frontend-v2/src/routes/runs.$runId.tsx`.
+- `runs.index-DveobGY7.js` (1,291 gzip): `frontend-v2/src/routes/runs.index.tsx`.
+- `TerminalShell-RtnTE8xb.js` (8,731 gzip): `frontend-v2/src/app/command/CommandLine.tsx`, `frontend-v2/src/app/terminal/compatibility.ts`, `frontend-v2/src/app/terminal/ContextBar.tsx`, `frontend-v2/src/app/terminal/TerminalShell.tsx`.
+- `workspaces-SOzXBCru.js` (696 gzip): `frontend-v2/src/app/workspaces.ts`.
+
+The existing terminal browser verifier now has a CI entry `npm run verify:terminal:initial`. It captures unmodified build metadata and private hidden maps, restores a second normal build, proves body/module/graph determinism, runs fresh initial journeys, compares the retained baseline, and exits nonzero for unresolved ownership,24/64KiB failure, total/request regression or eager optional dependencies. Eleven synthetic sabotage/boundary tests pass, including mixed/unknown, one-byte excess, misleading chunk names, duplicate shell code and both regression guards. A local full execution against the restored active build exits1 on mixed ownership as expected, with zero load/request regression and equal evidence/UI. The restored build does **not** pass attribution; CI blocks it honestly.
+
+All560static and237targeted checks pass. Typecheck/build/format pass; lint0errors/5existing Fast Refresh warnings. All9protected frontend byte hashes and11generated modules remain unchanged; all126restored JS bodies equal the accepted cold-search output. Search31,507/32,768,523identities,p952.0ms, command8,146 and Market11,946 remain accepted and are not reoptimized or rebenchmarked. All previous negative results, including41,213/24,576,Risk80,907/65,536,Factors66,068/65,536 and mixed-index analysis, remain below and in the proof.
+
+Phase5, Phase6 and Phase7 read-only archive verification all pass. The930-file freeze retains221originals /126routes /6withdrawals /27Risk artifacts, with exact scientific inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. All9protected source hashes and the approved plan remain exact. Scientific-operation increments remain zero. Stage10 remains stopped; integration, B1–B6, comparisons/preferences/exports, layouts/tables/charts, complete capability honesty, full browser matrix, clean clone, exact-head CI and Vercel acceptance remain pending.
+
+
 Status: COLD GLOBAL SEARCH REPAIR PASSES; INITIAL 24/64 KiB ATTRIBUTION REMAINS INDETERMINATE. Stage 10 remains STOPPED. PR #30 remains DRAFT, OPEN, UNMERGED, with auto-merge disabled.
 
 
