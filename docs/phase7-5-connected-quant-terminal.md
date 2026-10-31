@@ -1,5 +1,65 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 1 approved P0 repair — frontend unblocked; active Risk capacity decision required
+
+The user approved the scoped plan and listed amendments. Source checkpoint `e013fea62f3835deb63d8a4ff473069f8780bdd0` implements generation and frontend-verifier repairs only. Initial-JS implementation has not started: the requested order keeps it behind the remaining backend blocker. PR #30 stays draft/open/unmerged, auto-merge off.
+
+### Generation and frontend verification
+
+All11generated modules now pass unchanged decoded/gzip caps and match across two complete generations. The existing history/history-archive/retainedNavigation partition is unchanged. The first exact-clock fragment extension saved32bytes but still failed at133,122decoded; that failed measurement is retained. Analysis of the packed archive showed structures/reference syntax dominated its wire bytes. Canonical tagged radix92 references now reduce JSON string-reference overhead; the existing base36 representation remains readable. The printable alphabet excludes quote/backslash, indices remain bounded, and malformed/noncanonical/forward-cycle/out-of-pool inputs still reject. Clock strings are split lexically with no parsing/rounding/reformatting and fall back to the previous bounded fragmentation for adversarial many-clock strings. All decoded fields, finite IEEE-754 values, signed zero, Unicode, identities and complete evidence bindings remain exact.
+
+| Current generated output | Decoded bytes | Gzip bytes (level9 source) | Result |
+|---|---:|---:|---|
+| history with retainedNavigation |74,726|25,715|PASS|
+| history-archive |131,068|31,428|PASS, **4bytes decoded headroom**|
+| search projection |43,595|15,884|PASS|
+
+The archive has no meaningful growth reserve; no10%headroom or future-epoch capacity guarantee is claimed. The unchanged cap remains fail-closed. This repair admits the exact current main epoch, not arbitrary future history. No record, field, choice, edge or binding is removed to fit. Default history remains16entities /0edges /16bindings; archive306entities /516edges /29bindings. Retained navigation holds558records /972choices; complete retained search1123identities /2184choices. All329complete source originals are validated. Exact wire hashes and the full roundtrip/partition proof are retained under `approved_p0_repair_nov1`.
+
+The frontend Risk verifier's direct-reference fixture cloned a compact primary whose policy rules are intentionally empty. Its legacy-rule mutation then threw before testing the validator. The fixture now hydrates the unchanged full reviewed policy from its bound coverage leaf, alongside its existing direct evidence hydration. The original rejection assertions remain; no runtime Risk validator, policy or rule changes. The verifier passes182checks. The synthetic local Risk boundary verifier also passes, with zero provider calls/private Replay hydration/retained scientific evidence.
+
+All original560static and237targeted checks remain, with four compact-reference boundary/legacy/signed-zero tests added: **564static /241targeted PASS**. Main-admission expectations now pin ec961 and all five legitimate Data epochs,354available originals,525current search identities and329supported complete sources. The immutable original plan and scientific guards remain authoritative; approved exact-path amendments are enumerated without admitting new helpers/backend files.
+
+Typecheck and production build pass. Lint has0errors /5existing Fast Refresh warnings. Four fresh production Chrome journeys pass ordinary-discovery network and complete cumulative code+metadata caps:
+
+| Path | Actual default-gzip bytes | Unchanged cap |
+|---|---:|---:|
+| Empty Risk/Factors palette |4,046|32,768|
+| Cold global palette plus first query |31,782|32,768|
+| Risk command |8,147|32,768|
+| Market identity search |12,126|32,768|
+
+The275-byte cold increase from31,507 is recorded. Complete-body request/hash unions, privacy/optional-shard guards and exact targets pass; no retry was made for a green performance sample. Warm/loaded-search latency benchmarks were not rerun in this network-only check; their prior exact-source evidence is retained without relabelling it current. Initial24/64KiB attribution remains unresolved in the restored configuration. No replacement packaging candidate or route/panel optimization has been activated.
+
+### Backend root cause: a real closed-format receipt overflow
+
+An existing memory-only engineering test, `tests/risk_manager/test_sweep.py::test_identical_memory_evidence_is_a_noop`, reproduces the backend failure without publishing artifacts. A temporary observer records the exception that the existing sweep boundary sanitizes:
+
+- Value: `risk-sweep`,35complete observations.
+- Canonical JSON plus newline: **132,431bytes**.
+- Existing publication cap: **131,072bytes**.
+- Excess: **1,359bytes**.
+- Rejection: `src/risk_manager/publication.py:303`, called by `src/risk_manager/sweep.py:183`.
+
+The boundary correctly rejects the oversized value and returns FAILED/ARTIFACT_INTEGRITY_BREACH. The failing preflight setup causes the additional test errors. Two other lifecycle probes separately assume full inline observation lists despite retained compact anchors; those fixture assumptions do not remove the real receipt capacity failure. No backend assertion is weakened, no successful status substituted and no artifact limit raised. The initial QA observer selected the clock callback instead of the exception argument; that observer error was corrected and both traces remain qualified diagnostic evidence.
+
+The approved plan explicitly says **“There is no proposed change to `src/risk_manager/**`”** and **“no production Risk modification is included.”** A generic frontend/test change cannot lawfully make this oversized closed-format receipt pass. No active Risk code, closed schema, scientific policy, retained artifact or evaluator hash has been changed. No operational Risk sweep, capture, model run or publication was performed; only the named existing memory-only engineering case was exercised.
+
+### Separate Risk capacity amendment for review — not applied
+
+A scope decision has been requested while the independent frontend work finishes. The proposed next review must define a bounded, lossless active Risk receipt representation with exact evidence/observation hydration. Existing RISK_OBSERVATION indirection may be investigated as a candidate, but its compatibility is not assumed and no new format is implemented. Before approval of code changes, the design must establish all of the following:
+
+1. Every original observation, origin, claim flag, rule/predicate, cutoff, first/last reference and Issue identity survives exactly; no pruning, aggregation, string truncation or weaker validation.
+2. Each actual emitted scientific artifact remains<=128KiB under the existing cap. No new scientific artifact kind, additional execution, capture, source revision or published evidence is authorized by this request.
+3. Legacy retained receipts remain byte-identical and readable. New hydration must preserve owning receipt/source authority, policy/evaluator binding, cycle rejection, complete lifecycle history and atomic state/receipt publication.
+4. The full Risk schema/publication/reducer/API/source-oracle/sabotage suite must pass in isolated engineering fixtures, including the current overflow case, failure recovery and every current-origin conservation assertion. Existing failed cases remain evidence; tests cannot be skipped or rewritten to accept a fake PARTIAL result.
+5. Any required exact files must be approved separately. Possible areas are active Risk contracts/publication/sweep/reducer, frontend Risk contracts/client, Risk archive verification and their tests; this is an investigation boundary, not blanket permission to edit them. All930frozen artifacts and nine protected frontend files stay frozen. If those constraints cannot be met, retain the backend blocker and stop.
+
+Until that decision and design review, P0backend CI remains blocked, P1–P4 implementation remains unstarted, and Stage10 remains stopped. The previously approved main/initial-JS plan is retained; its caps/accounting and candidate rules are unchanged.
+
+The930-file archive freeze freshly passes; all9protected frontend byte hashes, package-lock and original plan SHA remain exact. `6f99daa` remains excluded. All operational scientific increments remain zero, all six claims false, D6disabled/deferred, Risk/regime schedules disabled. No source maps remain public and no preview server remains running.
+
+
 ## October 31 reconciliation and proposed initial-JS repair plan
 
 **Main reconciled; capacity and CI remain BLOCKED. This turn merges admitted main and prepares the plan below. It does not implement another packaging candidate, optimize search/history, change a cap, or resume Stage10.**
