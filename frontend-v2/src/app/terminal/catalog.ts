@@ -242,6 +242,30 @@ function decodeTerminalFragment(fragment: string): string {
   if (value.length > 8192) throw new Error("Terminal decoded fragment bound exceeded.");
   return value;
 }
+// Compact references use all JSON-safe printable ASCII digits. Old $/@ base36
+// references remain readable; decoded scalar values and bounds are unchanged.
+const REFERENCE_DIGITS = Array.from({ length: 94 }, (_, i) => String.fromCharCode(i + 33))
+  .filter((c) => c !== '"' && c !== "\\")
+  .join("");
+function referenceIndex(n: number): string {
+  let result = "";
+  do {
+    result = REFERENCE_DIGITS[n % 92] + result;
+    n = Math.floor(n / 92);
+  } while (n);
+  return result;
+}
+function unpackReferenceIndex(wire: string): number {
+  if (!wire || wire.length > 3) throw new Error("Malformed compact terminal reference.");
+  let n = 0;
+  for (const digit of wire) {
+    const value = REFERENCE_DIGITS.indexOf(digit);
+    if (value < 0) throw new Error("Malformed compact terminal reference.");
+    n = n * 92 + value;
+  }
+  if (referenceIndex(n) !== wire) throw new Error("Noncanonical compact terminal reference.");
+  return n;
+}
 export function packTerminalPayload(value: unknown): {
   strings: string[];
   texts: number[][];
@@ -273,12 +297,12 @@ export function packTerminalPayload(value: unknown): {
     return stableTerminal(v) + "|" + stableTerminal(negative);
   }
   function encode(v: unknown): PackedValue {
-    if (typeof v === "string") return "$" + intern(v).toString(36);
+    if (typeof v === "string") return "&" + referenceIndex(intern(v));
     if (Object.is(v, -0)) return "!-0";
     if (v && typeof v === "object") {
       const signature = signedSignature(v),
         prior = refs.get(signature);
-      if (prior !== undefined) return "@" + prior.toString(36);
+      if (prior !== undefined) return "%" + referenceIndex(prior);
       const packed: PackedValue = Array.isArray(v)
         ? [0, ...v.map(encode)]
         : [
@@ -290,7 +314,7 @@ export function packTerminalPayload(value: unknown): {
       const n = structures.length;
       structures.push(packed);
       refs.set(signature, n);
-      return "@" + n.toString(36);
+      return "%" + referenceIndex(n);
     }
     if (v === null || typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v)))
       return v;
@@ -299,22 +323,25 @@ export function packTerminalPayload(value: unknown): {
   const payload = encode(value),
     fragments: string[] = [],
     fragmentIds = new Map<string, number>();
-  const texts = strings.map((s) =>
-    s
-      .split(/([a-f0-9]{64})/)
-      .filter(Boolean)
-      .map((part) => {
-        let n = fragmentIds.get(part);
-        if (n === undefined) {
-          n = fragments.length;
-          fragments.push(
-            HASH.test(part) ? encodeHashFragment(part) : part.startsWith("!") ? "!" + part : part,
-          );
-          fragmentIds.set(part, n);
-        }
-        return n;
-      }),
-  );
+  const texts = strings.map((s) => {
+    // Share exact clock substrings too; no date parsing, rounding or reformatting.
+    // Keep the existing 32-part wire bound for adversarial multi-clock strings.
+    let parts = s
+      .split(/([a-f0-9]{64}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z)/)
+      .filter(Boolean);
+    if (parts.length > 32) parts = s.split(/([a-f0-9]{64})/).filter(Boolean);
+    return parts.map((part) => {
+      let n = fragmentIds.get(part);
+      if (n === undefined) {
+        n = fragments.length;
+        fragments.push(
+          HASH.test(part) ? encodeHashFragment(part) : part.startsWith("!") ? "!" + part : part,
+        );
+        fragmentIds.set(part, n);
+      }
+      return n;
+    });
+  });
   return { strings: fragments, texts, structures, payload };
 }
 export function unpackTerminalPayload(
@@ -351,12 +378,14 @@ export function unpackTerminalPayload(
       throw new Error("Terminal metadata decoding bound exceeded.");
     if (typeof v === "string") {
       if (v === "!-0") return -0;
-      if (!/^[$@][0-9a-z]+$/.test(v)) throw new Error("Malformed terminal reference.");
-      const n = parseInt(v.slice(1), 36),
-        pool = v[0] === "$" ? dictionary : structures;
-      if (!count(n, pool.length - 1) || n.toString(36) !== v.slice(1))
+      const compact = v[0] === "%" || v[0] === "&";
+      if (!compact && !/^[$@][0-9a-z]+$/.test(v)) throw new Error("Malformed terminal reference.");
+      const n = compact ? unpackReferenceIndex(v.slice(1)) : parseInt(v.slice(1), 36),
+        stringReference = v[0] === "$" || v[0] === "&",
+        pool = stringReference ? dictionary : structures;
+      if (!count(n, pool.length - 1) || (!compact && n.toString(36) !== v.slice(1)))
         throw new Error("Invalid terminal dictionary reference.");
-      if (v[0] === "$") return dictionary[n];
+      if (stringReference) return dictionary[n];
       if (active.has(n)) throw new Error("Cyclic terminal structure reference.");
       active.add(n);
       const decoded = decode(structures[n], depth + 1);

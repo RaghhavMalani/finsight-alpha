@@ -1069,8 +1069,9 @@ const ARCHIVE_BASE = "e65e6651ccbe758e490b2b48c240aac514cab7c6";
 const FIRST_RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
 const PREVIOUS_RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
 const THIRD_RECONCILED_MAIN = "32c3f827985dd5fbee0354780765e49e679cad57";
-const RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
-const CURRENT_AVAILABLE_BINDINGS = 347;
+const FOURTH_RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
+const RECONCILED_MAIN = "ec961d3caacd825233c788f195c5af0dd87998c3";
+const CURRENT_AVAILABLE_BINDINGS = 354;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1085,7 +1086,12 @@ const APPROVED_MODULE_NAMES = [
   "search",
 ];
 const EXCLUDED_LOCAL_COMMIT = "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d";
-const APPROVED_SCOPE_AMENDMENTS = ["frontend-v2/src/router.tsx"];
+const APPROVED_SCOPE_AMENDMENTS = [
+  "frontend-v2/src/router.tsx",
+  "frontend-v2/vite.config.ts",
+  "frontend-v2/src/routes/markets.$ticker.tsx",
+  "frontend-v2/scripts/verify-risk-manager.mjs",
+];
 const APPROVED_PLAN = "docs/phase7-5-connected-quant-terminal-plan.md";
 const APPROVED_PLAN_SHA256 = "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5";
 const git = (...args) => execFileSync("git", args, { cwd: root, maxBuffer: 64 * 1024 * 1024 });
@@ -1203,10 +1209,18 @@ for (const [label, extra, deleted] of [
   check(`scope sabotage rejects ${label}`, () =>
     assert.throws(() => verifyScope(extra, [], deleted)),
   );
-check("central router amendment allows only its one exact path", () => {
-  assert.deepEqual(APPROVED_SCOPE_AMENDMENTS, ["frontend-v2/src/router.tsx"]);
-  assert.throws(() => verifyScope(["frontend-v2/src/router-helper.ts"], []));
-});
+check(
+  "approved router build Market guard and Risk verifier amendments allow only their exact paths",
+  () => {
+    assert.deepEqual(APPROVED_SCOPE_AMENDMENTS, [
+      "frontend-v2/src/router.tsx",
+      "frontend-v2/vite.config.ts",
+      "frontend-v2/src/routes/markets.$ticker.tsx",
+      "frontend-v2/scripts/verify-risk-manager.mjs",
+    ]);
+    assert.throws(() => verifyScope(["frontend-v2/src/router-helper.ts"], []));
+  },
+);
 check("all nine protected frontend sources retain exact checkout bytes", () => {
   const protectedPaths = [
     "app/shell/ForgeShell.tsx",
@@ -1251,15 +1265,15 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const added = Object.keys(admittedManifest.artifacts).filter(
     (id) => !(id in baseManifest.artifacts),
   );
-  assert.equal(added.length, 28);
+  assert.equal(added.length, 35);
   assert.deepEqual(
     added.map((id) => admittedManifest.artifacts[id].kind).sort(),
-    [...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds]
+    [...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds]
       .map((kind) => "data-organ-" + kind)
       .sort(),
   );
   const clocks = new Set(added.map((id) => admittedManifest.artifacts[id].as_of));
-  assert.equal(clocks.size, 4);
+  assert.equal(clocks.size, 5);
   for (const kind of dataKinds)
     assert(
       added.includes(admittedManifest.routes["/data/" + kind]),
@@ -1273,7 +1287,7 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const upstreamPaths = splitZ(
     git("diff", "--no-renames", "--name-only", "-z", ARCHIVE_BASE, RECONCILED_MAIN),
   );
-  assert.equal(upstreamPaths.length, 50);
+  assert.equal(upstreamPaths.length, 61);
   assert(
     upstreamPaths.every(
       (p) =>
@@ -1301,7 +1315,8 @@ check("admitted main publication preserves every old entry and all non-Data alia
     [ARCHIVE_BASE, FIRST_RECONCILED_MAIN],
     [FIRST_RECONCILED_MAIN, PREVIOUS_RECONCILED_MAIN],
     [PREVIOUS_RECONCILED_MAIN, THIRD_RECONCILED_MAIN],
-    [THIRD_RECONCILED_MAIN, RECONCILED_MAIN],
+    [THIRD_RECONCILED_MAIN, FOURTH_RECONCILED_MAIN],
+    [FOURTH_RECONCILED_MAIN, RECONCILED_MAIN],
   ];
   for (const [from, to] of epochs) {
     assert.deepEqual(
@@ -1581,6 +1596,55 @@ check("Ctrl or Cmd K uses the same focus-capturing palette opener as the visible
   );
 });
 
+const referenceRepairCatalog = await import("../src/app/terminal/catalog.ts");
+check(
+  "compact references cross every radix boundary and retain literal/Unicode/clock strings",
+  () => {
+    const value = Array.from({ length: 8500 }, (_, i) => "reference-" + i);
+    value.push(
+      "%literal",
+      "&literal",
+      "!!literal",
+      "Unicode भारत",
+      "2026-10-31T07:07:00.827359Z".repeat(40),
+    );
+    const packed = referenceRepairCatalog.packTerminalPayload(value);
+    assert.deepEqual(
+      referenceRepairCatalog.unpackTerminalPayload(
+        packed.strings,
+        packed.payload,
+        packed.structures,
+        packed.texts,
+      ),
+      value,
+    );
+  },
+);
+check("compact references retain signed zero and all numeric scalar bounds", () => {
+  const value = [-0, 0, -1, 1, Number.MIN_VALUE, Number.MAX_VALUE, 1.25, null, true, false];
+  const packed = referenceRepairCatalog.packTerminalPayload(value);
+  assert.deepEqual(
+    referenceRepairCatalog.unpackTerminalPayload(
+      packed.strings,
+      packed.payload,
+      packed.structures,
+      packed.texts,
+    ),
+    value,
+  );
+});
+check(
+  "compact references reject empty invalid oversized noncanonical and out-of-pool indices",
+  () => {
+    for (const wire of ["&", "%", "&!!", '%"', "&!!!!", "%~", "&~"])
+      assert.throws(() => referenceRepairCatalog.unpackTerminalPayload(["x"], wire, [], [[0]]));
+  },
+);
+check("compact references retain legacy base36 strings and structures", () => {
+  assert.equal(referenceRepairCatalog.unpackTerminalPayload(["x"], "$0"), "x");
+  assert.deepEqual(referenceRepairCatalog.unpackTerminalPayload(["x"], "@0", [[0, "$0"]]), ["x"]);
+});
+
 const searchAmendmentProof = {};
 if (amendmentOnly) {
   const generator = await import("./generate-terminal-index.mjs"),
@@ -1610,7 +1674,7 @@ if (amendmentOnly) {
       };
       try {
         const rows = await catalog.validateNavigationProjection(projectionRaw());
-        assert.equal(rows.length, 523);
+        assert.equal(rows.length, 525);
         assert.equal(fetches, 0);
       } finally {
         globalThis.fetch = oldFetch;
@@ -1833,7 +1897,7 @@ if (amendmentOnly) {
     },
   );
   await checkAsync(
-    "approved history navigation export preserves fixed default payload and archive hashes and whole-file caps",
+    "approved lossless encoding preserves exact epoch wire hashes history partitions and whole-file caps",
     async () => {
       const bytes = readFileSync(
         path.join(frontend, "src/app/terminal/generated/history.generated.ts"),
@@ -1842,7 +1906,7 @@ if (amendmentOnly) {
       assert(marker > 0);
       assert.equal(
         hash(bytes.subarray(0, marker)),
-        "6f730278eaec8a506c8d3d99f01a9b419981016893d5a165b76616988deab7a1",
+        "3c135d85248cd231db3126e7d7cfd4af6ba31d93e5c5e5d30e7da87c30787cef",
       );
       assert.equal(
         hash(
@@ -1850,23 +1914,32 @@ if (amendmentOnly) {
             path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
           ),
         ),
-        "c9c40f9182c568904fea9d6ba8e8225336f377bfef84026e317661a29e6533b9",
+        "4e26bb7cf2376ee5af934512eb0d613b30d4aa401e46cbfe63e042058510da25",
       );
       assert(bytes.length <= 131072);
       assert(gzipSync(bytes, { level: 9 }).length <= 32768);
+      const defaultHistory = await catalog.loadTerminalShard("history"),
+        archiveHistory = await catalog.loadTerminalShard("history-archive");
+      assert.equal(defaultHistory.entities.length, 16);
+      assert.equal(defaultHistory.edges.length, 0);
+      assert.equal(Object.keys(defaultHistory.bindings).length, 16);
+      assert.equal(archiveHistory.entities.length, 306);
+      assert.equal(archiveHistory.edges.length, 516);
+      assert.equal(Object.keys(archiveHistory.bindings).length, 29);
       const records = await catalog.loadRetainedSearchNavigation();
-      assert.equal(records.length, 551);
+      assert.equal(records.length, 558);
       assert.equal(
         records.reduce((n, r) => n + r.choices.length, 0),
-        965,
+        972,
       );
       searchAmendmentProof.history = {
-        records: 551,
-        choices: 965,
+        records: 558,
+        choices: 972,
         wholeModuleDecodedBytes: bytes.length,
         wholeModuleGzipBytes: gzipSync(bytes, { level: 9 }).length,
-        unchangedDefault: true,
-        unchangedArchive: true,
+        defaultPartitionUnchanged: true,
+        archivePartitionUnchanged: true,
+        wireEncodingChangedWithApproval: true,
       };
     },
   );
@@ -2248,7 +2321,7 @@ if (!coreOnly || projectionsOnly) {
             generated.searchProjection,
             generated.shards.seed.manifestBinding,
           );
-          assert.equal(records.length, 523);
+          assert.equal(records.length, 525);
           assert.deepEqual(JSON.parse(JSON.stringify(records)), generated.currentSearchRecords);
           continue;
         }
@@ -4678,7 +4751,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        assert.equal(supported, 322); // Main00aa retains the prior315 and adds seven guarded Data originals.
+        assert.equal(supported, 329); // Main00aa retains the prior315 and adds seven guarded Data originals.
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,

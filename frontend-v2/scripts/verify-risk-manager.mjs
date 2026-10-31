@@ -359,6 +359,8 @@ assert.equal(
 // Exercise the still-supported direct-reference schema in legacy provenance rejection probes.
 function directReferenceFixture() {
   const value = structuredClone(state);
+  // Direct-reference legacy probes also hydrate the full reviewed policy from its bound leaf.
+  value.payload.policy = structuredClone(coverage.payload.policy);
   for (let index = 0; index < value.payload.issues.length; index++)
     value.payload.issues[index].evidence_refs = structuredClone(
       checkedIssueReferences(state.payload.issues[index], sweep),
