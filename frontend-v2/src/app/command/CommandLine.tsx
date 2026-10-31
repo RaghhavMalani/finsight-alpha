@@ -1,27 +1,96 @@
-import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { parseCommand } from "./mnemonics";
-import { setCurrentTicker, useCurrentTicker } from "@/replay/mode";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { WORKSPACES } from "../workspaces";
+import { useInvestigation } from "../terminal/TerminalShell";
+import type { CommandResolution } from "../terminal/commands";
+import { localLiveAllowed, setCurrentTicker, useDataMode } from "@/replay/mode";
+import { subjectTicker } from "../terminal/context";
+
+/** Cheap loading intent only. The unchanged mnemonic parser alone validates listing/exchange grammar. */
+export function commandIntent(text: string): "terminal" | "legacy" | "metadata" {
+  const tokens = text.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  if (["GO", "<GO>"].includes(tokens.at(-1) ?? "")) tokens.pop();
+  if (!tokens.length) return "metadata";
+  if (
+    /^(?:ISSUE|FACTOR|RUN|CHANGES|COMPARE|BUY|SELL|TRADE|ORDER|EXECUTE|TRAIN|FIT|REFRESH|CAPTURE|DEPLOY)$/.test(
+      tokens[0],
+    ) ||
+    (tokens.length > 1 && ["RISK", "DATA"].includes(tokens[0])) ||
+    (tokens.length === 2 && ["US", "INDIA"].includes(tokens[0]) && tokens[1] === "REG") ||
+    (tokens.length === 1 &&
+      WORKSPACES.some((w) => w.command === tokens[0] || w.label === tokens[0]))
+  )
+    return "terminal";
+  return tokens.length >= 2 &&
+    tokens.length <= 3 &&
+    /^(?:DES|GP|OMON|FA|REG|GE|RISK|FACT|EXEC|RES|OBS|AGENTS|DATA)$/.test(tokens.at(-1) ?? "")
+    ? "legacy"
+    : "metadata";
+}
 
 export function CommandLine() {
   const [text, setText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const current = useCurrentTicker();
+  const [message, setMessage] = useState<string | null>(null);
+  const [resolution, setResolution] = useState<CommandResolution>();
+  const [busy, setBusy] = useState(false);
+  const request = useRef(0);
+  const investigation = useInvestigation();
+  const mode = useDataMode();
   const navigate = useNavigate();
+  const invalidate = useCallback(() => {
+    request.current++;
+  }, []);
+  useEffect(() => {
+    invalidate();
+    setBusy(false);
+    setResolution(undefined);
+    setMessage(null);
+    return invalidate;
+  }, [investigation.key, investigation.navigationContext, investigation.error, mode, invalidate]);
+  const submit = async () => {
+    const ticket = ++request.current;
+    setResolution(undefined);
+    setBusy(true);
+    try {
+      if (investigation.error) throw new Error(investigation.error);
+      const { resolveCommandInput } = await import("../terminal/commands");
+      const result = await resolveCommandInput(text, investigation.navigationContext, {
+        legacy: commandIntent(text) === "legacy",
+        environment: {
+          hostname: window.location.hostname,
+          localLiveFlag: localLiveAllowed(),
+          mode,
+        },
+      });
+      if (ticket !== request.current) return;
+      setResolution(result);
+      if (result.status === "READY") {
+        const ticker = subjectTicker(result.target.context.subject);
+        if (ticker) setCurrentTicker(ticker);
+        setMessage(result.note ?? result.capability.reason);
+        investigation.openTarget(result.target);
+      } else if (result.status === "LEGACY_READY") {
+        const ticker = subjectTicker(result.navigation.context.subject);
+        if (ticker) setCurrentTicker(ticker);
+        setMessage(result.note);
+        void navigate({ to: result.navigation.to, search: result.navigation.search as never });
+      } else setMessage(`${result.reason} ${result.correction}`);
+    } catch (error) {
+      if (ticket === request.current)
+        setMessage(error instanceof Error ? error.message : "Command unavailable.");
+    } finally {
+      if (ticket === request.current) setBusy(false);
+    }
+  };
+  const failed = resolution?.status === "REJECTED" || resolution?.status === "CHOOSE";
   return (
     <form
       className="shell-command"
       aria-label="Terminal command"
+      aria-busy={busy}
       onSubmit={(event) => {
         event.preventDefault();
-        try {
-          const target = parseCommand(text, current);
-          if (target.instrument) setCurrentTicker(target.instrument.providerSymbol);
-          setError(null);
-          void navigate({ to: target.to, search: target.search as never });
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Command unavailable.");
-        }
+        void submit();
       }}
     >
       <div className="shell-command-row">
@@ -30,27 +99,51 @@ export function CommandLine() {
           id="terminal-command"
           autoComplete="off"
           spellCheck={false}
+          maxLength={160}
           value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setError(null);
+          onChange={(event) => {
+            request.current++;
+            setText(event.target.value);
+            setMessage(null);
+            setResolution(undefined);
+            setBusy(false);
           }}
-          placeholder="RELIANCE IN DES · SPY GP · TSM GE"
+          placeholder="INDIA REG · RISK HIGH · DATA IIMA"
           aria-describedby="terminal-command-help"
-          aria-invalid={!!error}
+          aria-invalid={failed}
         />
-        <button type="submit">
+        <button type="submit" disabled={busy}>
           GO <span aria-hidden="true">↵</span>
         </button>
       </div>
       <p
         id="terminal-command-help"
-        className={error ? "shell-command-error" : "shell-command-help"}
-        role={error ? "alert" : undefined}
+        className={failed ? "shell-command-error" : "shell-command-help"}
+        role={failed ? "alert" : "status"}
       >
-        {error ??
-          "Ticker · exchange · function. DES  GP  OMON  FA  REG  GE  RISK · FACT opens read-only factor evidence; EXEC is a future workspace."}
+        {busy
+          ? "Checking admitted navigation metadata…"
+          : (message ??
+            "TICKER [EXCHANGE] FUNCTION · US / INDIA REG · RISK HIGH · exact ISSUE / RUN · navigation only")}
       </p>
+      {failed && resolution.choices.length > 0 && (
+        <ul className="terminal-command-choices" aria-label="Exact command choices">
+          {resolution.choices.map((choice, index) => (
+            <li key={`${choice.artifactId ?? choice.label}|${index}`}>
+              {choice.target ? (
+                <Link to={choice.target.to as never} search={choice.target.search as never}>
+                  {choice.label}
+                  {choice.cutoff ? ` · ${choice.cutoff}` : ""}
+                </Link>
+              ) : (
+                <span>
+                  {choice.label} · UNAVAILABLE: {choice.reason ?? resolution.reason}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </form>
   );
 }
