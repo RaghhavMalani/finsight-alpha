@@ -14,7 +14,7 @@ def read(root,kind,sweep_id=None):
     receipt_id=m["routes"].get("/risk-manager/sweep"+suffix)
     if receipt_id is None:
         raise LookupError("UNAVAILABLE: no checked risk publication for this selection")
-    receipt=read_artifact(root,m,receipt_id)
+    receipt=read_artifact(root,m,receipt_id,wire=True)
     if receipt["kind"]!="risk-sweep" or (sweep_id is not None and receipt["payload"]["sweep_id"]!=sweep_id):
         raise ValueError("Receipt selector substitution")
     p=receipt["payload"]

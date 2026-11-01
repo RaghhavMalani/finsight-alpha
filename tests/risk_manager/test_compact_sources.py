@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from src.risk_manager import sweep
 from src.risk_manager.contracts import canonical
+from src.risk_manager.publication import prepare_public
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -12,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[2]
 def history(preflight):
     state,receipt=deepcopy(preflight["state"]),deepcopy(preflight["receipt"])
     sid="risk:state:"+sha256(canonical(state)+b"\n").hexdigest()
-    rid="risk:sweep:"+sha256(canonical(receipt)+b"\n").hexdigest()
+    rid="risk:sweep:"+sha256(prepare_public(receipt,ROOT)[2]).hexdigest()
     values={sid:state,rid:receipt}
     manifest={"routes":{"/risk-manager/state":sid,"/risk-manager/sweep":rid}}
     return values,manifest,sid,rid

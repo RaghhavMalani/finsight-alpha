@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 import { PINNED_POLICY, REPLAY_BINDINGS, FILE_BINDINGS } from "../src/risk-manager/bindings.ts";
 import { validateReplayManifest } from "../src/replay/contracts.ts";
@@ -70,6 +72,128 @@ for (const [id, entry] of Object.entries(manifest.artifacts)) {
   checks++;
 }
 assert(values.size >= 3, "Genuine retained artifacts must exist before UI acceptance");
+
+// Independent Python producer vectors: no sweep, capture, publication or source fixture edits.
+const vectorsProcess = spawnSync(
+  process.env.RISK_PYTHON || "python",
+  [
+    "-c",
+    `
+from pathlib import Path
+import json
+from src.risk_manager.contracts import decode, pack_sweep, digest
+root=Path.cwd()
+manifest=decode((root/'frontend-v2/public/replay-manifest.json').read_bytes())
+vectors=[]
+for identity,entry in manifest['artifacts'].items():
+    if entry['kind']!='risk-sweep': continue
+    logical=decode((root/'frontend-v2/public'/entry['url'].lstrip('/')).read_bytes())
+    vectors.append(dict(identity=identity,logical=logical,wire=pack_sweep(logical),observations_sha256=digest(logical['payload']['observations'])))
+print(json.dumps(vectors,ensure_ascii=True,separators=(',',':'),allow_nan=False))
+`,
+  ],
+  { cwd: fileURLToPath(repo), encoding: "utf8", maxBuffer: 8 * 1024 * 1024 },
+);
+assert.equal(vectorsProcess.status, 0, vectorsProcess.stderr + vectorsProcess.stdout);
+const transportVectors = JSON.parse(vectorsProcess.stdout.trim().split(/\r?\n/).at(-1));
+let transportChecks = 0;
+const { validateTerminalSource } = await import("./generate-terminal-index.mjs");
+for (const vector of transportVectors) {
+  assert.equal(
+    stable(vector.logical),
+    stable(values.get(vector.identity)),
+    "Python stdout preserves original Unicode exactly",
+  );
+  const hydrated = validateRisk(vector.wire, "risk-sweep");
+  await verifyRiskIdentity(hydrated);
+  assert.equal(stable(hydrated), stable(vector.logical));
+  assert.equal(
+    hash(Buffer.from(stable(hydrated.payload.observations))),
+    vector.observations_sha256,
+  );
+  const raw = Buffer.from(stable(vector.wire) + "\n");
+  const id = "risk:sweep:" + hash(raw);
+  const entry = {
+    ...manifest.artifacts[vector.identity],
+    bytes: raw.length,
+    sha256: hash(raw),
+    url: "/artifacts/replay/" + id.replaceAll(":", "-") + ".json",
+  };
+  assert.equal(
+    stable(await validateTerminalSource(id, entry, vector.wire)),
+    stable(vector.logical),
+    "Terminal joins retain complete hydrated references while original binding stays wire-based",
+  );
+  transportChecks += 3;
+}
+const vector = transportVectors.find((v) => v.wire.payload.evidence_ref_table.length > 2);
+assert(vector);
+for (const index of [
+  0,
+  1.0,
+  true,
+  null,
+  "",
+  "-0",
+  "+0",
+  "00",
+  "01",
+  "1.0",
+  "1e0",
+  " 0",
+  "0 ",
+  "0\n",
+  "0\r",
+  "0\u2028",
+  "0\u2029",
+  "1000",
+  "999",
+]) {
+  const bad = structuredClone(vector.wire);
+  bad.payload.observations[0].evidence_ref_indices[0] = index;
+  assert.throws(() => validateRisk(bad, "risk-sweep"));
+  transportChecks++;
+}
+for (const attack of [
+  "duplicate",
+  "unused",
+  "order",
+  "legacy-field",
+  "row-version",
+  "unknown",
+  "empty",
+  "nested",
+]) {
+  const bad = structuredClone(vector.wire),
+    p = bad.payload,
+    table = p.evidence_ref_table;
+  if (attack === "duplicate") table.push(structuredClone(table[0]));
+  if (attack === "unused") table.push({ ...table[0], selector_id: "unreferenced" });
+  if (attack === "order") {
+    [table[0], table[1]] = [table[1], table[0]];
+    for (const row of p.observations)
+      row.evidence_ref_indices = row.evidence_ref_indices.map((i) =>
+        i === "0" ? "1" : i === "1" ? "0" : i,
+      );
+  }
+  if (attack === "legacy-field") p.observations[0].evidence_refs = [table[0]];
+  if (attack === "row-version") p.observations[0].schema_version = "risk-observation/1";
+  if (attack === "unknown") p.unreviewed = true;
+  if (attack === "empty") table.length = 0;
+  if (attack === "nested") table[0].evidence_ref_indices = ["0"];
+  assert.throws(() => validateRisk(bad, "risk-sweep"));
+  transportChecks++;
+}
+// Logical hashes remain independent of a valid wire checksum/table shape.
+const wrong = structuredClone(vector.wire);
+wrong.payload.observations[0].fingerprint = "a".repeat(64);
+await assert.rejects(
+  async () => verifyRiskIdentity(validateRisk(wrong, "risk-sweep")),
+  /Observation derivation/,
+);
+transportChecks++;
+checks += transportChecks;
+
 const state = values.get(manifest.routes["/risk-manager/state"]);
 const sweep = values.get(manifest.routes["/risk-manager/sweep"]);
 assert.equal(state.kind, "risk-state");
@@ -616,7 +740,10 @@ assert(Math.max(...times) <= 100, "1000-Issue filter/sort/selection budget");
 const validations = performance
   .getEntriesByName("risk-contract-validation")
   .map((entry) => entry.duration);
-assert(Math.max(...validations) <= 50, "Synchronous recursive validation budget");
+assert(
+  Math.max(...validations) <= 50,
+  "Synchronous recursive validation budget: " + Math.max(...validations) + "ms",
+);
 const workspace = readFileSync(
   new URL("../src/risk-manager/RiskWorkspace.tsx", import.meta.url),
   "utf8",
@@ -643,6 +770,12 @@ console.log(
       schema_version: "risk-ui-static-proof/1",
       checks,
       risk_artifacts: values.size,
+      transport: {
+        cross_language_vectors: transportVectors.length,
+        checks: transportChecks,
+        wire_schema: "risk-sweep/2",
+        logical_roundtrip: "EXACT",
+      },
       issues: state.payload.issues.length,
       coverage_slots: coverage.payload.coverage.length,
       origin_proofs: originProofs,

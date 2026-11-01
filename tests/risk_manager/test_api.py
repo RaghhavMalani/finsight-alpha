@@ -60,3 +60,31 @@ def test_pinned_selection_and_verification_failure(monkeypatch):
     assert failed.status_code == 409
     assert "private fault" not in failed.text
     assert "no empty success" in failed.text
+
+
+def test_read_service_returns_verified_v2_wire_with_existing_get_guards(tmp_path, preflight, monkeypatch):
+    from hashlib import sha256
+    from src.risk_manager import service
+    from src.risk_manager.contracts import canonical, hydrate_sweep
+    from src.risk_manager.publication import publish
+    from test_publication import fixture_root
+    expected = fixture_root(tmp_path)
+    result = publish(tmp_path, preflight['state'], preflight['receipt'], expected_manifest=expected,
+                     extra_states=[preflight['coverage_state']])
+    wire = service.read(tmp_path, 'sweep')
+    assert wire['schema_version'] == 'risk-sweep/2'
+    assert hydrate_sweep(wire) == preflight['receipt']
+    assert len(canonical(wire) + b'\n') <= 128 * 1024
+    assert result['sweep_ref'].endswith(sha256(canonical(wire) + b'\n').hexdigest())
+    monkeypatch.setattr(route.config, 'APP_ENV', 'test')
+    monkeypatch.setattr(route, 'ROOT', tmp_path)
+    response = client(True).get('/risk-manager/sweep')
+    assert response.status_code == 200 and response.json() == wire
+    assert len(response.content) <= 128 * 1024
+    selector = wire['payload']['sweep_id']
+    assert client(True).get('/risk-manager/sweep?sweep_id=' + selector).json() == wire
+    assert client().get('/risk-manager/sweep').status_code == 401
+    assert client(True).post('/risk-manager/sweep').status_code == 405
+    assert client(True).get('/risk-manager/sweep?path=private').status_code == 422
+    monkeypatch.setattr(route.config, 'APP_ENV', 'production')
+    assert client(True).get('/risk-manager/sweep').status_code == 503

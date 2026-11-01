@@ -1071,6 +1071,8 @@ const PREVIOUS_RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
 const THIRD_RECONCILED_MAIN = "32c3f827985dd5fbee0354780765e49e679cad57";
 const FOURTH_RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
 const RECONCILED_MAIN = "ec961d3caacd825233c788f195c5af0dd87998c3";
+// Source scope follows independently audited main; generation expectations stay pinned until capacity passes.
+const IMPLEMENTATION_SCOPE_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
 const CURRENT_AVAILABLE_BINDINGS = 354;
 const APPROVED_MODULE_NAMES = [
   "seed",
@@ -1091,6 +1093,24 @@ const APPROVED_SCOPE_AMENDMENTS = [
   "frontend-v2/vite.config.ts",
   "frontend-v2/src/routes/markets.$ticker.tsx",
   "frontend-v2/scripts/verify-risk-manager.mjs",
+  "src/risk_manager/contracts.py",
+  "src/risk_manager/publication.py",
+  "src/risk_manager/sweep.py",
+  "src/risk_manager/service.py",
+  "frontend-v2/src/risk-manager/contracts.ts",
+  "frontend-v2/scripts/generate-terminal-index.mjs",
+  "frontend-v2/src/app/terminal/reader.ts",
+  "frontend-v2/scripts/verify-risk-browser.mjs",
+  "frontend-v2/scripts/verify-terminal-context.mjs",
+  "tests/risk_manager/test_contracts.py",
+  "tests/risk_manager/test_publication.py",
+  "tests/risk_manager/test_compact_lifecycle.py",
+  "tests/risk_manager/test_compact_sources.py",
+  "tests/risk_manager/test_sweep.py",
+  "tests/risk_manager/test_archive.py",
+  "tests/risk_manager/test_api.py",
+  "docs/phase7-5-connected-quant-terminal.md",
+  "docs/qa/phase7-5-connected-quant-terminal-proof.json",
 ];
 const APPROVED_PLAN = "docs/phase7-5-connected-quant-terminal-plan.md";
 const APPROVED_PLAN_SHA256 = "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5";
@@ -1190,10 +1210,20 @@ check("excluded local closure commit is absent from implementation ancestry", ()
   freezeProof.excludedCommitObjectAvailable = object.status === 0;
 });
 check("implementation uses exact Add/Change scope with no deletions", () => {
-  changedPaths = splitZ(git("diff", "--no-renames", "--name-only", "-z", RECONCILED_MAIN, "--"));
+  changedPaths = splitZ(
+    git("diff", "--no-renames", "--name-only", "-z", IMPLEMENTATION_SCOPE_MAIN, "--"),
+  );
   untrackedPaths = splitZ(git("ls-files", "--others", "--exclude-standard", "-z"));
   const deleted = splitZ(
-    git("diff", "--no-renames", "--name-only", "--diff-filter=D", "-z", RECONCILED_MAIN, "--"),
+    git(
+      "diff",
+      "--no-renames",
+      "--name-only",
+      "--diff-filter=D",
+      "-z",
+      IMPLEMENTATION_SCOPE_MAIN,
+      "--",
+    ),
   );
   verifyScope(changedPaths, untrackedPaths, deleted);
   freezeProof.implementationChangedPaths = changedPaths;
@@ -1210,13 +1240,31 @@ for (const [label, extra, deleted] of [
     assert.throws(() => verifyScope(extra, [], deleted)),
   );
 check(
-  "approved router build Market guard and Risk verifier amendments allow only their exact paths",
+  "approved router and nineteen-path Risk capacity amendments allow only their exact paths",
   () => {
     assert.deepEqual(APPROVED_SCOPE_AMENDMENTS, [
       "frontend-v2/src/router.tsx",
       "frontend-v2/vite.config.ts",
       "frontend-v2/src/routes/markets.$ticker.tsx",
       "frontend-v2/scripts/verify-risk-manager.mjs",
+      "src/risk_manager/contracts.py",
+      "src/risk_manager/publication.py",
+      "src/risk_manager/sweep.py",
+      "src/risk_manager/service.py",
+      "frontend-v2/src/risk-manager/contracts.ts",
+      "frontend-v2/scripts/generate-terminal-index.mjs",
+      "frontend-v2/src/app/terminal/reader.ts",
+      "frontend-v2/scripts/verify-risk-browser.mjs",
+      "frontend-v2/scripts/verify-terminal-context.mjs",
+      "tests/risk_manager/test_contracts.py",
+      "tests/risk_manager/test_publication.py",
+      "tests/risk_manager/test_compact_lifecycle.py",
+      "tests/risk_manager/test_compact_sources.py",
+      "tests/risk_manager/test_sweep.py",
+      "tests/risk_manager/test_archive.py",
+      "tests/risk_manager/test_api.py",
+      "docs/phase7-5-connected-quant-terminal.md",
+      "docs/qa/phase7-5-connected-quant-terminal-proof.json",
     ]);
     assert.throws(() => verifyScope(["frontend-v2/src/router-helper.ts"], []));
   },

@@ -2237,6 +2237,7 @@ export async function validateFullOriginal(
     closedOriginal(value, "market-series");
     validateMarketReplay(value, id.slice("market:".length), entry.as_of);
   } else if (entry.kind === "risk-state" || entry.kind === "risk-sweep") {
+    if (entry.bytes > 128 * 1024) throw new Error("Risk original wire exceeds 128 KiB budget.");
     const { validateRisk, verifyRiskIdentity } = await import("../../risk-manager/contracts.ts");
     const result = validateRisk(value, entry.kind);
     await verifyRiskIdentity(result);

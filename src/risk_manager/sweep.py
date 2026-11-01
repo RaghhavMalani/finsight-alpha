@@ -7,7 +7,7 @@ from .evidence import EvidenceReaders,freeze_inventory,forbidden_calls
 from .rules import evaluate
 from .monitoring import monitoring_operation
 from .reducer import reduce,observation_ref,lifecycle_anchors,lifecycle_history,checked_lifecycle_ids
-from .publication import LICENCE,publish,read_artifact,writer_lock,validate_public,source_observation,validate_observation_sources
+from .publication import LICENCE,publish,read_artifact,writer_lock,validate_public,prepare_public,source_observation,validate_observation_sources
 
 ROOT=Path(__file__).resolve().parents[2]
 SOURCE_FILES=("src/risk_manager/contracts.py","src/risk_manager/policy.py","src/risk_manager/evidence.py",
@@ -180,7 +180,7 @@ def _run(root=ROOT, *, clock_fn=now, publish_artifacts=True, failure_sink=None):
                         for k in ("new","unchanged","updated","resolved")},operation_proofs=proofs,
                     history_index=history,failure=None)
                 receipt=envelope("risk-sweep",receipt_payload,p,fingerprint,published)
-                validate_public(receipt,root)
+                prepare_public(receipt,root)
             if publish_artifacts:
                 publication=publish(root,state,receipt,expected_manifest=manifest_raw,extra_states=[leaf])
             else:

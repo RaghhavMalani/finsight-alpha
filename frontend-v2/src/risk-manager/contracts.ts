@@ -2098,6 +2098,52 @@ const SCHEMAS = {
   },
 } as unknown as Record<"risk-state" | "risk-sweep", Schema>;
 
+// Share the complete closed legacy field definitions; only reference transport changes.
+const WIRE_SWEEP_SCHEMA: Schema = (() => {
+  const sweep = SCHEMAS["risk-sweep"],
+    defs = sweep.$defs!;
+  const observation = defs.Observation,
+    payload = defs.SweepPayload;
+  const { evidence_refs, schema_version: _version, ...fields } = observation.properties!;
+  return {
+    ...sweep,
+    properties: { ...sweep.properties, schema_version: { type: "string", const: "risk-sweep/2" } },
+    $defs: {
+      ...defs,
+      ObservationWire: {
+        ...observation,
+        properties: {
+          ...fields,
+          schema_version: { type: "string", const: "risk-observation-wire/1" },
+          evidence_ref_indices: {
+            type: "array",
+            minItems: 1,
+            maxItems: 30,
+            items: { type: "string", pattern: "^(0|[1-9][0-9]{0,2})$" },
+          },
+        },
+        required: [
+          ...observation.required!.filter((key) => key !== "evidence_refs"),
+          "evidence_ref_indices",
+        ],
+      },
+      SweepPayload: {
+        ...payload,
+        properties: {
+          ...payload.properties,
+          observations: {
+            type: "array",
+            maxItems: 1000,
+            items: { $ref: "#/$defs/ObservationWire" },
+          },
+          evidence_ref_table: { type: "array", maxItems: 1000, items: evidence_refs.items },
+        },
+        required: [...payload.required!, "evidence_ref_table"],
+      },
+    },
+  };
+})();
+
 export function stable(value: unknown): string {
   if (Array.isArray(value)) return "[" + value.map(stable).join(",") + "]";
   if (value !== null && typeof value === "object") {
@@ -2134,7 +2180,7 @@ const SCHEMA_PATTERNS: ReadonlyMap<string, RegExp> = (() => {
     if (schema.items) visit(schema.items);
     for (const choice of [...(schema.anyOf ?? []), ...(schema.oneOf ?? [])]) visit(choice);
   };
-  Object.values(SCHEMAS).forEach(visit);
+  [...Object.values(SCHEMAS), WIRE_SWEEP_SCHEMA].forEach(visit);
   return patterns;
 })();
 const VALID_UTC_MICROS = new Map<string, bigint>();
@@ -2576,10 +2622,61 @@ function checkedFailureWitness(payload: Sweep["payload"]): string | undefined {
       return fail("Operational failure observation/Issue mismatch.");
   return witness;
 }
+function hydrateSweepWire(value: unknown): unknown {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    (value as Record<string, unknown>).schema_version !== "risk-sweep/2"
+  )
+    return value;
+  validate(value, WIRE_SWEEP_SCHEMA, WIRE_SWEEP_SCHEMA.$defs!, "risk-wire");
+  type WireRow = Omit<Observation, "schema_version" | "evidence_refs"> & {
+    schema_version: string;
+    evidence_ref_indices: string[];
+  };
+  const wire = value as Omit<Sweep, "schema_version" | "payload"> & {
+    schema_version: string;
+    payload: Omit<Sweep["payload"], "observations"> & {
+      observations: WireRow[];
+      evidence_ref_table: Ref[];
+    };
+  };
+  const { evidence_ref_table: table, observations, ...payload } = wire.payload;
+  // Reject forged large source bindings before repeated-reference allocation.
+  refsValid(table, wire.payload.policy_sha256, wire.evidence_cutoff);
+  if (new Set(table.map(stable)).size !== table.length) fail("Duplicate evidence table entry.");
+  const used = new Set<number>();
+  const hydrated = observations.map(
+    ({ schema_version: _version, evidence_ref_indices, ...row }) => ({
+      ...row,
+      schema_version: "risk-observation/1",
+      evidence_refs: evidence_ref_indices.map((text) => {
+        const slot = Number(text);
+        if (String(slot) !== text) return fail("Noncanonical evidence table index.");
+        if (slot >= table.length) return fail("Evidence table index out of range.");
+        if (!used.has(slot)) {
+          if (slot !== used.size) fail("Evidence table first-use order substituted.");
+          used.add(slot);
+        }
+        return structuredClone(table[slot]);
+      }),
+    }),
+  );
+  if (used.size !== table.length) fail("Unused evidence table entry.");
+  return {
+    ...wire,
+    schema_version: "risk-sweep/1",
+    payload: { ...payload, observations: hydrated },
+  };
+}
+
 export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"): State | Sweep {
   const validationStarted = performance.now();
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength + 1 > 128 * 1024)
+    fail("Risk artifact exceeds 128 KiB budget.");
   assertDerivedPayload(value);
   safeStrings(value);
+  if (kind === "risk-sweep") value = hydrateSweepWire(value);
   validate(value, SCHEMAS[kind], SCHEMAS[kind].$defs ?? {}, "risk");
   const v = value as State | Sweep;
   const admitted = reviewedMonitoringBundle(v.evidence_cutoff);
@@ -2791,7 +2888,24 @@ export async function verifyRiskIdentity(value: State | Sweep): Promise<void> {
     if (state_id !== (await digest(bare))) fail("State identity substituted.");
     await Promise.all(value.payload.issues.map(identity));
   } else {
-    await Promise.all(value.payload.observations.map(identity));
+    await Promise.all(
+      value.payload.observations.map(async (observation) => {
+        await identity(observation);
+        const {
+          observation_id,
+          fingerprint,
+          witnessed_at: _witness,
+          previous_observation_id: _previous,
+          ...relevant
+        } = observation;
+        if (
+          fingerprint !== (await digest(relevant)) ||
+          observation_id !==
+            (await digest(["risk-observation/1", observation.issue_id, fingerprint]))
+        )
+          fail("Observation derivation substituted.");
+      }),
+    );
     if (value.payload.failure) await identity(value.payload.failure.issue);
   }
 }

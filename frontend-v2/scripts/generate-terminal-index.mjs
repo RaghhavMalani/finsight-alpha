@@ -5848,6 +5848,8 @@ export async function validateTerminalSource(id, entry, value) {
     await verifyRiskIdentity(result);
     assert.equal(result.input_hash, entry.input_hash);
     assert.equal(result.published_at, entry.as_of);
+    assert(entry.bytes <= 128 * 1024, "Risk original wire byte cap");
+    return result;
   } else if (entry.kind === "hmm" || entry.kind === "signal") {
     closedSource(value, "trace-" + entry.kind);
     const result = validateTrace(value, {
@@ -6099,8 +6101,8 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     const bytes = Buffer.from(await readArtifactBytes(id, entry));
     assert.equal(bytes.length, entry.bytes, "Original byte count changed: " + id);
     assert.equal(hash(bytes), entry.sha256, "Original checksum changed: " + id);
-    const value = strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-    await validateTerminalSource(id, entry, value);
+    const original = strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    const value = (await validateTerminalSource(id, entry, original)) ?? original;
     values.set(id, value);
     closedReadSet.add(id);
     sourceChecks.push({
