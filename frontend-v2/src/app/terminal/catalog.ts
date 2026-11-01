@@ -88,7 +88,6 @@ export type TerminalPayload = {
 };
 export type PackedValue = null | boolean | number | string | PackedValue[];
 export type PackedShard = {
-  schema_version: "terminal-shard/1";
   generator_contract: typeof TERMINAL_CONTRACT;
   name: TerminalShardName;
   manifestBinding: { sha256: string; bytes: number; asOf: string };
@@ -97,7 +96,10 @@ export type PackedShard = {
   structures: PackedValue[];
   payload: PackedValue;
   payloadDigest: string;
-};
+} & (
+  | { schema_version: "terminal-shard/1"; layouts?: never }
+  | { schema_version: "terminal-shard/2"; name: "history-archive"; layouts: number[][] }
+);
 export type TerminalShard = TerminalPayload & Pick<PackedShard, "name" | "manifestBinding">;
 const HASH = /^[a-f0-9]{64}$/;
 const ENTITY_TYPES = new Set([
@@ -266,11 +268,15 @@ function unpackReferenceIndex(wire: string): number {
   if (referenceIndex(n) !== wire) throw new Error("Noncanonical compact terminal reference.");
   return n;
 }
-export function packTerminalPayload(value: unknown): {
+export function packTerminalPayload(
+  value: unknown,
+  withLayouts = false,
+): {
   strings: string[];
   texts: number[][];
   structures: PackedValue[];
   payload: PackedValue;
+  layouts?: number[][];
 } {
   const strings: string[] = [],
     indexes = new Map<string, number>(),
@@ -342,13 +348,34 @@ export function packTerminalPayload(value: unknown): {
       return n;
     });
   });
-  return { strings: fragments, texts, structures, payload };
+  if (!withLayouts) return { strings: fragments, texts, structures, payload };
+  const layouts: number[][] = [],
+    layoutIds = new Map<string, number>();
+  const records = structures.map((row) => {
+    if (!Array.isArray(row) || row[0] !== 1) return row;
+    const keys: number[] = [],
+      values: PackedValue[] = [];
+    for (let i = 1; i < row.length; i += 2) {
+      keys.push(row[i] as number);
+      values.push(row[i + 1]);
+    }
+    const signature = JSON.stringify(keys);
+    let index = layoutIds.get(signature);
+    if (index === undefined) {
+      index = layouts.length;
+      layouts.push(keys);
+      layoutIds.set(signature, index);
+    }
+    return [2, index, ...values];
+  });
+  return { strings: fragments, texts, structures: records, payload, layouts };
 }
 export function unpackTerminalPayload(
   strings: readonly string[],
   value: PackedValue,
   structures: readonly PackedValue[] = [],
   texts?: readonly number[][],
+  layouts?: readonly number[][],
 ): unknown {
   if (
     strings.length > 20000 ||
@@ -371,6 +398,61 @@ export function unpackTerminalPayload(
       })
     : fragments;
   if (dictionary.length > 20000) throw new Error("Terminal text dictionary bound exceeded.");
+  let fields: string[][] | undefined;
+  const layoutIndex = (n: unknown, maximum: number): n is number =>
+    count(n, maximum) && !Object.is(n, -0);
+  if (layouts !== undefined) {
+    if (!Array.isArray(layouts) || layouts.length > 256)
+      throw new Error("Terminal layout table bound exceeded.");
+    const seen = new Set<string>(),
+      nameIds = new Map<string, number>();
+    fields = Array.from(layouts, (keys) => {
+      if (
+        !Array.isArray(keys) ||
+        keys.length > 128 ||
+        Array.from(keys).some((key) => !layoutIndex(key, dictionary.length - 1))
+      )
+        throw new Error("Invalid terminal layout keys.");
+      const names = keys.map((key) => dictionary[key]);
+      if (
+        names.some(
+          (name, i) =>
+            typeof name !== "string" ||
+            ["__proto__", "prototype", "constructor"].includes(name) ||
+            (i > 0 && names[i - 1] >= name),
+        )
+      )
+        throw new Error("Duplicate, unsorted or unsafe terminal layout field.");
+      // Intern decoded names before comparing layouts; never duplicate expanded key text.
+      const signature = names
+        .map((name) => {
+          let id = nameIds.get(name);
+          if (id === undefined) {
+            id = nameIds.size;
+            nameIds.set(name, id);
+          }
+          return id;
+        })
+        .join(",");
+      if (seen.has(signature)) throw new Error("Duplicate terminal layout.");
+      seen.add(signature);
+      return names;
+    });
+    const used = new Set<number>();
+    for (const row of structures) {
+      if (!Array.isArray(row) || (row[0] !== 0 && row[0] !== 2))
+        throw new Error("Mixed or malformed terminal layout record.");
+      if (row[0] === 0) continue;
+      const index = row[1];
+      if (!layoutIndex(index, fields.length - 1) || row.length !== fields[index].length + 2)
+        throw new Error("Invalid terminal layout record arity or index.");
+      if (!used.has(index)) {
+        if (index !== used.size) throw new Error("Noncanonical terminal layout order.");
+        used.add(index);
+      }
+    }
+    if (used.size !== layouts.length) throw new Error("Unused terminal layout.");
+  }
   let visited = 0;
   const active = new Set<number>();
   function decode(v: PackedValue, depth: number): unknown {
@@ -394,6 +476,20 @@ export function unpackTerminalPayload(
     }
     if (Array.isArray(v)) {
       if (v[0] === 0) return v.slice(1).map((x) => decode(x, depth + 1));
+      if (fields) {
+        const index = v[1];
+        if (
+          v[0] !== 2 ||
+          !layoutIndex(index, fields.length - 1) ||
+          v.length !== fields[index].length + 2
+        )
+          throw new Error("Malformed terminal layout record.");
+        const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+        fields[index].forEach((name, i) => {
+          result[name] = decode(v[i + 2], depth + 1);
+        });
+        return result;
+      }
       if (v[0] !== 1 || v.length % 2 !== 1) throw new Error("Malformed terminal record.");
       const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
       for (let i = 1; i < v.length; i += 2) {
@@ -476,6 +572,10 @@ export async function validateTerminalShard(
     (expectedName === "seed" ? 48 : 128) * 1024
   )
     throw new Error("Terminal decoded metadata bound exceeded.");
+  const layoutWire =
+    !!value &&
+    typeof value === "object" &&
+    (value as Record<string, unknown>).schema_version === "terminal-shard/2";
   const raw = record(value, [
     "schema_version",
     "generator_contract",
@@ -486,10 +586,12 @@ export async function validateTerminalShard(
     "structures",
     "payload",
     "payloadDigest",
+    ...(layoutWire ? ["layouts"] : []),
   ]);
   const manifest = record(raw.manifestBinding, ["sha256", "bytes", "asOf"]);
   if (
-    raw.schema_version !== "terminal-shard/1" ||
+    (raw.schema_version !== "terminal-shard/1" && !layoutWire) ||
+    (layoutWire && (raw.name !== "history-archive" || !Array.isArray(raw.layouts))) ||
     raw.generator_contract !== TERMINAL_CONTRACT ||
     !SHARD_NAMES.includes(raw.name as TerminalShardName) ||
     (expectedName && raw.name !== expectedName) ||
@@ -516,6 +618,7 @@ export async function validateTerminalShard(
     texts: raw.texts,
     structures: raw.structures,
     payload: raw.payload,
+    ...(layoutWire ? { layouts: raw.layouts } : {}),
   };
   if ((await terminalDigest(sealed)) !== raw.payloadDigest)
     throw new Error("Terminal shard digest mismatch.");
@@ -525,6 +628,7 @@ export async function validateTerminalShard(
       raw.payload as PackedValue,
       raw.structures as PackedValue[],
       raw.texts as number[][],
+      layoutWire ? (raw.layouts as number[][]) : undefined,
     ),
     ["bindings", "routes", "entities", "edges", "projections", "bundles", "projectionPins"],
   );

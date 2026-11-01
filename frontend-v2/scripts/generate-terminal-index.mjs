@@ -7152,20 +7152,32 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     const payload = normalizedTerminalPayload(payloads[name]);
     if (payload.entities.length > 512)
       failures.push("Entity budget: " + name + "=" + payload.entities.length);
-    const packed = packTerminalPayload(payload);
+    const packed = packTerminalPayload(payload, name === "history-archive");
     assertExactRoundtrip(
       payload,
-      unpackTerminalPayload(packed.strings, packed.payload, packed.structures, packed.texts),
+      unpackTerminalPayload(
+        packed.strings,
+        packed.payload,
+        packed.structures,
+        packed.texts,
+        packed.layouts,
+      ),
     );
     assert.equal(
       stableTerminal(
-        unpackTerminalPayload(packed.strings, packed.payload, packed.structures, packed.texts),
+        unpackTerminalPayload(
+          packed.strings,
+          packed.payload,
+          packed.structures,
+          packed.texts,
+          packed.layouts,
+        ),
       ),
       stableTerminal(payload),
       "Lossy terminal packing",
     );
     const sealed = {
-      schema_version: "terminal-shard/1",
+      schema_version: name === "history-archive" ? "terminal-shard/2" : "terminal-shard/1",
       generator_contract: TERMINAL_CONTRACT,
       name,
       manifestBinding,
@@ -7190,6 +7202,14 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       projections: payload.projections.length,
       decodedBytes: bytes,
       unpackedJSONBytes: Buffer.byteLength(stableTerminal(payload)),
+      ...(packed.layouts
+        ? {
+            layoutEncoding: "terminal-shard/2",
+            layouts: packed.layouts.length,
+            layoutKeyIndices: packed.layouts.reduce((n, keys) => n + keys.length, 0),
+            maxLayoutKeys: Math.max(0, ...packed.layouts.map((keys) => keys.length)),
+          }
+        : {}),
       fragmentEncoding: "terminal-fragment/1",
       encodedHashFragments: packed.strings.filter((part) => part.startsWith("!1")).length,
       escapedLiteralFragments: packed.strings.filter((part) => part.startsWith("!!")).length,

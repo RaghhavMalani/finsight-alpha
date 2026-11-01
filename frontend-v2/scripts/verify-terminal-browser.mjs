@@ -162,7 +162,7 @@ function urlFor(workspace, route) {
   }
   return url.href;
 }
-async function pageFor(browser, viewport) {
+async function pageFor(browser, viewport, archiveFixture) {
   const context = await browser.newContext({ viewport, reducedMotion: "reduce" }),
     page = await context.newPage();
   page.setDefaultTimeout(20000);
@@ -199,6 +199,14 @@ async function pageFor(browser, viewport) {
       await route.abort("blockedbyclient");
       return;
     }
+    if (archiveFixture && /\/history-archive\.generated[-.]/.test(request.url())) {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/javascript",
+        body: "export default " + JSON.stringify(archiveFixture) + ";",
+      });
+      return;
+    }
     await route.continue();
   });
   page.on("response", (response) => {
@@ -212,7 +220,7 @@ async function pageFor(browser, viewport) {
       const data =
         /json/.test(mime) ||
         /\.json$/.test(url.pathname) ||
-        (js && /terminal-(?:shard|display)\/1/.test(body.toString("utf8")));
+        (js && /terminal-(?:shard|display)\/[12]/.test(body.toString("utf8")));
       responses.push({
         url: response.url(),
         status: response.status(),
@@ -1157,6 +1165,16 @@ async function verifyInitialPackagingBuild() {
     out = path.join(front, ".vercel/output/static/assets"),
     proof = path.join(root, process.env.TERMINAL_BROWSER_PROOF_DIR ?? ".tmp/phase75/initial-ci");
   mkdirSync(proof, { recursive: true });
+  execFileSync(
+    process.execPath,
+    [path.join(front, "scripts/verify-terminal-context.mjs"), "--navigation-only"],
+    {
+      cwd: root,
+      stdio: "inherit",
+      windowsHide: true,
+      env: { ...process.env, TERMINAL_PROOF_DIR: path.join(proof, "context") },
+    },
+  );
   const maps = path.join(proof, "hidden-maps");
   mkdirSync(maps, { recursive: true });
   const { createBuilder, version } = await import("vite");
@@ -1239,6 +1257,16 @@ async function verifyInitialPackagingBuild() {
         }
       });
     });
+    execFileSync(
+      process.execPath,
+      [fileURLToPath(import.meta.url), "--url", "http://127.0.0.1:4174", "--history-layout-only"],
+      {
+        cwd: root,
+        stdio: "inherit",
+        windowsHide: true,
+        env: { ...process.env, TERMINAL_BROWSER_PROOF_DIR: path.join(proof, "history-layout") },
+      },
+    );
     const args = [
       fileURLToPath(import.meta.url),
       "--url",
@@ -2199,6 +2227,141 @@ async function capacityStage() {
     "Capacity browser network/focus/latency verification failed",
   );
 }
+async function historyLayoutStage() {
+  report.mode = "HISTORY_LAYOUT_CODEC_BROWSER_STAGE";
+  report.layoutCodec = { evidenceClass: "ENGINEERING_QA", cases: [] };
+  const text = readFileSync(
+    path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
+    "utf8",
+  );
+  const archive = JSON.parse(text.match(/export default (\{.*\}) as const;/s)[1]);
+  assert.equal(archive.schema_version, "terminal-shard/2");
+  const { terminalDigest } = await import("../src/app/terminal/catalog.ts");
+  const cases = [
+    ["actual complete archive", null],
+    ["resealed missing layout", (p) => delete p.layouts],
+    ["resealed duplicate layout", (p) => p.layouts.push(p.layouts[0])],
+    ["resealed arity mismatch", (p) => p.structures.find((r) => r[0] === 2).pop()],
+    ["resealed out of pool layout", (p) => (p.structures.find((r) => r[0] === 2)[1] = 999)],
+    ["resealed mixed legacy object", (p) => (p.structures.find((r) => r[0] === 2)[0] = 1)],
+    ["resealed wrong module", (p) => (p.name = "risk")],
+    ["resealed cohort mismatch", (p) => (p.manifestBinding.sha256 = "a".repeat(64))],
+    ["resealed wire overflow", (p) => p.strings.push("x".repeat(131072))],
+    ["unsealed layout mutation", (p) => (p.layouts[0][0] = 0), false],
+  ];
+  for (const name of browsers) {
+    const browser = await (name === "firefox" ? firefox : chromium).launch(
+      name === "firefox" ? { headless: true } : { headless: true, channel: name },
+    );
+    try {
+      for (const [label, mutate, reseal = true] of cases) {
+        const changed = structuredClone(archive);
+        if (mutate) mutate(changed);
+        if (mutate && reseal) {
+          const { payloadDigest: _digest, ...sealed } = changed;
+          changed.payloadDigest = await terminalDigest(sealed);
+        }
+        const fixture = await pageFor(
+          browser,
+          { width: 1440, height: 1000 },
+          mutate ? changed : undefined,
+        );
+        try {
+          await check(name + " history layout " + label, async () => {
+            await fixture.page.goto(urlFor("risk", "/risk"), { waitUntil: "networkidle" });
+            assert(
+              !fixture.requests.some((r) => /\/history-archive\.generated[-.]/.test(r.url)),
+              "Archive loaded before invocation",
+            );
+            await fixture.page.keyboard.press("Control+k");
+            const dialog = fixture.page.getByRole("dialog", {
+              name: "Terminal command",
+              exact: true,
+            });
+            await dialog.waitFor();
+            await fixture.page.waitForFunction(paletteUsable);
+            assert(
+              !fixture.requests.some((r) => /\/history-archive\.generated[-.]/.test(r.url)),
+              "Current palette loaded archive",
+            );
+            const originalReads = fixture.requests.filter((r) =>
+              originals.has(new URL(r.url).pathname),
+            ).length;
+            await dialog
+              .getByRole("checkbox", { name: "Include retained history", exact: true })
+              .check();
+            await fixture.page.waitForFunction(
+              () =>
+                document.getElementById("forge-command-results")?.getAttribute("aria-busy") ===
+                "false",
+            );
+            await fixture.page.waitForLoadState("networkidle");
+            await Promise.all(fixture.pending);
+            const reads = fixture.responses.filter((r) =>
+              /\/history-archive\.generated[-.]/.test(r.url),
+            );
+            assert.equal(reads.length, 1, "Exactly one explicit archive module read");
+            assert.equal(
+              fixture.requests.filter((r) => originals.has(new URL(r.url).pathname)).length,
+              originalReads,
+              "History may not fetch scientific originals",
+            );
+            assert.deepEqual(fixture.responseErrors, []);
+            const options = dialog.getByRole("option");
+            if (mutate) {
+              assert.equal(
+                await options.count(),
+                0,
+                "Invalid archive must clear navigable results",
+              );
+              assert.match(
+                await dialog.locator('[aria-live="polite"]').innerText(),
+                /terminal|layout|shard|metadata|manifest|bound|record|digest/i,
+              );
+            } else
+              assert(
+                (await options.count()) > 0,
+                "Actual v2 history must produce usable retained results",
+              );
+            report.layoutCodec.cases.push({
+              browser: name,
+              label,
+              status: "PASS",
+              mutated: !!mutate,
+              archive: reads[0],
+              results: await options.count(),
+            });
+          });
+        } finally {
+          await fixture.context.close();
+        }
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+  assert.deepEqual(report.blockedRequests, []);
+  assert.deepEqual(report.pageErrors, []);
+  assert.deepEqual(report.consoleErrors, []);
+  report.status = report.failures.length ? "FAIL" : "PASS_HISTORY_LAYOUT_BROWSER_STAGE";
+  writeFileSync(
+    path.join(proofRoot, "history-layout-browser-proof.json"),
+    JSON.stringify(report, null, 2) + "\n",
+  );
+  console.log(
+    JSON.stringify({
+      status: report.status,
+      cases: report.layoutCodec.cases.length,
+      failures: report.failures.map((x) => ({ name: x.name, error: x.error.split("\n")[0] })),
+    }),
+  );
+  assert.equal(report.failures.length, 0, "History layout production browser checks failed");
+}
+if (process.argv.includes("--history-layout-only")) {
+  await historyLayoutStage();
+  process.exit(0);
+}
+
 if (process.argv.includes("--capacity-only")) {
   await capacityStage();
   process.exit(0);

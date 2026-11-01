@@ -1070,10 +1070,11 @@ const FIRST_RECONCILED_MAIN = "49d7e7467181e73a8c5c1d771f226ec87c181961";
 const PREVIOUS_RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
 const THIRD_RECONCILED_MAIN = "32c3f827985dd5fbee0354780765e49e679cad57";
 const FOURTH_RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
-const RECONCILED_MAIN = "ec961d3caacd825233c788f195c5af0dd87998c3";
-// Source scope follows independently audited main; generation expectations stay pinned until capacity passes.
+const FIFTH_RECONCILED_MAIN = "ec961d3caacd825233c788f195c5af0dd87998c3";
+const RECONCILED_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
+// Current generation pins advance only after two complete admitted layout-codec generations.
 const IMPLEMENTATION_SCOPE_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
-const CURRENT_AVAILABLE_BINDINGS = 354;
+const CURRENT_AVAILABLE_BINDINGS = 361;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1313,15 +1314,15 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const added = Object.keys(admittedManifest.artifacts).filter(
     (id) => !(id in baseManifest.artifacts),
   );
-  assert.equal(added.length, 35);
+  assert.equal(added.length, 42);
   assert.deepEqual(
     added.map((id) => admittedManifest.artifacts[id].kind).sort(),
-    [...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds]
+    [...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds]
       .map((kind) => "data-organ-" + kind)
       .sort(),
   );
   const clocks = new Set(added.map((id) => admittedManifest.artifacts[id].as_of));
-  assert.equal(clocks.size, 5);
+  assert.equal(clocks.size, 6);
   for (const kind of dataKinds)
     assert(
       added.includes(admittedManifest.routes["/data/" + kind]),
@@ -1335,7 +1336,7 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const upstreamPaths = splitZ(
     git("diff", "--no-renames", "--name-only", "-z", ARCHIVE_BASE, RECONCILED_MAIN),
   );
-  assert.equal(upstreamPaths.length, 61);
+  assert.equal(upstreamPaths.length, 72);
   assert(
     upstreamPaths.every(
       (p) =>
@@ -1364,7 +1365,8 @@ check("admitted main publication preserves every old entry and all non-Data alia
     [FIRST_RECONCILED_MAIN, PREVIOUS_RECONCILED_MAIN],
     [PREVIOUS_RECONCILED_MAIN, THIRD_RECONCILED_MAIN],
     [THIRD_RECONCILED_MAIN, FOURTH_RECONCILED_MAIN],
-    [FOURTH_RECONCILED_MAIN, RECONCILED_MAIN],
+    [FOURTH_RECONCILED_MAIN, FIFTH_RECONCILED_MAIN],
+    [FIFTH_RECONCILED_MAIN, RECONCILED_MAIN],
   ];
   for (const [from, to] of epochs) {
     assert.deepEqual(
@@ -1693,6 +1695,255 @@ check("compact references retain legacy base36 strings and structures", () => {
   assert.deepEqual(referenceRepairCatalog.unpackTerminalPayload(["x"], "@0", [[0, "$0"]]), ["x"]);
 });
 
+const layoutCodecProof = {
+  evidenceClass: "ENGINEERING_QA",
+  schema: "terminal-shard/2",
+  attacks: [],
+};
+const layoutDecode = (packed) =>
+  referenceRepairCatalog.unpackTerminalPayload(
+    packed.strings,
+    packed.payload,
+    packed.structures,
+    packed.texts,
+    packed.layouts,
+  );
+function exactLayoutValue(a, b) {
+  if (Object.is(a, b)) return;
+  assert(a !== null && b !== null && typeof a === "object" && typeof b === "object");
+  assert.equal(Array.isArray(a), Array.isArray(b));
+  assert.deepEqual(Object.keys(a).sort(), Object.keys(b).sort());
+  for (const key of Object.keys(a)) exactLayoutValue(a[key], b[key]);
+}
+for (const [name, value] of [
+  ["empty and repeated objects", [{}, {}, { a: 1, b: true }, { a: 2, b: false }]],
+  [
+    "Unicode clocks hashes and finite IEEE scalars",
+    {
+      भारत: [
+        "&literal",
+        "%literal",
+        "!-0",
+        "!",
+        "a".repeat(64),
+        "2026-11-01T07:42:18.604587Z",
+        -0,
+        0,
+        Number.MIN_VALUE,
+        Number.MAX_VALUE,
+        -1.25,
+        null,
+      ],
+    },
+  ],
+])
+  check("layout codec exact deterministic legacy coexistence: " + name, () => {
+    const legacy = referenceRepairCatalog.packTerminalPayload(value),
+      packed = referenceRepairCatalog.packTerminalPayload(value, true);
+    assert.equal(legacy.layouts, undefined);
+    exactLayoutValue(layoutDecode(legacy), value);
+    exactLayoutValue(layoutDecode(packed), value);
+    assert.deepEqual(packed, referenceRepairCatalog.packTerminalPayload(value, true));
+    const restored = packed.structures.map((row) =>
+      row[0] === 2 ? [1, ...packed.layouts[row[1]].flatMap((key, i) => [key, row[i + 2]])] : row,
+    );
+    assert.deepEqual(restored, legacy.structures);
+    assert.deepEqual(packed.strings, legacy.strings);
+    assert.deepEqual(packed.texts, legacy.texts);
+    assert.equal(packed.payload, legacy.payload);
+  });
+check("layout codec shared references hydrate isolated records", () => {
+  const packed = referenceRepairCatalog.packTerminalPayload({ a: { key: 1 }, b: { key: 1 } }, true);
+  const value = layoutDecode(packed);
+  value.a.key = 9;
+  assert.equal(value.b.key, 1);
+});
+check("layout codec accepts exact declared layout and key-width boundaries", () => {
+  const layouts = Array.from({ length: 256 }, (_, i) => ({
+    ["field" + String(i).padStart(3, "0")]: i,
+  }));
+  const wide = Object.fromEntries(
+    Array.from({ length: 128 }, (_, i) => ["field" + String(i).padStart(3, "0"), i]),
+  );
+  for (const value of [layouts, wide])
+    exactLayoutValue(layoutDecode(referenceRepairCatalog.packTerminalPayload(value, true)), value);
+});
+check("layout codec never merges signed-zero and positive-zero object records", () => {
+  const value = [{ a: -0 }, { a: 0 }, { a: -Number.MIN_VALUE }, { a: Number.MIN_VALUE }];
+  exactLayoutValue(layoutDecode(referenceRepairCatalog.packTerminalPayload(value, true)), value);
+});
+const simpleLayout = () => ({
+  strings: ["a", "b"],
+  texts: [[0], [1]],
+  structures: [[2, 0, 1]],
+  layouts: [[0]],
+  payload: "@0",
+});
+const layoutAttacks = [
+  ["sparse layout table", (p) => (p.layouts = Array(1))],
+  ["sparse key row", (p) => (p.layouts[0] = Array(1))],
+  ["table not array", (p) => (p.layouts = {})],
+  ["table overflow", (p) => (p.layouts = Array.from({ length: 257 }, () => []))],
+  ["key width overflow", (p) => (p.layouts[0] = Array(129).fill(0))],
+  ["key row not array", (p) => (p.layouts[0] = null)],
+  [
+    "duplicate decoded names",
+    (p) => {
+      p.strings[1] = "a";
+      p.layouts[0] = [0, 1];
+      p.structures[0].push(2);
+    },
+  ],
+  [
+    "unsorted decoded names",
+    (p) => {
+      p.layouts[0] = [1, 0];
+      p.structures[0].push(2);
+    },
+  ],
+  [
+    "duplicate layouts",
+    (p) => {
+      p.layouts.push([0]);
+      p.structures.push([2, 1, 2]);
+    },
+  ],
+  [
+    "duplicate layouts through duplicate dictionary text",
+    (p) => {
+      p.strings[1] = "a";
+      p.layouts.push([1]);
+      p.structures.push([2, 1, 2]);
+    },
+  ],
+  ["unused layout", (p) => p.layouts.push([1])],
+  [
+    "noncanonical first use",
+    (p) => {
+      p.layouts.push([1]);
+      p.structures = [
+        [2, 1, 1],
+        [2, 0, 2],
+      ];
+    },
+  ],
+  ["mixed legacy object", (p) => (p.structures[0] = [1, 0, 1])],
+  ["unknown object tag", (p) => (p.structures[0][0] = 9)],
+  ["nonarray structure", (p) => (p.structures[0] = 1)],
+  ["missing field", (p) => p.structures[0].pop()],
+  ["extra field", (p) => p.structures[0].push(2)],
+  ["structure cycle", (p) => (p.structures[0][2] = "@0")],
+  ["infinite scalar", (p) => (p.structures[0][2] = Infinity)],
+  ["NaN scalar", (p) => (p.structures[0][2] = NaN)],
+  ["fragment expansion", (p) => (p.strings[0] = "x".repeat(8194))],
+  ["text width", (p) => (p.texts[0] = Array(33).fill(0))],
+];
+for (const value of [-0, -1, 0.5, "0", null, NaN, Infinity, 20000]) {
+  layoutAttacks.push([
+    "invalid key index " + String(value) + (Object.is(value, -0) ? " negative-zero" : ""),
+    (p) => (p.layouts[0][0] = value),
+  ]);
+  layoutAttacks.push([
+    "invalid layout index " + String(value) + (Object.is(value, -0) ? " negative-zero" : ""),
+    (p) => (p.structures[0][1] = value),
+  ]);
+}
+for (const name of ["__proto__", "prototype", "constructor"])
+  layoutAttacks.push(["unsafe decoded key " + name, (p) => (p.strings[0] = name)]);
+for (const [name, mutate] of layoutAttacks)
+  check("layout codec rejects " + name, () => {
+    const packed = simpleLayout();
+    mutate(packed);
+    assert.throws(() => layoutDecode(packed));
+    layoutCodecProof.attacks.push(name);
+  });
+check("layout codec preserves depth and visit rejection", () => {
+  let value = null;
+  for (let i = 0; i < 66; i++) value = [0, value];
+  assert.throws(() =>
+    layoutDecode({ strings: [], texts: [], structures: [], layouts: [], payload: value }),
+  );
+  assert.throws(() =>
+    layoutDecode({
+      strings: [],
+      texts: [],
+      structures: [],
+      layouts: [],
+      payload: [0, ...Array(200001).fill(null)],
+    }),
+  );
+});
+const actualLayoutArchive = (
+  await import("../src/app/terminal/generated/history-archive.generated.ts")
+).default;
+await checkAsync(
+  "layout codec validates the actual current archive and legacy default history",
+  async () => {
+    const archive = await referenceRepairCatalog.validateTerminalShard(
+      actualLayoutArchive,
+      "history-archive",
+      actualLayoutArchive.manifestBinding,
+    );
+    assert.equal(archive.entities.length, 319);
+    const current = await referenceRepairCatalog.loadTerminalShard("history");
+    assert.equal(current.entities.length, 16);
+    layoutCodecProof.actualArchive = {
+      records: archive.entities.length,
+      layouts: actualLayoutArchive.layouts.length,
+      schema: actualLayoutArchive.schema_version,
+    };
+  },
+);
+for (const [name, mutate, reseal] of [
+  ["v2 outside archive", (p) => (p.name = "risk"), true],
+  ["v1 with layouts", (p) => (p.schema_version = "terminal-shard/1"), true],
+  ["unknown version", (p) => (p.schema_version = "terminal-shard/3"), true],
+  ["missing table", (p) => delete p.layouts, true],
+  ["unknown envelope field", (p) => (p.privateScope = "invented"), true],
+  ["altered manifest cohort", (p) => (p.manifestBinding.sha256 = "a".repeat(64)), true],
+  ["altered digest covered layout", (p) => (p.layouts[0][0] = 0), false],
+  ["oversized complete envelope", (p) => p.strings.push("x".repeat(131072)), true],
+  ["resealed invalid arity", (p) => p.structures.find((row) => row[0] === 2).pop(), true],
+  ["resealed duplicate layout", (p) => p.layouts.push(p.layouts[0]), true],
+])
+  await checkAsync("layout shard rejects " + name, async () => {
+    const changed = structuredClone(actualLayoutArchive);
+    mutate(changed);
+    if (reseal) {
+      const { payloadDigest: _digest, ...sealed } = changed;
+      changed.payloadDigest = await referenceRepairCatalog.terminalDigest(sealed);
+    }
+    await assert.rejects(
+      referenceRepairCatalog.validateTerminalShard(
+        changed,
+        undefined,
+        actualLayoutArchive.manifestBinding,
+      ),
+    );
+    layoutCodecProof.attacks.push(name);
+  });
+check("layout archive overflow hits real capacity barrier and writes zero outputs", () => {
+  const directory = path.join(frontend, "src/app/terminal/generated");
+  const snapshot = () =>
+    Object.fromEntries(
+      readdirSync(directory)
+        .filter((n) => n.endsWith(".generated.ts"))
+        .sort()
+        .map((n) => [n, hash(readFileSync(path.join(directory, n)))]),
+    );
+  const before = snapshot();
+  const fixture = `import assert from 'node:assert/strict';import{registerHooks}from'node:module';import{pathToFileURL}from'node:url';import{resolve}from'node:path';const target=pathToFileURL(resolve('frontend-v2/scripts/generate-terminal-index.mjs')).href;registerHooks({load(url,ctx,next){const r=next(url,ctx);if(url!==target)return r;const s=String(r.source),anchor='const packed = packTerminalPayload(payload, name === "history-archive");';assert.equal(s.split(anchor).length,2);return {...r,source:s.replace(anchor,anchor+'\\nif(name === "history-archive") packed.strings.push(...Array.from({length:20},(_,i)=>String(i).padStart(8,"0")+"x".repeat(8184)));')};}});const{generateTerminalIndex}=await import(target);await assert.rejects(generateTerminalIndex(),e=>{assert(e.message.startsWith('STOP: terminal capacity admission failed; no outputs written.'));assert(e.message.includes('Decoded module budget: history-archive='));return true;});console.log('PASS_REAL_CAPACITY_BARRIER_ZERO_OUTPUTS');`;
+  const run = spawnSync(process.execPath, ["--input-type=module", "-e", fixture], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024,
+  });
+  assert.equal(run.status, 0, run.stderr);
+  assert(run.stdout.includes("PASS_REAL_CAPACITY_BARRIER_ZERO_OUTPUTS"));
+  assert.deepEqual(snapshot(), before);
+  layoutCodecProof.capacityFailureWrites = 0;
+});
+
 const searchAmendmentProof = {};
 if (amendmentOnly) {
   const generator = await import("./generate-terminal-index.mjs"),
@@ -1722,7 +1973,7 @@ if (amendmentOnly) {
       };
       try {
         const rows = await catalog.validateNavigationProjection(projectionRaw());
-        assert.equal(rows.length, 525);
+        assert.equal(rows.length, 527);
         assert.equal(fetches, 0);
       } finally {
         globalThis.fetch = oldFetch;
@@ -1954,7 +2205,7 @@ if (amendmentOnly) {
       assert(marker > 0);
       assert.equal(
         hash(bytes.subarray(0, marker)),
-        "3c135d85248cd231db3126e7d7cfd4af6ba31d93e5c5e5d30e7da87c30787cef",
+        "6942f816fca891e7948d317bdc3bc4e18bbdc4fe44b6794c4cb8e984511ce70b",
       );
       assert.equal(
         hash(
@@ -1962,7 +2213,7 @@ if (amendmentOnly) {
             path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
           ),
         ),
-        "4e26bb7cf2376ee5af934512eb0d613b30d4aa401e46cbfe63e042058510da25",
+        "e5af1b6203003f3b589ac0670b7beffb74ea817f0314636184fe7674d0f80ad3",
       );
       assert(bytes.length <= 131072);
       assert(gzipSync(bytes, { level: 9 }).length <= 32768);
@@ -1971,18 +2222,18 @@ if (amendmentOnly) {
       assert.equal(defaultHistory.entities.length, 16);
       assert.equal(defaultHistory.edges.length, 0);
       assert.equal(Object.keys(defaultHistory.bindings).length, 16);
-      assert.equal(archiveHistory.entities.length, 306);
-      assert.equal(archiveHistory.edges.length, 516);
-      assert.equal(Object.keys(archiveHistory.bindings).length, 29);
+      assert.equal(archiveHistory.entities.length, 319);
+      assert.equal(archiveHistory.edges.length, 534);
+      assert.equal(Object.keys(archiveHistory.bindings).length, 30);
       const records = await catalog.loadRetainedSearchNavigation();
-      assert.equal(records.length, 558);
+      assert.equal(records.length, 565);
       assert.equal(
         records.reduce((n, r) => n + r.choices.length, 0),
-        972,
+        979,
       );
       searchAmendmentProof.history = {
-        records: 558,
-        choices: 972,
+        records: 565,
+        choices: 979,
         wholeModuleDecodedBytes: bytes.length,
         wholeModuleGzipBytes: gzipSync(bytes, { level: 9 }).length,
         defaultPartitionUnchanged: true,
@@ -2223,7 +2474,31 @@ if (!coreOnly || projectionsOnly) {
       const name = statement.name.text,
         actual = functionNamed(actualReader, name);
       assert(actual, name + " was removed");
-      const expected = printed(statement, priorReader);
+      let expected = printed(statement, priorReader);
+      if (name === "validateFullOriginal") {
+        const branch = 'else if (entry.kind === "risk-state" || entry.kind === "risk-sweep") {\n';
+        assert.equal(expected.split(branch).length, 2);
+        expected = expected.replace(
+          branch,
+          branch +
+            '        if (entry.bytes > 128 * 1024)\n            throw new Error("Risk original wire exceeds 128 KiB budget.");\n',
+        );
+        const approvedReader = ts.createSourceFile(
+          "approved-reader.ts",
+          gitText(
+            "show",
+            "6d50f5f893ec80518dfb40f7fc89ac7c07232f5e:frontend-v2/src/app/terminal/reader.ts",
+          ),
+          ts.ScriptTarget.Latest,
+          true,
+          ts.ScriptKind.TS,
+        );
+        assert.equal(
+          printed(actual, actualReader),
+          printed(functionNamed(approvedReader, name), approvedReader),
+          "Approved Risk capacity reader guard must stay exact",
+        );
+      }
       assert.equal(
         printed(actual, actualReader),
         name === "verifyDisplayProjection"
@@ -2296,13 +2571,22 @@ if (!coreOnly || projectionsOnly) {
   const readArtifactBytes = (_id, entry) => readFileSync(path.join(frontend, "public", entry.url));
   const clone = (v) => structuredClone(v);
   const decode = (shard) =>
-    catalog.unpackTerminalPayload(shard.strings, shard.payload, shard.structures, shard.texts);
+    catalog.unpackTerminalPayload(
+      shard.strings,
+      shard.payload,
+      shard.structures,
+      shard.texts,
+      shard.layouts,
+    );
   const reseal = async (value) => {
     const { payloadDigest: _digest, ...sealed } = value;
     return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
   };
   const repack = async (shard, payload) =>
-    reseal({ ...shard, ...catalog.packTerminalPayload(payload) });
+    reseal({
+      ...shard,
+      ...catalog.packTerminalPayload(payload, shard.schema_version === "terminal-shard/2"),
+    });
   const resealProjection = async (value) => {
     const { projectionDigest: _digest, ...sealed } = value;
     return { ...sealed, projectionDigest: await catalog.terminalDigest(sealed) };
@@ -2369,7 +2653,7 @@ if (!coreOnly || projectionsOnly) {
             generated.searchProjection,
             generated.shards.seed.manifestBinding,
           );
-          assert.equal(records.length, 525);
+          assert.equal(records.length, 527);
           assert.deepEqual(JSON.parse(JSON.stringify(records)), generated.currentSearchRecords);
           continue;
         }
@@ -4799,7 +5083,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        assert.equal(supported, 329); // Main00aa retains the prior315 and adds seven guarded Data originals.
+        assert.equal(supported, 336); // Independently admitted main4f preserves329 and adds seven complete Data originals.
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,
@@ -4905,6 +5189,7 @@ if (!coreOnly && !projectionsOnly && !navigationOnly)
     ),
   );
 const report = {
+  layoutCodec: layoutCodecProof,
   transport: transportProof,
   schema_version: "phase75-terminal-context-proof/1",
   status: failures.length ? "FAIL" : missingAreas.length ? "INCOMPLETE" : "PASS",
