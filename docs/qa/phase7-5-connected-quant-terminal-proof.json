@@ -25,7 +25,7 @@
   "initial_clean": true,
   "schema_version": "phase75-implementation-proof/1",
   "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
-  "status": "GENERATION_FRONTEND_PASS_ACTIVE_RISK_RECEIPT_CAPACITY_BLOCKED",
+  "status": "RISK_CAPACITY_AMENDMENT_PROPOSED_P0_BACKEND_BLOCKED",
   "unrelated_wip_imported": false,
   "checkpoint_head": "a8fd2dfb59085efb0793564904c7dd59412224a0",
   "reconciled_main": "ec961d3caacd825233c788f195c5af0dd87998c3",
@@ -160576,10 +160576,11 @@
       "operationalSweepPerformed": false,
       "diagnosticLogSha256": "8ccb74f05b66c7af408d8f2942d18401d651dcbd7119f06171f7e09e4f83fabc",
       "initialObserverHarnessError": "Temporary QA observer initially selected clock_fn rather than the exception argument. Corrected to capture the actual bounded receipt rejection; first trace retained privately.",
-      "decisionRequested": "Prepare a separate reviewed active Risk capacity amendment, or keep the Risk format frozen; no format/code amendment applied."
+      "decisionRequested": "Prepare a separate reviewed active Risk capacity amendment, or keep the Risk format frozen; no format/code amendment applied.",
+      "decisionReceived": "Prepare a separate Risk capacity amendment for review; implementation not approved"
     },
     "riskCapacityReview": {
-      "status": "SCOPE_DECISION_PENDING",
+      "status": "DESIGN_PREPARED_REVIEW_REQUIRED_NOT_IMPLEMENTED",
       "originalBoundary": "There is no proposed change to src/risk_manager/**; no production Risk modification is included.",
       "requiredDesign": "Choose a bounded lossless receipt representation with exact observation/evidence hydration, keeping every observation, origin, identity, first/last reference, policy/clock binding and atomic publication invariant. Existing RISK_OBSERVATION indirection can be evaluated only in a separately approved design; no compatibility assumption is made.",
       "possibleAffectedAreas": [
@@ -160594,7 +160595,8 @@
       ],
       "noBlanketScopeApprovalInferred": true,
       "noNewScientificArtifactKindOrCapProposed": true,
-      "implementationBeforeReview": false
+      "implementationBeforeReview": false,
+      "currentAmendmentEntry": "risk_capacity_amendment_nov1"
     },
     "initialJSRepair": "NOT_STARTED_WAIT_FOR_P0_RISK_SCOPE",
     "stage10": "STOPPED",
@@ -160621,6 +160623,328 @@
       "open": true,
       "unmerged": true,
       "autoMerge": false
+    }
+  },
+  "risk_capacity_amendment_nov1": {
+    "status": "PROPOSED_FOR_REVIEW_NOT_IMPLEMENTED",
+    "userDecisionDate": "2026-11-01",
+    "userDecision": "Prepare a separate Risk capacity amendment for review",
+    "authorization": {
+      "prepareReviewableDesign": true,
+      "implementActiveRiskChanges": false,
+      "operationalPublication": false
+    },
+    "baseSourceCommit": "2ee0aae447c958d08aa1c0f868bbf4530aaf134f",
+    "reconciledMain": "ec961d3caacd825233c788f195c5af0dd87998c3",
+    "excludedCommit": "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d",
+    "reportSection": "Separate Risk capacity amendment for review — not implemented",
+    "reportSectionSha256": "8d7083ce67f6263639cec31be2123976de834ed834221769f566069ee0e26a1e",
+    "scope": {
+      "add": [],
+      "change": [
+        "src/risk_manager/contracts.py",
+        "src/risk_manager/publication.py",
+        "src/risk_manager/sweep.py",
+        "src/risk_manager/service.py",
+        "frontend-v2/src/risk-manager/contracts.ts",
+        "frontend-v2/scripts/generate-terminal-index.mjs",
+        "frontend-v2/src/app/terminal/reader.ts",
+        "frontend-v2/scripts/verify-risk-manager.mjs",
+        "frontend-v2/scripts/verify-risk-browser.mjs",
+        "frontend-v2/scripts/verify-terminal-context.mjs",
+        "tests/risk_manager/test_contracts.py",
+        "tests/risk_manager/test_publication.py",
+        "tests/risk_manager/test_compact_lifecycle.py",
+        "tests/risk_manager/test_compact_sources.py",
+        "tests/risk_manager/test_sweep.py",
+        "tests/risk_manager/test_archive.py",
+        "tests/risk_manager/test_api.py",
+        "docs/phase7-5-connected-quant-terminal.md",
+        "docs/qa/phase7-5-connected-quant-terminal-proof.json"
+      ],
+      "delete": [],
+      "changeCount": 19,
+      "potentialImplementationAndTestChanges": 17,
+      "currentCheckpointChanges": [
+        "docs/phase7-5-connected-quant-terminal.md",
+        "docs/qa/phase7-5-connected-quant-terminal-proof.json"
+      ],
+      "unlistedEditsRequireSeparateReview": true,
+      "immutableOriginalPlan": "docs/phase7-5-connected-quant-terminal-plan.md",
+      "immutableOriginalPlanSha256": "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5"
+    },
+    "representation": {
+      "wireSchema": "risk-sweep/2",
+      "kind": "risk-sweep",
+      "namespace": "risk:sweep:<sha256 of actual raw wire bytes>",
+      "logicalSweepSchema": "risk-sweep/1",
+      "wireObservationSchema": "risk-observation-wire/1",
+      "logicalObservationSchema": "risk-observation/1",
+      "tableField": "payload.evidence_ref_table",
+      "indexField": "payload.observations[].evidence_ref_indices",
+      "indexRepresentation": "canonical decimal strings",
+      "indexPattern": "^(0|[1-9][0-9]{0,2})$",
+      "maxUniqueReferences": 1000,
+      "maxObservations": 1000,
+      "maxReferencesPerObservation": 30,
+      "maxIndexOccurrences": 30000,
+      "tableOrder": "first complete canonical reference occurrence across the unchanged observation order",
+      "tableEquality": "entire canonical Ref object including selectors, sources, clocks, bytes, digests, run, policy and frozen assertions",
+      "rejectUnusedOrDuplicateEntries": true,
+      "preserveReferenceOrderAndDuplicateOccurrences": true,
+      "recursiveTables": false,
+      "compressedPayloads": false,
+      "newHistoryReferences": false,
+      "unchangedFields": "All remaining values, including complete origins, assertions, clocks, first/latest/resolution witnesses, input inventory, transitions, history, failures, operation proofs and six false claims",
+      "logicalRoundtripEquation": "canonical(hydrate(pack(logical))) == canonical(logical)",
+      "hashesUseHydratedObservations": true,
+      "sweepIdDomainUnchanged": "risk-sweep/1",
+      "artifactHashesUseActualWire": true,
+      "writer": "Validate complete logical input; keep v1 if bytes fit, otherwise try the one canonical v2 candidate; require strictly smaller complete wire within unchanged cap or fail closed",
+      "reader": "Strict explicit wire dispatch; raw bytes/SHA/cap before bounded hydration; never automatically repack an invalid incoming wire",
+      "publication": "Producer preparation returns semantic view and actual wire separately; persist/hash only wire; source, lifecycle, state pair and atomic manifest checks use the matching logical view",
+      "api": "Existing GET service returns the checked wire receipt after logical selector/state checks; no expanded oversized v1 body served",
+      "browser": "validateRisk returns complete logical Sweep; checked Risk client raw checks stay unchanged; full observation derivation parity; terminal generator retains normalized result for source joins",
+      "historicalEvaluator": "Retain original source hashes and own-epoch authority; current hash only required for newly prepared publication; existing eight source files and identity formulas remain"
+    },
+    "measurements": {
+      "classification": "ENGINEERING_QA sizing/roundtrip only; no implemented contract or successful publication",
+      "rejectedIntegerIndexShape": {
+        "label": "ENGINEERING_QA design-only in-memory transform; not publisher output or accepted contract",
+        "source_commit": "2ee0aae447c958d08aa1c0f868bbf4530aaf134f",
+        "original_bytes": 132431,
+        "candidate_bytes": 122915,
+        "limit": 131072,
+        "headroom": 8157,
+        "observations": 35,
+        "origin_records": 65,
+        "reference_occurrences": 35,
+        "unique_references": 13,
+        "reference_types": [
+          "FROZEN_FILE",
+          "POLICY_ASSERTION",
+          "REPLAY_ARTIFACT"
+        ],
+        "roundtrip_canonical_equal": true,
+        "expanded_observation_digest": "d040bb881b1c03d6ef119a73634fe7c3bf4c447eaeeadea67f1459f739403261",
+        "retained_scientific_writes": 0,
+        "production_code_changed": false,
+        "original_size_guard_bypassed": false,
+        "disposition": "SET_ASIDE_FOR_CROSS_LANGUAGE_TYPE_LEXEME_PARITY",
+        "reason": "JavaScript JSON parsing erases distinction between integer and integral floating numeric tokens; canonical decimal strings preserve strict parity without changing shared parser"
+      },
+      "proposedDecimalStringShape": {
+        "index_format": "canonical decimal strings",
+        "label": "ENGINEERING_QA design-only in-memory transform; not publisher output or accepted contract",
+        "source_commit": "2ee0aae447c958d08aa1c0f868bbf4530aaf134f",
+        "original_bytes": 132431,
+        "candidate_bytes": 122985,
+        "limit": 131072,
+        "headroom": 8087,
+        "observations": 35,
+        "origin_records": 65,
+        "reference_occurrences": 35,
+        "unique_references": 13,
+        "reference_types": [
+          "FROZEN_FILE",
+          "POLICY_ASSERTION",
+          "REPLAY_ARTIFACT"
+        ],
+        "roundtrip_canonical_equal": true,
+        "expanded_observation_digest": "d5d8add675dde1e2ad13cfcf4e257a71f7de3e5c47ac28a8fa7d5f1016dee1e4",
+        "retained_scientific_writes": 0,
+        "production_code_changed": false,
+        "original_size_guard_bypassed": false
+      },
+      "indexStringOverheadBytes": 70,
+      "savedBytes": 9446,
+      "expectedTestResult": "Both focused observer runs remain FAILED at the original oversized v1 publication guard; no guard bypass",
+      "distinctWitnessClocks": "The probes run the same existing memory-only case twice. Observations have distinct run witness clocks; equality is asserted within each run, not between run digests.",
+      "implementationValidation": "NOT_RUN_NOT_IMPLEMENTED",
+      "futureCapacityGuaranteed": false,
+      "artifacts": {
+        ".tmp/phase75/risk-capacity-amendment/probe.py": "d2ea221ddff429a0af89d9f12b24bccf4b777386b989e004f4765d3770e8bb18",
+        ".tmp/phase75/risk-capacity-amendment/probe.log": "69d0315b90e47ac3bf771fab91c89fcd11a876d11e7485c3828c2815b1c96b46",
+        ".tmp/phase75/risk-capacity-amendment/representation-probe.json": "685c256928bee377939000d359d16de9ce281844310da44359fcc9df2bdf7989",
+        ".tmp/phase75/risk-capacity-amendment/probe-decimal.py": "ae8b5f65c8810fc4e0531c0d42523c8ff0b6ea7093c0b90dd4d7e461d14fd554",
+        ".tmp/phase75/risk-capacity-amendment/probe-decimal.log": "c03be6d13b343970cf8e6eaf1217df624a4200cd10eb4edc7ac0bc7e4ff99f36",
+        ".tmp/phase75/risk-capacity-amendment/decimal-representation-probe.json": "218ec955675587d68607234d2ad10fe9fbbb7ca063cb4361b8852ea753d71a08"
+      }
+    },
+    "unchangedCaps": {
+      "riskArtifactAndServedReceiptBytes": 131072,
+      "initialRiskArtifactUnionBytes": 262144,
+      "completeInitialDataBytes": 524288,
+      "explicitOriginalBytes": 2097152,
+      "synchronousRiskValidationMs": 50,
+      "terminalCoreGzipBytes": 24576,
+      "riskInitialProjectGzipBytes": 65536,
+      "factorsInitialProjectGzipBytes": 65536,
+      "commandSearchCodeAndMetadataGzipBytes": 32768,
+      "allGeneratedModuleCaps": "UNCHANGED"
+    },
+    "requiredAcceptance": [
+      "Explicit implementation approval of representation and exact 19-path scope before active code edits",
+      "Untouched v1 archive passes before writer integration; mixed v1/v2 isolated chains preserve full logical source/lifecycle/origin joins",
+      "Cross-language full roundtrip and logical identity derivation, strict bounds/types/versions, wrong valid target and resealed wire/manifest sabotage",
+      "Complete existing backend Risk suite including all original failures/errors, origin conservation, >100 lifecycle events, failure-repair-reopen and no-op zero writes",
+      "Every emitted QA artifact and GET receipt body <=131072 actual bytes; old oversized v1 incoming wire still rejects",
+      "All existing 182 frontend Risk and 560/237 original terminal checks plus four current codec tests and new cases; typecheck/lint/build and deterministic generation",
+      "Chrome/Edge/Firefox isolated v2 success/failure/source-owner/sabotage and ordinary unchanged real Replay with no provider/private calls",
+      "Fresh exact-head CI and frozen byte verification; P1-P4 exact initial JS/cold interaction gates remain independent"
+    ],
+    "fixtureRepairs": {
+      "productionReducerUnchanged": true,
+      "exactLegacyOrAnchors": "Choose by reconstructed lifecycle length and compare an explicit full legacy index against exact anchors, retaining omission/injection/order sabotage",
+      "hydratedHistory": "Hydrate complete IDs before saving expected full Issue; retain repeat/resolution/reopen assertions",
+      "semanticMutations": "Prepare actual wire before incoming validation so intended semantic guards, not unrelated overflow, are tested"
+    },
+    "ci": {
+      "checkedHead": "2ee0aae447c958d08aa1c0f868bbf4530aaf134f",
+      "syntheticMerge": "a9d210cd12cb9f10bb7ccc92e26f1d134157c32b",
+      "runId": 41231925764,
+      "url": "https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41231925764",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "truth-contract",
+          "id": 124627756901,
+          "conclusion": "success"
+        },
+        {
+          "name": "regimes",
+          "id": 124627757054,
+          "conclusion": "success"
+        },
+        {
+          "name": "backend",
+          "id": 124627757108,
+          "conclusion": "failure",
+          "riskTests": {
+            "failed": 6,
+            "passed": 141,
+            "setupErrors": 62
+          }
+        },
+        {
+          "name": "frontend",
+          "id": 124627757126,
+          "conclusion": "failure",
+          "installGenerationBuildStatic": "PASS",
+          "failure": "Exact terminal initial ownership/equivalence; mixed/unknown bodies plus earlier-main/timezone baseline mismatch",
+          "laterBrowserStages": "SKIPPED"
+        }
+      ],
+      "failureEvidencePreserved": true,
+      "noCurrentGreenCIClaim": true,
+      "documentationHeadCI": "SEPARATE_PENDING_PUBLICATION"
+    },
+    "verification": {
+      "archive": {
+        "base": "16db82c5f2f50b98253df9989c586cd45aa98f6b",
+        "d6": "DISABLED / DEFERRED",
+        "frozen_files": 930,
+        "prior_artifacts": 221,
+        "prior_routes": 126,
+        "risk_artifacts": 27,
+        "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+        "status": "VERIFIED",
+        "withdrawals": 6
+      },
+      "protectedSources": [
+        {
+          "path": "frontend-v2/src/app/shell/ForgeShell.tsx",
+          "sha256": "8ff7d29f58a6ace9ac22d88f29e87f1e13ff2e36dddae93626974c9dd998aee2"
+        },
+        {
+          "path": "frontend-v2/src/markets/queries.ts",
+          "sha256": "2813ce7b5586b56f96d0116facf3976cc49af7ed39193d7617617c18ecb4980a"
+        },
+        {
+          "path": "frontend-v2/src/replay/client.ts",
+          "sha256": "85f8fcd4860aab0aa20c7a072338018cac4b1d51d13f482da44ad4b64aac3cb9"
+        },
+        {
+          "path": "frontend-v2/src/replay/contracts.ts",
+          "sha256": "11f8b4fa7c71fd1facce5c5ef1fb42b0f89b1dd2f380ad1048effc5f40e2ea33"
+        },
+        {
+          "path": "frontend-v2/src/replay/FactorRegimeEvidence.tsx",
+          "sha256": "0b6b087176475641492987e50f00f5fe806b19bc07544782bddfe4e2c67b6176"
+        },
+        {
+          "path": "frontend-v2/src/replay/SourceCredit.tsx",
+          "sha256": "4d19324a60a5c2837d0930d376d931657e33909ec1b639ea52945d26fdc6adec"
+        },
+        {
+          "path": "frontend-v2/src/replay/factor-series.ts",
+          "sha256": "d57d14cb2dd0fda33e90fb6c90f82f1e978fb35c4a1ea2a6acd6225533bdcf59"
+        },
+        {
+          "path": "frontend-v2/src/replay/mode.tsx",
+          "sha256": "6b11eec3502b5315cbe742180e392385f5bca91788801e0f6a8b7a089ff60353"
+        },
+        {
+          "path": "frontend-v2/src/replay/observatory.ts",
+          "sha256": "45dc09df9b12b269c613744f224aa0c41bebd72ab45439d996af942b040b1646"
+        }
+      ],
+      "planUnchanged": true,
+      "packageLockUnchanged": true,
+      "potentialImplementationSources": {
+        "src/risk_manager/contracts.py": "9c982924428f3ec09e39d29af81527cf774d754a27da4a7ee52a108c717aae82",
+        "src/risk_manager/publication.py": "710cfbf40f6b793e9a77cd597992897f3ecd21a4697d2cc2d9b71d4bbf53366f",
+        "src/risk_manager/sweep.py": "543e80bb149760306b15f4cb2162e7a8db19580570476b648f496ff9e1c6782b",
+        "src/risk_manager/service.py": "4c17686ecf2879772098d36d0d5746ed6b656dbfda751d590b77fd954410a605",
+        "frontend-v2/src/risk-manager/contracts.ts": "eadb6f9762163a3e0ddbb7e15eb241c0fecfc97b563913e7a6f64dee1161de37",
+        "frontend-v2/scripts/generate-terminal-index.mjs": "396371ed554ad2729b6ebf5db77086b1b5263f4fd8bb08231e9ea8ae33682c79",
+        "frontend-v2/src/app/terminal/reader.ts": "a0768f64c1c1fd2432174ed5b3d65796f75a6d600c620a807a5a92840c56a7cc",
+        "frontend-v2/scripts/verify-risk-manager.mjs": "772b9aff5480475a027b4c2c1ffe69456a7e69df439ca76e600bde97f457cc80",
+        "frontend-v2/scripts/verify-risk-browser.mjs": "042917c19be0e8701f05a86df08a98b048bd47679b33f1fd91203bdb22cf81e2",
+        "frontend-v2/scripts/verify-terminal-context.mjs": "f342e790b14fb785756b28abf22446b14da1366a57ad62021c407ca95a0b7849",
+        "tests/risk_manager/test_contracts.py": "88e4b38d3597cdf867c4aa2b776f62879ca77c4160e8ef14f7dae22b9ae8c724",
+        "tests/risk_manager/test_publication.py": "d63ca01ca795fcc136889e580befe14f898fb77259a662dc427d5c8ceea91fdb",
+        "tests/risk_manager/test_compact_lifecycle.py": "aa28d1b15dadedbc3e0f45bdc462e914e8ed091590ebba8a163b983ab896e71a",
+        "tests/risk_manager/test_compact_sources.py": "5cbb3489f6e5bfcf6a99c08cebe0bac6c5e74f90a46f5b162070ad96416805ab",
+        "tests/risk_manager/test_sweep.py": "f8a4f5b027c5fab6eb8ecf2e8aaff1bfac6251f748790332dda0bd4d144c1141",
+        "tests/risk_manager/test_archive.py": "8933362e624f8584a6f21e6090dfb7b24c959dafb16886e26166bf782ed9f9ce",
+        "tests/risk_manager/test_api.py": "8873b1725e38650532ed770f13e0ddc655465722fa43f7661b3b506c1ff96c24"
+      },
+      "activeProductionChanges": 0,
+      "retainedScientificWrites": 0,
+      "excludedCommitIsAncestor": false,
+      "remoteMainVerified": "ec961d3caacd825233c788f195c5af0dd87998c3"
+    },
+    "boundaries": {
+      "scientificOperationIncrements": {
+        "providerCaptures": 0,
+        "modelRuns": 0,
+        "pluginRuns": 0,
+        "seriesModelRuns": 0,
+        "factorFits": 0,
+        "researchAttempts": 0,
+        "holdoutOpenings": 0,
+        "simulatorRuns": 0,
+        "operationalRiskSweeps": 0,
+        "regimeRefreshes": 0,
+        "scientificPublications": 0
+      },
+      "allClaimFlagsFalse": true,
+      "D6": "DISABLED_DEFERRED",
+      "riskScheduling": "DISABLED",
+      "regimeScheduling": "DISABLED",
+      "productionMigration": "NOT_AUTHORIZED",
+      "futurePublication": "Requires separate authority after compatible readers are deployed",
+      "rollbackLimitation": "V1-only reader cannot read a future published v2 receipt; immutable bytes cannot be rewritten",
+      "initialJS": "NOT_STARTED_P0_BACKEND_BLOCKED",
+      "stage10": "STOPPED",
+      "pr": {
+        "number": 30,
+        "draft": true,
+        "open": true,
+        "unmerged": true,
+        "autoMerge": false
+      }
     }
   }
 }

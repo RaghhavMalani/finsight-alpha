@@ -1,6 +1,6 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
-## November 1 approved P0 repair — frontend unblocked; active Risk capacity decision required
+## November 1 approved P0 repair — frontend unblocked; Risk capacity amendment proposed
 
 The user approved the scoped plan and listed amendments. Source checkpoint `e013fea62f3835deb63d8a4ff473069f8780bdd0` implements generation and frontend-verifier repairs only. Initial-JS implementation has not started: the requested order keeps it behind the remaining backend blocker. PR #30 stays draft/open/unmerged, auto-merge off.
 
@@ -45,19 +45,155 @@ The boundary correctly rejects the oversized value and returns FAILED/ARTIFACT_I
 
 The approved plan explicitly says **“There is no proposed change to `src/risk_manager/**`”** and **“no production Risk modification is included.”** A generic frontend/test change cannot lawfully make this oversized closed-format receipt pass. No active Risk code, closed schema, scientific policy, retained artifact or evaluator hash has been changed. No operational Risk sweep, capture, model run or publication was performed; only the named existing memory-only engineering case was exercised.
 
-### Separate Risk capacity amendment for review — not applied
+### Separate Risk capacity amendment for review — not implemented
 
-A scope decision has been requested while the independent frontend work finishes. The proposed next review must define a bounded, lossless active Risk receipt representation with exact evidence/observation hydration. Existing RISK_OBSERVATION indirection may be investigated as a candidate, but its compatibility is not assumed and no new format is implemented. Before approval of code changes, the design must establish all of the following:
+On November 1, the user requested **a separate amendment for review**. This approves preparing the design below, not changing active Risk code, formats, validators or publication behavior. **Proposed status: REVIEW REQUIRED.** P0 backend, P1–P4 and Stage 10 remain blocked. Only this existing report/proof are updated by this documentation checkpoint; the immutable original plan is unchanged.
 
-1. Every original observation, origin, claim flag, rule/predicate, cutoff, first/last reference and Issue identity survives exactly; no pruning, aggregation, string truncation or weaker validation.
-2. Each actual emitted scientific artifact remains<=128KiB under the existing cap. No new scientific artifact kind, additional execution, capture, source revision or published evidence is authorized by this request.
-3. Legacy retained receipts remain byte-identical and readable. New hydration must preserve owning receipt/source authority, policy/evaluator binding, cycle rejection, complete lifecycle history and atomic state/receipt publication.
-4. The full Risk schema/publication/reducer/API/source-oracle/sabotage suite must pass in isolated engineering fixtures, including the current overflow case, failure recovery and every current-origin conservation assertion. Existing failed cases remain evidence; tests cannot be skipped or rewritten to accept a fake PARTIAL result.
-5. Any required exact files must be approved separately. Possible areas are active Risk contracts/publication/sweep/reducer, frontend Risk contracts/client, Risk archive verification and their tests; this is an investigation boundary, not blanket permission to edit them. All930frozen artifacts and nine protected frontend files stay frozen. If those constraints cannot be met, retain the backend blocker and stop.
+#### Concrete representation: receipt-local evidence table
 
-Until that decision and design review, P0backend CI remains blocked, P1–P4 implementation remains unstarted, and Stage10 remains stopped. The previously approved main/initial-JS plan is retained; its caps/accounting and candidate rules are unchanged.
+Propose an explicitly versioned **`risk-sweep/2` wire envelope**, retaining kind `risk-sweep` and the existing `risk:sweep:<raw-sha256>` namespace. `risk-state/1`, coverage leaves, logical `risk-observation/1`, Issue identity, rules and policy remain unchanged. This is a new transport schema requiring approval; it is not a new scientific artifact kind.
 
-The930-file archive freeze freshly passes; all9protected frontend byte hashes, package-lock and original plan SHA remain exact. `6f99daa` remains excluded. All operational scientific increments remain zero, all six claims false, D6disabled/deferred, Risk/regime schedules disabled. No source maps remain public and no preview server remains running.
+The only payload transformation is:
+
+| Location | Legacy/logical value | Proposed wire value |
+|---|---|---|
+| Envelope `schema_version` | `risk-sweep/1` | `risk-sweep/2` |
+| Observation `schema_version` | `risk-observation/1` | `risk-observation-wire/1` |
+| Each observation's `evidence_refs` | Complete ordered reference objects | Replace this key with `evidence_ref_indices`: the same ordered references' zero-based table indices encoded as canonical decimal strings |
+| Payload `evidence_ref_table` | Absent | Each distinct complete reference object exactly once, in first-use order across the existing observation order |
+
+Every other key/value stays exact, including `origin_records`, assertions, reason/remediation, input inventory, clocks, witness links, transitions, history, operation proofs and the failure Issue's direct references. Pool equality uses the **entire canonical reference object**, not merely an artifact ID or hash. Selector, source order, rights/clock metadata, byte count, digest, producing run, policy and frozen-file assertions cannot be merged away. Reference order and repeated occurrences inside each observation are preserved. Table indices are bounded canonical decimal strings, never executable text, arbitrary JSON carriers or cross-receipt pointers. The table may contain the existing closed Ref variants; an existing RISK_OBSERVATION reference keeps its existing historical semantics, with no added dependency.
+
+Hydration replaces each index with its exact complete table object, removes the table, and restores the two logical schema tags. Require `canonical(hydrate(pack(logical))) == canonical(logical)`. Observation fingerprint and observation ID are derived and checked from **hydrated logical observations**, using the existing domains and exclusions. The successful `sweep_id` domain remains `risk-sweep/1`: the transport version does not redefine logical sweep identity. Raw artifact identity/manifest SHA and byte count always bind the actual wire envelope, never the hydrated view.
+
+#### Measured feasibility, with its limits
+
+A design-only observer intercepted the same existing memory-only test immediately before the unchanged publisher's rejection. It transformed a copy in memory and then called the original guard, which still failed. No Risk production source was changed, no guard bypassed, no successful receipt substituted and no artifact published.
+
+| Exact source `2ee0aae` / main `ec961d3` | Bytes/count |
+|---|---:|
+| Original canonical receipt plus newline |132,431|
+| Proposed v2 shape, canonical JSON plus newline |122,985|
+| Unchanged artifact cap |131,072|
+| Candidate headroom |8,087|
+| Saved bytes |9,446|
+| Complete observations / origin records |35 /65|
+| Reference occurrences / distinct complete references |35 /13|
+
+The candidate roundtrip is canonically identical, including all 65 observation origin records. This is **representation sizing, not an implemented decoder, accepted publication, green backend suite or future-epoch guarantee**. The observer test deliberately remains FAILED at the original 132,431-byte guard. Both exploratory measurements and tool/source hashes are recorded in `risk_capacity_amendment_nov1` in the existing machine proof. Publication overhead for this proposed shape is included; future implementation can change evaluator fingerprints/clocks and must be measured again. The first integer-index shape measured 122,915 bytes. It was set aside because JavaScript parsing erases the distinction between an integer token and an integral floating token such as 1.0. Canonical decimal-string indices cost exactly 70 bytes more and give Python and browser readers the same strict type/lexical checks without changing the shared JSON parser. This is a correctness choice, not a repeated capacity optimization. Both original test runs still fail at the unchanged guard. No cap or headroom target is changed.
+
+#### Closed validation and resource limits
+
+1. Validate the actual incoming raw file/response against its manifest bytes/SHA/content-addressed identity and the unchanged **131,072-byte** cap before hydration. Retain strict UTF-8, duplicate-key and nonfinite rejection. An oversized v1 input still rejects; a reader does not automatically repack untrusted input to make it pass.
+2. Dispatch on the explicit wire schema. Unknown/mixed versions, additional keys, missing keys, a legacy `evidence_refs` key in a wire observation, or wire indices in a logical observation reject. Reuse the existing closed observation field definitions and complete Ref union; do not maintain a permissive alternate validator.
+3. Proposed table bound: **0–1,000 unique complete references**, zero only when there are no observations. Keep existing ≤1,000 observations and 1–30 references per observation, hence at most 30,000 index occurrences. Each index must be a string matching `^(0|[1-9][0-9]{0,2})### Separate Risk capacity amendment for review — not implemented
+
+On November 1, the user requested **a separate amendment for review**. This approves preparing the design below, not changing active Risk code, formats, validators or publication behavior. **Proposed status: REVIEW REQUIRED.** P0 backend, P1–P4 and Stage 10 remain blocked. Only this existing report/proof are updated by this documentation checkpoint; the immutable original plan is unchanged.
+
+#### Concrete representation: receipt-local evidence table
+
+Propose an explicitly versioned **`risk-sweep/2` wire envelope**, retaining kind `risk-sweep` and the existing `risk:sweep:<raw-sha256>` namespace. `risk-state/1`, coverage leaves, logical `risk-observation/1`, Issue identity, rules and policy remain unchanged. This is a new transport schema requiring approval; it is not a new scientific artifact kind.
+
+The only payload transformation is:
+
+| Location | Legacy/logical value | Proposed wire value |
+|---|---|---|
+| Envelope `schema_version` | `risk-sweep/1` | `risk-sweep/2` |
+| Observation `schema_version` | `risk-observation/1` | `risk-observation-wire/1` |
+| Each observation's `evidence_refs` | Complete ordered reference objects | Replace this key with `evidence_ref_indices`: the same ordered references' zero-based table indices encoded as canonical decimal strings |
+| Payload `evidence_ref_table` | Absent | Each distinct complete reference object exactly once, in first-use order across the existing observation order |
+
+Every other key/value stays exact, including `origin_records`, assertions, reason/remediation, input inventory, clocks, witness links, transitions, history, operation proofs and the failure Issue's direct references. Pool equality uses the **entire canonical reference object**, not merely an artifact ID or hash. Selector, source order, rights/clock metadata, byte count, digest, producing run, policy and frozen-file assertions cannot be merged away. Reference order and repeated occurrences inside each observation are preserved. Table indices are bounded canonical decimal strings, never executable text, arbitrary JSON carriers or cross-receipt pointers. The table may contain the existing closed Ref variants; an existing RISK_OBSERVATION reference keeps its existing historical semantics, with no added dependency.
+
+Hydration replaces each index with its exact complete table object, removes the table, and restores the two logical schema tags. Require `canonical(hydrate(pack(logical))) == canonical(logical)`. Observation fingerprint and observation ID are derived and checked from **hydrated logical observations**, using the existing domains and exclusions. The successful `sweep_id` domain remains `risk-sweep/1`: the transport version does not redefine logical sweep identity. Raw artifact identity/manifest SHA and byte count always bind the actual wire envelope, never the hydrated view.
+
+#### Measured feasibility, with its limits
+
+A design-only observer intercepted the same existing memory-only test immediately before the unchanged publisher's rejection. It transformed a copy in memory and then called the original guard, which still failed. No Risk production source was changed, no guard bypassed, no successful receipt substituted and no artifact published.
+
+| Exact source `2ee0aae` / main `ec961d3` | Bytes/count |
+|---|---:|
+| Original canonical receipt plus newline |132,431|
+| Proposed v2 shape, canonical JSON plus newline |122,985|
+| Unchanged artifact cap |131,072|
+| Candidate headroom |8,087|
+| Saved bytes |9,446|
+| Complete observations / origin records |35 /65|
+| Reference occurrences / distinct complete references |35 /13|
+
+The candidate roundtrip is canonically identical, including all 65 observation origin records. This is **representation sizing, not an implemented decoder, accepted publication, green backend suite or future-epoch guarantee**. The observer test deliberately remains FAILED at the original 132,431-byte guard. Both exploratory measurements and tool/source hashes are recorded in `risk_capacity_amendment_nov1` in the existing machine proof. Publication overhead for this proposed shape is included; future implementation can change evaluator fingerprints/clocks and must be measured again. The first integer-index shape measured 122,915 bytes. It was set aside because JavaScript parsing erases the distinction between an integer token and an integral floating token such as 1.0. Canonical decimal-string indices cost exactly 70 bytes more and give Python and browser readers the same strict type/lexical checks without changing the shared JSON parser. This is a correctness choice, not a repeated capacity optimization. Both original test runs still fail at the unchanged guard. No cap or headroom target is changed.
+
+#### Closed validation and resource limits
+
+1. Validate the actual incoming raw file/response against its manifest bytes/SHA/content-addressed identity and the unchanged **131,072-byte** cap before hydration. Retain strict UTF-8, duplicate-key and nonfinite rejection. An oversized v1 input still rejects; a reader does not automatically repack untrusted input to make it pass.
+2. Dispatch on the explicit wire schema. Unknown/mixed versions, additional keys, missing keys, a legacy `evidence_refs` key in a wire observation, or wire indices in a logical observation reject. Reuse the existing closed observation field definitions and complete Ref union; do not maintain a permissive alternate validator.
+3. Proposed table bound: **0–1,000 unique complete references**, zero only when there are no observations. Keep existing ≤1,000 observations and 1–30 references per observation, hence at most 30,000 index occurrences. , parsed only after this check and strictly below table length. Reject numeric values, booleans, leading zeros, signs, decimal/exponent text, whitespace, null, holes and out-of-range indices. Enforce unique table entries, no unused entries, and canonical first-use order. No recursive pool entries, compressed/base64 payloads or additional table layers.
+4. Check all bounds before allocating a hydrated view. Traverse at most the existing 1,000×30 reference slots; validate each complete table entry under the same closed source contract, and each hydrated observation under its own scope/cutoff. Sharing must be immutable or defensively isolated so changing one hydrated row cannot change another. Full logical views are internal only: their repeated references are not a new serialized scientific artifact or a larger download allowance. No expanded receipt JSON is written or served to bypass the cap.
+5. Run all existing safe-payload/string, production evidence-class, policy/predicate, licence, six-false-claims, subject/country/selector, provenance, chronology, input inventory, observation derivation and transition checks after hydration. The browser must check full observation fingerprint/ID derivation, matching the backend's existing equations, as well as Issue identity. Test parity on all legacy receipts before enabling this path. A wrong-but-valid pool target must fail its logical observation hash, even if the attacker rehashes the wire artifact and manifest.
+6. Preserve owning successful receipt selection, exact Issue source pointer, prior-chain/cycle checks, complete lifecycle reconstruction, full-or-exact-anchor validation, positive changed-evidence resolution, first/latest/resolution witnesses and System failure/reopen ordering. Pooling creates no new historical reference and does not replace these checks.
+
+The 128 KiB cap remains a limit on every actual JSON artifact and served receipt body, not a gzip target. Current initial Risk 256 KiB and complete initial 512 KiB data limits, 2 MiB explicit-original bound, 50 ms synchronous validator gate, 24/64 KiB initial-JS caps, 32 KiB command/search cap and all generated-module caps remain unchanged. No larger artifact, hidden decoded wire payload, network exception or extra shard is proposed. Report any new reader JS in the subsequent exact initial-body accounting.
+
+#### Producer, reader and publication behavior
+
+- **Producer only:** add an explicitly named preparation step taking a complete logical v1 receipt. Validate its closed logical content, deterministically keep v1 when its actual canonical bytes fit, otherwise construct the one canonical v2 candidate. Accept v2 only if it is strictly smaller and its complete actual bytes fit. If neither fits, retain the current sanitized failure/last-valid-state behavior. No pruning, truncation, sampling, origin aggregation, forced successful status, format tuning loop or automatic fallback to more schemas.
+- **Incoming verifier:** keep `validate_public` strict about the supplied wire representation and its byte cap. Its returned semantic view and verified wire bytes must be distinct values. Refactor shared semantic validation rather than calling the capped legacy reader on an expanded v2 view. The producer preparation step is not invoked by a reader to repair an invalid incoming artifact.
+- **Persistence:** `publish` is a producer boundary and uses that preparation step. Content addressing, entry bytes/SHA, public/export mirrors and atomic manifest commit use only the verified wire bytes. State/receipt linkage and source/lifecycle checks use the corresponding validated logical view. Preserve source-hash review, publication order, the single manifest commit point, lock/concurrency checks and rollback of only uncommitted owned files.
+- **Backend history/archive:** `read_artifact` verifies the immutable wire and exposes its logical view to `previous`, lifecycle/source validation and archive verification. Retain access to the same checked wire for consumers that serve it. `scripts/risk_archive.py`, the reducer, rules, policy, evidence readers and monitoring admission need no production change: they continue consuming complete logical observations. Mixed v1/v2 chains must pass the existing independent joins.
+- **Authenticated GET:** the service performs its existing selector/state/receipt checks on logical views, then returns the **checked wire receipt** for `/sweep`, so a hydrated oversized v1 JSON is never emitted. Legacy responses remain v1; future v2 responses require the explicit new schema. State responses remain unchanged. No route, authentication, production-host gate, organization/session check, method or computation behavior changes.
+- **Browser:** `validateRisk` accepts either closed wire schema, checks wire size and returns the existing logical Sweep type; the current checked Risk client already checks raw response bytes/SHA before calling it. Keep that client and evidence resolver unchanged unless review discovers a necessary additional amendment. The terminal generator must retain the returned normalized Risk object for subsequent exact source joins: it currently discards that return value and stores the raw object, which would lose Risk→Data links on v2. The generic full-original inspector validates wire/byte bounds but continues returning the original wire value for inspection; it does not label hydrated data as original bytes.
+
+Changing contracts/publication/sweep naturally changes the existing eight-file evaluator source hash for **future** evaluations. Do not pin the former hash or claim future receipt/state fingerprints are unchanged. The source file list and all existing identity formulas stay fixed. Retained receipts keep their original source hashes; historical verification continues to bind each receipt's own inputs/cutoff and does not demand the current evaluator hash. Newly published temporary QA receipts must bind the actual new evaluator hash. No retained artifact is migrated, rehashed or republished.
+
+#### Exact proposed CHANGE scope
+
+**19 existing paths; 0 ADD / 0 DELETE.** This is the maximum reviewed manifest for this amendment, not permission for the entire Risk directory. Two entries are the already-approved report/proof; 17 are potential implementation/test changes. Only the two documentation entries change in this checkpoint.
+
+| Exact path | Permitted purpose after explicit implementation approval |
+|---|---|
+| `src/risk_manager/contracts.py` | Closed v2 transport models, bounded exact pack/hydrate helpers; retain logical contracts/domains |
+| `src/risk_manager/publication.py` | Separate producer preparation, strict wire validation and logical checks; persist/verify exact wire; retain checked wire alongside normalized reads |
+| `src/risk_manager/sweep.py` | Invoke explicit receipt preparation at the existing producer boundary; retain logical memory results, failure/no-op and source-hash behavior |
+| `src/risk_manager/service.py` | Serve the validated wire receipt after the existing logical selection checks; preserve GET-only semantics |
+| `frontend-v2/src/risk-manager/contracts.ts` | Closed wire dispatch, bounded hydration and backend-equivalent observation derivation checks; retain logical public types |
+| `frontend-v2/scripts/generate-terminal-index.mjs` | Keep the normalized Risk return for joins while binding source checks to full original wire SHA/bytes; enforce Risk raw-byte cap |
+| `frontend-v2/src/app/terminal/reader.ts` | Enforce unchanged Risk 128 KiB wire cap in full-original Risk inspection, retain original-byte return semantics |
+| `frontend-v2/scripts/verify-risk-manager.mjs` | Cross-language v1/v2 equality, derivation, malformed table and source substitution probes; keep all 182 existing checks |
+| `frontend-v2/scripts/verify-risk-browser.mjs` | Isolated ENGINEERING_QA v2 response/manifest fixtures and sabotage in the existing browser matrix; keep real Replay contexts unmodified |
+| `frontend-v2/scripts/verify-terminal-context.mjs` | Add only this approved exact path manifest after approval, retain original-plan hash and scope sabotage; test normalized v2 Risk joins |
+| `tests/risk_manager/test_contracts.py` | Strict transport, scalar, table bounds, legacy and roundtrip probes |
+| `tests/risk_manager/test_publication.py` | Wire-cap/content-hash/manifest/atomic pair sabotage; semantic mutation tests must reach their intended guard rather than pass on unrelated overflow |
+| `tests/risk_manager/test_compact_lifecycle.py` | Read temporary receipts through checked normalization; repair only the two proven fixture assumptions; retain complete multi-epoch/origin/recovery assertions |
+| `tests/risk_manager/test_compact_sources.py` | Bind synthetic receipt identities to actual prepared wire bytes while keeping complete logical source/cycle sabotage |
+| `tests/risk_manager/test_sweep.py` | Prove the exact overflow case, unchanged repeats and zero writes against real prepared wire sizes |
+| `tests/risk_manager/test_archive.py` | Use actual wire identities with normalized graph fixtures; add mixed-version retained-history and resealed pool substitution checks |
+| `tests/risk_manager/test_api.py` | Temporary v2 GET/selector/body-cap tests; preserve authentication, production gate and inability to execute a sweep |
+| `docs/phase7-5-connected-quant-terminal.md` | This reviewed amendment and subsequent qualified results |
+| `docs/qa/phase7-5-connected-quant-terminal-proof.json` | Exact scope, byte/hash/CI/freeze evidence and explicit approval status |
+
+No new file, dependency, generated module, provider/backend business endpoint, scientific rule, evidence-map/policy/freeze file, workflow or schedule is included. All 930 frozen artifacts, 27 retained Risk artifacts and 9 protected frontend files remain byte-identical. `6f99daa` stays excluded. If any further production/test path is necessary, stop and present that exact additional amendment.
+
+The two existing lifecycle fixture repairs are specific: choose a retained Issue using the **reconstructed** lifecycle length, construct an explicit complete legacy list for comparison with exact anchors, and keep omission/injection/order sabotage; hydrate complete IDs **before** saving the expected full Issue in the repeat/resolution/reopen fixture. Do not change `checked_lifecycle_ids`, reduce the number of epochs/origins or allow arbitrary subsets. Keep all remaining failed tests and assertions; a representation change is not proof that their independent behavior passes.
+
+#### Required acceptance, rollout and stop gates
+
+1. Before editing active code, obtain explicit review approval of this representation and 19-path manifest. Preserve source/main/evidence snapshots and all current negative evidence. Implement the deterministic codec/strict reader first, without a production dispatch. Existing v1 archive verification must pass before writer integration.
+2. Exercise complete cross-language roundtrips and logical hashes for all retained receipts, the exact current 35-observation overflow case and bounded synthetic Ref variants. Verify duplicates/order, all origin fields, strings/Unicode, clocks, numeric values and every provenance field. Add invalid-index/type/version/bound/unused/duplicate/reordered-pool tests, wrong-but-valid target swaps, unknown/forbidden fields, rehashed-wire and manifest sabotage, cycles/wrong owner/cutoff, future evidence and all six claim-promotion attempts. Verify no shared-reference mutation leaks. The old oversized v1 wire must still reject.
+3. Run the complete existing backend Risk suite in isolated memory/tmp fixtures with no skipped tests or weakened assertions: schema/rules/reducer/evidence, publication rollback/atomicity/source hash, owning sources, complete lifecycle including >100 applied observations, independent current-origin conservation, multiple later epochs, consecutive failure→repair→reopen→repair, API and source-oracle sabotage. Resolve the original 6 failures/62 setup errors; report every remaining independent blocker. No test-only forced PARTIAL result, identity pin or monkeypatched cap is accepted.
+4. Read/verify the untouched 930-file archive and 27 Risk artifacts. Test mixed-version chains in a **temporary** publication root; hash actual wire bytes for every state/leaf/receipt, validate the archive/source graph, exact selectors, last valid state and all current origins. Identical complete evidence must give UNCHANGED, 0 writes, 0 new occurrences and no manifest rewrite. Every actual new QA artifact and GET receipt body must stay ≤131,072 bytes; initial/read budgets also remain enforced.
+5. Run the complete frontend Risk verifier (all 182 original checks plus new ones), all original 560 static/237 targeted terminal cases plus the four already-added codec cases and new amendment cases, typecheck/lint/build, deterministic generation and complete Risk/Factors/Market/typed-URL checks. Use the existing isolated synthetic browser response handler for v2 success, failure retaining a v2 owner and every table/lineage sabotage in Chrome, Edge and Firefox. Ordinary real Replay must remain byte-identical and make zero provider/private calls. Retain the 50 ms validator and data-budget gates. No public source maps.
+6. Check exact-head CI. P0 backend can close only after the complete backend suite and the Risk compatibility/browser gates pass. Initial-JS and Stage 10 remain blocked at their independent gates. Then resume the already-approved P1–P4 sequence on a newly pinned tree, counting any new decoder JS and retaining cold interaction regressions; the Risk amendment does not approve another packaging strategy or a cap change. The current initial-CI comparison also uses an older main manifest/timezone baseline; its real failures stay recorded and its same-tree/environment baseline must be reconciled under P4 before any equivalence claim.
+
+**Rollout boundary:** this amendment would authorize code and isolated engineering verification only. Deploy compatible readers before any separately authorized future v2 scientific publication. Existing live evidence remains v1, so there is no migration during this repair. Once v2 evidence is separately published, rolling back to a v1-only reader is incompatible; retained bytes cannot be rewritten to make a rollback work. No operational sweep, provider capture, model/plugin/Series/factor/research/holdout/simulator execution or scientific publication is requested by this design. All operation increments stay zero, all claims false, D6 deferred and Risk/regime scheduling disabled.
+
+If this single representation cannot satisfy unchanged caps and full semantics, or an unlisted edit becomes necessary, keep P0 blocked and report the exact remaining evidence. PR #30 remains draft/open/unmerged with auto-merge off throughout review.
+
+
+
+Documentation checkpoint verification: the read-only archive verifier passes all 930 frozen files, 221 prior artifacts, 126 prior routes, six withdrawals and 27 retained Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Active source, protected bytes, original plan and package-lock remain unchanged. Main remains `ec961d3`; excluded `6f99daa` is not an ancestor.
+
+CI for head `2ee0aae`, PR run [41231925764](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41231925764): truth-contract and regimes pass; backend Risk reports **6 failed /141 passed /62 setup errors**. Frontend install/generation, build and static verification pass, then the exact initial ownership/equivalence gate fails (mixed/unknown bodies and stale manifest/timezone baseline). Later browser stages are skipped. The Risk amendment is proposed, not implemented; this run remains failed and no final acceptance is claimed. New documentation-head CI is separate evidence after publication.
+
 
 
 ## October 31 reconciliation and proposed initial-JS repair plan
