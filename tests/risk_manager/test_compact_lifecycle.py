@@ -167,6 +167,7 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
     sealed_ids = set(initial_by_id)
     _, initial_values = retained_values(tmp_path)
     original_history = {row["payload"]["sweep_id"] for row in receipt_chain(manifest, initial_values)}
+    initial_lifecycles = lifecycle_history(receipt_chain(manifest, initial_values))
     current_data = decode((ROOT / "data/exports/data_organ_v0_1/issues.json").read_bytes())
     current_origins = current_data["items"]
     current_cutoff = manifest["artifacts"][manifest["routes"]["/data/issues"]]["as_of"]
@@ -210,7 +211,9 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
         for issue in hydrated["payload"]["issues"]:
             assert issue["observation_ids"] == history[issue["issue_id"]]
             if issue["issue_id"] in sealed_ids:
-                assert len(issue["observation_ids"]) > len(lifecycle_anchors(issue))
+                prior_ids = initial_lifecycles[issue["issue_id"]]
+                assert issue["observation_ids"][:len(prior_ids)] == prior_ids
+                assert len(issue["observation_ids"]) == len(prior_ids) + offset
             else:
                 assert len(issue["observation_ids"]) == offset
         before_repeat = snapshot(tmp_path)

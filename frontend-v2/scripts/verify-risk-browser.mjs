@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve, sep } from "node:path";
 import { chromium, firefox } from "playwright";
 import { stable, validateRisk } from "../src/risk-manager/contracts.ts";
 import { checkedIssueReferences } from "../src/risk-manager/evidence.ts";
@@ -11,7 +12,9 @@ assert(at >= 0 && process.argv[at + 1], "Pass --url for the built preview");
 const base = process.argv[at + 1].replace(/\/$/, "");
 const root = new URL("../public/", import.meta.url);
 const repo = fileURLToPath(new URL("../../", import.meta.url));
-const shots = new URL("../../docs/screenshots/", import.meta.url);
+const shots = process.env.RISK_SCREENSHOT_DIR
+  ? pathToFileURL(resolve(process.env.RISK_SCREENSHOT_DIR) + sep)
+  : new URL("../../docs/screenshots/", import.meta.url);
 mkdirSync(shots, { recursive: true });
 const manifestRaw = readFileSync(new URL("replay-manifest.json", root));
 const manifest = JSON.parse(manifestRaw);
@@ -224,7 +227,22 @@ for (const name of channels) {
     await page.goto(base + "/risk");
     const positive = attack === "success" || attack === "failed-v2-owner";
     if (positive) {
-      await page.getByRole("region", { name: "Risk issue feed" }).waitFor();
+      await page
+        .getByRole("region", { name: "Risk issue feed" })
+        .waitFor()
+        .catch(async (error) => {
+          console.error(
+            "TRANSPORT_BROWSER_DIAGNOSTIC",
+            JSON.stringify({
+              browser: name,
+              attack,
+              url: page.url(),
+              alerts: await page.getByRole("alert").allTextContents(),
+              text: (await page.locator("body").innerText()).slice(0, 4000),
+            }),
+          );
+          throw error;
+        });
       if (attack === "failed-v2-owner")
         await page.getByText("FAILED SWEEP · PREVIOUS STATE RETAINED", { exact: true }).waitFor();
       await page.waitForLoadState("networkidle");

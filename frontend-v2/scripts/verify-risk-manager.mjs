@@ -81,7 +81,7 @@ const vectorsProcess = spawnSync(
     `
 from pathlib import Path
 import json
-from src.risk_manager.contracts import decode, pack_sweep, digest
+from src.risk_manager.contracts import decode, pack_sweep, digest, canonical
 root=Path.cwd()
 manifest=decode((root/'frontend-v2/public/replay-manifest.json').read_bytes())
 vectors=[]
@@ -89,6 +89,18 @@ for identity,entry in manifest['artifacts'].items():
     if entry['kind']!='risk-sweep': continue
     logical=decode((root/'frontend-v2/public'/entry['url'].lstrip('/')).read_bytes())
     vectors.append(dict(identity=identity,logical=logical,wire=pack_sweep(logical),observations_sha256=digest(logical['payload']['observations'])))
+# This is the same admitted, memory-only genesis used by backend QA, never an operational sweep.
+from unittest.mock import patch
+from src.risk_manager import sweep
+from src.risk_manager.publication import prepare_public, entry
+from hashlib import sha256
+with patch.object(sweep,'previous',return_value=(None,None,None,None,[])):
+    result=sweep.run(root,publish_artifacts=False)
+assert result['status']=='PARTIAL' and result['writes']==0
+logical,wire,raw=prepare_public(result['receipt'],root)
+assert len(raw)<=131072 and len(canonical(logical)+b'\\n')>131072
+identity='risk:sweep:'+sha256(raw).hexdigest()
+vectors.append(dict(identity=None,label='ENGINEERING_QA_CURRENT_OVERFLOW',entry=entry(identity,logical,raw),logical=logical,wire=wire,observations_sha256=digest(logical['payload']['observations'])))
 print(json.dumps(vectors,ensure_ascii=True,separators=(',',':'),allow_nan=False))
 `,
   ],
@@ -99,11 +111,13 @@ const transportVectors = JSON.parse(vectorsProcess.stdout.trim().split(/\r?\n/).
 let transportChecks = 0;
 const { validateTerminalSource } = await import("./generate-terminal-index.mjs");
 for (const vector of transportVectors) {
-  assert.equal(
-    stable(vector.logical),
-    stable(values.get(vector.identity)),
-    "Python stdout preserves original Unicode exactly",
-  );
+  if (vector.identity)
+    assert.equal(
+      stable(vector.logical),
+      stable(values.get(vector.identity)),
+      "Python stdout preserves original Unicode exactly",
+    );
+  else assert.equal(vector.label, "ENGINEERING_QA_CURRENT_OVERFLOW");
   const hydrated = validateRisk(vector.wire, "risk-sweep");
   await verifyRiskIdentity(hydrated);
   assert.equal(stable(hydrated), stable(vector.logical));
@@ -114,7 +128,7 @@ for (const vector of transportVectors) {
   const raw = Buffer.from(stable(vector.wire) + "\n");
   const id = "risk:sweep:" + hash(raw);
   const entry = {
-    ...manifest.artifacts[vector.identity],
+    ...(vector.entry ?? manifest.artifacts[vector.identity]),
     bytes: raw.length,
     sha256: hash(raw),
     url: "/artifacts/replay/" + id.replaceAll(":", "-") + ".json",
