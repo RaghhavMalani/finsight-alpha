@@ -1,6 +1,16 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
-## November 1 approved P0 repair — frontend unblocked; Risk capacity amendment proposed
+## November 1 reconciliation — Risk amendment ready for review; generation blocked again
+
+The requested Risk capacity amendment is prepared below, **not implemented**. Design checkpoint `bf65342f7395cfa6399477c3a146c2da278f843f` was published before main advanced. The new independent Data publication `4f363543936f446608b838467bc0cfa8d3bfddca` passes **1,942 read-only preservation/admission checks** and is reconciled in merge `1a97e2154015216960a07b49ef4c69ae94b2efcb`. No active source changes arrive from main: all 374 prior entries, 354 available originals, 110 sealed raw Data histories and 146 route keys survive. Seven complete Data envelopes and four sealed raw reports are added; only six Data aliases/manifests change. Manifest: 381 entries /361 AVAILABLE /20 UNAVAILABLE, 500,949 bytes, SHA `db52ba741b71edd8ffb0e4af93389cded872797094038dc2981c77f1ebd733e1`, as-of2026-11-01T07:42:18.604587Z. This evidence is inherited from main; Phase 7.5 performs no scientific publication.
+
+The same proposed decimal-index Risk representation on this reconciled source measures **124,571 bytes**, below the unchanged 131,072-byte cap by **6,501 bytes**. Its logical source receipt still fails the existing guard at **134,017 bytes** (2,945 over), with all 35 observations /67 origin records. Full canonical roundtrip equality holds. This is one new-input sizing probe of the unchanged design, not accepted publisher/decoder output; production Risk code remains untouched and the focused test still fails as expected.
+
+**A separate generation blocker has returned.** One complete current-main generation rejects `history-archive` at **136,061 decoded bytes /32,753 gzip bytes**, versus unchanged 131,072 /32,768 caps. The decoded excess is **4,989 bytes**. All 11 prior generated outputs remain byte-identical after rejection and are explicitly stale for 4f36354. No count/hash admission update, new codec/partition/module, browser result, typecheck/build PASS or capacity acceptance is manufactured for this epoch. The former 4-byte reserve at ec961 was explicitly no future-growth guarantee. Keep this new failure separate from the Risk schema review; do not widen the 19-path Risk amendment to conceal a history repair.
+
+The read-only 930-file freeze passes again, including all 27 retained Risk artifacts; all 9 protected frontend files, package-lock and original plan remain exact. Excluded 6f99daa stays absent. P0 now has both this generation blocker and active Risk receipt capacity; initial-JS work and Stage 10 remain stopped. Earlier ec961 frontend/browser passes and failed CI remain source-qualified below. PR #30 remains draft/open/unmerged, auto-merge off. All caps, scientific freezes, claims and operational boundaries remain unchanged.
+
+## November 1 approved P0 repair at ec961d3 — prior frontend pass
 
 The user approved the scoped plan and listed amendments. Source checkpoint `e013fea62f3835deb63d8a4ff473069f8780bdd0` implements generation and frontend-verifier repairs only. Initial-JS implementation has not started: the requested order keeps it behind the remaining backend blocker. PR #30 stays draft/open/unmerged, auto-merge off.
 
@@ -47,7 +57,7 @@ The approved plan explicitly says **“There is no proposed change to `src/risk_
 
 ### Separate Risk capacity amendment for review — not implemented
 
-On November 1, the user requested **a separate amendment for review**. This approves preparing the design below, not changing active Risk code, formats, validators or publication behavior. **Proposed status: REVIEW REQUIRED.** P0 backend, P1–P4 and Stage 10 remain blocked. Only this existing report/proof are updated by this documentation checkpoint; the immutable original plan is unchanged.
+On November 1, the user requested **a separate amendment for review**. This approves preparing the design below, not changing active Risk code, formats, validators or publication behavior. **Proposed status: REVIEW REQUIRED.** P0 backend, P1–P4 and Stage 10 remain blocked. Phase 7.5 authors only this existing report/proof in these documentation checkpoints; the independent upstream merge adds its audited Data publication. The immutable original plan is unchanged.
 
 #### Concrete representation: receipt-local evidence table
 
@@ -70,17 +80,17 @@ Hydration replaces each index with its exact complete table object, removes the 
 
 A design-only observer intercepted the same existing memory-only test immediately before the unchanged publisher's rejection. It transformed a copy in memory and then called the original guard, which still failed. No Risk production source was changed, no guard bypassed, no successful receipt substituted and no artifact published.
 
-| Exact source `2ee0aae` / main `ec961d3` | Bytes/count |
-|---|---:|
-| Original canonical receipt plus newline |132,431|
-| Proposed v2 shape, canonical JSON plus newline |122,985|
-| Unchanged artifact cap |131,072|
-| Candidate headroom |8,087|
-| Saved bytes |9,446|
-| Complete observations / origin records |35 /65|
-| Reference occurrences / distinct complete references |35 /13|
+| Metric | Prior source `2ee0aae` / main `ec961d3` | Reconciled source `1a97e21` / main `4f36354` |
+|---|---:|---:|
+| Original canonical receipt plus newline |132,431|134,017|
+| Proposed v2 shape, canonical JSON plus newline |122,985|124,571|
+| Unchanged artifact cap |131,072|131,072|
+| Candidate headroom |8,087|6,501|
+| Saved bytes |9,446|9,446|
+| Complete observations / origin records |35 /65|35 /67|
+| Reference occurrences / distinct complete references |35 /13|35 /13|
 
-The candidate roundtrip is canonically identical, including all 65 observation origin records. This is **representation sizing, not an implemented decoder, accepted publication, green backend suite or future-epoch guarantee**. The observer test deliberately remains FAILED at the original 132,431-byte guard. Both exploratory measurements and tool/source hashes are recorded in `risk_capacity_amendment_nov1` in the existing machine proof. Publication overhead for this proposed shape is included; future implementation can change evaluator fingerprints/clocks and must be measured again. The first integer-index shape measured 122,915 bytes. It was set aside because JavaScript parsing erases the distinction between an integer token and an integral floating token such as 1.0. Canonical decimal-string indices cost exactly 70 bytes more and give Python and browser readers the same strict type/lexical checks without changing the shared JSON parser. This is a correctness choice, not a repeated capacity optimization. Both original test runs still fail at the unchanged guard. No cap or headroom target is changed.
+The candidate roundtrip is canonically identical, including all 65 prior-source and all 67 current-source observation origin records. This is **representation sizing, not an implemented decoder, accepted publication, green backend suite or future-epoch guarantee**. The observer test deliberately remains FAILED at the original source-specific guard: 132,431 bytes before reconciliation and 134,017 bytes afterward. All three sizing measurements and tool/source hashes are recorded in `risk_capacity_amendment_nov1` in the existing machine proof. Publication overhead for this proposed shape is included; future implementation can change evaluator fingerprints/clocks and must be measured again. The first integer-index shape measured 122,915 bytes. It was set aside because JavaScript parsing erases the distinction between an integer token and an integral floating token such as 1.0. Canonical decimal-string indices cost exactly 70 bytes more and give Python and browser readers the same strict type/lexical checks without changing the shared JSON parser. This is a correctness choice, not a repeated capacity optimization. Both original test runs and the new-input probe still fail at the unchanged guard. No cap or headroom target is changed.
 
 #### Closed validation and resource limits
 
@@ -147,7 +157,7 @@ Changing contracts/publication/sweep naturally changes the existing eight-file e
 
 #### Exact proposed CHANGE scope
 
-**19 existing paths; 0 ADD / 0 DELETE.** This is the maximum reviewed manifest for this amendment, not permission for the entire Risk directory. Two entries are the already-approved report/proof; 17 are potential implementation/test changes. Only the two documentation entries change in this checkpoint.
+**19 existing paths; 0 ADD / 0 DELETE.** This is the maximum reviewed manifest for this amendment, not permission for the entire Risk directory. Two entries are the already-approved report/proof; 17 are potential implementation/test changes. Only the two documentation entries are authored by Phase 7.5 in this checkpoint; the separate audited upstream merge changes only its 17 Data paths.
 
 | Exact path | Permitted purpose after explicit implementation approval |
 |---|---|
@@ -190,7 +200,7 @@ If this single representation cannot satisfy unchanged caps and full semantics, 
 
 
 
-Documentation checkpoint verification: the read-only archive verifier passes all 930 frozen files, 221 prior artifacts, 126 prior routes, six withdrawals and 27 retained Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Active source, protected bytes, original plan and package-lock remain unchanged. Main remains `ec961d3`; excluded `6f99daa` is not an ancestor.
+Documentation checkpoint verification: the read-only archive verifier passes all 930 frozen files, 221 prior artifacts, 126 prior routes, six withdrawals and 27 retained Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Active source, protected bytes, original plan and package-lock remain unchanged. That first checkpoint used main `ec961d3`; the subsequent main 4f36354 reconciliation and current-source checks appear above. Excluded `6f99daa` is not an ancestor.
 
 CI for head `2ee0aae`, PR run [41231925764](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41231925764): truth-contract and regimes pass; backend Risk reports **6 failed /141 passed /62 setup errors**. Frontend install/generation, build and static verification pass, then the exact initial ownership/equivalence gate fails (mixed/unknown bodies and stale manifest/timezone baseline). Later browser stages are skipped. The Risk amendment is proposed, not implemented; this run remains failed and no final acceptance is claimed. New documentation-head CI is separate evidence after publication.
 
@@ -200,7 +210,7 @@ CI for head `2ee0aae`, PR run [41231925764](https://github.com/RaghhavMalani/fin
 
 **Main reconciled; capacity and CI remain BLOCKED. This turn merges admitted main and prepares the plan below. It does not implement another packaging candidate, optimize search/history, change a cap, or resume Stage10.**
 
-Main `ec961d3caacd825233c788f195c5af0dd87998c3` is merged in `f14921461b575a40dbe61dec22efe63a8fc416cb`. The full premerge audit passes1,917checks: all367prior manifest entries,347available original files,106content-addressed raw Data histories and146route keys remain exact. Seven complete Data envelopes and four sealed raw reports are added; only six mutable Data aliases/manifests change. Current manifest:374entries /354AVAILABLE /20UNAVAILABLE /146routes,488,735bytes,SHA `0f4d484322f4fe0a0b9e451535ddf4ecbbb4552c1e87f03da8593a8e9ffc56ea`,as-of2026-10-31T07:07:00.827359Z. The publication is inherited from main; Phase7.5 performs no capture, scientific execution or publication.
+Main `ec961d3caacd825233c788f195c5af0dd87998c3` is merged in `f14921461b575a40dbe61dec22efe63a8fc416cb`. The full premerge audit passes1,917checks: all367prior manifest entries,347available original files,106content-addressed raw Data histories and146route keys remain exact. Seven complete Data envelopes and four sealed raw reports are added; only six mutable Data aliases/manifests change. Current manifest:374entries /354AVAILABLE /20UNAVAILABLE /146routes,488,735bytes,SHA `0f4d484322f4fe0a0b9e451535ddf4ecbbb4552c1e87f03da8593a8e9ffc56ea`,as-of2026-10-31T07:07:00.827359Z. The publication is inherited from main; Phase 7.5 performs no capture, scientific execution or publication.
 
 The local merge tree `ce5543815a79e5e39463244b628ad17e38be3651` equals the GitHub synthetic merge tree used by the checked PR CI run. This establishes that those failures apply to the reconciled inputs rather than an imagined clean build.
 
