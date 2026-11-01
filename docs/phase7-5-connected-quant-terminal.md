@@ -1,5 +1,71 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 1 history archive capacity repair plan — proposed, not implemented
+
+The requested repair plan is prepared against source head `c29ed8423a065abe8da94fc44636c3549fc33eaf`, with main already reconciled at `4f363543936f446608b838467bc0cfa8d3bfddca` (37 ahead /0 behind before this documentation commit). A fresh fetch confirms no new main commit to merge. This section proposes one archive metadata wire change for review; it does not activate a new encoder/decoder, update admission pins, or claim fresh generation/build/browser acceptance. The approved Risk capacity implementation remains unchanged.
+
+### Latest CI and reproduced blocker
+
+[Run 41330757316](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41330757316) is for exact head `c29ed84`. At the plan checkpoint, truth-contract and regimes are SUCCESS. Backend has passed its Phase 7 suite and is running the remaining backend tests; it is not yet an exact-head backend PASS. Frontend job [124920162021](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41330757316/job/124920162021) fails `npm ci` with `STOP: terminal capacity admission failed; no outputs written` and `Decoded module budget: history-archive=136061`. Later frontend steps are skipped. The completed backend PASS at source `6d50f5f` remains separately qualified in the implementation section below; the backend, Risk-test and workflow sources did not change in c29ed84.
+
+| Full generated archive module | Decoded UTF-8 bytes | Gzip bytes, level 9 | Decoded /gzip headroom |
+|---|---:|---:|---:|
+| Current v1, rejected |136,061|32,753|-4,989 /15|
+| Proposed v2 with shared object layouts |103,805|32,113|27,267 /655|
+| Design comparison: layouts plus numeric value references |98,620|32,133|32,452 /635|
+| Unchanged caps |131,072|32,768|No increase|
+
+The recommendation is **shared object layouts only**. The numeric-reference comparison produces a larger gzip body and needs additional scalar/reference rules; it is not included in the proposed implementation. Measurements include the complete generated TypeScript prefix, envelope, manifest binding, schema version, layout table, payload digest and suffix. This is the existing per-module source gzip accounting, not a fragment measurement or a production network result.
+
+The 655-byte gzip reserve is limited. The previous independently published Data epoch increased the old encoding's gzip body by 1,325 bytes; that is observed history, not a prediction for this encoding. The proposal admits only a completely verified input cohort that actually fits. It promises no next-epoch capacity or percentage reserve and adds no new acceptance threshold. Future overflow must still stop generation without writing outputs.
+
+### Proposed representation and lossless boundary
+
+Use `terminal-shard/2` only for the existing `history-archive` module, retaining `terminal-generator/1`. Add one digest-covered `layouts: number[][]` field. Each layout stores the ordered string-dictionary indices of an object's sorted keys once. Replace v1 object rows `[1,keyIndex,value,...]` with `[2,layoutIndex,value,...]`. Array rows retain tag 0. All dictionary/text fragments, compact string/structure references, finite numeric literals, booleans, null and the existing exact negative-zero sentinel remain unchanged. The root payload and structure indices stay fixed. Layouts are assigned by first occurrence while walking the final structure table, making output deterministic. No numerical quantization, date normalization, value aggregation or string truncation is permitted.
+
+The current archive contains 1,836 structure rows, including 1,551 objects. It repeats 9,123 key indices across those objects; 15 distinct layouts hold only 114 key indices, with at most 30 keys per layout. The layout-only prototype reconstructs the exact previous structure graph and feeds the unchanged legacy decoder. Recursive `Object.is` comparison proves equal logical values, including signed zero, for all current archive fields. Candidate whole-module SHA: `e5af1b6203003f3b589ac0670b7beffb74ea817f0314636184fe7674d0f80ad3`; logical archive digest: `641fbde80de7a8836f3cb990c2f0a1ae9e9d9c76427e5eea285dad20875fc541`. These are design measurements, not accepted output pins or implemented-reader proof. The current validator still rejects schema v2.
+
+The semantic partition stays exact: default history 16 entities /0 edges /16 bindings, archive 319 /534 /30, complete union 335 /534 /46 with 711 version choices and digest `e559d241dcb5fac065244b78fbcd086bb8af605e0b006edbbe67be3afde37d10`. Preserve all 565 retained-navigation records /979 choices and the full retained search union of 1,145 identities /2,217 choices. The generator has checked all 336 complete source originals. For these same inputs, the other ten generated module bodies must remain byte-identical to their current in-memory candidates, including default history, its named `retainedNavigation` export and search. Existing on-disk generated modules are stale for current main; they are not substituted as a fresh baseline. No history repartition, new module, export, public artifact kind, dependency or bundler change is proposed.
+
+### Exact proposed CHANGE scope: six existing files
+
+0 ADD /0 DELETE. Generated outputs remain ignored and are not committed. The immutable original approval plan is not edited.
+
+| Existing path | Proposed change |
+|---|---|
+| `frontend-v2/src/app/terminal/catalog.ts` | Add the closed archive-only v2 packed type, bounded layout pack/unpack support and digest/schema validation; retain the complete v1 reader and unchanged logical payload validation. |
+| `frontend-v2/scripts/generate-terminal-index.mjs` | Select deterministic v2 packing only for history-archive; preserve partition/source checks and all-or-nothing admission; report whole-module sizes and layout metrics. |
+| `frontend-v2/scripts/verify-terminal-context.mjs` | Add meaningful v2 lossless/malformed-input/determinism/overflow tests; preserve every existing assertion; advance current-main counts and hashes only after complete fresh generation and full source admission pass. |
+| `frontend-v2/scripts/verify-terminal-browser.mjs` | Exercise explicit retained-archive loading and fail-closed v2 attacks in the production browser harness; retain whole-body JS ownership and unexpected-request gates. |
+| `docs/phase7-5-connected-quant-terminal.md` | Record this proposal, then implementation results, exact source qualification and all failures if approved. |
+| `docs/qa/phase7-5-connected-quant-terminal-proof.json` | Store baseline/proposal comparisons and later independent acceptance evidence without replacing prior failures. |
+
+These paths already belong to the approved Phase 7.5 implementation boundary. Activating a new archive metadata wire version and changing its accepted whole-file byte/hash metrics is the specific amendment proposed for review. This task changes only the last two documentation files. No production Risk/backend code, scientific schema, reader/projection contract, route, search behavior, UI component, Vite configuration, dependency, environment or schedule enters this repair scope.
+
+### Closed decoder rules
+
+The v1 schema retains its exact field/tag contract and existing base36/radix92 decoding. V2 is admitted only when `name === "history-archive"`; a seed, workspace, default-history or display module cannot opt into it. Reject unknown fields/versions, mixed v1/v2 object tags, absent/wrong-type layouts and manifest-cohort or payload-digest mismatches. The complete layouts table belongs in the sealed digest; the existing decoded envelope byte bound applies before expansion.
+
+Proposed additional layout bounds are at most 256 layouts and 128 keys per layout, under the unchanged 20,000-entry dictionary/structure limits. Every layout index and key index must be a nonnegative safe integer within its actual pool, with negative-zero indices rejected. Validate decoded key names for uniqueness, lexical order and the existing unsafe names (`__proto__`, `prototype`, `constructor`). Reject duplicate layouts, unused layouts, noncanonical first-use order, invalid record arity and any out-of-pool reference. Empty layouts represent empty objects exactly. Structural/text/cycle checks apply even when a digest is correctly resealed.
+
+Keep the existing 32-part text, 8,192-character expanded text, 64-level nesting and 200,000-visit guards. Check layout/table bounds and record arity before materializing records. Decode directly under the same logical visit/depth accounting; do not expand an unbounded intermediate graph or reinterpret the 624,651-byte logical JSON view as permission to raise a wire cap. Preserve null-prototype records and safe field construction. Normal logical entity, binding, capability, source and provenance validation remains mandatory after decoding. The design-only inverse is not a substitute for implementing and testing these rules.
+
+### Implementation sequence and acceptance gates if approved
+
+1. **H0 — pin the source and admission baseline.** Fetch main again; independently audit any new publication before reconciliation. Preserve the 930-file scientific inventory, 27 retained Risk artifacts, nine protected frontend hashes, immutable plan and package-lock. Record complete source checks, partition/choice digests, all 11 output snapshots and the unchanged current generation failure. Never copy stale catalog bytes into a current PASS.
+2. **H1 — implement only the layout-table codec.** Add the bounded archive-only v2 path in the two runtime/generator files above. Keep all ten other same-input generated bodies exact. Require recursive value equality and complete independent history union/choice/source checks before sealing output. Retain the normal generator's single fail-closed write barrier; no oversized input is rewritten by an incoming reader to evade rejection.
+3. **H2 — verify fresh generation and attacks.** Preserve all 560 original static and 237 original targeted checks, the four already added P0 checks, and the completed Risk capacity checks. Add legacy v1/v2 coexistence; Unicode/hash/clock collisions; IEEE-754 finite values/signed zero; empty/repeated shapes; incorrect table/index/tag/arity/order; duplicate/unsafe decoded names; resealed source/digest/cohort attacks; cycle/depth/visit limits; and deliberate cap-overflow fixtures. All rejection fixtures must be meaningful and leave every generated output unchanged. Run two complete deterministic generations, compare all 11 whole-file hashes and budgets, and recheck every complete original and exact logical union. Only then update current-main admission counts/hash expectations for the independently inherited six Data epochs. No count/hash edit may turn failed generation into evidence of a pass.
+4. **H3 — normal CI and production browser integration.** Rerun normal generation/install, context verifiers, TypeScript, lint and production build, then the existing Stage 9 browser harness with positive explicit archive use and schema/table/digest/cap sabotage. Verify lazy archive fetch occurs only through its existing declared loading path and never as an incidental fresh Risk/Factors or current command/search request. Count all added shared decoder code in the actual complete JS bodies: core 24 KiB, Risk/Factors 64 KiB each including core, route-attributable accounting; report total browser JS as well. Preserve the cumulative 32 KiB cold command/search code-plus-metadata gate. Rerun backend CI without altering its scope. Archive generation success alone does not pass initial-JS or complete Stage 9/10 acceptance.
+5. **Resume existing initial-JS plan only after generation admission.** The approved P1–P4 ownership/equivalence sequence remains the next separate integration work. Establish a new exact-source baseline containing the reviewed codec; retain all earlier failed measurements. This archive proposal adds no packaging experiment, route optimization or threshold exemption.
+
+Stop and report if this design fails any whole-file cap, source/union equality, malformed-input boundary, lazy-loading rule or complete-body JS gate, or requires an unlisted file. Keep the failure as evidence; do not raise a cap, omit a historical record/choice, repartition history, add a shard or broaden the repair silently. The proposed v2 reader still needs implementation, negative tests and real build/browser measurement before acceptance.
+
+### Plan preparation proof and disposition
+
+Sizing ran in ignored ENGINEERING_QA scripts with a process-local observer immediately before the generator's existing final assertion. That assertion still throws. The observer did not change thresholds, admit source pins or reach the output-write stage. All 11 on-disk generated hashes before/after match, and tracked active source changes are zero. The design-only numeric comparison is preserved as a non-selected measurement. Detailed metrics, hashes, scope, CI checkpoint and unchanged boundaries are in `history_capacity_repair_plan_nov1` in the existing machine proof.
+
+Caps remain unchanged: seed 48/12 KiB decoded/gzip; other metadata 128/32 KiB; search 128/16 KiB; original browser reads 2 MiB; Risk artifacts 128 KiB and initial Risk union 256 KiB. All scientific freezes, false claim flags, D6 deferral, disabled Risk/regime schedules and zero operational provider/model/plugin/Series/factor/research/holdout/simulator activity remain. `6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d` is excluded. PR #30 remains draft/open/unmerged with auto-merge off. This is a proposed repair, not a ready-for-review or full CI/Vercel acceptance claim.
+
 ## November 1 approved Risk capacity implementation — backend CI PASS; Phase 7.5 remains blocked
 
 The user explicitly approved the separate Risk capacity amendment and its exact 19-file CHANGE scope. Implementation is published in `941e16556cb604a4511db75b02f2ec28b18eff2a`; the completed fixture/QA checkpoint is `6d50f5f893ec80518dfb40f7fc89ac7c07232f5e`. Main remains reconciled at `4f363543936f446608b838467bc0cfa8d3bfddca`. The earlier review-required statements below are historical proposal/checkpoint text. No operational Risk publication or retained-evidence migration occurred.

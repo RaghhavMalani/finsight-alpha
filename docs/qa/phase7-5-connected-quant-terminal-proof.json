@@ -25,7 +25,7 @@
   "initial_clean": true,
   "schema_version": "phase75-implementation-proof/1",
   "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
-  "status": "RISK_CAPACITY_BACKEND_PASS_HISTORY_GENERATION_BLOCKED",
+  "status": "HISTORY_CAPACITY_REPAIR_PLAN_PREPARED_GENERATION_BLOCKED",
   "unrelated_wip_imported": false,
   "checkpoint_head": "a8fd2dfb59085efb0793564904c7dd59412224a0",
   "reconciled_main": "ec961d3caacd825233c788f195c5af0dd87998c3",
@@ -164317,5 +164317,505 @@
       }
     }
   },
-  "currentRiskCapacityReview": "IMPLEMENTED_APPROVED_SCOPE_BACKEND_CI_PASS"
+  "currentRiskCapacityReview": "IMPLEMENTED_APPROVED_SCOPE_BACKEND_CI_PASS",
+  "current_history_capacity_review": "PROPOSED_NOT_IMPLEMENTED",
+  "current_history_review_source_head": "c29ed8423a065abe8da94fc44636c3549fc33eaf",
+  "history_capacity_repair_plan_nov1": {
+    "status": "PROPOSED_NOT_IMPLEMENTED",
+    "authorization": "User requested latest CI check, main reconciliation and a scoped history archive cap repair plan. This record does not activate the proposed new codec.",
+    "reviewedSourceCommit": "c29ed8423a065abe8da94fc44636c3549fc33eaf",
+    "sourceImplementationCommit": "6d50f5f893ec80518dfb40f7fc89ac7c07232f5e",
+    "reconciledMain": "4f363543936f446608b838467bc0cfa8d3bfddca",
+    "mainReconciliation": {
+      "freshFetch": true,
+      "mainIsAncestor": true,
+      "ahead": 37,
+      "behind": 0,
+      "newMergeNeeded": false,
+      "priorIndependentPublicationChecks": 1942,
+      "manifest": {
+        "sha256": "db52ba741b71edd8ffb0e4af93389cded872797094038dc2981c77f1ebd733e1",
+        "bytes": 500949,
+        "asOf": "2026-11-01T07:42:18.604587Z"
+      },
+      "scientificPublicationByThisTask": false
+    },
+    "ci": {
+      "runId": 41330757316,
+      "url": "https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41330757316",
+      "head": "c29ed8423a065abe8da94fc44636c3549fc33eaf",
+      "backend": {
+        "jobId": 124920161810,
+        "status": "in_progress",
+        "riskSuite": "success",
+        "remainingBackendTests": "in_progress",
+        "qualification": "Checkpoint, not exact-head backend PASS"
+      },
+      "regimes": {
+        "jobId": 124920161882,
+        "conclusion": "success"
+      },
+      "truthContract": {
+        "jobId": 124920161890,
+        "conclusion": "success"
+      },
+      "frontend": {
+        "jobId": 124920162021,
+        "conclusion": "failure",
+        "step": "npm ci",
+        "error": "STOP: terminal capacity admission failed; no outputs written.",
+        "failures": [
+          "Decoded module budget: history-archive=136061"
+        ],
+        "subsequentFrontendSteps": "skipped"
+      },
+      "previousCompletedSourceBackend": {
+        "head": "6d50f5f893ec80518dfb40f7fc89ac7c07232f5e",
+        "runId": 41292205686,
+        "jobId": 124805574006,
+        "conclusion": "success",
+        "riskPasses": 246,
+        "otherBackendPasses": 1180
+      },
+      "overallGreen": false
+    },
+    "currentFailure": {
+      "decoded": 136061,
+      "gzip": 32753,
+      "caps": {
+        "decoded": 131072,
+        "gzip": 32768
+      },
+      "decodedExcess": 4989,
+      "gzipHeadroom": 15,
+      "outputsWritten": 0,
+      "onDiskOutputs": "unchanged and stale for reconciled main"
+    },
+    "proposedCodec": {
+      "schema": "terminal-shard/2",
+      "generatorContract": "terminal-generator/1",
+      "onlyModule": "history-archive",
+      "additionalSealedField": "layouts: number[][]",
+      "oldObjectRecord": "[1,keyIndex,value,...]",
+      "newObjectRecord": "[2,layoutIndex,value,...]",
+      "layoutOrder": "first occurrence in final structure table order",
+      "keyOrder": "exact decoded-key lexical order from existing packer",
+      "unchanged": [
+        "strings",
+        "texts",
+        "payload",
+        "structure indices",
+        "array tag 0",
+        "base36/radix92 reference semantics",
+        "all scalar values and negative-zero sentinel",
+        "logical payload schema and provenance validation"
+      ],
+      "bounds": {
+        "layouts": 256,
+        "keysPerLayout": 128,
+        "existingDictionaryAndStructureEntries": 20000,
+        "textParts": 32,
+        "expandedTextCharacters": 8192,
+        "depth": 64,
+        "visits": 200000
+      },
+      "rejections": [
+        "unknown fields/version",
+        "v2 on any module except history-archive",
+        "mixed v1/v2 record tags",
+        "wrong-type/missing table",
+        "unsafe/noninteger/out-of-range/negative-zero indices",
+        "duplicate or unused/noncanonical-order layouts",
+        "duplicate/unsorted/unsafe decoded keys",
+        "record arity mismatch",
+        "cycles/depth/visit/text overflow",
+        "manifest/digest/source/claim/cap mismatch"
+      ],
+      "legacyV1Unchanged": true,
+      "newReaderImplemented": false
+    },
+    "recommendedMeasurement": {
+      "schema": "terminal-shard/2",
+      "objectTag": 2,
+      "layoutTableField": "layouts",
+      "decoded": 103805,
+      "gzip": 32113,
+      "sha256": "e5af1b6203003f3b589ac0670b7beffb74ea817f0314636184fe7674d0f80ad3",
+      "decodedHeadroom": 27267,
+      "gzipHeadroom": 655,
+      "wholeModule": true,
+      "sourceGzipLevel": 9,
+      "shape": {
+        "records": 319,
+        "edges": 534,
+        "bindings": 30,
+        "structures": 1836,
+        "objectStructures": 1551,
+        "layouts": 15,
+        "maxLayoutKeys": 30,
+        "originalKeyOccurrences": 9123,
+        "uniqueLayoutKeyOccurrences": 114
+      },
+      "components": {
+        "old": {
+          "strings": 22660,
+          "texts": 8009,
+          "structures": 104885
+        },
+        "candidate": {
+          "strings": 22660,
+          "texts": 8009,
+          "structures": 72184,
+          "layouts": 434
+        }
+      },
+      "logicalRoundtripExact": true,
+      "primitiveComparison": "Object.is recursively",
+      "logicalArchiveDigest": "641fbde80de7a8836f3cb990c2f0a1ae9e9d9c76427e5eea285dad20875fc541",
+      "qualification": "Design-only inverse reconstructs exact v1 graph and delegates unchanged legacy decoder; active v2 reader not implemented or admitted"
+    },
+    "nonSelectedComparison": {
+      "schema": "terminal-shard/2",
+      "recordTag": 2,
+      "numericLiteralTag": 3,
+      "stringReferenceEquation": "-(2*index+1)",
+      "structureReferenceEquation": "-(2*index+2)",
+      "decoded": 98620,
+      "gzip": 32133,
+      "sha256": "df0b75bb95ee19773a652e7454a54f3e31112dead92afc1fc44635c9789453b3",
+      "decodedHeadroom": 32452,
+      "gzipHeadroom": 635,
+      "selected": false,
+      "reason": "Larger gzip body than layout-only and additional numeric scalar/reference complexity",
+      "logicalRoundtripExact": true,
+      "activeV2ValidatorRejects": true
+    },
+    "reserve": {
+      "decodedBytes": 27267,
+      "gzipBytes": 655,
+      "noFutureEpochGuarantee": true,
+      "noNewHeadroomThreshold": true,
+      "observedPriorLegacyEpochGzipIncreaseBytes": 1325,
+      "qualification": "Prior legacy growth is context, not a prediction for v2. Future inputs must pass unchanged gates or fail with zero outputs."
+    },
+    "preservation": {
+      "completeOriginals": 336,
+      "historyPartition": {
+        "rule": "CURRENT_REQUIRED_ROUTE_NAVIGATION versus RETAINED_ARCHIVE; manifest current-route IDs and exact declared endpoint/binding closure only",
+        "originalDigest": "e559d241dcb5fac065244b78fbcd086bb8af605e0b006edbbe67be3afde37d10",
+        "unionDigest": "e559d241dcb5fac065244b78fbcd086bb8af605e0b006edbbe67be3afde37d10",
+        "original": {
+          "records": 335,
+          "edges": 534,
+          "bindings": 46,
+          "versionChoices": 711
+        },
+        "currentRequiredArtifactIds": [
+          "dynamics:catalog",
+          "dynamics:demo-full",
+          "dynamics:demo-sparse",
+          "dynamics:estimator-tournament",
+          "dynamics:evidence-complete-replication",
+          "dynamics:failure-decomposition",
+          "dynamics:generalization-autopsy",
+          "dynamics:hawkes-boundary-decomposition",
+          "dynamics:hawkes-event-process",
+          "dynamics:hawkes-identifiability",
+          "dynamics:nonlinear-identifiability",
+          "dynamics:targeted-recovery",
+          "plugins:run:35b2839947ef7fe71700c3b25efff7ff5b6ca003156b20f6840b95e5add27ebc",
+          "product:catalog",
+          "product:demo-full",
+          "product:demo-sparse"
+        ],
+        "exactUnion": true,
+        "signedZeroAndIEEE": "Object.is recursively compared before encoding"
+      },
+      "retainedNavigation": {
+        "records": 565,
+        "choices": 979,
+        "logicalDigest": "1446c7c49b4a4eb9f4879dc65f8a4786f967fdeee37a4e1f1ae31d9ef09c5bed",
+        "payloadDigest": "0f4388b13ea6ed6f08a61630da1961ae17b783d381f090c3359165cfa0bd1242",
+        "defaultPartitionUnchanged": true,
+        "defaultOutputSha256": "6942f816fca891e7948d317bdc3bc4e18bbdc4fe44b6794c4cb8e984511ce70b",
+        "archiveOutputSha256": "a4299e7977537e31e1093e3fa9be031faaedb27554f3afa85ff6a198d5989859",
+        "wholeModuleDecodedBytes": 75827,
+        "wholeModuleGzipBytes": 26129,
+        "fullRetainedRecords": 1145,
+        "fullRetainedChoices": 2217
+      },
+      "currentSearch": {
+        "records": 527,
+        "decodedBytes": 43741,
+        "gzipBytes": 15976,
+        "logicalDigest": "5969e140d3a3d0e57ecfafd8e15e8faa49cc7eea4180556ae747b86cc3086585",
+        "payloadDigest": "65640f33a9537f2871c7adff72bbaade6a1abb636ecff165e0a41784eb6f6d25",
+        "sourceEntities": 880,
+        "semanticSetEqual": true,
+        "completeOriginalSelections": 89,
+        "completeSourceAuthority": true,
+        "canonicalSort": "ascending exact stable group key",
+        "scientificPayloadFields": 0,
+        "types": {
+          "admission": 12,
+          "artifact": 81,
+          "capture": 9,
+          "capture-sha": 3,
+          "data-origin": 65,
+          "data-source": 11,
+          "factor": 10,
+          "factor-audit-channel": 128,
+          "factor-definition": 40,
+          "issue": 35,
+          "market-factor": 2,
+          "model-run": 16,
+          "recorded-agent-run": 54,
+          "recorded-task": 6,
+          "recorded-trace": 4,
+          "reference-listing": 23,
+          "signal": 6,
+          "source-version": 12,
+          "sweep": 1,
+          "workspace": 9
+        }
+      },
+      "archiveLogicalValuesExact": true,
+      "otherSameInputCandidateModuleHashes": {
+        "seed": "f6119c0f3dbeb0407ccb6171dd477e188f219f78fc0d5e0f33a216b3682cf5a7",
+        "market": "75fa5a9c82a63c4f1edffaf96714ac9c263c4c6a2451463a346d1afa2b538542",
+        "regimes": "b9ce0ee43365b88acce7ac709b82dbb6a0b1f11f5f4518a930920b98aef1652e",
+        "risk": "02c73492597ef81df105c450e32e89a77eae98227905655717e5251f001861dc",
+        "factors": "d04e515c3c8a8754e3fb5bd9c33c15a7155a352e563907455812ca484b0ff3fb",
+        "data": "7f5e6497a27f2c23a82fb0d3c58afdbcf2733d64045d5362371c6ddd83a29808",
+        "recordings": "f98814ac1ee775e2060fc619960af96263066cdb251fae7434f701cd3656cad8",
+        "history": "edc27415280193031049bb8e896278db8305ae215c4c1ba69ef7a0bb8851d092",
+        "observatory-window": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+        "search": "b55f28bdf704d06dc521bb1568f95089726e4d3d86001278cc91a6e2d20aa0cc"
+      },
+      "otherModuleCount": 10,
+      "noRepartition": true,
+      "noNewGeneratedModule": true,
+      "noNewExport": true,
+      "noOmission": true,
+      "noQuantization": true
+    },
+    "proposedScope": {
+      "change": 6,
+      "add": 0,
+      "delete": 0,
+      "paths": [
+        {
+          "path": "frontend-v2/src/app/terminal/catalog.ts",
+          "action": "CHANGE",
+          "purpose": "Closed archive-only v2 layout codec and legacy v1 validation"
+        },
+        {
+          "path": "frontend-v2/scripts/generate-terminal-index.mjs",
+          "action": "CHANGE",
+          "purpose": "Archive-only deterministic packing, complete source/union equality and atomic budget admission"
+        },
+        {
+          "path": "frontend-v2/scripts/verify-terminal-context.mjs",
+          "action": "CHANGE",
+          "purpose": "Meaningful v2/legacy/adversarial/lossless/deterministic/overflow checks; current cohort admission only after success"
+        },
+        {
+          "path": "frontend-v2/scripts/verify-terminal-browser.mjs",
+          "action": "CHANGE",
+          "purpose": "Explicit archive integration, malformed v2 cases and whole-body request/JS gates"
+        },
+        {
+          "path": "docs/phase7-5-connected-quant-terminal.md",
+          "action": "CHANGE",
+          "purpose": "Proposal and source-qualified implementation/result record"
+        },
+        {
+          "path": "docs/qa/phase7-5-connected-quant-terminal-proof.json",
+          "action": "CHANGE",
+          "purpose": "Machine-readable baseline, proposal and later acceptance proof"
+        }
+      ],
+      "approvalBoundary": "New archive metadata wire version and accepted whole-file byte/hash metrics require review before activation; original scope paths reused. Current task updates report and proof only."
+    },
+    "stages": [
+      {
+        "id": "H0",
+        "work": "Fetch/admit/reconcile any new main; verify freezes, complete originals, partitions, choices, output baseline and current failure"
+      },
+      {
+        "id": "H1",
+        "work": "Implement only archive layout-table codec, strict bounded reader and deterministic fail-closed generator"
+      },
+      {
+        "id": "H2",
+        "work": "Preserve all original and added tests; exact independent logical union and all complete originals; adversarial limits; two complete deterministic generations and all 11 budgets; only then refresh legitimate cohort admission pins"
+      },
+      {
+        "id": "H3",
+        "work": "Normal install/generation/context/typecheck/lint/build/CI; production archive positive and sabotage cases; lazy request/privacy/whole-body JS budgets; rerun backend CI"
+      },
+      {
+        "id": "P1-P4",
+        "work": "Resume already approved initial-JS ownership/equivalence repair only after generation admission, with a new exact-source baseline and all failures retained"
+      }
+    ],
+    "acceptance": {
+      "keepOriginalStaticChecks": 560,
+      "keepOriginalTargetedChecks": 237,
+      "keepAddedP0Checks": 4,
+      "keepCompletedRiskCapacityChecks": true,
+      "deterministicCompleteGenerations": 2,
+      "allWholeModuleCaps": true,
+      "allOtherSameInputModulesByteIdentical": true,
+      "sourceAndNavigationUnionExact": true,
+      "failureWritesZero": true,
+      "productionStage9Required": true,
+      "initialJSPassNotImplied": true,
+      "stage10PassNotImplied": true,
+      "stopForUnlistedFileOrCapOrSemanticOrLazyBoundaryFailure": true
+    },
+    "unchangedCaps": {
+      "seedDecoded": 49152,
+      "seedGzip": 12288,
+      "otherMetadataDecoded": 131072,
+      "otherMetadataGzip": 32768,
+      "searchDecoded": 131072,
+      "searchGzip": 16384,
+      "coreInitialRouteAttributedGzip": 24576,
+      "riskInitialIncludingCoreRouteAttributedGzip": 65536,
+      "factorsInitialIncludingCoreRouteAttributedGzip": 65536,
+      "coldCommandSearchCumulativeCodePlusMetadataGzip": 32768,
+      "originalBrowserRead": 2097152,
+      "riskArtifact": 131072,
+      "riskInitialUnion": 262144,
+      "totalBrowserJSAlsoReported": true,
+      "noFragmentOrFilenameExemptions": true
+    },
+    "preparation": {
+      "engineeringQAOnly": true,
+      "processLocalReadOnlyObserver": true,
+      "normalAdmissionBarrierStillRejects": true,
+      "activeRuntimeSourceEdits": 0,
+      "generatedOutputsWritten": 0,
+      "generatedOutputHashesBefore": {
+        "data.generated.ts": "93954fe7f786caf8737e021fcaac7788281cb945eb04f94c4e0649555fb3fc20",
+        "factors.generated.ts": "f2298a35a57abd2749ea943e0bfb570cc490d63e4da2e63e76bb303dac0a6764",
+        "history-archive.generated.ts": "4e26bb7cf2376ee5af934512eb0d613b30d4aa401e46cbfe63e042058510da25",
+        "history.generated.ts": "053f51d2f046d398173864a38dc505f829b56f1ed7352597907f59c220d002ee",
+        "market.generated.ts": "06d1296a71e355dbe77709aea741effdbc24391007dff2c8af8f5ef9b4230c4d",
+        "observatory-window.generated.ts": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+        "recordings.generated.ts": "b98d50d6c28a09251065c83276dcc6e819f70507b25bc2f3511d781eb08c13dd",
+        "regimes.generated.ts": "9d8b5d021779d8a80a6d7e7bf4e919aa8c88b4a9e0583518b6284188efed77ba",
+        "risk.generated.ts": "1bd2e7effd99c3fd78bcfba4433041ead22cbcb1aecd2a7a75781aa263d0bbbc",
+        "search.generated.ts": "f07dee610a4b9c3a41169d705af0a35eb01d245804a95249465bbebb154ff726",
+        "seed.generated.ts": "afbb56969439aa0a568262fe6c93df66be4e75f02a0d704ce47bac2a279c5bf2"
+      },
+      "generatedOutputHashesAfter": {
+        "data.generated.ts": "93954fe7f786caf8737e021fcaac7788281cb945eb04f94c4e0649555fb3fc20",
+        "factors.generated.ts": "f2298a35a57abd2749ea943e0bfb570cc490d63e4da2e63e76bb303dac0a6764",
+        "history-archive.generated.ts": "4e26bb7cf2376ee5af934512eb0d613b30d4aa401e46cbfe63e042058510da25",
+        "history.generated.ts": "053f51d2f046d398173864a38dc505f829b56f1ed7352597907f59c220d002ee",
+        "market.generated.ts": "06d1296a71e355dbe77709aea741effdbc24391007dff2c8af8f5ef9b4230c4d",
+        "observatory-window.generated.ts": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+        "recordings.generated.ts": "b98d50d6c28a09251065c83276dcc6e819f70507b25bc2f3511d781eb08c13dd",
+        "regimes.generated.ts": "9d8b5d021779d8a80a6d7e7bf4e919aa8c88b4a9e0583518b6284188efed77ba",
+        "risk.generated.ts": "1bd2e7effd99c3fd78bcfba4433041ead22cbcb1aecd2a7a75781aa263d0bbbc",
+        "search.generated.ts": "f07dee610a4b9c3a41169d705af0a35eb01d245804a95249465bbebb154ff726",
+        "seed.generated.ts": "afbb56969439aa0a568262fe6c93df66be4e75f02a0d704ce47bac2a279c5bf2"
+      },
+      "probeSources": [
+        {
+          "path": ".tmp/phase75/history-cap-plan/shape-probe.mjs",
+          "sha256": "baf0b2320bf7e2e173b98e886054d4b9e1f5c74be6b0247642fab881c54a44a6"
+        },
+        {
+          "path": ".tmp/phase75/history-cap-plan/numeric-shape-probe.mjs",
+          "sha256": "249cb09cf188225c6fd08c76741b0dda9bf52089975a8832e6844a674f872c37"
+        }
+      ],
+      "measurementFiles": [
+        {
+          "path": ".tmp/phase75/history-cap-plan/shape-probe.json",
+          "sha256": "377bc01529434e2a61fe32d67399bbcd1866b352432931afaba02c8156f274c7"
+        },
+        {
+          "path": ".tmp/phase75/history-cap-plan/numeric-shape-probe.json",
+          "sha256": "f918a2a85f6d15010b91fc09707e783b848e5c2922d3168d90488f67fad3b854"
+        }
+      ],
+      "reportSectionSha256": "8e07f6dc6c323e64aefd921933b786d55410ee028d7cfc0599e39cfbec9114a9"
+    },
+    "freeze": {
+      "archive": {
+        "base": "16db82c5f2f50b98253df9989c586cd45aa98f6b",
+        "d6": "DISABLED / DEFERRED",
+        "frozen_files": 930,
+        "prior_artifacts": 221,
+        "prior_routes": 126,
+        "risk_artifacts": 27,
+        "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+        "status": "VERIFIED",
+        "withdrawals": 6
+      },
+      "protectedSources": [
+        {
+          "path": "frontend-v2/src/app/shell/ForgeShell.tsx",
+          "sha256": "8ff7d29f58a6ace9ac22d88f29e87f1e13ff2e36dddae93626974c9dd998aee2"
+        },
+        {
+          "path": "frontend-v2/src/markets/queries.ts",
+          "sha256": "2813ce7b5586b56f96d0116facf3976cc49af7ed39193d7617617c18ecb4980a"
+        },
+        {
+          "path": "frontend-v2/src/replay/client.ts",
+          "sha256": "85f8fcd4860aab0aa20c7a072338018cac4b1d51d13f482da44ad4b64aac3cb9"
+        },
+        {
+          "path": "frontend-v2/src/replay/contracts.ts",
+          "sha256": "11f8b4fa7c71fd1facce5c5ef1fb42b0f89b1dd2f380ad1048effc5f40e2ea33"
+        },
+        {
+          "path": "frontend-v2/src/replay/FactorRegimeEvidence.tsx",
+          "sha256": "0b6b087176475641492987e50f00f5fe806b19bc07544782bddfe4e2c67b6176"
+        },
+        {
+          "path": "frontend-v2/src/replay/SourceCredit.tsx",
+          "sha256": "4d19324a60a5c2837d0930d376d931657e33909ec1b639ea52945d26fdc6adec"
+        },
+        {
+          "path": "frontend-v2/src/replay/factor-series.ts",
+          "sha256": "d57d14cb2dd0fda33e90fb6c90f82f1e978fb35c4a1ea2a6acd6225533bdcf59"
+        },
+        {
+          "path": "frontend-v2/src/replay/mode.tsx",
+          "sha256": "6b11eec3502b5315cbe742180e392385f5bca91788801e0f6a8b7a089ff60353"
+        },
+        {
+          "path": "frontend-v2/src/replay/observatory.ts",
+          "sha256": "45dc09df9b12b269c613744f224aa0c41bebd72ab45439d996af942b040b1646"
+        }
+      ],
+      "immutablePlanSha256": "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5",
+      "packageLockSha256": "16708dc4badc941174777af3763842a60d6da48796ae0fa3e1e52e4881be8673",
+      "excludedCommitIsAncestor": false
+    },
+    "boundaries": {
+      "prNumber": 30,
+      "draft": true,
+      "open": true,
+      "merged": false,
+      "autoMerge": false,
+      "claimsFalse": 6,
+      "d6": "DISABLED / DEFERRED",
+      "riskAndRegimeSchedules": "disabled",
+      "scientificOperations": 0,
+      "scientificPublications": 0,
+      "retainedEvidenceRewrites": 0,
+      "capsChanged": false,
+      "freezesChanged": false,
+      "overallCIPassClaim": false,
+      "vercelAcceptanceClaim": false,
+      "readyForReviewClaim": false
+    }
+  }
 }
