@@ -1,5 +1,68 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 2 approved history archive implementation — generation PASS; initial JS remains blocked
+
+The user approved the six-file history archive repair plan and requested implementation plus CI. Source commit `81329f762a47c1ce74fa38a6c46eb3b9361c5117` implements exactly the four listed source/verifier files; this record and the existing proof complete the six-file CHANGE scope, with 0 ADD /0 DELETE. The proposal below remains historical design evidence. No new shard, partition, export, dependency, workflow configuration, scientific format or active Risk code change is included.
+
+### Lossless archive codec and generation
+
+Only the existing `history-archive` output uses `terminal-shard/2`. Its digest covers the complete shared `layouts` table. Object rows use `[2,layoutIndex,value,...]`; arrays, dictionaries/text fragments, structure/root indices, scalar values, exact clocks, hashes, Unicode and negative zero retain their existing meanings. Legacy `terminal-shard/1` and base36/radix92 decoding remain supported. All other ten same-input generated module bodies are byte-identical to the reviewed in-memory candidates.
+
+| Complete generated source module | Decoded UTF-8 bytes | Gzip level 9 | Unchanged decoded /gzip caps |
+|---|---:|---:|---:|
+| history-archive |103,805|32,113|131,072 /32,768|
+| history, including retainedNavigation |75,827|26,129|131,072 /32,768|
+| search |43,741|15,976|131,072 /16,384|
+
+The archive SHA is exactly the proposed `e5af1b6203003f3b589ac0670b7beffb74ea817f0314636184fe7674d0f80ad3`. It has 15 layouts /114 shared key indices /30 maximum keys per layout, replacing 9,123 repeated key occurrences across 1,551 object rows. Two complete generations match all 11 whole-file bodies and pass every unchanged module budget. The source archive has 27,267 decoded bytes /655 gzip bytes of reserve; no next-epoch capacity or percentage reserve is promised. The smaller gzip margin remains a real limit.
+
+The generator validates all **336 complete source originals**. The exact semantic history union remains 335 entities /534 edges /46 bindings /711 version choices, digest `e559d241dcb5fac065244b78fbcd086bb8af605e0b006edbbe67be3afde37d10`: default history 16 /0 /16 and archive 319 /534 /30. Retained navigation preserves all 565 records /979 choices, and the full retained search union preserves 1,145 identities /2,217 choices. No value, field, source authority, licence, provenance or historical selection is pruned or reformatted.
+
+The new reader validates the archive-only schema and digest before expansion, then checks the bounded table and every record's tag, index, arity and first-use order. Limits are 256 layouts /128 keys each, with the existing dictionary/text/depth/visit limits unchanged. Sparse, duplicate, unused, unsorted, mixed-version, unsafe-name, noninteger/negative-zero/out-of-pool, cyclic and oversized representations reject. Decoded names are interned for layout comparison to avoid repeatedly allocating expanded key text. Normal logical payload/source/capability validation follows decoding.
+
+### Static, installation and build verification
+
+**623 navigation/static checks PASS**, preserving all 560 original checks and four prior P0 checks, with 59 new codec checks. **300 targeted checks PASS**, preserving all 237 original targeted checks and four prior P0 checks, with the same 59 additions. New cases include exact valid 256-layout/128-key boundaries, signed-zero object deduplication, Unicode/clock/hash collisions, legacy coexistence, isolated hydration, malformed/resealed tables and complete envelope limits.
+
+A private ENGINEERING_QA child process adds oversized unused wire fragments to the actual archive packing result. The real module-size calculation and unchanged final capacity assertion reject it before the output-writing stage. All 11 output hashes remain identical after rejection. This tests the actual admission/write barrier; no production guard is bypassed or changed.
+
+The first full verifier attempt exposed its stale structural comparison to the reader before the already approved Risk 128 KiB guard. The expected AST now includes precisely that guard and independently equals `validateFullOriginal` at approved source `6d50f5f`; every other original reader-function and grammar comparison remains. No production reader is edited. Both the initial failure and its exact correction are retained. Default full-static verification still rejects the pre-existing unfinished Changes, Preferences and Exports areas. Navigation and targeted stages report their explicit missing areas; no complete Phase 7.5 static PASS is claimed.
+
+Normal **npm ci, TypeScript, lint and npm run build PASS** on fresh current generation. Lint has zero errors /five existing Fast Refresh warnings. The production ownership harness also completes two builds with identical emitted body/module/dependency signatures. Source maps remain only in private QA storage; normal public output contains none. This replaces the earlier diagnostic stale-catalog build qualification for generation/build only.
+
+### Production archive and current interaction checks
+
+**30 production archive cases PASS in Chrome, Edge and Firefox**: one unmodified success and nine rejected variants per browser. The actual complete emitted archive body is 103,687 decoded bytes /32,120 level-9 gzip /32,567 default-gzip bytes, SHA `b72b0b732206afeff7557093741f5d24c52d1ff35df31c854de66a6e28b586b7`. Its request occurs once after explicit retained-history selection; initial Risk and the empty current palette make zero archive requests. Valid v2 history produces usable results; malformed/mixed/wrong-cohort/wrong-module/digest/arity/oversize variants clear all navigable results. History search fetches no scientific originals. Provider/private requests, page errors, console errors and response errors are zero. The normal CI entry point repeats this same matrix and passes it before evaluating initial ownership.
+
+The current four network-only capacity journeys also PASS. Complete default-gzip JS bodies, including code and generated metadata, are charged in the cumulative union; no fragment or filename exemption is added.
+
+| Invocation | Actual complete required JS gzip bytes | Unchanged cap |
+|---|---:|---:|
+| Empty palette, Risk and Factors |4,045|32,768|
+| Palette plus first current query, Risk and Factors |32,282|32,768|
+| Risk command |8,146|32,768|
+| Market first metadata search |12,555|32,768|
+
+The cold global interaction has **486 bytes** of reserve. Compared with the prior ec961 measurement, its increase is retained rather than normalized away. Current palette/query/command/Market search requests contain no scientific display payload or history archive. Explicit retained-history selection loads its archive later. Warm and loaded-search latency benchmarks were not rerun in this network-only check; no new performance PASS is inferred.
+
+### CI rerun and remaining initial ownership failure
+
+[CI run 41336905658](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41336905658) is for exact implementation source `81329f7`. Frontend job [124938566596](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41336905658/job/124938566596) passes installation/generation, ordinary frontend checks, all 240 Risk checks, production build, 623 navigation checks and all 30 archive browser cases. It then **fails the unchanged exact initial ownership/equivalence gate**. Later frontend release-browser steps are skipped. At this report checkpoint truth-contract and regimes are SUCCESS; backend is still running. No overall or exact-head backend green claim is made; completed source-qualified backend evidence below remains unchanged.
+
+Both local and Linux CI reject the initial gate because project/vendor code remains mixed in initial bodies and the comparison proof belongs to the older October 30 manifest cohort. The rendered context now correctly shows November 1 main's manifest publication. The existing comparison fails explicitly; it is not relaxed, clock-normalized or replaced with the current candidate as its own baseline.
+
+Local total browser JS is 196,951 gzip bytes for Risk and 184,852 for Factors; CI records 196,970 /184,866. These are total network figures. Strict core/route attribution remains **INDETERMINATE**, so no 24 KiB core or 64 KiB route PASS is asserted. The local core result has `gzip: null`, with only 13,123 known project gzip bytes; mixed bodies prevent a valid complete result. Mixed examples include the context, main index, JSX runtime and TerminalShell chunks. Full response hashes, body ownership, snapshots, raw failures and build graphs are retained in QA and summarized in the proof. No partial project subtotal is promoted to an accepted route total.
+
+The approved P1–P4 ownership/equivalence work remains unstarted. Its next baseline must use this reviewed codec and the current independently admitted input cohort; it must preserve the old failed baseline and all caps. No packaging candidate, route/panel optimization or new allowance is activated by this repair. Full Stage 9/10, review readiness and Vercel acceptance remain blocked.
+
+### Frozen boundary and disposition
+
+Main is freshly fetched and already reconciled at `4f363543936f446608b838467bc0cfa8d3bfddca`; implementation source is 39 ahead /0 behind. The read-only archive verifier freshly passes all 930 files, 221 prior artifacts, 126 prior routes, six withdrawals and all 27 retained Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Nine protected frontend raw hashes, package-lock, original plan SHA and retained scientific bytes remain exact. Excluded `6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d` is absent from ancestry.
+
+The first owned-preview stop check refused to act because PowerShell had parsed the saved ISO string as a date. Normalizing both timestamp types proved a zero-millisecond difference before stopping only that owned process. No unrelated process was changed. An incidental build-generated route-tree status was restored to its tracked bytes; it is outside the committed scope. These harness events and earlier negative evidence remain recorded.
+
+Caps and freezes are unchanged. All six scientific claims stay false; D6 remains disabled/deferred; Risk/regime scheduling stays disabled. No operational sweep/capture/model/plugin/Series/factor/research/holdout/simulator execution or retained publication occurred. PR #30 remains **draft/open/unmerged, auto-merge off**. Detailed proof is under `history_capacity_implementation_nov2`; this scoped codec success does not establish complete Phase 7.5 acceptance.
+
 ## November 1 history archive capacity repair plan — proposed, not implemented
 
 The requested repair plan is prepared against source head `c29ed8423a065abe8da94fc44636c3549fc33eaf`, with main already reconciled at `4f363543936f446608b838467bc0cfa8d3bfddca` (37 ahead /0 behind before this documentation commit). A fresh fetch confirms no new main commit to merge. This section proposes one archive metadata wire change for review; it does not activate a new encoder/decoder, update admission pins, or claim fresh generation/build/browser acceptance. The approved Risk capacity implementation remains unchanged.
