@@ -1,5 +1,58 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 1 approved Risk capacity implementation — backend CI PASS; Phase 7.5 remains blocked
+
+The user explicitly approved the separate Risk capacity amendment and its exact 19-file CHANGE scope. Implementation is published in `941e16556cb604a4511db75b02f2ec28b18eff2a`; the completed fixture/QA checkpoint is `6d50f5f893ec80518dfb40f7fc89ac7c07232f5e`. Main remains reconciled at `4f363543936f446608b838467bc0cfa8d3bfddca`. The earlier review-required statements below are historical proposal/checkpoint text. No operational Risk publication or retained-evidence migration occurred.
+
+The producer keeps byte-identical v1 receipts when they fit. When a complete logical receipt exceeds 128 KiB, it prepares the approved canonical `risk-sweep/2` wire representation with one receipt-local table of complete evidence references and canonical decimal-string indices. Hydration restores exact logical `risk-observation/1` values. Full observation fingerprints/IDs, source bindings, origin records, policy/clock authority, lifecycle and atomic publication checks remain mandatory. Incoming oversized v1 data still rejects; the reader never repacks invalid input to make it pass.
+
+Both readers verify closed wire bounds and source authority before repeated-reference allocation. Each hydrated occurrence has isolated mutable data; table duplicates, unused entries, noncanonical order, malformed/mixed versions, unknown fields, numeric/coercible indices and newline-bearing index text reject. Python and browser identity checks agree. The GET service returns the checked wire receipt; backend history/archive and terminal generation consume the complete logical view. Logical sweep identity domains and the eight-file evaluator source list remain fixed; future evaluator hashes reflect the actual changed code. Historical receipts retain their original source hashes and exact bytes.
+
+### Actual preparation and API proof
+
+These are temporary ENGINEERING_QA publication/GET fixtures, not retained scientific evidence. All observations and origins remain complete.
+
+| Measured value | Actual | Unchanged cap |
+|---|---:|---:|
+| Complete logical receipt, canonical JSON plus newline |134,017|Rejected as incoming v1 above 131,072|
+| Prepared v2 receipt, including complete wrapper/table/newline |124,571|131,072|
+| Headroom |6,501|No cap increase|
+| Primary state |119,121|131,072|
+| Coverage leaf |114,640|131,072|
+| Initial state +receipt union |243,692|262,144|
+| Served JSONResponse receipt body |124,570|131,072|
+| Observations /origin records /reference occurrences /unique references |35 /67 /35 /13|All preserved|
+
+The closed logical roundtrip is exact. The actual wire SHA, logical SHA, evaluator hash, operation proofs and all artifact sizes are retained in `risk_capacity_implementation_nov1` in the existing proof. No string truncation, observation/origin pruning, aggregation, altered predicate or successful-status substitution is used. No new scientific artifact kind, module, shard, dependency or workflow is added.
+
+### Backend CI and verification
+
+[CI run 41292205686](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41292205686), source head `6d50f5f`, has **backend SUCCESS**, truth-contract SUCCESS and regimes SUCCESS. Backend job 124805574006 records:
+
+- **246 Risk tests PASS**, 172.39 seconds: all 209 original cases and 37 added cases; none skipped or weakened.
+- **1,180 remaining backend tests PASS**, with 169 reported warnings.
+- Existing immutable Risk/archive, Data, Factor, regime, research, authorship and infrastructure checks pass in that job.
+
+The first implementation CI at941e165 had 245 Risk passes and one fixture failure: a newly retained Issue had two complete lifecycle IDs, equal to its first/latest anchors. The old blanket assumption that every retained Issue must already have a longer history was invalid. The fixture now verifies the exact inherited ordered prefix and exactly one new applied observation per epoch. The original complete-origin, Issue-ID, first/latest-anchor, two-epoch, no-op, failure/recovery and >100-observation assertions remain. The focused corrected case also passes locally. Earlier 49-pass/11-setup-error/1-failure and interrupted local attempts remain qualified evidence; Windows temporary-directory permissions and a dated fixture witness were corrected without weakening production chronology or caps. No interrupted run is counted as PASS.
+
+### Frontend and browser verification
+
+The Risk verifier passes **240 checks**: all 182 original checks plus 58 transport checks. Ten independent Python producer vectors cover all nine retained receipts and the current complete overflow fixture. Complete original Unicode/metadata, logical observation digests, terminal normalization and source joins match. Index/type/table/version/field/identity sabotage rejects. Synchronous validation max is **45.8793ms**, within the unchanged 50 ms gate, in the controlled run after the competing local backend worker stopped. Earlier concurrent timing failures, including 311.0551 ms, remain retained and are not relabelled passing. The harness also retains its initial Windows stdout/text-edit encoding failures; exact UTF-8 source was restored and producer vectors now use ASCII JSON escaping during subprocess transport, with equality to original bytes checked before hashing.
+
+The new isolated v2 browser matrix passes **54 cases** across Chrome, Edge and Firefox: two positive scenes and 16 fail-closed attacks per browser. Positive success reads 230,784 Risk bytes; a failed sweep retaining its v2 owning receipt reads 237,084 Risk bytes, both within 262,144. The owning v2 receipt is actually fetched; source bytes/SHA, complete logical validation, Issue feed preservation and zero private/provider requests remain enforced. Invalid table/index/version/source/hash/cutoff/claim/oversize cases cannot render an assessment.
+
+The initial browser attempt used `vite preview`, which could not load `dist/server/server.js` for this Vercel-preset build. That runner error occurred before app loading and remains a failed harness attempt. The successful checks serve the actual compiled Vercel handler and static output. Screenshot output is redirected to temporary storage; committed screenshots are unchanged. No production override or protection setting is added. No owned QA preview process remains running.
+
+Direct TypeScript checking, scoped ESLint and Prettier checks pass. A diagnostic production compilation passes using the retained pre-rejection terminal catalog. It is **not** a successful fresh current Phase 7.5 build: the normal generation gate still rejects the current archive. The new transport matrix does not replace the original complete Stage 9/browser/initial-JS release matrix.
+
+### Remaining gates and frozen boundary
+
+Frontend CI correctly fails `npm ci` at **history-archive 136,061 decoded bytes /32,753 gzip**, versus unchanged 131,072 /32,768 caps. The decoded excess is 4,989 bytes. All 11 previous generated outputs remain unchanged and explicitly stale for current main. No count/hash admission, new encoding/partition/module, cap increase or fresh-generation PASS is fabricated. Initial 24/64 KiB JS ownership/cap/equivalence work remains unstarted; the approved P1–P4 rules and earlier failed measurements remain intact. Full current Stage 9/10 acceptance stays stopped.
+
+All 19 approved paths are used: 17 implementation/test paths and the existing report/proof; 0 ADD / 0 DELETE. The 930-file archive verifier passes, including 221 prior artifacts, 126 prior routes, 6 withdrawals and 27 retained Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. All 9 protected frontend byte hashes, the original plan SHA and package-lock remain unchanged. `6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d` is absent from ancestry. No public source maps, scientific publication, retained-artifact rewrite, operational sweep/capture/model/plugin/Series/factor/research/holdout/simulator execution or schedule change. All six claim flags stay false; D6 deferred; Risk/regime scheduling disabled.
+
+PR #30 remains draft/open/unmerged with auto-merge off. The backend result above is tied to 6d50f5f. Publishing this documentation-only record starts a separate CI run; the backend implementation, tests, workflow and evidence trees are unchanged. No overall green CI, clean-clone, Vercel acceptance, ready-for-review or merge claim is made.
+
 ## November 1 reconciliation — Risk amendment ready for review; generation blocked again
 
 The requested Risk capacity amendment is prepared below, **not implemented**. Design checkpoint `bf65342f7395cfa6399477c3a146c2da278f843f` was published before main advanced. The new independent Data publication `4f363543936f446608b838467bc0cfa8d3bfddca` passes **1,942 read-only preservation/admission checks** and is reconciled in merge `1a97e2154015216960a07b49ef4c69ae94b2efcb`. No active source changes arrive from main: all 374 prior entries, 354 available originals, 110 sealed raw Data histories and 146 route keys survive. Seven complete Data envelopes and four sealed raw reports are added; only six Data aliases/manifests change. Manifest: 381 entries /361 AVAILABLE /20 UNAVAILABLE, 500,949 bytes, SHA `db52ba741b71edd8ffb0e4af93389cded872797094038dc2981c77f1ebd733e1`, as-of2026-11-01T07:42:18.604587Z. This evidence is inherited from main; Phase 7.5 performs no scientific publication.
