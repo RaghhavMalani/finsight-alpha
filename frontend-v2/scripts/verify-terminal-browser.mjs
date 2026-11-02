@@ -94,6 +94,7 @@ const report = {
     .trim()
     .split("\n")
     .filter(Boolean),
+  browserEnvironment: { locale: "en-US", timezoneId: "UTC", reducedMotion: "reduce" },
   manifest: { sha256: sha(manifestBytes), bytes: manifestBytes.length, asOf: manifest.as_of },
   mode: smoke ? "INTEGRATION_SMOKE" : matrixOnly ? "MATRIX_STAGE" : "FULL_TERMINAL_BROWSER",
   cases: [],
@@ -163,7 +164,12 @@ function urlFor(workspace, route) {
   return url.href;
 }
 async function pageFor(browser, viewport, archiveFixture) {
-  const context = await browser.newContext({ viewport, reducedMotion: "reduce" }),
+  const context = await browser.newContext({
+      viewport,
+      reducedMotion: "reduce",
+      locale: "en-US",
+      timezoneId: "UTC",
+    }),
     page = await context.newPage();
   page.setDefaultTimeout(20000);
   page.setDefaultNavigationTimeout(20000);
