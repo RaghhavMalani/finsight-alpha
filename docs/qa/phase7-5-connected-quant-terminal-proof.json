@@ -25,7 +25,7 @@
   "initial_clean": true,
   "schema_version": "phase75-implementation-proof/1",
   "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
-  "status": "ARCHIVE_ORDERING_IMPLEMENTED_LOCAL_VERIFIED_CI_PENDING",
+  "status": "ARCHIVE_CAPACITY_VERIFIED_INITIAL_JS_AND_RISK_CI_BLOCKED",
   "unrelated_wip_imported": false,
   "checkpoint_head": "a8fd2dfb59085efb0793564904c7dd59412224a0",
   "reconciled_main": "ec961d3caacd825233c788f195c5af0dd87998c3",
@@ -200208,7 +200208,7 @@
     }
   },
   "current_initial_js_source": "4d302d005159eb87b783c69cd2b84a62d3da7d80",
-  "current_initial_js_qualification": "Approved archive ordering implemented at4d302d0; normal source admission/ten-module equality and45archive browser cases pass. Fresh pre-JS same-cohort baseline pinned; current interaction and latency gates pass. R1/R2 unstarted; restored initial mixed ownership and separate Risk recovery CI failures remain independent. Exact-source CI running.",
+  "current_initial_js_qualification": "Archive repaired and current-cohort frontend CI confirms generation/build633static/45archive and full equivalence/regressions. Only mixed/unknown initial ownership fails. Separate original Risk recovery failures reproduce wire-cap overflows; no Risk source/test changes. R1/R2 remain unstarted.",
   "initial_js_capacity_repair_plan_nov2": {
     "status": "PROPOSED_NOT_IMPLEMENTED_PREREQUISITE_GENERATION_BLOCKED",
     "authorization": "User requested latest CI check, main reconciliation and scoped initial-JS cap/nested-matcher repair plan. No new candidate allowance or history representation activated by this preparation.",
@@ -209373,7 +209373,7 @@
   },
   "current_initial_js_repair_approval": "APPROVED_PENDING_SEPARATE_HISTORY_PREREQUISITE",
   "history_archive_ordering_implementation_nov2": {
-    "status": "IMPLEMENTED_LOCAL_GATES_PASS_CI_PENDING",
+    "status": "ARCHIVE_VERIFIED_BY_FRONTEND_CI_INITIAL_OWNERSHIP_AND_BACKEND_BLOCKED",
     "authorization": "Continue. I approve the six-file archive repair plan. Implement the lossless table ordering and rerun CI. Keep caps unchanged, freezes intact, main reconciled, 6f99daa excluded, and PR #30 draft and unmerged.",
     "runtimeCommit": "4d302d005159eb87b783c69cd2b84a62d3da7d80",
     "reviewedPlanCommit": "13c043b147dfe8d51891fe38c4f37715a8d96151",
@@ -215472,7 +215472,55 @@
           "{\"phase\":\"CONTRACTS_PROJECTIONS_SEARCH_COMMANDS_CAPABILITIES\",\"status\":\"INCOMPLETE\",\"stageStatus\":\"PASS\",\"missingAreas\":[\"changes\",\"preferences\",\"exports\"],\"checks\":633,\"failures\":[],\"performance\":{\"codec\":{\"samples\":100,\"p95_ms\":0.36206099999998287,\"limit_ms\":2,\"input_bytes\":4096,\"canonical_bytes\":2468,\"workload\":\"parse and serialize; exact retained IDs, complete Risk origin,12columns,160code-unit multilingual query\"}}}",
           "{\"status\":\"PASS_HISTORY_LAYOUT_BROWSER_STAGE\",\"cases\":45,\"failures\":[]}"
         ]
-      }
+      },
+      "sameCohortHead": "aae9a136d08585d6dc3c6872381b9e71cbcf7ec0",
+      "sameCohortRunId": 41452922041,
+      "sameCohortRunUrl": "https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41452922041",
+      "sameCohortFrontend": {
+        "conclusion": "failure",
+        "normalInstallGenerationBuild": "PASS",
+        "navigation": 633,
+        "archiveBrowser": 45,
+        "fullSnapshotEvidenceAndRegression": "PASS",
+        "riskTotalGzip": 197714,
+        "riskRequests": 28,
+        "riskDeltaGzip": -1,
+        "factorsTotalGzip": 184864,
+        "factorsRequests": 33,
+        "factorsDeltaGzip": -7,
+        "requestDeltas": 0,
+        "failures": [
+          "risk: mixed/unknown initial ownership",
+          "factors: mixed/unknown initial ownership"
+        ],
+        "oldCohortMismatchResolved": true
+      },
+      "latestJobs": [
+        {
+          "id": 125302283532,
+          "name": "regimes",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 125302284018,
+          "name": "backend",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "id": 125302284089,
+          "name": "frontend",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 125302284204,
+          "name": "truth-contract",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
     },
     "negativeEvidence": {
       "firstTargeted": [
@@ -215571,7 +215619,18 @@
       ],
       "immutablePlanSha256": "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5",
       "packageLockSha256": "16708dc4badc941174777af3763842a60d6da48796ae0fa3e1e52e4881be8673",
-      "excludedCommitIsAncestor": false
+      "excludedCommitIsAncestor": false,
+      "finalAfterRiskDiagnostic": {
+        "status": "VERIFIED",
+        "base": "16db82c5f2f50b98253df9989c586cd45aa98f6b",
+        "frozen_files": 930,
+        "prior_artifacts": 221,
+        "prior_routes": 126,
+        "withdrawals": 6,
+        "risk_artifacts": 27,
+        "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+        "d6": "DISABLED / DEFERRED"
+      }
     },
     "evidenceFiles": [
       {
@@ -215648,14 +215707,46 @@
       },
       {
         "path": ".tmp/phase75/history-ordering-implementation-nov2/implementation-section.md",
-        "sha256": "1c70b68847894bb53a53f7251bebe5c1b7926af939d7c4d75081ef089f2fe238"
+        "sha256": "f06019c575a6ee0ca72cc451963019bdeef5b9bd571e1b942aa8523e8176fbd9"
       },
       {
         "path": ".tmp/phase75/history-ordering-implementation-nov2/equivalence/terminal-initial-browser-proof.json",
         "sha256": "16ba88948c16853385448516f8f7fb86334dc16d038a40c9f76d7f8e3941da5b"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/risk-recovery-diagnostic.py",
+        "sha256": "4938930aa40b7a9275e12ebb5721efae342e6bcb9c8ad467beca05103f8cbc82"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/risk-recovery-diagnostic.json",
+        "sha256": "b5ad794dc789b29755a902f794c9ed421e46c8a46d0e5bbb60e97b88cb56ed00"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/risk-recovery-diagnostic.log",
+        "sha256": "722d2131ae0f60d7b58baf87bfffecc9e880bbaf1c85d45c490a274b1eebc172"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/risk-recovery-sized-diagnostic.py",
+        "sha256": "ae0cd8ae35aa55d907c554fab9a73892c307cda3649f6ccfdf5a4fb7583c56b5"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/risk-recovery-sized-diagnostic.json",
+        "sha256": "914af48b45d26e73e1f7ba4e34d7122ce69ff679f047f7b01d30db98797eda82"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/risk-recovery-sized-diagnostic.log",
+        "sha256": "46b50e043fa590cc5e1b9f9074f65147e2e5994dd09e4db99e25eb945e77754f"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/preview-stopped.json",
+        "sha256": "d3cc436206f1faf4ff572356bdd87f207f57967c47899cd09380d547e195c7bd"
+      },
+      {
+        "path": ".tmp/phase75/history-ordering-implementation-nov2/final-archive-freeze.log",
+        "sha256": "bfb9092a3297a8fe6641b785d2306c8ab4f387c0a48b417d7df617fb014131f1"
       }
     ],
-    "reportSectionSha256": "1c70b68847894bb53a53f7251bebe5c1b7926af939d7c4d75081ef089f2fe238",
+    "reportSectionSha256": "f06019c575a6ee0ca72cc451963019bdeef5b9bd571e1b942aa8523e8176fbd9",
     "boundaries": {
       "capsChanged": false,
       "freezesChanged": false,
@@ -217296,6 +217387,98 @@
       ],
       "failures": [],
       "qualification": "Full snapshot/evidence and total/request regression pass against the fixed pre-JS same-input baseline; not an ownership-size pass"
+    },
+    "independentRiskDiagnostic": {
+      "evidence_class": "ENGINEERING_QA_READ_ONLY_TRACE",
+      "pytest_exit": 1,
+      "exceptions": [
+        {
+          "type": "FileNotFoundError",
+          "message": "ENGINEERING_QA retained reader fault",
+          "line": 100
+        },
+        {
+          "type": "ValueError",
+          "message": "Risk artifact exceeds 128 KiB budget",
+          "line": 183,
+          "leaf_logical_bytes": 114640,
+          "state_logical_bytes": 125406,
+          "receipt_logical_bytes": 140942,
+          "receipt_wire_bytes": 131518,
+          "receipt_observations": 36,
+          "receipt_schema": "risk-sweep/2"
+        },
+        {
+          "type": "FileNotFoundError",
+          "message": "SYNTHETIC_TEST_ONLY retained-reader fault",
+          "line": 98
+        },
+        {
+          "type": "ValueError",
+          "message": "Risk artifact exceeds 128 KiB budget",
+          "line": 183,
+          "leaf_logical_bytes": 114640,
+          "state_logical_bytes": 123061,
+          "receipt_logical_bytes": 141012,
+          "receipt_wire_bytes": 131588,
+          "receipt_observations": 36,
+          "receipt_schema": "risk-sweep/2"
+        }
+      ],
+      "production_edits": 0,
+      "tests_selected": 2,
+      "qualification": "Local synthetic original tests, unchanged producer/pack/cap logic. These are local witness-specific byte sizes, not a claim of identical CI wire bytes.",
+      "overflows": [
+        {
+          "type": "ValueError",
+          "message": "Risk artifact exceeds 128 KiB budget",
+          "line": 183,
+          "leaf_logical_bytes": 114640,
+          "state_logical_bytes": 125406,
+          "receipt_logical_bytes": 140942,
+          "receipt_wire_bytes": 131518,
+          "receipt_observations": 36,
+          "receipt_schema": "risk-sweep/2",
+          "cap": 131072,
+          "excess": 446
+        },
+        {
+          "type": "ValueError",
+          "message": "Risk artifact exceeds 128 KiB budget",
+          "line": 183,
+          "leaf_logical_bytes": 114640,
+          "state_logical_bytes": 123061,
+          "receipt_logical_bytes": 141012,
+          "receipt_wire_bytes": 131588,
+          "receipt_observations": 36,
+          "receipt_schema": "risk-sweep/2",
+          "cap": 131072,
+          "excess": 516
+        }
+      ],
+      "firstDiagnostic": {
+        "evidence_class": "ENGINEERING_QA_READ_ONLY_TRACE",
+        "pytest_exit": 1,
+        "exceptions": [
+          {
+            "type": "FileNotFoundError",
+            "message": "SYNTHETIC_TEST_ONLY retained-reader fault",
+            "line": 98
+          },
+          {
+            "type": "ValueError",
+            "message": "Risk artifact exceeds 128 KiB budget",
+            "line": 183
+          }
+        ],
+        "production_edits": 0,
+        "tests_selected": 2,
+        "qualification": "One failure reproduced; compact-lifecycle setup could not use the default Windows pytest temp directory. Full second trace used a verified fresh ignored workspace temp directory and reproduced both failures."
+      },
+      "separateRepairRequired": true,
+      "noRiskSourceOrTestEdits": true,
+      "productionTree": "547710774f094bf7d9667ee725a408e6243afc04",
+      "testsTree": "da211b9cf0704fd2a91a5b67b3591700f3d14d07"
     }
   }
 }
