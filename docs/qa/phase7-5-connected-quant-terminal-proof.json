@@ -25,7 +25,7 @@
   "initial_clean": true,
   "schema_version": "phase75-implementation-proof/1",
   "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
-  "status": "HISTORY_ARCHIVE_PASS_INITIAL_OWNERSHIP_BLOCKED",
+  "status": "INITIAL_JS_BASELINE_CAPTURED_P1_DECLARED",
   "unrelated_wip_imported": false,
   "checkpoint_head": "a8fd2dfb59085efb0793564904c7dd59412224a0",
   "reconciled_main": "ec961d3caacd825233c788f195c5af0dd87998c3",
@@ -182779,5 +182779,1888 @@
       "readyForReviewClaim": false,
       "vercelAcceptanceClaim": false
     }
+  },
+  "initial_js_ownership_repair_nov2": {
+    "status": "BASELINE_CAPTURED_SINGLE_REPLACEMENT_DECLARED_NOT_EVALUATED",
+    "approval": "User approved scoped P0-P4 plan and listed amendments; latest instruction explicitly resumes that approved initial-JS ownership/equivalence work. One replacement configuration; previous A remains rejected and its allowance is not reset.",
+    "baseline": {
+      "schema_version": "phase75-terminal-browser-proof/1",
+      "evidence_class": "ENGINEERING_QA_READ_ONLY",
+      "base": "http://127.0.0.1:4174",
+      "sourceSha": "71b061777118910247dd93f966b4c24cc585b2a4",
+      "deploymentSha": null,
+      "worktreePaths": [],
+      "browserEnvironment": {
+        "locale": "en-US",
+        "timezoneId": "UTC",
+        "reducedMotion": "reduce"
+      },
+      "manifest": {
+        "sha256": "db52ba741b71edd8ffb0e4af93389cded872797094038dc2981c77f1ebd733e1",
+        "bytes": 500949,
+        "asOf": "2026-11-01T07:42:18.604587Z"
+      },
+      "mode": "INITIAL_OWNERSHIP_PRODUCTION_STAGE",
+      "cases": [],
+      "failures": [],
+      "blockedRequests": [],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "originalChecks": [
+        {
+          "artifactId": "risk:state:7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355",
+          "sha256": "7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355",
+          "bytes": 113084
+        },
+        {
+          "artifactId": "risk:sweep:cf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471",
+          "sha256": "cf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471",
+          "bytes": 127146
+        },
+        {
+          "artifactId": "factors:catalog:68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c",
+          "sha256": "68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c",
+          "bytes": 17252
+        },
+        {
+          "artifactId": "regimes:factors:3e1cdbdd5545c85cdf5fa91a2235529ee1661d07839a2b8f6f9b3ac4dea416fc",
+          "sha256": "3e1cdbdd5545c85cdf5fa91a2235529ee1661d07839a2b8f6f9b3ac4dea416fc",
+          "bytes": 32454
+        },
+        {
+          "artifactId": "regimes:snapshot:188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6",
+          "sha256": "188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6",
+          "bytes": 59565
+        },
+        {
+          "artifactId": "regimes:lineage:d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70",
+          "sha256": "d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70",
+          "bytes": 24992
+        }
+      ],
+      "limitations": [
+        "Deployment identity is recorded from the independently verified argument; this script does not invent deployment provenance.",
+        "A matrix-stage pass does not establish the remaining context/action/table/privacy/accessibility/bundle gates."
+      ],
+      "initialGateSelfTests": [
+        {
+          "name": "exact whole-body boundaries include core and pass without filename exemptions",
+          "pass": true
+        },
+        {
+          "name": "terminal one-byte excess rejected",
+          "pass": true
+        },
+        {
+          "name": "risk one-byte excess rejected",
+          "pass": true
+        },
+        {
+          "name": "factors one-byte excess rejected",
+          "pass": true
+        },
+        {
+          "name": "MIXED rejected",
+          "pass": true
+        },
+        {
+          "name": "UNKNOWN rejected",
+          "pass": true
+        },
+        {
+          "name": "request increase5 rejected",
+          "pass": true
+        },
+        {
+          "name": "total regression beyond stricter bound rejected",
+          "pass": true
+        },
+        {
+          "name": "eager visualization caught by module provenance regardless of chunk name",
+          "pass": true
+        },
+        {
+          "name": "behavior mismatch rejected",
+          "pass": true
+        },
+        {
+          "name": "duplicated always-on terminal code charged in both route-specific bodies",
+          "pass": true
+        }
+      ],
+      "initialOwnership": {
+        "journeys": [
+          {
+            "workspace": "risk",
+            "url": "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&sweep=ab2776d927361b3a6848594e0f73ddc3395ac3cbb3eeabf042cdbbef798499e0",
+            "startedAt": 1793584023297,
+            "usableAt": 1793584025173,
+            "usableMs": 1876,
+            "snapshot": {
+              "url": "/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&sweep=ab2776d927361b3a6848594e0f73ddc3395ac3cbb3eeabf042cdbbef798499e0",
+              "text": "Skip to workspace\nF\nFinSight\nF1\nMARKET\nF2\nWORLD\nF3\nRISK\nF4\nREGIMES\nF5\nFACTORS\nF6\nRESEARCH\nF7\nEXECUTION\nF8\nOBSERVATORY\nF9\nAGENTS\nF10\nDATA\n⌘K / Ctrl K\nCommand\nGO ↵\n\nTICKER [EXCHANGE] FUNCTION · US / INDIA REG · RISK HIGH · exact ISSUE / RUN · navigation only\n\nIN-MKT\nmarket factor, not a ticker\nReplay\nLocal Live\nEvidence cutoff\n2026-10-26T06:25:24.443276Z\nPublished state\n2026-10-26T18:15:28.744789Z\nEvidence / context\nCopy investigation link\n\nF3 / EVIDENCE-DRIVEN IMMUNE SYSTEM\n\nRISK MANAGER\n\nRetained evidence. Deterministic rules. Immutable findings. Public portfolio checks are unavailable.\n\nPARTIAL COVERAGE\n\nNO UNMEASURED CHECK IS ASSUMED CLEAR\n\nISSUE CONSOLE\nCOVERAGE\nSWEEP HISTORY\nHISTORIC SWEEP · EXACT RETAINED STATE / INPUTS / POLICY\nReturn to latest sweep\n\nCURRENT REAL FINDINGS\n\n13\n\n10 HIGH / CRITICAL\n\nUNAVAILABLE FINDINGS\n\n13\n\nNOT EVALUATED ≠ CLEAR\n\nEVIDENCE CUTOFF\n\nOct 26, 2026, 6:25 AM\n\nPINNED · NO WALL-CLOCK AGING\n\nLAST PUBLISHED SWEEP\n\nOct 26, 2026, 6:15 PM\n\nPARTIAL\n\nCurrent real 13\nUnavailable 13\nHistorical 8\nRetained synthetic 1\nResolved 0\nALL\nDATA\nMODEL\nPORTFOLIO\nRESEARCH_HYGIENE\nSIMULATOR\nSYSTEM\nALL\nCRITICAL\nHIGH\nMEDIUM\nLOW\nINFO\nALL\nUS\nINDIA\nCROSS_MARKET\nNONE\nALL\nOPEN\nRESOLVED\nALL\nREAL_RETAINED\nUNAVAILABLE\nRETAINED_SYNTHETIC\nISSUE FEED\n7 IN VIEW · READ ONLY\nSEVERITY\tSUBJECT / FINDING\tFIRST SEEN\tSTATUS\nHIGH\tindia:fundamentals · source unavailable\nDATA\n· INDIA:FUNDAMENTALS\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL\n\nHIGH\tmospi:cpi-combined · source unavailable\nDATA\n· MOSPI:CPI-COMBINED\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL\n\nHIGH\trbi:policy-repo · source unavailable\nDATA\n· RBI:POLICY-REPO\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL\n\nHIGH\tnse:india-vix · source unavailable\nDATA\n· NSE:INDIA-VIX\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL\n\nHIGH\tnse:bhavcopy · source unavailable\nDATA\n· NSE:BHAVCOPY\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL\n\nHIGH\tIN-MKT · retained input age\nMODEL\n· IN-MKT\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 10, 2026, 1:59 PM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL\n\nMEDIUM\tiima:daily-factors · partial source health\nDATA\n· IIMA:DAILY-FACTORS\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL\nSelect a finding to inspect its rule, immutable evidence and unblock requirements.\nCOVERAGE BOUNDARYPSI / KS, calibration drift, consumer abstention receipts, public VaR / CVaR, concentration, factor exposure, liquidity and real simulator disagreement remain unavailable.Inspect all retained check slots →\nDERIVED METADATA ONLY · CLAIMS CLOSED · NO REAL USER PORTFOLIO\nMANUAL SWEEP AVAILABLE / SCHEDULE DISABLED · D6 DEFERRED\nPUBLIC REPLAY · retained derived evidence\nSource, clocks and limitations stay with each selection",
+              "inputs": [
+                {
+                  "tag": "INPUT",
+                  "label": null,
+                  "value": "",
+                  "disabled": false
+                },
+                {
+                  "tag": "INPUT",
+                  "label": "Search risk issues",
+                  "value": "",
+                  "disabled": false
+                },
+                {
+                  "tag": "SELECT",
+                  "label": "Issue category",
+                  "value": "ALL",
+                  "disabled": false
+                },
+                {
+                  "tag": "SELECT",
+                  "label": "Issue severity",
+                  "value": "ALL",
+                  "disabled": false
+                },
+                {
+                  "tag": "SELECT",
+                  "label": "Issue country",
+                  "value": "INDIA",
+                  "disabled": false
+                },
+                {
+                  "tag": "SELECT",
+                  "label": "Issue status",
+                  "value": "ALL",
+                  "disabled": false
+                },
+                {
+                  "tag": "SELECT",
+                  "label": "Issue evidence class",
+                  "value": "ALL",
+                  "disabled": false
+                }
+              ],
+              "links": [
+                {
+                  "text": "Skip to workspace",
+                  "href": "#forge-main"
+                },
+                {
+                  "text": "FFinSight",
+                  "href": "/"
+                },
+                {
+                  "text": "F1MARKET",
+                  "href": "/markets?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                },
+                {
+                  "text": "F2WORLD",
+                  "href": "/globe?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                },
+                {
+                  "text": "F3RISK",
+                  "href": "/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&sweep=ab2776d927361b3a6848594e0f73ddc3395ac3cbb3eeabf042cdbbef798499e0"
+                },
+                {
+                  "text": "F4REGIMES",
+                  "href": "/dynamics?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                },
+                {
+                  "text": "F5FACTORS",
+                  "href": "/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355&country=INDIA"
+                },
+                {
+                  "text": "F6RESEARCH",
+                  "href": "/research?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                },
+                {
+                  "text": "F7EXECUTION",
+                  "href": "/execution?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                },
+                {
+                  "text": "F8OBSERVATORY",
+                  "href": "/observatory?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                },
+                {
+                  "text": "F9AGENTS",
+                  "href": "/forge?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                },
+                {
+                  "text": "F10DATA",
+                  "href": "/data?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=risk%3Astate%3A7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355"
+                }
+              ],
+              "issueRows": [
+                "HIGH\tindia:fundamentals · source unavailable\nDATA\n· INDIA:FUNDAMENTALS\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL",
+                "HIGH\tmospi:cpi-combined · source unavailable\nDATA\n· MOSPI:CPI-COMBINED\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL",
+                "HIGH\trbi:policy-repo · source unavailable\nDATA\n· RBI:POLICY-REPO\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL",
+                "HIGH\tnse:india-vix · source unavailable\nDATA\n· NSE:INDIA-VIX\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL",
+                "HIGH\tnse:bhavcopy · source unavailable\nDATA\n· NSE:BHAVCOPY\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL",
+                "HIGH\tIN-MKT · retained input age\nMODEL\n· IN-MKT\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 10, 2026, 1:59 PM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL",
+                "MEDIUM\tiima:daily-factors · partial source health\nDATA\n· IIMA:DAILY-FACTORS\n· INDIA\n· REAL_RETAINED\n· CURRENT\nEvidence: Oct 26, 2026, 6:25 AM\n\tOct 13, 2026, 5:35 PM\tOPEN\nCURRENT REAL"
+              ],
+              "selectedFactor": null,
+              "context": "IN-MKTmarket factor, not a tickerReplayLocal LiveEvidence cutoff2026-10-26T06:25:24.443276ZPublished state2026-10-26T18:15:28.744789ZEvidence / contextRequested anchor risk:state:7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355Verified selection risk:state:7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355Evidence cutoff: 2026-10-26T06:25:24.443276ZPublished state: 2026-10-26T18:15:28.744789ZManifest publication: 2026-11-01T07:42:18.604587Z · Checked bounded manifestImmutable retained Risk metadata; unavailable checks do not imply a clear assessment.Open US market factorOpen India market factorCopy investigation link"
+            },
+            "evidence": [
+              {
+                "artifactId": "risk:state:7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355",
+                "sha256": "7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355",
+                "bytes": 113084
+              },
+              {
+                "artifactId": "risk:sweep:cf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471",
+                "sha256": "cf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471",
+                "bytes": 127146
+              }
+            ],
+            "bodies": [
+              {
+                "url": "http://127.0.0.1:4174/assets/client-DnuZJJC4.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 2256,
+                "gzipBytes": 1136,
+                "gzipDefaultBytes": 1136,
+                "sha256": "dabdd1357c8e8d0b8f05b69a67d462a6753f2860114dd183bf08a0465d5532bb",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 17101,
+                "gzipBytes": 6562,
+                "gzipDefaultBytes": 6568,
+                "sha256": "7f4b26b41a0af613bc72bd1e6b2c0ef85d0a7b85fcc9df5fb4756a4627185eef",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 15677,
+                "gzipBytes": 5827,
+                "gzipDefaultBytes": 5828,
+                "sha256": "74a4d90d0086a71c2b38849149d6feb427e859a4777a8d4bb9800672a151eeee",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CVS_WHkW.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 4918,
+                "gzipBytes": 2056,
+                "gzipDefaultBytes": 2056,
+                "sha256": "59498803b8f9714f6e41973203c0bb4876cd9738a14cacfdda8af97f7fa333b7",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 340277,
+                "gzipBytes": 105681,
+                "gzipDefaultBytes": 105854,
+                "sha256": "df09b7d3f7529d2cb6b52323dcc1a1fdf2e286c4a9bcc77ba2b8f1750a51faf0",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/instruments-BNqRWfgg.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 2982,
+                "gzipBytes": 1380,
+                "gzipDefaultBytes": 1380,
+                "sha256": "278ef97ce45f61e13cd760dfae1a090241f2193bb761c5a20689681286370560",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 8535,
+                "gzipBytes": 3260,
+                "gzipDefaultBytes": 3258,
+                "sha256": "ac8cfd5266e89970a24f3186c21a976b69d19a8a9efa0101b72904ffba16f39b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 3787,
+                "gzipBytes": 1451,
+                "gzipDefaultBytes": 1453,
+                "sha256": "8ceb2c107658affea6294ba3aaded3e3548fcc60a253dfd0c5cc80481f080c05",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 9250,
+                "gzipBytes": 4244,
+                "gzipDefaultBytes": 4244,
+                "sha256": "e1620bad8a9620263419ad3ed55c1420eb74138f215bb4e03d27439517048fcc",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/links-B06hedJa.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1099,
+                "gzipBytes": 561,
+                "gzipDefaultBytes": 561,
+                "sha256": "c2b6adbf7188f5d85c5665d323e10255e3cf86fe95a0cea7d2465e39026f897b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 4573,
+                "gzipBytes": 1804,
+                "gzipDefaultBytes": 1805,
+                "sha256": "b03dc014430b99250caaf08fd46d7693c73cd60558da48326178fa96190dbcf0",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/matchContext-GQpJ4Iuv.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 142,
+                "gzipBytes": 129,
+                "gzipDefaultBytes": 129,
+                "sha256": "ee4a9df2171a50c43aafd2f63c008878e146e50bc7e038d9ce78407d7fe036a2",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 656,
+                "gzipBytes": 412,
+                "gzipDefaultBytes": 412,
+                "sha256": "55629c4f5472612273340adf37338e6a2793ea226467029473a97bd9c58405c9",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1196,
+                "gzipBytes": 675,
+                "gzipDefaultBytes": 675,
+                "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 14717,
+                "gzipBytes": 4992,
+                "gzipDefaultBytes": 4994,
+                "sha256": "6a413c0168378e07e38a452746242150a75b0ed62328bdeb83e5b3cc8cfb51ad",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 380,
+                "gzipBytes": 272,
+                "gzipDefaultBytes": 272,
+                "sha256": "e2c7ebb63180ffed6651d376dccfae08126ed77d5ed1ba5163d49720f90ebbaa",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 3546,
+                "gzipBytes": 1340,
+                "gzipDefaultBytes": 1340,
+                "sha256": "45427d17fd4b1fcb9e341ad562fd77b0527bdaa6a4991723dee94b5394cf67f8",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/ripple-0B0clhCR.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 530,
+                "gzipBytes": 379,
+                "gzipDefaultBytes": 379,
+                "sha256": "d680999be877a8dadebb36aaf5e1bf2f4806be0eb2b52db24b50e8e562d922d2",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/risk-DE4dJtLc.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 251164,
+                "gzipBytes": 42980,
+                "gzipDefaultBytes": 43202,
+                "sha256": "a2abfe72ca0dd4155d4bc8755ddfe5b7c895a92527ecb5e5f4bba9fdcd812f21",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 32,
+                "gzipBytes": 52,
+                "gzipDefaultBytes": 52,
+                "sha256": "2eb1d17f334d79f5c2b7c68aa45a2b50b46a7b2416a9a0f5e7de6ff7f2430322",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 22696,
+                "gzipBytes": 8575,
+                "gzipDefaultBytes": 8578,
+                "sha256": "b03a4eeae67b9e1425e71d21ebe63722b8718e5cbe1f40d2fc21a5d54ca26758",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 621,
+                "gzipBytes": 398,
+                "gzipDefaultBytes": 398,
+                "sha256": "a9d7d1422c3390c16d71633778b4e61531c4443386f2b47aeb7cfe05918f0ae9",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useNavigate-IpFqW5Td.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 225,
+                "gzipBytes": 192,
+                "gzipDefaultBytes": 192,
+                "sha256": "b2b27e4b7a80173a189737def7f2d3c4430adea0dedfd9cd518f6de332c93a3b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useParams-CbkD5rfR.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 258,
+                "gzipBytes": 197,
+                "gzipDefaultBytes": 197,
+                "sha256": "0ac311eb2a8bb8db6e4723bc429c73b09c833858a5f61e8e10b681ce98cc090e",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSearch-ZY1MAi2f.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 218,
+                "gzipBytes": 168,
+                "gzipDefaultBytes": 168,
+                "sha256": "3efad7adc5af1acec64c9d405e244efacf4cd18cb2399c9331d82416395dd8d9",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 680,
+                "gzipBytes": 406,
+                "gzipDefaultBytes": 406,
+                "sha256": "6f555cda252088d3d924985007a2c4d729eebfab52b11c68bba31f54ebf424a7",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/with-selector-DeHT1bGq.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1626,
+                "gzipBytes": 718,
+                "gzipDefaultBytes": 718,
+                "sha256": "763f3d6f6bbe52ca8f3b6d939bfaccc68fbd3fd094b83c2bcbfd27df273f621b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/workspaces-SOzXBCru.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1348,
+                "gzipBytes": 696,
+                "gzipDefaultBytes": 696,
+                "sha256": "c5c4f67332beecd724c4ffb6ffa6cceddd79bff19687e6ba01722e2e0c21338f",
+                "js": true,
+                "data": false
+              }
+            ],
+            "requestCount": 28,
+            "gzip": 196951,
+            "decoded": 710490,
+            "requests": [
+              {
+                "url": "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+                "method": "GET",
+                "resourceType": "document",
+                "at": 1793584024131
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/styles-DrXfpX3E.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584024312
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/TerminalShell-dXZ2FNR0.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584024315
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/index-B54lCksp.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584024315
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/markets-CbD57vGY.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584024317
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024317
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024317
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024318
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024318
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024318
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024318
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024319
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024319
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024319
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024319
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024320
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024320
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024320
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024320
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024320
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024321
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/risk-DE4dJtLc.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024321
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CVS_WHkW.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024321
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/client-DnuZJJC4.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024321
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584024399
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-400-normal-C38fXH4l.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584024399
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584024400
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-600-normal-LgqL8muc.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584024400
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-500-normal-Cerq10X2.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584024400
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/matchContext-GQpJ4Iuv.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024463
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useParams-CbkD5rfR.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024463
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSearch-ZY1MAi2f.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024464
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useNavigate-IpFqW5Td.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024464
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/instruments-BNqRWfgg.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024464
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/with-selector-DeHT1bGq.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024464
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/workspaces-SOzXBCru.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024464
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/links-B06hedJa.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024464
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/ripple-0B0clhCR.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584024517
+              },
+              {
+                "url": "http://127.0.0.1:4174/risk-read-manifest.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584024529
+              },
+              {
+                "url": "http://127.0.0.1:4174/artifacts/replay/risk-sweep-cf2e3cb741463a16f0ba96bbdec1d78a5aef2678e0b22f8a89958e7bd4a05471.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584024548
+              },
+              {
+                "url": "http://127.0.0.1:4174/artifacts/replay/risk-state-7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584024549
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jetbrains-mono-latin-600-normal-C8RAYTDA.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584024623
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-700-normal-Yt3aPRUw.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584024653
+              }
+            ],
+            "executedScripts": [
+              "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+              "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+              "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+              "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+              "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+              "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+              "http://127.0.0.1:4174/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+              "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+              "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+              "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+              "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+              "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+              "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+              "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+              "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+              "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+              "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+              "http://127.0.0.1:4174/assets/contracts-CVS_WHkW.js",
+              "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+              "http://127.0.0.1:4174/assets/client-DnuZJJC4.js",
+              "http://127.0.0.1:4174/assets/risk-DE4dJtLc.js",
+              "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+              "http://127.0.0.1:4174/assets/matchContext-GQpJ4Iuv.js",
+              "http://127.0.0.1:4174/assets/useSearch-ZY1MAi2f.js",
+              "http://127.0.0.1:4174/assets/useParams-CbkD5rfR.js",
+              "http://127.0.0.1:4174/assets/useNavigate-IpFqW5Td.js",
+              "http://127.0.0.1:4174/assets/with-selector-DeHT1bGq.js",
+              "http://127.0.0.1:4174/assets/instruments-BNqRWfgg.js",
+              "http://127.0.0.1:4174/assets/workspaces-SOzXBCru.js",
+              "http://127.0.0.1:4174/assets/links-B06hedJa.js",
+              "http://127.0.0.1:4174/assets/ripple-0B0clhCR.js"
+            ],
+            "htmlPreloads": [
+              "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+              "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+              "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+              "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+              "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+              "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+              "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+              "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+              "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+              "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+              "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+              "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+              "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+              "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+              "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+              "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+              "http://127.0.0.1:4174/assets/risk-DE4dJtLc.js",
+              "http://127.0.0.1:4174/assets/contracts-CVS_WHkW.js",
+              "http://127.0.0.1:4174/assets/client-DnuZJJC4.js"
+            ]
+          },
+          {
+            "workspace": "factors",
+            "url": "http://127.0.0.1:4174/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c&at=2026-10-10T13%3A59%3A59.414508Z&country=INDIA",
+            "startedAt": 1793584026911,
+            "usableAt": 1793584028587,
+            "usableMs": 1676,
+            "snapshot": {
+              "url": "/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c&at=2026-10-10T13%3A59%3A59.414508Z&country=INDIA",
+              "text": "Skip to workspace\nF\nFinSight\nF1\nMARKET\nF2\nWORLD\nF3\nRISK\nF4\nREGIMES\nF5\nFACTORS\nF6\nRESEARCH\nF7\nEXECUTION\nF8\nOBSERVATORY\nF9\nAGENTS\nF10\nDATA\n⌘K / Ctrl K\nCommand\nGO ↵\n\nTICKER [EXCHANGE] FUNCTION · US / INDIA REG · RISK HIGH · exact ISSUE / RUN · navigation only\n\nIN-MKT\nmarket factor, not a ticker\nReplay\nLocal Live\nFactor evidence cutoff\n2026-10-10T13:59:59.414508Z\nEvidence / context\nCopy investigation link\nF5 / FACTOR EVIDENCE\nKnow what the evidence permits.\n\nUS + India · source catalogue, output audit and sealed assessments\n\nREAL · REPLAY\nREAD ONLY · NO NEW MODEL RUN\nF5 refresh and F7 caret browsing remain native\nCOUNTRY\nUnited States\nIndia\nSEALED CUTOFF\n2026-10-10 12:34:47.123204 UTC\n2026-10-10 13:09:33.975258 UTC\n2026-10-10 13:59:59.414508 UTC\nTerminal context\nIN-MKT\nMarket factor, not a ticker\n20\naudited definitions\n64\n55 current + 9 derived channels\n4 / 64\nretained views of ONE assessment\n0\nnew runs / captures / openings\nINDIA · CAPTURE ONLY · CALENDAR UNAVAILABLE · STALE INPUT\nRetained MOM against MKT / SMB / HML · DIAGNOSTIC_ASYMPTOTIC · NOT CALIBRATED\nCatalogue\nOutput audit\nEvidence ledger\nLineage ↗\nSource library\n4 factor returns + RF component\nMKT\nMarket excess return\nFACTOR_RETURN · proportional_return\n1993-10-01 → 2025-12-31 · 8,004 observations\nCAPTURE_ONLY · CALENDAR_UNAVAILABLE · STALE_INPUT\nSMB\nSize\nFACTOR_RETURN · proportional_return\n1993-10-01 → 2025-12-31 · 8,004 observations\nCAPTURE_ONLY · CALENDAR_UNAVAILABLE · STALE_INPUT\nHML\nValue\nFACTOR_RETURN · proportional_return\n1993-10-01 → 2025-12-31 · 8,004 observations\nCAPTURE_ONLY · CALENDAR_UNAVAILABLE · STALE_INPUT\nMOM\nMomentum\nFACTOR_RETURN · proportional_return\n1993-10-01 → 2025-12-31 · 8,004 observations\nCAPTURE_ONLY · CALENDAR_UNAVAILABLE · STALE_INPUT\nRF\nRisk-free return component\nRISK_FREE_COMPONENT · proportional_return\n1993-10-01 → 2025-12-31 · 8,004 observations\nCAPTURE_ONLY · CALENDAR_UNAVAILABLE · STALE_INPUT · NOT_CONSUMED_BY_ASSESSMENT\n\nLibrary coverage describes captured source bytes. It is broader than the retained analysis window. Market factor, not a ticker.\n\nINDIA:MOM\nMetadata only\nCAPTURE_ONLY\nCALENDAR_UNAVAILABLE\nSTALE_INPUT\nLibrary coverage\n1993-10-01 → 2025-12-31 · 8,004 observations\nRetained analysis\n2000-01-03 → 2025-12-31 · 6,466 observations\nAvailable from\n2026-10-10T13:59:59.414508Z\nCapture clock\n2026-10-10T13:59:59.414508Z\nCalendar\nXNSE · UNAVAILABLE · No evidenced version\nSource age\n283 calendar days · STALE_INPUT\nPermission\nACTIVE · publish_derived · DERIVED REFERENCES ONLY\nSource version\n265dfd086705c6c1a229b9dffaa2c6f02412eb7412b92a58e636e0f803998266\nCapture SHA-256\n32af19e5c55f493ee15c794cae145be5381762bbb4b1615227e7c9fc7f5a6f10\n\nAgarwalla, S. K., Jacob, J. and Varma, J. R. (2013), Four factor model in Indian equities market, W.P. No. 2013-09-05, Indian Institute of Management, Ahmedabad.\n\nSource library ↗\nMOM / retained exposure assessment\nInspect lineage ↗\nREAL · SEALED REPLAY\nDIAGNOSTIC_ASYMPTOTIC\nNOT CALIBRATED\n\nMarket factor, not a ticker · prior-only rolling coefficients · retrospective full-window HAC diagnostic. No causal, alpha or inference claim.\n\n0.01719\nRetained full-window R²\n0.91849\nRetained stability\nWATCH\nExisting neutrality label\n6,466\nAssessment observations\nRolling coefficients\nMKT\nSMB\nHML\n2024-12-31\n2025-12-31\nOriginal full-window coefficients · DIAGNOSTIC_ASYMPTOTIC: Bartlett Newey-West lag 3, approximate normal 95% intervals\nTerm\tCoefficient\tHAC SE\tDiagnostic 95% interval\nINTERCEPT\t0.00057\t0.00016\t0.00025 / 0.00089\nMKT\t-0.03872\t0.03111\t-0.09969 / 0.02224\nSMB\t-0.04026\t0.03134\t-0.10169 / 0.02117\nHML\t-0.13357\t0.03043\t-0.19322 / -0.07393\n\nOriginal regimes:factors:3e1cdbdd5545c85cdf5fa91a2235529ee1661d07839a2b8f6f9b3ac4dea416fc\nRun e5602e885e3910167eb6120a90e4a0a62fc776f4d2f73c6118b4311b78210e38\nCutoff 2026-10-10T13:59:59.414508Z\n\nAnalytics without an approved contract\nSecurity deciles\nUNAVAILABLE\n\nNO SECURITY UNIVERSE\nPIT identifiers/membership · PIT characteristics · forward returns · rebalance chronology · corporate actions · delistings · availability clocks · publication grants · cost/turnover evidence\n\nCross-sectional IC / rank IC\nUNAVAILABLE\n\nNO SECURITY UNIVERSE\nsecurity cross-section · horizon-specific forward returns · PIT availability/alignment\n\nStock turnover / economic claims\nUNAVAILABLE\n\nCOSTS UNAVAILABLE\nportfolio weights/rebalances · brokerage · DP · spread · slippage · turnover · effective-dated statutory evidence\n\nSeven-factor neutrality\nUNAVAILABLE\n\nCONTROLS NOT ADMITTED\nlicensed QUAL/VOL/LIQ controls · new approved diagnostic contract\n\nNew output exposure / factor discovery\nUNAVAILABLE\n\nREQUIRES NEW RESEARCH\nexplicit target/unit/control/alignment contract · registered research family · scoped inference eligibility · retained result\n\nScientific claims remain closed.\nInference certification · market claims · causal claims · validated alpha · trusted graph · precise edge confidence: all FALSE.\nResearch OS CLOSED / NOT CALIBRATED · replacement NOT CONFIRMED · scheduled regimes DISABLED / D6 DEFERRED.\nPUBLIC REPLAY · retained derived evidence\nSource, clocks and limitations stay with each selection",
+              "inputs": [
+                {
+                  "tag": "INPUT",
+                  "label": null,
+                  "value": "",
+                  "disabled": false
+                },
+                {
+                  "tag": "SELECT",
+                  "label": "Factor country",
+                  "value": "INDIA",
+                  "disabled": false
+                },
+                {
+                  "tag": "SELECT",
+                  "label": "Factor cutoff",
+                  "value": "2026-10-10T13:59:59.414508Z",
+                  "disabled": false
+                }
+              ],
+              "links": [
+                {
+                  "text": "Skip to workspace",
+                  "href": "#forge-main"
+                },
+                {
+                  "text": "FFinSight",
+                  "href": "/"
+                },
+                {
+                  "text": "F1MARKET",
+                  "href": "/markets?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F2WORLD",
+                  "href": "/globe?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F3RISK",
+                  "href": "/risk?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F4REGIMES",
+                  "href": "/dynamics?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F5FACTORS",
+                  "href": "/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c&at=2026-10-10T13%3A59%3A59.414508Z&country=INDIA"
+                },
+                {
+                  "text": "F6RESEARCH",
+                  "href": "/research?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F7EXECUTION",
+                  "href": "/execution?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F8OBSERVATORY",
+                  "href": "/observatory?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F9AGENTS",
+                  "href": "/forge?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "F10DATA",
+                  "href": "/data?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT&ticker=IN-MKT&artifact=factors%3Acatalog%3A68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c"
+                },
+                {
+                  "text": "Source library ↗",
+                  "href": "https://faculty.iima.ac.in/iffm/Indian-Fama-French-Momentum/"
+                }
+              ],
+              "issueRows": [],
+              "selectedFactor": "MOMMomentumFACTOR_RETURN · proportional_return1993-10-01 → 2025-12-31 · 8,004 observationsCAPTURE_ONLY · CALENDAR_UNAVAILABLE · STALE_INPUT",
+              "context": "IN-MKTmarket factor, not a tickerReplayLocal LiveFactor evidence cutoff2026-10-10T13:59:59.414508ZEvidence / contextRequested anchor factors:catalog:68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71cVerified selection factors:catalog:68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71cFactor evidence cutoff: 2026-10-10T13:59:59.414508ZManifest publication: 2026-11-01T07:42:18.604587Z · Checked bounded manifestRead-only retained Factor metadata for this exact country and evidence cutoff. No listing-level assessment is inferred.Open US market factorOpen India market factorCopy investigation link"
+            },
+            "evidence": [
+              {
+                "artifactId": "factors:catalog:68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c",
+                "sha256": "68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c",
+                "bytes": 17252
+              },
+              {
+                "artifactId": "regimes:factors:3e1cdbdd5545c85cdf5fa91a2235529ee1661d07839a2b8f6f9b3ac4dea416fc",
+                "sha256": "3e1cdbdd5545c85cdf5fa91a2235529ee1661d07839a2b8f6f9b3ac4dea416fc",
+                "bytes": 32454
+              },
+              {
+                "artifactId": "regimes:lineage:d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70",
+                "sha256": "d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70",
+                "bytes": 24992
+              },
+              {
+                "artifactId": "regimes:snapshot:188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6",
+                "sha256": "188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6",
+                "bytes": 59565
+              }
+            ],
+            "bodies": [
+              {
+                "url": "http://127.0.0.1:4174/assets/api-DMLGcZxR.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1433,
+                "gzipBytes": 782,
+                "gzipDefaultBytes": 782,
+                "sha256": "c075f31fa979cd9b32bc2e5d89081d8b2b99d9237b1c553f5fbfaa9b237eca1b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/client-DnuZJJC4.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 2256,
+                "gzipBytes": 1136,
+                "gzipDefaultBytes": 1136,
+                "sha256": "dabdd1357c8e8d0b8f05b69a67d462a6753f2860114dd183bf08a0465d5532bb",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 17101,
+                "gzipBytes": 6562,
+                "gzipDefaultBytes": 6568,
+                "sha256": "7f4b26b41a0af613bc72bd1e6b2c0ef85d0a7b85fcc9df5fb4756a4627185eef",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-0Y_et4cj.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 7715,
+                "gzipBytes": 3316,
+                "gzipDefaultBytes": 3316,
+                "sha256": "8c74d4982120fd16fe994d80730b55ce2e89edc5f5d21f8fd37b8715c5804686",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 15677,
+                "gzipBytes": 5827,
+                "gzipDefaultBytes": 5828,
+                "sha256": "74a4d90d0086a71c2b38849149d6feb427e859a4777a8d4bb9800672a151eeee",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CVS_WHkW.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 4918,
+                "gzipBytes": 2056,
+                "gzipDefaultBytes": 2056,
+                "sha256": "59498803b8f9714f6e41973203c0bb4876cd9738a14cacfdda8af97f7fa333b7",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/factors-CALzteZc.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 17419,
+                "gzipBytes": 5618,
+                "gzipDefaultBytes": 5637,
+                "sha256": "5936921f1a408333f84957300e43ae1d4ce7d539bd4668bc93db5a7548bd817f",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 340277,
+                "gzipBytes": 105681,
+                "gzipDefaultBytes": 105854,
+                "sha256": "df09b7d3f7529d2cb6b52323dcc1a1fdf2e286c4a9bcc77ba2b8f1750a51faf0",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/instruments-BNqRWfgg.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 2982,
+                "gzipBytes": 1380,
+                "gzipDefaultBytes": 1380,
+                "sha256": "278ef97ce45f61e13cd760dfae1a090241f2193bb761c5a20689681286370560",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 8535,
+                "gzipBytes": 3260,
+                "gzipDefaultBytes": 3258,
+                "sha256": "ac8cfd5266e89970a24f3186c21a976b69d19a8a9efa0101b72904ffba16f39b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 3787,
+                "gzipBytes": 1451,
+                "gzipDefaultBytes": 1453,
+                "sha256": "8ceb2c107658affea6294ba3aaded3e3548fcc60a253dfd0c5cc80481f080c05",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 9250,
+                "gzipBytes": 4244,
+                "gzipDefaultBytes": 4244,
+                "sha256": "e1620bad8a9620263419ad3ed55c1420eb74138f215bb4e03d27439517048fcc",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/links-B06hedJa.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1099,
+                "gzipBytes": 561,
+                "gzipDefaultBytes": 561,
+                "sha256": "c2b6adbf7188f5d85c5665d323e10255e3cf86fe95a0cea7d2465e39026f897b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 4573,
+                "gzipBytes": 1804,
+                "gzipDefaultBytes": 1805,
+                "sha256": "b03dc014430b99250caaf08fd46d7693c73cd60558da48326178fa96190dbcf0",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/matchContext-GQpJ4Iuv.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 142,
+                "gzipBytes": 129,
+                "gzipDefaultBytes": 129,
+                "sha256": "ee4a9df2171a50c43aafd2f63c008878e146e50bc7e038d9ce78407d7fe036a2",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 656,
+                "gzipBytes": 412,
+                "gzipDefaultBytes": 412,
+                "sha256": "55629c4f5472612273340adf37338e6a2793ea226467029473a97bd9c58405c9",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1196,
+                "gzipBytes": 675,
+                "gzipDefaultBytes": 675,
+                "sha256": "aba87f2a53e45ecdc9113fc30387d16e449d1676428cf5f82dd624c1df97d152",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 14717,
+                "gzipBytes": 4992,
+                "gzipDefaultBytes": 4994,
+                "sha256": "6a413c0168378e07e38a452746242150a75b0ed62328bdeb83e5b3cc8cfb51ad",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/query-Dkzd53pj.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 111193,
+                "gzipBytes": 16442,
+                "gzipDefaultBytes": 16528,
+                "sha256": "1bafed00b9f0b0ef4fba730b3123e45a46bcad4b31dcbcd35ef1c89baa54fea5",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 380,
+                "gzipBytes": 272,
+                "gzipDefaultBytes": 272,
+                "sha256": "e2c7ebb63180ffed6651d376dccfae08126ed77d5ed1ba5163d49720f90ebbaa",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 3546,
+                "gzipBytes": 1340,
+                "gzipDefaultBytes": 1340,
+                "sha256": "45427d17fd4b1fcb9e341ad562fd77b0527bdaa6a4991723dee94b5394cf67f8",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/RetainedDiagnostics-BKfczGvt.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 4305,
+                "gzipBytes": 1621,
+                "gzipDefaultBytes": 1621,
+                "sha256": "c9540ea849ebe1e32c4421eea248bd04805b03543a841d2308579aea298d3db4",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/ripple-0B0clhCR.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 530,
+                "gzipBytes": 379,
+                "gzipDefaultBytes": 379,
+                "sha256": "d680999be877a8dadebb36aaf5e1bf2f4806be0eb2b52db24b50e8e562d922d2",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 32,
+                "gzipBytes": 52,
+                "gzipDefaultBytes": 52,
+                "sha256": "2eb1d17f334d79f5c2b7c68aa45a2b50b46a7b2416a9a0f5e7de6ff7f2430322",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 22696,
+                "gzipBytes": 8575,
+                "gzipDefaultBytes": 8578,
+                "sha256": "b03a4eeae67b9e1425e71d21ebe63722b8718e5cbe1f40d2fc21a5d54ca26758",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 621,
+                "gzipBytes": 398,
+                "gzipDefaultBytes": 398,
+                "sha256": "a9d7d1422c3390c16d71633778b4e61531c4443386f2b47aeb7cfe05918f0ae9",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useNavigate-IpFqW5Td.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 225,
+                "gzipBytes": 192,
+                "gzipDefaultBytes": 192,
+                "sha256": "b2b27e4b7a80173a189737def7f2d3c4430adea0dedfd9cd518f6de332c93a3b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useParams-CbkD5rfR.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 258,
+                "gzipBytes": 197,
+                "gzipDefaultBytes": 197,
+                "sha256": "0ac311eb2a8bb8db6e4723bc429c73b09c833858a5f61e8e10b681ce98cc090e",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useQuery-DK8qW8Pb.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 8837,
+                "gzipBytes": 3216,
+                "gzipDefaultBytes": 3219,
+                "sha256": "7610c4b1d7f9eeb926190535b7152bcf5d06405531ccd633e47397d401bb641c",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSearch-ZY1MAi2f.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 218,
+                "gzipBytes": 168,
+                "gzipDefaultBytes": 168,
+                "sha256": "3efad7adc5af1acec64c9d405e244efacf4cd18cb2399c9331d82416395dd8d9",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 680,
+                "gzipBytes": 406,
+                "gzipDefaultBytes": 406,
+                "sha256": "6f555cda252088d3d924985007a2c4d729eebfab52b11c68bba31f54ebf424a7",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/with-selector-DeHT1bGq.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1626,
+                "gzipBytes": 718,
+                "gzipDefaultBytes": 718,
+                "sha256": "763f3d6f6bbe52ca8f3b6d939bfaccc68fbd3fd094b83c2bcbfd27df273f621b",
+                "js": true,
+                "data": false
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/workspaces-SOzXBCru.js",
+                "status": 200,
+                "mime": "text/javascript",
+                "bytes": 1348,
+                "gzipBytes": 696,
+                "gzipDefaultBytes": 696,
+                "sha256": "c5c4f67332beecd724c4ffb6ffa6cceddd79bff19687e6ba01722e2e0c21338f",
+                "js": true,
+                "data": false
+              }
+            ],
+            "requestCount": 33,
+            "gzip": 184852,
+            "decoded": 610228,
+            "requests": [
+              {
+                "url": "http://127.0.0.1:4174/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+                "method": "GET",
+                "resourceType": "document",
+                "at": 1793584026928
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/styles-DrXfpX3E.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584027058
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/TerminalShell-dXZ2FNR0.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584027066
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/index-B54lCksp.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584027069
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/markets-CbD57vGY.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584027070
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/factors-BJzm6J0G.css",
+                "method": "GET",
+                "resourceType": "stylesheet",
+                "at": 1793584027070
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027073
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027074
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027074
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027080
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027081
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027090
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027093
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027094
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027094
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027095
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027098
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027101
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027102
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027105
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027106
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027106
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/factors-CALzteZc.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027110
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/query-Dkzd53pj.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027111
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jetbrains-mono-latin-400-normal-V6pRDFza.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584027210
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-400-normal-C38fXH4l.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584027210
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584027211
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-600-normal-LgqL8muc.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584027212
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-500-normal-Cerq10X2.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584027212
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/jetbrains-mono-latin-600-normal-C8RAYTDA.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584027218
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/matchContext-GQpJ4Iuv.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027260
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useParams-CbkD5rfR.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027261
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useSearch-ZY1MAi2f.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027261
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useNavigate-IpFqW5Td.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027262
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/instruments-BNqRWfgg.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027265
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/with-selector-DeHT1bGq.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027266
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/workspaces-SOzXBCru.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027268
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/links-B06hedJa.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027271
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/useQuery-DK8qW8Pb.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027586
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-CVS_WHkW.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027591
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/client-DnuZJJC4.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027592
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/api-DMLGcZxR.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027593
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/contracts-0Y_et4cj.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027593
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/ripple-0B0clhCR.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027662
+              },
+              {
+                "url": "http://127.0.0.1:4174/factor-read-manifest.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584027666
+              },
+              {
+                "url": "http://127.0.0.1:4174/artifacts/replay/factors-catalog-68dd2701b5c9efaa519672ebc818e1678920c3db05aac1fa697588684dffb71c.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584027730
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/RetainedDiagnostics-BKfczGvt.js",
+                "method": "GET",
+                "resourceType": "script",
+                "at": 1793584027767
+              },
+              {
+                "url": "http://127.0.0.1:4174/assets/inter-latin-700-normal-Yt3aPRUw.woff2",
+                "method": "GET",
+                "resourceType": "font",
+                "at": 1793584027768
+              },
+              {
+                "url": "http://127.0.0.1:4174/artifacts/replay/regimes-factors-3e1cdbdd5545c85cdf5fa91a2235529ee1661d07839a2b8f6f9b3ac4dea416fc.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584028066
+              },
+              {
+                "url": "http://127.0.0.1:4174/artifacts/replay/regimes-snapshot-188141fd293bf16b0883e0a3faab2a300556fec7cd40a2cc79b4cd60e47f34a6.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584028067
+              },
+              {
+                "url": "http://127.0.0.1:4174/artifacts/replay/regimes-lineage-d0276b992d8e15c48ef506d4dfef6406efe698aa6eb983f3a1d3248ccfbcec70.json",
+                "method": "GET",
+                "resourceType": "fetch",
+                "at": 1793584028068
+              }
+            ],
+            "executedScripts": [
+              "http://127.0.0.1:4174/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+              "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+              "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+              "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+              "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+              "http://127.0.0.1:4174/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+              "http://127.0.0.1:4174/factors?ctx=1&market=INDIA&subject=market-factor%3AIN-MKT",
+              "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+              "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+              "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+              "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+              "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+              "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+              "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+              "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+              "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+              "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+              "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+              "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+              "http://127.0.0.1:4174/assets/factors-CALzteZc.js",
+              "http://127.0.0.1:4174/assets/query-Dkzd53pj.js",
+              "http://127.0.0.1:4174/assets/useParams-CbkD5rfR.js",
+              "http://127.0.0.1:4174/assets/matchContext-GQpJ4Iuv.js",
+              "http://127.0.0.1:4174/assets/useSearch-ZY1MAi2f.js",
+              "http://127.0.0.1:4174/assets/useNavigate-IpFqW5Td.js",
+              "http://127.0.0.1:4174/assets/instruments-BNqRWfgg.js",
+              "http://127.0.0.1:4174/assets/with-selector-DeHT1bGq.js",
+              "http://127.0.0.1:4174/assets/links-B06hedJa.js",
+              "http://127.0.0.1:4174/assets/workspaces-SOzXBCru.js",
+              "http://127.0.0.1:4174/assets/useQuery-DK8qW8Pb.js",
+              "http://127.0.0.1:4174/assets/client-DnuZJJC4.js",
+              "http://127.0.0.1:4174/assets/contracts-CVS_WHkW.js",
+              "http://127.0.0.1:4174/assets/contracts-0Y_et4cj.js",
+              "http://127.0.0.1:4174/assets/api-DMLGcZxR.js",
+              "http://127.0.0.1:4174/assets/ripple-0B0clhCR.js",
+              "http://127.0.0.1:4174/assets/RetainedDiagnostics-BKfczGvt.js"
+            ],
+            "htmlPreloads": [
+              "http://127.0.0.1:4174/assets/index-QeL2RYuo.js",
+              "http://127.0.0.1:4174/assets/jsx-runtime-n5LQ9ujS.js",
+              "http://127.0.0.1:4174/assets/react-dom-CQmWuZA8.js",
+              "http://127.0.0.1:4174/assets/Match-B-RjsnuM.js",
+              "http://127.0.0.1:4174/assets/lazyRouteComponent-BA-fd_SA.js",
+              "http://127.0.0.1:4174/assets/link-DIv42wgR.js",
+              "http://127.0.0.1:4174/assets/useMatch-_t8iZQDk.js",
+              "http://127.0.0.1:4174/assets/context-Bxg_MIav.js",
+              "http://127.0.0.1:4174/assets/root-DLTE-HSj.js",
+              "http://127.0.0.1:4174/assets/useSelector-SMYh0rPl.js",
+              "http://127.0.0.1:4174/assets/TerminalShell-CPEcHY9K.js",
+              "http://127.0.0.1:4174/assets/query-ChMwgRNV.js",
+              "http://127.0.0.1:4174/assets/QueryClientProvider-CwfsagZF.js",
+              "http://127.0.0.1:4174/assets/mode-ApWZQzau.js",
+              "http://127.0.0.1:4174/assets/preload-helper-Czpn1I53.js",
+              "http://127.0.0.1:4174/assets/contracts-CGi5jbv7.js",
+              "http://127.0.0.1:4174/assets/factors-CALzteZc.js",
+              "http://127.0.0.1:4174/assets/query-Dkzd53pj.js"
+            ]
+          }
+        ],
+        "baseline": null
+      },
+      "stageStatus": "PASS_INITIAL_NETWORK_AND_BEHAVIOR",
+      "status": "INCOMPLETE"
+    },
+    "baselineDigest": "1ef648d5847612bbff87f8fcb2780cae52db1d2bced74042db6ee080763e68a8",
+    "baselineApplicationSource": "b3165f32bdb566c52960ca3998ee1c3743af9892",
+    "baselineVerifierSource": "71b061777118910247dd93f966b4c24cc585b2a4",
+    "baselineApplicationUnchanged": true,
+    "reconciledMain": "4f363543936f446608b838467bc0cfa8d3bfddca",
+    "lockSha256": "16708dc4badc941174777af3763842a60d6da48796ae0fa3e1e52e4881be8673",
+    "declaration": {
+      "label": "P1_EXACT_INITIAL_FRAMEWORK_COHORT",
+      "createdAtUtc": "2026-11-02T01:51:15.557Z",
+      "config": "// @lovable.dev/vite-tanstack-config already includes the following — do NOT add them manually\n// or the app will break with duplicate plugins:\n//   - TanStack devtools (dev-only, first), tanstackStart, viteReact, tailwindcss, tsConfigPaths,\n//     nitro (build-only using cloudflare as a default target), VITE_* env injection, @ path alias,\n//     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).\n// You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.\nimport { defineConfig } from \"@lovable.dev/vite-tanstack-config\";\n\n// One approved replacement configuration; exact baseline initial vendor modules only.\nconst INITIAL_FRAMEWORK_MODULES = new Set([\n  \"@tanstack/history/dist/esm/index.js\",\n  \"@tanstack/query-core/build/modern/environmentManager.js\",\n  \"@tanstack/query-core/build/modern/focusManager.js\",\n  \"@tanstack/query-core/build/modern/infiniteQueryBehavior.js\",\n  \"@tanstack/query-core/build/modern/mutation.js\",\n  \"@tanstack/query-core/build/modern/mutationCache.js\",\n  \"@tanstack/query-core/build/modern/notifyManager.js\",\n  \"@tanstack/query-core/build/modern/onlineManager.js\",\n  \"@tanstack/query-core/build/modern/query.js\",\n  \"@tanstack/query-core/build/modern/queryCache.js\",\n  \"@tanstack/query-core/build/modern/queryClient.js\",\n  \"@tanstack/query-core/build/modern/queryObserver.js\",\n  \"@tanstack/query-core/build/modern/removable.js\",\n  \"@tanstack/query-core/build/modern/retryer.js\",\n  \"@tanstack/query-core/build/modern/subscribable.js\",\n  \"@tanstack/query-core/build/modern/thenable.js\",\n  \"@tanstack/query-core/build/modern/timeoutManager.js\",\n  \"@tanstack/query-core/build/modern/utils.js\",\n  \"@tanstack/react-query/build/modern/IsRestoringProvider.js\",\n  \"@tanstack/react-query/build/modern/QueryClientProvider.js\",\n  \"@tanstack/react-query/build/modern/QueryErrorResetBoundary.js\",\n  \"@tanstack/react-query/build/modern/errorBoundaryUtils.js\",\n  \"@tanstack/react-query/build/modern/suspense.js\",\n  \"@tanstack/react-query/build/modern/useBaseQuery.js\",\n  \"@tanstack/react-query/build/modern/useQuery.js\",\n  \"@tanstack/react-router/dist/esm/Asset.js\",\n  \"@tanstack/react-router/dist/esm/CatchBoundary.js\",\n  \"@tanstack/react-router/dist/esm/ClientOnly.js\",\n  \"@tanstack/react-router/dist/esm/HeadContent.js\",\n  \"@tanstack/react-router/dist/esm/Match.js\",\n  \"@tanstack/react-router/dist/esm/Matches.js\",\n  \"@tanstack/react-router/dist/esm/RouterProvider.js\",\n  \"@tanstack/react-router/dist/esm/ScriptOnce.js\",\n  \"@tanstack/react-router/dist/esm/Scripts.js\",\n  \"@tanstack/react-router/dist/esm/Transitioner.js\",\n  \"@tanstack/react-router/dist/esm/awaited.js\",\n  \"@tanstack/react-router/dist/esm/fileRoute.js\",\n  \"@tanstack/react-router/dist/esm/headContentUtils.js\",\n  \"@tanstack/react-router/dist/esm/lazyRouteComponent.js\",\n  \"@tanstack/react-router/dist/esm/link.js\",\n  \"@tanstack/react-router/dist/esm/matchContext.js\",\n  \"@tanstack/react-router/dist/esm/not-found.js\",\n  \"@tanstack/react-router/dist/esm/renderRouteNotFound.js\",\n  \"@tanstack/react-router/dist/esm/route.js\",\n  \"@tanstack/react-router/dist/esm/router.js\",\n  \"@tanstack/react-router/dist/esm/routerContext.js\",\n  \"@tanstack/react-router/dist/esm/routerStores.js\",\n  \"@tanstack/react-router/dist/esm/scroll-restoration.js\",\n  \"@tanstack/react-router/dist/esm/useLoaderData.js\",\n  \"@tanstack/react-router/dist/esm/useLoaderDeps.js\",\n  \"@tanstack/react-router/dist/esm/useMatch.js\",\n  \"@tanstack/react-router/dist/esm/useNavigate.js\",\n  \"@tanstack/react-router/dist/esm/useParams.js\",\n  \"@tanstack/react-router/dist/esm/useRouteContext.js\",\n  \"@tanstack/react-router/dist/esm/useRouter.js\",\n  \"@tanstack/react-router/dist/esm/useRouterState.js\",\n  \"@tanstack/react-router/dist/esm/useSearch.js\",\n  \"@tanstack/react-router/dist/esm/utils.js\",\n  \"@tanstack/react-start-client/dist/esm/StartClient.js\",\n  \"@tanstack/react-start-client/dist/esm/hydrateStart.js\",\n  \"@tanstack/react-start/dist/plugin/default-entry/client.tsx\",\n  \"@tanstack/react-store/dist/useSelector.js\",\n  \"@tanstack/router-core/dist/esm/defer.js\",\n  \"@tanstack/router-core/dist/esm/invariant.js\",\n  \"@tanstack/router-core/dist/esm/link.js\",\n  \"@tanstack/router-core/dist/esm/load-client.js\",\n  \"@tanstack/router-core/dist/esm/manifest.js\",\n  \"@tanstack/router-core/dist/esm/new-process-route-tree.js\",\n  \"@tanstack/router-core/dist/esm/not-found.js\",\n  \"@tanstack/router-core/dist/esm/path.js\",\n  \"@tanstack/router-core/dist/esm/qss.js\",\n  \"@tanstack/router-core/dist/esm/redirect.js\",\n  \"@tanstack/router-core/dist/esm/rewrite.js\",\n  \"@tanstack/router-core/dist/esm/root.js\",\n  \"@tanstack/router-core/dist/esm/route.js\",\n  \"@tanstack/router-core/dist/esm/router.js\",\n  \"@tanstack/router-core/dist/esm/scroll-restoration-script/client.js\",\n  \"@tanstack/router-core/dist/esm/scroll-restoration.js\",\n  \"@tanstack/router-core/dist/esm/searchParams.js\",\n  \"@tanstack/router-core/dist/esm/sieve-cache.js\",\n  \"@tanstack/router-core/dist/esm/ssr/bodyScripts.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/RawStream.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/RawStreamJSONPlugin.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/RawStreamRPCPlugin.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/ShallowErrorPlugin.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/makeSerovalPlugin.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/rawStreamCodec.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/seroval-plugins.js\",\n  \"@tanstack/router-core/dist/esm/ssr/serializer/transformer.js\",\n  \"@tanstack/router-core/dist/esm/ssr/ssr-match-id.js\",\n  \"@tanstack/router-core/dist/esm/stores.js\",\n  \"@tanstack/router-core/dist/esm/utils.js\",\n  \"@tanstack/start-client-core/dist/esm/client-rpc/createClientRpc.js\",\n  \"@tanstack/start-client-core/dist/esm/client-rpc/frame-decoder.js\",\n  \"@tanstack/start-client-core/dist/esm/client-rpc/serverFnFetcher.js\",\n  \"@tanstack/start-client-core/dist/esm/client/ServerFunctionSerializationAdapter.js\",\n  \"@tanstack/start-client-core/dist/esm/client/hydrateStart.js\",\n  \"@tanstack/start-client-core/dist/esm/constants.js\",\n  \"@tanstack/start-client-core/dist/esm/createMiddleware.js\",\n  \"@tanstack/start-client-core/dist/esm/createStart.js\",\n  \"@tanstack/start-client-core/dist/esm/empty-plugin-adapters.js\",\n  \"@tanstack/start-client-core/dist/esm/getDefaultSerovalPlugins.js\",\n  \"@tanstack/start-client-core/dist/esm/getStartOptions.js\",\n  \"@tanstack/store/dist/alien.js\",\n  \"@tanstack/store/dist/atom.js\",\n  \"react-dom/cjs/react-dom-client.production.js\",\n  \"react-dom/cjs/react-dom.production.js\",\n  \"react-dom/client.js\",\n  \"react-dom/index.js\",\n  \"react/cjs/react-jsx-runtime.production.js\",\n  \"react/cjs/react.production.js\",\n  \"react/index.js\",\n  \"react/jsx-runtime.js\",\n  \"scheduler/cjs/scheduler.production.js\",\n  \"scheduler/index.js\",\n  \"seroval-plugins/dist/web-CDQeyEaf.js\",\n  \"seroval/dist/index.js\",\n  \"sonner/dist/index.mjs\",\n  \"use-sync-external-store/cjs/use-sync-external-store-shim.production.js\",\n  \"use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js\",\n  \"use-sync-external-store/shim/index.js\",\n  \"use-sync-external-store/shim/with-selector.js\"\n]);\n\nexport default defineConfig({\n  vite: {\n    environments: {\n      client: {\n        build: {\n          rolldownOptions: {\n            output: {\n              codeSplitting: {\n                includeDependenciesRecursively: false,\n                groups: [{\n                  name: \"initial-framework\",\n                  test: (id: string) => INITIAL_FRAMEWORK_MODULES.has(id.replaceAll(\"\\\\\", \"/\").split(\"/node_modules/\").at(-1) ?? \"\"),\n                  entriesAware: false,\n                }],\n              },\n            },\n          },\n        },\n      },\n    },\n  },\n  nitro: {\n    preset: \"vercel\",\n  },\n  tanstackStart: {\n    // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).\n    // nitro/vite builds from this\n    server: { entry: \"server\" },\n  },\n});\n",
+      "configSha256": "6575f18d160f30c89ccf925083700c896e9bd90af736c52f6668809a61a998ac",
+      "vendorModuleCount": 122,
+      "vendorModuleIds": [
+        "@tanstack/history/dist/esm/index.js",
+        "@tanstack/query-core/build/modern/environmentManager.js",
+        "@tanstack/query-core/build/modern/focusManager.js",
+        "@tanstack/query-core/build/modern/infiniteQueryBehavior.js",
+        "@tanstack/query-core/build/modern/mutation.js",
+        "@tanstack/query-core/build/modern/mutationCache.js",
+        "@tanstack/query-core/build/modern/notifyManager.js",
+        "@tanstack/query-core/build/modern/onlineManager.js",
+        "@tanstack/query-core/build/modern/query.js",
+        "@tanstack/query-core/build/modern/queryCache.js",
+        "@tanstack/query-core/build/modern/queryClient.js",
+        "@tanstack/query-core/build/modern/queryObserver.js",
+        "@tanstack/query-core/build/modern/removable.js",
+        "@tanstack/query-core/build/modern/retryer.js",
+        "@tanstack/query-core/build/modern/subscribable.js",
+        "@tanstack/query-core/build/modern/thenable.js",
+        "@tanstack/query-core/build/modern/timeoutManager.js",
+        "@tanstack/query-core/build/modern/utils.js",
+        "@tanstack/react-query/build/modern/IsRestoringProvider.js",
+        "@tanstack/react-query/build/modern/QueryClientProvider.js",
+        "@tanstack/react-query/build/modern/QueryErrorResetBoundary.js",
+        "@tanstack/react-query/build/modern/errorBoundaryUtils.js",
+        "@tanstack/react-query/build/modern/suspense.js",
+        "@tanstack/react-query/build/modern/useBaseQuery.js",
+        "@tanstack/react-query/build/modern/useQuery.js",
+        "@tanstack/react-router/dist/esm/Asset.js",
+        "@tanstack/react-router/dist/esm/CatchBoundary.js",
+        "@tanstack/react-router/dist/esm/ClientOnly.js",
+        "@tanstack/react-router/dist/esm/HeadContent.js",
+        "@tanstack/react-router/dist/esm/Match.js",
+        "@tanstack/react-router/dist/esm/Matches.js",
+        "@tanstack/react-router/dist/esm/RouterProvider.js",
+        "@tanstack/react-router/dist/esm/ScriptOnce.js",
+        "@tanstack/react-router/dist/esm/Scripts.js",
+        "@tanstack/react-router/dist/esm/Transitioner.js",
+        "@tanstack/react-router/dist/esm/awaited.js",
+        "@tanstack/react-router/dist/esm/fileRoute.js",
+        "@tanstack/react-router/dist/esm/headContentUtils.js",
+        "@tanstack/react-router/dist/esm/lazyRouteComponent.js",
+        "@tanstack/react-router/dist/esm/link.js",
+        "@tanstack/react-router/dist/esm/matchContext.js",
+        "@tanstack/react-router/dist/esm/not-found.js",
+        "@tanstack/react-router/dist/esm/renderRouteNotFound.js",
+        "@tanstack/react-router/dist/esm/route.js",
+        "@tanstack/react-router/dist/esm/router.js",
+        "@tanstack/react-router/dist/esm/routerContext.js",
+        "@tanstack/react-router/dist/esm/routerStores.js",
+        "@tanstack/react-router/dist/esm/scroll-restoration.js",
+        "@tanstack/react-router/dist/esm/useLoaderData.js",
+        "@tanstack/react-router/dist/esm/useLoaderDeps.js",
+        "@tanstack/react-router/dist/esm/useMatch.js",
+        "@tanstack/react-router/dist/esm/useNavigate.js",
+        "@tanstack/react-router/dist/esm/useParams.js",
+        "@tanstack/react-router/dist/esm/useRouteContext.js",
+        "@tanstack/react-router/dist/esm/useRouter.js",
+        "@tanstack/react-router/dist/esm/useRouterState.js",
+        "@tanstack/react-router/dist/esm/useSearch.js",
+        "@tanstack/react-router/dist/esm/utils.js",
+        "@tanstack/react-start-client/dist/esm/StartClient.js",
+        "@tanstack/react-start-client/dist/esm/hydrateStart.js",
+        "@tanstack/react-start/dist/plugin/default-entry/client.tsx",
+        "@tanstack/react-store/dist/useSelector.js",
+        "@tanstack/router-core/dist/esm/defer.js",
+        "@tanstack/router-core/dist/esm/invariant.js",
+        "@tanstack/router-core/dist/esm/link.js",
+        "@tanstack/router-core/dist/esm/load-client.js",
+        "@tanstack/router-core/dist/esm/manifest.js",
+        "@tanstack/router-core/dist/esm/new-process-route-tree.js",
+        "@tanstack/router-core/dist/esm/not-found.js",
+        "@tanstack/router-core/dist/esm/path.js",
+        "@tanstack/router-core/dist/esm/qss.js",
+        "@tanstack/router-core/dist/esm/redirect.js",
+        "@tanstack/router-core/dist/esm/rewrite.js",
+        "@tanstack/router-core/dist/esm/root.js",
+        "@tanstack/router-core/dist/esm/route.js",
+        "@tanstack/router-core/dist/esm/router.js",
+        "@tanstack/router-core/dist/esm/scroll-restoration-script/client.js",
+        "@tanstack/router-core/dist/esm/scroll-restoration.js",
+        "@tanstack/router-core/dist/esm/searchParams.js",
+        "@tanstack/router-core/dist/esm/sieve-cache.js",
+        "@tanstack/router-core/dist/esm/ssr/bodyScripts.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/RawStream.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/RawStreamJSONPlugin.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/RawStreamRPCPlugin.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/ShallowErrorPlugin.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/makeSerovalPlugin.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/rawStreamCodec.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/seroval-plugins.js",
+        "@tanstack/router-core/dist/esm/ssr/serializer/transformer.js",
+        "@tanstack/router-core/dist/esm/ssr/ssr-match-id.js",
+        "@tanstack/router-core/dist/esm/stores.js",
+        "@tanstack/router-core/dist/esm/utils.js",
+        "@tanstack/start-client-core/dist/esm/client-rpc/createClientRpc.js",
+        "@tanstack/start-client-core/dist/esm/client-rpc/frame-decoder.js",
+        "@tanstack/start-client-core/dist/esm/client-rpc/serverFnFetcher.js",
+        "@tanstack/start-client-core/dist/esm/client/ServerFunctionSerializationAdapter.js",
+        "@tanstack/start-client-core/dist/esm/client/hydrateStart.js",
+        "@tanstack/start-client-core/dist/esm/constants.js",
+        "@tanstack/start-client-core/dist/esm/createMiddleware.js",
+        "@tanstack/start-client-core/dist/esm/createStart.js",
+        "@tanstack/start-client-core/dist/esm/empty-plugin-adapters.js",
+        "@tanstack/start-client-core/dist/esm/getDefaultSerovalPlugins.js",
+        "@tanstack/start-client-core/dist/esm/getStartOptions.js",
+        "@tanstack/store/dist/alien.js",
+        "@tanstack/store/dist/atom.js",
+        "react-dom/cjs/react-dom-client.production.js",
+        "react-dom/cjs/react-dom.production.js",
+        "react-dom/client.js",
+        "react-dom/index.js",
+        "react/cjs/react-jsx-runtime.production.js",
+        "react/cjs/react.production.js",
+        "react/index.js",
+        "react/jsx-runtime.js",
+        "scheduler/cjs/scheduler.production.js",
+        "scheduler/index.js",
+        "seroval-plugins/dist/web-CDQeyEaf.js",
+        "seroval/dist/index.js",
+        "sonner/dist/index.mjs",
+        "use-sync-external-store/cjs/use-sync-external-store-shim.production.js",
+        "use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.production.js",
+        "use-sync-external-store/shim/index.js",
+        "use-sync-external-store/shim/with-selector.js"
+      ],
+      "cohortSha256": "114753aa7496056faf992676579f80b4277f8680baacacdc943fab7dec65d872",
+      "group": "initial-framework",
+      "entriesAware": false,
+      "includeDependenciesRecursively": false,
+      "clientOnly": true,
+      "newPlugins": 0,
+      "newDependencies": 0,
+      "unchangedPresetAndServerEntry": true,
+      "evaluations": 0,
+      "rejectedPriorCandidatePreserved": true,
+      "p2": [
+        "asynchronous unchanged Market normalizer in both approved route guards",
+        "move unchanged generic seed validator to existing lazy ContextBar module; retain exact initial ContextBar component in TerminalShell",
+        "remove redundant serialized reparse while preserving full synchronous parser at public typed boundaries"
+      ],
+      "p3": "Optional existing Risk/Factors panels only if required after P2 core check; all requested evidence/panels before usable state",
+      "exit": "No mixed/unknown ownership; core<=24576; complete routes<=65536; total<=min(5%,8192) regression and requests<=+4; one full measurement per declared checkpoint; no strategy tuning after real failure"
+    },
+    "latestCI": {
+      "head": "b3165f32bdb566c52960ca3998ee1c3743af9892",
+      "runId": 41338103978,
+      "backend": "success",
+      "regimes": "success",
+      "truth": "success",
+      "frontend": "failure: exact initial ownership/equivalence"
+    },
+    "capsUnchanged": true,
+    "freezesUnchanged": true,
+    "excludedCommitIsAncestor": false,
+    "prDraft": true,
+    "merged": false
   }
 }

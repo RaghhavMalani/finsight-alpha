@@ -1,5 +1,15 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 2 initial JS repair — fresh baseline and one fixed P1 declaration
+
+Latest reviewed head b3165f3 CI41338103978: backend, regimes and truth-contract PASS; frontend rejects exact initial ownership/equivalence. Main4f36354 is already reconciled. The user explicitly requested resuming the approved P1–P4 work; caps, freezes, excluded6f99daa and draft/unmerged disposition remain.
+
+A fresh no-interaction baseline is captured from unchanged application b3165f3 with QA verifier 71b061777118910247dd93f966b4c24cc585b2a4, before P1/P2 edits. Browser environment is fixed to en-US/UTC/reduced motion for both baseline and candidates; no production environment setting or clock normalization changes. Both genuine Risk/Factors ready states pass; total JS is196951/184852 gzip with28/33requests. Complete rendered state, exact typed URLs, selected evidence IDs/SHA/bytes and request/body hashes are preserved in the proof. Baseline digest 1ef648d5847612bbff87f8fcb2780cae52db1d2bced74042db6ee080763e68a8. The older October30 baseline and its failures remain unchanged.
+
+Exactly one replacement P1 configuration is declared before evaluation: one client-only initial-framework group containing 122 exact source-proven vendor module IDs already present in the initial Risk/Factors union. Cohort SHA 114753aa7496056faf992676579f80b4277f8680baacacdc943fab7dec65d872; configuration SHA 6575f18d160f30c89ccf925083700c896e9bd90af736c52f6668809a61a998ac. Entry-aware subdivision is disabled for this proven initial set, dependency capture is disabled, and all other modules retain automatic lazy boundaries. No broad family/node_modules sweep, new plugin/dependency, preset/server entry/alias/environment change or additional candidate allowance. Complete declaration and module list are in initial_js_ownership_repair_nov2.
+
+P2 will defer the existing Market normalizer in both approved guards, move the unchanged generic seed fallback validator to the existing lazy ContextBar module while keeping its exact component in TerminalShell, and remove redundant presentation roundtrips with the public synchronous grammar/validation intact. P3 remains conditional on the declared P2 result. One complete measurement per checkpoint, all prior failures retained; a genuine unmet core/ownership/regression boundary stops the declared sequence. This checkpoint is a declaration, not a size/equivalence pass.
+
 ## November 2 approved history archive implementation — generation PASS; initial JS remains blocked
 
 The user approved the six-file history archive repair plan and requested implementation plus CI. Source commit `81329f762a47c1ce74fa38a6c46eb3b9361c5117` implements exactly the four listed source/verifier files; this record and the existing proof complete the six-file CHANGE scope, with 0 ADD /0 DELETE. The proposal below remains historical design evidence. No new shard, partition, export, dependency, workflow configuration, scientific format or active Risk code change is included.
