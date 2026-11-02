@@ -1,5 +1,61 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 2 initial JS repair — P1/P2 NO-GO; reviewed runtime restored
+
+Latest completed reviewed-head CI `b3165f3` has backend, regimes and truth-contract PASS, with frontend stopped at the initial ownership/equivalence gate. Main was freshly fetched and remains reconciled at `4f363543936f446608b838467bc0cfa8d3bfddca`. The user authorized resuming the approved P1–P4 sequence. That sequence was followed through its single predeclared P1/P2 checkpoint; its genuine core failure requires STOP. P3 and another packaging evaluation were not run.
+
+### Baseline and source checkpoints
+
+The stale comparison was repaired with a fresh baseline from the unchanged reviewed application `b3165f3`, using QA-only en-US/UTC/reduced-motion browser settings. Baseline verifier commit: `71b061777118910247dd93f966b4c24cc585b2a4`; baseline digest: `1ef648d5847612bbff87f8fcb2780cae52db1d2bced74042db6ee080763e68a8`. The complete original snapshots, typed URLs, selected evidence IDs/SHA/bytes, request lists and whole JS bodies are retained. Older baseline and failure records remain. No clock normalization, assertion relaxation or candidate-as-own-baseline substitution is used.
+
+Predeclaration commit `6822486` fixes one replacement configuration before evaluation: a client-only initial-framework group intended to match 122 exact source-proven initial vendor module identities, with entry-aware subdivision and recursive dependency capture disabled. The active configuration was proved AST-identical to that declaration, allowing formatting only. No plugin, dependency, preset, SSR entry, alias or production environment setting changed.
+
+Rejected source checkpoint **`a6ea928a0af189ecf23a39b4fe254c064287108e`** contains the declared P1 configuration and P2 changes: guarded asynchronous calls to the unchanged Market normalizer, the unchanged complete generic seed validator on its fallback import path, and one checked typed-context transport result shared by presentation callers. The validator body remains byte-identical to the reviewed function. The source and exact declaration remain reviewable in Git.
+
+### Primary CI result and body report
+
+[CI run 41376468180](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41376468180), exact source `a6ea928`, passes ordinary installation/build/Risk verification, **624 navigation/static checks** and **30 archive browser cases**. Frontend job [125057674807](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41376468180/job/125057674807) then rejects five genuine conditions: core overflow, both route overflows, and an eager optional dependency on both routes. There are no mixed/unknown-ownership or behavior/evidence-equivalence failures in that measurement. Backend, truth-contract and regimes pass on that exact source.
+
+CI preserves exact rendered state, typed URLs, inputs/selections, context, evidence links and original artifact hashes. Its total Risk JS is 202,195 gzip bytes /23 requests, versus baseline 196,951 /28: +5,244 bytes /-5 requests. Factors is 187,253 /27 versus 184,852 /33: +2,401 /-6. Both pass the unchanged stricter 5%/8,192-byte and +4-request regression guards. Those successful guards do not waive the project/core size or lazy-boundary failures.
+
+The following exact numbers come from a **local diagnostic body report**, not a performance acceptance run. Its source, compiled output, whole-body SHA unions, default gzip, complete ownership checks and actual ready-state/evidence comparisons remain unchanged. Local waiting deadlines alone were extended from20s to120s after an incomplete local readiness attempt. The primary CI result above independently completes the normal checks and reaches the same failures.
+
+| Rejected P1/P2 whole-body union | Actual default gzip bytes | Unchanged cap | Excess |
+|---|---:|---:|---:|
+| Shared/always-on terminal core |40,443|24,576|15,867|
+| Risk complete project initial, including core |83,581|65,536|18,045|
+| Factors complete project initial, including core |68,633|65,536|3,097|
+
+Local diagnostic total JS is 202,193 /187,245 gzip, with23 /27requests. It preserves both full snapshots and exact evidence, with zero MIXED/UNKNOWN bodies. The diagnostic is explicitly ineligible as latency acceptance; no size threshold or usable-state predicate changes. Its first20s attempt missed Factors readiness and failed the existing two-route completeness assertion; that failed/incomplete outcome is retained rather than relabelled passing. The longer-wait body report is retained separately and still fails all three size caps.
+
+The core is the complete SHA union of21 project bodies. Its largest four whole bodies are:
+
+| Emitted body | Whole-body gzip bytes | Principal project source |
+|---|---:|---|
+| TerminalShell-C3GKzUtG.js |7,513|TerminalShell, CommandLine, compatibility|
+| contracts-BGMWH6Ff.js |6,314|Complete Market contracts plus charged runtime helper|
+| context-CQBMG9hK.js |6,276|Complete typed investigation context|
+| index-CzcFG-AH.js |4,368|Root, router and route descriptors|
+| Other17 whole core bodies, summed separately |15,972|All retained in the machine proof|
+
+The four largest total24,471bytes, leaving105bytes under the core cap for the other17 bodies. All21 hashes, full module ownership/provenance, route membership and raw request/evidence records remain in the proof. These are whole-body gzip sums; no source percentages, proportional attribution, recompressed fragments or filename exemptions are used. Complete Market contracts remain initial in the actual emitted graph despite the two guard changes. No scientific contract, listing identity information or route descriptor was removed to fit.
+
+### Exact eager-dependency finding
+
+The initial-framework body includes two modules under `@react-three/fiber/node_modules/scheduler`: `cjs/scheduler.production.js` and `index.js`. The declared matcher takes the final `node_modules` segment, discarding the outer installed-package identity. It therefore also matches those nested copies against the root scheduler paths. This is a defect in the declared matcher's exact-identity claim, exposed by the unmodified lazy-boundary guard. The configuration was not retuned or re-evaluated after the core failure. No whole-framework byte count is mislabelled as project-owned code.
+
+### Restoration, verification and remaining work
+
+Restoration commit **`ad004bf58efb6bd43bf4d27a0642e48c0c1cdf24`** restores every rejected P1/P2 runtime file and its context-verifier changes to the reviewed `b3165f3` versions. The fixed QA browser environment, pinned honest baseline and strict comparison checks remain. No P1/P2 runtime strategy is selected or active. The source at `a6ea928` and28 complete rejected body files are preserved with matching SHA256 values for review.
+
+A fresh normal production build, including original prebuild generation, passes after restoration. All **34 distinct initial body files** observed in the fresh baseline are byte-identical in restored output. All11 generated module hashes remain exact, including the accepted lossless history archive. Public source-map count is zero; rejected maps remain private QA. Current runtime source/configuration has zero diff from `b3165f3`. The restored mixed build's core/route attribution remains **INDETERMINATE**; the failed40,443 /83,581 /68,633 figures apply only to the rejected checkpoint.
+
+Typechecking and scoped lint pass for the attempted P2 source; lint reports zero errors /three existing warnings. The initial differential fixture omitted its owning sweep and was rejected by the original reference codec too; the fixture was corrected without weakening validation. Its first run also reported loaded-search p95 122.7965ms while local checks ran concurrently. Both failures remain. The corrected controlled navigation run and independent CI pass624checks, including the unchanged30ms search gate. An uncompleted local repetition of the CI-passing archive matrix was interrupted after static verification and two build captures; no local archive or complete capacity PASS is assigned to that attempt. All later whole-body evidence remains explicitly diagnostic.
+
+The read-only scientific freeze freshly passes930files /221priorartifacts /126routes /sixwithdrawals /27Riskartifacts and inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Nine protected frontend hashes, original plan and package-lock remain exact. Excluded `6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d` is absent. All six scientific claims stay false; D6disabled/deferred; Risk/regime schedules disabled; no operational capture/sweep/model/plugin/Series/factor/research/holdout/simulator execution or publication.
+
+The approved stop condition is binding: a genuine shared-core failure stops before P3 and further packaging measurement. The next repair must review the actual21-body closure and preserve complete nested package identities; another strategy/evaluation is not silently covered by the exhausted declaration. Current search implementation, history partition and all caps remain untouched. Full Stage9/10, clean-clone/Vercel acceptance, ready-for-review and merge remain blocked. PR #30 stays **draft/open/unmerged, auto-merge off**. Detailed records are in `initial_js_ownership_repair_nov2`.
+
 ## November 2 initial JS repair — fresh baseline and one fixed P1 declaration
 
 Latest reviewed head b3165f3 CI41338103978: backend, regimes and truth-contract PASS; frontend rejects exact initial ownership/equivalence. Main4f36354 is already reconciled. The user explicitly requested resuming the approved P1–P4 work; caps, freezes, excluded6f99daa and draft/unmerged disposition remain.
