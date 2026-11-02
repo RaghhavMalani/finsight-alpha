@@ -25,14 +25,13 @@ import {
   serializeInvestigationContext,
   subjectTicker,
   workspaceOf,
-  type Market,
   type InvestigationContext,
   type InvestigationView,
   type TerminalWorkspace,
 } from "./context";
 import { adaptContext, type ContextBindings, type ContextCompatibility } from "./compatibility";
 import { buildInvestigationTarget, targetHref, type InvestigationTarget } from "./links";
-import type { VerifiedSelection } from "./ContextBar";
+import { ContextBar, type VerifiedSelection } from "./ContextBar";
 import "../shell/shell.css";
 import "./terminal.css";
 
@@ -191,10 +190,136 @@ export function useInvestigation(): TerminalInvestigation {
 type Snapshot = Pick<ReplayManifest, "artifacts"> & { as_of: string; basis?: string };
 /** Closed navigation metadata only; this never verifies or fetches an original evidence payload. */
 export async function validateNavigationSeed(value: unknown): Promise<Snapshot> {
-  const module = await import("./ContextBar");
-  return module.validateNavigationSeed(value);
+  const object = (value: unknown, keys: readonly string[]) => {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Array.isArray(value) ||
+      Object.keys(value).length !== keys.length ||
+      Object.keys(value).some((key) => !keys.includes(key))
+    )
+      throw new Error("Navigation seed contains an undeclared or missing field.");
+    return value as Record<string, unknown>;
+  };
+  const text = (v: unknown, max = 4096): v is string =>
+    typeof v === "string" &&
+    v.length > 0 &&
+    v.length <= max &&
+    ![...v].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127);
+  const hash = (v: unknown) => typeof v === "string" && /^[a-f0-9]{64}$/.test(v);
+  const date = (v: unknown) => text(v) && Number.isFinite(Date.parse(v));
+  const stable = (v: unknown) =>
+    JSON.stringify(v, (_key, item: unknown) =>
+      item && typeof item === "object" && !Array.isArray(item)
+        ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+        : item,
+    );
+  if (new TextEncoder().encode(JSON.stringify(value)).length > 48 * 1024)
+    throw new Error("Navigation seed byte bound exceeded.");
+  const seed = object(value, [
+    "schema_version",
+    "generator_contract",
+    "manifestBinding",
+    "bindings",
+    "payloadDigest",
+  ]);
+  const manifest = object(seed.manifestBinding, ["sha256", "bytes", "asOf"]);
+  if (
+    seed.schema_version !== "terminal-navigation-seed/1" ||
+    seed.generator_contract !== "terminal-generator/1" ||
+    !hash(seed.payloadDigest) ||
+    !hash(manifest.sha256) ||
+    !Number.isSafeInteger(manifest.bytes) ||
+    Number(manifest.bytes) <= 0 ||
+    Number(manifest.bytes) > 2 * 1024 * 1024 ||
+    !date(manifest.asOf)
+  )
+    throw new Error("Navigation seed identity or source binding is invalid.");
+  const bindings = object(seed.bindings, ["market:IN-MKT", "market:US-MKT"]);
+  for (const [id, entry] of Object.entries(bindings)) {
+    const india = id === "market:IN-MKT";
+    const r = object(entry, [
+      "status",
+      "kind",
+      "url",
+      "sha256",
+      "bytes",
+      "sources",
+      "licence",
+      "input_hash",
+      "as_of",
+      "observed_at",
+      "available_at",
+      "reason",
+      "scope",
+    ]);
+    const licence = object(r.licence, [
+      "status",
+      "permitted_uses",
+      "dataset_key",
+      "valid_through",
+      "attribution",
+      "source_urls",
+      "terms_url",
+      "basis",
+    ]);
+    if (
+      r.status !== "AVAILABLE" ||
+      r.kind !== "market-series" ||
+      r.scope !== "FACTOR_RESEARCH" ||
+      r.url !== "/artifacts/replay/market-" + id.slice(7) + ".json" ||
+      !Array.isArray(r.sources) ||
+      r.sources.length !== 1 ||
+      r.sources[0] !== (india ? "IIMA" : "KENNETH_FRENCH") ||
+      licence.dataset_key !== (india ? "iima:daily-factors" : "ken-french:daily-factors") ||
+      !text(r.url) ||
+      !/^\/artifacts\/replay\/[a-zA-Z0-9_.-]+\.json$/.test(r.url) ||
+      !hash(r.sha256) ||
+      !hash(r.input_hash) ||
+      !Number.isSafeInteger(r.bytes) ||
+      Number(r.bytes) <= 0 ||
+      Number(r.bytes) > 16 * 1024 * 1024 ||
+      !Array.isArray(r.sources) ||
+      !r.sources.length ||
+      !r.sources.every((source) => text(source, 160)) ||
+      !date(r.as_of) ||
+      !date(r.observed_at) ||
+      !date(r.available_at) ||
+      r.reason !== null ||
+      !["ACTIVE", "FIRST_PARTY", "PUBLIC_DOMAIN", "TEST_ONLY"].includes(String(licence.status)) ||
+      !Array.isArray(licence.permitted_uses) ||
+      !licence.permitted_uses.every((use) => text(use)) ||
+      !licence.permitted_uses.includes("publish_derived") ||
+      !text(licence.dataset_key) ||
+      !text(licence.attribution) ||
+      !text(licence.basis) ||
+      !text(licence.terms_url) ||
+      !Array.isArray(licence.source_urls) ||
+      !licence.source_urls.length ||
+      !licence.source_urls.every((url) => text(url)) ||
+      (licence.valid_through !== null &&
+        (!date(licence.valid_through) ||
+          Date.parse(String(licence.valid_through)) <= Date.parse(String(r.as_of))))
+    )
+      throw new Error("Navigation source is not an available admitted public derivative.");
+  }
+  const seal = {
+    schema_version: seed.schema_version,
+    generator_contract: seed.generator_contract,
+    manifestBinding: manifest,
+    bindings,
+  };
+  const digest = Array.from(
+    new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(stable(seal)))),
+    (byte) => byte.toString(16).padStart(2, "0"),
+  ).join("");
+  if (digest !== seed.payloadDigest) throw new Error("Navigation seed digest mismatch.");
+  return {
+    artifacts: bindings as Snapshot["artifacts"],
+    as_of: String(manifest.asOf),
+    basis: "Build-verified navigation seed",
+  };
 }
-
 async function loadNavigationSeed(): Promise<Snapshot> {
   const { navigationSeed } = await import("./generated/seed.generated.ts");
   return validateNavigationSeed(navigationSeed);
@@ -530,154 +655,5 @@ export function TerminalShell({
           ))}
       </div>
     </InvestigationProvider>
-  );
-}
-
-function ContextBar({
-  context,
-  compatibility,
-  selection,
-  publication,
-  basis,
-  mode,
-  liveAllowed,
-  changeMode,
-  adoptContext,
-  copyLink,
-  copyState,
-  invalid,
-}: {
-  context: InvestigationContext;
-  compatibility: ContextCompatibility;
-  selection?: VerifiedSelection;
-  publication?: string;
-  basis: string;
-  mode: "replay" | "live";
-  liveAllowed: boolean;
-  changeMode: (mode: "replay" | "live") => void;
-  adoptContext: (context: InvestigationContext) => void;
-  copyLink: () => void;
-  copyState: string;
-  invalid: boolean;
-}) {
-  const adopt = (market: Market) =>
-    adoptContext({
-      ...defaultContext(context.view.workspace, market),
-      subject: { kind: "market-factor", id: market === "INDIA" ? "IN-MKT" : "US-MKT" },
-      ...(context.origin
-        ? { origin: context.origin }
-        : context.anchor
-          ? { origin: { kind: "artifact", artifactId: context.anchor.artifactId } as const }
-          : {}),
-    });
-  const subject = context.subject;
-  const origin = context.origin;
-  const originId =
-    origin?.kind === "risk-issue"
-      ? origin.issueId
-      : origin?.kind === "artifact"
-        ? origin.artifactId
-        : origin?.entityId;
-  return (
-    <div className="terminal-context-wrap">
-      <div className="terminal-context" role="region" aria-label="Investigation context">
-        <span className="terminal-subject shell-instrument">
-          <b>{subjectTicker(subject) ?? context.market ?? "All markets"}</b>
-          <span>
-            {subject?.kind === "market-factor"
-              ? "market factor, not a ticker"
-              : subject?.kind === "reference-listing"
-                ? `${subject.venue} · reference listing`
-                : (context.market ?? "No subject selected")}
-          </span>
-        </span>
-        <div className="shell-mode" role="group" aria-label="Data mode">
-          <button
-            type="button"
-            aria-pressed={mode === "replay"}
-            onClick={() => changeMode("replay")}
-          >
-            Replay
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "live"}
-            disabled={!liveAllowed}
-            title="Local installation with configured backend credentials"
-            onClick={() => changeMode("live")}
-          >
-            Local Live
-          </button>
-        </div>
-        {selection?.clocks.slice(0, 2).map((clock) => (
-          <span key={clock.label} className="terminal-clock">
-            <span>{clock.label}</span>
-            <b>{clock.value}</b>
-          </span>
-        ))}
-        <details className="terminal-context-detail">
-          <summary>
-            Evidence / context
-            {compatibility.reasons.length ? ` · ${compatibility.reasons.length} notices` : ""}
-          </summary>
-          <div>
-            {context.anchor && (
-              <p>
-                Requested anchor <code>{context.anchor.artifactId}</code>
-              </p>
-            )}
-            {selection && (
-              <p>
-                Verified selection <code>{selection.artifactId}</code>
-              </p>
-            )}
-            {selection?.clocks.map((clock) => (
-              <p key={clock.label}>
-                <b>{clock.label}:</b> {clock.value}
-              </p>
-            ))}
-            <p>
-              Manifest publication: {publication ?? "Verifying bounded navigation metadata…"} ·{" "}
-              {basis}
-            </p>
-            {context.observationDate && (
-              <p>
-                Observation date: {context.observationDate} · only exact compatible dated points may
-                apply it.
-              </p>
-            )}
-            {originId && (
-              <p>
-                Investigation origin <code>{originId}</code>
-                {compatibility.parked.origin ? " · not verified for an enabled link" : ""}
-              </p>
-            )}
-            {selection?.limitations?.map((reason) => (
-              <p key={reason}>{reason}</p>
-            ))}
-            {compatibility.reasons.length > 0 && (
-              <div role="status">
-                <b>CONTEXT NOT APPLICABLE</b>
-                {compatibility.reasons.map((reason, i) => (
-                  <p key={reason.code + i}>
-                    {reason.field}: {reason.message}
-                  </p>
-                ))}
-              </div>
-            )}
-            <div className="terminal-adopt">
-              <button onClick={() => adopt("US")}>Open US market factor</button>
-              <button onClick={() => adopt("INDIA")}>Open India market factor</button>
-            </div>
-          </div>
-        </details>
-        <button type="button" className="terminal-copy" disabled={invalid} onClick={copyLink}>
-          {copyState || "Copy investigation link"}
-        </button>
-      </div>
-      <span className="sr-only" role="status">
-        {copyState}
-      </span>
-    </div>
   );
 }

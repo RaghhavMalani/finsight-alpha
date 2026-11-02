@@ -2,7 +2,6 @@ import {
   WORKSPACE_PATHS,
   ContextError,
   contextQuery,
-  checkedInvestigationTransport,
   defaultContext,
   isArtifactId,
   isHashId,
@@ -138,7 +137,8 @@ export function buildInvestigationTarget(
       view ??
       (context.view.workspace === destination ? context.view : defaultContext(destination).view),
   };
-  const { search, context: checked } = checkedInvestigationTransport(targetContext);
+  const search = serializeInvestigationContext(targetContext);
+  const checked = parseInvestigationContext(destination, search);
   const to =
     destination === "agents" && checked.view.workspace === "agents" && checked.view.runId
       ? `/runs/${checked.view.runId}`

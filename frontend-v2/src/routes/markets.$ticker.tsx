@@ -5,8 +5,7 @@ import { Loading } from "@/markets/ui";
 
 const OverviewScreen = lazy(() => import("@/markets/OverviewScreen"));
 export const Route = createFileRoute("/markets/$ticker")({
-  beforeLoad: async ({ params, search }) => {
-    const { normalizeTicker } = await import("@/markets/contracts");
+  beforeLoad: ({ params, search }) => {
     const ticker = normalizeTicker(params.ticker);
     if (ticker && ticker !== params.ticker)
       throw redirect({

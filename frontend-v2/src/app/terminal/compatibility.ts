@@ -1,7 +1,8 @@
 import {
   defaultContext,
   isArtifactId,
-  checkedInvestigationTransport,
+  parseInvestigationContext,
+  serializeInvestigationContext,
   subjectMarket,
   type InvestigationContext,
   type InvestigationSubject,
@@ -75,7 +76,10 @@ export function adaptContext(
   bindings?: ContextBindings,
   view?: InvestigationView,
 ): ContextCompatibility {
-  const original = checkedInvestigationTransport(context).context;
+  const original = parseInvestigationContext(
+    context.view.workspace,
+    serializeInvestigationContext(context),
+  );
   if (view && view.workspace !== destination)
     throw new Error("Destination view belongs to another workspace.");
   const applied: InvestigationContext = {

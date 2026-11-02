@@ -1646,89 +1646,6 @@ check("Ctrl or Cmd K uses the same focus-capturing palette opener as the visible
   );
 });
 
-const currentContextCodec = await import("../src/app/terminal/context.ts");
-const previousContextText = gitText(
-  "show",
-  "b3165f32bdb566c52960ca3998ee1c3743af9892:frontend-v2/src/app/terminal/context.ts",
-);
-const previousContextJavaScript = ts
-  .transpileModule(previousContextText, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
-  })
-  .outputText.replace(
-    'from "@tanstack/router-core"',
-    "from " + JSON.stringify(import.meta.resolve("@tanstack/router-core")),
-  )
-  .replace(
-    'from "../../markets/instruments.ts"',
-    "from " + JSON.stringify(new URL("../src/markets/instruments.ts", import.meta.url).href),
-  );
-const previousContextCodec = await import(
-  "data:text/javascript;base64," + Buffer.from(previousContextJavaScript).toString("base64")
-);
-check("P2 checked transport retains every typed field and public validator result", () => {
-  const values = Object.keys(WORKSPACE_PATHS).flatMap((workspace) => [
-    { version: 1, view: { workspace } },
-    {
-      version: 1,
-      market: "INDIA",
-      subject: { kind: "market-factor", id: "IN-MKT" },
-      view: { workspace },
-    },
-  ]);
-  values.push({
-    version: 1,
-    market: "INDIA",
-    anchor: { artifactId: currentStateId },
-    origin: {
-      kind: "risk-issue",
-      issueId: observationIssue,
-      stateArtifactId: currentStateId,
-      sweepArtifactId: currentSweepId,
-    },
-    view: {
-      workspace: "risk",
-      sweepId: currentSweep.payload.sweep_id,
-      issueId: observationIssue,
-      query: "भारत",
-      columns: ["severity", "subject"],
-    },
-  });
-  for (const value of values) {
-    const expected = previousContextCodec.serializeInvestigationContext(value);
-    assert.deepEqual(currentContextCodec.serializeInvestigationContext(value), expected);
-    const checked = currentContextCodec.checkedInvestigationTransport(value);
-    assert.deepEqual(checked.search, expected);
-    assert.deepEqual(
-      checked.context,
-      previousContextCodec.parseInvestigationContext(value.view.workspace, expected),
-    );
-  }
-  for (const value of [
-    { version: 2, view: { workspace: "risk" } },
-    { version: 1, view: { workspace: "risk", account: "private" } },
-    {
-      version: 1,
-      market: "INDIA",
-      subject: { kind: "market-factor", id: "US-MKT" },
-      view: { workspace: "risk" },
-    },
-    { version: 1, view: { workspace: "risk", columns: ["subject", "subject"] } },
-  ]) {
-    let expected;
-    try {
-      previousContextCodec.serializeInvestigationContext(value);
-    } catch (e) {
-      expected = e.code;
-    }
-    assert(expected);
-    assert.throws(
-      () => currentContextCodec.checkedInvestigationTransport(value),
-      (e) => e.code === expected,
-    );
-  }
-});
-
 const referenceRepairCatalog = await import("../src/app/terminal/catalog.ts");
 check(
   "compact references cross every radix boundary and retain literal/Unicode/clock strings",
@@ -3022,41 +2939,11 @@ if (!coreOnly || projectionsOnly) {
       true,
       ts.ScriptKind.TSX,
     );
-    const seedTree = ts.createSourceFile(
-      "ContextBar.tsx",
-      readFileSync(path.join(frontend, "src/app/terminal/ContextBar.tsx"), "utf8"),
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    );
-    const priorSeedTree = ts.createSourceFile(
-      "prior-shell.tsx",
-      gitText(
-        "show",
-        "b3165f32bdb566c52960ca3998ee1c3743af9892:frontend-v2/src/app/terminal/TerminalShell.tsx",
-      ),
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    );
-    const seedValidator = seedTree.statements.find(
+    const seedValidator = shellTree.statements.find(
       (node) => ts.isFunctionDeclaration(node) && node.name?.text === "validateNavigationSeed",
     );
-    assert(seedValidator, "Complete lazy seed validator must be separately testable");
-    const priorSeed = priorSeedTree.statements.find(
-      (node) => ts.isFunctionDeclaration(node) && node.name?.text === "validateNavigationSeed",
-    );
-    assert.equal(
-      seedValidator.getText(seedTree),
-      priorSeed.getText(priorSeedTree),
-      "Every original closed seed validation byte remains exact",
-    );
-    assert.match(
-      shellSource,
-      /await import\("\.\/ContextBar"\)/,
-      "Fallback must load its full validator before acceptance",
-    );
-    const seedJavaScript = ts.transpileModule(seedValidator.getText(seedTree), {
+    assert(seedValidator, "Always-on seed validator must be separately testable");
+    const seedJavaScript = ts.transpileModule(seedValidator.getText(shellTree), {
       compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
     }).outputText;
     const { validateNavigationSeed } = await import(
@@ -3096,7 +2983,7 @@ if (!coreOnly || projectionsOnly) {
           manifestBinding: seed.manifestBinding,
           payloadDigest,
           bindings: Object.keys(seed.bindings),
-          validatorSourceSha256: hash(seedValidator.getText(seedTree)),
+          validatorSourceSha256: hash(seedValidator.getText(shellTree)),
           sourceModuleSha256: hash(generated.modules.seed),
           wholeOriginalFetches: attempts,
         };

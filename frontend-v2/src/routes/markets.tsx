@@ -40,7 +40,7 @@ type MarketsSearch = Record<string, unknown> & { ticker: string; range?: BarRang
 export const Route = createFileRoute("/markets")({
   validateSearch: (search: Record<string, unknown> & SearchSchemaInput) =>
     ({ ...search }) as unknown as MarketsSearch,
-  beforeLoad: async ({ location, search }) => {
+  beforeLoad: ({ location, search }) => {
     const checked = safeParseInvestigationContext("market", requestSearch() ?? location.searchStr),
       part = /^\/markets\/([^/]+)$/.exec(location.pathname)?.[1],
       tickerPath = !!part && !MARKET_TABS.some((tab) => tab.to === location.pathname);
@@ -56,7 +56,6 @@ export const Route = createFileRoute("/markets")({
     } catch {
       return;
     }
-    const { normalizeTicker } = await import("@/markets/contracts");
     const ticker = normalizeTicker(raw);
     // Preserve the complete query before the unchanged child route can normalize a lowercase path.
     if (ticker && ticker !== raw)
