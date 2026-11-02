@@ -1438,7 +1438,27 @@ async function initialOwnershipStage() {
     const inputBaseline = JSON.parse(
       readFileSync(path.resolve(repo, option("--initial-baseline"))),
     );
-    const baseline = inputBaseline.initial_packaging_amendment_oct31?.baseline ?? inputBaseline;
+    const baseline =
+      inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
+      inputBaseline.initial_packaging_amendment_oct31?.baseline ??
+      inputBaseline;
+    if (inputBaseline.initial_js_ownership_repair_nov2) {
+      assert.equal(
+        sha(Buffer.from(JSON.stringify(baseline))),
+        "1ef648d5847612bbff87f8fcb2780cae52db1d2bced74042db6ee080763e68a8",
+        "Pinned unchanged-application baseline cannot be replaced by the candidate",
+      );
+      assert.deepEqual(
+        baseline.manifest,
+        report.manifest,
+        "Equivalence requires the same admitted input cohort",
+      );
+      assert.deepEqual(
+        baseline.browserEnvironment,
+        report.browserEnvironment,
+        "Equivalence requires the same browser environment",
+      );
+    }
     for (const journey of report.initialOwnership.journeys) {
       const before = baseline.initialOwnership.journeys.find(
         (j) => j.workspace === journey.workspace,
@@ -1483,7 +1503,10 @@ async function initialOwnershipStage() {
     const inputBaseline = JSON.parse(
       readFileSync(path.resolve(repo, option("--initial-baseline"))),
     );
-    const baseline = inputBaseline.initial_packaging_amendment_oct31?.baseline ?? inputBaseline;
+    const baseline =
+      inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
+      inputBaseline.initial_packaging_amendment_oct31?.baseline ??
+      inputBaseline;
     const initialNames = new Set(
       report.initialOwnership.journeys.flatMap((j) =>
         j.bodies.map((b) => path.basename(new URL(b.url).pathname)),
@@ -1535,7 +1558,10 @@ if (option("--attribute-recorded-initial")) {
   const proof = option("--ownership-dir");
   const modules = JSON.parse(readFileSync(path.join(proof, "normal-modules.json")));
   const inputBaseline = JSON.parse(readFileSync(option("--initial-baseline")));
-  const baseline = inputBaseline.initial_packaging_amendment_oct31?.baseline ?? inputBaseline;
+  const baseline =
+    inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
+    inputBaseline.initial_packaging_amendment_oct31?.baseline ??
+    inputBaseline;
   const initialNames = new Set(
     saved.initialOwnership.journeys.flatMap((j) =>
       j.bodies.map((b) => path.basename(new URL(b.url).pathname)),

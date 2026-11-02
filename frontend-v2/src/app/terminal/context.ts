@@ -673,9 +673,10 @@ export function safeParseInvestigationContext(workspace: TerminalWorkspace, inpu
     };
   }
 }
-export function serializeInvestigationContext(
-  context: InvestigationContext,
-): Record<string, string> {
+export function checkedInvestigationTransport(context: InvestigationContext): {
+  search: Record<string, string>;
+  context: InvestigationContext;
+} {
   object(
     context,
     ["version", "market", "subject", "anchor", "compare", "observationDate", "origin", "view"],
@@ -755,8 +756,12 @@ export function serializeInvestigationContext(
   }
   if (workspace === "factors" && context.market) values.country = context.market;
   if (context.view.workspace === "market" && context.view.panel === "graph") values.view = "graph";
-  parseInvestigationContext(workspace, values);
-  return values;
+  return { search: values, context: parseInvestigationContext(workspace, values) };
+}
+export function serializeInvestigationContext(
+  context: InvestigationContext,
+): Record<string, string> {
+  return checkedInvestigationTransport(context).search;
 }
 export const contextSearch = serializeInvestigationContext;
 export function contextQuery(context: InvestigationContext): string {
