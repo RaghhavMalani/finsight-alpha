@@ -1,5 +1,37 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 2 approved archive ordering implemented — local gates PASS; CI running
+
+The user approved the separate six-file archive plan. Runtime implementation is published at **`4d302d005159eb87b783c69cd2b84a62d3da7d80`**. Main remains reconciled at `dbe1fd87db4a146b7c7a13e4c82a0d69906751f3`. No JS packaging configuration, optional panel change, new reader/schema/export/dependency or scientific publication was introduced.
+
+The archive packer now ranks complete text-table entries by direct-reference frequency, groups structure rows by tag/layout, remaps both pools bijectively, and restores layout first-use numbering. Every decoded value and pool member is preserved. The public decoder/validator functions remain byte-identical; the ten other modules are byte-identical to their same-input current-main candidates.
+
+| Complete archive | Decoded bytes | Gzip level9 | Default gzip |
+|---|---:|---:|---:|
+| Previous rejected source module |107,520|33,316|33,823|
+| Implemented source module |102,760|32,666|33,055|
+| Actual emitted client JS body |102,642|32,676|33,059|
+| Unchanged generated-source caps |131,072|32,768|Existing source gate uses level9|
+
+Source-gzip headroom is **102 bytes**; no future-epoch guarantee. All actual network-body modes are reported separately. No source result is substituted for default-gzip initial/interaction accounting. The normal client build contains no new packer code and publishes zero source maps. Source module SHA `00dcd9110c1128f4ad5dec0d892fe2fed01b9f1d6f3bea23455f7d6bb9fcb825`; emitted archive SHA `d1c17fdc72db92fb4a28d30efbb525c67e97594c514ce2d377a1f2adb0cb74bd`.
+
+Two complete normal generations pass, with all 11 hashes identical and **343 complete-original checks**. History union remains348 entities /552 edges /47 bindings /735 choices; full retained navigation1,167 identities /2,250 choices. All other ten same-input module hashes, default history, its named navigation supplement and current search remain exact. Current generated outputs are fresh for the reconciled manifest; no count/hash pin was advanced before full admission and equality passed.
+
+Local verification:
+- **310 targeted checks** and **633 navigation/static checks** pass, preserving the original300 /623 plus ten ordering cases. The two original layout-wire equality cases independently reconstruct every pre-ordering wire member before asserting equality; they do not substitute a looser semantic assertion.
+- Typecheck, scoped lint/format, the complete **240-check Risk verifier**, normal prebuild and production build pass.
+- **45 archive browser cases pass** in Chrome, Edge and Firefox: nine positive cases (actual archive, legacy v2 order, legacy base36) and36 rejections, including all30 original cases plus new out-of-pool, cyclic and wrong-valid-reference duplicate-identity attacks.
+- All four current interaction journeys pass. Empty palette4,044 default-gzip bytes; cumulative cold palette plus first current query **32,326 /32,768**; first Risk command8,145; first Market metadata search12,551. Retained archive remains explicit-only and fetches no scientific originals. Loaded search covers529 identities,60 samples, p95 **3.2ms /30ms**. US-MKT/IN-MKT eligibility and stale/rapid-return query checks pass.
+- Thirty warm palette samples give p95 **106.4ms /150ms**. Separate fresh cold Risk/Factors palettes become usable107.2 /107.3ms after final chunk transfer, within400ms. Their original ready-state predicates and20s page deadline remain unchanged.
+
+After these archive compatibility gates passed, QA captured an honest pre-JS current-cohort baseline at runtime source4d302d0, before any new JS strategy. Risk/Factors totals are197,715 /184,871 default-gzip bytes, with28 /33 requests. Full rendered state, typed URLs, controls/selections, evidence IDs/SHA/bytes and requests/bodies are retained with fixed en-US/UTC/reduced-motion settings. Its fixed digest is `c74c4fcf1382bccac01306c96f2aba015ac31034f888c12cef7f50e977baf9ac`. The browser verifier selects this baseline under an explicit fixed digest and keeps strict same-manifest/environment/full-snapshot/evidence comparisons; all older baselines and failures remain. It is not a candidate-as-own-baseline substitution. The 19-file JS plan is approved, **R1/R2 remain unstarted and its strategy allowance is unconsumed**.
+
+Earlier negative checks are retained: the first targeted run still used the previous cohort/wire-order assertions after a guarded QA edit failed before writing; seven failures remain in its original proof. An intermediate run exposed two missed epoch/search-count updates. Legitimate current-main expectations were corrected only after normal admission/equality, preserving all prior-epoch joins and assertions. A pure counting helper initially used a `use` prefix and triggered three React hook lint errors; it was renamed `countText`, with no rule suppression. The corrected suites pass. Guarded QA-script path/line-ending/count-edit errors produced no accepted measurement or source broadening.
+
+[Runtime-source CI41451556696](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41451556696) passes normal generation/build,633navigation checks and45archive browser cases. Its frontend then correctly stops at the strict previous-Nov1/current-Nov2 manifest-baseline mismatch, before ownership acceptance; the remaining jobs are running. The honest current-cohort baseline repair above subsequently passes local full snapshot/evidence equality and both total/request regression guards with zero deltas. This QA/documentation checkpoint has separate CI. The prior completed13c043b run41441380790 fails generation at the old33,316-byte archive and separately reports **two Risk recovery failures /244 passed**; regimes/truth pass. Those Risk failures are outside this six-file amendment, remain unmodified and require separate diagnosis if they recur. There is no overall/latest-head CI PASS, complete Stage9/10, Vercel acceptance or review-readiness claim. Current initial ownership is still the restored mixed build and remains blocked independently.
+
+Fresh archive verification passes all930 frozen files /221 prior artifacts /126 prior routes /six withdrawals /27 Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Nine protected frontend hashes, immutable original plan and package-lock remain exact. Excluded6f99daa is absent. Caps/freezes unchanged; all six claims false; D6 deferred; Risk/regime schedules disabled; zero operational capture/sweep/model/plugin/Series/factor/research/holdout/simulator execution or retained publication. PR#30 remains **draft/open/unmerged, auto-merge off**. Details are in `history_archive_ordering_implementation_nov2`.
+
 ## November 2 history archive capacity proposal — lossless table ordering; initial JS approved
 
 **Initial JS plan APPROVED; separate archive repair PROPOSED, NOT IMPLEMENTED.** The user approved the exact 19-file initial-JS plan and its one fixed R1 strategy /conditional R2 checkpoint, while instructing this history plan to come first. That approval is recorded separately; no JS runtime, matcher or bundler configuration is activated by this task. The prior rejected P1/P2 source and exhausted allowance stay unchanged.

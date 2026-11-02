@@ -1439,10 +1439,17 @@ async function initialOwnershipStage() {
       readFileSync(path.resolve(repo, option("--initial-baseline"))),
     );
     const baseline =
+      inputBaseline.history_archive_ordering_implementation_nov2?.baseline ??
       inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
       inputBaseline.initial_packaging_amendment_oct31?.baseline ??
       inputBaseline;
-    if (inputBaseline.initial_js_ownership_repair_nov2) {
+    if (inputBaseline.history_archive_ordering_implementation_nov2?.baseline) {
+      assert.equal(
+        sha(Buffer.from(JSON.stringify(baseline))),
+        "c74c4fcf1382bccac01306c96f2aba015ac31034f888c12cef7f50e977baf9ac",
+        "Pinned pre-JS current-cohort baseline cannot be replaced by the candidate",
+      );
+    } else if (inputBaseline.initial_js_ownership_repair_nov2) {
       assert.equal(
         sha(Buffer.from(JSON.stringify(baseline))),
         "1ef648d5847612bbff87f8fcb2780cae52db1d2bced74042db6ee080763e68a8",
@@ -1504,6 +1511,7 @@ async function initialOwnershipStage() {
       readFileSync(path.resolve(repo, option("--initial-baseline"))),
     );
     const baseline =
+      inputBaseline.history_archive_ordering_implementation_nov2?.baseline ??
       inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
       inputBaseline.initial_packaging_amendment_oct31?.baseline ??
       inputBaseline;
@@ -1559,6 +1567,7 @@ if (option("--attribute-recorded-initial")) {
   const modules = JSON.parse(readFileSync(path.join(proof, "normal-modules.json")));
   const inputBaseline = JSON.parse(readFileSync(option("--initial-baseline")));
   const baseline =
+    inputBaseline.history_archive_ordering_implementation_nov2?.baseline ??
     inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
     inputBaseline.initial_packaging_amendment_oct31?.baseline ??
     inputBaseline;
