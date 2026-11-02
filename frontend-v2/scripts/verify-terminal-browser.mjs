@@ -2268,7 +2268,57 @@ async function historyLayoutStage() {
   );
   const archive = JSON.parse(text.match(/export default (\{.*\}) as const;/s)[1]);
   assert.equal(archive.schema_version, "terminal-shard/2");
-  const { terminalDigest } = await import("../src/app/terminal/catalog.ts");
+  const { terminalDigest, packTerminalPayload, unpackTerminalPayload } =
+    await import("../src/app/terminal/catalog.ts");
+  const logical = unpackTerminalPayload(
+    archive.strings,
+    archive.payload,
+    archive.structures,
+    archive.texts,
+    archive.layouts,
+  );
+  const legacy = packTerminalPayload(logical),
+    layouts = [],
+    layoutIds = new Map();
+  const structures = legacy.structures.map((row) => {
+    if (row[0] === 0) return row;
+    const keys = [],
+      values = [];
+    for (let i = 1; i < row.length; i += 2) {
+      keys.push(row[i]);
+      values.push(row[i + 1]);
+    }
+    const signature = JSON.stringify(keys);
+    if (!layoutIds.has(signature)) {
+      layoutIds.set(signature, layouts.length);
+      layouts.push(keys);
+    }
+    return [2, layoutIds.get(signature), ...values];
+  });
+  const legacyArchive = { ...archive, ...legacy, layouts, structures };
+  const alphabet = Array.from({ length: 94 }, (_, i) => String.fromCharCode(i + 33))
+    .filter((c) => c !== '"' && c !== "\\")
+    .join("");
+  const base36 = (value) => {
+    if (typeof value !== "string" || value === "!-0") return value;
+    let index = 0;
+    for (const c of value.slice(1)) {
+      const digit = alphabet.indexOf(c);
+      assert(digit >= 0);
+      index = index * 92 + digit;
+    }
+    return (value[0] === "&" ? "$" : "@") + index.toString(36);
+  };
+  const legacyBase36 = {
+    ...legacyArchive,
+    payload: base36(legacyArchive.payload),
+    structures: legacyArchive.structures.map((row) =>
+      row[0] === 0 ? [0, ...row.slice(1).map(base36)] : [2, row[1], ...row.slice(2).map(base36)],
+    ),
+  };
+  const dictionary = archive.texts.map((_, i) =>
+    unpackTerminalPayload(archive.strings, "$" + i.toString(36), [], archive.texts),
+  );
   const cases = [
     ["actual complete archive", null],
     ["resealed missing layout", (p) => delete p.layouts],
@@ -2280,13 +2330,39 @@ async function historyLayoutStage() {
     ["resealed cohort mismatch", (p) => (p.manifestBinding.sha256 = "a".repeat(64))],
     ["resealed wire overflow", (p) => p.strings.push("x".repeat(131072))],
     ["unsealed layout mutation", (p) => (p.layouts[0][0] = 0), false],
+    ["legacy v2 table order", (p) => Object.assign(p, legacyArchive), true, true],
+    ["legacy base36 reference spelling", (p) => Object.assign(p, legacyBase36), true, true],
+    [
+      "resealed reference outside text pool",
+      (p) => {
+        p.structures.find((r) => r[0] === 2)[2] = "$zzzz";
+      },
+    ],
+    [
+      "resealed forward structure cycle",
+      (p) => {
+        const index = p.structures.findIndex((r) => r[0] === 2);
+        p.structures[index][2] = "@" + index.toString(36);
+      },
+    ],
+    [
+      "resealed wrong valid reference duplicates entity identity",
+      (p) => {
+        const rows = p.structures.filter(
+          (r) => r[0] === 2 && p.layouts[r[1]].some((key) => dictionary[key] === "key"),
+        );
+        assert(rows.length > 1);
+        const slot = (r) => p.layouts[r[1]].findIndex((key) => dictionary[key] === "key") + 2;
+        rows[0][slot(rows[0])] = rows[1][slot(rows[1])];
+      },
+    ],
   ];
   for (const name of browsers) {
     const browser = await (name === "firefox" ? firefox : chromium).launch(
       name === "firefox" ? { headless: true } : { headless: true, channel: name },
     );
     try {
-      for (const [label, mutate, reseal = true] of cases) {
+      for (const [label, mutate, reseal = true, accepted = !mutate] of cases) {
         const changed = structuredClone(archive);
         if (mutate) mutate(changed);
         if (mutate && reseal) {
@@ -2340,7 +2416,7 @@ async function historyLayoutStage() {
             );
             assert.deepEqual(fixture.responseErrors, []);
             const options = dialog.getByRole("option");
-            if (mutate) {
+            if (!accepted) {
               assert.equal(
                 await options.count(),
                 0,
@@ -2360,6 +2436,7 @@ async function historyLayoutStage() {
               label,
               status: "PASS",
               mutated: !!mutate,
+              acceptedEncoding: accepted,
               archive: reads[0],
               results: await options.count(),
             });

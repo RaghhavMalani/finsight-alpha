@@ -368,7 +368,93 @@ export function packTerminalPayload(
     }
     return [2, index, ...values];
   });
-  return { strings: fragments, texts, structures: records, payload, layouts };
+  // Archive-only wire ordering: preserve every pool member and decoded value.
+  if (texts.length > 20000 || records.length > 20000 || layouts.length > 256)
+    throw new Error("Terminal archive packing table bound exceeded.");
+  const frequencies = Array<number>(texts.length).fill(0);
+  const reference = (value: PackedValue): { string: boolean; index: number } | null => {
+    if (typeof value !== "string" || value === "!-0") return null;
+    if (value[0] !== "&" && value[0] !== "%") throw new Error("Invalid archive packing reference.");
+    const string = value[0] === "&",
+      index = unpackReferenceIndex(value.slice(1));
+    if (!count(index, (string ? texts : records).length - 1))
+      throw new Error("Archive packing reference is outside its pool.");
+    return { string, index };
+  };
+  const countText = (index: number) => {
+    if (!count(index, frequencies.length - 1) || frequencies[index] >= Number.MAX_SAFE_INTEGER)
+      throw new Error("Archive text frequency is outside its bound.");
+    frequencies[index]++;
+  };
+  for (const row of records) {
+    if (!Array.isArray(row) || (row[0] !== 0 && row[0] !== 2))
+      throw new Error("Invalid archive packing record.");
+    for (const value of row.slice(row[0] === 0 ? 1 : 2)) {
+      const ref = reference(value);
+      if (ref?.string) countText(ref.index);
+    }
+  }
+  const root = reference(payload);
+  if (root?.string) countText(root.index);
+  for (const keys of layouts) {
+    if (keys.length > 128) throw new Error("Archive layout key bound exceeded.");
+    keys.forEach(countText);
+  }
+  const textOrder = frequencies
+      .map((frequency, index) => ({ frequency, index }))
+      .sort((a, b) => b.frequency - a.frequency || a.index - b.index)
+      .map(({ index }) => index),
+    structureOrder = records
+      .map((_, index) => index)
+      .sort((a, b) => {
+        const left = records[a] as PackedValue[],
+          right = records[b] as PackedValue[];
+        return (
+          Number(left[0]) - Number(right[0]) ||
+          (left[0] === 2 ? Number(left[1]) - Number(right[1]) : 0) ||
+          a - b
+        );
+      });
+  const inverse = (order: number[]): number[] => {
+    const result = Array<number>(order.length).fill(-1);
+    for (const [next, previous] of order.entries()) {
+      if (!count(previous, order.length - 1) || result[previous] !== -1)
+        throw new Error("Archive packing permutation is not bijective.");
+      result[previous] = next;
+    }
+    if (result.some((index) => index === -1))
+      throw new Error("Archive packing permutation is incomplete.");
+    return result;
+  };
+  const textMap = inverse(textOrder),
+    structureMap = inverse(structureOrder);
+  const remap = (value: PackedValue): PackedValue => {
+    const ref = reference(value);
+    return ref
+      ? (ref.string ? "&" : "%") + referenceIndex((ref.string ? textMap : structureMap)[ref.index])
+      : value;
+  };
+  const finalLayouts: number[][] = [],
+    layoutMap = new Map<number, number>();
+  const finalRecords = structureOrder.map((index) => {
+    const row = records[index] as PackedValue[];
+    if (row[0] === 0) return [0, ...row.slice(1).map(remap)];
+    const prior = row[1] as number;
+    if (!count(prior, layouts.length - 1)) throw new Error("Invalid archive layout reference.");
+    if (!layoutMap.has(prior)) {
+      layoutMap.set(prior, finalLayouts.length);
+      finalLayouts.push(layouts[prior].map((key) => textMap[key]));
+    }
+    return [2, layoutMap.get(prior)!, ...row.slice(2).map(remap)];
+  });
+  if (layoutMap.size !== layouts.length) throw new Error("Unused archive packing layout.");
+  return {
+    strings: fragments,
+    texts: textOrder.map((index) => texts[index]),
+    structures: finalRecords,
+    payload: remap(payload),
+    layouts: finalLayouts,
+  };
 }
 export function unpackTerminalPayload(
   strings: readonly string[],

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isDeepStrictEqual } from "node:util";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -1071,10 +1072,11 @@ const PREVIOUS_RECONCILED_MAIN = "830ea0f02af0cb57fcbfffaddb25693414831713";
 const THIRD_RECONCILED_MAIN = "32c3f827985dd5fbee0354780765e49e679cad57";
 const FOURTH_RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
 const FIFTH_RECONCILED_MAIN = "ec961d3caacd825233c788f195c5af0dd87998c3";
-const RECONCILED_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
+const SIXTH_RECONCILED_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
+const RECONCILED_MAIN = "dbe1fd87db4a146b7c7a13e4c82a0d69906751f3";
 // Current generation pins advance only after two complete admitted layout-codec generations.
-const IMPLEMENTATION_SCOPE_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
-const CURRENT_AVAILABLE_BINDINGS = 361;
+const IMPLEMENTATION_SCOPE_MAIN = "dbe1fd87db4a146b7c7a13e4c82a0d69906751f3";
+const CURRENT_AVAILABLE_BINDINGS = 368;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1314,15 +1316,23 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const added = Object.keys(admittedManifest.artifacts).filter(
     (id) => !(id in baseManifest.artifacts),
   );
-  assert.equal(added.length, 42);
+  assert.equal(added.length, 49);
   assert.deepEqual(
     added.map((id) => admittedManifest.artifacts[id].kind).sort(),
-    [...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds, ...dataKinds]
+    [
+      ...dataKinds,
+      ...dataKinds,
+      ...dataKinds,
+      ...dataKinds,
+      ...dataKinds,
+      ...dataKinds,
+      ...dataKinds,
+    ]
       .map((kind) => "data-organ-" + kind)
       .sort(),
   );
   const clocks = new Set(added.map((id) => admittedManifest.artifacts[id].as_of));
-  assert.equal(clocks.size, 6);
+  assert.equal(clocks.size, 7);
   for (const kind of dataKinds)
     assert(
       added.includes(admittedManifest.routes["/data/" + kind]),
@@ -1336,7 +1346,7 @@ check("admitted main publication preserves every old entry and all non-Data alia
   const upstreamPaths = splitZ(
     git("diff", "--no-renames", "--name-only", "-z", ARCHIVE_BASE, RECONCILED_MAIN),
   );
-  assert.equal(upstreamPaths.length, 72);
+  assert.equal(upstreamPaths.length, 83);
   assert(
     upstreamPaths.every(
       (p) =>
@@ -1366,7 +1376,8 @@ check("admitted main publication preserves every old entry and all non-Data alia
     [PREVIOUS_RECONCILED_MAIN, THIRD_RECONCILED_MAIN],
     [THIRD_RECONCILED_MAIN, FOURTH_RECONCILED_MAIN],
     [FOURTH_RECONCILED_MAIN, FIFTH_RECONCILED_MAIN],
-    [FIFTH_RECONCILED_MAIN, RECONCILED_MAIN],
+    [FIFTH_RECONCILED_MAIN, SIXTH_RECONCILED_MAIN],
+    [SIXTH_RECONCILED_MAIN, RECONCILED_MAIN],
   ];
   for (const [from, to] of epochs) {
     assert.deepEqual(
@@ -1715,6 +1726,92 @@ function exactLayoutValue(a, b) {
   assert.deepEqual(Object.keys(a).sort(), Object.keys(b).sort());
   for (const key of Object.keys(a)) exactLayoutValue(a[key], b[key]);
 }
+function legacyLayoutPack(legacy) {
+  const layouts = [],
+    ids = new Map();
+  const structures = legacy.structures.map((row) => {
+    if (row[0] === 0) return row;
+    const keys = [],
+      values = [];
+    for (let i = 1; i < row.length; i += 2) {
+      keys.push(row[i]);
+      values.push(row[i + 1]);
+    }
+    const key = JSON.stringify(keys);
+    if (!ids.has(key)) {
+      ids.set(key, layouts.length);
+      layouts.push(keys);
+    }
+    return [2, ids.get(key), ...values];
+  });
+  return { ...legacy, structures, layouts };
+}
+const orderingDigits = Array.from({ length: 94 }, (_, i) => String.fromCharCode(i + 33))
+  .filter((c) => c !== '"' && c !== "\\")
+  .join("");
+function orderingIndex(wire) {
+  let n = 0;
+  for (const c of wire) {
+    const d = orderingDigits.indexOf(c);
+    assert(d >= 0);
+    n = n * 92 + d;
+  }
+  return n;
+}
+function orderingReference(n) {
+  let s = "";
+  do {
+    s = orderingDigits[n % 92] + s;
+    n = Math.floor(n / 92);
+  } while (n);
+  return s;
+}
+// Recover all old wire members independently from decoded identity, including signed zero.
+function restoreLayoutOrdering(packed, legacy) {
+  assert.deepEqual(packed.strings, legacy.strings);
+  assert.equal(packed.texts.length, legacy.texts.length);
+  assert.equal(packed.structures.length, legacy.structures.length);
+  const textOrder = packed.texts.map((parts) =>
+    legacy.texts.findIndex((old) => isDeepStrictEqual(parts, old)),
+  );
+  const oldValues = legacy.structures.map((_, i) =>
+    referenceRepairCatalog.unpackTerminalPayload(
+      legacy.strings,
+      "@" + i.toString(36),
+      legacy.structures,
+      legacy.texts,
+    ),
+  );
+  const structureOrder = packed.structures.map((_, i) => {
+    const v = layoutDecode({ ...packed, payload: "@" + i.toString(36) });
+    return oldValues.findIndex((old) => isDeepStrictEqual(v, old));
+  });
+  for (const [order, size] of [
+    [textOrder, legacy.texts.length],
+    [structureOrder, legacy.structures.length],
+  ]) {
+    assert(order.every((i) => i >= 0));
+    assert.equal(new Set(order).size, size, "No omitted or doubled pool member");
+  }
+  const reference = (v) => {
+    if (typeof v !== "string" || v === "!-0") return v;
+    const map = v[0] === "&" ? textOrder : structureOrder;
+    return v[0] + orderingReference(map[orderingIndex(v.slice(1))]);
+  };
+  const structures = [],
+    texts = [];
+  packed.structures.forEach((row, i) => {
+    structures[structureOrder[i]] =
+      row[0] === 0
+        ? [0, ...row.slice(1).map(reference)]
+        : [1, ...packed.layouts[row[1]].flatMap((k, n) => [textOrder[k], reference(row[n + 2])])];
+  });
+  packed.texts.forEach((v, i) => {
+    texts[textOrder[i]] = v;
+  });
+  return { structures, texts, payload: reference(packed.payload), textOrder, structureOrder };
+}
+
 for (const [name, value] of [
   ["empty and repeated objects", [{}, {}, { a: 1, b: true }, { a: 2, b: false }]],
   [
@@ -1744,14 +1841,103 @@ for (const [name, value] of [
     exactLayoutValue(layoutDecode(legacy), value);
     exactLayoutValue(layoutDecode(packed), value);
     assert.deepEqual(packed, referenceRepairCatalog.packTerminalPayload(value, true));
-    const restored = packed.structures.map((row) =>
-      row[0] === 2 ? [1, ...packed.layouts[row[1]].flatMap((key, i) => [key, row[i + 2]])] : row,
-    );
-    assert.deepEqual(restored, legacy.structures);
+    const restored = restoreLayoutOrdering(packed, legacy);
+    assert.deepEqual(restored.structures, legacy.structures);
     assert.deepEqual(packed.strings, legacy.strings);
-    assert.deepEqual(packed.texts, legacy.texts);
-    assert.equal(packed.payload, legacy.payload);
+    assert.deepEqual(restored.texts, legacy.texts);
+    assert.equal(restored.payload, legacy.payload);
   });
+const orderingProof = {
+  schema: "terminal-shard/2",
+  ordering: "text-frequency/layout-cluster/1",
+  cases: [],
+};
+const orderingValues = [
+  ["empty text", ""],
+  ["literal scalar", -0],
+  ["empty array", []],
+  ["empty object", {}],
+  [
+    "ties and repeated references",
+    [
+      { a: "same", b: "other" },
+      { a: "same", b: "other" },
+      { a: "other", b: "same" },
+    ],
+  ],
+  ["nested forward references", { a: [{ z: [1, 2] }], b: { c: [{ z: [1, 2] }] } }],
+  [
+    "multiple layouts and arrays",
+    [{ a: [1, "भारत"] }, { b: [true, null] }, { a: [2, "%literal"] }, []],
+  ],
+  [
+    "finite scalar identities",
+    {
+      a: [
+        -0,
+        0,
+        -Number.MIN_VALUE,
+        Number.MIN_VALUE,
+        -Number.MAX_VALUE,
+        Number.MAX_VALUE,
+        1.25,
+        true,
+        false,
+        null,
+      ],
+    },
+  ],
+  [
+    "escaped literals and exact clocks",
+    { a: ["!1", "!-0", "%x", "&x", "2026-11-02T07:49:26.402654Z", "a".repeat(64)] },
+  ],
+  [
+    "radix boundaries",
+    Array.from({ length: 150 }, (_, i) => ({ id: "value-" + i, group: String(i % 4) })),
+  ],
+];
+for (const [name, value] of orderingValues)
+  check("archive ordering preserves full original wire: " + name, () => {
+    const legacy = referenceRepairCatalog.packTerminalPayload(value),
+      original = legacyLayoutPack(legacy),
+      packed = referenceRepairCatalog.packTerminalPayload(value, true),
+      inverse = restoreLayoutOrdering(packed, legacy);
+    assert.deepEqual(inverse.structures, legacy.structures);
+    assert.deepEqual(inverse.texts, legacy.texts);
+    assert.equal(inverse.payload, legacy.payload);
+    exactLayoutValue(layoutDecode(packed), value);
+    exactLayoutValue(layoutDecode(original), value);
+    assert.deepEqual(packed, referenceRepairCatalog.packTerminalPayload(value, true));
+    const counts = Array(legacy.texts.length).fill(0),
+      count = (v) => {
+        if (typeof v === "string" && v[0] === "&") counts[orderingIndex(v.slice(1))]++;
+      };
+    count(original.payload);
+    for (const row of original.structures) row.slice(row[0] === 0 ? 1 : 2).forEach(count);
+    for (const keys of original.layouts) for (const k of keys) counts[k]++;
+    assert.deepEqual(
+      inverse.textOrder,
+      counts
+        .map((count, index) => ({ count, index }))
+        .sort((a, b) => b.count - a.count || a.index - b.index)
+        .map((x) => x.index),
+    );
+    assert.deepEqual(
+      inverse.structureOrder,
+      original.structures
+        .map((_, i) => i)
+        .sort(
+          (a, b) =>
+            original.structures[a][0] - original.structures[b][0] ||
+            (original.structures[a][0] === 2
+              ? original.structures[a][1] - original.structures[b][1]
+              : 0) ||
+            a - b,
+        ),
+    );
+    orderingProof.cases.push(name);
+  });
+
 check("layout codec shared references hydrate isolated records", () => {
   const packed = referenceRepairCatalog.packTerminalPayload({ a: { key: 1 }, b: { key: 1 } }, true);
   const value = layoutDecode(packed);
@@ -1884,7 +2070,7 @@ await checkAsync(
       "history-archive",
       actualLayoutArchive.manifestBinding,
     );
-    assert.equal(archive.entities.length, 319);
+    assert.equal(archive.entities.length, 332);
     const current = await referenceRepairCatalog.loadTerminalShard("history");
     assert.equal(current.entities.length, 16);
     layoutCodecProof.actualArchive = {
@@ -1973,7 +2159,7 @@ if (amendmentOnly) {
       };
       try {
         const rows = await catalog.validateNavigationProjection(projectionRaw());
-        assert.equal(rows.length, 527);
+        assert.equal(rows.length, 529);
         assert.equal(fetches, 0);
       } finally {
         globalThis.fetch = oldFetch;
@@ -2205,7 +2391,7 @@ if (amendmentOnly) {
       assert(marker > 0);
       assert.equal(
         hash(bytes.subarray(0, marker)),
-        "6942f816fca891e7948d317bdc3bc4e18bbdc4fe44b6794c4cb8e984511ce70b",
+        "a0ffef796c945190ef1d09fec06937ccb2b24cd395823234c8d229a0796b9f24",
       );
       assert.equal(
         hash(
@@ -2213,7 +2399,7 @@ if (amendmentOnly) {
             path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
           ),
         ),
-        "e5af1b6203003f3b589ac0670b7beffb74ea817f0314636184fe7674d0f80ad3",
+        "00dcd9110c1128f4ad5dec0d892fe2fed01b9f1d6f3bea23455f7d6bb9fcb825",
       );
       assert(bytes.length <= 131072);
       assert(gzipSync(bytes, { level: 9 }).length <= 32768);
@@ -2222,18 +2408,18 @@ if (amendmentOnly) {
       assert.equal(defaultHistory.entities.length, 16);
       assert.equal(defaultHistory.edges.length, 0);
       assert.equal(Object.keys(defaultHistory.bindings).length, 16);
-      assert.equal(archiveHistory.entities.length, 319);
-      assert.equal(archiveHistory.edges.length, 534);
-      assert.equal(Object.keys(archiveHistory.bindings).length, 30);
+      assert.equal(archiveHistory.entities.length, 332);
+      assert.equal(archiveHistory.edges.length, 552);
+      assert.equal(Object.keys(archiveHistory.bindings).length, 31);
       const records = await catalog.loadRetainedSearchNavigation();
-      assert.equal(records.length, 565);
+      assert.equal(records.length, 572);
       assert.equal(
         records.reduce((n, r) => n + r.choices.length, 0),
-        979,
+        986,
       );
       searchAmendmentProof.history = {
-        records: 565,
-        choices: 979,
+        records: 572,
+        choices: 986,
         wholeModuleDecodedBytes: bytes.length,
         wholeModuleGzipBytes: gzipSync(bytes, { level: 9 }).length,
         defaultPartitionUnchanged: true,
@@ -2653,7 +2839,7 @@ if (!coreOnly || projectionsOnly) {
             generated.searchProjection,
             generated.shards.seed.manifestBinding,
           );
-          assert.equal(records.length, 527);
+          assert.equal(records.length, 529);
           assert.deepEqual(JSON.parse(JSON.stringify(records)), generated.currentSearchRecords);
           continue;
         }
@@ -5083,7 +5269,7 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        assert.equal(supported, 336); // Independently admitted main4f preserves329 and adds seven complete Data originals.
+        assert.equal(supported, 343); // Admitted main dbe1 preserves336 and adds seven complete Data originals.
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,
@@ -5190,6 +5376,7 @@ if (!coreOnly && !projectionsOnly && !navigationOnly)
   );
 const report = {
   layoutCodec: layoutCodecProof,
+  archiveOrdering: orderingProof,
   transport: transportProof,
   schema_version: "phase75-terminal-context-proof/1",
   status: failures.length ? "FAIL" : missingAreas.length ? "INCOMPLETE" : "PASS",

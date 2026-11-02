@@ -7205,6 +7205,9 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       ...(packed.layouts
         ? {
             layoutEncoding: "terminal-shard/2",
+            poolOrdering: "text-frequency/layout-cluster/1",
+            textPoolMembers: packed.texts.length,
+            structurePoolMembers: packed.structures.length,
             layouts: packed.layouts.length,
             layoutKeyIndices: packed.layouts.reduce((n, keys) => n + keys.length, 0),
             maxLayoutKeys: Math.max(0, ...packed.layouts.map((keys) => keys.length)),
