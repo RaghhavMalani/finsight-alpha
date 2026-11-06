@@ -1,5 +1,109 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 6 Risk receipt capacity amendment — proposed, not implemented
+
+Main is reconciled at `f2fdb12b5e4a7d47294a9560e681586550a74b05` by merge `a25655f9059191da2a21ba5b81c6a8d2719ea4aa`. This task prepares a **17-file Risk receipt amendment for review**. It authors only the existing report/proof beyond the admitted upstream merge. The existing v1/v2 production code and all tests remain unchanged. The approved 19-file initial JS plan remains unstarted, with its fixed R1/conditional R2 allowance unconsumed.
+
+### Latest completed CI and reconciliation
+
+[CI41455328533](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/41455328533), exact prior head `dabcc892138cae67f4a1c3f17a882a8cf13b7e62`, is complete: regimes and truth-contract PASS; frontend and backend FAIL. Frontend passes normal generation/build,633 static checks and45 archive browser cases, full snapshot/evidence comparison and both total-byte/request regressions, then fails only mixed/unknown initial ownership on Risk and Factors. Backend Risk reports **2 failed /244 passed**, in the compact lifecycle recovery-chain and positive-changed-repair tests. The subsequent general backend suite is not a PASS. Those results use the November 2 cohort; they are not a full-suite result for the newly reconciled November 6 inputs.
+
+The four independent Data publications pass **8,118 admission/preservation checks** (1,992 /2,017 /2,042 /2,067 per epoch), retaining388 prior entries,368 available originals,118 sealed raw histories and146 routes. They add28 complete derived Data envelopes and16 sealed raw reports, modify only six Data aliases/manifests and change no scientific/application source. The latest manifest has **416 entries /396 AVAILABLE /20 UNAVAILABLE /146 routes**,562,019 bytes, SHA `1b048e55e362c3ca696e13aefce0d5964156df4997d0eac8215f3a132f060811`, as-of2026-11-06T08:02:28.469466Z. The prior bytes, complete envelope/receipt/source/claim/licence checks and computation/model/holdout evidence remain exact. These publications are inherited from main; Phase7.5 performs no scientific operation/publication.
+
+### Current receipt witnesses and proposal
+
+Ignored engineering observers run three original tests on the reconciled source while preserving every production guard and original result. The ordinary receipt now also exceeds the fixed128KiB limit. The selected tests produce two failures plus a genesis-fixture setup error caused by the ordinary receipt overflow; this setup error is not a Windows/temp problem. The original cap still throws and no active reader admits the proposed version.
+
+| Actual original fixture | Observations /origins | Logical v1 bytes | Current v2 bytes | Proposed v3 bytes | v3 reserve |
+|---|---:|---:|---:|---:|---:|
+| Ordinary sweep |35 /77|141,942|132,496|117,691|13,381|
+| First positive recovery |36 /77|147,283|137,859|122,631|8,441|
+| Unchanged receipt cap |All values retained|131,072 incoming wire cap|131,072|131,072|No increase|
+
+All figures include the complete canonical wire envelope and newline. The new representation removes repeated observation field names and the constant per-row schema literal, saving **423 bytes per observation**. Every field value remains present, in fixed positions. Private inverse checks restore the exact prior v2 dictionaries, then the unchanged hydrator restores complete logical bytes, types, signed zero and every observation ID. The three saved logical/candidate pairs have matching original/restored hashes. This is **design-only representation sizing**, not an implemented v3 reader, accepted publication, passing recovery chain or CI result.
+
+Keep state/coverage formats unchanged. Coverage is114,640 bytes. Ordinary primary state is126,111; the first recovery state is **130,998 /131,072**, leaving only **74 bytes**. State plus proposed receipt totals243,802 /253,629 bytes, under the unchanged262,144 initial Risk union cap. These witnesses stop at the original first over-cap receipt: later reopen/consecutive-failure/final-repair states have not executed under v3. No later-chain or future-epoch fit is promised. No new reserve threshold is introduced. Any later state/leaf overflow must stop for its own reviewed decision; this amendment does not authorize state compression or omitted origins/anchors.
+
+### Proposed closed wire contract
+
+Introduce **`risk-sweep/3`** only. Preserve the existing envelope and payload selector fields literally, including input hash, clocks, `sweep_id`, `state_ref`, status, policy/source hashes, operation proofs, transitions, history and failure evidence. Keep the existing complete evidence-reference table and its bounded canonical decimal-string indices. Replace only the observation dictionaries with arrays of exactly28 values. No field-name table or format selector is supplied by the receipt.
+
+The version fixes this explicit trusted order:
+
+`assertions, asset, availability, category, country, currency, evidence_at, evidence_class, evidence_cutoff, evidence_ref_indices, fingerprint, issue_id, model, observation_id, origin_records, outcome, policy_sha256, previous_observation_id, reason, reason_code, remediation, rule_id, rule_version, scope, severity, source_quality, title, witnessed_at`.
+
+Schema3 supplies the unchanged `risk-observation-wire/1` constant when adapting each row back to the complete existing v2 dictionary. Freeze the literal28-name list in both languages and assert exact coverage of the old wire fields; do not derive the order dynamically from Pydantic/schema/property enumeration. Existing v1 and v2 contracts/readers remain unchanged, including every allowed field, source and identity check.
+
+Required ingress sequence:
+
+1. Check the **original incoming raw bytes/SHA/content identity and128KiB cap** before hydration. Preserve strict UTF-8, duplicate-key/nonfinite/closed-field rejection. An oversized v1/v2/v3 input still rejects; readers never repack an oversized artifact to make it pass.
+2. Validate the closed v3 envelope, unchanged top-level payload fields and table/list bounds. Each observation must be an actual dense JSON array of exactly28 slots, with no object carrier, holes/undefined, extra slot/property or mixed v2 row. Reject before `zip`/`Object.fromEntries`, so truncation or missing slots cannot disappear.
+3. Construct a fresh trusted-name dictionary per row and restore its constant wire-observation schema. Validate these dictionaries and the complete table with the **unchanged internal v2 wire field/schema checks**. Type/enum/clock/string/list/closed-object bounds all remain.
+4. Validate complete table source authority **before** duplicating any evidence reference. Then use the existing bounded table hydration and full logical observation/schema/derivation/source/lifecycle checks. Preserve duplicate/unused/first-use-order checks and deep isolated copies of each reference occurrence.
+5. Keep the raw cap attached to the original v3 wire. **Do not call public capped `validateRisk(expandedV2)` or `_validate_public(expandedV2)`:** the132,496/137,859-byte intermediate dictionaries are not incoming files. Use the private schema/source/hydration path after the original117,691/122,631-byte wire has passed. Logical/intermediate size is already distinguished from raw wire by v2; no ingress limit is raised.
+
+The current TS validator supports homogeneous `items`, not tuple/`prefixItems`. Use bounded row-shape adaptation followed by its existing complete v2 field validation; do not broaden the generic validator or assume unsupported tuple semantics. Register any new closed schema in the existing pattern registry.
+
+At the producer boundary choose, deterministically: byte-identical v1 when it fits; otherwise byte-identical existing v2 when it fits; otherwise canonical v3 only when its complete bytes fit and its exact roundtrip passes. If none fits, preserve the current failure/atomic-no-write behavior. Incoming readers and historical stored bytes do not participate in writer selection. No compression/truncation of values, optional-field pruning, hash/ID shortening, numeric quantization, coalesced origins or provenance/lifecycle omission.
+
+### Exact proposed CHANGE scope — 17 existing files, 0 ADD /0 DELETE
+
+| Path | Bounded purpose after approval |
+|---|---|
+| `src/risk_manager/contracts.py` | Closed v3 row contract, explicit field order, exact packing/adaptation/hydration; preserve v1/v2 and logical identity domains |
+| `src/risk_manager/publication.py` | Original-wire cap and source-before-expansion checks; v1→fitting v2→fitting v3 preparation; preserve atomic publication, raw identities and strict readers |
+| `frontend-v2/src/risk-manager/contracts.ts` | Matching v3 row guard/dispatch/pattern registration, internal v2 validation reuse and bounded full logical hydration |
+| `frontend-v2/scripts/verify-risk-manager.mjs` | Cross-language v1/v2/v3 equality, actual cap/derivation/source attacks and performance; retain all240 current checks |
+| `frontend-v2/scripts/verify-risk-browser.mjs` | Checked-wire v3 success and sabotage in the existing isolated three-browser fixture |
+| `frontend-v2/scripts/verify-terminal-context.mjs` | Exact approved scope, v3 normalization/source joins and raw-original inspection; update cohort pins only after legitimate complete admission |
+| `frontend-v2/scripts/verify-terminal-browser.mjs` | Production-browser raw-original inspection versus normalized joins; all existing network/initial/cold guards remain |
+| `tests/risk_manager/test_contracts.py` | Closed shape/type/field-order/legacy/roundtrip/isolated-reference tests |
+| `tests/risk_manager/test_publication.py` | Exact wire selection/cap/content-addressing/source validation and atomic rollback sabotage |
+| `tests/risk_manager/test_sweep.py` | Complete ordinary/current overflow case; same-source unchanged/no-write behavior |
+| `tests/risk_manager/test_api.py` | Actual checked-wire v3 GET/body/selector/source tests; retain GET-only/auth/production-host protections |
+| `tests/risk_manager/test_compact_lifecycle.py` | Entire existing failure/recovery/reopen/consecutive/final-repair chain and full history/anchor conservation |
+| `tests/risk_manager/test_failure_recovery.py` | Original positive changed repair assertions; bind fixtures to actual prepared wire IDs while retaining full normalized logical expectations |
+| `tests/risk_manager/test_archive.py` | Complete mixed-version historical graph and raw SHA/bytes/source/clock/owner sabotage |
+| `tests/risk_manager/test_compact_sources.py` | Wrong-but-valid references, source/clock substitutions and exact origins against v3 wire identities |
+| `docs/phase7-5-connected-quant-terminal.md` | Reviewed amendment, exact source/measurement limits and later results |
+| `docs/qa/phase7-5-connected-quant-terminal-proof.json` | Complete positive/negative/provenance/freeze/CI evidence |
+
+Only three production files enter scope. `test_failure_recovery.py` is the new path beyond the previous nineteen-file Risk amendment; the terminal-browser file's new Risk-original purpose is also explicit. No production change to sweep/service/client/generator/terminal reader/archive/reducer is proposed: they already delegate checked preparation/hydration. Preserve their source bytes and exercise compatibility. Keeping selector fields literal is essential to that boundary; globally tokenizing them would require a new exact amendment.
+
+The service already obtains checked wire through `read_artifact(..., wire=True)`, verifies the unchanged pair/selectors and returns that wire. The generator keeps the normalized Risk result for joins. The generic inspector validates the normalized result and returns the original wire value; the Risk client already checks raw bytes/hash before hydration. New tests must prove these behaviors for3, including that a hydrated v1 view is never labelled original v3 bytes.
+
+### Required sequence and acceptance if approved
+
+- **R0 — source and baseline.** Fetch/admit/reconcile any new main and repeat the current complete witnesses/freeze before implementation. Preserve the latest failed CI, focused failures, source sizes, logical/wire identities and all prior v1/v2/history proof. Keep all operations in memory or verified fresh engineering temp roots. Do not update source pins or describe stale generated files as current.
+- **R1 — implement strict compatible readers and producer selection.** Add only the fixed-row adapter/model and private stage reuse above. Verify v1/v2 historical behavior before dispatching v3. Preserve literal pair/selectors, the eight-file evaluator source list and every scientific rule/policy/identity formula. Actual changed contracts/publication code must change future evaluator hashes; do not pin the old hash or relabel retained receipts as current. Logical identity domains stay fixed; wire SHA/bytes bind actual transport.
+- **R2 — meaningful attack and equality proof.** Preserve the complete existing246-test Risk suite and240-check frontend suite, plus all original archive/source/transport cases. Keep explicit v1/v2 valid vectors and add exact v3 overflow vectors. Current-cohort producer tests should assert the exact chosen version, not “any supported version.” Test missing/extra/wrong/dense/sparse/mixed slots, ordering/swapped positions, numeric/coercible/newline indices, unknown fields/versions, table bounds/duplicates/unused/order, negative zero/finite numeric identities where legal, Unicode/literal strings, cycles/depth/expansion, claim promotion, future evidence, wrong owner/cutoff and known retained unavailable-origin policy. Include **wrong-but-valid slot/table swaps with wire rehashing**, full source authority and derivation checks; fixtures must reach their intended guard rather than pass on unrelated overflow.
+- **R3 — complete original recovery flows and actual bytes.** Run every unmodified semantic assertion in both failing chains, including later reopen/consecutive failures/final repair, >100-history hydration, exact origin/order conservation, no resurrection and zero writes on identical same-source evidence. Repair only fixture assumptions that hash a logical view as original wire: stage/hash actual prepared wire, retain its full normalized expected value and every tampering assertion. Measure leaf/state/receipt/API body and initial union at every later step. State130,998 is only the first-repair witness. Any later state/leaf cap failure is an independent STOP; no added state codec, reduced anchor list, deleted origin or cap change is authorized.
+- **R4 — readers, integration and CI.** Use temporary mixed v1/v2/v3 publication roots to verify the complete graph, atomic pair, rollback, service GET selectors/body and original-wire content identity. Run both languages' full schema/source/identity cases and the existing50ms validator/filters, privacy and no-execution guards. Then normal install/generation/typecheck/lint/build and actual Risk/original-inspector browser matrices in Chrome, Edge and Firefox once current metadata admission permits a real build. Preserve all terminal310 targeted/633 static and45 archive cases, all initial/cold full-body/default-gzip/usable-state/evidence/regression gates, and the approved JS budgets. Count added decoder code in those actual emitted bodies. Rerun exact-source backend/frontend/regimes/truth CI and retain all independent failures.
+- **R5 — publication boundary.** This approval would authorize code and isolated engineering verification only. Deploy compatible readers before any separately authorized future v3 scientific publication. No operational sweep, retained migration or publication is part of this repair. Once v3 evidence exists, a v1/v2-only rollback is incompatible; retained bytes cannot be rewritten to make rollback work.
+
+### Independent blockers on the newly reconciled inputs
+
+A complete read-only generation checks371 originals and rejects at its original final barrier:
+
+| Existing module | Decoded bytes /cap | Source gzip /cap | Failure |
+|---|---:|---:|---|
+| Data |132,043 /131,072|35,005 /32,768|971 decoded and2,237 gzip bytes over|
+| History archive |117,017 /131,072|37,318 /32,768|4,550 gzip bytes over|
+
+All11 on-disk generated hashes remain unchanged and **stale for this manifest**. No writer, pin, shard, repartition, source omission or source-cap exemption is activated. These metadata repairs are outside the17-file Risk amendment and need separate reviewed scope. No current normal build/browser/fresh-baseline/full Stage9/10 acceptance is claimed. A Risk codec implementation can be evaluated in isolated backend/reader tests; it cannot establish full CI or browser acceptance while normal generation rejects.
+
+The initial JS ownership/core/route caps remain independently blocked. Preserve core<=24,576 gzip; Risk/Factors project closures including core<=65,536 each; total increase<=min(5%,8,192) and requests<=+4; cumulative cold code+metadata<=32,768; every generated/read cap, Risk artifact<=131,072 and initial Risk union<=262,144. No filename/proportional/fragment attribution or predicate relaxation. The approved JS strategy allowance is not consumed or reset here.
+
+**STOP** if the fixed receipt representation fails the current cap/equality/source/identity boundary, the complete chain exposes state/leaf overflow, original tests need weakening, full generation remains blocked for broader acceptance, or an unlisted production/test edit is needed. Report the exact remaining boundary. Do not broaden the wire into a general compressor, change logical scientific contracts or identity domains, omit observations/origins/fields/anchors, change a cap or manufacture PARTIAL/PASS.
+
+### Preparation proof and disposition
+
+Design observers and saved-artifact inverse checks are private engineering QA only. Active readers reject schema3; the original producer still fails; all source/test/runtime code is unchanged. The root manifest is byte-identical before/after probes and the original temporary publication lock is cleaned. The focused setup error is preserved as a cap failure. Current witness sizes are source/clock-specific measurements and not future capacity guarantees or accepted publisher/HTTP results.
+
+The read-only archive verifier passes all930 frozen files /221 prior artifacts /126 prior routes /six withdrawals /27 Risk artifacts, inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Nine protected frontend files, original immutable plan and package-lock remain exact; `6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d` is excluded. All six claims remain false; D6 disabled/deferred; Risk/regime schedules disabled; zero operational provider/model/plugin/Series/factor/research/holdout/simulator work or retained scientific publication.
+
+The proposed schema3 contract, 17-file list and changed complete-wire metrics await explicit implementation approval. Existing Risk v2 and archive implementations and the approved JS plan remain intact. PR#30 stays **draft/open/unmerged, auto-merge off**. Full evidence is in `risk_receipt_capacity_plan_nov6`; no overall/current CI green, review-readiness or Vercel acceptance claim.
+
 ## November 2 approved archive ordering implemented — local gates PASS; CI running
 
 The user approved the separate six-file archive plan. Runtime implementation is published at **`4d302d005159eb87b783c69cd2b84a62d3da7d80`**. Main remains reconciled at `dbe1fd87db4a146b7c7a13e4c82a0d69906751f3`. No JS packaging configuration, optional panel change, new reader/schema/export/dependency or scientific publication was introduced.
