@@ -1,5 +1,115 @@
 # Phase 7.5 — Connected Quant Terminal implementation report
 
+## November 6 Data/history capacity PLAN ONLY — four rejected strategies
+
+**No implementation is recommended.** Both predeclared strategies for Data and both for history archive fail. This checkpoint publishes only the existing report/proof, then stops for another explicit review. It does not authorize a third representation, a new shard, Risk v3, initial-JS work or Stage 10. The two-strategy limits are exhausted for this checkpoint; no candidate was tuned after its final measurement.
+
+### Live source, CI and fresh rejected baseline
+
+Fresh fetch confirms PR source `a31c4061cf6e149b5726e9c9b0acd6f3fb620b51`, main `f2fdb12b5e4a7d47294a9560e681586550a74b05`, **54 ahead / 0 behind** before this plan-only commit. No new epoch or merge was needed. [Exact-head CI 42259892278](https://github.com/RaghhavMalani/finsight-alpha/actions/runs/42259892278) is now **complete /FAIL**: regimes and truth-contract PASS; frontend fails normal generation at the same three capacity checks; backend Risk is **4 failed / 177 passed / 65 setup errors**. The later general backend suite is skipped. These setup errors are not all attributed to receipt overflow without proof. This frontend plan does not repair backend.
+
+Two fresh normal derivations are observed immediately before the unchanged final assertion. Both throw, with identical rejected module bytes and **zero runtime outputs**; all 11 existing generated files remain unchanged and stale. This is not two accepted clean rebuilds. Current manifest: **562,019 bytes**, SHA `1b048e55e362c3ca696e13aefce0d5964156df4997d0eac8215f3a132f060811`; **371 complete originals** checked before compact generation.
+
+| Current rejected module | Decoded | gzip-9 | Records /edges /bindings |
+| --- | ---: | ---: | ---: |
+| Data | 132,043 | 35,005 | 334 / 18 / 224 |
+| History archive | 117,017 | 37,318 | 383 / 624 / 35 |
+| Passing default history including supplement | 81,332 | 28,091 | 16 / 0 / 16 |
+| Frozen search | 44,471 | 16,371 | 537 navigation records / 537 choices |
+
+Data/archive hard caps remain **131,072 decoded / 32,768 gzip / 512 entities**. Search keeps its separate **16,384 gzip** source cap and **13-byte reserve**. The current/default partition is not redesigned. Current core/Risk/Factors/search interaction emitted-JS acceptance remains INDETERMINATE because no current admitted build exists; no stale-output build runs.
+
+### Data byte and structure decomposition
+
+The normalized Data payload is 723,461 logical bytes, with 334 records, 18 edges, 224 bindings, 7 routes, 32 bundles, 334 nested version choices, zero projections and zero navigation supplements. Major-section accounting is measured directly:
+
+| Section | Count | Logical JSON bytes | Standalone logical gzip-9 | Baseline gzip reduction when section omitted |
+| --- | ---: | ---: | ---: | ---: |
+| Bindings | 224 | 390,847 | 25,712 | 7,859 |
+| Entities | 334 | 298,163 | 23,248 | 14,692 |
+| Edges | 18 | 6,679 | 1,204 | 353 |
+| Routes | 7 | 723 | 394 | 93 |
+| Bundles | 32 | 26,977 | 9,147 | 1,023 |
+| Projections | 0 | 2 | 22 | 0 |
+
+These standalone gzip and controlled omission deltas are **nonadditive diagnostics**. Omission payloads are invalid explanatory controls, never repair candidates or permission to remove evidence. No proportional source-byte estimate is used for final gzip.
+
+Actual v1 packed tables:590 string fragments **24,584 bytes**, 1,529 text rows **15,873**, 1,412 structures **91,090**; no layout table. Exact property/value field tokens total 131,913 bytes; braces/commas 10; comment/export/suffix 120; total 132,043. The proof supplies uniform quoted-JSON field accounting and standalone field gzip. Scalar-string diagnostic values in the agent table exclude string quotes; the uniform table is authoritative for literal wire bytes.
+
+All 224 complete binding envelopes are distinct. All 224 source lists share one exact value; all 224 licences share one exact value, already pooled by the existing encoder. Their logical occurrence arrays measure 18,817 / 233,409 bytes and standalone gzip 176 / 2,008; unique-value arrays 85 / 1,043 bytes. Repeating these semantic values again cannot be counted as new savings. Views:668 occurrences / 109 unique, 46,543 logical array bytes / 3,990 standalone gzip. Nested workspace literals:1,002 occurrences /one value, 7,015 / 58; market literals 110 /two values, 695 / 83; no country property occurs. Property-key diagnostic array:11,675 occurrences / 286 unique (including dynamic artifact-ID map keys),138,366 / 9,866. All are nonadditive logical-occurrence diagnostics, not wire contribution sums. The 334 version choices have 326 unique exact objects; their occurrence array is 72,434 bytes / 13,498 standalone gzip. The existing wire has already removed much repeated licence/property text; fixed rows reduce decoded bytes far more than gzip.
+
+### Archive gzip decomposition and canonical order
+
+Archive semantic sections: bindings 35 / 57,990 logical bytes; entities 383 / 447,909; edges 624 / 231,505; routes/projections/bundles empty. Controlled omission gzip deltas are 4,644 / 11,858 / 4,489 for bindings/entities/edges. Standalone entity/edge gzip is 32,075 / 20,620. Archive contains 815 nested choices / 544 unique exact choice objects, 212,029 logical bytes / 14,002 standalone gzip; choice ordering stays exact.
+
+The current archive already uses 15 layouts (480 JSON bytes / 211 standalone gzip),2,171 structures (80,178 / 15,301),1,049 text rows (9,479 / 2,500) and 616 string fragments (26,362 / 17,698). Of these, 450 are hash fragments:20,250 characters / 15,339 standalone gzip. These are nonadditive measurements. Long exact IDs and cross-record references remain; layouts already remove repeated field names. The proof retains binding/record/type/namespace/relation distributions, field and pool ordering, prefix/hash/clock counts and repeated-ID distances. Logical-token repeat span median 27,246 and adjacent repeat distance median 59 /p95 1,958 are explanatory token positions, not physical DEFLATE byte-window estimates.
+
+Baseline normalized edges are artifact-first and switch relation groups 623 times. Candidate A reduces switches to 2, but gzip **increases 89 bytes**: relation grouping alone does not preserve the same artifact/reference locality. Bindings remain canonically keyed, property names alphabetically ordered, existing text-frequency/layout-cluster tables preserved, and nested choices unchanged. Candidate B transposes the existing layout rows without moving semantic records; it saves 10,702 decoded / 2,982 gzip bytes, still insufficient. No random order search or extra combination was tried.
+
+### Predeclared candidates, exact results and headroom
+
+Declarations were saved before final candidate measurements. Each emitted prototype is serialized twice identically. All figures include the exact comments/export/envelope/digest/suffix, measured with gzip level 9:
+
+| Module /strategy | Definition | Decoded | gzip-9 | Decoded reserve | gzip reserve | Result |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Data A | Data-only 14 trusted fixed object layouts, exact tagged arrays/maps, existing fragment/structure layer | 104,341 | 33,960 | 26,731 (20.39%) | −1,192 (−3.64%) | FAIL |
+| Data B | Unchanged existing layout/table packer, data-only prospective dispatch | — | — | — | — | Existing 128-key layout guard rejects 224-key binding map |
+| Archive A | Fixed semantic top-level entity/edge wire order; restore exact normalized arrays after unpack | 117,017 | 37,407 | 14,055 (10.72%) | −4,639 (−14.16%) | FAIL |
+| Archive B | Existing canonical layout rows transposed into bounded per-layout columns; restore original packed tables | 106,315 | 34,336 | 24,757 (18.89%) | −1,568 (−4.79%) | FAIL |
+
+The preferred 10% decoded/gzip headroom remains a target, not a new hard cap. No prototype achieves gzip headroom. Data B was the less-invasive fallback comparison after A failed; its bound failure is retained without increasing 128, changing map representation, or inventing another candidate. It has **no emitted output or roundtrip/search claim**. A first proof-writing attempt stopped at this genuine B guard; only error capture changed on rerun, with the same A bytes. Archive preparation's import-path and search-limit report-metadata corrections are retained; candidate strategies/bytes were unchanged.
+
+**No passing capacity can be forecast for implementation.** Normal runtime generation remains 132,043 / 35,005 for Data and 117,017 / 37,318 for archive until a separately reviewed viable repair is implemented. Smaller rejected prototypes are not accepted outputs or production support for new versions.
+
+### Semantic equality, frozen search and default history
+
+Data A roundtrip is recursive Object.is-exact and stable-equal, digest `e8afb2f6a5f1d9cc423762e1f52682f5137bdff29bc9e574bf74bfa27d813bac`. Archive A/B preserve exact recursive equality and digest `1cfa87eda975449dfce4a076b8e92cc04ebfd512ccaedcf3c17c1a1f0cb3c570`; B also restores the original packed tables exactly. Both history unions remain **399 records / 624 edges / 51 bindings / 831 choices**, digest `9455a28b5c93ec4bfc0a64493e932d77564eec7e582a1ecb3e6d7d4da6dc0e20`. No ID, clock, source, edge, choice, binding, optional value, signed zero or legal finite IEEE value is omitted/inferred. Data's scalar probe includes negative zero, subnormal and maximum finite values; it does not make those values valid in fields whose semantic grammar forbids them.
+
+For Data A and archive A/B, current search is **actually re-derived** from the decoded logical result and repacked. Every emitted prototype retains 537 records / 537 choices, exact order/set, 44,471 / 16,371 bytes, SHA `59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd`, logical digest `c0d9823051e0044fed91fb8ac82421c4875a41053027394ee7fe251297863796` and payload digest `706e07d167fe5f49c818db1e0820329aee04bb70ea4fd1c2be85d88b67f0a561`. The 13-byte reserve is untouched. Data B fails before this gate and is rejected, with no fabricated byte-identity result.
+
+Archive A/B also rebuild the retained supplement/default module: whole-history SHA `41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9`,81,332 / 28,091, remains exact, including 600 supplemental records and their digests. Data A's default/other-module checks retain unmodified captured baseline strings; they are not an integrated full-generator rebuild. The prototype switches remain independent; no universal codec or current/archive membership change is proposed. All 11 physical runtime outputs are unchanged. The published current source/historical emitted graphs remain context only; there is no admitted current emitted-size proof.
+
+### Decoder, authority, sabotage and performance plan
+
+Any future passing codec must follow **closed wire → strict bounded inverse → complete original logical Terminal payload → full existing validation/use**. Data A's rejected design has 14 application-owned field layouts, fixed arities, explicit sorted map pairs, no wire-supplied field definitions/defaults, and a512-binding prototype bound. Archive B's rejected design keeps exact existing strings/texts/layouts/root references, stores array structures plus canonical layout columns, then reconstructs the original structure pool. Name/version dispatch must reject cross-module application. Old schema 1/archive-schema 2 support remains mandatory. Index counts are safe nonnegative integers, rejecting negative zero/coercion; dense rows, canonical order and duplicate identities are checked before normalization so duplicate malicious records cannot disappear through deduplication.
+
+Keep closed bounds explicit:20,000 fragment/text/structure entries, 32 text parts, 8,192 decoded text characters, 256 layouts / 128 fields where applicable, 64 depth / 200,000 visits or expanded cells, 512 entities / 8,192 edges. New reconstruction is bounded O(encoded+expanded cells), with maps/sets and no pairwise reconstruction. A known input beyond a closed bound must STOP rather than omit fields. The complete original-source checks still precede projection and cannot grant availability/publication/licence/claim rights.
+
+| Attack family | Required cases and intended evidence |
+| --- | --- |
+| Closed wire | Missing/extra/sparse slot; unknown field/table/layout version; truncation; cross-module/encoding misuse. Rehash attacks so they reach the named grammar guard. |
+| Indices/resources | Wrong/negative/negative-zero/nonintegral/coercible/out-of-range indices; duplicate table identity; count/arity/order; cycles/depth/visits/expansion. |
+| Identity/domain | Same-type slot swaps; changed artifact ID, market, workspace, namespace, availability; duplicate records; wrong edge endpoint/relation; clock/provenance. Require domain/cross-link checks and independent expected-source equality. |
+| Binding/rights | Changed SHA/bytes/licence; unavailable/local-only/public promotion; claim change. Retain complete original authority and exact source-derived equality. |
+| Numeric | NaN/Infinity reject; signed-zero mutation and legal finite extremes/subnormals checked with Object.is. |
+
+Archive B's prototype rejects 13 rehashed grammar attacks; the full future production matrix is **planned, not implemented**. A material inherited boundary is now measured: the actual unchanged archive validator accepts a grammatically valid binding SHA replacement after resealing (116,949-byte raw object), while the independent source/equality oracle rejects its changed logical digest. A self-seal is not independent authority. Do not claim arbitrary valid-but-wrong substitutions are decoder-rejected. Any requirement for new runtime trusted-source pins/authority must receive separate scope review; this plan neither weakens the old checks nor silently adds such a system.
+
+Controlled Node 24 timings: Data A checked decode median 4.989ms /p95 5.8765ms; checked wire plus copied unchanged full logical validation 15.2231 / 16.7273 (60 samples, 8 warmups). Archive A parse/hash/decode/normalize 109.6587 / 115.1097ms; B37.9449 / 43.6253 (80 samples). Existing baseline full archive validation is measured separately at 120.2323 / 128.9439ms (40 samples). Do not add quantiles or call archive decode-only timings complete validation. These are not browser or latency acceptance. A later implementation must instrument single-pass complete decoding/validation and declared worst-bound fixtures, retain raw samples/environment, and preserve existing context/search/interaction gates. No hard latency threshold is relaxed or invented.
+
+Data A's helper alone is 3,075 raw source bytes / 1,309 standalone gzip; this is not an emitted/additive JS cost. Catalog is shared with search. Historical combined interaction had only 442 gzip bytes of reserve, while current search metadata has 13; all future decoder code must count in the actual interaction body. No current JS savings or free lazy classification can be claimed. The prospective six-file scope excludes reader.ts; moving new logic behind a different lazy path would need its own explicit scope review.
+
+### Exact prospective file scope, acceptance and STOP
+
+This checkpoint changes **only** `docs/phase7-5-connected-quant-terminal.md` and `docs/qa/phase7-5-connected-quant-terminal-proof.json`. All prototypes and wires stay ignored/temporary/non-runtime. The following is a **prospective file map only**, not an implementation recommendation for any failed candidate:
+
+| Files to change if a future viable repair is separately approved | Purpose |
+| --- | --- |
+| frontend-v2/scripts/generate-terminal-index.mjs | Independent per-module encoding switch, exact equality/source/union and final caps. |
+| frontend-v2/src/app/terminal/catalog.ts | Explicit module/version decoder and complete logical validation boundary. |
+| frontend-v2/scripts/verify-terminal-context.mjs | Determinism/equality/IEEE/authority/byte identity/attack/bounds/performance checks. |
+| frontend-v2/scripts/verify-terminal-browser.mjs | Actual Data/archive/legacy three-browser fixtures; preserve all 36 negative browser cases and lazy/network gates. |
+| docs/phase 7-5-connected-quant-terminal.md | Scoped review/acceptance and retained failures. |
+| docs/qa/phase 7-5-connected-quant-terminal-proof.json | Machine-readable proof. |
+
+**Files to add: none. Files to delete: none.** reader.ts, search runtime, routes, package/workflow, Vite/matcher/ownership, protected sources and every Risk source/contract/test stay excluded. Existing browser CI wiring is sufficient; no new tracked runtime file is justified. Reader placement or new source authority would require a different explicit review.
+
+Later acceptance, only after a viable reviewed plan: fresh main admission; complete original-source authority; exact independent Data/archive semantics/union; clean clone and normal npm ci; normal generation twice with identical emitted modules; unchanged search SHA/bytes/counts/order/digests; unchanged/default-history nonregression; wrapper-inclusive caps/headroom; typecheck/build; complete static and Chrome/Edge/Firefox new/legacy/sabotage cases; genuine capacity failure with zero outputs; actual interaction/lazy/whole-body/request regression proof; all protected hashes and 930-file freeze. Initial ownership and backend remain independent blockers. No current browser/build acceptance is supplied by this checkpoint.
+
+Fresh freeze PASS:930 files / 221 prior artifacts / 126 routes /six withdrawals / 27 Risk artifacts; inventory `9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d`. Nine protected hashes, original approved plan and package-lock are exact. Excluded `6f99daa` is absent from feature/main ancestry. Zero operational provider/model/plugin/Series/factor/Research/holdout/simulator/Risk/regime runs or scientific publications; all six claims false; D6 deferred; Risk/regime schedules disabled. Risk v3 stays separate/unapproved; the approved 19-file JS work stays unstarted and its R1/R2 allowance unconsumed.
+
+**Recommended candidate: none. STOP after publication.** The four retained failures do not support implementation approval. A new representation or, if pursued, a new-shard review is required; no shard is designed or automatically authorized here. Keep PR #30 **DRAFT /OPEN /UNMERGED, auto-merge off**. Do not implement, resume Stage 10, start Risk v3 or begin initial-JS work.
+
 ## November 6 capacity amendment reaffirmed — STOP at current inputs
 
 The newly supplied amendment reaffirms the existing architecture and its **STOP / return for explicit review** boundary. Its head `31b7759` and main `32c3f8` are historical checkpoints. This review uses PR source `d1d847aab0ff7ad452771e054a8191b0e44b5fe0` and freshly fetched main `f2fdb12b5e4a7d47294a9560e681586550a74b05`: **53 ahead / 0 behind** before this documentation-only checkpoint. Main is already reconciled; no new publication epoch or merge was required. The attachment does not approve the proposed Risk v3 implementation or reset packaging allowances. The approved 19-file JS plan remains unstarted, with its fixed R1 / conditional R2 allowance unconsumed and current generation prerequisites blocked.

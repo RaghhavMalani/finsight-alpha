@@ -25,7 +25,7 @@
   "initial_clean": true,
   "schema_version": "phase75-implementation-proof/1",
   "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
-  "status": "CAPACITY_AMENDMENT_REAFFIRMED_STOP_CURRENT_GENERATION_AND_BACKEND_FAILED",
+  "status": "PLAN_ONLY_FOUR_PREDECLARED_STRATEGIES_REJECTED_NO_IMPLEMENTATION_RECOMMENDATION",
   "unrelated_wip_imported": false,
   "checkpoint_head": "a8fd2dfb59085efb0793564904c7dd59412224a0",
   "reconciled_main": "ec961d3caacd825233c788f195c5af0dd87998c3",
@@ -251610,5 +251610,2864 @@
         }
       ]
     }
+  },
+  "metadata_capacity_plan_nov6": {
+    "status": "PLAN_ONLY_FOUR_PREDECLARED_STRATEGIES_REJECTED_NO_IMPLEMENTATION_RECOMMENDATION",
+    "requestSha256": "7ed413105eddf0f77e6df972a4140990ab7f686cc42584e4448fc7148156e302",
+    "source": {
+      "head": "a31c4061cf6e149b5726e9c9b0acd6f3fb620b51",
+      "main": "f2fdb12b5e4a7d47294a9560e681586550a74b05",
+      "ahead": 54,
+      "behind": 0,
+      "noNewEpoch": true
+    },
+    "latestExactHeadCI": {
+      "head": "a31c4061cf6e149b5726e9c9b0acd6f3fb620b51",
+      "runId": 42259892278,
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/RaghhavMalani/finsight-alpha/actions/runs/42259892278",
+      "jobs": [
+        {
+          "id": 128036747410,
+          "name": "backend",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 128036747763,
+          "name": "frontend",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 128036747783,
+          "name": "regimes",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 128036747796,
+          "name": "truth-contract",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "backend": {
+        "summaries": [
+          "4 failed, 177 passed, 65 errors in 123.43s (0:02:03)"
+        ],
+        "failureLines": [
+          "FAILED tests/risk_manager/test_compact_lifecycle.py::test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes - AssertionError: {'status': 'FAILED', 'state_ref': 'risk:state:7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355', 'reason_code': 'ARTIFACT_INTEGRITY_BREACH', 'sweep_id': 'e09c389181109fdf5556f51dea7bfc85f2d977da1ed0230c39eb03982fef6099'}",
+          "FAILED tests/risk_manager/test_compact_lifecycle.py::test_system_failure_recover_reopen_recover_and_consecutive_failure_chain - AssertionError: {'status': 'FAILED', 'state_ref': 'risk:state:7e0a9e9e19e20ccd1a110adca338a017c68822e2ff29d6cf7315b4207e539355', 'reason_code': 'ARTIFACT_INTEGRITY_BREACH', 'sweep_id': '48587b90b4b4a4e455769bf98bed7498a7a4eacebfe5c9b07c5164ec39cedd8c'}",
+          "FAILED tests/risk_manager/test_failure_recovery.py::test_system_failure_is_retained_until_positive_changed_repair - AssertionError: assert 'FAILED' == 'PARTIAL'",
+          "FAILED tests/risk_manager/test_sweep.py::test_identical_memory_evidence_is_a_noop - AssertionError: assert 'FAILED' == 'PARTIAL'"
+        ],
+        "setupErrors": 65,
+        "allSetupErrorsAttributed": false,
+        "generalBackendSuite": "SKIPPED"
+      },
+      "frontend": {
+        "failures": [
+          "Decoded module budget: data=132043",
+          "Gzip module budget: data=35005",
+          "Gzip module budget: history-archive=37318"
+        ],
+        "normalStop": true,
+        "laterStages": "NOT_REACHED"
+      }
+    },
+    "currentGeneration": {
+      "capture": {
+        "status": "REJECTED_CURRENT_CANDIDATES_FRESH_CAPTURE_ONLY",
+        "source": "a31c4061cf6e149b5726e9c9b0acd6f3fb620b51",
+        "main": "f2fdb12b5e4a7d47294a9560e681586550a74b05",
+        "manifest": {
+          "sha256": "1b048e55e362c3ca696e13aefce0d5964156df4997d0eac8215f3a132f060811",
+          "bytes": 562019
+        },
+        "completeOriginalCount": 371,
+        "runs": [
+          {
+            "run": 1,
+            "normalGuardThrows": true,
+            "failures": [
+              "Decoded module budget: data=132043",
+              "Gzip module budget: data=35005",
+              "Gzip module budget: history-archive=37318"
+            ],
+            "candidateHashes": {
+              "seed": "b38c4f2fdda9d5689c8dcab7b4fac8cdd533a8c62c50800b2e525d7427db3cb6",
+              "market": "feae4c05134320842f62ec65983d75e9a9736d6dee514c83f1fab82aca856869",
+              "regimes": "64527b78e81479839c14e817b59c19ed5028ff3bdeda076cd39cd67b3477904c",
+              "risk": "097a87129d5fcc120159691fb02c824edc45c1a45285a63e2d77d9b5b9660911",
+              "factors": "ca461a355dd92b3ce0417ac731f2707126c3da9aa93c18879f43ebd318f82637",
+              "data": "723dd8bfca82409da2f8b2b15f2f1343be8742eba3635d680583d0342f75d525",
+              "recordings": "2be47e06ca650ca60c7983cb47e8b6520ec5dc7b6bc6cd6a0b879d21e3550feb",
+              "history": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9",
+              "history-archive": "f7eef4b998b63c5ad0958c227db1b5627198365c12c82d3c313142b1fe9ad2e4",
+              "observatory-window": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+              "search": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd"
+            },
+            "outputsWritten": 0
+          },
+          {
+            "run": 2,
+            "normalGuardThrows": true,
+            "failures": [
+              "Decoded module budget: data=132043",
+              "Gzip module budget: data=35005",
+              "Gzip module budget: history-archive=37318"
+            ],
+            "candidateHashes": {
+              "seed": "b38c4f2fdda9d5689c8dcab7b4fac8cdd533a8c62c50800b2e525d7427db3cb6",
+              "market": "feae4c05134320842f62ec65983d75e9a9736d6dee514c83f1fab82aca856869",
+              "regimes": "64527b78e81479839c14e817b59c19ed5028ff3bdeda076cd39cd67b3477904c",
+              "risk": "097a87129d5fcc120159691fb02c824edc45c1a45285a63e2d77d9b5b9660911",
+              "factors": "ca461a355dd92b3ce0417ac731f2707126c3da9aa93c18879f43ebd318f82637",
+              "data": "723dd8bfca82409da2f8b2b15f2f1343be8742eba3635d680583d0342f75d525",
+              "recordings": "2be47e06ca650ca60c7983cb47e8b6520ec5dc7b6bc6cd6a0b879d21e3550feb",
+              "history": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9",
+              "history-archive": "f7eef4b998b63c5ad0958c227db1b5627198365c12c82d3c313142b1fe9ad2e4",
+              "observatory-window": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+              "search": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd"
+            },
+            "outputsWritten": 0
+          }
+        ],
+        "rejectedCandidatesRepeatByteIdentical": true,
+        "acceptedDeterministicRebuilds": false,
+        "generatedOutputsBefore": {
+          "data.generated.ts": "ac49f130a8baa03610639cd961189baa332d636b7517471fa6651ec85c7f2906",
+          "factors.generated.ts": "c4c1c0d88fc7487fefe4874da267e13631cfb8b3190eac1748ccab0d1b0bdfc4",
+          "history-archive.generated.ts": "00dcd9110c1128f4ad5dec0d892fe2fed01b9f1d6f3bea23455f7d6bb9fcb825",
+          "history.generated.ts": "13e36a85e85737559f4f46f0141a6687bf2eb57ed5511c9a7f515fec1af4550d",
+          "market.generated.ts": "dd1598d37251b2ba0e52739237e3b1addb58dc12014c871883a96396ead2896f",
+          "observatory-window.generated.ts": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+          "recordings.generated.ts": "5270c0d125bb7f90544f27f755f07b595175b6be1267711680df6766f0383c24",
+          "regimes.generated.ts": "6079bec6e869914fbbf5b8f8092b650368832b9bb92fa80506982fa10b9109dd",
+          "risk.generated.ts": "17e8a807073647ee9e6cd6286eddb4d677cd7c51ce4dafa062392e6ed051c825",
+          "search.generated.ts": "63e345fcfc9598835a60f22c35f61c8e8206a07b7df9ac9d39225757b42c05e1",
+          "seed.generated.ts": "72f4414d537273d19b96d0cdddb0474b4ff2ff0336cdac935b24c6ce24ed9933"
+        },
+        "generatedOutputsAfter": {
+          "data.generated.ts": "ac49f130a8baa03610639cd961189baa332d636b7517471fa6651ec85c7f2906",
+          "factors.generated.ts": "c4c1c0d88fc7487fefe4874da267e13631cfb8b3190eac1748ccab0d1b0bdfc4",
+          "history-archive.generated.ts": "00dcd9110c1128f4ad5dec0d892fe2fed01b9f1d6f3bea23455f7d6bb9fcb825",
+          "history.generated.ts": "13e36a85e85737559f4f46f0141a6687bf2eb57ed5511c9a7f515fec1af4550d",
+          "market.generated.ts": "dd1598d37251b2ba0e52739237e3b1addb58dc12014c871883a96396ead2896f",
+          "observatory-window.generated.ts": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+          "recordings.generated.ts": "5270c0d125bb7f90544f27f755f07b595175b6be1267711680df6766f0383c24",
+          "regimes.generated.ts": "6079bec6e869914fbbf5b8f8092b650368832b9bb92fa80506982fa10b9109dd",
+          "risk.generated.ts": "17e8a807073647ee9e6cd6286eddb4d677cd7c51ce4dafa062392e6ed051c825",
+          "search.generated.ts": "63e345fcfc9598835a60f22c35f61c8e8206a07b7df9ac9d39225757b42c05e1",
+          "seed.generated.ts": "72f4414d537273d19b96d0cdddb0474b4ff2ff0336cdac935b24c6ce24ed9933"
+        },
+        "outputsWritten": 0,
+        "all11OldOutputsUnchanged": true,
+        "oldOutputsStale": true,
+        "captureV8": {
+          "bytes": 4262686,
+          "sha256": "47aee2be33b0e33c929e8abe401f0dd5d991731b70c36262ee32658fa9d4248e"
+        },
+        "reportSha256": "e443a5ac2ddc07e8ad8edd4b95ac8cfa072b0ca66ccd9d565746d4fef7a69f91"
+      },
+      "reference": "capacity_amendment_reaffirmation_nov6.currentGeneration",
+      "acceptedRebuilds": false,
+      "currentRuntimeOutputsWritten": 0,
+      "currentEmittedGraph": null
+    },
+    "data": {
+      "declaration": {
+        "schema": "data-capacity-prototype-declaration/1",
+        "checkpoint": "PLAN_ONLY",
+        "source": "a31c4061cf6e149b5726e9c9b0acd6f3fb620b51",
+        "selectedBeforeFinalMeasurements": true,
+        "maximumStrategies": 2,
+        "A": {
+          "name": "DATA_FIXED_TRUSTED_LAYOUT_ROWS_1",
+          "description": "A data-only fixed trusted layout array codec converts exactly closed object shapes into [layout index, values...] rows, leaves primitive values and array ordering exact, then feeds the existing terminal fragment/structure packer. Field definitions are fixed application constants, never supplied by wire; strict inverse restores the whole original logical payload before existing semantic validation. No field/value inference or defaults. Proposed data-only new version dispatch; no shared format changes."
+        },
+        "B": {
+          "name": "DATA_EXISTING_EXACT_LAYOUT_TABLES_1",
+          "condition": "Evaluate only if A insufficient or overly invasive; compare smallest existing infrastructure scope.",
+          "description": "Use unchanged packTerminalPayload(data,true), which already deduplicates Object.is-aware exact semantic structures and stores property layouts once; permit data-only existing layout transport through strict validated dispatch. Preserve exact values, canonical ordering and all bound/source authority."
+        },
+        "frozen": {
+          "search": "Exact wrapper-inclusive source bytes/SHA/count/digests unchanged",
+          "historyDefault": "Exact entire module including retainedNavigation unchanged",
+          "otherModules": "Exact source bytes/SHA unchanged"
+        },
+        "rules": [
+          "No more than these two representation candidates",
+          "No random permutation or iterative tuning",
+          "No new shard",
+          "No runtime/tracked implementation changes",
+          "Final capacity assert must throw on current baseline",
+          "Candidate results are engineering-only, not accepted runtime outputs"
+        ]
+      },
+      "prototype": {
+        "negativeEvidence": [
+          {
+            "stage": "First script execution",
+            "result": "Candidate A completed and candidate-A.txt was saved, then B threw its genuine unchanged layout bound before the proof writer. Re-execution changes only B error capture, retaining identical declared A/B strategies and wire bytes."
+          },
+          {
+            "stage": "Extra decomposition documentation script",
+            "result": "One syntax-only attempt failed before execution/writes; corrected script adds diagnostic statistics/contract narrative only, no alternate packing or metrics tuning."
+          }
+        ],
+        "recommendation": "NEITHER_DATA_CANDIDATE_PASSES_STOP_NEW_REPRESENTATION_REVIEW_REQUIRED",
+        "status": "PLAN_ONLY_TEMPORARY_PROTOTYPES_COMPLETE",
+        "declarationFile": ".tmp/phase75/metadata-capacity-plan-nov6/data/declaration.json",
+        "source": "a31c4061cf6e149b5726e9c9b0acd6f3fb620b51",
+        "baseline": {
+          "decoded": 132043,
+          "gzip9": 35005,
+          "sha256": "723dd8bfca82409da2f8b2b15f2f1343be8742eba3635d680583d0342f75d525"
+        },
+        "dataLogicalDigest": "e8afb2f6a5f1d9cc423762e1f52682f5137bdff29bc9e574bf74bfa27d813bac",
+        "shape": {
+          "records": 334,
+          "edges": 18,
+          "bindings": 224,
+          "routes": 7,
+          "bundles": 32,
+          "projections": 0,
+          "versionChoices": 334,
+          "logicalBytes": 723461,
+          "primitiveStringOccurrences": 11083
+        },
+        "decomposition": {
+          "sections": [
+            {
+              "name": "bindings",
+              "count": 224,
+              "logicalBytes": 390847,
+              "standaloneLogicalGzip9": 25712,
+              "controlledOmitDecodedDelta": 35897,
+              "controlledOmitGzip9Delta": 7859,
+              "controlMetrics": {
+                "decoded": 96146,
+                "gzip9": 27146,
+                "sha256": "96dbcf3c8ce0843aea050e6b342c879ed636a004ac4c54833746226c1ec02828"
+              },
+              "qualification": "Non-additive diagnostic omission delta only; not a repair candidate or claim that omitted evidence is permitted."
+            },
+            {
+              "name": "routes",
+              "count": 7,
+              "logicalBytes": 723,
+              "standaloneLogicalGzip9": 394,
+              "controlledOmitDecodedDelta": 235,
+              "controlledOmitGzip9Delta": 93,
+              "controlMetrics": {
+                "decoded": 131808,
+                "gzip9": 34912,
+                "sha256": "18341dbac1d7db7b1f767b0f77522bafaa605d404878fbea9cec2d6c4eb0500e"
+              },
+              "qualification": "Non-additive diagnostic omission delta only; not a repair candidate or claim that omitted evidence is permitted."
+            },
+            {
+              "name": "entities",
+              "count": 334,
+              "logicalBytes": 298163,
+              "standaloneLogicalGzip9": 23248,
+              "controlledOmitDecodedDelta": 75699,
+              "controlledOmitGzip9Delta": 14692,
+              "controlMetrics": {
+                "decoded": 56344,
+                "gzip9": 20313,
+                "sha256": "5c1ede37541c9ae71290ff1e8fdc0ca1056ff6c5fc8637da3abcf8aa8ad5f7a7"
+              },
+              "qualification": "Non-additive diagnostic omission delta only; not a repair candidate or claim that omitted evidence is permitted."
+            },
+            {
+              "name": "edges",
+              "count": 18,
+              "logicalBytes": 6679,
+              "standaloneLogicalGzip9": 1204,
+              "controlledOmitDecodedDelta": 1310,
+              "controlledOmitGzip9Delta": 353,
+              "controlMetrics": {
+                "decoded": 130733,
+                "gzip9": 34652,
+                "sha256": "24feed1b1c89ba80ad23e86078836469f4e93e2dec4649f4be260412a4c79b6a"
+              },
+              "qualification": "Non-additive diagnostic omission delta only; not a repair candidate or claim that omitted evidence is permitted."
+            },
+            {
+              "name": "projections",
+              "count": 0,
+              "logicalBytes": 2,
+              "standaloneLogicalGzip9": 22,
+              "controlledOmitDecodedDelta": 0,
+              "controlledOmitGzip9Delta": 0,
+              "controlMetrics": {
+                "decoded": 132043,
+                "gzip9": 35005,
+                "sha256": "723dd8bfca82409da2f8b2b15f2f1343be8742eba3635d680583d0342f75d525"
+              },
+              "qualification": "Non-additive diagnostic omission delta only; not a repair candidate or claim that omitted evidence is permitted."
+            },
+            {
+              "name": "bundles",
+              "count": 32,
+              "logicalBytes": 26977,
+              "standaloneLogicalGzip9": 9147,
+              "controlledOmitDecodedDelta": 3917,
+              "controlledOmitGzip9Delta": 1023,
+              "controlMetrics": {
+                "decoded": 128126,
+                "gzip9": 33982,
+                "sha256": "d8fba4583e684514cd0b3dff12aed306f5c2cc9e8bc353137d9ced008b1bb7af"
+              },
+              "qualification": "Non-additive diagnostic omission delta only; not a repair candidate or claim that omitted evidence is permitted."
+            }
+          ],
+          "wireComponents": {
+            "schema_version": {
+              "jsonValueBytes": 18,
+              "logicalCount": 1,
+              "standaloneGzip9": 38
+            },
+            "generator_contract": {
+              "jsonValueBytes": 22,
+              "logicalCount": 1,
+              "standaloneGzip9": 42
+            },
+            "name": {
+              "jsonValueBytes": 6,
+              "logicalCount": 1,
+              "standaloneGzip9": 26
+            },
+            "manifestBinding": {
+              "jsonValueBytes": 129,
+              "logicalCount": 3,
+              "standaloneGzip9": 123
+            },
+            "strings": {
+              "jsonValueBytes": 24584,
+              "logicalCount": 590,
+              "standaloneGzip9": 14709
+            },
+            "texts": {
+              "jsonValueBytes": 15873,
+              "logicalCount": 1529,
+              "standaloneGzip9": 4102
+            },
+            "structures": {
+              "jsonValueBytes": 91090,
+              "logicalCount": 1412,
+              "standaloneGzip9": 14939
+            },
+            "payload": {
+              "jsonValueBytes": 5,
+              "logicalCount": 1,
+              "standaloneGzip9": 25
+            },
+            "payloadDigest": {
+              "jsonValueBytes": 66,
+              "logicalCount": 1,
+              "standaloneGzip9": 72
+            }
+          },
+          "repetition": {
+            "bindingEnvelopes": {
+              "occurrences": 224,
+              "unique": 224,
+              "logicalBytesAllOccurrences": 371230,
+              "logicalBytesUnique": 371230,
+              "repeatedLogicalBytes": 0,
+              "maxFrequency": 1,
+              "standaloneLogicalArrayCompression": {
+                "decodedBytes": 371455,
+                "gzip9Bytes": 24367
+              }
+            },
+            "sourceLists": {
+              "occurrences": 224,
+              "unique": 1,
+              "logicalBytesAllOccurrences": 18592,
+              "logicalBytesUnique": 83,
+              "repeatedLogicalBytes": 18509,
+              "maxFrequency": 224,
+              "standaloneLogicalArrayCompression": {
+                "decodedBytes": 18817,
+                "gzip9Bytes": 176
+              }
+            },
+            "licences": {
+              "occurrences": 224,
+              "unique": 1,
+              "logicalBytesAllOccurrences": 233184,
+              "logicalBytesUnique": 1041,
+              "repeatedLogicalBytes": 232143,
+              "maxFrequency": 224,
+              "standaloneLogicalArrayCompression": {
+                "decodedBytes": 233409,
+                "gzip9Bytes": 2008
+              }
+            },
+            "views": {
+              "occurrences": 668,
+              "unique": 109,
+              "logicalBytesAllOccurrences": 45874,
+              "logicalBytesUnique": 14007,
+              "repeatedLogicalBytes": 31867,
+              "maxFrequency": 64,
+              "standaloneLogicalArrayCompression": {
+                "decodedBytes": 46543,
+                "gzip9Bytes": 3990
+              }
+            },
+            "workspaceValues": {
+              "occurrences": 334,
+              "unique": 1,
+              "logicalBytesAllOccurrences": 2004,
+              "logicalBytesUnique": 6,
+              "repeatedLogicalBytes": 1998,
+              "maxFrequency": 334,
+              "standaloneLogicalArrayCompression": {
+                "decodedBytes": 2339,
+                "gzip9Bytes": 46
+              }
+            },
+            "marketValues": {
+              "occurrences": 110,
+              "unique": 2,
+              "logicalBytesAllOccurrences": 584,
+              "logicalBytesUnique": 11,
+              "repeatedLogicalBytes": 573,
+              "maxFrequency": 62,
+              "standaloneLogicalArrayCompression": {
+                "decodedBytes": 695,
+                "gzip9Bytes": 83
+              }
+            },
+            "versionChoices": {
+              "occurrences": 334,
+              "unique": 326,
+              "logicalBytesAllOccurrences": 72099,
+              "logicalBytesUnique": 70363,
+              "repeatedLogicalBytes": 1736,
+              "maxFrequency": 4,
+              "standaloneLogicalArrayCompression": {
+                "decodedBytes": 72434,
+                "gzip9Bytes": 13498
+              }
+            }
+          },
+          "repeatedProperties": [
+            {
+              "key": "workspace",
+              "occurrences": 1002,
+              "jsonKeyTokenBytes": 11,
+              "allKeyTokenBytes": 11022
+            },
+            {
+              "key": "artifactId",
+              "occurrences": 686,
+              "jsonKeyTokenBytes": 12,
+              "allKeyTokenBytes": 8232
+            },
+            {
+              "key": "cutoff",
+              "occurrences": 700,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 5600
+            },
+            {
+              "key": "versionChoices",
+              "occurrences": 334,
+              "jsonKeyTokenBytes": 16,
+              "allKeyTokenBytes": 5344
+            },
+            {
+              "key": "panel",
+              "occurrences": 668,
+              "jsonKeyTokenBytes": 7,
+              "allKeyTokenBytes": 4676
+            },
+            {
+              "key": "availability",
+              "occurrences": 334,
+              "jsonKeyTokenBytes": 14,
+              "allKeyTokenBytes": 4676
+            },
+            {
+              "key": "view",
+              "occurrences": 668,
+              "jsonKeyTokenBytes": 6,
+              "allKeyTokenBytes": 4008
+            },
+            {
+              "key": "namespace",
+              "occurrences": 334,
+              "jsonKeyTokenBytes": 11,
+              "allKeyTokenBytes": 3674
+            },
+            {
+              "key": "permitted_uses",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 16,
+              "allKeyTokenBytes": 3584
+            },
+            {
+              "key": "status",
+              "occurrences": 448,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 3584
+            },
+            {
+              "key": "valid_through",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 15,
+              "allKeyTokenBytes": 3360
+            },
+            {
+              "key": "available_at",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 14,
+              "allKeyTokenBytes": 3136
+            },
+            {
+              "key": "attribution",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 13,
+              "allKeyTokenBytes": 2912
+            },
+            {
+              "key": "dataset_key",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 13,
+              "allKeyTokenBytes": 2912
+            },
+            {
+              "key": "source_urls",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 13,
+              "allKeyTokenBytes": 2912
+            },
+            {
+              "key": "observed_at",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 13,
+              "allKeyTokenBytes": 2912
+            },
+            {
+              "key": "input_hash",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 12,
+              "allKeyTokenBytes": 2688
+            },
+            {
+              "key": "label",
+              "occurrences": 334,
+              "jsonKeyTokenBytes": 7,
+              "allKeyTokenBytes": 2338
+            },
+            {
+              "key": "sourceId",
+              "occurrences": 220,
+              "jsonKeyTokenBytes": 10,
+              "allKeyTokenBytes": 2200
+            },
+            {
+              "key": "licence",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 9,
+              "allKeyTokenBytes": 2016
+            },
+            {
+              "key": "sources",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 9,
+              "allKeyTokenBytes": 2016
+            },
+            {
+              "key": "type",
+              "occurrences": 334,
+              "jsonKeyTokenBytes": 6,
+              "allKeyTokenBytes": 2004
+            },
+            {
+              "key": "reason",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 1792
+            },
+            {
+              "key": "sha256",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 1792
+            },
+            {
+              "key": "key",
+              "occurrences": 334,
+              "jsonKeyTokenBytes": 5,
+              "allKeyTokenBytes": 1670
+            },
+            {
+              "key": "as_of",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 7,
+              "allKeyTokenBytes": 1568
+            },
+            {
+              "key": "bytes",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 7,
+              "allKeyTokenBytes": 1568
+            },
+            {
+              "key": "basis",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 7,
+              "allKeyTokenBytes": 1568
+            },
+            {
+              "key": "scope",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 7,
+              "allKeyTokenBytes": 1568
+            },
+            {
+              "key": "kind",
+              "occurrences": 256,
+              "jsonKeyTokenBytes": 6,
+              "allKeyTokenBytes": 1536
+            },
+            {
+              "key": "originId",
+              "occurrences": 150,
+              "jsonKeyTokenBytes": 10,
+              "allKeyTokenBytes": 1500
+            },
+            {
+              "key": "id",
+              "occurrences": 334,
+              "jsonKeyTokenBytes": 4,
+              "allKeyTokenBytes": 1336
+            },
+            {
+              "key": "url",
+              "occurrences": 224,
+              "jsonKeyTokenBytes": 5,
+              "allKeyTokenBytes": 1120
+            },
+            {
+              "key": "market",
+              "occurrences": 110,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 880
+            },
+            {
+              "key": "disagreement",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 14,
+              "allKeyTokenBytes": 448
+            },
+            {
+              "key": "artifacts",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 11,
+              "allKeyTokenBytes": 352
+            },
+            {
+              "key": "revisions",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 11,
+              "allKeyTokenBytes": 352
+            },
+            {
+              "key": "coverage",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 10,
+              "allKeyTokenBytes": 320
+            },
+            {
+              "key": "lineage",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 9,
+              "allKeyTokenBytes": 288
+            },
+            {
+              "key": "anchor",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 256
+            },
+            {
+              "key": "health",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 256
+            },
+            {
+              "key": "issues",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 8,
+              "allKeyTokenBytes": 256
+            },
+            {
+              "key": "costs",
+              "occurrences": 32,
+              "jsonKeyTokenBytes": 7,
+              "allKeyTokenBytes": 224
+            },
+            {
+              "key": "sourceVersionId",
+              "occurrences": 12,
+              "jsonKeyTokenBytes": 17,
+              "allKeyTokenBytes": 204
+            },
+            {
+              "key": "relation",
+              "occurrences": 18,
+              "jsonKeyTokenBytes": 10,
+              "allKeyTokenBytes": 180
+            },
+            {
+              "key": "selector",
+              "occurrences": 18,
+              "jsonKeyTokenBytes": 10,
+              "allKeyTokenBytes": 180
+            },
+            {
+              "key": "admissionId",
+              "occurrences": 12,
+              "jsonKeyTokenBytes": 13,
+              "allKeyTokenBytes": 156
+            },
+            {
+              "key": "from",
+              "occurrences": 18,
+              "jsonKeyTokenBytes": 6,
+              "allKeyTokenBytes": 108
+            },
+            {
+              "key": "to",
+              "occurrences": 18,
+              "jsonKeyTokenBytes": 4,
+              "allKeyTokenBytes": 72
+            }
+          ],
+          "trustedLayoutShapes": [
+            {
+              "fields": [
+                "bindings",
+                "bundles",
+                "edges",
+                "entities",
+                "projections",
+                "routes"
+              ],
+              "count": 1
+            },
+            {
+              "fields": [
+                "as_of",
+                "available_at",
+                "bytes",
+                "input_hash",
+                "kind",
+                "licence",
+                "observed_at",
+                "reason",
+                "scope",
+                "sha256",
+                "sources",
+                "status",
+                "url"
+              ],
+              "count": 224
+            },
+            {
+              "fields": [
+                "attribution",
+                "basis",
+                "dataset_key",
+                "permitted_uses",
+                "source_urls",
+                "status",
+                "valid_through"
+              ],
+              "count": 224
+            },
+            {
+              "fields": [
+                "/data/costs",
+                "/data/coverage",
+                "/data/disagreement",
+                "/data/health",
+                "/data/issues",
+                "/data/lineage",
+                "/data/revisions"
+              ],
+              "count": 1
+            },
+            {
+              "fields": [
+                "artifactId",
+                "availability",
+                "cutoff",
+                "id",
+                "key",
+                "label",
+                "market",
+                "namespace",
+                "type",
+                "versionChoices",
+                "view",
+                "workspace"
+              ],
+              "count": 110
+            },
+            {
+              "fields": [
+                "admissionId",
+                "panel",
+                "sourceId",
+                "workspace"
+              ],
+              "count": 12
+            },
+            {
+              "fields": [
+                "artifactId",
+                "cutoff",
+                "view"
+              ],
+              "count": 334
+            },
+            {
+              "fields": [
+                "artifactId",
+                "availability",
+                "cutoff",
+                "id",
+                "key",
+                "label",
+                "namespace",
+                "type",
+                "versionChoices",
+                "view",
+                "workspace"
+              ],
+              "count": 224
+            },
+            {
+              "fields": [
+                "panel",
+                "workspace"
+              ],
+              "count": 448
+            },
+            {
+              "fields": [
+                "panel",
+                "sourceId",
+                "workspace"
+              ],
+              "count": 46
+            },
+            {
+              "fields": [
+                "originId",
+                "panel",
+                "sourceId",
+                "workspace"
+              ],
+              "count": 150
+            },
+            {
+              "fields": [
+                "panel",
+                "sourceId",
+                "sourceVersionId",
+                "workspace"
+              ],
+              "count": 12
+            },
+            {
+              "fields": [
+                "artifactId",
+                "from",
+                "relation",
+                "selector",
+                "to"
+              ],
+              "count": 18
+            },
+            {
+              "fields": [
+                "anchor",
+                "artifacts",
+                "cutoff",
+                "kind"
+              ],
+              "count": 32
+            },
+            {
+              "fields": [
+                "costs",
+                "coverage",
+                "disagreement",
+                "health",
+                "issues",
+                "lineage",
+                "revisions"
+              ],
+              "count": 32
+            }
+          ],
+          "navigationSupplements": 0,
+          "gzipQualification": "Standalone gzip and controlled one-section omission deltas are measured exactly and non-additive. Final candidate gzip uses complete actual wrapper-inclusive wire bodies, never proportional estimates.",
+          "schemaEnvelopeAndWrapper": {
+            "fieldCount": 9,
+            "jsonFieldValuesBytes": 131793,
+            "fieldNamesPunctuationWrapperBytes": 250,
+            "schemaAndGeneratorAndNameAndManifestAndDigestBytes": 241,
+            "qualification": "Exact decoded accounting; standalone component gzip and omission deltas do not add to whole-file gzip."
+          },
+          "propertyNames": {
+            "occurrences": 11675,
+            "unique": 286,
+            "jsonTokenBytes": 126690,
+            "standaloneTokenArrayCompression": {
+              "decodedBytes": 138366,
+              "gzip9Bytes": 9663
+            },
+            "qualification": "Existing packer already interns property names; these logical token bytes are not final gzip savings."
+          }
+        },
+        "trustedLayouts": [
+          [
+            "bindings",
+            "bundles",
+            "edges",
+            "entities",
+            "projections",
+            "routes"
+          ],
+          [
+            "as_of",
+            "available_at",
+            "bytes",
+            "input_hash",
+            "kind",
+            "licence",
+            "observed_at",
+            "reason",
+            "scope",
+            "sha256",
+            "sources",
+            "status",
+            "url"
+          ],
+          [
+            "attribution",
+            "basis",
+            "dataset_key",
+            "permitted_uses",
+            "source_urls",
+            "status",
+            "valid_through"
+          ],
+          [
+            "artifactId",
+            "availability",
+            "cutoff",
+            "id",
+            "key",
+            "label",
+            "market",
+            "namespace",
+            "type",
+            "versionChoices",
+            "view",
+            "workspace"
+          ],
+          [
+            "artifactId",
+            "availability",
+            "cutoff",
+            "id",
+            "key",
+            "label",
+            "namespace",
+            "type",
+            "versionChoices",
+            "view",
+            "workspace"
+          ],
+          [
+            "admissionId",
+            "panel",
+            "sourceId",
+            "workspace"
+          ],
+          [
+            "artifactId",
+            "cutoff",
+            "view"
+          ],
+          [
+            "panel",
+            "workspace"
+          ],
+          [
+            "panel",
+            "sourceId",
+            "workspace"
+          ],
+          [
+            "originId",
+            "panel",
+            "sourceId",
+            "workspace"
+          ],
+          [
+            "panel",
+            "sourceId",
+            "sourceVersionId",
+            "workspace"
+          ],
+          [
+            "artifactId",
+            "from",
+            "relation",
+            "selector",
+            "to"
+          ],
+          [
+            "anchor",
+            "artifacts",
+            "cutoff",
+            "kind"
+          ],
+          [
+            "costs",
+            "coverage",
+            "disagreement",
+            "health",
+            "issues",
+            "lineage",
+            "revisions"
+          ]
+        ],
+        "candidates": {
+          "A": {
+            "strategy": "A",
+            "metrics": {
+              "decoded": 104341,
+              "gzip9": 33960,
+              "sha256": "292c2c5d939e4ceff4653de167d5f666e264e8366995ce17ff8f1d738186ef64"
+            },
+            "passesHardCaps": false,
+            "headroom": {
+              "decodedBytes": 26731,
+              "decodedRatio": 0.20394134521484375,
+              "gzipBytes": -1192,
+              "gzipRatio": -0.036376953125
+            },
+            "deterministicRepeatIdentical": true,
+            "logicalRoundtrip": {
+              "deepObjectIs": true,
+              "stableTerminal": true,
+              "beforeDigest": "e8afb2f6a5f1d9cc423762e1f52682f5137bdff29bc9e574bf74bfa27d813bac",
+              "afterDigest": "e8afb2f6a5f1d9cc423762e1f52682f5137bdff29bc9e574bf74bfa27d813bac"
+            },
+            "search": {
+              "before": {
+                "decoded": 44471,
+                "gzip9": 16371,
+                "sha256": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd"
+              },
+              "after": {
+                "decoded": 44471,
+                "gzip9": 16371,
+                "sha256": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd"
+              },
+              "byteIdentical": true,
+              "entityAndOrderingEqual": true,
+              "recordCount": 537,
+              "choiceCount": 537,
+              "logicalDigest": "c0d9823051e0044fed91fb8ac82421c4875a41053027394ee7fe251297863796",
+              "payloadDigest": "706e07d167fe5f49c818db1e0820329aee04bb70ea4fd1c2be85d88b67f0a561"
+            },
+            "defaultHistory": {
+              "byteIdentical": true,
+              "metrics": {
+                "decoded": 81332,
+                "gzip9": 28091,
+                "sha256": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9"
+              },
+              "sha256": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9"
+            },
+            "otherModules": {
+              "seed": {
+                "beforeSha256": "b38c4f2fdda9d5689c8dcab7b4fac8cdd533a8c62c50800b2e525d7427db3cb6",
+                "afterSha256": "b38c4f2fdda9d5689c8dcab7b4fac8cdd533a8c62c50800b2e525d7427db3cb6",
+                "byteIdentical": true
+              },
+              "market": {
+                "beforeSha256": "feae4c05134320842f62ec65983d75e9a9736d6dee514c83f1fab82aca856869",
+                "afterSha256": "feae4c05134320842f62ec65983d75e9a9736d6dee514c83f1fab82aca856869",
+                "byteIdentical": true
+              },
+              "regimes": {
+                "beforeSha256": "64527b78e81479839c14e817b59c19ed5028ff3bdeda076cd39cd67b3477904c",
+                "afterSha256": "64527b78e81479839c14e817b59c19ed5028ff3bdeda076cd39cd67b3477904c",
+                "byteIdentical": true
+              },
+              "risk": {
+                "beforeSha256": "097a87129d5fcc120159691fb02c824edc45c1a45285a63e2d77d9b5b9660911",
+                "afterSha256": "097a87129d5fcc120159691fb02c824edc45c1a45285a63e2d77d9b5b9660911",
+                "byteIdentical": true
+              },
+              "factors": {
+                "beforeSha256": "ca461a355dd92b3ce0417ac731f2707126c3da9aa93c18879f43ebd318f82637",
+                "afterSha256": "ca461a355dd92b3ce0417ac731f2707126c3da9aa93c18879f43ebd318f82637",
+                "byteIdentical": true
+              },
+              "recordings": {
+                "beforeSha256": "2be47e06ca650ca60c7983cb47e8b6520ec5dc7b6bc6cd6a0b879d21e3550feb",
+                "afterSha256": "2be47e06ca650ca60c7983cb47e8b6520ec5dc7b6bc6cd6a0b879d21e3550feb",
+                "byteIdentical": true
+              },
+              "history": {
+                "beforeSha256": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9",
+                "afterSha256": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9",
+                "byteIdentical": true
+              },
+              "history-archive": {
+                "beforeSha256": "f7eef4b998b63c5ad0958c227db1b5627198365c12c82d3c313142b1fe9ad2e4",
+                "afterSha256": "f7eef4b998b63c5ad0958c227db1b5627198365c12c82d3c313142b1fe9ad2e4",
+                "byteIdentical": true
+              },
+              "observatory-window": {
+                "beforeSha256": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+                "afterSha256": "1756de0a495cd78971f03fcf0e2b0948cedbaa15bc5cb55399303522154b5c02",
+                "byteIdentical": true
+              },
+              "search": {
+                "beforeSha256": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd",
+                "afterSha256": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd",
+                "byteIdentical": true
+              }
+            },
+            "prototypePerformance": {
+              "environment": {
+                "node": "v24.14.1",
+                "platform": "win32",
+                "measure": "Controlled local Node; not browser acceptance",
+                "warmups": 8
+              },
+              "decode": {
+                "medianMs": 4.989000000000033,
+                "p95Ms": 5.876500000000078,
+                "minMs": 4.6030000000000655,
+                "maxMs": 6.194899999999961,
+                "samples": 60
+              },
+              "completeValidation": {
+                "medianMs": 15.223100000000159,
+                "p95Ms": 16.727300000000014,
+                "minMs": 14.394800000000032,
+                "maxMs": 23.15039999999999,
+                "samples": 60
+              }
+            },
+            "tables": {
+              "strings": 542,
+              "texts": 1481,
+              "structures": 1412,
+              "layouts": 0
+            },
+            "readerSemanticValidation": "Verbatim unchanged logical validation body appended as a process-local export; checked candidate wire+digest decoded before full logical checks; no source file changed",
+            "equalityOracleQualification": "Deep equality uses independent normalized baseline after decoding; self-digest is not independent authority against valid rehashed semantic changes.",
+            "helperSourceComplexity": {
+              "trustedLayoutDefinitions": 14,
+              "additionalRowTags": 2,
+              "rawHelperSource": {
+                "decodedBytes": 3075,
+                "gzip9Bytes": 1309
+              },
+              "qualification": "Ignored unminified prototype helper source, not emitted JS. Added shared catalog JS must count under unchanged interaction cap; no emitted size/ownership claim."
+            }
+          },
+          "B": {
+            "strategy": "B",
+            "status": "REJECTED_AT_EXISTING_LAYOUT_BOUND",
+            "passesHardCaps": false,
+            "error": "Archive layout key bound exceeded.",
+            "reason": "Data binding-map object has224 own keys; unchanged layout decoder/packer bound is128 keys. No cap or bound increase, map-row redesign or third candidate attempted.",
+            "metrics": null,
+            "headroom": null,
+            "roundtrip": "NOT_REACHED",
+            "search": {
+              "status": "NOT_REACHED_NO_CANDIDATE_OUTPUT",
+              "baseline": {
+                "decoded": 44471,
+                "gzip9": 16371,
+                "sha256": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd"
+              },
+              "productionSearchChanged": false
+            },
+            "defaultHistory": {
+              "productionChanged": false
+            },
+            "firstAttemptRetained": true
+          }
+        },
+        "ieeeScalarProbe": {
+          "values": [
+            "-0",
+            "0",
+            "5e-324",
+            "1.7976931348623157e+308",
+            "2.220446049250313e-16",
+            "-1.25",
+            "0.1"
+          ],
+          "exactRoundtrip": true,
+          "semanticFixtureQualification": "Codec-only legal finite scalar preservation; does not claim fractional byte counts are valid Data bindings."
+        },
+        "proposedScope": [
+          "frontend-v2/scripts/generate-terminal-index.mjs",
+          "frontend-v2/src/app/terminal/catalog.ts",
+          "frontend-v2/scripts/verify-terminal-context.mjs",
+          "frontend-v2/scripts/verify-terminal-browser.mjs",
+          "docs/phase7-5-connected-quant-terminal.md",
+          "docs/qa/phase7-5-connected-quant-terminal-proof.json"
+        ],
+        "newTrackedFiles": 0,
+        "deletedFiles": 0,
+        "productionOrGeneratedEdits": 0,
+        "implementationApproval": false,
+        "decoderContract": {
+          "wire": "Strict closed data-only version/codec/name/manifest envelope; raw wire and whole source wrapper measured under unchanged caps. Existing exact fragment/structure expansion then fixed trusted rows; complete logical payload then unchanged existing semantics.",
+          "bounds": {
+            "fragments": 20000,
+            "texts": 20000,
+            "structures": 20000,
+            "fragmentChars": 8193,
+            "textParts": 32,
+            "decodedTextChars": 8192,
+            "expandedVisits": 200000,
+            "depth": 64,
+            "dataBindingsPrototypeMaximum": 512,
+            "layoutDefinitions": 14,
+            "fixedLayoutArityMaximum": 13,
+            "entities": 512,
+            "edges": 8192
+          },
+          "sourceAuthority": "371 complete original checks precede generation. Independent Object.is normalized baseline is the prototype oracle; a self-digest cannot authenticate validly rehashed replacement values.",
+          "canonicality": "Dense fixed arity, canonical safe unsigned tags and sorted duplicate-free maps. Implementation must additionally prove exact normalized record/edge/choice/order and source identities; prototype equality proves this vector, not universal rejection of valid alternate values.",
+          "complexity": "Linear bounded tree reconstruction; deterministic producer map sorting. No new quadratic reconstruction. Existing semantic validation remains unchanged.",
+          "noInference": true,
+          "noDefaults": true,
+          "noRightsOrClaimChanges": true
+        },
+        "risks": [
+          "Neither declared Data candidate passes both caps; do not recommend implementation.",
+          "A gzip33960 exceeds32768 by1192 despite20.39% decoded headroom.",
+          "B hits unchanged128-key layout guard at224-binding object; no bound increase or new map-row transform was evaluated.",
+          "A adds a data-only version and14 trusted layouts to shared catalog code. Current emitted interaction impact is unproven until normal generation is admissible.",
+          "Wrong-but-valid rehashed field/table swaps may pass grammar and existing semantic checks; source/equality oracle is required and must not be called a decoder-only rejection."
+        ],
+        "stopConditions": [
+          "Both predeclared Data strategies fail: STOP, no additional strategy or new shard without review.",
+          "Reject any search source byte/digest/order/entity/choice change.",
+          "No default-history, cap, protected source, Risk or initial-JS change."
+        ]
+      },
+      "supplementalDecomposition": {
+        "artifactBindingEnvelopes": {
+          "occurrences": 224,
+          "unique": 224,
+          "arrayLogicalBytes": 371455,
+          "standaloneArrayGzip9": 24367,
+          "uniqueArrayLogicalBytes": 371455,
+          "uniqueArrayStandaloneGzip9": 24367
+        },
+        "sourceMetadata": {
+          "occurrences": 224,
+          "unique": 1,
+          "arrayLogicalBytes": 18817,
+          "standaloneArrayGzip9": 176,
+          "uniqueArrayLogicalBytes": 85,
+          "uniqueArrayStandaloneGzip9": 88
+        },
+        "licenceMetadata": {
+          "occurrences": 224,
+          "unique": 1,
+          "arrayLogicalBytes": 233409,
+          "standaloneArrayGzip9": 2008,
+          "uniqueArrayLogicalBytes": 1043,
+          "uniqueArrayStandaloneGzip9": 657
+        },
+        "versionChoices": {
+          "occurrences": 334,
+          "unique": 326,
+          "arrayLogicalBytes": 72434,
+          "standaloneArrayGzip9": 13498,
+          "uniqueArrayLogicalBytes": 70690,
+          "uniqueArrayStandaloneGzip9": 13477
+        },
+        "views": {
+          "occurrences": 668,
+          "unique": 109,
+          "arrayLogicalBytes": 46543,
+          "standaloneArrayGzip9": 3990,
+          "uniqueArrayLogicalBytes": 14117,
+          "uniqueArrayStandaloneGzip9": 3665
+        },
+        "workspace": {
+          "occurrences": 1002,
+          "unique": 1,
+          "arrayLogicalBytes": 7015,
+          "standaloneArrayGzip9": 58,
+          "uniqueArrayLogicalBytes": 8,
+          "uniqueArrayStandaloneGzip9": 28
+        },
+        "market": {
+          "occurrences": 110,
+          "unique": 2,
+          "arrayLogicalBytes": 695,
+          "standaloneArrayGzip9": 83,
+          "uniqueArrayLogicalBytes": 14,
+          "uniqueArrayStandaloneGzip9": 34
+        },
+        "country": {
+          "occurrences": 0,
+          "unique": 0,
+          "arrayLogicalBytes": 2,
+          "standaloneArrayGzip9": 22,
+          "uniqueArrayLogicalBytes": 2,
+          "uniqueArrayStandaloneGzip9": 22
+        },
+        "propertyNames": {
+          "occurrences": 11675,
+          "unique": 286,
+          "arrayLogicalBytes": 138366,
+          "standaloneArrayGzip9": 9866,
+          "uniqueArrayLogicalBytes": 20092,
+          "uniqueArrayStandaloneGzip9": 8793
+        }
+      }
+    },
+    "historyArchive": {
+      "declaration": {
+        "schema_version": "phase75-history-candidate-declaration/1",
+        "sourceCommit": "a31c4061cf6e149b5726e9c9b0acd6f3fb620b51",
+        "measurementStatus": "DECLARED_BEFORE_FINAL_CANDIDATE_MEASUREMENT",
+        "strategies": [
+          {
+            "id": "A",
+            "name": "Canonical semantic top-level wire order, existing schema2 packing",
+            "algorithm": [
+              "Entities sort lexicographically by tuple(type,workspace,namespace,artifactId first-two-colon-segments,key).",
+              "Edges sort by tuple(relation,artifactId first-two-colon-segments,from,to,stableTerminal(edge)).",
+              "Bindings/routes remain exact objects; existing packer continues sorted property names. Nested versionChoices remain in their exact existing order.",
+              "Pack via unchanged packTerminalPayload(wirePayload,true), existing schema2 sealed wrapper and existing field order.",
+              "Unpack using existing decoder then normalize bindings/routes/entities/edges/projections/bundles back to existing normalized semantic order. Require recursive Object.is, stable equality, logical digest and full history union identity."
+            ],
+            "measurement": "One exact candidate, twice deterministic encoding, wrapper-inclusive decoded bytes and gzip9; no permutation search."
+          },
+          {
+            "id": "B",
+            "conditional": "Evaluate only if A fails hard caps or cannot obtain preferred robust headroom.",
+            "name": "Transpose existing layout-record groups into bounded value columns",
+            "algorithm": [
+              "Start from baseline normalized semantic archive and existing packTerminalPayload(payload,true), without candidate A reorder coupling.",
+              "Keep strings, texts, layouts and root reference exactly; preserve every numeric/scalar/reference tag.",
+              "Current existing pool puts array structures first and layout records in contiguous layout groups. Store the exact array structures in arrays; record total structures count.",
+              "Store each contiguous layout group as [layoutIndex, rowCount, column0, column1,...]; each column has exactly rowCount values, in original structure row order. Column groups preserve canonical layout-index order.",
+              "Strict decoder checks exact fields/tags/index/arity/counts and expands the columns to exact original schema2 structures before unchanged unpack/normalization. No value inference, source substitution or unreviewed shard.",
+              "Seal wrapper with schema_version terminal-shard/3 and encoding layout-columns/1; actual wrapper bytes count in measurement. Prototype will reject if existing baseline contiguous-group invariant does not hold."
+            ],
+            "measurement": "One exact columnar candidate, twice deterministic encoding; no alternative group order or code tuning."
+          }
+        ],
+        "decompositionOnly": [
+          "Independent logical sections gzip and controlled delete-one-section deltas are explanatory, nonadditive and not accepted module estimates.",
+          "Baseline packed-table sizes, field/layout frequencies, ID/hash/clock fragment counts, semantic group switches and repeated-identity span are measured without candidate variation."
+        ],
+        "unchanged": [
+          "search complete output bytes and SHA",
+          "passing default history complete bytes and SHA",
+          "all retained evidence",
+          "module membership",
+          "caps",
+          "Risk",
+          "initial JS"
+        ],
+        "noRuntimeChanges": true
+      },
+      "prototype": {
+        "schema_version": "phase75-history-capacity-plan-prototype/1",
+        "status": "PLAN_ONLY_NO_RUNTIME_WRITES",
+        "sourceCommit": "a31c4061cf6e149b5726e9c9b0acd6f3fb620b51",
+        "declarationSha256": "d992f7d96943ea8bd638aa3c2c1502a2d8135a0707dd552338da0bd9b274636f",
+        "captureSha256": "47aee2be33b0e33c929e8abe401f0dd5d991731b70c36262ee32658fa9d4248e",
+        "manifest": {
+          "sha256": "1b048e55e362c3ca696e13aefce0d5964156df4997d0eac8215f3a132f060811",
+          "bytes": 562019,
+          "asOf": "2026-11-06T08:02:28.469466Z"
+        },
+        "sourceChecks": 371,
+        "decomposition": {
+          "baseline": {
+            "decodedBytes": 117017,
+            "gzip9Bytes": 37318,
+            "sha256": "f7eef4b998b63c5ad0958c227db1b5627198365c12c82d3c313142b1fe9ad2e4",
+            "decodedReserve": 14055,
+            "gzipReserve": -4550,
+            "decodedHeadroomRatio": 0.10723114013671875,
+            "gzipHeadroomRatio": -0.13885498046875,
+            "hardCapsPass": false,
+            "preferredHeadroom": false
+          },
+          "logicalSections": [
+            {
+              "section": "bindings",
+              "count": 35,
+              "logicalDecodedBytes": 57990,
+              "standaloneGzip9": 5699,
+              "invalidOmissionDecodedDelta": 10173,
+              "invalidOmissionGzipDelta": 4644,
+              "qualification": "Controlled delete-one-section ablation; invalid semantic payload, nonadditive explanatory delta, not candidate/acceptance."
+            },
+            {
+              "section": "routes",
+              "count": 0,
+              "logicalDecodedBytes": 2,
+              "standaloneGzip9": 22,
+              "invalidOmissionDecodedDelta": 36,
+              "invalidOmissionGzipDelta": 18,
+              "qualification": "Controlled delete-one-section ablation; invalid semantic payload, nonadditive explanatory delta, not candidate/acceptance."
+            },
+            {
+              "section": "entities",
+              "count": 383,
+              "logicalDecodedBytes": 447909,
+              "standaloneGzip9": 32075,
+              "invalidOmissionDecodedDelta": 57166,
+              "invalidOmissionGzipDelta": 11858,
+              "qualification": "Controlled delete-one-section ablation; invalid semantic payload, nonadditive explanatory delta, not candidate/acceptance."
+            },
+            {
+              "section": "edges",
+              "count": 624,
+              "logicalDecodedBytes": 231505,
+              "standaloneGzip9": 20620,
+              "invalidOmissionDecodedDelta": 24458,
+              "invalidOmissionGzipDelta": 4489,
+              "qualification": "Controlled delete-one-section ablation; invalid semantic payload, nonadditive explanatory delta, not candidate/acceptance."
+            },
+            {
+              "section": "projections",
+              "count": 0,
+              "logicalDecodedBytes": 2,
+              "standaloneGzip9": 22,
+              "invalidOmissionDecodedDelta": 30,
+              "invalidOmissionGzipDelta": 14,
+              "qualification": "Controlled delete-one-section ablation; invalid semantic payload, nonadditive explanatory delta, not candidate/acceptance."
+            },
+            {
+              "section": "bundles",
+              "count": 0,
+              "logicalDecodedBytes": 2,
+              "standaloneGzip9": 22,
+              "invalidOmissionDecodedDelta": 25,
+              "invalidOmissionGzipDelta": 11,
+              "qualification": "Controlled delete-one-section ablation; invalid semantic payload, nonadditive explanatory delta, not candidate/acceptance."
+            }
+          ],
+          "packedTables": [
+            {
+              "section": "schema_version",
+              "count": 1,
+              "decodedJSONBytes": 18,
+              "standaloneGzip9": 38,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "generator_contract",
+              "count": 1,
+              "decodedJSONBytes": 22,
+              "standaloneGzip9": 42,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "name",
+              "count": 1,
+              "decodedJSONBytes": 17,
+              "standaloneGzip9": 37,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "manifestBinding",
+              "count": 3,
+              "decodedJSONBytes": 129,
+              "standaloneGzip9": 123,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "strings",
+              "count": 616,
+              "decodedJSONBytes": 26362,
+              "standaloneGzip9": 17698,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "texts",
+              "count": 1049,
+              "decodedJSONBytes": 9479,
+              "standaloneGzip9": 2500,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "structures",
+              "count": 2171,
+              "decodedJSONBytes": 80178,
+              "standaloneGzip9": 15301,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "payload",
+              "count": 1,
+              "decodedJSONBytes": 5,
+              "standaloneGzip9": 25,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "layouts",
+              "count": 15,
+              "decodedJSONBytes": 480,
+              "standaloneGzip9": 211,
+              "qualification": "Standalone gzip not additive contribution."
+            },
+            {
+              "section": "payloadDigest",
+              "count": 1,
+              "decodedJSONBytes": 66,
+              "standaloneGzip9": 73,
+              "qualification": "Standalone gzip not additive contribution."
+            }
+          ],
+          "semanticShape": {
+            "records": 383,
+            "edges": 624,
+            "bindings": 35,
+            "bundles": 0,
+            "routes": 0,
+            "versionChoices": 815
+          },
+          "layouts": [
+            {
+              "index": 0,
+              "fields": [
+                "attribution",
+                "basis",
+                "dataset_key",
+                "permitted_uses",
+                "source_urls",
+                "status",
+                "valid_through"
+              ],
+              "recordCount": 1
+            },
+            {
+              "index": 1,
+              "fields": [
+                "as_of",
+                "available_at",
+                "bytes",
+                "input_hash",
+                "kind",
+                "licence",
+                "observed_at",
+                "reason",
+                "scope",
+                "sha256",
+                "sources",
+                "status",
+                "url"
+              ],
+              "recordCount": 35
+            },
+            {
+              "index": 2,
+              "fields": [
+                "attribution",
+                "dataset_key",
+                "permitted_uses",
+                "source_urls",
+                "status",
+                "valid_through"
+              ],
+              "recordCount": 1
+            },
+            {
+              "index": 3,
+              "fields": [
+                "attribution",
+                "basis",
+                "dataset_key",
+                "permitted_uses",
+                "source_urls",
+                "status",
+                "terms_url",
+                "valid_through"
+              ],
+              "recordCount": 2
+            },
+            {
+              "index": 4,
+              "fields": [
+                "data-organ:lineage:066aef1a3d993b88fe06d2bcf9d62af41671ba6dfa5c92448e5665a9647c28f1",
+                "data-organ:lineage:23cd7f2b69b21a2453f3336741baba90279d5c6a069668dbc7ac8d519f13c3cc",
+                "data-organ:lineage:2a903c4a6a3d4d93785fd79673063eef1ad11c578b3f52433792ddebae67a0ce",
+                "data-organ:lineage:2ea80f1fbbf9ab9622bd79c78ec35213c5bbd371689f579181b95220a83d15b3",
+                "data-organ:lineage:2ffb10761cb3aaaea4de9088964b32bee6213448d5f23c8efa154b5701d1442e",
+                "data-organ:lineage:33c13522fe4db7497929f7530959c443cc5aca90ef3688d6b2f78d1114208748",
+                "data-organ:lineage:410e4f09d07fabacff2bd6b7cd56c6bade713d5b660187f3377a81c5a3eea3bd",
+                "data-organ:lineage:4267789ec046f3361448fbb2b526131d95dcdd648dacbdf3f911e72d781fb423",
+                "data-organ:lineage:4580b33c159ff305f4eed35c60eb0c0944582f2c336909262dd4e467551e6874",
+                "data-organ:lineage:45a4b8be6b4bc8a6afbe139782b0573d9e1495fc12380f704df91f71df586942",
+                "data-organ:lineage:58baa65b7a960579d798b1770c23c75503910e7d7d2bd7c3c8519d970158fea2",
+                "data-organ:lineage:5f846de30137634ca5e6d0242f31047b46e750dc9df11486a9306c8b5bb9b3ac",
+                "data-organ:lineage:6c63c1721191d2e395e2c8443cf958a500c280e1154e082bbe39f497d0fb6bb1",
+                "data-organ:lineage:75ee163824ea2ba8f36f330f1ca11d9280d71e050d947e71f9f944d81d992da3",
+                "data-organ:lineage:76d2336f5dfbaa43895545413bdf1d23d7311b9b270a2abe9ed8b7351fff2564",
+                "data-organ:lineage:7da84871d69967e66778b651a9c906c2d4e0b2b479e56d60fd0aad9fbdafe860",
+                "data-organ:lineage:85410e4f4f3086275b28998d6494108260e3b01c6a63653f0358c7faa718780f",
+                "data-organ:lineage:89635f83a3490e2371fc6be9a4b7183404f320e811c0726ed97c0190468647eb",
+                "data-organ:lineage:8c77f3fd31e2a8da04f0bb29b028a5195cf35948b3d8ee7a01e2ba8aec9c8bfa",
+                "data-organ:lineage:a1744c97bfb263d2dc0cdecaeff95fc6ac75bbd84d062ec0a092c56d719e0fda",
+                "data-organ:lineage:a298b7f1a3586b7656811c53e3f96b7a1d6be7e1647ba0cf7f20e357c1bb6d07",
+                "data-organ:lineage:a8867b289a50975023e689478a56d447611b20f828f5125fb21de28091ec1f8d",
+                "data-organ:lineage:acf06f3305567660559118060fe75f68d0bc52d4c58f66031d1e241f7c7dd357",
+                "data-organ:lineage:ae3fd6c6208d63e47e100c27b45f0f46001b9a24b038c6c9f8fa0bf0d019c47b",
+                "data-organ:lineage:b224b3fe425a2ddf5772f5f4bed353db5c030939b83521a3d4598ed5c04d502f",
+                "data-organ:lineage:b58cadfc5d6b3d43489ec41037e3995631c58141dfd710c41df29430b12cd2e9",
+                "data-organ:lineage:be85654f3d94eabc6bcdd95e0cf3f5b516ffa3dd1eb3bbd9a82ff33be98a3b37",
+                "data-organ:lineage:c2e9844742385c32af0c140c59f5acf6f24b30293e54f27e849c17dd6f3d8dbd",
+                "data-organ:lineage:d0d5cc0148baf044c5c20fcc76e5e6e1b28938247654464135f4d4c5ab9f5409",
+                "data-organ:lineage:e1f3c6690128b0d969d9fec3113967a29ef7ab2f6e229ff35e94faddae684e83",
+                "data-organ:lineage:ea7b6b93736a091f249558db5c74623328e6850bd3bab8373f3a0bbd2c73327c",
+                "plugins:run:9175eee3c157ecd4054e69e6b027d17ce1a1b7ba45463fd425ce4c63ad0ab5c9",
+                "plugins:run:d98ddd2d140e8f036a9dfec2655f90ad74fa5ce24c4b9f881343e87bedb67e5c",
+                "regime:IN-MKT",
+                "regime:US-MKT"
+              ],
+              "recordCount": 1
+            },
+            {
+              "index": 5,
+              "fields": [
+                "artifactId",
+                "from",
+                "relation",
+                "selector",
+                "to"
+              ],
+              "recordCount": 624
+            },
+            {
+              "index": 6,
+              "fields": [
+                "admissionId",
+                "panel",
+                "sourceId",
+                "workspace"
+              ],
+              "recordCount": 116
+            },
+            {
+              "index": 7,
+              "fields": [
+                "artifactId",
+                "cutoff",
+                "view"
+              ],
+              "recordCount": 544
+            },
+            {
+              "index": 8,
+              "fields": [
+                "artifactId",
+                "availability",
+                "cutoff",
+                "id",
+                "key",
+                "label",
+                "market",
+                "namespace",
+                "type",
+                "versionChoices",
+                "view",
+                "workspace"
+              ],
+              "recordCount": 379
+            },
+            {
+              "index": 9,
+              "fields": [
+                "panel",
+                "workspace"
+              ],
+              "recordCount": 1
+            },
+            {
+              "index": 10,
+              "fields": [
+                "artifactId",
+                "availability",
+                "cutoff",
+                "id",
+                "key",
+                "label",
+                "namespace",
+                "type",
+                "versionChoices",
+                "view",
+                "workspace"
+              ],
+              "recordCount": 4
+            },
+            {
+              "index": 11,
+              "fields": [
+                "panel",
+                "sourceId",
+                "workspace"
+              ],
+              "recordCount": 4
+            },
+            {
+              "index": 12,
+              "fields": [
+                "panel",
+                "sourceId",
+                "sourceVersionId",
+                "workspace"
+              ],
+              "recordCount": 116
+            },
+            {
+              "index": 13,
+              "fields": [],
+              "recordCount": 1
+            },
+            {
+              "index": 14,
+              "fields": [
+                "bindings",
+                "bundles",
+                "edges",
+                "entities",
+                "projections",
+                "routes"
+              ],
+              "recordCount": 1
+            }
+          ],
+          "distributions": {
+            "entityTypes": {
+              "admission": 116,
+              "artifact": 4,
+              "capture": 31,
+              "signal": 116,
+              "source-version": 116
+            },
+            "entityNamespaces": {
+              "data-organ": 379,
+              "factor-regime": 2,
+              "plugin-run": 2
+            },
+            "workspaces": {
+              "data": 379,
+              "regimes": 4
+            },
+            "edgeRelations": {
+              "DECLARED_ADMISSION": 208,
+              "DECLARED_CAPTURE": 208,
+              "DECLARED_SOURCE_VERSION": 208
+            },
+            "bindingKinds": {
+              "data-organ-lineage": 31,
+              "factor-regime": 2,
+              "plugin-run": 2
+            }
+          },
+          "fragments": {
+            "all": 616,
+            "hashFragments": 450,
+            "encodedHashFragmentChars": 20250,
+            "hashFragmentTableStandaloneGzip": 15339,
+            "clockFragments": 35,
+            "stringsTableStandaloneGzip": 17698
+          },
+          "ordering": {
+            "baseline": {
+              "entityGroupSwitches": 6,
+              "edgeGroupSwitches": 623
+            },
+            "fieldOrdering": "Existing encoder sorts object fields alphabetically, interns exact complete structures, factors hash/clock text fragments, frequency-ranks text entries then groups structure records by layout. Candidate A changes only entity/edge traversal; versionChoices, bindings and properties stay exact.",
+            "recordOrder": "Existing normalized entity.key order; edges stableTerminal JSON order (alphabetic object keys starts artifactId).",
+            "arrayRecords": 341,
+            "layoutRecordCount": 1830
+          },
+          "baselineExistingCompleteValidation": {
+            "samples": 40,
+            "medianMs": 120.2323000000033,
+            "p95Ms": 128.9438999999984,
+            "maxMs": 135.2774999999965,
+            "qualification": "Unchanged existing validator on exact restored baseline schema2; prototype total adds compact decode; not browser or proposed production acceptance."
+          },
+          "repeatedIdDistance": {
+            "qualification": "Logical DFS token positions with sorted object keys; explanatory spans, not gzip attribution or candidate optimization.",
+            "totalTokens": 28719,
+            "uniqueIdLikeStrings": 90,
+            "repeatedIdLikeStrings": 83,
+            "fullRepeatSpanTokens": {
+              "samples": 83,
+              "median": 27246,
+              "p95": 28042,
+              "max": 28256
+            },
+            "adjacentRepeatDistanceTokens": {
+              "samples": 3599,
+              "median": 59,
+              "p95": 1958,
+              "max": 12642
+            }
+          },
+          "versionChoices": {
+            "logicalChoices": 815,
+            "uniqueExactChoiceObjects": 544,
+            "logicalDecodedBytes": 212029,
+            "standaloneGzip9": 14002,
+            "entityChoiceArrays": 383,
+            "order": "Nested order preserved exactly for A/B. No version choice sorting, deletion, inference or migration.",
+            "clockStrings": 31
+          },
+          "analysis": [
+            "The archive is already substantially layout-compressed: 737,480 logical JSON bytes become117,017 generated bytes, but450 hash fragments retain substantial entropy. Their exact encoded table alone is20,250 fragment characters /15,339 gzip bytes, not an additive component estimate.",
+            "The80178-byte structure table contains2171 exact structures (341 arrays/1830 layout records); its standalone gzip is15301. Repeated property text is already factored into15 layouts/119 key references. Simple removal of repeated field names is therefore exhausted.",
+            "Baseline entity traversal has6 semantic-group switches; relation grouping reduces edge-group switches from623 to2 but candidate A gzip worsens by89. Artifact-first original traversal clusters identities within three relations; fewer relation switches does not guarantee better cross-reference compression.",
+            "Column transposition preserves every scalar and exact structure index. It reduces decoded module bytes by10702 and gzip by2982, but residual34336 still exceeds cap by1568. No third order/encoding combination is evaluated.",
+            "Bindings, entity choices and edges have shared IDs/clocks across sections. Delete-one-section deltas are nonadditive; their exact measurements are explanatory only and are not omission proposals."
+          ]
+        },
+        "candidates": {
+          "A": {
+            "strategy": "A",
+            "decodedBytes": 117017,
+            "gzip9Bytes": 37407,
+            "sha256": "19be29b3600bcc526242e81d924adadfd694a1b1c76fcbc068edadaeacfefb69",
+            "decodedReserve": 14055,
+            "gzipReserve": -4639,
+            "decodedHeadroomRatio": 0.10723114013671875,
+            "gzipHeadroomRatio": -0.141571044921875,
+            "hardCapsPass": false,
+            "preferredHeadroom": false,
+            "deterministicTwice": true,
+            "objectIsDeepEqual": true,
+            "stableEqual": true,
+            "logicalDigestBefore": "1cfa87eda975449dfce4a076b8e92cc04ebfd512ccaedcf3c17c1a1f0cb3c570",
+            "logicalDigestAfter": "1cfa87eda975449dfce4a076b8e92cc04ebfd512ccaedcf3c17c1a1f0cb3c570",
+            "historyUnionDigest": "9455a28b5c93ec4bfc0a64493e932d77564eec7e582a1ecb3e6d7d4da6dc0e20",
+            "historyUnionExact": true,
+            "ordering": {
+              "entityGroupSwitches": 6,
+              "edgeGroupSwitches": 2
+            },
+            "independence": {
+              "search": {
+                "decodedBytes": 44471,
+                "gzip9Bytes": 16371,
+                "sha256": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd",
+                "decodedReserve": 86601,
+                "gzipReserve": 13,
+                "decodedHeadroomRatio": 0.6607131958007812,
+                "gzipHeadroomRatio": 0.00079345703125,
+                "hardCapsPass": true,
+                "preferredHeadroom": false,
+                "recordCount": 537,
+                "choiceCount": 537,
+                "logicalDigest": "c0d9823051e0044fed91fb8ac82421c4875a41053027394ee7fe251297863796",
+                "payloadDigest": "706e07d167fe5f49c818db1e0820329aee04bb70ea4fd1c2be85d88b67f0a561",
+                "byteIdentical": true,
+                "gzipLimit": 16384
+              },
+              "defaultHistory": {
+                "decodedBytes": 81332,
+                "gzip9Bytes": 28091,
+                "sha256": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9",
+                "decodedReserve": 49740,
+                "gzipReserve": 4677,
+                "decodedHeadroomRatio": 0.379486083984375,
+                "gzipHeadroomRatio": 0.142730712890625,
+                "hardCapsPass": true,
+                "preferredHeadroom": true,
+                "byteIdentical": true
+              },
+              "retainedSupplement": {
+                "recordCount": 600,
+                "logicalDigest": "bfc5e991a7016b1ffc80fb5a53517fca1748c384d09df9a25f0e7f31abe9e505",
+                "payloadDigest": "4c2ce6873aeb30efc9bf26d2834acf71667227a013eb0ae3e222bc193c63e80f"
+              }
+            },
+            "decodePerformance": {
+              "samples": 80,
+              "medianMs": 109.65869999999995,
+              "p95Ms": 115.10969999999725,
+              "maxMs": 119.32810000000245
+            }
+          },
+          "B": {
+            "strategy": "B",
+            "conditionalReason": "A fails hard caps",
+            "decodedBytes": 106315,
+            "gzip9Bytes": 34336,
+            "sha256": "09f311bbec7f3939ce50221c355ece3981f76540cd9d5d9eef10bf10f4a86977",
+            "decodedReserve": 24757,
+            "gzipReserve": -1568,
+            "decodedHeadroomRatio": 0.18888092041015625,
+            "gzipHeadroomRatio": -0.0478515625,
+            "hardCapsPass": false,
+            "preferredHeadroom": false,
+            "deterministicTwice": true,
+            "objectIsDeepEqual": true,
+            "stableEqual": true,
+            "originalPackedTablesExactlyRestored": true,
+            "logicalDigestBefore": "1cfa87eda975449dfce4a076b8e92cc04ebfd512ccaedcf3c17c1a1f0cb3c570",
+            "logicalDigestAfter": "1cfa87eda975449dfce4a076b8e92cc04ebfd512ccaedcf3c17c1a1f0cb3c570",
+            "historyUnionDigest": "9455a28b5c93ec4bfc0a64493e932d77564eec7e582a1ecb3e6d7d4da6dc0e20",
+            "historyUnionExact": true,
+            "columns": [
+              {
+                "layout": 0,
+                "rows": 1,
+                "fields": 7
+              },
+              {
+                "layout": 1,
+                "rows": 35,
+                "fields": 13
+              },
+              {
+                "layout": 2,
+                "rows": 1,
+                "fields": 6
+              },
+              {
+                "layout": 3,
+                "rows": 2,
+                "fields": 8
+              },
+              {
+                "layout": 4,
+                "rows": 1,
+                "fields": 35
+              },
+              {
+                "layout": 5,
+                "rows": 624,
+                "fields": 5
+              },
+              {
+                "layout": 6,
+                "rows": 116,
+                "fields": 4
+              },
+              {
+                "layout": 7,
+                "rows": 544,
+                "fields": 3
+              },
+              {
+                "layout": 8,
+                "rows": 379,
+                "fields": 12
+              },
+              {
+                "layout": 9,
+                "rows": 1,
+                "fields": 2
+              },
+              {
+                "layout": 10,
+                "rows": 4,
+                "fields": 11
+              },
+              {
+                "layout": 11,
+                "rows": 4,
+                "fields": 3
+              },
+              {
+                "layout": 12,
+                "rows": 116,
+                "fields": 4
+              },
+              {
+                "layout": 13,
+                "rows": 1,
+                "fields": 0
+              },
+              {
+                "layout": 14,
+                "rows": 1,
+                "fields": 6
+              }
+            ],
+            "independence": {
+              "search": {
+                "decodedBytes": 44471,
+                "gzip9Bytes": 16371,
+                "sha256": "59e07a90eac2b369d7b2e19627105a3ac3702740a47e8d55960026270cab25bd",
+                "decodedReserve": 86601,
+                "gzipReserve": 13,
+                "decodedHeadroomRatio": 0.6607131958007812,
+                "gzipHeadroomRatio": 0.00079345703125,
+                "hardCapsPass": true,
+                "preferredHeadroom": false,
+                "recordCount": 537,
+                "choiceCount": 537,
+                "logicalDigest": "c0d9823051e0044fed91fb8ac82421c4875a41053027394ee7fe251297863796",
+                "payloadDigest": "706e07d167fe5f49c818db1e0820329aee04bb70ea4fd1c2be85d88b67f0a561",
+                "byteIdentical": true,
+                "gzipLimit": 16384
+              },
+              "defaultHistory": {
+                "decodedBytes": 81332,
+                "gzip9Bytes": 28091,
+                "sha256": "41875401d398590a0b84dc47b55490d3271aafa7e10942cc745d831550d908a9",
+                "decodedReserve": 49740,
+                "gzipReserve": 4677,
+                "decodedHeadroomRatio": 0.379486083984375,
+                "gzipHeadroomRatio": 0.142730712890625,
+                "hardCapsPass": true,
+                "preferredHeadroom": true,
+                "byteIdentical": true
+              },
+              "retainedSupplement": {
+                "recordCount": 600,
+                "logicalDigest": "bfc5e991a7016b1ffc80fb5a53517fca1748c384d09df9a25f0e7f31abe9e505",
+                "payloadDigest": "4c2ce6873aeb30efc9bf26d2834acf71667227a013eb0ae3e222bc193c63e80f"
+              }
+            },
+            "decodePerformance": {
+              "samples": 80,
+              "medianMs": 37.944900000002235,
+              "p95Ms": 43.6252999999997,
+              "maxMs": 44.43189999999595
+            },
+            "prototypeGrammarSabotage": [
+              {
+                "test": "missing column slot",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "extra column slot",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "negative layout index",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "out-of-range layout index",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "noncanonical group order",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "wrong row count",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "truncated column",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "unknown field",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "unknown version",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "signed zero index",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "wrong total count",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "missing layout",
+                "rehashed": true,
+                "rejected": true
+              },
+              {
+                "test": "unknown encoding",
+                "rehashed": true,
+                "rejected": true
+              }
+            ]
+          }
+        },
+        "recommended": null,
+        "noNewShard": true,
+        "noDefaultMembershipChange": true,
+        "noSearchChanges": true,
+        "noSourceEdits": true,
+        "allOriginalCapturedModulesUnchanged": true,
+        "scopeProposal": [
+          "frontend-v2/scripts/generate-terminal-index.mjs",
+          "frontend-v2/src/app/terminal/catalog.ts",
+          "frontend-v2/scripts/verify-terminal-context.mjs",
+          "frontend-v2/scripts/verify-terminal-browser.mjs",
+          "docs/phase7-5-connected-quant-terminal.md",
+          "docs/qa/phase7-5-connected-quant-terminal-proof.json"
+        ],
+        "performanceQualification": "Node24 engineering prototype, warm process, full wrapper JSON parse+seal+decode+normalization included. Existing logical validator baseline measured separately; no browser or size acceptance implied.",
+        "preparationNegativeEvidence": [
+          {
+            "stage": "Prototype module import",
+            "result": "Initial relative import climbed two directories too far; Node rejected before module loading or candidate measurement. Fixed only ignored script import paths."
+          },
+          {
+            "stage": "Report metric metadata",
+            "result": "Search summary initially inherited generic32KiB helper limit; corrected report metadata to unchanged16KiB source limit (13-byte reserve). Candidate/search bytes and strategies unchanged."
+          }
+        ],
+        "decoderPlan": {
+          "A": {
+            "status": "REJECTED_CAPACITY",
+            "contract": "Existing schema2 transport plus explicit post-unpack normalization of top-level arrays before semantic use; preserve nested choice order; do not silently deduplicate malicious duplicates."
+          },
+          "B": {
+            "status": "REJECTED_CAPACITY",
+            "format": "terminal-shard/3; encoding layout-columns/1; archive-only name",
+            "wireFields": [
+              "schema_version",
+              "generator_contract",
+              "name",
+              "manifestBinding",
+              "encoding",
+              "strings",
+              "texts",
+              "arrays",
+              "columns",
+              "structureCount",
+              "payload",
+              "layouts",
+              "payloadDigest"
+            ],
+            "bounds": {
+              "strings": 20000,
+              "texts": 20000,
+              "textParts": 32,
+              "decodedTextLength": 8192,
+              "structures": 20000,
+              "layouts": 256,
+              "layoutFields": 128,
+              "columnGroups": 256,
+              "expandedCells": 200000,
+              "decodeVisits": 200000,
+              "decodeDepth": 64
+            },
+            "pipeline": "Check exact closed keys, version/name/contract/manifest and raw-wire digest. Check dense arrays, safe nonnegative/non--0 indices/counts, strict canonical group order/arity and complete count. Expand exact pre-existing packed structures with no inferred field values, then existing unpack and full normalized Terminal payload validation.",
+            "complexity": "O(encoded cells + expansion cells), bounded memory/visits; no pairwise record matching or O(n²) reconstruction.",
+            "scopeCouplingRisk": "catalog.ts is fetched by current search. Any future added compact decoder code increases actual interaction JS unless placed behind a truly existing lazy path. reader.ts is an optional explicit scope-review candidate to host Data/archive-only logic; dynamic cycle and whole-body import closure require verification. No emitted-current build exists, so no JS budget or free-code claim is made."
+          }
+        },
+        "sabotagePlan": {
+          "grammar": [
+            "missing/extra slot",
+            "negative/out-of-range/nonintegral/coercible/-0 table index",
+            "duplicate table identity",
+            "truncated column/module",
+            "unknown field/table/version/encoding",
+            "noncanonical layout order",
+            "duplicate semantic record",
+            "NaN/Infinity",
+            "signed-zero value mutation",
+            "cycles/depth/expanded cells"
+          ],
+          "semanticAndAuthority": [
+            "swapped same-type fields",
+            "changed artifact ID/market/workspace/namespace/availability",
+            "wrong edge endpoint/relation",
+            "binding SHA/bytes/licence changed"
+          ],
+          "guardQualification": "Digest-only mutation must reject without rehash. Rehashed grammar mutations must hit intended decoder guard. Validly typed and rehashed semantic mutations require existing cross-link/domain checks where available and exact comparison to trusted complete-source-derived expected payload; a self-sealed codec cannot universally distinguish a different valid payload from an authorized payload. Do not claim raw decoder alone rejects every valid-but-wrong swap.",
+          "prototypeRun": "13 rehashed B grammar mutations rejected; complete future production vectors not implemented."
+        },
+        "finalRecommendation": {
+          "archiveImplementationCandidate": null,
+          "reason": "Both predeclared candidates fail unchanged gzip cap. STOP; no implementation recommendation, no third candidate, no new shard automatically authorized. A separate representation/new-shard review would be required.",
+          "filesToChangeIfAFuturePassingScopeIsApproved": [
+            "frontend-v2/scripts/generate-terminal-index.mjs",
+            "frontend-v2/src/app/terminal/catalog.ts",
+            "frontend-v2/scripts/verify-terminal-context.mjs",
+            "frontend-v2/scripts/verify-terminal-browser.mjs",
+            "docs/phase7-5-connected-quant-terminal.md",
+            "docs/qa/phase7-5-connected-quant-terminal-proof.json"
+          ],
+          "filesToAdd": [],
+          "filesToDelete": [],
+          "readerTs": "Not required by rejected prototypes. A future explicitly lazy-decoder placement may require an additional reviewed existing reader.ts change; not implicitly authorized or recommended as accepted here."
+        }
+      }
+    },
+    "uniformActualWireAccounting": {
+      "evidence_class": "ENGINEERING_PLAN_ONLY",
+      "wire": {
+        "data": {
+          "fields": [
+            {
+              "name": "schema_version",
+              "logicalCount": 1,
+              "jsonValueBytes": 18,
+              "fieldTokenBytes": 35,
+              "standaloneFieldGzip9": 55
+            },
+            {
+              "name": "generator_contract",
+              "logicalCount": 1,
+              "jsonValueBytes": 22,
+              "fieldTokenBytes": 43,
+              "standaloneFieldGzip9": 56
+            },
+            {
+              "name": "name",
+              "logicalCount": 1,
+              "jsonValueBytes": 6,
+              "fieldTokenBytes": 13,
+              "standaloneFieldGzip9": 33
+            },
+            {
+              "name": "manifestBinding",
+              "logicalCount": 3,
+              "jsonValueBytes": 129,
+              "fieldTokenBytes": 147,
+              "standaloneFieldGzip9": 139
+            },
+            {
+              "name": "strings",
+              "logicalCount": 590,
+              "jsonValueBytes": 24584,
+              "fieldTokenBytes": 24594,
+              "standaloneFieldGzip9": 14716
+            },
+            {
+              "name": "texts",
+              "logicalCount": 1529,
+              "jsonValueBytes": 15873,
+              "fieldTokenBytes": 15881,
+              "standaloneFieldGzip9": 4120
+            },
+            {
+              "name": "structures",
+              "logicalCount": 1412,
+              "jsonValueBytes": 91090,
+              "fieldTokenBytes": 91103,
+              "standaloneFieldGzip9": 14952
+            },
+            {
+              "name": "payload",
+              "logicalCount": 1,
+              "jsonValueBytes": 5,
+              "fieldTokenBytes": 15,
+              "standaloneFieldGzip9": 35
+            },
+            {
+              "name": "payloadDigest",
+              "logicalCount": 1,
+              "jsonValueBytes": 66,
+              "fieldTokenBytes": 82,
+              "standaloneFieldGzip9": 92
+            }
+          ],
+          "propertyAndValueFieldTokenBytes": 131913,
+          "objectBracesAndCommasBytes": 10,
+          "moduleCommentExportAndSuffixBytes": 120,
+          "totalDecodedBytes": 132043,
+          "fullModuleGzip9": 35005,
+          "qualification": "Decoded field token accounting is additive with braces/commas/wrapper. Standalone gzip is nonadditive; it cannot predict complete module compression. This uniform JSON accounting includes quotes around scalar string values, unlike the agent historical scalar-text diagnostics."
+        },
+        "history-archive": {
+          "fields": [
+            {
+              "name": "schema_version",
+              "logicalCount": 1,
+              "jsonValueBytes": 18,
+              "fieldTokenBytes": 35,
+              "standaloneFieldGzip9": 55
+            },
+            {
+              "name": "generator_contract",
+              "logicalCount": 1,
+              "jsonValueBytes": 22,
+              "fieldTokenBytes": 43,
+              "standaloneFieldGzip9": 56
+            },
+            {
+              "name": "name",
+              "logicalCount": 1,
+              "jsonValueBytes": 17,
+              "fieldTokenBytes": 24,
+              "standaloneFieldGzip9": 44
+            },
+            {
+              "name": "manifestBinding",
+              "logicalCount": 3,
+              "jsonValueBytes": 129,
+              "fieldTokenBytes": 147,
+              "standaloneFieldGzip9": 139
+            },
+            {
+              "name": "strings",
+              "logicalCount": 616,
+              "jsonValueBytes": 26362,
+              "fieldTokenBytes": 26372,
+              "standaloneFieldGzip9": 17704
+            },
+            {
+              "name": "texts",
+              "logicalCount": 1049,
+              "jsonValueBytes": 9479,
+              "fieldTokenBytes": 9487,
+              "standaloneFieldGzip9": 2517
+            },
+            {
+              "name": "structures",
+              "logicalCount": 2171,
+              "jsonValueBytes": 80178,
+              "fieldTokenBytes": 80191,
+              "standaloneFieldGzip9": 15316
+            },
+            {
+              "name": "payload",
+              "logicalCount": 1,
+              "jsonValueBytes": 5,
+              "fieldTokenBytes": 15,
+              "standaloneFieldGzip9": 35
+            },
+            {
+              "name": "layouts",
+              "logicalCount": 15,
+              "jsonValueBytes": 480,
+              "fieldTokenBytes": 490,
+              "standaloneFieldGzip9": 230
+            },
+            {
+              "name": "payloadDigest",
+              "logicalCount": 1,
+              "jsonValueBytes": 66,
+              "fieldTokenBytes": 82,
+              "standaloneFieldGzip9": 93
+            }
+          ],
+          "propertyAndValueFieldTokenBytes": 116886,
+          "objectBracesAndCommasBytes": 11,
+          "moduleCommentExportAndSuffixBytes": 120,
+          "totalDecodedBytes": 117017,
+          "fullModuleGzip9": 37318,
+          "qualification": "Decoded field token accounting is additive with braces/commas/wrapper. Standalone gzip is nonadditive; it cannot predict complete module compression. This uniform JSON accounting includes quotes around scalar string values, unlike the agent historical scalar-text diagnostics."
+        }
+      },
+      "candidates": [
+        {
+          "name": "data A",
+          "path": ".tmp/phase75/metadata-capacity-plan-nov6/data/candidate-A.txt",
+          "decoded": 104341,
+          "gzip9": 33960,
+          "sha256": "292c2c5d939e4ceff4653de167d5f666e264e8366995ce17ff8f1d738186ef64"
+        },
+        {
+          "name": "archive A",
+          "path": ".tmp/phase75/metadata-capacity-plan-nov6/history/candidate-a.generated.ts.txt",
+          "decoded": 117017,
+          "gzip9": 37407,
+          "sha256": "19be29b3600bcc526242e81d924adadfd694a1b1c76fcbc068edadaeacfefb69"
+        },
+        {
+          "name": "archive B",
+          "path": ".tmp/phase75/metadata-capacity-plan-nov6/history/candidate-b.generated.ts.txt",
+          "decoded": 106315,
+          "gzip9": 34336,
+          "sha256": "09f311bbec7f3939ce50221c355ece3981f76540cd9d5d9eef10bf10f4a86977"
+        }
+      ],
+      "strategiesAdded": 0,
+      "runtimeWrites": 0
+    },
+    "authorityQualification": {
+      "evidence_class": "ENGINEERING_PLAN_ONLY_AUTHORITY_QUALIFICATION",
+      "representation": "Existing unchanged archive layout; mutation probe, not a new capacity strategy",
+      "changed": "One grammatically valid binding sha256, re-sealed with unchanged current self-digest algorithm",
+      "wireBytes": 116949,
+      "existingRuntimeLogicalValidatorAccepted": true,
+      "error": null,
+      "independentSourceEqualityOracleRejects": true,
+      "originalLogicalDigest": "1cfa87eda975449dfce4a076b8e92cc04ebfd512ccaedcf3c17c1a1f0cb3c570",
+      "changedLogicalDigest": "ea6c130532ebc13ea17ff2dc8203f3d0c02d829a8c79febd6d126c19bca8a6df",
+      "originalSourceUnchanged": true,
+      "runtimeWrites": 0,
+      "qualification": "A closed grammar and self-digest cannot authenticate every valid semantic replacement. Plan must distinguish structural rejection, cross-link checks and trusted original-source/equality oracle. This probe does not change any active reader or make an accepted generation."
+    },
+    "qualifications": {
+      "dataOtherModules": "Unmodified captured strings retained; not full integrated generation. Search is independently rebuilt from decoded Data.",
+      "archiveDefaultHistory": "Search and retained supplement/default module independently re-derived after exact roundtrip.",
+      "scalarWireAccounting": "Uniform literal JSON fields include quotes; historical agent scalar-text diagnostic sizes exclude quotes. Only full wrapper-inclusive candidate bodies decide caps.",
+      "rawPrototypeSourceGzip": "Unminified helper gzip is nonadditive, not emitted JS.",
+      "currentJS": "No normal admitted build; no stale generated output build allowed.",
+      "performance": "Node-only measured scopes differ; archive complete baseline measured separately; no quantile addition or browser PASS."
+    },
+    "recommendation": {
+      "candidate": null,
+      "implementationRecommended": false,
+      "expectedPassingCapacityAfterImplementation": null,
+      "reason": "Both exact predeclared strategies fail for each module; no viable implementation forecast. STOP; new explicit representation/new-shard review required if pursued.",
+      "maximumStrategiesPerModule": 2,
+      "dataStrategiesConsumed": 2,
+      "archiveStrategiesConsumed": 2,
+      "additionalStrategyEvaluations": 0,
+      "shardAutomaticallyAuthorized": false
+    },
+    "proposedImplementationScope": {
+      "status": "PROSPECTIVE_ONLY_NO_FAILED_CANDIDATE_RECOMMENDED",
+      "filesToChange": [
+        {
+          "path": "frontend-v2/scripts/generate-terminal-index.mjs",
+          "purpose": "Independent module-specific representation switches; exact source authority, normalization/digests, wrapper-inclusive budgets, final fail-closed barrier."
+        },
+        {
+          "path": "frontend-v2/src/app/terminal/catalog.ts",
+          "purpose": "Only an explicitly reviewed name/version dispatch and bounded inverse; restore complete logical payload before unchanged existing validation."
+        },
+        {
+          "path": "frontend-v2/scripts/verify-terminal-context.mjs",
+          "purpose": "Roundtrip/IEEE/digests, search/default-history identity, full sabotage/bounds/canonicality/determinism/performance."
+        },
+        {
+          "path": "frontend-v2/scripts/verify-terminal-browser.mjs",
+          "purpose": "Actual new-format/legacy Data/archive fixtures, all existing attacks, Chrome/Edge/Firefox and whole-network lazy/search checks."
+        },
+        {
+          "path": "docs/phase7-5-connected-quant-terminal.md",
+          "purpose": "Acceptance/negative evidence and exact scope."
+        },
+        {
+          "path": "docs/qa/phase7-5-connected-quant-terminal-proof.json",
+          "purpose": "Machine-readable evidence and retained prior checkpoints."
+        }
+      ],
+      "filesToAdd": [],
+      "filesToDelete": [],
+      "readerTsRequired": false,
+      "searchOrRiskOrInitialJSChanges": false
+    },
+    "decoderContracts": {
+      "dataRejectedA": {
+        "wire": "Strict closed data-only version/codec/name/manifest envelope; raw wire and whole source wrapper measured under unchanged caps. Existing exact fragment/structure expansion then fixed trusted rows; complete logical payload then unchanged existing semantics.",
+        "bounds": {
+          "fragments": 20000,
+          "texts": 20000,
+          "structures": 20000,
+          "fragmentChars": 8193,
+          "textParts": 32,
+          "decodedTextChars": 8192,
+          "expandedVisits": 200000,
+          "depth": 64,
+          "dataBindingsPrototypeMaximum": 512,
+          "layoutDefinitions": 14,
+          "fixedLayoutArityMaximum": 13,
+          "entities": 512,
+          "edges": 8192
+        },
+        "sourceAuthority": "371 complete original checks precede generation. Independent Object.is normalized baseline is the prototype oracle; a self-digest cannot authenticate validly rehashed replacement values.",
+        "canonicality": "Dense fixed arity, canonical safe unsigned tags and sorted duplicate-free maps. Implementation must additionally prove exact normalized record/edge/choice/order and source identities; prototype equality proves this vector, not universal rejection of valid alternate values.",
+        "complexity": "Linear bounded tree reconstruction; deterministic producer map sorting. No new quadratic reconstruction. Existing semantic validation remains unchanged.",
+        "noInference": true,
+        "noDefaults": true,
+        "noRightsOrClaimChanges": true
+      },
+      "archiveRejectedB": {
+        "status": "REJECTED_CAPACITY",
+        "format": "terminal-shard/3; encoding layout-columns/1; archive-only name",
+        "wireFields": [
+          "schema_version",
+          "generator_contract",
+          "name",
+          "manifestBinding",
+          "encoding",
+          "strings",
+          "texts",
+          "arrays",
+          "columns",
+          "structureCount",
+          "payload",
+          "layouts",
+          "payloadDigest"
+        ],
+        "bounds": {
+          "strings": 20000,
+          "texts": 20000,
+          "textParts": 32,
+          "decodedTextLength": 8192,
+          "structures": 20000,
+          "layouts": 256,
+          "layoutFields": 128,
+          "columnGroups": 256,
+          "expandedCells": 200000,
+          "decodeVisits": 200000,
+          "decodeDepth": 64
+        },
+        "pipeline": "Check exact closed keys, version/name/contract/manifest and raw-wire digest. Check dense arrays, safe nonnegative/non--0 indices/counts, strict canonical group order/arity and complete count. Expand exact pre-existing packed structures with no inferred field values, then existing unpack and full normalized Terminal payload validation.",
+        "complexity": "O(encoded cells + expansion cells), bounded memory/visits; no pairwise record matching or O(n²) reconstruction.",
+        "scopeCouplingRisk": "catalog.ts is fetched by current search. Any future added compact decoder code increases actual interaction JS unless placed behind a truly existing lazy path. reader.ts is an optional explicit scope-review candidate to host Data/archive-only logic; dynamic cycle and whole-body import closure require verification. No emitted-current build exists, so no JS budget or free-code claim is made."
+      },
+      "pipeline": "closed wire -> bounded strict inverse -> full exact logical payload -> unchanged full validation",
+      "newTrustedAuthorityImplemented": false
+    },
+    "sabotageMatrix": [
+      {
+        "guard": "Closed grammar",
+        "cases": [
+          "missing slot",
+          "extra slot",
+          "sparse slot",
+          "truncated module",
+          "unknown field",
+          "unknown table",
+          "unknown layout version",
+          "unknown encoding",
+          "wrong module/version dispatch"
+        ],
+        "expectation": "Reject at named compact grammar guard, with rehash where the digest would otherwise mask it."
+      },
+      {
+        "guard": "Indices and resource bounds",
+        "cases": [
+          "wrong table index",
+          "negative index",
+          "signed-zero index",
+          "fractional/coercible/boolean index",
+          "out-of-range index",
+          "duplicate table identity",
+          "cycle",
+          "depth64/visits200000/expanded-cell bound",
+          "oversized row/group/count"
+        ],
+        "expectation": "Reject structurally invalid/canonical references before expansion; valid-but-wrong references also need the semantic/source oracle."
+      },
+      {
+        "guard": "Canonicality and identity",
+        "cases": [
+          "noncanonical ordering",
+          "duplicate semantic record",
+          "swapped same-type fields",
+          "wrong-but-valid slot/table reference"
+        ],
+        "expectation": "Reject duplicate/noncanonical wire before normalization; preserve cardinality. Existing cross-links and independent expected-payload equality must reject valid-looking semantic changes; no generic self-digest authority claim."
+      },
+      {
+        "guard": "Logical domain and source equality",
+        "cases": [
+          "changed artifact ID",
+          "changed market",
+          "changed workspace",
+          "changed namespace",
+          "changed availability",
+          "wrong edge endpoint",
+          "wrong relation",
+          "changed clock",
+          "changed provenance"
+        ],
+        "expectation": "Run full unchanged logical validation then source-derived recursive Object.is/stable/digest equality. Any uncovered valid mutation remains a failure, never accepted through an unrelated size error."
+      },
+      {
+        "guard": "Binding/source authority",
+        "cases": [
+          "changed binding SHA",
+          "changed binding byte count",
+          "changed licence",
+          "UNAVAILABLE to AVAILABLE",
+          "LOCAL_ONLY to PUBLIC_REPLAY",
+          "claim promotion"
+        ],
+        "expectation": "Complete original SHA/bytes/schema/grant/expiry/claims checks precede projection; compare decoded logical result to trusted source-derived expected data. Existing runtime self-seal alone is insufficient for arbitrary valid resealing."
+      },
+      {
+        "guard": "Numeric identity",
+        "cases": [
+          "NaN",
+          "Infinity",
+          "signed-zero mutation",
+          "extreme finite/subnormal values"
+        ],
+        "expectation": "Reject nonfinite/coercible values; use recursive Object.is for legal scalars. Reject changed zero identity against the independent baseline even if JSON/stable wire identity could conceal it."
+      }
+    ],
+    "acceptanceIfLaterViablePlanApproved": [
+      "Obtain a separately reviewed viable representation/scope; these four failed strategies are not implementation recommendations.",
+      "Freshly fetch/admit/reconcile any complete main epoch; regenerate only current inputs and repeat full original-source authority.",
+      "Keep semantic Data/archive membership, exact history union, every selector/choice/clock/provenance and all evidence; no latest/default inference.",
+      "Implement one reviewed independent per-module switch and strict closed bounded inverse; preserve old schema1/archive-schema2 compatibility and final guard.",
+      "From a clean clone/generated folder run normal npm ci, generate terminal twice and compare all emitted bytes/SHA; no dependency on local stale output.",
+      "Require wrapper-inclusive hard caps and report decoded/gzip headroom; 10% remains a preference, not a raised or new hard cap.",
+      "Rebuild exact current search; require SHA59e07a90... only for this cohort, exact before/after source bytes/counts/order/digests and zero source reserve consumption. Re-pin a later cohort only after separate admission, never silent byte changes.",
+      "Require whole default history byte identity where representation-independent; reject an approaching/crossed cap or unexplained default change.",
+      "Run full static sabotage/IEEE/source-authority/legacy cases and direct intended-guard attacks; require a separate review if trusted authority scope must expand.",
+      "Run typecheck/build only after normal generation passes; then actual Chrome/Edge/Firefox Data/archive plus existing36 browser-negative cases and old positive vectors.",
+      "Measure actual decode and single-pass complete validation median/p95 in declared Node/browser environments; retain raw samples and workload/bounds. Preserve all existing hard latency/search/context gates.",
+      "Recheck actual interaction bodies/preload/execution and code+metadata32768 cap, default/history lazy absence, total-byte/request regressions, protected hashes and930-file freeze.",
+      "Keep independent backend Risk and initial ownership/24KiB/64KiB gates separate; no full CI, Stage9/10 or readiness claim until every required gate passes."
+    ],
+    "graphContext": "capacity_amendment_reaffirmation_nov6.graphs; runtime sources remain byte-identical at this documentation-only source; historical emitted graphs are not current acceptance.",
+    "scopeThisCheckpoint": {
+      "filesToChange": [
+        "docs/phase7-5-connected-quant-terminal.md",
+        "docs/qa/phase7-5-connected-quant-terminal-proof.json"
+      ],
+      "filesToAdd": [],
+      "filesToDelete": [],
+      "implementationFilesCommitted": 0,
+      "runtimeOutputsWritten": 0,
+      "prototypeFilesIgnored": true
+    },
+    "freeze": {
+      "archive": {
+        "status": "VERIFIED",
+        "base": "16db82c5f2f50b98253df9989c586cd45aa98f6b",
+        "frozen_files": 930,
+        "prior_artifacts": 221,
+        "prior_routes": 126,
+        "withdrawals": 6,
+        "risk_artifacts": 27,
+        "scientific_inventory_sha256": "9fc53ec0d8eba8aa16a89838b512ccee7e845e425835ec1e188a786a0bfb3d7d",
+        "d6": "DISABLED / DEFERRED"
+      },
+      "protectedSources": [
+        {
+          "path": "frontend-v2/src/app/shell/ForgeShell.tsx",
+          "sha256": "8ff7d29f58a6ace9ac22d88f29e87f1e13ff2e36dddae93626974c9dd998aee2",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/markets/queries.ts",
+          "sha256": "2813ce7b5586b56f96d0116facf3976cc49af7ed39193d7617617c18ecb4980a",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/replay/client.ts",
+          "sha256": "85f8fcd4860aab0aa20c7a072338018cac4b1d51d13f482da44ad4b64aac3cb9",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/replay/contracts.ts",
+          "sha256": "11f8b4fa7c71fd1facce5c5ef1fb42b0f89b1dd2f380ad1048effc5f40e2ea33",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/replay/FactorRegimeEvidence.tsx",
+          "sha256": "0b6b087176475641492987e50f00f5fe806b19bc07544782bddfe4e2c67b6176",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/replay/SourceCredit.tsx",
+          "sha256": "4d19324a60a5c2837d0930d376d931657e33909ec1b639ea52945d26fdc6adec",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/replay/factor-series.ts",
+          "sha256": "d57d14cb2dd0fda33e90fb6c90f82f1e978fb35c4a1ea2a6acd6225533bdcf59",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/replay/mode.tsx",
+          "sha256": "6b11eec3502b5315cbe742180e392385f5bca91788801e0f6a8b7a089ff60353",
+          "exact": true
+        },
+        {
+          "path": "frontend-v2/src/replay/observatory.ts",
+          "sha256": "45dc09df9b12b269c613744f224aa0c41bebd72ab45439d996af942b040b1646",
+          "exact": true
+        }
+      ],
+      "approvedPlanSha256": "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5",
+      "packageLockSha256": "16708dc4badc941174777af3763842a60d6da48796ae0fa3e1e52e4881be8673",
+      "requestSha256": "7ed413105eddf0f77e6df972a4140990ab7f686cc42584e4448fc7148156e302",
+      "excludedCommit": "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d",
+      "excludedAncestorOfFeature": false,
+      "excludedAncestorOfMain": false
+    },
+    "unchangedBudgets": {
+      "decodedPerModule": 131072,
+      "gzipPerModule": 32768,
+      "entitiesPerShard": 512,
+      "searchSourceGzip": 16384,
+      "initialCore": 24576,
+      "riskInitial": 65536,
+      "factorsInitial": 65536,
+      "firstInteractionCodePlusMetadata": 32768,
+      "preferredHeadroomRatio": 0.1
+    },
+    "boundaries": {
+      "draft": true,
+      "open": true,
+      "merged": false,
+      "autoMerge": false,
+      "readyForReview": false,
+      "completeStage9": false,
+      "completeStage10": false,
+      "riskV3Implemented": false,
+      "initialJSStarted": false,
+      "initialJSStrategyEvaluations": 0,
+      "operationalScientificRuns": 0,
+      "scientificPublications": 0,
+      "retainedEvidenceRewrites": 0,
+      "claimsFalse": 6,
+      "d6": "DISABLED / DEFERRED",
+      "riskRegimeSchedules": "DISABLED",
+      "capsChanged": false,
+      "freezesChanged": false
+    },
+    "evidenceFiles": [
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/data/declaration.json",
+        "bytes": 1873,
+        "sha256": "e9c48ac45103740eebfb1b5ebfd58620580a49475431bc48ddce672f3bc3ab41"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/data/prototype.mjs",
+        "bytes": 17535,
+        "sha256": "31a75628c51ababefbf951195813562d59fd1f608c24da50a357504efe8d27de"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/data/proof.json",
+        "bytes": 30565,
+        "sha256": "0a6d5ad48487d2728d85e708c041f569ef34b8aebe22ce10a4ecac3ea0519036"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/data/candidate-A.txt",
+        "bytes": 104341,
+        "sha256": "292c2c5d939e4ceff4653de167d5f666e264e8366995ce17ff8f1d738186ef64"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/history/declaration.json",
+        "bytes": 3350,
+        "sha256": "d992f7d96943ea8bd638aa3c2c1502a2d8135a0707dd552338da0bd9b274636f"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/history/prototype.mjs",
+        "bytes": 19032,
+        "sha256": "7ab24ab496ed0a08ffe37cda262b9efe3fec9bb7132640831f06e65a97469f30"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/history/prototype-proof.json",
+        "bytes": 29596,
+        "sha256": "929b65aefae5d271fe109f01307f438c8e9354e840733581934882f47a70e3e8"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/history/candidate-a.generated.ts.txt",
+        "bytes": 117017,
+        "sha256": "19be29b3600bcc526242e81d924adadfd694a1b1c76fcbc068edadaeacfefb69"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/history/candidate-b.generated.ts.txt",
+        "bytes": 106315,
+        "sha256": "09f311bbec7f3939ce50221c355ece3981f76540cd9d5d9eef10bf10f4a86977"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/baseline/capture-proof.json",
+        "bytes": 5455,
+        "sha256": "c0fc9c225bde779e5134794ad0545327e97c3c583dc5173c854a7d20d7e3adea"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/baseline/report.json",
+        "bytes": 121999,
+        "sha256": "e443a5ac2ddc07e8ad8edd4b95ac8cfa072b0ca66ccd9d565746d4fef7a69f91"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/baseline/capture.v8",
+        "bytes": 4262686,
+        "sha256": "47aee2be33b0e33c929e8abe401f0dd5d991731b70c36262ee32658fa9d4248e"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/wire-accounting-and-independent-measurement.json",
+        "bytes": 5597,
+        "sha256": "5c5d2d427e8f80474ba1439e6cbe99849647dd5ced0f65d66afcf43805cebfb2"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/data-supplemental-decomposition.json",
+        "bytes": 2255,
+        "sha256": "f08546f018251c1a1d6f1b90fbcf78b500aaa7fe121fcdefe5ea9fd0df76d69b"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/authority-probe.mjs",
+        "bytes": 2143,
+        "sha256": "44bbe1747e08d80cbbf88c82a1921fa16af443260d24e14e3fb6b6b5d7a6567f"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/authority-qualification.json",
+        "bytes": 965,
+        "sha256": "f6d57588471cb483e55bab761da45614a3a8315e06e8e616fbc7b13e036a3f66"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/ci-summary.json",
+        "bytes": 2297,
+        "sha256": "09f6bbf9822ec5aa73e7507a9efa182f36b9be4b35622bd0a1b0bd9e68c73420"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/freeze-hashes.json",
+        "bytes": 1850,
+        "sha256": "8d271e02f0adccb357aec3ae0b544366a94a7f64ea4803ba250cdb0156d06248"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/archive-freeze.log",
+        "bytes": 391,
+        "sha256": "bfb9092a3297a8fe6641b785d2306c8ab4f387c0a48b417d7df617fb014131f1"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6-capture.mjs",
+        "bytes": 3470,
+        "sha256": "50b32f1d5025cb3ad94df4415477a5a956a6c28cd8da8e8c24b6aea6328534a3"
+      },
+      {
+        "path": ".tmp/phase75/metadata-capacity-plan-nov6/decomposition-supplement.mjs",
+        "bytes": 1834,
+        "sha256": "8bea4fa0a1b5fa71fb04bd49316b1a416acd5a4ca605395635314aa48734d7be"
+      }
+    ],
+    "reportSectionSha256": "886201939b9119fd27bdee4fb45d102d7f4bfef4754f98963f8772f8741f2c2a"
   }
 }
