@@ -173,6 +173,8 @@ jobs:
         run: |
           npx playwright install --with-deps chromium firefox
           npx playwright install chrome msedge
+      - name: Exact terminal initial ownership, whole-body capacity, lazy boundaries and regression guards
+        run: npm run verify:terminal:initial
       - name: Observatory scene labels never overlap (production preview, software WebGL)
         run: |
           node scripts/preview-built.mjs &

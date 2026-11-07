@@ -11,7 +11,8 @@ import pytest
 from scripts.risk_archive import verify_graph
 from src.risk_manager import sweep
 from src.risk_manager.contracts import canonical, clock, counts, decode, digest
-from src.risk_manager.publication import validate_public
+from src.risk_manager.publication import validate_public,read_artifact
+from src.risk_manager.monitoring import monitoring_operation
 from src.risk_manager.reducer import (
     checked_lifecycle_ids, lifecycle_anchors, lifecycle_history, reduce,
 )
@@ -22,8 +23,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def retained_values(root=ROOT):
     manifest = decode((root / "frontend-v2/public/replay-manifest.json").read_bytes())
-    values = {identity: decode((root / "frontend-v2/public" / entry["url"].lstrip("/")).read_bytes())
-              for identity, entry in manifest["artifacts"].items() if identity.startswith("risk:")}
+    # One immutable reader snapshot, matching the production archive operation.
+    # Keep every byte/schema/source check without rebuilding the same admitted
+    # monitoring catalog independently for each historical artifact.
+    with monitoring_operation():
+        values = {identity: read_artifact(root, manifest, identity)
+                  for identity in manifest["artifacts"] if identity.startswith("risk:")}
     return manifest, values
 
 
@@ -92,7 +97,8 @@ def test_exact_legacy_or_anchor_index_rejects_omission_injection_and_order():
     manifest, values = retained_values()
     state = values[manifest["routes"]["/risk-manager/state"]]
     history = lifecycle_history(receipt_chain(manifest, values))
-    issue = next(i for i in state["payload"]["issues"] if len(i["observation_ids"]) >= 4)
+    retained = next(i for i in state["payload"]["issues"] if len(history[i["issue_id"]]) >= 4)
+    issue = dict(retained, observation_ids=checked_lifecycle_ids(retained, history))
     assert checked_lifecycle_ids(issue, history) == issue["observation_ids"]
     compact = dict(issue, observation_ids=lifecycle_anchors(issue))
     assert checked_lifecycle_ids(compact, history) == issue["observation_ids"]
@@ -117,6 +123,7 @@ def test_hydrated_history_survives_repeat_resolution_and_reopen():
     all_observations = [o for receipt in chain for o in receipt["payload"]["observations"]]
     finding = deepcopy(next(o for o in all_observations if o["observation_id"] == issue["last_observation_id"]))
     issue["evidence_refs"] = deepcopy(finding["evidence_refs"])
+    issue["observation_ids"] = checked_lifecycle_ids(issue, lifecycle_history(chain))
     full = deepcopy(issue)
     issue["observation_ids"] = lifecycle_anchors(issue)
     issue["observation_ids"] = checked_lifecycle_ids(issue, lifecycle_history(chain))
@@ -124,7 +131,8 @@ def test_hydrated_history_survives_repeat_resolution_and_reopen():
     repeated, transitions = reduce([issue], [finding], "a" * 64, all_observations)
     assert repeated == [full] and transitions[0]["transition"] == "UNCHANGED"
     clear = deepcopy(finding)
-    clear.update(outcome="CLEAR", reason_code=None, witnessed_at="2026-10-25T08:00:00Z")
+    clear_time = clock(finding["witnessed_at"]) + timedelta(days=1)
+    clear.update(outcome="CLEAR", reason_code=None, witnessed_at=clear_time.isoformat().replace("+00:00", "Z"))
     clear["evidence_refs"][0]["sha256"] = "b" * 64
     clear = sweep.seal_observation(clear)
     closed, transitions = reduce([full], [clear], "b" * 64, all_observations)
@@ -135,7 +143,7 @@ def test_hydrated_history_survives_repeat_resolution_and_reopen():
     compact["observation_ids"] = checked_lifecycle_ids(compact, lifecycle_history([repair, *chain]))
     assert compact == closed[0]
     reopen = deepcopy(finding)
-    reopen.update(witnessed_at="2026-10-26T08:00:00Z")
+    reopen.update(witnessed_at=(clear_time + timedelta(days=1)).isoformat().replace("+00:00", "Z"))
     reopen["evidence_refs"][0]["sha256"] = "c" * 64
     reopen = sweep.seal_observation(reopen)
     opened, transitions = reduce([compact], [reopen], "c" * 64, [clear, *all_observations])
@@ -159,6 +167,7 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
     sealed_ids = set(initial_by_id)
     _, initial_values = retained_values(tmp_path)
     original_history = {row["payload"]["sweep_id"] for row in receipt_chain(manifest, initial_values)}
+    initial_lifecycles = lifecycle_history(receipt_chain(manifest, initial_values))
     current_data = decode((ROOT / "data/exports/data_organ_v0_1/issues.json").read_bytes())
     current_origins = current_data["items"]
     current_cutoff = manifest["artifacts"][manifest["routes"]["/data/issues"]]["as_of"]
@@ -202,7 +211,9 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
         for issue in hydrated["payload"]["issues"]:
             assert issue["observation_ids"] == history[issue["issue_id"]]
             if issue["issue_id"] in sealed_ids:
-                assert len(issue["observation_ids"]) > len(lifecycle_anchors(issue))
+                prior_ids = initial_lifecycles[issue["issue_id"]]
+                assert issue["observation_ids"][:len(prior_ids)] == prior_ids
+                assert len(issue["observation_ids"]) == len(prior_ids) + offset
             else:
                 assert len(issue["observation_ids"]) == offset
         before_repeat = snapshot(tmp_path)

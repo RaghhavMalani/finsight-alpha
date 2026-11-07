@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from scripts.risk_archive import verify, verify_route, verify_addition, verify_graph
 from src.risk_manager.contracts import canonical, decode
+from src.risk_manager.publication import prepare_public
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -29,7 +30,8 @@ def graph_fixture(preflight):
     values = {}
     for value in [preflight["coverage_state"], preflight["state"], preflight["receipt"]]:
         kind = "state" if value["kind"] == "risk-state" else "sweep"
-        identity = "risk:" + kind + ":" + sha256(canonical(value) + b"\n").hexdigest()
+        raw = (prepare_public(value, ROOT)[2] if kind == "sweep" else canonical(value) + b"\n")
+        identity = "risk:" + kind + ":" + sha256(raw).hexdigest()
         values[identity] = deepcopy(value)
     receipt_ref = next(key for key, value in values.items() if value["kind"] == "risk-sweep")
     state_ref = values[receipt_ref]["payload"]["state_ref"]

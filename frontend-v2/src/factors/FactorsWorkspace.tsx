@@ -1,7 +1,10 @@
-import { useState, lazy, Suspense } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useDataMode } from "../replay/mode";
-import { CUTOFFS, type Country } from "./contracts";
+import { CUTOFFS, KNOWN_IDS, KNOWN_METADATA_ENTRIES, type Country } from "./contracts";
+import { useInvestigation, type VerifiedSelection } from "../app/terminal/TerminalShell";
+import { subjectTicker, type InvestigationContext } from "../app/terminal/context";
+import type { ContextBindings } from "../app/terminal/compatibility";
+import type { ReplayEntry } from "../replay/contracts";
 import { useFactorMetadata } from "./query";
 import { EvidenceCatalogue } from "./EvidenceCatalogue";
 import { OutputAudit } from "./OutputAudit";
@@ -11,27 +14,163 @@ const Diagnostics = lazy(() =>
     import("./RetainedDiagnostics").then((m) => ({ default: m.RetainedDiagnostics })),
   ),
   Drawer = lazy(() => import("./LineageDrawer").then((m) => ({ default: m.LineageDrawer })));
-export function FactorsWorkspace() {
-  const s = useSearch({ from: "/factors" }),
-    mode = useDataMode();
-  return <FactorSelection key={[s.country, s.at, s.ticker, mode].join("|")} />;
+type FactorPanel = "catalog" | "audit" | "ledger";
+function factorSelection(context: InvestigationContext) {
+  if (context.view.workspace !== "factors") throw new Error("Wrong Factor workspace context.");
+  const view = context.view;
+  let anchorCountry: string | undefined,
+    anchorCutoff: string | undefined,
+    anchorKind: string | undefined;
+  if (context.anchor) {
+    const owners = Object.entries(KNOWN_IDS).flatMap(([key, ids]) =>
+      Object.entries(ids)
+        .filter(([, id]) => id === context.anchor!.artifactId)
+        .map(([kind]) => ({ key, kind })),
+    );
+    if (owners.length !== 1)
+      throw new Error("Exact Factor anchor unavailable; latest was not substituted.");
+    [anchorCountry, anchorCutoff] = owners[0].key.split("|");
+    anchorKind = owners[0].kind;
+    if (
+      (context.market && context.market !== anchorCountry) ||
+      (view.cutoff && view.cutoff !== anchorCutoff)
+    )
+      throw new Error("Factor anchor and requested country/cutoff disagree.");
+  }
+  const country = (context.market ?? anchorCountry ?? "US") as Country,
+    cutoff =
+      view.cutoff ?? anchorCutoff ?? [...CUTOFFS].sort((a, b) => Date.parse(b) - Date.parse(a))[0],
+    panel: FactorPanel =
+      view.panel === "audit" || view.panel === "ledger"
+        ? view.panel
+        : !view.panel && (anchorKind === "audit" || anchorKind === "ledger")
+          ? anchorKind
+          : "catalog";
+  if (!["US", "INDIA"].includes(country) || !CUTOFFS.includes(cutoff as (typeof CUTOFFS)[number]))
+    throw new Error("Country or cutoff has no exact retained binding.");
+  if (anchorKind && anchorKind !== panel)
+    throw new Error(
+      "The selected Factor anchor does not own this panel; choose its explicit reviewed view.",
+    );
+  return { country, cutoff, panel, artifactId: KNOWN_IDS[country + "|" + cutoff][panel] };
 }
-function FactorSelection() {
-  const s = useSearch({ from: "/factors" }),
-    navigate = useNavigate(),
+export function FactorsWorkspace() {
+  const investigation = useInvestigation(),
+    { context, registerBindings, updateContext } = investigation,
     mode = useDataMode(),
-    country = s.country as Country,
-    cutoff = s.at,
-    panel = s.panel === "audit" ? "audit" : s.panel === "ledger" ? "ledger" : "catalog",
-    valid =
-      ["US", "INDIA"].includes(country) && CUTOFFS.includes(cutoff as (typeof CUTOFFS)[number]);
-  const [selected, setSelected] = useState<string | null>(
-      ["US-MKT", "IN-MKT"].includes(s.ticker ?? "") ? country.toLowerCase() + ":mom" : null,
-    ),
+    selection = useMemo(() => {
+      try {
+        return { value: factorSelection(context), error: null };
+      } catch (error) {
+        return {
+          value: null,
+          error: error instanceof Error ? error.message : "Factor selection unavailable.",
+        };
+      }
+    }, [context]),
+    country = selection.value?.country ?? "US",
+    cutoff = selection.value?.cutoff ?? CUTOFFS[CUTOFFS.length - 1],
+    panel = selection.value?.panel ?? "catalog",
+    valid = !!selection.value,
+    view = context.view.workspace === "factors" ? context.view : { workspace: "factors" as const },
+    s = { country, at: cutoff, panel, ticker: subjectTicker(context.subject) };
+  const [selected, setSelected] = useState<string | null>(null),
     [lineage, setLineage] = useState(false),
     q = useFactorMetadata(panel, country, cutoff, valid);
-  const go = (next: Record<string, string>) =>
-    navigate({ to: "/factors", search: { ...s, ...next } });
+  const actualSelected =
+    view.factorId ??
+    selected ??
+    (context.subject?.kind === "market-factor" ? country.toLowerCase() + ":mom" : null);
+  const registered = useMemo(() => {
+    if (!selection.value || !q.data) return null;
+    const current = selection.value,
+      artifactId = current.artifactId,
+      bindings: ContextBindings = {
+        resolveArtifact: (id) => {
+          const entry = KNOWN_METADATA_ENTRIES[id] as ReplayEntry | undefined;
+          if (!entry) return undefined;
+          const owner = Object.entries(KNOWN_IDS)
+            .find(([, ids]) => Object.values(ids).includes(id))?.[0]
+            .split("|")[0] as Country | undefined;
+          return { status: entry.status, kind: entry.kind, market: owner };
+        },
+        hasSelection: (candidate) => {
+          const selectedView = candidate.view;
+          return (
+            selectedView.workspace === "factors" &&
+            (!candidate.anchor || candidate.anchor.artifactId === artifactId) &&
+            (!selectedView.cutoff || selectedView.cutoff === current.cutoff) &&
+            (!selectedView.factorId ||
+              (q.data.kind === "catalog" &&
+                q.data.value.payload.items.some(
+                  (item) => item.factor_id === selectedView.factorId,
+                )))
+          );
+        },
+        hasOrigin: (origin) => origin.kind === "artifact" && origin.artifactId === artifactId,
+      },
+      verified: VerifiedSelection = {
+        artifactId,
+        clocks: [{ label: "Factor evidence cutoff", value: q.data.value.evidence_cutoff }],
+        limitations: [
+          "Read-only retained Factor metadata for this exact country and evidence cutoff. No listing-level assessment is inferred.",
+        ],
+      };
+    return {
+      bindings,
+      selection: verified,
+      enrich: (candidate: InvestigationContext): InvestigationContext => {
+        if (candidate.view.workspace !== "factors" || !bindings.hasSelection?.(candidate))
+          return candidate;
+        return {
+          ...candidate,
+          anchor: { artifactId },
+          market: current.country,
+          subject: candidate.subject ?? {
+            kind: "market-factor",
+            id: current.country === "INDIA" ? "IN-MKT" : "US-MKT",
+          },
+          view: { ...candidate.view, cutoff: current.cutoff },
+        };
+      },
+    };
+  }, [selection, q.data]);
+  useEffect(
+    () =>
+      registered
+        ? registerBindings(registered.bindings, registered.selection, registered.enrich)
+        : undefined,
+    [registered, registerBindings],
+  );
+  useEffect(() => {
+    if (registered && !context.anchor) updateContext(registered.enrich(context), "replace");
+  }, [registered, context, updateContext]);
+  const go = (next: Record<string, string>) => {
+    const nextCountry = (next.country ?? country) as Country,
+      nextCutoff = next.at ?? cutoff,
+      nextPanel = (next.panel ?? panel) as FactorPanel,
+      artifactId = KNOWN_IDS[nextCountry + "|" + nextCutoff]?.[nextPanel];
+    if (!artifactId) return;
+    updateContext(
+      {
+        ...context,
+        market: nextCountry,
+        subject: next.country
+          ? { kind: "market-factor", id: nextCountry === "INDIA" ? "IN-MKT" : "US-MKT" }
+          : context.subject,
+        anchor: { artifactId },
+        compare: undefined,
+        observationDate: undefined,
+        view: {
+          workspace: "factors",
+          panel: nextPanel,
+          cutoff: nextCutoff,
+          ...(view.factorId && !next.country ? { factorId: view.factorId } : {}),
+        },
+      },
+      "push",
+    );
+  };
   return (
     <section
       className="factor-workspace"
@@ -92,9 +231,7 @@ function FactorSelection() {
       {!valid ? (
         <div className="factor-panel factor-empty">
           <h2>UNAVAILABLE / unreviewed selection</h2>
-          <p role="alert">
-            Country or cutoff has no exact retained binding. Choose an explicit reviewed selection.
-          </p>
+          <p role="alert">{selection.error} Choose an explicit reviewed selection.</p>
         </div>
       ) : q.isPending ? (
         <div className="factor-panel">
@@ -164,12 +301,16 @@ function FactorSelection() {
           </nav>
           {q.data.kind === "catalog" ? (
             <>
-              <EvidenceCatalogue data={q.data.value} selected={selected} onSelect={setSelected} />
+              <EvidenceCatalogue
+                data={q.data.value}
+                selected={actualSelected}
+                onSelect={setSelected}
+              />
               <Suspense fallback={<p>Loading diagnostic view…</p>}>
                 <Diagnostics
                   country={country}
                   cutoff={cutoff}
-                  selected={selected === country.toLowerCase() + ":mom"}
+                  selected={actualSelected === country.toLowerCase() + ":mom"}
                   onLineage={() => setLineage(true)}
                 />
               </Suspense>
