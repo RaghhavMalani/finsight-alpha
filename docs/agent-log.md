@@ -49,3 +49,18 @@ In flight
   `m0/unblock-terminal-and-risk`), browser verifier (`m0-browser`, branch `m0/terminal-browser`).
 - Next: merge the three branches into `m0/unblock-terminal-and-risk`, fix the Research OS weekly check, run the
   whole CI locally, adversarial review, push to `feat/phase7-5-connected-quant-terminal`, merge PR #30.
+
+## 2026-11-12 — M0 baseline, backend, with project venv
+
+- Python verifiers all pass locally with the venv: plugin replay, Data Organ, regimes, factors, Risk archive,
+  Research OS, inference calibration, all 13 Dynamics freezes. `pytest tests/regimes` passes.
+- Local-only failures, not real: `tests/sabotage/test_sandbox_nasty.py` (16) needs Linux process isolation;
+  `tests/factors/test_publication.py` (2 errors) copies the repo into the pytest basetemp, which recurses when the
+  basetemp is inside the repo. Use a basetemp outside the checkout.
+- Research OS weekly check: recomputed all 8 cases x 1000 worlds locally with the recorded versions (numpy 2.3.4,
+  scipy 1.16.3, pandas 2.3.1, statsmodels 0.14.6, sklearn 1.7.0) on Windows: seed hash, generated-data hash and
+  family hash identical, max p-value difference 0.0. CI had installed numpy 2.5.4 / scipy 1.18.1 / pandas 3.1.1
+  on Linux. Fixed in `69116c0`: the workflow installs the recorded versions on `windows-latest`, and the verifier
+  refuses to replay in a drifted environment (sabotage test added). The frozen artifact is untouched.
+- `ci.yml` now also runs on `workflow_run` of "Checked organs" and on dispatch (`00f09f4`).
+- The first three sub-agents ran into a rate limit; restarted on another model with their partial diffs intact.
