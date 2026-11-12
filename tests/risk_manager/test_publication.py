@@ -1,11 +1,14 @@
 from pathlib import Path
 from copy import deepcopy
+import re
 import shutil
 import pytest
 from src.risk_manager.sweep import run
-from src.risk_manager.publication import validate_public,safe_payload,publish
+from src.risk_manager.publication import validate_public,safe_payload,publish,ADMISSION_LIMIT,COMPACT_THRESHOLD
 from src.risk_manager.contracts import digest,canonical,pack_sweep
 ROOT=Path(__file__).resolve().parents[2]
+# Any rejection that is about bytes rather than content.
+SIZE_REJECTION=re.compile("admission limit|compact threshold|KiB")
 
 def test_budget_two_kinds_and_claims(preflight):
     page=preflight["coverage_state"]; state=preflight["state"]
@@ -20,7 +23,7 @@ def test_budget_two_kinds_and_claims(preflight):
     staged={ref["artifact_id"]:(page,canonical(page)+b"\n")}
     for value in [page,state]:
         _,raw=validate_public(value,ROOT,staged=staged)
-        assert len(raw)<=128*1024 and set(value["claim_flags"].values())=={False}
+        assert len(raw)<=ADMISSION_LIMIT and set(value["claim_flags"].values())=={False}
     bad=deepcopy(page); bad["kind"]="risk-history"
     with pytest.raises(ValueError): validate_public(bad,ROOT)
 
@@ -130,10 +133,10 @@ def test_receipt_observation_cross_join_substitution(preflight, sabotage):
         payload["observations"][0]["witnessed_at"] = "2026-10-15T12:00:00Z"
     elif sabotage == "transition_issue":
         payload["transitions"][0]["issue_id"] = "risk-issue:" + "a" * 64
-    assert len(canonical(value) + b"\n") <= 128 * 1024
+    assert len(canonical(value) + b"\n") <= ADMISSION_LIMIT
     with pytest.raises(ValueError) as rejected:
         validate_public(value, ROOT)
-    assert "128 KiB" not in str(rejected.value)
+    assert not SIZE_REJECTION.search(str(rejected.value))
 
 
 def test_atomic_pair_rejects_valid_unrelated_state(preflight, tmp_path):
@@ -181,10 +184,10 @@ def test_receipt_input_inventory_bound_even_after_rehashing(preflight, sabotage)
                                         policy_sha256=payload["policy_sha256"], evaluator_source_hash=payload["evaluator_source_hash"],
                                         scope="RETAINED_RISK_EVIDENCE"))
     value["input_hash"] = payload["fingerprint"]
-    assert len(canonical(value) + b"\n") <= 128 * 1024
+    assert len(canonical(value) + b"\n") <= ADMISSION_LIMIT
     with pytest.raises(ValueError) as rejected:
         validate_public(value, ROOT)
-    assert "128 KiB" not in str(rejected.value)
+    assert not SIZE_REJECTION.search(str(rejected.value))
 
 
 def test_publisher_rejects_unreviewed_evaluator_hash_before_writing(preflight, tmp_path):
@@ -232,7 +235,7 @@ def test_primary_links_preserve_full_source_observations(preflight):
         assert observation["evidence_refs"]!=issue["evidence_refs"]
         assert issue["origin_records"]==observation["origin_records"]
         assert issue["last_observation_id"] in issue["observation_ids"]
-    assert len(canonical(state))+1<=128*1024
+    assert len(canonical(state))+1<=ADMISSION_LIMIT
 
 
 @pytest.mark.parametrize("sabotage",["fingerprint","missing_observation","other_issue","mixed","evidence_at"])
@@ -267,23 +270,24 @@ def test_resealed_primary_source_pointer_rejected_before_writes(preflight,tmp_pa
 
 def test_current_receipt_capacity_uses_exact_wire_without_relaxing_ingress(preflight):
     from src.risk_manager.contracts import hydrate_sweep
-    from src.risk_manager.publication import prepare_public, LIMIT
+    from src.risk_manager.publication import prepare_public
     logical = preflight['receipt']
     original = canonical(logical) + b'\n'
-    assert len(original) > LIMIT
-    with pytest.raises(ValueError, match='128 KiB'):
+    assert COMPACT_THRESHOLD < len(original) <= ADMISSION_LIMIT
+    # Admissible by size, yet still refused: only the packed transport may carry it.
+    with pytest.raises(ValueError, match='must use packed transport'):
         validate_public(logical, ROOT)
     checked, wire, raw = prepare_public(logical, ROOT)
     assert wire['schema_version'] == 'risk-sweep/2'
     assert raw == canonical(wire) + b'\n'
-    assert len(raw) <= LIMIT < len(original)
+    assert len(raw) < len(original) and len(raw) <= ADMISSION_LIMIT
     assert canonical(checked) == canonical(logical) == canonical(hydrate_sweep(wire))
     assert len(checked['payload']['observations']) == len(logical['payload']['observations'])
     assert [o['origin_records'] for o in checked['payload']['observations']] == [o['origin_records'] for o in logical['payload']['observations']]
     _, state_wire, state_raw = prepare_public(preflight['state'], ROOT, staged={
         preflight['state']['payload']['evidence_index'][0]['artifact_id']:
             (preflight['coverage_state'], canonical(preflight['coverage_state']) + b'\n')})
-    assert state_wire == preflight['state'] and len(state_raw) <= LIMIT
+    assert state_wire == preflight['state'] and len(state_raw) <= ADMISSION_LIMIT
 
 
 def test_resealed_pool_target_cannot_change_observation_sources(preflight):
@@ -298,7 +302,7 @@ def test_resealed_pool_target_cannot_change_observation_sources(preflight):
     # Rebuild a canonical table and rehash the outer wire, leaving the logical
     # observation digest as the independent authority. No size/ordering shortcut.
     bad = pack_sweep(logical)
-    assert len(canonical(bad) + b'\n') <= 128 * 1024
+    assert len(canonical(bad) + b'\n') <= ADMISSION_LIMIT
     with pytest.raises(ValueError, match='Observation derivation'):
         validate_public(bad, ROOT)
 
@@ -325,7 +329,7 @@ def test_forged_source_table_rejects_before_reference_expansion(monkeypatch):
     wire = pack_sweep(original)
     ref = next(r for r in wire['payload']['evidence_ref_table'] if r['type'] == 'REPLAY_ARTIFACT')
     ref['source_ids'] = ['forged'] * 200
-    assert len(canonical(wire) + b'\n') <= 128 * 1024
+    assert len(canonical(wire) + b'\n') <= ADMISSION_LIMIT
     def no_expansion(*args, **kwargs):
         raise AssertionError('Forged source reached repeated-reference allocation')
     monkeypatch.setattr(publication, 'hydrate_sweep', no_expansion)

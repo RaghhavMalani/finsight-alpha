@@ -8,7 +8,7 @@ import pytest
 
 from src.risk_manager.contracts import canonical, clock, decode, digest
 from src.risk_manager.evidence import forbidden_calls
-from src.risk_manager.publication import LIMIT, validate_public
+from src.risk_manager.publication import ADMISSION_LIMIT, validate_public
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -62,7 +62,7 @@ def test_compact_primary_preserves_every_issue_origin_and_complete_bound_policy(
     state,compact,page,staged=retained_policy
     _,legacy_raw=checked(state,staged)
     checked_state,raw=checked(compact,staged)
-    assert LIMIT==128*1024 and len(raw)<LIMIT
+    assert len(raw)<len(legacy_raw)<=ADMISSION_LIMIT
     assert len(legacy_raw)-len(raw)>16*1024
     assert compact["payload"]["policy"]["rules"]==[]
     assert page["payload"]["policy"]==state["payload"]["policy"]

@@ -11,7 +11,7 @@ import pytest
 from scripts.risk_archive import verify_graph
 from src.risk_manager import sweep
 from src.risk_manager.contracts import canonical, clock, counts, decode, digest
-from src.risk_manager.publication import validate_public,read_artifact
+from src.risk_manager.publication import validate_public,read_artifact,ADMISSION_LIMIT
 from src.risk_manager.monitoring import monitoring_operation
 from src.risk_manager.reducer import (
     checked_lifecycle_ids, lifecycle_anchors, lifecycle_history, reduce,
@@ -204,7 +204,7 @@ def test_later_valid_epochs_keep_all_current_origins_and_repeat_with_zero_writes
             assert issue["first_seen_at"] == initial_by_id[issue["issue_id"]]["first_seen_at"]
             assert issue["first_seen_ref"] == initial_by_id[issue["issue_id"]]["first_seen_ref"]
         risk_sizes = [entry["bytes"] for identity, entry in manifest["artifacts"].items() if identity.startswith("risk:")]
-        assert max(risk_sizes) <= 128 * 1024
+        assert max(risk_sizes) <= ADMISSION_LIMIT
         assert verify_graph(values, exact_origins(tmp_path, values))
         hydrated = sweep.previous(tmp_path, manifest)[2]
         history = lifecycle_history(receipt_chain(manifest, values))
@@ -305,7 +305,7 @@ def test_over_100_applied_observations_hydrate_reduce_archive_and_repeat_without
             transition_counts={k: sum(t["transition"] == k.upper() for t in transitions)
                                for k in ("new", "unchanged", "updated", "resolved")})
         receipt_id, receipt_raw = sealed_value(receipt)
-        assert max(len(leaf_raw), len(state_raw), len(receipt_raw)) <= 128 * 1024
+        assert max(len(leaf_raw), len(state_raw), len(receipt_raw)) <= ADMISSION_LIMIT
         values.update({leaf_id: leaf, state_id: state, receipt_id: receipt})
         previous_issues, observations = issues, [*observations, observation]
         prior_ref, prior_state_ref, prior_receipt = receipt_id, state_id, payload
