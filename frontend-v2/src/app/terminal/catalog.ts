@@ -28,7 +28,14 @@ export type StaticTerminalReference = {
   sha256: string;
   bytes: number;
 };
-// Lazy JSON has a bounded transport budget independent of executable module budgets.
+// Byte ceilings. Only the seed is on the initial path, so only the seed keeps a tight budget.
+// Every other shard is retained metadata fetched on demand; it grows with each publication
+// epoch, so its ceilings are runaway guards rather than tuning targets.
+export const MAX_SEED_MODULE_BYTES = 48 * 1024;
+export const MAX_SEED_MODULE_GZIP_BYTES = 12 * 1024;
+export const MAX_LAZY_MODULE_BYTES = 512 * 1024;
+export const MAX_LAZY_MODULE_GZIP_BYTES = 128 * 1024;
+// Static JSON indexes (Data, history-archive) are verified by SHA-256 before parsing.
 export const MAX_STATIC_TERMINAL_BYTES = 2 * 1024 * 1024;
 export const RELATIONS = [
   "REFERENCED_ARTIFACT",
