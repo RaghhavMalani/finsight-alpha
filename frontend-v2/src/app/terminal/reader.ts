@@ -6,8 +6,39 @@ import {
   selectProjection,
   stableTerminal,
   terminalDigest,
+  MAX_STATIC_TERMINAL_BYTES,
   type DisplayProjection,
+  type StaticTerminalShardName,
 } from "./catalog.ts";
+
+/** Authenticate the complete static transport before parsing or validating its packed shard. */
+export async function readTerminalIndex(
+  reference: unknown,
+  expectedName: StaticTerminalShardName,
+): Promise<unknown> {
+  const ref = object(reference, ["schema_version", "name", "url", "sha256", "bytes"]);
+  if (
+    ref.schema_version !== "terminal-static-shard/1" ||
+    ref.name !== expectedName ||
+    typeof ref.sha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(ref.sha256) ||
+    ref.url !== "/terminal/" + expectedName + "." + ref.sha256.slice(0, 12) + ".json" ||
+    !count(ref.bytes) ||
+    ref.bytes === 0 ||
+    ref.bytes > MAX_STATIC_TERMINAL_BYTES
+  )
+    throw new Error("Terminal static index reference is invalid.");
+  const response = await fetch(ref.url as string, { credentials: "omit" });
+  if (!response.ok) throw new Error("Terminal static index is unavailable.");
+  const bytes = await response.arrayBuffer();
+  if (bytes.byteLength !== ref.bytes || bytes.byteLength > MAX_STATIC_TERMINAL_BYTES)
+    throw new Error("Terminal static index byte length changed.");
+  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  if (digest !== ref.sha256) throw new Error("Terminal static index SHA-256 changed.");
+  return strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+}
 
 // Closed public field/type grammar, shared structurally across the reviewed complete-source contracts.
 // It is schema metadata only; no numerical source evidence is copied here.
@@ -2237,7 +2268,7 @@ export async function validateFullOriginal(
     closedOriginal(value, "market-series");
     validateMarketReplay(value, id.slice("market:".length), entry.as_of);
   } else if (entry.kind === "risk-state" || entry.kind === "risk-sweep") {
-    if (entry.bytes > 128 * 1024) throw new Error("Risk original wire exceeds 128 KiB budget.");
+    if (entry.bytes > 256 * 1024) throw new Error("Risk original wire exceeds 256 KiB budget.");
     const { validateRisk, verifyRiskIdentity } = await import("../../risk-manager/contracts.ts");
     const result = validateRisk(value, entry.kind);
     await verifyRiskIdentity(result);

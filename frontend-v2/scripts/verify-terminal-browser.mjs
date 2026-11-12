@@ -146,6 +146,7 @@ function allowed(request) {
       p,
     ) ||
     /^\/(?:assets|fonts)\/[a-zA-Z0-9_./~-]+$/.test(p) ||
+    /^\/terminal\/(?:data|history-archive)\.[a-f0-9]{12}\.json$/.test(p) ||
     /^\/artifacts\/replay\/[a-zA-Z0-9_.-]+\.json$/.test(p) ||
     /^\/(?:replay-manifest|risk-read-manifest|factor-read-manifest)\.json$/.test(p) ||
     /^\/(?:favicon\.(?:ico|svg|png)|robots\.txt)$/.test(p)
@@ -206,10 +207,33 @@ async function pageFor(browser, viewport, archiveFixture) {
       return;
     }
     if (archiveFixture && /\/history-archive\.generated[-.]/.test(request.url())) {
+      const raw = Buffer.from(JSON.stringify(archiveFixture.value ?? archiveFixture) + "\n"),
+        digest = sha(raw);
+      const reference = {
+        schema_version: "terminal-static-shard/1",
+        name: "history-archive",
+        url: `/terminal/history-archive.${digest.slice(0, 12)}.json`,
+        sha256: digest,
+        bytes: raw.length,
+      };
       await route.fulfill({
         status: 200,
         contentType: "text/javascript",
-        body: "export default " + JSON.stringify(archiveFixture) + ";",
+        body: "export default " + JSON.stringify(reference) + ";",
+      });
+      return;
+    }
+    if (archiveFixture && /\/terminal\/history-archive\.[a-f0-9]{12}\.json$/.test(request.url())) {
+      if (archiveFixture.fetchFailure) {
+        await route.fulfill({ status: 503, contentType: "application/json", body: "unavailable" });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body:
+          JSON.stringify(archiveFixture.value ?? archiveFixture) +
+          (archiveFixture.hashMismatch ? " \n" : "\n"),
       });
       return;
     }
@@ -2275,7 +2299,11 @@ async function historyLayoutStage() {
     path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
     "utf8",
   );
-  const archive = JSON.parse(text.match(/export default (\{.*\}) as const;/s)[1]);
+  const reference = JSON.parse(text.match(/export default (\{.*\}) as const;/s)[1]),
+    archiveRaw = readFileSync(path.join(frontend, "public", reference.url)),
+    archive = JSON.parse(archiveRaw);
+  assert.equal(sha(archiveRaw), reference.sha256);
+  assert.equal(archiveRaw.length, reference.bytes);
   assert.equal(archive.schema_version, "terminal-shard/2");
   const { terminalDigest, packTerminalPayload, unpackTerminalPayload } =
     await import("../src/app/terminal/catalog.ts");
@@ -2330,6 +2358,8 @@ async function historyLayoutStage() {
   );
   const cases = [
     ["actual complete archive", null],
+    ["static SHA mismatch", (p) => p, false, false, "hashMismatch"],
+    ["static fetch failure", (p) => p, false, false, "fetchFailure"],
     ["resealed missing layout", (p) => delete p.layouts],
     ["resealed duplicate layout", (p) => p.layouts.push(p.layouts[0])],
     ["resealed arity mismatch", (p) => p.structures.find((r) => r[0] === 2).pop()],
@@ -2371,7 +2401,7 @@ async function historyLayoutStage() {
       name === "firefox" ? { headless: true } : { headless: true, channel: name },
     );
     try {
-      for (const [label, mutate, reseal = true, accepted = !mutate] of cases) {
+      for (const [label, mutate, reseal = true, accepted = !mutate, transportFailure] of cases) {
         const changed = structuredClone(archive);
         if (mutate) mutate(changed);
         if (mutate && reseal) {
@@ -2381,13 +2411,17 @@ async function historyLayoutStage() {
         const fixture = await pageFor(
           browser,
           { width: 1440, height: 1000 },
-          mutate ? changed : undefined,
+          mutate
+            ? { value: changed, ...(transportFailure ? { [transportFailure]: true } : {}) }
+            : undefined,
         );
         try {
           await check(name + " history layout " + label, async () => {
             await fixture.page.goto(urlFor("risk", "/risk"), { waitUntil: "networkidle" });
             assert(
-              !fixture.requests.some((r) => /\/history-archive\.generated[-.]/.test(r.url)),
+              !fixture.requests.some((r) =>
+                /\/terminal\/history-archive\.[a-f0-9]{12}\.json$/.test(r.url),
+              ),
               "Archive loaded before invocation",
             );
             await fixture.page.keyboard.press("Control+k");
@@ -2398,7 +2432,9 @@ async function historyLayoutStage() {
             await dialog.waitFor();
             await fixture.page.waitForFunction(paletteUsable);
             assert(
-              !fixture.requests.some((r) => /\/history-archive\.generated[-.]/.test(r.url)),
+              !fixture.requests.some((r) =>
+                /\/terminal\/history-archive\.[a-f0-9]{12}\.json$/.test(r.url),
+              ),
               "Current palette loaded archive",
             );
             const originalReads = fixture.requests.filter((r) =>
@@ -2415,9 +2451,9 @@ async function historyLayoutStage() {
             await fixture.page.waitForLoadState("networkidle");
             await Promise.all(fixture.pending);
             const reads = fixture.responses.filter((r) =>
-              /\/history-archive\.generated[-.]/.test(r.url),
+              /\/terminal\/history-archive\.[a-f0-9]{12}\.json$/.test(r.url),
             );
-            assert.equal(reads.length, 1, "Exactly one explicit archive module read");
+            assert.equal(reads.length, 1, "Exactly one explicit archive static JSON read");
             assert.equal(
               fixture.requests.filter((r) => originals.has(new URL(r.url).pathname)).length,
               originalReads,
@@ -2433,7 +2469,7 @@ async function historyLayoutStage() {
               );
               assert.match(
                 await dialog.locator('[aria-live="polite"]').innerText(),
-                /terminal|layout|shard|metadata|manifest|bound|record|digest/i,
+                /terminal|layout|shard|metadata|manifest|bound|record|digest|hash|unavailable|fetch|503/i,
               );
             } else
               assert(

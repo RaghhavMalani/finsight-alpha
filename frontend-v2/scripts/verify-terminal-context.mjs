@@ -70,6 +70,28 @@ const root = path.resolve(frontend, "..");
 const manifestRaw = readFileSync(path.join(frontend, "public/replay-manifest.json"));
 const manifest = JSON.parse(manifestRaw);
 const hash = (value) => createHash("sha256").update(value).digest("hex");
+// Node exercises the same lazy HTTP boundary using the generated static bytes.
+const networkFetch = globalThis.fetch;
+globalThis.fetch = async (input, options) => {
+  const url = typeof input === "string" ? input : input.url;
+  if (/^\/terminal\/(?:data|history-archive)\.[a-f0-9]{12}\.json$/.test(url))
+    return new Response(readFileSync(path.join(frontend, "public", url)), {
+      headers: { "content-type": "application/json" },
+    });
+  return networkFetch(input, options);
+};
+function generatedStaticShard(name) {
+  const source = readFileSync(
+    path.join(frontend, "src/app/terminal/generated", name + ".generated.ts"),
+    "utf8",
+  );
+  const reference = JSON.parse(source.match(/export default (\{.*\}) as const;/s)[1]);
+  const bytes = readFileSync(path.join(frontend, "public", reference.url));
+  assert.equal(bytes.length, reference.bytes);
+  assert.equal(hash(bytes), reference.sha256);
+  assert.equal(reference.url, `/terminal/${name}.${reference.sha256.slice(0, 12)}.json`);
+  return { reference, bytes, value: JSON.parse(bytes) };
+}
 const artifact = (id) =>
   JSON.parse(readFileSync(path.join(frontend, "public", manifest.artifacts[id].url)));
 const currentStateId = manifest.routes["/risk-manager/state"];
@@ -2059,9 +2081,7 @@ check("layout codec preserves depth and visit rejection", () => {
     }),
   );
 });
-const actualLayoutArchive = (
-  await import("../src/app/terminal/generated/history-archive.generated.ts")
-).default;
+const actualLayoutArchive = generatedStaticShard("history-archive").value;
 await checkAsync(
   "layout codec validates the actual current archive and legacy default history",
   async () => {

@@ -20,6 +20,16 @@ export const SHARD_NAMES = [
   "history-archive",
 ] as const;
 export type TerminalShardName = (typeof SHARD_NAMES)[number];
+export type StaticTerminalShardName = "data" | "history-archive";
+export type StaticTerminalReference = {
+  schema_version: "terminal-static-shard/1";
+  name: StaticTerminalShardName;
+  url: string;
+  sha256: string;
+  bytes: number;
+};
+// Lazy JSON has a bounded transport budget independent of executable module budgets.
+export const MAX_STATIC_TERMINAL_BYTES = 2 * 1024 * 1024;
 export const RELATIONS = [
   "REFERENCED_ARTIFACT",
   "ISSUE_ORIGIN",
@@ -655,7 +665,9 @@ export async function validateTerminalShard(
 ): Promise<TerminalShard> {
   if (
     new TextEncoder().encode(JSON.stringify(value)).byteLength >
-    (expectedName === "seed" ? 48 : 128) * 1024
+    (expectedName === "data" || expectedName === "history-archive"
+      ? MAX_STATIC_TERMINAL_BYTES
+      : (expectedName === "seed" ? 48 : 128) * 1024)
   )
     throw new Error("Terminal decoded metadata bound exceeded.");
   const layoutWire =
@@ -1404,13 +1416,17 @@ export function loadTerminalShard(name: TerminalShardName): Promise<TerminalShar
   let result = pending.get(name);
   if (!result) {
     result = loaders[name]()
-      .then(async (module) =>
-        validateTerminalShard(
-          module.default,
+      .then(async (module) => {
+        const value =
+          name === "data" || name === "history-archive"
+            ? await (await import("./reader.ts")).readTerminalIndex(module.default, name)
+            : module.default;
+        return validateTerminalShard(
+          value,
           name,
           name === "seed" ? undefined : (await loadTerminalSeed()).manifestBinding,
-        ),
-      )
+        );
+      })
       .catch((error: unknown) => {
         pending.delete(name);
         throw error;

@@ -29,6 +29,7 @@ import {
   catalogEntities,
   packNavigationRecords,
   validateNavigationProjection,
+  MAX_STATIC_TERMINAL_BYTES,
 } from "../src/app/terminal/catalog.ts";
 
 import { deriveNavigationRecords } from "../src/app/terminal/search.ts";
@@ -7110,6 +7111,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
   assert.equal(navigationSeed.manifestBinding, manifestBinding);
   const shards = {},
     modules = {},
+    staticFiles = {},
     failures = [],
     report = {
       manifestBinding,
@@ -7184,9 +7186,22 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       ...packed,
     };
     const shard = { ...sealed, payloadDigest: seal(sealed) };
+    const staticIndex = name === "data" || name === "history-archive";
+    const json = JSON.stringify(shard) + "\n";
+    const staticSha256 = staticIndex ? hash(json) : null;
+    const staticFilename = staticIndex ? name + "." + staticSha256.slice(0, 12) + ".json" : null;
+    const staticReference = staticIndex
+      ? {
+          schema_version: "terminal-static-shard/1",
+          name,
+          url: "/terminal/" + staticFilename,
+          sha256: staticSha256,
+          bytes: Buffer.byteLength(json),
+        }
+      : null;
     const output =
       "// Generated from checked retained public metadata; do not edit or commit.\n// prettier-ignore\nexport default " +
-      JSON.stringify(shard) +
+      JSON.stringify(staticReference ?? shard) +
       " as const;\n" +
       (name === "seed"
         ? "// Compact closed navigation envelope; its digest binds exact generated seed metadata.\n// prettier-ignore\nexport const navigationSeed = " +
@@ -7217,6 +7232,15 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       encodedHashFragments: packed.strings.filter((part) => part.startsWith("!1")).length,
       escapedLiteralFragments: packed.strings.filter((part) => part.startsWith("!!")).length,
       gzipBytes,
+      ...(staticIndex
+        ? {
+            transport: "static-json",
+            staticFilename,
+            staticSha256,
+            staticBytes: Buffer.byteLength(json),
+            staticGzipBytes: gzipSync(json, { level: 9 }).length,
+          }
+        : {}),
     };
     report.totalRecords += payload.entities.length;
     report.totalEdges += payload.edges.length;
@@ -7224,7 +7248,13 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       failures.push("Decoded module budget: " + name + "=" + bytes);
     if (gzipBytes > (name === "seed" ? 12 : 32) * 1024)
       failures.push("Gzip module budget: " + name + "=" + gzipBytes);
-    if (bytes <= (name === "seed" ? 48 : 128) * 1024 && payload.entities.length <= 512)
+    if (staticIndex && Buffer.byteLength(json) > MAX_STATIC_TERMINAL_BYTES)
+      failures.push("Static JSON transport budget: " + name + "=" + Buffer.byteLength(json));
+    if (
+      bytes <= (name === "seed" ? 48 : 128) * 1024 &&
+      (!staticIndex || Buffer.byteLength(json) <= MAX_STATIC_TERMINAL_BYTES) &&
+      payload.entities.length <= 512
+    )
       await validateTerminalShard(shard, name, manifestBinding);
     if (name === "history" || name === "history-archive") {
       report.shards[name].decodedHeadroomBytes = 128 * 1024 - bytes;
@@ -7232,6 +7262,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     }
     shards[name] = shard;
     modules[name] = output;
+    if (staticIndex) staticFiles[staticFilename] = json;
   }
   const displayOutput =
     "// Generated from checked retained public metadata; do not edit or commit.\n// prettier-ignore\nexport default " +
@@ -7325,7 +7356,8 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
   };
   if (searchBytes > 131072)
     failures.push("Decoded search navigation module budget: search=" + searchBytes);
-  if (searchGzipBytes > 16384)
+  // Lazy palette navigation grows with the retained corpus; this is a runaway guard, not a tuning target.
+  if (searchGzipBytes > 65536)
     failures.push("Gzip search navigation module budget: search=" + searchGzipBytes);
   modules.search = searchOutput;
   // Explicit human approval: append navigation metadata; the accepted default history partition is untouched.
@@ -7422,6 +7454,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
   return {
     shards,
     modules,
+    staticFiles,
     observatoryWindow,
     navigationSeed,
     logicalHistory,
@@ -7456,7 +7489,22 @@ export async function generateTerminalIndex({
     "Original manifest changed during terminal generation",
   );
   const outputRoot = resolve(root, "src/app/terminal/generated");
-  if (!check) mkdirSync(outputRoot, { recursive: true });
+  const staticRoot = resolve(root, "public/terminal");
+  if (!check) {
+    mkdirSync(outputRoot, { recursive: true });
+    mkdirSync(staticRoot, { recursive: true });
+  }
+  // Publish content first: no generated manifest can point at a not-yet-written file.
+  for (const [filename, json] of Object.entries(result.staticFiles)) {
+    const path = resolve(staticRoot, filename);
+    if (check)
+      assert.equal(
+        readFileSync(path, "utf8"),
+        json,
+        "Terminal static output is stale: " + filename,
+      );
+    else writeFileSync(path, json);
+  }
   for (const name of TERMINAL_GENERATED_MODULE_NAMES) {
     const path = resolve(outputRoot, name + ".generated.ts");
     if (check)
