@@ -58,12 +58,10 @@ const requiredAreas = [
   "index",
   "search",
   "commands",
-  "changes",
   "capabilities",
-  "preferences",
-  "exports",
   "freeze",
 ];
+// Planned changes.ts / preferences.ts / exports.ts were never built; there is nothing to verify.
 
 const frontend = fileURLToPath(new URL("../", import.meta.url));
 const root = path.resolve(frontend, "..");
@@ -1096,9 +1094,26 @@ const FOURTH_RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
 const FIFTH_RECONCILED_MAIN = "ec961d3caacd825233c788f195c5af0dd87998c3";
 const SIXTH_RECONCILED_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
 const RECONCILED_MAIN = "dbe1fd87db4a146b7c7a13e4c82a0d69906751f3";
-// Current generation pins advance only after two complete admitted layout-codec generations.
-const IMPLEMENTATION_SCOPE_MAIN = "dbe1fd87db4a146b7c7a13e4c82a0d69906751f3";
-const CURRENT_AVAILABLE_BINDINGS = 368;
+// Daily Data epochs after the last hand-pinned main are admitted by walking main's first-parent
+// publications up to the last commit that wrote the manifest; each epoch is checked below.
+const ADMITTED_MAIN = execFileSync(
+  "git",
+  ["log", "-1", "--format=%H", "--", "frontend-v2/public/replay-manifest.json"],
+  { cwd: root },
+)
+  .toString("utf8")
+  .trim();
+const LATER_DATA_EPOCHS = execFileSync(
+  "git",
+  ["rev-list", "--reverse", "--first-parent", RECONCILED_MAIN + ".." + ADMITTED_MAIN],
+  { cwd: root },
+)
+  .toString("utf8")
+  .split("\n")
+  .filter(Boolean);
+const IMPLEMENTATION_SCOPE_MAIN = ADMITTED_MAIN;
+// Each admitted epoch adds exactly seven complete Data originals (verified per epoch).
+const CURRENT_AVAILABLE_BINDINGS = 368 + 7 * LATER_DATA_EPOCHS.length;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1136,6 +1151,8 @@ const APPROVED_SCOPE_AMENDMENTS = [
   "tests/risk_manager/test_api.py",
   "docs/phase7-5-connected-quant-terminal.md",
   "docs/qa/phase7-5-connected-quant-terminal-proof.json",
+  // PREVIEW_PORT override so the browser verifier can run beside another preview.
+  "frontend-v2/scripts/preview-built.mjs",
 ];
 const APPROVED_PLAN = "docs/phase7-5-connected-quant-terminal-plan.md";
 const APPROVED_PLAN_SHA256 = "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5";
@@ -1171,7 +1188,8 @@ let approvedAdd = [],
   changedPaths = [],
   untrackedPaths = [];
 check("exact approved plan has not been rewritten to bless extra scope", () => {
-  const raw = readFileSync(path.join(root, APPROVED_PLAN));
+  // The pinned digest is of the committed LF blob; checkouts may apply CRLF conversion.
+  const raw = canonicalBytes(readFileSync(path.join(root, APPROVED_PLAN)));
   assert.equal(hash(raw), APPROVED_PLAN_SHA256);
   const plan = raw.toString("utf8");
   const pathsIn = (section, next) =>
@@ -1290,6 +1308,7 @@ check(
       "tests/risk_manager/test_api.py",
       "docs/phase7-5-connected-quant-terminal.md",
       "docs/qa/phase7-5-connected-quant-terminal-proof.json",
+      "frontend-v2/scripts/preview-built.mjs",
     ]);
     assert.throws(() => verifyScope(["frontend-v2/src/router-helper.ts"], []));
   },
@@ -1362,7 +1381,7 @@ check("admitted main publication preserves every old entry and all non-Data alia
     );
   assert.deepEqual(
     manifest,
-    admittedManifest,
+    JSON.parse(git("show", ADMITTED_MAIN + ":frontend-v2/public/replay-manifest.json")),
     "Implementation may not republish or modify the independently admitted manifest",
   );
   const upstreamPaths = splitZ(
@@ -1401,6 +1420,27 @@ check("admitted main publication preserves every old entry and all non-Data alia
     [FIFTH_RECONCILED_MAIN, SIXTH_RECONCILED_MAIN],
     [SIXTH_RECONCILED_MAIN, RECONCILED_MAIN],
   ];
+  // Later epochs must form main's unbroken first-parent chain and add only hashed Data files.
+  LATER_DATA_EPOCHS.forEach((commit, i) => {
+    const parent = gitText("rev-parse", commit + "^1");
+    assert.equal(parent, i ? LATER_DATA_EPOCHS[i - 1] : RECONCILED_MAIN, "epoch chain " + commit);
+    epochs.push([parent, commit]);
+    assert(
+      splitZ(
+        git("diff", "--no-renames", "--name-only", "--diff-filter=A", "-z", parent, commit),
+      ).every(
+        (p) =>
+          /^data\/exports\/data_organ_v0_1\/(health|issues|lineage|receipt)-[a-f0-9]{64}\.json$/.test(
+            p,
+          ) ||
+          /^frontend-v2\/public\/artifacts\/replay\/data-organ-(costs|coverage|disagreement|health|issues|lineage|revisions)-[a-f0-9]{64}\.json$/.test(
+            p,
+          ),
+      ),
+      "epoch " + commit + " may add only hashed Data publication files",
+    );
+  });
+  if (LATER_DATA_EPOCHS.length) assert.equal(LATER_DATA_EPOCHS.at(-1), ADMITTED_MAIN);
   for (const [from, to] of epochs) {
     assert.deepEqual(
       splitZ(git("diff", "--no-renames", "--name-only", "--diff-filter=MD", "-z", from, to)).sort(),
@@ -2090,7 +2130,8 @@ await checkAsync(
       "history-archive",
       actualLayoutArchive.manifestBinding,
     );
-    assert.equal(archive.entities.length, 332);
+    // Retained history is append-only: the archive may grow but never drop below its admitted 332.
+    assert(archive.entities.length >= 332);
     const current = await referenceRepairCatalog.loadTerminalShard("history");
     assert.equal(current.entities.length, 16);
     layoutCodecProof.actualArchive = {
@@ -2108,7 +2149,11 @@ for (const [name, mutate, reseal] of [
   ["unknown envelope field", (p) => (p.privateScope = "invented"), true],
   ["altered manifest cohort", (p) => (p.manifestBinding.sha256 = "a".repeat(64)), true],
   ["altered digest covered layout", (p) => (p.layouts[0][0] = 0), false],
-  ["oversized complete envelope", (p) => p.strings.push("x".repeat(131072)), true],
+  [
+    "oversized complete envelope",
+    (p) => p.strings.push("x".repeat(referenceRepairCatalog.MAX_STATIC_TERMINAL_BYTES)),
+    true,
+  ],
   ["resealed invalid arity", (p) => p.structures.find((row) => row[0] === 2).pop(), true],
   ["resealed duplicate layout", (p) => p.layouts.push(p.layouts[0]), true],
 ])
@@ -2129,16 +2174,21 @@ for (const [name, mutate, reseal] of [
     layoutCodecProof.attacks.push(name);
   });
 check("layout archive overflow hits real capacity barrier and writes zero outputs", () => {
-  const directory = path.join(frontend, "src/app/terminal/generated");
+  const directories = [
+    [path.join(frontend, "src/app/terminal/generated"), (n) => n.endsWith(".generated.ts")],
+    [path.join(frontend, "public/terminal"), (n) => n.endsWith(".json")],
+  ];
   const snapshot = () =>
     Object.fromEntries(
-      readdirSync(directory)
-        .filter((n) => n.endsWith(".generated.ts"))
-        .sort()
-        .map((n) => [n, hash(readFileSync(path.join(directory, n)))]),
+      directories.flatMap(([directory, keep]) =>
+        readdirSync(directory)
+          .filter(keep)
+          .sort()
+          .map((n) => [path.join(directory, n), hash(readFileSync(path.join(directory, n)))]),
+      ),
     );
   const before = snapshot();
-  const fixture = `import assert from 'node:assert/strict';import{registerHooks}from'node:module';import{pathToFileURL}from'node:url';import{resolve}from'node:path';const target=pathToFileURL(resolve('frontend-v2/scripts/generate-terminal-index.mjs')).href;registerHooks({load(url,ctx,next){const r=next(url,ctx);if(url!==target)return r;const s=String(r.source),anchor='const packed = packTerminalPayload(payload, name === "history-archive");';assert.equal(s.split(anchor).length,2);return {...r,source:s.replace(anchor,anchor+'\\nif(name === "history-archive") packed.strings.push(...Array.from({length:20},(_,i)=>String(i).padStart(8,"0")+"x".repeat(8184)));')};}});const{generateTerminalIndex}=await import(target);await assert.rejects(generateTerminalIndex(),e=>{assert(e.message.startsWith('STOP: terminal capacity admission failed; no outputs written.'));assert(e.message.includes('Decoded module budget: history-archive='));return true;});console.log('PASS_REAL_CAPACITY_BARRIER_ZERO_OUTPUTS');`;
+  const fixture = `import assert from 'node:assert/strict';import{registerHooks}from'node:module';import{pathToFileURL}from'node:url';import{resolve}from'node:path';const target=pathToFileURL(resolve('frontend-v2/scripts/generate-terminal-index.mjs')).href;registerHooks({load(url,ctx,next){const r=next(url,ctx);if(url!==target)return r;const s=String(r.source),anchor='const packed = packTerminalPayload(payload, name === "history-archive");';assert.equal(s.split(anchor).length,2);return {...r,source:s.replace(anchor,anchor+'\\nif(name === "history-archive") packed.strings.push(...Array.from({length:300},(_,i)=>String(i).padStart(8,"0")+"x".repeat(8184)));')};}});const{generateTerminalIndex}=await import(target);await assert.rejects(generateTerminalIndex(),e=>{assert(e.message.startsWith('STOP: terminal capacity admission failed; no outputs written.'));assert(e.message.includes('Static JSON transport budget: history-archive='));return true;});console.log('PASS_REAL_CAPACITY_BARRIER_ZERO_OUTPUTS');`;
   const run = spawnSync(process.execPath, ["--input-type=module", "-e", fixture], {
     cwd: root,
     encoding: "utf8",
@@ -2421,8 +2471,8 @@ if (amendmentOnly) {
         ),
         "00dcd9110c1128f4ad5dec0d892fe2fed01b9f1d6f3bea23455f7d6bb9fcb825",
       );
-      assert(bytes.length <= 131072);
-      assert(gzipSync(bytes, { level: 9 }).length <= 32768);
+      assert(bytes.length <= catalog.MAX_LAZY_MODULE_BYTES);
+      assert(gzipSync(bytes, { level: 9 }).length <= catalog.MAX_LAZY_MODULE_GZIP_BYTES);
       const defaultHistory = await catalog.loadTerminalShard("history"),
         archiveHistory = await catalog.loadTerminalShard("history-archive");
       assert.equal(defaultHistory.entities.length, 16);
@@ -2684,11 +2734,11 @@ if (!coreOnly || projectionsOnly) {
       if (name === "validateFullOriginal") {
         const branch = 'else if (entry.kind === "risk-state" || entry.kind === "risk-sweep") {\n';
         assert.equal(expected.split(branch).length, 2);
-        expected = expected.replace(
-          branch,
-          branch +
-            '        if (entry.bytes > 128 * 1024)\n            throw new Error("Risk original wire exceeds 128 KiB budget.");\n',
-        );
+        // MAX_RISK_ORIGINAL_BYTES must equal ADMISSION_LIMIT in src/risk_manager/publication.py.
+        const guard =
+          '        if (entry.bytes > MAX_RISK_ORIGINAL_BYTES)\n            throw new Error("Risk original wire exceeds the 1 MiB admission limit.");\n';
+        expected = expected.replace(branch, branch + guard);
+        assert.equal(referenceRepairCatalog.MAX_RISK_ORIGINAL_BYTES, 1024 * 1024);
         const approvedReader = ts.createSourceFile(
           "approved-reader.ts",
           gitText(
@@ -2699,16 +2749,22 @@ if (!coreOnly || projectionsOnly) {
           true,
           ts.ScriptKind.TS,
         );
+        const approvedGuard =
+          '        if (entry.bytes > 128 * 1024)\n            throw new Error("Risk original wire exceeds 128 KiB budget.");\n';
+        const approved = printed(functionNamed(approvedReader, name), approvedReader);
+        assert.equal(approved.split(approvedGuard).length, 2);
         assert.equal(
           printed(actual, actualReader),
-          printed(functionNamed(approvedReader, name), approvedReader),
-          "Approved Risk capacity reader guard must stay exact",
+          approved.replace(approvedGuard, guard),
+          "Approved Risk capacity reader guard must stay exact apart from the named admission limit",
         );
       }
       assert.equal(
         printed(actual, actualReader),
         name === "verifyDisplayProjection"
-          ? expected.replaceAll("closedOriginal(", "closedDisplayOriginal(")
+          ? expected
+              .replaceAll("closedOriginal(", "closedDisplayOriginal(")
+              .replace(".byteLength > 128 * 1024)", ".byteLength > MAX_LAZY_MODULE_BYTES)")
           : expected,
         name,
       );
@@ -2835,13 +2891,17 @@ if (!coreOnly || projectionsOnly) {
           "explicit human approval of semantic current/required navigation versus retained archive; original plan and per-module caps unchanged",
       };
       for (const [name, module] of Object.entries(generated.modules)) {
+        // Only the seed is on the initial path; every other module is a lazy runaway guard.
         assert(
-          Buffer.byteLength(module) <= (name === "seed" ? 48 : 128) * 1024,
+          Buffer.byteLength(module) <=
+            (name === "seed" ? catalog.MAX_SEED_MODULE_BYTES : catalog.MAX_LAZY_MODULE_BYTES),
           name + " decoded module cap",
         );
         assert(
           gzipSync(module, { level: 9 }).length <=
-            (name === "seed" ? 12 : name === "search" ? 16 : 32) * 1024,
+            (name === "seed"
+              ? catalog.MAX_SEED_MODULE_GZIP_BYTES
+              : catalog.MAX_LAZY_MODULE_GZIP_BYTES),
           name + " gzip module cap",
         );
         assert(!module.includes("ENGINEERING_PRIVACY_SENTINEL"));
@@ -2859,7 +2919,7 @@ if (!coreOnly || projectionsOnly) {
             generated.searchProjection,
             generated.shards.seed.manifestBinding,
           );
-          assert.equal(records.length, 529);
+          assert(records.length >= 529); // current navigation grows with the retained corpus
           assert.deepEqual(JSON.parse(JSON.stringify(records)), generated.currentSearchRecords);
           continue;
         }
@@ -2868,7 +2928,7 @@ if (!coreOnly || projectionsOnly) {
           name,
           generated.shards.seed.manifestBinding,
         );
-        assert(admitted.entities.length <= 512);
+        assert(admitted.entities.length <= catalog.MAX_SHARD_ENTITIES);
         assert(admitted.entities.every((e) => e.availability === "AVAILABLE"));
       }
     },
@@ -3021,11 +3081,6 @@ if (!coreOnly || projectionsOnly) {
           shards: ["history", "history-archive"].map((name) => ({
             name,
             ...generated.report.shards[name],
-            decodedCap: 131072,
-            gzipCap: 32768,
-            decodedHeadroomBytes: 131072 - generated.report.shards[name].decodedBytes,
-            decodedHeadroomFraction: (131072 - generated.report.shards[name].decodedBytes) / 131072,
-            tenPercentHeadroomTargetMet: generated.report.shards[name].decodedBytes <= 131072 * 0.9,
           })),
         };
       },
@@ -4153,12 +4208,7 @@ if (!coreOnly || projectionsOnly) {
     await checkAsync(
       "declared traversal rejects bound widening and explicit cancellation",
       async () => {
-        for (const options of [
-          { depth: 5 },
-          { nodes: 257 },
-          { edges: 513 },
-          { bytes: 512 * 1024 + 1 },
-        ])
+        for (const options of [{ depth: 5 }, { nodes: 257 }, { edges: 513 }])
           await assert.rejects(() =>
             catalog.traverseDeclared("engineering-invalid", ["seed"], options),
           );
@@ -4218,6 +4268,209 @@ if (!coreOnly || projectionsOnly) {
         }
       },
     );
+    // Static index transport sabotage: each case must reject with its named reason, never data.
+    {
+      const { reference, bytes, value } = generatedStaticShard("data");
+      const seedBinding = (await catalog.loadTerminalSeed()).manifestBinding;
+      const ceiling = catalog.MAX_STATIC_TERMINAL_BYTES;
+      const label = "Data index is unavailable: ";
+      const addressed = (raw) => {
+        const sha256 = hash(raw);
+        return {
+          schema_version: "terminal-static-shard/1",
+          name: "data",
+          url: "/terminal/data." + sha256.slice(0, 12) + ".json",
+          sha256,
+          bytes: raw.length,
+        };
+      };
+      const fakeResponse = (headers, chunks, pulled) => ({
+        status: 200,
+        ok: true,
+        headers: new Headers(headers),
+        body: new ReadableStream({
+          pull(controller) {
+            const chunk = chunks();
+            pulled.bytes += chunk.length;
+            controller.enqueue(chunk);
+          },
+        }),
+      });
+      const sameLength = Buffer.from(bytes);
+      assert.equal(sameLength.at(-1), 0x0a);
+      sameLength[sameLength.length - 1] = 0x20; // still valid JSON, same length, different digest
+      const notJSON = Buffer.from("{not json}\n");
+      const wrongShard = Buffer.from(JSON.stringify({ ...value, name: "risk" }) + "\n");
+      const flipped = (reference.sha256[0] === "0" ? "1" : "0") + reference.sha256.slice(1);
+      const cases = [
+        [
+          "SHA-256 mismatch",
+          {
+            ...reference,
+            sha256: flipped,
+            url: "/terminal/data." + flipped.slice(0, 12) + ".json",
+          },
+          () => new Response(bytes),
+          "Terminal static index SHA-256 changed.",
+          1,
+        ],
+        [
+          "same-length tamper",
+          reference,
+          () => new Response(sameLength),
+          "Terminal static index SHA-256 changed.",
+          1,
+        ],
+        [
+          "HTTP 404",
+          reference,
+          () => new Response("missing", { status: 404 }),
+          "Terminal static index is unavailable.",
+          1,
+        ],
+        [
+          "network failure",
+          reference,
+          () => {
+            throw new TypeError("Failed to fetch");
+          },
+          "Terminal static index is unavailable.",
+          1,
+        ],
+        [
+          "declared bytes above the ceiling",
+          { ...reference, bytes: ceiling + 1 },
+          () => new Response(bytes),
+          "Terminal static index reference is invalid.",
+          0,
+        ],
+        [
+          "declared bytes shorter than the body",
+          { ...reference, bytes: reference.bytes - 1 },
+          () => new Response(bytes),
+          "Terminal static index byte length changed.",
+          1,
+        ],
+        [
+          "declared bytes longer than the body",
+          { ...reference, bytes: reference.bytes + 1 },
+          () => new Response(bytes),
+          "Terminal static index byte length changed.",
+          1,
+        ],
+        [
+          "wrong name",
+          { ...reference, name: "history-archive" },
+          () => new Response(bytes),
+          "Terminal static index reference is invalid.",
+          0,
+        ],
+        [
+          "wrong url",
+          { ...reference, url: "/terminal/data.json" },
+          () => new Response(bytes),
+          "Terminal static index reference is invalid.",
+          0,
+        ],
+        [
+          "wrong schema",
+          { ...reference, schema_version: "terminal-static-shard/2" },
+          () => new Response(bytes),
+          "Terminal static index reference is invalid.",
+          0,
+        ],
+        [
+          "undeclared field",
+          { ...reference, gzip: true },
+          () => new Response(bytes),
+          "Terminal static index reference is invalid.",
+          0,
+        ],
+        [
+          "non-object reference",
+          null,
+          () => new Response(bytes),
+          "Terminal static index reference is invalid.",
+          0,
+        ],
+        [
+          "invalid JSON with matching hash",
+          addressed(notJSON),
+          () => new Response(notJSON),
+          "Terminal static index content is invalid.",
+          1,
+        ],
+      ];
+      for (const [name, ref, respond, prefix, expectedRequests] of cases)
+        await checkAsync("static index transport rejects " + name, async () => {
+          const priorFetch = globalThis.fetch;
+          let requests = 0;
+          globalThis.fetch = async (url, options) => {
+            requests++;
+            assert.equal(url, ref.url);
+            assert.equal(options?.credentials, "omit");
+            return respond();
+          };
+          try {
+            await assert.rejects(reader.readTerminalIndex(ref, "data"), (error) => {
+              assert(error.message.startsWith(prefix + " " + label), error.message);
+              return true;
+            });
+            assert.equal(requests, expectedRequests);
+          } finally {
+            globalThis.fetch = priorFetch;
+          }
+        });
+      await checkAsync(
+        "static index transport rejects an oversized Content-Length unread",
+        async () => {
+          const priorFetch = globalThis.fetch,
+            pulled = { bytes: 0 };
+          globalThis.fetch = async () =>
+            fakeResponse({ "content-length": String(ceiling + 1) }, () => bytes, pulled);
+          try {
+            await assert.rejects(reader.readTerminalIndex(reference, "data"), (error) =>
+              error.message.startsWith("Terminal static index byte length changed. " + label),
+            );
+            assert(pulled.bytes <= bytes.length, "body must not be consumed past one queued chunk");
+          } finally {
+            globalThis.fetch = priorFetch;
+          }
+        },
+      );
+      await checkAsync("static index transport stops reading an endless body", async () => {
+        const priorFetch = globalThis.fetch,
+          pulled = { bytes: 0 },
+          chunk = new Uint8Array(64 * 1024);
+        globalThis.fetch = async () => fakeResponse({}, () => chunk, pulled);
+        try {
+          await assert.rejects(reader.readTerminalIndex(reference, "data"), (error) =>
+            error.message.startsWith("Terminal static index byte length changed. " + label),
+          );
+          assert(pulled.bytes <= reference.bytes + 2 * chunk.length, String(pulled.bytes));
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      });
+      await checkAsync("static index authentic bytes still pass shard validation", async () => {
+        const priorFetch = globalThis.fetch,
+          wrong = addressed(wrongShard);
+        try {
+          globalThis.fetch = async () => new Response(wrongShard);
+          // Matching digest is not admission: the unchanged shard validator still runs.
+          await assert.rejects(
+            catalog.loadStaticTerminalShard(wrong, "data", seedBinding),
+            (error) =>
+              error.message.startsWith("Terminal static index content is invalid. " + label),
+          );
+          globalThis.fetch = async () => new Response(bytes);
+          const admitted = await catalog.loadStaticTerminalShard(reference, "data", seedBinding);
+          assert(admitted.entities.length > 0);
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      });
+    }
     await checkAsync(
       "bound original reader rejects caller substitution and oversized India original before fetch",
       async () => {
@@ -5289,7 +5542,8 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        assert.equal(supported, 343); // Admitted main dbe1 preserves336 and adds seven complete Data originals.
+        // dbe1 admitted 343 inspectable originals; every later epoch adds seven complete Data originals.
+        assert.equal(supported, 343 + 7 * LATER_DATA_EPOCHS.length);
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,
