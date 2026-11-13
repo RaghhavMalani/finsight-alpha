@@ -2670,10 +2670,26 @@ function hydrateSweepWire(value: unknown): unknown {
   };
 }
 
+/** Largest single Risk artifact admitted on the wire; equals Python `ADMISSION_LIMIT`. */
+export const RISK_ADMISSION_LIMIT = 1024 * 1024;
+/** Format selection only (Python `COMPACT_THRESHOLD`): a receipt above it ships packed. */
+export const RISK_COMPACT_THRESHOLD = 128 * 1024;
+// Runaway guards on lazily fetched evidence, not targets: state + sweep (plus any failure-chain owner).
+export const RISK_SELECTED_BUDGET = 2 * RISK_ADMISSION_LIMIT;
+// Selected pair + one lazily read coverage leaf + metadata/projection must all fit.
+export const RISK_TOTAL_BUDGET = 4 * RISK_ADMISSION_LIMIT;
+
 export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"): State | Sweep {
   const validationStarted = performance.now();
-  if (new TextEncoder().encode(JSON.stringify(value)).byteLength + 1 > 128 * 1024)
-    fail("Risk artifact exceeds 128 KiB budget.");
+  const wireBytes = new TextEncoder().encode(JSON.stringify(value)).byteLength + 1;
+  if (wireBytes > RISK_ADMISSION_LIMIT) fail("Risk artifact exceeds admission limit.");
+  if (
+    kind === "risk-sweep" &&
+    (value as { schema_version?: unknown } | null)?.schema_version !== "risk-sweep/2" &&
+    wireBytes > RISK_COMPACT_THRESHOLD
+  )
+    // The producer packs every receipt above the threshold; raising admission admits no new transport.
+    fail("Risk receipt above compact threshold must use packed transport.");
   assertDerivedPayload(value);
   safeStrings(value);
   if (kind === "risk-sweep") value = hydrateSweepWire(value);

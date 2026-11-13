@@ -5,7 +5,13 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve, sep } from "node:path";
 import { chromium, firefox } from "playwright";
-import { stable, validateRisk } from "../src/risk-manager/contracts.ts";
+import {
+  stable,
+  validateRisk,
+  RISK_ADMISSION_LIMIT,
+  RISK_SELECTED_BUDGET,
+  RISK_TOTAL_BUDGET,
+} from "../src/risk-manager/contracts.ts";
 import { checkedIssueReferences } from "../src/risk-manager/evidence.ts";
 const at = process.argv.indexOf("--url");
 assert(at >= 0 && process.argv[at + 1], "Pass --url for the built preview");
@@ -193,7 +199,7 @@ for (const name of channels) {
     }
     raw = Buffer.from(stable(value) + "\n");
     if (attack === "oversized")
-      raw = Buffer.concat([raw, Buffer.alloc(128 * 1024 + 1 - raw.length, 32)]);
+      raw = Buffer.concat([raw, Buffer.alloc(RISK_ADMISSION_LIMIT + 1 - raw.length, 32)]);
     const [id, entry] = fixtureEntry(value, raw),
       m = structuredClone(manifest);
     const [, ownerEntry] = fixtureEntry(ownerWire, ownerRaw);
@@ -250,7 +256,7 @@ for (const name of channels) {
         await page.getByRole("region", { name: "Risk issue feed" }).locator("tbody tr").count(),
         real.length + (attack === "failed-v2-owner" ? 1 : 0),
       );
-      assert((await Promise.all(seen.values())).reduce((a, b) => a + b, 0) <= 256 * 1024);
+      assert((await Promise.all(seen.values())).reduce((a, b) => a + b, 0) <= RISK_SELECTED_BUDGET);
       if (attack === "failed-v2-owner")
         assert(seen.has(base + ownerEntry.url), "Owning v2 receipt is actually read");
     } else {
@@ -327,8 +333,8 @@ for (const name of channels) {
     .filter((r) => /risk-(state|sweep)-/.test(r.url))
     .reduce((n, r) => n + r.bytes, 0);
   const totalBytes = bodies.reduce((n, r) => n + r.bytes, 0);
-  assert(riskBytes <= 256 * 1024, "Initial selected risk data budget");
-  assert(totalBytes <= 512 * 1024, "Initial total data budget");
+  assert(riskBytes <= RISK_SELECTED_BUDGET, "Initial selected risk data budget");
+  assert(totalBytes <= RISK_TOTAL_BUDGET, "Initial total data budget");
   assert(
     !bodies.some((body) => body.url.endsWith("/replay-manifest.json")),
     "Global history metadata is deferred until explicit interaction",
@@ -785,10 +791,10 @@ for (const name of channels) {
       .reduce((sum, row) => sum + row.bytes, 0);
     const failedTotalBytes = failedReadRows.reduce((sum, row) => sum + row.bytes, 0);
     assert(
-      failedRiskBytes <= 256 * 1024,
+      failedRiskBytes <= RISK_SELECTED_BUDGET,
       "Failed scene counts source receipt within initial Risk budget",
     );
-    assert(failedTotalBytes <= 512 * 1024, "Failed scene total initial data budget");
+    assert(failedTotalBytes <= RISK_TOTAL_BUDGET, "Failed scene total initial data budget");
     assert.equal(
       await p.getByRole("region", { name: "Risk issue feed" }).locator("tbody tr").count(),
       real.length + 1,

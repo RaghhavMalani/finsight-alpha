@@ -2,7 +2,17 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useDataMode } from "@/replay/mode";
 import { loadRisk, readChecked, type RiskBundle } from "./client";
 import { filterIssues } from "./filters";
-import { partition, stamp, stable, type Issue, type State, type Sweep } from "./contracts";
+import {
+  partition,
+  stamp,
+  stable,
+  RISK_ADMISSION_LIMIT,
+  RISK_SELECTED_BUDGET,
+  RISK_TOTAL_BUDGET,
+  type Issue,
+  type State,
+  type Sweep,
+} from "./contracts";
 import { IssueFeed } from "./IssueFeed";
 import { IssueInspector } from "./IssueInspector";
 import { CoverageMatrix } from "./CoverageMatrix";
@@ -21,14 +31,16 @@ import {
 } from "@/app/terminal/context";
 import type { ContextBindings } from "@/app/terminal/compatibility";
 
-const PINNED_METADATA_RESERVATION = 48 * 1024 + 128 * 1024 + RISK_READ_PLAN.projection.bytes;
+// Navigation metadata + one lazily read coverage leaf + the read projection.
+const PINNED_METADATA_RESERVATION =
+  48 * 1024 + RISK_ADMISSION_LIMIT + RISK_READ_PLAN.projection.bytes;
 type RiskView = Extract<InvestigationView, { workspace: "risk" }>;
 type RetainedRiskBundle = RiskBundle & { stateSweepRef?: string };
 function cancelled(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException("Risk selection cancelled.", "AbortError");
 }
 function riskBudget(bytes: number): void {
-  if (bytes > 256 * 1024 || PINNED_METADATA_RESERVATION + bytes > 512 * 1024)
+  if (bytes > RISK_SELECTED_BUDGET || PINNED_METADATA_RESERVATION + bytes > RISK_TOTAL_BUDGET)
     throw new Error("Selected Risk evidence exceeds the bounded read budget.");
 }
 function ownerSweepRef(bundle: RiskBundle): string | undefined {
@@ -109,7 +121,12 @@ export async function loadRiskSelection(
   const manifest = validateReplayManifest({ ...base, artifacts, routes });
   const declaredBytes = (id: string) => {
     const entry = manifest.artifacts[id];
-    if (!entry || entry.status !== "AVAILABLE" || entry.bytes <= 0 || entry.bytes > 128 * 1024)
+    if (
+      !entry ||
+      entry.status !== "AVAILABLE" ||
+      entry.bytes <= 0 ||
+      entry.bytes > RISK_ADMISSION_LIMIT
+    )
       throw new Error("Risk artifact is outside its admitted read bound.");
     return entry.bytes;
   };
