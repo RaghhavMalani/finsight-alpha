@@ -32,6 +32,7 @@ import {
 import { adaptContext, type ContextBindings, type ContextCompatibility } from "./compatibility";
 import { buildInvestigationTarget, targetHref, type InvestigationTarget } from "./links";
 import { ContextBar, type VerifiedSelection } from "./ContextBar";
+import { resolveInstrument } from "../../markets/instruments";
 import "../shell/shell.css";
 import "./terminal.css";
 
@@ -74,6 +75,16 @@ export const requestSearch = createIsomorphicFn()
   .server(() => new URL(getRequest().url).search)
   .client(() => undefined);
 
+const UNKNOWN_LISTING =
+  "Unknown listing. Specify UN, UQ, UP or IN, or choose a recorded instrument.";
+function unknownListing(ticker: string) {
+  try {
+    resolveInstrument(ticker);
+    return false;
+  } catch (error) {
+    return error instanceof Error && error.message === UNKNOWN_LISTING;
+  }
+}
 function useRouteInvestigation() {
   const router = useRouter();
   const location = useRouterState({ select: (state) => state.location });
@@ -83,7 +94,9 @@ function useRouteInvestigation() {
   const params = useParams({ strict: false }) as { ticker?: string; runId?: string };
   const navigate = useNavigate();
   const workspace = workspaceOf(pathname) ?? "market";
-  const parsed = useMemo(() => {
+  const mode = useDataMode();
+  const liveMarket = workspace === "market" && mode === "live" && localLiveAllowed();
+  const strict = useMemo(() => {
     // Validate the raw URL before URLSearchParams can normalize malformed escapes or duplicate keys.
     const initial = safeParseInvestigationContext(workspace, rawSearch);
     if (!initial.ok) return initial;
@@ -121,6 +134,21 @@ function useRouteInvestigation() {
     }
     return safeParseInvestigationContext(workspace, query.toString());
   }, [workspace, rawSearch, params.ticker, params.runId]);
+  const parsed = useMemo(() => {
+    // Local Live serves any ticker its configured backend knows, as before typed context. Only a
+    // resolvable listing becomes the investigation subject; an unknown bare ticker stays a legacy
+    // Live field outside it. Replay, typed subjects and explicit venues stay strict.
+    if (strict.ok || !liveMarket || strict.error.message !== UNKNOWN_LISTING) return strict;
+    const query = new URLSearchParams(rawSearch);
+    if (["subject", "asset", "exchange"].some((key) => query.has(key))) return strict;
+    const bare = [params.ticker, query.get("ticker") ?? undefined].filter(
+      (ticker): ticker is string => !!ticker,
+    );
+    if (!bare.length || !bare.every(unknownListing)) return strict;
+    query.delete("ticker");
+    const relaxed = safeParseInvestigationContext(workspace, query.toString());
+    return relaxed.ok && !relaxed.context.subject ? relaxed : strict;
+  }, [strict, liveMarket, rawSearch, params.ticker, workspace]);
   const context = useMemo(
     () => (parsed.ok ? parsed.context : defaultContext(workspace)),
     [parsed, workspace],
