@@ -15,6 +15,13 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { chromium, firefox } from "playwright";
 import ts from "typescript";
+import {
+  MAX_SEED_MODULE_BYTES,
+  MAX_SEED_MODULE_GZIP_BYTES,
+  MAX_LAZY_MODULE_BYTES,
+  MAX_LAZY_MODULE_GZIP_BYTES,
+  MAX_STATIC_TERMINAL_BYTES,
+} from "../src/app/terminal/catalog.ts";
 
 const option = (key) => {
   const i = process.argv.indexOf(key);
@@ -37,6 +44,9 @@ assert(
 const base = input.origin,
   smoke = process.argv.includes("--smoke"),
   matrixOnly = process.argv.includes("--matrix-only");
+// Iteration aid: --only-cases <regex> narrows stage cases by label; final evidence runs all.
+const caseFilter = option("--only-cases") ? new RegExp(option("--only-cases")) : null;
+const selected = (label) => !caseFilter || caseFilter.test(label);
 const repo = fileURLToPath(new URL("../../", import.meta.url)),
   frontend = fileURLToPath(new URL("../", import.meta.url));
 const proofRoot = path.resolve(
@@ -164,7 +174,84 @@ function urlFor(workspace, route) {
   }
   return url.href;
 }
-async function pageFor(browser, viewport, archiveFixture) {
+// Static terminal indexes are data: hashed JSON fetched only on explicit demand.
+const STATIC_INDEX = /\/terminal\/(data|history-archive)\.[a-f0-9]{12}\.json$/;
+const STATIC_REFERENCE_MODULE = /\/(data|history-archive)\.generated-[^/]+\.js(?:$|\?)/;
+// Independent recomputation of the generated reference and the bytes the preview serves.
+function staticIndex(name) {
+  const text = readFileSync(
+    path.join(frontend, "src/app/terminal/generated", name + ".generated.ts"),
+    "utf8",
+  );
+  const reference = JSON.parse(text.match(/export default (\{.*\}) as const;/s)[1]);
+  assert.deepEqual(Object.keys(reference).sort(), [
+    "bytes",
+    "name",
+    "schema_version",
+    "sha256",
+    "url",
+  ]);
+  assert.equal(reference.schema_version, "terminal-static-shard/1");
+  assert.equal(reference.name, name);
+  assert.match(reference.sha256, /^[a-f0-9]{64}$/);
+  assert.equal(reference.url, "/terminal/" + name + "." + reference.sha256.slice(0, 12) + ".json");
+  const raw = readFileSync(path.join(frontend, ".vercel/output/static", reference.url));
+  assert(
+    raw.equals(readFileSync(path.join(frontend, "public", reference.url))),
+    "Served index differs",
+  );
+  assert.equal(sha(raw), reference.sha256, name + " static index SHA-256");
+  assert.equal(raw.length, reference.bytes, name + " static index bytes");
+  assert(raw.length <= MAX_STATIC_TERMINAL_BYTES, name + " static index exceeds its ceiling");
+  return { reference, raw };
+}
+const referenceFor = (name, body) => ({
+  schema_version: "terminal-static-shard/1",
+  name,
+  url: `/terminal/${name}.${sha(body).slice(0, 12)}.json`,
+  sha256: sha(body),
+  bytes: body.length,
+});
+// Transport faults are served through route interception only; nothing on disk changes.
+// Each declares the reason the application must surface.
+const STATIC_FAULTS = {
+  tampered: {
+    reason: /SHA-256/,
+    fixture: ({ raw }) => {
+      const body = Buffer.from(raw),
+        at = body.indexOf('"payloadDigest":"') + 17;
+      assert(at > 17, "Sealed index digest field required for tampering");
+      body[at] = body[at] === 0x30 ? 0x31 : 0x30;
+      assert.equal(body.length, raw.length);
+      return { status: 200, body };
+    },
+  },
+  missing: {
+    reason: /unavailable/,
+    fixture: () => ({ status: 404, body: Buffer.from("Not found") }),
+  },
+  unavailable: {
+    reason: /unavailable/,
+    fixture: () => ({ status: 503, body: Buffer.from("unavailable") }),
+  },
+  oversized: {
+    reason: /reference is invalid|byte length|exceed/,
+    fixture: ({ reference, raw }) => {
+      const body = Buffer.concat([
+        raw.subarray(0, raw.length - 1),
+        Buffer.alloc(MAX_STATIC_TERMINAL_BYTES + 1 - raw.length, 0x20),
+        Buffer.from("\n"),
+      ]);
+      assert(body.length > MAX_STATIC_TERMINAL_BYTES);
+      return { status: 200, body, reference: referenceFor(reference.name, body) };
+    },
+  },
+  length: {
+    reason: /byte length/,
+    fixture: ({ raw }) => ({ status: 200, body: raw.subarray(0, raw.length - 1) }),
+  },
+};
+async function pageFor(browser, viewport, staticFixtures = {}) {
   const context = await browser.newContext({
       viewport,
       reducedMotion: "reduce",
@@ -181,9 +268,23 @@ async function pageFor(browser, viewport, archiveFixture) {
   page.on("pageerror", (error) =>
     report.pageErrors.push({ url: page.url(), error: error.message }),
   );
+  const expectedConsoleErrors = [];
+  const failingStatuses = Object.values(staticFixtures)
+    .map((f) => f.status)
+    .filter((status) => status >= 400);
   page.on("console", (message) => {
-    if (message.type() === "error")
-      report.consoleErrors.push({ url: page.url(), error: message.text() });
+    if (message.type() !== "error") return;
+    const error = { url: page.url(), error: message.text() };
+    // Chromium logs the deliberately failed fixture fetch; only that exact status is excused.
+    if (
+      failingStatuses.some((status) =>
+        message
+          .text()
+          .startsWith("Failed to load resource: the server responded with a status of " + status),
+      )
+    )
+      expectedConsoleErrors.push(error);
+    else report.consoleErrors.push(error);
   });
   await context.route("**/*", async (route) => {
     const request = route.request(),
@@ -206,34 +307,21 @@ async function pageFor(browser, viewport, archiveFixture) {
       await route.abort("blockedbyclient");
       return;
     }
-    if (archiveFixture && /\/history-archive\.generated[-.]/.test(request.url())) {
-      const raw = Buffer.from(JSON.stringify(archiveFixture.value ?? archiveFixture) + "\n"),
-        digest = sha(raw);
-      const reference = {
-        schema_version: "terminal-static-shard/1",
-        name: "history-archive",
-        url: `/terminal/history-archive.${digest.slice(0, 12)}.json`,
-        sha256: digest,
-        bytes: raw.length,
-      };
+    const moduleFixture = staticFixtures[STATIC_REFERENCE_MODULE.exec(request.url())?.[1]];
+    if (moduleFixture?.reference) {
       await route.fulfill({
         status: 200,
         contentType: "text/javascript",
-        body: "export default " + JSON.stringify(reference) + ";",
+        body: "export default " + JSON.stringify(moduleFixture.reference) + ";",
       });
       return;
     }
-    if (archiveFixture && /\/terminal\/history-archive\.[a-f0-9]{12}\.json$/.test(request.url())) {
-      if (archiveFixture.fetchFailure) {
-        await route.fulfill({ status: 503, contentType: "application/json", body: "unavailable" });
-        return;
-      }
+    const indexFixture = staticFixtures[STATIC_INDEX.exec(new URL(request.url()).pathname)?.[1]];
+    if (indexFixture) {
       await route.fulfill({
-        status: 200,
+        status: indexFixture.status,
         contentType: "application/json",
-        body:
-          JSON.stringify(archiveFixture.value ?? archiveFixture) +
-          (archiveFixture.hashMismatch ? " \n" : "\n"),
+        body: indexFixture.body,
       });
       return;
     }
@@ -244,6 +332,11 @@ async function pageFor(browser, viewport, archiveFixture) {
       const url = new URL(response.url());
       if (!["http:", "https:"].includes(url.protocol) || response.request().method() === "HEAD")
         return;
+      // A same-origin redirect has no body; its target is requested, guarded and checked itself.
+      if (response.status() >= 300 && response.status() < 400) {
+        responses.push({ url: response.url(), status: response.status(), redirect: true });
+        return;
+      }
       const body = await response.body(),
         mime = response.headers()["content-type"] ?? "",
         js = /javascript/.test(mime) || /\.m?js$/.test(url.pathname);
@@ -276,10 +369,13 @@ async function pageFor(browser, viewport, archiveFixture) {
         js,
         data,
       });
-      assert(
-        response.status() < 400,
-        `Static Replay response failed: ${response.status()} ${url.pathname}`,
-      );
+      const deliberate = staticFixtures[STATIC_INDEX.exec(url.pathname)?.[1]]?.status;
+      if (deliberate >= 400) assert.equal(response.status(), deliberate, "Fixture fault status");
+      else
+        assert(
+          response.status() < 400,
+          `Static Replay response failed: ${response.status()} ${url.pathname}`,
+        );
       const original = originals.get(url.pathname);
       if (original) {
         assert.equal(body.length, original.entry.bytes, original.id);
@@ -299,7 +395,7 @@ async function pageFor(browser, viewport, archiveFixture) {
     })();
     pending.push(operation.catch((error) => responseErrors.push(error.stack ?? String(error))));
   });
-  return { context, page, requests, responses, pending, responseErrors };
+  return { context, page, requests, responses, pending, responseErrors, expectedConsoleErrors };
 }
 async function layoutOf(page, workspace) {
   const shell = page.getByTestId("terminal-shell");
@@ -2295,15 +2391,9 @@ async function capacityStage() {
 async function historyLayoutStage() {
   report.mode = "HISTORY_LAYOUT_CODEC_BROWSER_STAGE";
   report.layoutCodec = { evidenceClass: "ENGINEERING_QA", cases: [] };
-  const text = readFileSync(
-    path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
-    "utf8",
-  );
-  const reference = JSON.parse(text.match(/export default (\{.*\}) as const;/s)[1]),
-    archiveRaw = readFileSync(path.join(frontend, "public", reference.url)),
-    archive = JSON.parse(archiveRaw);
-  assert.equal(sha(archiveRaw), reference.sha256);
-  assert.equal(archiveRaw.length, reference.bytes);
+  const real = staticIndex("history-archive"),
+    { reference } = real,
+    archive = JSON.parse(real.raw);
   assert.equal(archive.schema_version, "terminal-shard/2");
   const { terminalDigest, packTerminalPayload, unpackTerminalPayload } =
     await import("../src/app/terminal/catalog.ts");
@@ -2358,8 +2448,12 @@ async function historyLayoutStage() {
   );
   const cases = [
     ["actual complete archive", null],
-    ["static SHA mismatch", (p) => p, false, false, "hashMismatch"],
-    ["static fetch failure", (p) => p, false, false, "fetchFailure"],
+    // Transport faults use the real generated bytes; the fifth field names the fault.
+    ["static SHA mismatch", null, false, false, "tampered"],
+    ["static fetch failure", null, false, false, "unavailable"],
+    ["static missing file", null, false, false, "missing"],
+    ["static oversized file", null, false, false, "oversized"],
+    ["static length mismatch", null, false, false, "length"],
     ["resealed missing layout", (p) => delete p.layouts],
     ["resealed duplicate layout", (p) => p.layouts.push(p.layouts[0])],
     ["resealed arity mismatch", (p) => p.structures.find((r) => r[0] === 2).pop()],
@@ -2401,22 +2495,28 @@ async function historyLayoutStage() {
       name === "firefox" ? { headless: true } : { headless: true, channel: name },
     );
     try {
-      for (const [label, mutate, reseal = true, accepted = !mutate, transportFailure] of cases) {
-        const changed = structuredClone(archive);
-        if (mutate) mutate(changed);
-        if (mutate && reseal) {
-          const { payloadDigest: _digest, ...sealed } = changed;
-          changed.payloadDigest = await terminalDigest(sealed);
+      for (const [label, mutate, reseal = true, accepted = !mutate, fault] of cases) {
+        if (!selected(label)) continue;
+        let staticFixture;
+        if (fault) staticFixture = STATIC_FAULTS[fault].fixture(real);
+        else if (mutate) {
+          const changed = structuredClone(archive);
+          mutate(changed);
+          if (reseal) {
+            const { payloadDigest: _digest, ...sealed } = changed;
+            changed.payloadDigest = await terminalDigest(sealed);
+          }
+          const body = Buffer.from(JSON.stringify(changed) + "\n");
+          staticFixture = { status: 200, body, reference: referenceFor("history-archive", body) };
         }
         const fixture = await pageFor(
           browser,
           { width: 1440, height: 1000 },
-          mutate
-            ? { value: changed, ...(transportFailure ? { [transportFailure]: true } : {}) }
-            : undefined,
+          staticFixture ? { "history-archive": staticFixture } : {},
         );
         try {
           await check(name + " history layout " + label, async () => {
+            let visible = null;
             await fixture.page.goto(urlFor("risk", "/risk"), { waitUntil: "networkidle" });
             assert(
               !fixture.requests.some((r) =>
@@ -2453,7 +2553,19 @@ async function historyLayoutStage() {
             const reads = fixture.responses.filter((r) =>
               /\/terminal\/history-archive\.[a-f0-9]{12}\.json$/.test(r.url),
             );
-            assert.equal(reads.length, 1, "Exactly one explicit archive static JSON read");
+            // An index declared beyond its ceiling may be refused before any transfer.
+            if (fault === "oversized") assert(reads.length <= 1, "At most one archive read");
+            else assert.equal(reads.length, 1, "Exactly one explicit archive static JSON read");
+            assert(
+              !fixture.requests.some((r) => /\/terminal\/data\./.test(r.url)),
+              "Retained history must not transfer the Data index",
+            );
+            if (!mutate && !fault) {
+              assert.equal(reads[0].status, 200);
+              assert.equal(reads[0].sha256, reference.sha256, "Archive response hash");
+              assert.equal(reads[0].bytes, reference.bytes, "Archive response bytes");
+              assert.equal(new URL(reads[0].url).pathname, reference.url);
+            }
             assert.equal(
               fixture.requests.filter((r) => originals.has(new URL(r.url).pathname)).length,
               originalReads,
@@ -2467,10 +2579,31 @@ async function historyLayoutStage() {
                 0,
                 "Invalid archive must clear navigable results",
               );
+              const shown = await dialog.locator('[aria-live="polite"]').innerText();
               assert.match(
-                await dialog.locator('[aria-live="polite"]').innerText(),
+                shown,
                 /terminal|layout|shard|metadata|manifest|bound|record|digest|hash|unavailable|fetch|503/i,
               );
+              if (fault) {
+                visible = shown;
+                const seen = " Visible: " + JSON.stringify(shown);
+                assert.match(shown, STATIC_FAULTS[fault].reason, "Reason must be visible." + seen);
+                // The rest of the terminal keeps working: current scope and the workspace recover.
+                await dialog
+                  .getByRole("checkbox", { name: "Include retained history", exact: true })
+                  .uncheck();
+                await fixture.page.waitForFunction(() => {
+                  const results = document.getElementById("forge-command-results");
+                  return (
+                    results?.getAttribute("aria-busy") === "false" &&
+                    results.querySelectorAll('[role="option"]').length > 0
+                  );
+                });
+                await fixture.page
+                  .getByRole("region", { name: "Risk issue feed", exact: true })
+                  .waitFor();
+                assert.match(shown, /unavailable/i, "Failed history must say unavailable." + seen);
+              }
             } else
               assert(
                 (await options.count()) > 0,
@@ -2481,9 +2614,12 @@ async function historyLayoutStage() {
               label,
               status: "PASS",
               mutated: !!mutate,
+              fault: fault ?? null,
               acceptedEncoding: accepted,
               archive: reads[0],
               results: await options.count(),
+              visible,
+              expectedConsoleErrors: fixture.expectedConsoleErrors,
             });
           });
         } finally {
@@ -2510,6 +2646,177 @@ async function historyLayoutStage() {
     }),
   );
   assert.equal(report.failures.length, 0, "History layout production browser checks failed");
+}
+// The Data index has no rendering consumer in the shipped UI: the Data workspace reads its own
+// Replay evidence. Its only consumer is the emitted catalog loadTerminalShard("data") export,
+// so the browser exercises exactly that production module against real and faulted bytes.
+async function staticIndexStage() {
+  report.mode = "STATIC_INDEX_BROWSER_STAGE";
+  const real = staticIndex("data");
+  report.staticIndexes = {
+    ceilings: { MAX_STATIC_TERMINAL_BYTES },
+    reference: real.reference,
+    consumer: 'emitted catalog loadTerminalShard("data")',
+    cases: [],
+  };
+  const assets = path.join(frontend, ".vercel/output/static/assets");
+  const catalogs = readdirSync(assets).filter((n) => /^catalog-[\w-]+\.js$/.test(n));
+  assert.equal(catalogs.length, 1, "Exactly one emitted terminal catalog module");
+  const catalogUrl = base + "/assets/" + catalogs[0];
+  const dataIndex = /\/terminal\/data\.[a-f0-9]{12}\.json$/;
+  const cases = [
+    ["actual Data index", null],
+    ["Data tampered", "tampered"],
+    ["Data missing file", "missing"],
+    ["Data oversized file", "oversized"],
+    ["Data length mismatch", "length"],
+  ];
+  const ready = (page) =>
+    page.waitForFunction(() => {
+      const results = document.getElementById("forge-command-results");
+      return (
+        results?.getAttribute("aria-busy") === "false" &&
+        results.querySelectorAll('[role="option"]').length > 0
+      );
+    });
+  for (const name of browsers) {
+    const browser = await (name === "firefox" ? firefox : chromium).launch(
+      name === "firefox" ? { headless: true } : { headless: true, channel: name },
+    );
+    try {
+      for (const [label, fault] of cases) {
+        if (!selected(label)) continue;
+        const fixture = await pageFor(
+          browser,
+          { width: 1440, height: 1000 },
+          fault ? { data: STATIC_FAULTS[fault].fixture(real) } : {},
+        );
+        const reads = () => fixture.requests.filter((r) => dataIndex.test(new URL(r.url).pathname));
+        try {
+          await check(name + " static index " + label, async () => {
+            const { page } = fixture;
+            await page.goto(urlFor("data", "/data"), { waitUntil: "networkidle" });
+            await page.locator('.data-workspace[data-state="ready"]').waitFor();
+            assert.equal(
+              reads().length,
+              0,
+              "Initial Data workspace load transferred the Data index",
+            );
+            await page.keyboard.press("Control+k");
+            const dialog = page.getByRole("dialog", { name: "Terminal command", exact: true });
+            await dialog.waitFor();
+            await page.waitForFunction(paletteUsable);
+            await dialog.getByRole("combobox").fill("IN-MKT");
+            await ready(page);
+            await dialog
+              .getByRole("checkbox", { name: "Include retained history", exact: true })
+              .check();
+            await ready(page);
+            await page.waitForLoadState("networkidle");
+            assert.equal(
+              reads().length,
+              0,
+              "Palette, search or history transferred the Data index",
+            );
+            await page.keyboard.press("Escape");
+            await dialog.waitFor({ state: "hidden" });
+            const invoke = () =>
+              page.evaluate(async (url) => {
+                const module = await import(url);
+                try {
+                  const shard = await module.loadTerminalShard("data");
+                  return {
+                    ok: true,
+                    name: shard.name,
+                    entities: shard.entities.length,
+                    bindings: Object.keys(shard.bindings).length,
+                  };
+                } catch (error) {
+                  return { ok: false, message: String(error?.message ?? error) };
+                }
+              }, catalogUrl);
+            const first = await invoke();
+            await page.waitForLoadState("networkidle");
+            await Promise.all(fixture.pending);
+            const responses = fixture.responses.filter((r) =>
+              dataIndex.test(new URL(r.url).pathname),
+            );
+            const record = {
+              browser: name,
+              label,
+              fault,
+              result: first,
+              requests: reads().length,
+              responses: responses.map(({ url, status, bytes, sha256 }) => ({
+                url,
+                status,
+                bytes,
+                sha256,
+              })),
+              expectedConsoleErrors: fixture.expectedConsoleErrors,
+            };
+            if (!fault) {
+              assert.equal(first.ok, true, "Real Data index must load: " + first.message);
+              assert.equal(first.name, "data");
+              assert(first.entities > 0 && first.bindings > 0, "Real Data index has records");
+              const again = await invoke();
+              assert.deepEqual(again, first);
+              assert.equal(reads().length, 1, "Exactly one Data index request");
+              assert.equal(responses.length, 1);
+              assert.equal(new URL(responses[0].url).pathname, real.reference.url);
+              assert.equal(responses[0].status, 200);
+              assert.equal(responses[0].sha256, real.reference.sha256, "Data response hash");
+              assert.equal(responses[0].bytes, real.reference.bytes, "Data response bytes");
+            } else {
+              assert.equal(first.ok, false, "Faulted Data index must be rejected, never partial");
+              assert.equal(first.name, undefined);
+              assert.match(first.message, STATIC_FAULTS[fault].reason, "Rejection reason");
+              if (fault === "oversized") assert(reads().length <= 1, "At most one Data read");
+              else assert.equal(reads().length, 1, "Exactly one Data index request");
+              // No crash, and the rest of the application keeps working.
+              await page.locator('.data-workspace[data-state="ready"]').waitFor();
+              await page.keyboard.press("Control+k");
+              await dialog.waitFor();
+              await page.waitForFunction(paletteUsable);
+              await dialog.getByRole("combobox").fill("IN-MKT");
+              await ready(page);
+              await page.keyboard.press("Escape");
+            }
+            assert.deepEqual(fixture.responseErrors, []);
+            report.staticIndexes.cases.push({ ...record, status: "PASS" });
+          });
+        } finally {
+          await fixture.context.close();
+        }
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+  for (const key of ["blockedRequests", "pageErrors", "consoleErrors"])
+    if (report[key].length) report.failures.push({ name: key, error: JSON.stringify(report[key]) });
+  report.status = report.failures.length ? "FAIL" : "PASS_STATIC_INDEX_BROWSER_STAGE";
+  writeFileSync(
+    path.join(proofRoot, "static-index-browser-proof.json"),
+    JSON.stringify(report, null, 2) + "\n",
+  );
+  console.log(
+    JSON.stringify({
+      status: report.status,
+      cases: report.staticIndexes.cases.map(({ browser, label, result, requests }) => ({
+        browser,
+        label,
+        result,
+        requests,
+      })),
+      failures: report.failures.map((x) => ({ name: x.name, error: x.error.split("\n")[0] })),
+    }),
+  );
+  assert.equal(report.failures.length, 0, "Static index browser checks failed");
+}
+if (process.argv.includes("--static-index-only")) {
+  await staticIndexStage();
+  process.exit(0);
 }
 if (process.argv.includes("--history-layout-only")) {
   await historyLayoutStage();
