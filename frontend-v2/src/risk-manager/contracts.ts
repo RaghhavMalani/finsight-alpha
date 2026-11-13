@@ -2679,9 +2679,15 @@ export const RISK_SELECTED_BUDGET = 2 * RISK_ADMISSION_LIMIT;
 // Selected pair + one lazily read coverage leaf + metadata/projection must all fit.
 export const RISK_TOTAL_BUDGET = 4 * RISK_ADMISSION_LIMIT;
 
-export function validateRisk(value: unknown, kind: "risk-state" | "risk-sweep"): State | Sweep {
+export function validateRisk(
+  value: unknown,
+  kind: "risk-state" | "risk-sweep",
+  // Callers holding the fetched bytes pass their length: it is what was admitted, and JSON.stringify
+  // can differ from the producer's canonical float formatting near a boundary.
+  rawBytes?: number,
+): State | Sweep {
   const validationStarted = performance.now();
-  const wireBytes = new TextEncoder().encode(JSON.stringify(value)).byteLength + 1;
+  const wireBytes = rawBytes ?? new TextEncoder().encode(JSON.stringify(value)).byteLength + 1;
   if (wireBytes > RISK_ADMISSION_LIMIT) fail("Risk artifact exceeds admission limit.");
   if (
     kind === "risk-sweep" &&

@@ -139,11 +139,31 @@ def test_read_artifact_rejects_one_byte_over_admission(tmp_path):
         path.write_bytes(raw)
         return identity, {"artifacts": {identity: entry(identity, leaf, raw)}}
 
-    identity, listing = stored(ADMISSION_LIMIT)
+    identity, listing = stored(len(leaf_raw))
     assert read_artifact(tmp_path, listing, identity) == leaf
+    # At the limit the stored file is refused for its padding, not for its size.
+    identity, listing = stored(ADMISSION_LIMIT)
+    with pytest.raises(ValueError, match="not canonical"):
+        read_artifact(tmp_path, listing, identity)
     identity, listing = stored(ADMISSION_LIMIT + 1)
     with pytest.raises(ValueError, match="Risk bytes mismatch"):
         read_artifact(tmp_path, listing, identity)
+
+
+def test_read_artifact_rejects_non_canonical_bytes_under_their_own_identity(tmp_path):
+    """Sabotage: without the canonical check one artifact could carry many identities."""
+    fixture_root(tmp_path)
+    manifest, risk = retained()
+    state = decode((PUBLIC / risk[manifest["routes"]["/risk-manager/state"]]["url"].lstrip("/")).read_bytes())
+    leaf_id = next(r["artifact_id"] for r in state["payload"]["evidence_index"] if r["selector_id"] == "risk_coverage")
+    leaf_raw = (PUBLIC / risk[leaf_id]["url"].lstrip("/")).read_bytes()
+    raw = leaf_raw[:-1] + b" \n"
+    identity = "risk:state:" + sha256(raw).hexdigest()
+    path = tmp_path / "frontend-v2/public/artifacts/replay" / (identity.replace(":", "-") + ".json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+    with pytest.raises(ValueError, match="not canonical"):
+        read_artifact(tmp_path, {"artifacts": {identity: entry(identity, decode(raw), raw)}}, identity)
 
 
 def test_receipt_at_threshold_stays_legacy_and_one_byte_over_is_packed():

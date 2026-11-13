@@ -483,6 +483,9 @@ def read_artifact(root, manifest, identity, *, wire=False):
     if len(raw)>ADMISSION_LIMIT or len(raw)!=e["bytes"] or sha256(raw).hexdigest()!=e["sha256"] or e["sha256"]!=identity.rsplit(":",1)[-1]:
         raise ValueError("Risk bytes mismatch")
     value=decode(raw)
+    if canonical(value)+b"\n"!=raw:
+        # One logical artifact has one identity; padding cannot ride under the admission limit.
+        raise ValueError("Risk bytes are not canonical")
     checked,_=validate_public(value,root)
     if entry(identity,value,raw)!=e:
         raise ValueError("Risk manifest entry substitution")

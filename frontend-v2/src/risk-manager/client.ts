@@ -139,6 +139,7 @@ export async function readChecked(
   const value = validateRisk(
     strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(raw)),
     expectedKind,
+    raw.byteLength,
   );
   await verifyRiskIdentity(value);
   checkReferencedEntries(value, manifest);
