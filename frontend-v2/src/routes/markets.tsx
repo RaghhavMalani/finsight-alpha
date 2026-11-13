@@ -18,7 +18,7 @@ import {
   type InvestigationContext,
 } from "@/app/terminal/context";
 import { isTextField } from "@/app/workspaces";
-import { normalizeTicker, parseBarRange, type BarRange } from "@/markets/contracts";
+import { normalizeTicker, overviewTarget, parseBarRange, type BarRange } from "@/markets/contracts";
 import TickerSearch from "@/markets/TickerSearch";
 import { Loading } from "@/markets/ui";
 import "@/markets/markets.css";
@@ -170,24 +170,28 @@ function MarketsWorkspace() {
       return;
     }
     setPickError(null);
-    updateContext(
-      {
-        ...context,
-        market: nextFactor ? (nextFactor.id === "IN-MKT" ? "INDIA" : "US") : listing!.market,
-        subject: nextFactor
-          ? { kind: "market-factor", id: nextFactor.id }
-          : {
-              kind: "reference-listing",
-              providerSymbol: listing!.providerSymbol,
-              venue: listing!.code,
-            },
-        anchor: undefined,
-        compare: undefined,
-        observationDate: undefined,
-        view: { workspace: "market" },
-      },
-      "push",
-    );
+    const picked: InvestigationContext = {
+      ...context,
+      market: nextFactor ? (nextFactor.id === "IN-MKT" ? "INDIA" : "US") : listing!.market,
+      subject: nextFactor
+        ? { kind: "market-factor", id: nextFactor.id }
+        : {
+            kind: "reference-listing",
+            providerSymbol: listing!.providerSymbol,
+            venue: listing!.code,
+          },
+      anchor: undefined,
+      compare: undefined,
+      observationDate: undefined,
+      view: { workspace: "market" },
+    };
+    // On a ticker path the path names the subject, so the pick moves the path with it.
+    if (params.ticker)
+      void navigate({
+        ...overviewTarget(subjectTicker(picked.subject)!),
+        search: serializeInvestigationContext(picked),
+      } as never);
+    else updateContext(picked, "push");
   };
   const chooseAggregate = (id: "US-MKT" | "IN-MKT") =>
     updateContext(
