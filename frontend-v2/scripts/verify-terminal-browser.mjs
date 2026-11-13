@@ -2889,6 +2889,7 @@ async function staticIndexStage() {
               assert.equal(first.ok, false, "Faulted Data index must be rejected, never partial");
               assert.equal(first.name, undefined);
               assert.match(first.message, STATIC_FAULTS[fault].reason, "Rejection reason");
+              assert.match(first.message, /unavailable/i, "Rejection must say unavailable");
               if (fault === "oversized") assert(reads().length <= 1, "At most one Data read");
               else assert.equal(reads().length, 1, "Exactly one Data index request");
               // No crash, and the rest of the application keeps working.
