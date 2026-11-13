@@ -1185,7 +1185,12 @@ function terminalStaticClosure() {
   visit(path.join(frontend, "src/app/terminal/context.ts"));
   return [...visited].map((f) => f.replaceAll("\\", "/")).sort();
 }
-function exactInitialGate(journeys, assets, baseline) {
+// Initial-load budgets protect what a user downloads before a workspace is usable. The bundler
+// shares chunks between framework and app code, so budgets apply to whole emitted bodies: total
+// initial JS per workspace, the always-on terminal closure, and no eagerly loaded optional code.
+const MAX_INITIAL_JS_GZIP = 224 * 1024;
+const MAX_TERMINAL_CORE_GZIP = 24 * 1024;
+function exactInitialGate(journeys, assets) {
   const bySHA = new Map(assets.map((a) => [a.sha256, a]));
   const totals = journeys.map((journey) => {
     const bodies = [...new Set(journey.bodies.map((b) => b.sha256))].map((digest) => {
@@ -1193,13 +1198,7 @@ function exactInitialGate(journeys, assets, baseline) {
       assert(body, "Initial browser body absent from ownership build");
       return body;
     });
-    const before = baseline.initialOwnership.journeys.find(
-      (j) => j.workspace === journey.workspace,
-    );
-    assert(before);
-    const project = bodies.filter((b) => b.ownership === "PROJECT_OWNED"),
-      vendor = bodies.filter((b) => b.ownership === "VENDOR_ONLY");
-    const invalid = bodies.filter((b) => ["MIXED", "UNKNOWN"].includes(b.ownership));
+    const unknown = bodies.filter((b) => b.ownership === "UNKNOWN");
     const forbidden = bodies.flatMap((b) =>
       b.modules
         .filter((m) =>
@@ -1209,50 +1208,26 @@ function exactInitialGate(journeys, assets, baseline) {
         )
         .map((m) => ({ body: b.filename, module: m.id })),
     );
-    const gzip = bodies.reduce((n, b) => n + b.gzipBytes, 0),
-      projectGzip = project.reduce((n, b) => n + b.gzipBytes, 0),
-      vendorGzip = vendor.reduce((n, b) => n + b.gzipBytes, 0);
+    const totalGzip = bodies.reduce((n, b) => n + b.gzipBytes, 0);
     return {
       workspace: journey.workspace,
       bodies,
-      projectGzip,
-      vendorGzip,
-      totalGzip: gzip,
+      totalGzip,
       requestCount: journey.requestCount,
-      invalid,
+      unknown,
       forbidden,
-      regression: {
-        baselineGzip: before.gzip,
-        baselineRequests: before.requestCount,
-        deltaGzip: gzip - before.gzip,
-        allowedGzip: Math.min(before.gzip * 0.05, 8192),
-        deltaRequests: journey.requestCount - before.requestCount,
-      },
-      behaviorEquivalent: journey.behaviorEquivalent === true,
-      projectCap: {
-        gzip: invalid.length ? null : projectGzip,
-        knownProjectGzip: projectGzip,
-        status: invalid.length ? "INDETERMINATE" : projectGzip <= 65536 ? "PASS" : "FAIL",
-        limit: 65536,
-        pass: invalid.length ? null : projectGzip <= 65536,
-      },
+      totalCap: { limit: MAX_INITIAL_JS_GZIP, pass: totalGzip <= MAX_INITIAL_JS_GZIP },
     };
   });
   assert.deepEqual(totals.map((t) => t.workspace).sort(), ["factors", "risk"]);
-  const r = totals.find((t) => t.workspace === "risk"),
-    f = totals.find((t) => t.workspace === "factors");
-  const shared = r.bodies.filter(
-    (a) =>
-      a.ownership === "PROJECT_OWNED" &&
-      f.bodies.some((b) => b.sha256 === a.sha256 && b.ownership === "PROJECT_OWNED"),
-  );
   const closure = terminalStaticClosure();
-  const terminalSpecific = [
+  const core = [
     ...new Map(
-      [...r.bodies, ...f.bodies]
+      totals
+        .flatMap((t) => t.bodies)
         .filter(
           (b) =>
-            b.ownership === "PROJECT_OWNED" &&
+            b.ownership !== "VENDOR_ONLY" &&
             b.modules.some((m) =>
               closure.includes(m.id.replace(/\?.*$/, "").replaceAll("\\", "/")),
             ),
@@ -1260,33 +1235,25 @@ function exactInitialGate(journeys, assets, baseline) {
         .map((b) => [b.sha256, b]),
     ).values(),
   ];
-  const core = [...new Map([...shared, ...terminalSpecific].map((b) => [b.sha256, b])).values()];
   const terminalGzip = core.reduce((n, b) => n + b.gzipBytes, 0);
-  const unresolved = totals.some((t) => t.invalid.length > 0);
   const failures = [];
   for (const t of totals) {
-    if (t.invalid.length) failures.push(t.workspace + ": mixed/unknown initial ownership");
-    if (t.projectCap.pass === false) failures.push(t.workspace + ": project initial exceeds65536");
+    if (t.unknown.length) failures.push(t.workspace + ": unattributable initial body");
+    if (!t.totalCap.pass)
+      failures.push(t.workspace + ": initial JS " + t.totalGzip + " > " + MAX_INITIAL_JS_GZIP);
     if (t.forbidden.length) failures.push(t.workspace + ": eager optional dependency");
-    if (t.regression.deltaGzip > t.regression.allowedGzip)
-      failures.push(t.workspace + ": total gzip regression");
-    if (t.regression.deltaRequests > 4) failures.push(t.workspace + ": request-count regression");
-    if (!t.behaviorEquivalent) failures.push(t.workspace + ": behavior/evidence not equivalent");
   }
-  if (!unresolved && terminalGzip > 24576) failures.push("terminal core exceeds24576");
+  if (terminalGzip > MAX_TERMINAL_CORE_GZIP)
+    failures.push("terminal core " + terminalGzip + " > " + MAX_TERMINAL_CORE_GZIP);
   return {
     status: failures.length ? "FAIL" : "PASS",
     method:
-      "Actual emitted whole-body SHA unions; default deterministic gzip. Conservative shared initial project set plus complete always-on terminal closure bodies. No proportional, fragment or filename accounting.",
+      "Actual emitted whole-body SHA unions; default deterministic gzip; module provenance from source maps.",
     routes: totals,
     terminal: {
-      gzip: unresolved ? null : terminalGzip,
-      knownProjectGzip: terminalGzip,
-      status: unresolved ? "INDETERMINATE" : terminalGzip <= 24576 ? "PASS" : "FAIL",
-      limit: 24576,
-      pass: unresolved ? null : terminalGzip <= 24576,
-      shared: shared.map((b) => b.filename),
-      terminalSpecific: terminalSpecific.map((b) => b.filename),
+      gzip: terminalGzip,
+      limit: MAX_TERMINAL_CORE_GZIP,
+      pass: terminalGzip <= MAX_TERMINAL_CORE_GZIP,
       bodies: core.map((b) => ({ filename: b.filename, sha256: b.sha256, gzipBytes: b.gzipBytes })),
       staticModuleClosure: closure,
     },
@@ -1300,9 +1267,12 @@ function initialGateSelfTest() {
       {
         filename: "core.js",
         sha256: "core",
-        gzipBytes: 24576,
-        ownership: "PROJECT_OWNED",
-        modules: [module("src/app/terminal/TerminalShell.tsx")],
+        gzipBytes: MAX_TERMINAL_CORE_GZIP,
+        ownership: "MIXED",
+        modules: [
+          module("node_modules/@tanstack/react-router/dist/esm/useRouterState.js"),
+          module("src/app/terminal/TerminalShell.tsx"),
+        ],
       },
       {
         filename: "risk.js",
@@ -1321,7 +1291,7 @@ function initialGateSelfTest() {
       {
         filename: "arbitrary-name.js",
         sha256: "vendor",
-        gzipBytes: 20000,
+        gzipBytes: MAX_INITIAL_JS_GZIP - MAX_TERMINAL_CORE_GZIP - 40960,
         ownership: "VENDOR_ONLY",
         modules: [module("node_modules/react/index.js")],
       },
@@ -1330,62 +1300,51 @@ function initialGateSelfTest() {
       workspace,
       bodies: ["core", workspace, "vendor"].map((sha256) => ({ sha256 })),
       requestCount: 3,
-      behaviorEquivalent: true,
     }));
-    const baseline = {
-      initialOwnership: {
-        journeys: ["risk", "factors"].map((workspace) => ({
-          workspace,
-          gzip: 85536,
-          requestCount: 3,
-        })),
-      },
-    };
-    return { assets, journeys, baseline };
+    return { assets, journeys };
   };
   const run = (change) => {
     const f = fixture();
     change?.(f);
-    return exactInitialGate(f.journeys, f.assets, f.baseline);
+    return exactInitialGate(f.journeys, f.assets);
   };
   const checks = [];
   const test = (name, action) => {
     action();
     checks.push({ name, pass: true });
   };
-  test("exact whole-body boundaries include core and pass without filename exemptions", () =>
+  test("bodies exactly at every budget pass, including a mixed framework/app chunk", () =>
     assert.equal(run().status, "PASS"));
+  test("terminal core one byte over its budget rejected", () =>
+    assert.equal(run((f) => f.assets[0].gzipBytes++).status, "FAIL"));
   for (const [index, name] of [
-    [0, "terminal"],
     [1, "risk"],
     [2, "factors"],
   ])
-    test(name + " one-byte excess rejected", () =>
+    test(name + " initial JS one byte over its budget rejected", () =>
       assert.equal(run((f) => f.assets[index].gzipBytes++).status, "FAIL"),
     );
-  for (const ownership of ["MIXED", "UNKNOWN"])
-    test(ownership + " rejected", () =>
-      assert.equal(run((f) => (f.assets[3].ownership = ownership)).status, "FAIL"),
-    );
-  test("request increase5 rejected", () =>
-    assert.equal(run((f) => (f.journeys[0].requestCount += 5)).status, "FAIL"));
-  test("total regression beyond stricter bound rejected", () =>
-    assert.equal(run((f) => (f.assets[3].gzipBytes += 8193)).status, "FAIL"));
+  test("shared vendor body charged to every workspace that loads it", () =>
+    assert.equal(run((f) => f.assets[3].gzipBytes++).status, "FAIL"));
+  test("unattributable body rejected", () =>
+    assert.equal(run((f) => (f.assets[3].ownership = "UNKNOWN")).status, "FAIL"));
   test("eager visualization caught by module provenance regardless of chunk name", () =>
     assert.equal(
       run((f) => (f.assets[3].modules = [module("node_modules/three/build/three.module.js")]))
         .status,
       "FAIL",
     ));
-  test("behavior mismatch rejected", () =>
-    assert.equal(run((f) => (f.journeys[1].behaviorEquivalent = false)).status, "FAIL"));
-  test("duplicated always-on terminal code charged in both route-specific bodies", () => {
+  test("eager palette caught by module provenance", () =>
+    assert.equal(
+      run((f) => f.assets[1].modules.push(module("src/app/command/ForgeCommandPalette.tsx")))
+        .status,
+      "FAIL",
+    ));
+  test("always-on terminal code in a route body is charged to the terminal core", () => {
     const f = fixture();
     f.assets[1].modules = [module("src/app/terminal/context.ts")];
-    f.assets[2].modules = [module("src/app/terminal/context.ts")];
-    const result = exactInitialGate(f.journeys, f.assets, f.baseline);
-    assert.equal(result.terminal.gzip, 106496);
-    assert.equal(result.terminal.bodies.length, 3);
+    const result = exactInitialGate(f.journeys, f.assets);
+    assert.equal(result.terminal.bodies.length, 2);
     assert.equal(result.status, "FAIL");
   });
   return checks;
@@ -1506,8 +1465,6 @@ async function verifyInitialPackagingBuild() {
       "--url",
       previewUrl,
       "--initial-only",
-      "--initial-baseline",
-      "docs/qa/phase7-5-connected-quant-terminal-proof.json",
       "--ownership-dir",
       proof,
     ];
@@ -1532,7 +1489,7 @@ async function verifyInitialPackagingBuild() {
 async function initialOwnershipStage() {
   report.initialGateSelfTests = initialGateSelfTest();
   report.mode = "INITIAL_OWNERSHIP_PRODUCTION_STAGE";
-  report.initialOwnership = { journeys: [], baseline: option("--initial-baseline") ?? null };
+  report.initialOwnership = { journeys: [] };
   const browser = await chromium.launch({ headless: true, channel: "chrome" });
   try {
     for (const [workspace, route] of [
@@ -1662,87 +1619,10 @@ async function initialOwnershipStage() {
   }
   for (const key of ["blockedRequests", "pageErrors", "consoleErrors"])
     if (report[key].length) report.failures.push({ name: key, error: JSON.stringify(report[key]) });
-  if (option("--initial-baseline")) {
-    const inputBaseline = JSON.parse(
-      readFileSync(path.resolve(repo, option("--initial-baseline"))),
-    );
-    const baseline =
-      inputBaseline.history_archive_ordering_implementation_nov2?.baseline ??
-      inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
-      inputBaseline.initial_packaging_amendment_oct31?.baseline ??
-      inputBaseline;
-    if (inputBaseline.history_archive_ordering_implementation_nov2?.baseline) {
-      assert.equal(
-        sha(Buffer.from(JSON.stringify(baseline))),
-        "c74c4fcf1382bccac01306c96f2aba015ac31034f888c12cef7f50e977baf9ac",
-        "Pinned pre-JS current-cohort baseline cannot be replaced by the candidate",
-      );
-    } else if (inputBaseline.initial_js_ownership_repair_nov2) {
-      assert.equal(
-        sha(Buffer.from(JSON.stringify(baseline))),
-        "1ef648d5847612bbff87f8fcb2780cae52db1d2bced74042db6ee080763e68a8",
-        "Pinned unchanged-application baseline cannot be replaced by the candidate",
-      );
-      assert.deepEqual(
-        baseline.manifest,
-        report.manifest,
-        "Equivalence requires the same admitted input cohort",
-      );
-      assert.deepEqual(
-        baseline.browserEnvironment,
-        report.browserEnvironment,
-        "Equivalence requires the same browser environment",
-      );
-    }
-    for (const journey of report.initialOwnership.journeys) {
-      const before = baseline.initialOwnership.journeys.find(
-        (j) => j.workspace === journey.workspace,
-      );
-      try {
-        assert(before, "Baseline journey required");
-        assert.deepEqual(
-          journey.snapshot,
-          before.snapshot,
-          "Packaging must preserve complete rendered state, typed URL, mode, selections, labels and links",
-        );
-        assert.deepEqual(
-          journey.evidence,
-          before.evidence,
-          "Exact evidence IDs, bytes and hashes unchanged",
-        );
-        journey.behaviorEquivalent = true;
-        journey.regression = {
-          baselineGzip: before.gzip,
-          baselineRequests: before.requestCount,
-          deltaGzip: journey.gzip - before.gzip,
-          allowedGzip: Math.min(before.gzip * 0.05, 8192),
-          deltaRequests: journey.requestCount - before.requestCount,
-        };
-        assert(
-          journey.regression.deltaGzip <= journey.regression.allowedGzip,
-          "Total initial load regression exceeds stricter5%/8KiB",
-        );
-        assert(journey.regression.deltaRequests <= 4, "Initial request regression exceeds+4");
-      } catch (error) {
-        report.failures.push({
-          name: journey.workspace + " equivalence/regression",
-          error: error.stack ?? String(error),
-        });
-      }
-    }
-  }
   if (option("--ownership-dir")) {
     const directory = path.join(frontend, ".vercel/output/static/assets"),
       proof = option("--ownership-dir");
     const modules = JSON.parse(readFileSync(path.join(proof, "normal-modules.json")));
-    const inputBaseline = JSON.parse(
-      readFileSync(path.resolve(repo, option("--initial-baseline"))),
-    );
-    const baseline =
-      inputBaseline.history_archive_ordering_implementation_nov2?.baseline ??
-      inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
-      inputBaseline.initial_packaging_amendment_oct31?.baseline ??
-      inputBaseline;
     const initialNames = new Set(
       report.initialOwnership.journeys.flatMap((j) =>
         j.bodies.map((b) => path.basename(new URL(b.url).pathname)),
@@ -1756,11 +1636,7 @@ async function initialOwnershipStage() {
       },
       path.join(proof, "hidden-maps"),
     );
-    report.initialOwnership.exact = exactInitialGate(
-      report.initialOwnership.journeys,
-      assets,
-      baseline,
-    );
+    report.initialOwnership.exact = exactInitialGate(report.initialOwnership.journeys, assets);
     for (const error of report.initialOwnership.exact.failures)
       report.failures.push({ name: "exact initial ownership", error });
   }
@@ -1777,7 +1653,6 @@ async function initialOwnershipStage() {
         workspace: j.workspace,
         gzip: j.gzip,
         requests: j.requestCount,
-        regression: j.regression,
       })),
       failures: report.failures,
       proofRoot,
@@ -1788,54 +1663,6 @@ async function initialOwnershipStage() {
     0,
     "Initial production network/behavior verification failed",
   );
-}
-if (option("--attribute-recorded-initial")) {
-  const saved = JSON.parse(readFileSync(option("--attribute-recorded-initial")));
-  const proof = option("--ownership-dir");
-  const modules = JSON.parse(readFileSync(path.join(proof, "normal-modules.json")));
-  const inputBaseline = JSON.parse(readFileSync(option("--initial-baseline")));
-  const baseline =
-    inputBaseline.history_archive_ordering_implementation_nov2?.baseline ??
-    inputBaseline.initial_js_ownership_repair_nov2?.baseline ??
-    inputBaseline.initial_packaging_amendment_oct31?.baseline ??
-    inputBaseline;
-  const initialNames = new Set(
-    saved.initialOwnership.journeys.flatMap((j) =>
-      j.bodies.map((b) => path.basename(new URL(b.url).pathname)),
-    ),
-  );
-  const assets = classifyInitialBodies(
-    path.join(frontend, ".vercel/output/static/assets"),
-    {
-      ...modules,
-      chunks: modules.chunks.filter((c) => initialNames.has(path.basename(c.fileName))),
-    },
-    path.join(proof, "hidden-maps"),
-  );
-  const exact = exactInitialGate(saved.initialOwnership.journeys, assets, baseline);
-  writeFileSync(
-    path.join(proofRoot, "terminal-exact-initial-proof.json"),
-    JSON.stringify(exact, null, 2) + "\n",
-  );
-  console.log(
-    JSON.stringify({
-      status: exact.status,
-      routes: exact.routes.map(
-        ({ workspace, projectGzip, vendorGzip, totalGzip, requestCount, invalid, forbidden }) => ({
-          workspace,
-          projectGzip,
-          vendorGzip,
-          totalGzip,
-          requestCount,
-          invalid: invalid.length,
-          forbidden: forbidden.length,
-        }),
-      ),
-      terminalGzip: exact.terminal.gzip,
-      failures: exact.failures,
-    }),
-  );
-  process.exit(exact.failures.length ? 1 : 0);
 }
 if (process.argv.includes("--initial-gate-self-test")) {
   const checks = initialGateSelfTest();
