@@ -64,3 +64,22 @@ In flight
   refuses to replay in a drifted environment (sabotage test added). The frozen artifact is untouched.
 - `ci.yml` now also runs on `workflow_run` of "Checked organs" and on dispatch (`00f09f4`).
 - The first three sub-agents ran into a rate limit; restarted on another model with their partial diffs intact.
+
+## 2026-11-13 — M0 integration on `m0/unblock-terminal-and-risk`
+
+- Terminal core done (b6b4322, b85893e, 92f579b, 91d0e15): named ceilings everywhere, static indexes fail closed
+  with the reason, stale static files pruned, `--check` catches stale/missing/tampered files, 16 node-level
+  sabotage checks. `verify-terminal-context.mjs`: 643 checks, ~2 min. The commit-shape epoch walk and the
+  Phase 7.5 approved-file-scope guards were replaced by an append-only check on the current manifest (verified
+  in a simulated post-merge main).
+- Browser verifier done (3bf50d5, 3ccd2a6, 68637a4): code budgets count code only; 21 new negative cases x 3
+  browsers; static-index stage 15/15, history layout 60/60.
+- Initial-packaging gate (c40f0f0): replaced the 12.8 MB 2-Nov snapshot comparison and chunk-ownership
+  attribution with whole-body budgets (initial JS <= 224 KiB gzip per workspace, terminal core <= 24 KiB,
+  no eager optional modules). `npm run verify:terminal:initial` passes: Risk 204,494 B, Factors 185,452 B.
+- CI now also runs `generate-terminal-index --check`, `verify-terminal-context.mjs` and the static-index stage.
+- Palette no longer shows "No eligible result" under an unavailable-index reason (69211dc).
+- Full browser matrix (not in CI) still fails 61/89 on pre-existing issues: the 623 KB replay manifest loads
+  on Market and Data initial load; /dynamics initial JS 260 KB gzip; 8-10 px text on Risk/Factors. M3 work.
+- Data static index has no UI consumer (`loadTerminalShard("data")` is never called); candidate for deletion.
+- Waiting on: Risk frontend (m0-risk). Then: merge, full local CI, adversarial review, push, merge PR #30.
