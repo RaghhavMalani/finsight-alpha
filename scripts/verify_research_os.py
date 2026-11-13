@@ -59,8 +59,15 @@ def verify(full_calibration=False):
     if full_calibration:
         # Bit-exact replay is only defined in the recorded environment. Report drift as drift,
         # before recomputing, so it is never mistaken for (or allowed to mask) altered evidence.
-        from importlib.metadata import version
-        drift={name:(recorded,version(name)) for name,recorded in cal["environment"]["dependencies"].items() if version(name)!=recorded}
+        from importlib.metadata import PackageNotFoundError, version
+        import platform
+        def installed(name):
+            try: return version(name)
+            except PackageNotFoundError: return None
+        recorded_environment=cal["environment"]
+        drift={name:(recorded,installed(name)) for name,recorded in recorded_environment["dependencies"].items() if installed(name)!=recorded}
+        if platform.python_version()!=recorded_environment["python"]:
+            drift["python"]=(recorded_environment["python"],platform.python_version())
         require(not drift,"Replay environment differs from the recorded calibration environment: "+json.dumps(drift,sort_keys=True))
         recalculated=calibrate(settings)
         require(recalculated["generated_data_hash"]==cal["generated_data_hash"] and recalculated["seed_hash"]==cal["seed_hash"],"Full calibration input mismatch")

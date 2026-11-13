@@ -30,3 +30,15 @@ def test_full_replay_refuses_a_drifted_environment_before_recomputing(monkeypatc
     monkeypatch.setattr(verifier,"calibrate",must_not_run)
     with pytest.raises(ValueError,match="Replay environment differs"):
         verifier.verify(full_calibration=True)
+
+
+def test_full_replay_refuses_a_missing_recorded_package(monkeypatch):
+    import importlib.metadata as metadata
+    real=metadata.version
+    def version(name):
+        if name=="hmmlearn": raise metadata.PackageNotFoundError(name)
+        return real(name)
+    monkeypatch.setattr(metadata,"version",version)
+    monkeypatch.setattr(verifier,"calibrate",lambda settings:(_ for _ in ()).throw(AssertionError("replayed")))
+    with pytest.raises(ValueError,match="hmmlearn"):
+        verifier.verify(full_calibration=True)
