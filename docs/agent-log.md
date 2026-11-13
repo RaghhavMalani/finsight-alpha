@@ -83,3 +83,16 @@ In flight
   on Market and Data initial load; /dynamics initial JS 260 KB gzip; 8-10 px text on Risk/Factors. M3 work.
 - Data static index has no UI consumer (`loadTerminalShard("data")` is never called); candidate for deletion.
 - Waiting on: Risk frontend (m0-risk). Then: merge, full local CI, adversarial review, push, merge PR #30.
+
+## 2026-11-13 — M0 pushed to PR #30 (`05d82d3`)
+
+- Merged: Risk split (253 passed / 0 errors), terminal core + review fixes (644 context checks), browser verifier,
+  Market Local Live fix (bare unrecorded tickers work again in Local Live only), latest main `233def0`.
+- Adversarial review: no blockers; should-fix items done (vacuous counts, append-only vs parent/merge-base,
+  canonical Risk bytes, `workflow_run` limited to main, Research OS replay pins Python 3.12.0 + recorded pins).
+- Local gotcha: Markets/Risk/Data/Factors browser verifiers rewrite tracked `docs/screenshots/*.png`, which the Risk
+  freeze inventory protects; never run them in the same checkout as the Risk suite. `git checkout -- docs/screenshots`.
+- Local gotcha: build with `VITE_ENABLE_LOCAL_LIVE=true` (CI sets it job-wide) or Markets' Local Live button is
+  disabled. `main`'s preview script has no `PREVIEW_PORT`; it always binds 4174.
+- Dispatched research-os-full-verification on the PR branch: run 43443555790.
+- Next: CI green on PR #30 -> mark ready -> merge (merge commit, not squash). Then M1 (retire AsOf, SEC EDGAR).
