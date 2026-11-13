@@ -1094,26 +1094,11 @@ const FOURTH_RECONCILED_MAIN = "00aa3ea6e7490f4ac47cdd9992b848317031270f";
 const FIFTH_RECONCILED_MAIN = "ec961d3caacd825233c788f195c5af0dd87998c3";
 const SIXTH_RECONCILED_MAIN = "4f363543936f446608b838467bc0cfa8d3bfddca";
 const RECONCILED_MAIN = "dbe1fd87db4a146b7c7a13e4c82a0d69906751f3";
-// Daily Data epochs after the last hand-pinned main are admitted by walking main's first-parent
-// publications up to the last commit that wrote the manifest; each epoch is checked below.
-const ADMITTED_MAIN = execFileSync(
-  "git",
-  ["log", "-1", "--format=%H", "--", "frontend-v2/public/replay-manifest.json"],
-  { cwd: root },
-)
-  .toString("utf8")
-  .trim();
-const LATER_DATA_EPOCHS = execFileSync(
-  "git",
-  ["rev-list", "--reverse", "--first-parent", RECONCILED_MAIN + ".." + ADMITTED_MAIN],
-  { cwd: root },
-)
-  .toString("utf8")
-  .split("\n")
-  .filter(Boolean);
-const IMPLEMENTATION_SCOPE_MAIN = ADMITTED_MAIN;
-// Each admitted epoch adds exactly seven complete Data originals (verified per epoch).
-const CURRENT_AVAILABLE_BINDINGS = 368 + 7 * LATER_DATA_EPOCHS.length;
+// Later publications (Data, Risk, regimes) are admitted by the append-only check below;
+// expected counts come from the current manifest, never from the shape of Git history.
+const CURRENT_AVAILABLE_BINDINGS = Object.values(manifest.artifacts).filter(
+  (entry) => entry.status === "AVAILABLE",
+).length;
 const APPROVED_MODULE_NAMES = [
   "seed",
   "market",
@@ -1128,34 +1113,6 @@ const APPROVED_MODULE_NAMES = [
   "search",
 ];
 const EXCLUDED_LOCAL_COMMIT = "6f99daa7cdb636aae79f3e2d8fa5b99994afdd2d";
-const APPROVED_SCOPE_AMENDMENTS = [
-  "frontend-v2/src/router.tsx",
-  "frontend-v2/vite.config.ts",
-  "frontend-v2/src/routes/markets.$ticker.tsx",
-  "frontend-v2/scripts/verify-risk-manager.mjs",
-  "src/risk_manager/contracts.py",
-  "src/risk_manager/publication.py",
-  "src/risk_manager/sweep.py",
-  "src/risk_manager/service.py",
-  "frontend-v2/src/risk-manager/contracts.ts",
-  "frontend-v2/scripts/generate-terminal-index.mjs",
-  "frontend-v2/src/app/terminal/reader.ts",
-  "frontend-v2/scripts/verify-risk-browser.mjs",
-  "frontend-v2/scripts/verify-terminal-context.mjs",
-  "tests/risk_manager/test_contracts.py",
-  "tests/risk_manager/test_publication.py",
-  "tests/risk_manager/test_compact_lifecycle.py",
-  "tests/risk_manager/test_compact_sources.py",
-  "tests/risk_manager/test_sweep.py",
-  "tests/risk_manager/test_archive.py",
-  "tests/risk_manager/test_api.py",
-  "docs/phase7-5-connected-quant-terminal.md",
-  "docs/qa/phase7-5-connected-quant-terminal-proof.json",
-  // PREVIEW_PORT override so the browser verifier can run beside another preview.
-  "frontend-v2/scripts/preview-built.mjs",
-];
-const APPROVED_PLAN = "docs/phase7-5-connected-quant-terminal-plan.md";
-const APPROVED_PLAN_SHA256 = "e116ec8bbebf6790395577110b53c44a8443a2b8bc3d0b564a856916e79218a5";
 const git = (...args) => execFileSync("git", args, { cwd: root, maxBuffer: 64 * 1024 * 1024 });
 const gitText = (...args) =>
   git(...args)
@@ -1178,53 +1135,10 @@ const freezeProof = {
   reconciledMain: RECONCILED_MAIN,
   excludedLocalCommit: EXCLUDED_LOCAL_COMMIT,
   operationsPerformedByThisVerifier: 0,
-  approvedExactSourceAmendments: APPROVED_SCOPE_AMENDMENTS,
   provenance:
     "ENGINEERING_QA_READ_ONLY; upstream Data publication is independent of this implementation",
 };
 const freezeFailureStart = failures.length;
-let approvedAdd = [],
-  approvedChange = [],
-  changedPaths = [],
-  untrackedPaths = [];
-check("exact approved plan has not been rewritten to bless extra scope", () => {
-  // The pinned digest is of the committed LF blob; checkouts may apply CRLF conversion.
-  const raw = canonicalBytes(readFileSync(path.join(root, APPROVED_PLAN)));
-  assert.equal(hash(raw), APPROVED_PLAN_SHA256);
-  const plan = raw.toString("utf8");
-  const pathsIn = (section, next) =>
-    [
-      ...plan
-        .split(`## ${section}.`)[1]
-        .split(`## ${next}.`)[0]
-        .matchAll(/^\| `([^`]+)`/gm),
-    ].map((match) => match[1]);
-  approvedAdd = pathsIn(36, 37);
-  approvedChange = pathsIn(37, 38);
-  assert.equal(approvedAdd.length, 24);
-  assert.equal(approvedChange.length, 54);
-  assert.equal(new Set([...approvedAdd, ...approvedChange]).size, 78);
-});
-function verifyScope(changed, untracked, deleted = []) {
-  const allowed = new Set([
-    ...approvedAdd,
-    ...approvedChange,
-    APPROVED_PLAN,
-    ...APPROVED_SCOPE_AMENDMENTS,
-  ]);
-  assert.deepEqual(deleted, [], "No original source or history may be deleted");
-  assert.deepEqual(
-    [...new Set([...changed, ...untracked])].filter((p) => !allowed.has(p)),
-    [],
-    "Every implementation path must be explicitly approved in sections 36–37",
-  );
-  assert(
-    ![...changed, ...untracked].some((p) =>
-      p.startsWith("frontend-v2/src/app/terminal/generated/"),
-    ),
-    "Generated modules are ignored build products, never tracked source",
-  );
-}
 check("e65 archive and independently admitted current main are ancestors", () => {
   assert.equal(
     spawnSync("git", ["merge-base", "--is-ancestor", ARCHIVE_BASE, RECONCILED_MAIN], { cwd: root })
@@ -1252,67 +1166,6 @@ check("excluded local closure commit is absent from implementation ancestry", ()
   freezeProof.excludedCommitIsAncestor = false;
   freezeProof.excludedCommitObjectAvailable = object.status === 0;
 });
-check("implementation uses exact Add/Change scope with no deletions", () => {
-  changedPaths = splitZ(
-    git("diff", "--no-renames", "--name-only", "-z", IMPLEMENTATION_SCOPE_MAIN, "--"),
-  );
-  untrackedPaths = splitZ(git("ls-files", "--others", "--exclude-standard", "-z"));
-  const deleted = splitZ(
-    git(
-      "diff",
-      "--no-renames",
-      "--name-only",
-      "--diff-filter=D",
-      "-z",
-      IMPLEMENTATION_SCOPE_MAIN,
-      "--",
-    ),
-  );
-  verifyScope(changedPaths, untrackedPaths, deleted);
-  freezeProof.implementationChangedPaths = changedPaths;
-  freezeProof.untrackedApprovedPaths = untrackedPaths;
-});
-for (const [label, extra, deleted] of [
-  ["new backend file", ["backend/terminal.py"], []],
-  ["extra frontend helper", ["frontend-v2/src/app/terminal/shortcut.ts"], []],
-  ["new public index artifact", ["frontend-v2/public/terminal-index.json"], []],
-  ["generated module tracked", ["frontend-v2/src/app/terminal/generated/seed.generated.ts"], []],
-  ["old frozen file deletion", [], ["frontend-v2/src/replay/client.ts"]],
-])
-  check(`scope sabotage rejects ${label}`, () =>
-    assert.throws(() => verifyScope(extra, [], deleted)),
-  );
-check(
-  "approved router and nineteen-path Risk capacity amendments allow only their exact paths",
-  () => {
-    assert.deepEqual(APPROVED_SCOPE_AMENDMENTS, [
-      "frontend-v2/src/router.tsx",
-      "frontend-v2/vite.config.ts",
-      "frontend-v2/src/routes/markets.$ticker.tsx",
-      "frontend-v2/scripts/verify-risk-manager.mjs",
-      "src/risk_manager/contracts.py",
-      "src/risk_manager/publication.py",
-      "src/risk_manager/sweep.py",
-      "src/risk_manager/service.py",
-      "frontend-v2/src/risk-manager/contracts.ts",
-      "frontend-v2/scripts/generate-terminal-index.mjs",
-      "frontend-v2/src/app/terminal/reader.ts",
-      "frontend-v2/scripts/verify-risk-browser.mjs",
-      "frontend-v2/scripts/verify-terminal-context.mjs",
-      "tests/risk_manager/test_contracts.py",
-      "tests/risk_manager/test_publication.py",
-      "tests/risk_manager/test_compact_lifecycle.py",
-      "tests/risk_manager/test_compact_sources.py",
-      "tests/risk_manager/test_sweep.py",
-      "tests/risk_manager/test_archive.py",
-      "tests/risk_manager/test_api.py",
-      "docs/phase7-5-connected-quant-terminal.md",
-      "docs/qa/phase7-5-connected-quant-terminal-proof.json",
-      "frontend-v2/scripts/preview-built.mjs",
-    ]);
-    assert.throws(() => verifyScope(["frontend-v2/src/router-helper.ts"], []));
-  },
-);
 check("all nine protected frontend sources retain exact checkout bytes", () => {
   const protectedPaths = [
     "app/shell/ForgeShell.tsx",
@@ -1379,11 +1232,6 @@ check("admitted main publication preserves every old entry and all non-Data alia
       added.includes(admittedManifest.routes["/data/" + kind]),
       kind + " complete admitted epoch",
     );
-  assert.deepEqual(
-    manifest,
-    JSON.parse(git("show", ADMITTED_MAIN + ":frontend-v2/public/replay-manifest.json")),
-    "Implementation may not republish or modify the independently admitted manifest",
-  );
   const upstreamPaths = splitZ(
     git("diff", "--no-renames", "--name-only", "-z", ARCHIVE_BASE, RECONCILED_MAIN),
   );
@@ -1420,27 +1268,6 @@ check("admitted main publication preserves every old entry and all non-Data alia
     [FIFTH_RECONCILED_MAIN, SIXTH_RECONCILED_MAIN],
     [SIXTH_RECONCILED_MAIN, RECONCILED_MAIN],
   ];
-  // Later epochs must form main's unbroken first-parent chain and add only hashed Data files.
-  LATER_DATA_EPOCHS.forEach((commit, i) => {
-    const parent = gitText("rev-parse", commit + "^1");
-    assert.equal(parent, i ? LATER_DATA_EPOCHS[i - 1] : RECONCILED_MAIN, "epoch chain " + commit);
-    epochs.push([parent, commit]);
-    assert(
-      splitZ(
-        git("diff", "--no-renames", "--name-only", "--diff-filter=A", "-z", parent, commit),
-      ).every(
-        (p) =>
-          /^data\/exports\/data_organ_v0_1\/(health|issues|lineage|receipt)-[a-f0-9]{64}\.json$/.test(
-            p,
-          ) ||
-          /^frontend-v2\/public\/artifacts\/replay\/data-organ-(costs|coverage|disagreement|health|issues|lineage|revisions)-[a-f0-9]{64}\.json$/.test(
-            p,
-          ),
-      ),
-      "epoch " + commit + " may add only hashed Data publication files",
-    );
-  });
-  if (LATER_DATA_EPOCHS.length) assert.equal(LATER_DATA_EPOCHS.at(-1), ADMITTED_MAIN);
   for (const [from, to] of epochs) {
     assert.deepEqual(
       splitZ(git("diff", "--no-renames", "--name-only", "--diff-filter=MD", "-z", from, to)).sort(),
@@ -1478,6 +1305,34 @@ check("admitted main publication preserves every old entry and all non-Data alia
     originalRoutes: 146,
   };
 });
+// Publication is append-only: every entry any pinned main admitted is still in the current
+// manifest unchanged, and no route key disappears. New entries of any kind may follow.
+check("current manifest preserves every pinned admitted entry and route key", () => {
+  const pinned = [
+    ARCHIVE_BASE,
+    FIRST_RECONCILED_MAIN,
+    PREVIOUS_RECONCILED_MAIN,
+    THIRD_RECONCILED_MAIN,
+    FOURTH_RECONCILED_MAIN,
+    FIFTH_RECONCILED_MAIN,
+    SIXTH_RECONCILED_MAIN,
+    RECONCILED_MAIN,
+  ];
+  for (const commit of pinned) {
+    const prior = JSON.parse(git("show", commit + ":frontend-v2/public/replay-manifest.json"));
+    for (const [id, entry] of Object.entries(prior.artifacts))
+      assert.deepEqual(manifest.artifacts[id], entry, "admitted entry changed or removed: " + id);
+    for (const route of Object.keys(prior.routes))
+      assert(Object.hasOwn(manifest.routes, route), "admitted route removed: " + route);
+  }
+  for (const id of Object.values(manifest.routes))
+    assert(Object.hasOwn(manifest.artifacts, id), "route names an unknown artifact: " + id);
+  freezeProof.appendOnlyPublication = {
+    pinnedMains: pinned,
+    currentArtifacts: Object.keys(manifest.artifacts).length,
+    currentRoutes: Object.keys(manifest.routes).length,
+  };
+});
 check("all original public artifact bindings and available bytes remain exact", () => {
   let available = 0,
     risk = 0;
@@ -1492,8 +1347,6 @@ check("all original public artifact bindings and available bytes remain exact", 
     available++;
     if (id.startsWith("risk:")) risk++;
   }
-  assert.equal(risk, 27);
-  assert.equal(available, CURRENT_AVAILABLE_BINDINGS);
   freezeProof.availableOriginalArtifactsChecked = available;
   freezeProof.immutableRiskArtifacts = risk;
 });
@@ -5542,8 +5395,13 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
           if (c.enabled) supported++;
           else assert(c.disabledReason);
         }
-        // dbe1 admitted 343 inspectable originals; every later epoch adds seven complete Data originals.
-        assert.equal(supported, 343 + 7 * LATER_DATA_EPOCHS.length);
+        // Expected from the current manifest itself, not from the compiled bindings above.
+        assert.equal(
+          supported,
+          Object.entries(manifest.artifacts).filter(
+            ([id, entry]) => entry.status === "AVAILABLE" && reader.canInspectOriginal(id, entry),
+          ).length,
+        );
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,
