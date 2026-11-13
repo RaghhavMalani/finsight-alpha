@@ -5,6 +5,7 @@ import {
   redirect,
   notFound,
   useNavigate,
+  useParams,
   useRouterState,
   type SearchSchemaInput,
 } from "@tanstack/react-router";
@@ -17,7 +18,7 @@ import {
   type InvestigationContext,
 } from "@/app/terminal/context";
 import { isTextField } from "@/app/workspaces";
-import { normalizeTicker, parseBarRange, type BarRange } from "@/markets/contracts";
+import { normalizeTicker, overviewTarget, parseBarRange, type BarRange } from "@/markets/contracts";
 import TickerSearch from "@/markets/TickerSearch";
 import { Loading } from "@/markets/ui";
 import "@/markets/markets.css";
@@ -94,15 +95,25 @@ function MarketsWorkspace() {
     search = Route.useSearch(),
     navigate = useNavigate(),
     pathname = useRouterState({ select: (state) => state.location.pathname }),
+    params = useParams({ strict: false }) as { ticker?: string },
     overview = !MARKET_TABS.slice(1).some((tab) => pathname.toLowerCase() === tab.to),
     requestedTicker = subjectTicker(context.subject),
+    // Local Live keeps a configured-backend ticker that has no recorded listing (never in Replay).
+    liveTicker =
+      mode === "live" && localLiveAllowed() && !context.subject && !context.anchor
+        ? normalizeTicker(String(params.ticker ?? search.ticker ?? "")) || undefined
+        : undefined,
     anchorTicker =
       context.anchor?.artifactId === "market:US-MKT"
         ? "US-MKT"
         : context.anchor?.artifactId === "market:IN-MKT"
           ? "IN-MKT"
           : undefined,
-    ticker = requestedTicker ?? anchorTicker ?? (context.market === "INDIA" ? "IN-MKT" : "US-MKT"),
+    ticker =
+      requestedTicker ??
+      liveTicker ??
+      anchorTicker ??
+      (context.market === "INDIA" ? "IN-MKT" : "US-MKT"),
     factor = factorSeries(ticker),
     selectionError =
       context.anchor && (!anchorTicker || context.anchor.artifactId !== `market:${ticker}`)
@@ -122,8 +133,11 @@ function MarketsWorkspace() {
     };
   }, [navigationContext, selectionError, factor]);
   const tabSearch = useMemo(
-    () => serializeInvestigationContext(selectedContext),
-    [selectedContext],
+    () => ({
+      ...serializeInvestigationContext(selectedContext),
+      ...(liveTicker ? { ticker: liveTicker } : {}),
+    }),
+    [selectedContext, liveTicker],
   );
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -156,24 +170,28 @@ function MarketsWorkspace() {
       return;
     }
     setPickError(null);
-    updateContext(
-      {
-        ...context,
-        market: nextFactor ? (nextFactor.id === "IN-MKT" ? "INDIA" : "US") : listing!.market,
-        subject: nextFactor
-          ? { kind: "market-factor", id: nextFactor.id }
-          : {
-              kind: "reference-listing",
-              providerSymbol: listing!.providerSymbol,
-              venue: listing!.code,
-            },
-        anchor: undefined,
-        compare: undefined,
-        observationDate: undefined,
-        view: { workspace: "market" },
-      },
-      "push",
-    );
+    const picked: InvestigationContext = {
+      ...context,
+      market: nextFactor ? (nextFactor.id === "IN-MKT" ? "INDIA" : "US") : listing!.market,
+      subject: nextFactor
+        ? { kind: "market-factor", id: nextFactor.id }
+        : {
+            kind: "reference-listing",
+            providerSymbol: listing!.providerSymbol,
+            venue: listing!.code,
+          },
+      anchor: undefined,
+      compare: undefined,
+      observationDate: undefined,
+      view: { workspace: "market" },
+    };
+    // On a ticker path the path names the subject, so the pick moves the path with it.
+    if (params.ticker)
+      void navigate({
+        ...overviewTarget(subjectTicker(picked.subject)!),
+        search: serializeInvestigationContext(picked),
+      } as never);
+    else updateContext(picked, "push");
   };
   const chooseAggregate = (id: "US-MKT" | "IN-MKT") =>
     updateContext(
@@ -201,7 +219,7 @@ function MarketsWorkspace() {
               ? "Weekly relative performance, drawdown, realized volatility and checked regime evidence. Reference listings do not imply public series coverage."
               : "Configured local Live market tools with source and timestamp. Unavailable sources remain labelled."}
           </p>
-          {!context.subject && !context.anchor && (
+          {!context.subject && !context.anchor && !liveTicker && (
             <p className="mk-line" role="status">
               {context.market === "INDIA"
                 ? "India country filter: IN-MKT aggregate view."
