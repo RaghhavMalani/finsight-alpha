@@ -57,6 +57,11 @@ def verify(full_calibration=False):
     accepted=accepted and all(r["ci_upper"]<=.075 for r in cal["family"].values())
     require(cal["status"]==("CALIBRATED" if accepted else "NOT_CALIBRATED"),"False CALIBRATED badge")
     if full_calibration:
+        # Bit-exact replay is only defined in the recorded environment. Report drift as drift,
+        # before recomputing, so it is never mistaken for (or allowed to mask) altered evidence.
+        from importlib.metadata import version
+        drift={name:(recorded,version(name)) for name,recorded in cal["environment"]["dependencies"].items() if version(name)!=recorded}
+        require(not drift,"Replay environment differs from the recorded calibration environment: "+json.dumps(drift,sort_keys=True))
         recalculated=calibrate(settings)
         require(recalculated["generated_data_hash"]==cal["generated_data_hash"] and recalculated["seed_hash"]==cal["seed_hash"],"Full calibration input mismatch")
         require(recalculated["status"]==cal["status"],"Full calibration acceptance changed")

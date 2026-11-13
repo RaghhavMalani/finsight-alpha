@@ -3,6 +3,12 @@ name: CI
 on:
   push:
   pull_request:
+  # The daily organ publication is pushed with the workflow token, which never triggers `push`.
+  # Run the full suite after it so retained-evidence growth cannot break main unseen.
+  workflow_run:
+    workflows: ["Checked organs"]
+    types: [completed]
+  workflow_dispatch:
 
 permissions:
   contents: read
