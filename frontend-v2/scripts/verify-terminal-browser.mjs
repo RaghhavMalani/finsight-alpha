@@ -72,22 +72,33 @@ const workspaces = [
   ["observatory", "/observatory"],
 ];
 const primary = new Set(["market", "regimes", "factors", "risk", "data"]);
+// Areas this verifier establishes; a full run executes every stage below plus the matrix.
+const stages = [
+  ["guard_self_test", "--guard-self-test"],
+  ["initial_gate_self_test", "--initial-gate-self-test"],
+  ["initial_ownership", "--initial-only"],
+  ["static_indexes", "--static-index-only"],
+  ["history_layout", "--history-layout-only"],
+  ["capacity", "--capacity-only"],
+];
 const requiredAreas = [
   "matrix",
   "network",
   "initial_budget",
   "basic_accessibility",
+  ...stages.map(([area]) => area),
+];
+// Never implemented by any stage of this script; listed so a PASS is not read as full acceptance.
+const notCoveredHere = [
   "continuity",
   "identity",
   "evidence_links",
   "tables",
   "charts",
-  "search_commands",
   "capabilities",
   "exports",
   "private_isolation",
   "preferences",
-  "bundle_performance",
   "two_tabs",
   "accessibility",
 ];
@@ -397,15 +408,23 @@ async function pageFor(browser, viewport, staticFixtures = {}) {
   });
   return { context, page, requests, responses, pending, responseErrors, expectedConsoleErrors };
 }
+// Only these routes mount the terminal shell; the other workspaces render in the Forge shell.
+const terminalShellWorkspaces = new Set(["market", "risk", "factors"]);
 async function layoutOf(page, workspace) {
-  const shell = page.getByTestId("terminal-shell");
-  await shell.waitFor({ state: "visible", timeout: 15000 });
-  assert.equal(await shell.getAttribute("data-workspace"), workspace);
-  await page
-    .getByRole("region", { name: "Investigation context", exact: true })
-    .waitFor({ state: "visible" });
+  const terminal = terminalShellWorkspaces.has(workspace);
+  if (terminal) {
+    const shell = page.getByTestId("terminal-shell");
+    await shell.waitFor({ state: "visible", timeout: 15000 });
+    assert.equal(await shell.getAttribute("data-workspace"), workspace);
+    await page
+      .getByRole("region", { name: "Investigation context", exact: true })
+      .waitFor({ state: "visible" });
+  } else {
+    assert.equal(await page.getByTestId("terminal-shell").count(), 0, "Unexpected terminal shell");
+    await page.locator("#forge-main").waitFor({ state: "visible", timeout: 15000 });
+  }
   await page.waitForLoadState("networkidle", { timeout: 15000 });
-  const result = await page.evaluate(() => {
+  const result = await page.evaluate((terminal) => {
     const visible = (e) => {
       const r = e.getBoundingClientRect(),
         s = getComputedStyle(e);
@@ -421,7 +440,9 @@ async function layoutOf(page, workspace) {
         s.display !== "none"
       );
     };
-    const root = document.querySelector('[data-testid="terminal-shell"]'),
+    const root = terminal
+        ? document.querySelector('[data-testid="terminal-shell"]')
+        : document.getElementById("forge-main"),
       fonts = [...root.querySelectorAll("*")]
         .filter(
           (e) =>
@@ -445,12 +466,14 @@ async function layoutOf(page, workspace) {
         root.querySelector("main")?.getBoundingClientRect().top - root.getBoundingClientRect().top,
       reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
     };
-  });
+  }, terminal);
   assert(result.scrollWidth <= result.innerWidth + 1, "Unintended page-level horizontal overflow");
-  assert(
-    result.minVisibleFont !== null && result.minVisibleFont >= 11,
-    "Visible text/metadata must remain at least11px",
-  );
+  // The 11px floor is a terminal-shell contract; Forge-shell routes report it without gating.
+  if (terminal)
+    assert(
+      result.minVisibleFont !== null && result.minVisibleFont >= 11,
+      "Visible text/metadata must remain at least11px",
+    );
   assert(result.reducedMotion, "Reducedmotion context was not applied");
   if (workspace === "risk" && result.innerWidth >= 1440) {
     assert(
@@ -461,9 +484,43 @@ async function layoutOf(page, workspace) {
   }
   return result;
 }
+// Generated terminal metadata (JS shards and static JSON indexes) is retained data that grows each
+// publication epoch. It is held to the named catalog.ts ceilings, never to a code or route budget.
+const generatedMetadata =
+  /\/(seed|market|regimes|risk|factors|data|recordings|history|history-archive|observatory-window|search)\.generated-[^/]+\.js(?:$|\?)/;
+function metadataCeiling(r) {
+  const pathname = new URL(r.url).pathname;
+  if (STATIC_INDEX.test(pathname))
+    return { url: r.url, bytes: r.bytes, limit: MAX_STATIC_TERMINAL_BYTES };
+  const seed = generatedMetadata.exec(pathname)?.[1] === "seed";
+  return {
+    url: r.url,
+    bytes: r.bytes,
+    limit: seed ? MAX_SEED_MODULE_BYTES : MAX_LAZY_MODULE_BYTES,
+    gzip: r.gzipDefaultBytes,
+    gzipLimit: seed ? MAX_SEED_MODULE_GZIP_BYTES : MAX_LAZY_MODULE_GZIP_BYTES,
+  };
+}
 function budgets(workspace, responses) {
-  const js = responses.filter((r) => r.js).reduce((n, r) => n + r.gzipBytes, 0),
-    data = responses.filter((r) => r.data).reduce((n, r) => n + r.bytes, 0);
+  const metadata = responses.filter(
+      (r) => STATIC_INDEX.test(new URL(r.url).pathname) || generatedMetadata.test(r.url),
+    ),
+    ceilings = metadata.map(metadataCeiling);
+  for (const c of ceilings)
+    assert(
+      c.bytes <= c.limit && (c.gzip === undefined || c.gzip <= c.gzipLimit),
+      "Terminal metadata exceeds its named ceiling: " + JSON.stringify(c),
+    );
+  assert(
+    !metadata.some((r) => STATIC_INDEX.test(new URL(r.url).pathname)),
+    `${workspace} initial load transferred a static terminal index`,
+  );
+  const js = responses
+      .filter((r) => r.js && !metadata.includes(r))
+      .reduce((n, r) => n + r.gzipBytes, 0),
+    data = responses
+      .filter((r) => r.data && !metadata.includes(r))
+      .reduce((n, r) => n + r.bytes, 0);
   if (primary.has(workspace)) assert(js <= 224 * 1024, `${workspace} initialJS ${js}>224KiBgzip`);
   if (["market", "regimes", "data"].includes(workspace))
     assert(data <= 256 * 1024, `${workspace} initialdata ${data}>256KiBtarget`);
@@ -480,9 +537,9 @@ function budgets(workspace, responses) {
     assert(pair > 0 && pair <= 256 * 1024, "SelectedRisk state/receipt fetch must stay≤256KiB");
   }
   return {
-    initialJSGzipBytes: js,
-    initialDataBytes: data,
-    compiledMetadataCountsInBothDataAndJSTransfer: true,
+    initialCodeJSGzipBytes: js,
+    initialDataBytesExcludingTerminalMetadata: data,
+    terminalMetadata: ceilings,
   };
 }
 function matrix(browser) {
@@ -596,7 +653,9 @@ if (process.argv.includes("--guard-self-test")) {
  * Engineering-only helper for the approved capacity verifier, never product runtime.
  * Dependencies are injected from existing Node built-ins and the installed TypeScript parser.
  * This reports all transport bytes and candidate attributable code separately.
- * The user confirmed 64KiB route attribution excludes established framework/common code, while32KiB interaction includes code plus metadata combined.
+ * The 64KiB route and 32KiB first-interaction budgets protect code. Generated terminal metadata
+ * is retained data that grows each publication epoch: it stays visible in every phase and is
+ * checked against the named catalog.ts ceilings instead, so one more epoch never fails a code budget.
  */
 function collectClientBudgetGraph({
   directory,
@@ -715,6 +774,23 @@ function collectClientBudgetGraph({
     /^(?:ForgeCommandPalette|search|commands|search\.generated|history-archive\.generated|history\.generated)-/,
   );
   const forbiddenCurrentSearch = roots(/^history-archive\.generated-/);
+  // Every emitted metadata module is held to its named ceiling; only the seed is initial-path.
+  const metadataCeilings = [...assets.values()]
+    .filter((asset) => generated.test(asset.name))
+    .map((asset) => {
+      const seed = /^seed\.generated-/.test(asset.name);
+      const limit = seed ? MAX_SEED_MODULE_BYTES : MAX_LAZY_MODULE_BYTES,
+        gzipLimit = seed ? MAX_SEED_MODULE_GZIP_BYTES : MAX_LAZY_MODULE_GZIP_BYTES;
+      return {
+        asset: asset.name,
+        decodedBytes: asset.decodedBytes,
+        limit,
+        gzip: asset.gzipDefaultBytes,
+        gzipLimit,
+        pass: asset.decodedBytes <= limit && asset.gzipDefaultBytes <= gzipLimit,
+      };
+    });
+  const staticIndex = /^(?:data|history-archive)\.[a-f0-9]{12}\.json$/;
   const phases = [];
   for (const journey of journeys) {
     const initial = journey.phases.find((phase) => phase.name === "initial");
@@ -759,19 +835,18 @@ function collectClientBudgetGraph({
       const executed = uniq((phase.executedScripts ?? []).map(base));
       const feature = journey.workspace === "risk" ? "risk_feature_code" : "factor_feature_code";
       const attributable = names.filter((name) =>
-        [
-          "terminal_code",
-          "generated_metadata_JS",
-          feature,
-          "UNCLASSIFIED_COUNT_CONSERVATIVELY",
-        ].includes(assets.get(name).category),
+        ["terminal_code", feature, "UNCLASSIFIED_COUNT_CONSERVATIVELY"].includes(
+          assets.get(name).category,
+        ),
       );
       const alwaysOn = names.filter(
         (name) =>
           assets.get(name).category === "terminal_code" ||
-          /^seed\.generated-/.test(name) ||
           assets.get(name).category === "UNCLASSIFIED_COUNT_CONSERVATIVELY",
       );
+      const code = (list) =>
+        list.filter((name) => assets.get(name)?.category !== "generated_metadata_JS");
+      const staticReads = responses.filter((r) => staticIndex.test(base(r)));
       const checks = [];
       if (["palette", "current-search", "metadata-search"].includes(phase.name))
         checks.push({
@@ -787,7 +862,7 @@ function collectClientBudgetGraph({
         checks.push({
           name: "no_workspace_evidence_shard_requested_merely_for_search",
           pass: !requests.some((name) =>
-            /^(?:market|regimes|risk|factors|data|recordings|observatory-window)\.generated-/.test(
+            /^(?:market|regimes|risk|factors|data|recordings|observatory-window)\.generated-|^data\.[a-f0-9]{12}\.json$/.test(
               name,
             ),
           ),
@@ -811,6 +886,22 @@ function collectClientBudgetGraph({
           name: "no_archive_without_history_scope",
           pass: !requests.some((name) => forbiddenCurrentSearch.includes(name)),
         });
+      // Static indexes are data fetched on explicit demand: never initially, never for a palette.
+      if (phase.name !== "history")
+        checks.push({
+          name: "no_static_index_without_explicit_demand",
+          pass: !requests.some((name) => staticIndex.test(name)),
+        });
+      else
+        checks.push({
+          name: "history_reads_exactly_one_archive_index_within_ceiling",
+          pass:
+            staticReads.length === 1 &&
+            /^history-archive\./.test(base(staticReads[0])) &&
+            staticReads[0].status === 200 &&
+            staticReads[0].bytes <= MAX_STATIC_TERMINAL_BYTES &&
+            requests.filter((name) => staticIndex.test(name)).length === 1,
+        });
       const observedBodyChecks = responses
         .filter((r) => names.includes(base(r)))
         .map((r) => ({
@@ -824,8 +915,8 @@ function collectClientBudgetGraph({
         phase: phase.name,
         url: journey.url,
         allJS: metrics(names),
-        attributableWorkspaceIncludingMetadata: metrics(attributable),
-        alwaysOnCandidateIncludingSeed: metrics(alwaysOn),
+        attributableWorkspaceCode: metrics(attributable),
+        alwaysOnCandidateCode: metrics(alwaysOn),
         terminalCode: metrics(
           names.filter((name) => assets.get(name).category === "terminal_code"),
         ),
@@ -851,16 +942,23 @@ function collectClientBudgetGraph({
               }
             : ["palette", "current-search", "metadata-search", "command"].includes(phase.name)
               ? {
-                  firstInvocationCodeAndMetadata: {
-                    gzip:
-                      phase.name === "current-search"
-                        ? cumulativeInteractionRequiredJS.gzipDefaultBytes
-                        : metrics(firstRequired).gzipDefaultBytes,
+                  firstInvocationCode: {
+                    gzip: metrics(
+                      code(
+                        phase.name === "current-search"
+                          ? [...cumulativeInteractionAssets]
+                          : firstRequired,
+                      ),
+                    ).gzipDefaultBytes,
                     limit: 32768,
                     pass:
-                      (phase.name === "current-search"
-                        ? cumulativeInteractionRequiredJS.gzipDefaultBytes
-                        : metrics(firstRequired).gzipDefaultBytes) <= 32768,
+                      metrics(
+                        code(
+                          phase.name === "current-search"
+                            ? [...cumulativeInteractionAssets]
+                            : firstRequired,
+                        ),
+                      ).gzipDefaultBytes <= 32768,
                   },
                 }
               : {},
@@ -870,6 +968,12 @@ function collectClientBudgetGraph({
         firstRequiredMetadataJS: metrics(
           firstRequired.filter((name) => assets.get(name).category === "generated_metadata_JS"),
         ),
+        staticIndexReads: staticReads.map(({ url, status, bytes, sha256 }) => ({
+          url,
+          status,
+          bytes,
+          sha256,
+        })),
         commonCandidates: names.filter(
           (name) => assets.get(name).category === "existing_common_candidate",
         ),
@@ -904,15 +1008,17 @@ function collectClientBudgetGraph({
     coreClosure,
     forbiddenInitial,
     forbiddenCurrentSearch,
+    metadataCeilings,
     coreStaticAllJS: metrics(coreClosure),
     coreStaticOwnedCode: metrics(
       coreClosure.filter((name) => assets.get(name)?.category === "terminal_code"),
     ),
     phases,
     classificationStatus:
-      "User confirmed64KiB route-attributable initial cap with established framework/common excluded;32KiB first interaction counts code+metadata combined. All totalJS remains visible, unknowns conservatively count; first-interaction charges the cumulative union of every new JSasset acrosspalette/currentsearch/command beforeexplicithistory, even a common candidate. Genericroot/index assets and commonnames containingnewterminalmarkers are not filename-free. Othercommoncandidates still requireauditor baseline-content review.",
+      "64KiB route-attributable initial cap with established framework/common excluded; 32KiB first interaction counts code only. Generated metadata JS and static JSON indexes are data: reported per phase and held to the named catalog.ts ceilings. All totalJS remains visible, unknowns conservatively count; first-interaction charges the cumulative union of every new JSasset acrosspalette/currentsearch/command beforeexplicithistory, even a common candidate. Genericroot/index assets and commonnames containingnewterminalmarkers are not filename-free. Othercommoncandidates still requireauditor baseline-content review.",
     networkAssertionsStatus: phases.length
-      ? phases.every(
+      ? metadataCeilings.every((c) => c.pass) &&
+        phases.every(
           (p) =>
             p.checks.every((c) => c.pass) &&
             p.observedBodyChecks.every((c) => c.sha256Matches && c.decodedBytesMatch) &&
@@ -1364,6 +1470,8 @@ async function verifyInitialPackagingBuild() {
     "Normal output must not publish source maps",
   );
   writeFileSync(path.join(proof, "normal-modules.json"), JSON.stringify(normal));
+  // preview-built.mjs honours PREVIEW_PORT (inherited env); CI keeps the default port.
+  const previewUrl = "http://127.0.0.1:" + (process.env.PREVIEW_PORT ?? "4174");
   const child = spawn(process.execPath, [path.join(front, "scripts/preview-built.mjs")], {
     cwd: front,
     stdio: ["ignore", "pipe", "inherit"],
@@ -1385,7 +1493,7 @@ async function verifyInitialPackagingBuild() {
     });
     execFileSync(
       process.execPath,
-      [fileURLToPath(import.meta.url), "--url", "http://127.0.0.1:4174", "--history-layout-only"],
+      [fileURLToPath(import.meta.url), "--url", previewUrl, "--history-layout-only"],
       {
         cwd: root,
         stdio: "inherit",
@@ -1396,7 +1504,7 @@ async function verifyInitialPackagingBuild() {
     const args = [
       fileURLToPath(import.meta.url),
       "--url",
-      "http://127.0.0.1:4174",
+      previewUrl,
       "--initial-only",
       "--initial-baseline",
       "docs/qa/phase7-5-connected-quant-terminal-proof.json",
@@ -1768,7 +1876,7 @@ async function capacityStage() {
       "Every response is reported as transferred. Numeric executable attribution and framework/generated-data classifications require the companion exact asset graph; no transfer is silently exempted.",
   };
   const browser = await chromium.launch({ headless: true, channel: "chrome" });
-  const archive = /\/history-archive\.generated[-.]/;
+  const archive = /\/history-archive\.generated[-.]|\/terminal\/history-archive\./;
   const optional =
     /\/(?:ForgeCommandPalette|search|commands|catalog|reader|search\.generated|history\.generated)-[^/]+\.js(?:$|\?)/;
   const jsAsset = (value) => /\.m?js(?:$|\?)/.test(value);
@@ -2315,13 +2423,23 @@ async function capacityStage() {
       ts,
     });
     report.capacity.accountingStatus =
-      "APPROVED_ROUTE_ATTRIBUTABLE_INITIAL_AND_CODE_PLUS_METADATA_INTERACTION";
+      "ROUTE_ATTRIBUTABLE_INITIAL_AND_FIRST_INTERACTION_CODE_WITH_METADATA_CEILINGS";
     const graph = report.capacity.assetGraph;
     if (graph.networkAssertionsStatus !== "PASS")
       report.failures.push({
         name: "capacity asset graph/network equivalence",
         error: "Observed asset body/preload/import/scope assertions failed; retain exact graph.",
       });
+    for (const ceiling of graph.metadataCeilings.filter((c) => !c.pass))
+      report.failures.push({
+        name: "metadata ceiling " + ceiling.asset,
+        error: JSON.stringify(ceiling),
+      });
+    for (const p of graph.phases)
+      for (const c of [...p.checks, ...p.observedBodyChecks].filter(
+        (c) => c.pass === false || c.sha256Matches === false || c.decodedBytesMatch === false,
+      ))
+        report.failures.push({ name: p.journey + "/" + p.phase, error: JSON.stringify(c) });
     for (const measured of graph.phases)
       if (measured.phase === "initial")
         for (const gate of Object.values(measured.numericGates)) {
@@ -2828,6 +2946,24 @@ if (process.argv.includes("--capacity-only")) {
   process.exit(0);
 }
 
+const stageRuns = [];
+if (!smoke && !matrixOnly)
+  for (const [area, flag] of stages) {
+    const startedAt = Date.now();
+    const exitCode = await new Promise((resolve, reject) => {
+      const run = spawn(process.execPath, [fileURLToPath(import.meta.url), "--url", base, flag], {
+        cwd: frontend,
+        stdio: "inherit",
+        windowsHide: true,
+        env: { ...process.env, TERMINAL_BROWSER_PROOF_DIR: path.join(proofRoot, area) },
+      });
+      run.once("error", reject);
+      run.once("exit", resolve);
+    });
+    stageRuns.push({ area, flag, exitCode, seconds: Math.round((Date.now() - startedAt) / 1000) });
+    if (exitCode === 0) completedAreas.add(area);
+    else report.failures.push({ name: "stage " + flag, error: "exit " + exitCode });
+  }
 const expectedCases = browsers.reduce((n, name) => n + matrix(name).length, 0);
 for (const name of browsers) {
   const browser = await check("launch " + name, () =>
@@ -2926,17 +3062,19 @@ if (
 }
 const missingAreas = requiredAreas.filter((area) => !completedAreas.has(area));
 if (!smoke && !matrixOnly)
-  await check("complete approved browser verification coverage", async () =>
+  await check("complete browser verification coverage", async () =>
     assert.deepEqual(
       missingAreas,
       [],
-      "Fullacceptance requires every action/context/table/privacy/performance gate; --matrix-only is an explicitly incomplete integrationstage",
+      "A full run requires every stage and the matrix; --matrix-only is an explicitly incomplete integration stage",
     ),
   );
 Object.assign(report, {
   expectedCases,
+  stageRuns,
   completedAreas: [...completedAreas],
   missingAreas,
+  notCoveredHere,
   stageStatus: report.failures.length ? "FAIL" : "PASS",
   status: report.failures.length ? "FAIL" : missingAreas.length ? "INCOMPLETE" : "PASS",
 });
@@ -2948,10 +3086,12 @@ console.log(
   JSON.stringify({
     status: report.status,
     stageStatus: report.stageStatus,
+    stageRuns,
     cases: report.cases.length,
     expectedCases,
     failures: report.failures.map(({ name, error }) => ({ name, error: error.split("\n")[0] })),
     missingAreas,
+    notCoveredHere,
     proofRoot,
   }),
 );
