@@ -503,7 +503,8 @@ export function ForgeCommandPalette({
               </button>
             );
           })}
-          {!busy && !shown.length && (
+          {/* An unavailable-index message already explains the empty list; don't suggest a typo. */}
+          {!busy && !shown.length && !message && (
             <p className="px-3 py-6 text-sm text-[#a6afb8]">
               No eligible result. Use a complete identifier, a supported command, or change the
               explicit history scope.
