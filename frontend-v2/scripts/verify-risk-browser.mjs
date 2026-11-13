@@ -491,6 +491,9 @@ for (const name of channels) {
       result: "PASS",
     };
   }
+  // The selected panel is part of the URL context and survives reload; measure the feed explicitly.
+  await page.getByRole("button", { name: "Issue console", exact: true }).click();
+  await feed.waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   const warmStart = Date.now();
   await page.reload();
