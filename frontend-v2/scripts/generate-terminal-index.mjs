@@ -1,7 +1,15 @@
 /** Deterministic build-only navigation/display metadata. No provider, model, Python or publication. */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, mkdirSync, realpathSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  realpathSync,
+  existsSync,
+  readdirSync,
+  unlinkSync,
+} from "node:fs";
 import { resolve, relative, isAbsolute } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -29,7 +37,14 @@ import {
   catalogEntities,
   packNavigationRecords,
   validateNavigationProjection,
+  MAX_SEED_MODULE_BYTES,
+  MAX_SEED_MODULE_GZIP_BYTES,
+  MAX_LAZY_MODULE_BYTES,
+  MAX_LAZY_MODULE_GZIP_BYTES,
   MAX_STATIC_TERMINAL_BYTES,
+  MAX_SHARD_ENTITIES,
+  MAX_SHARD_EDGES,
+  MAX_RISK_ORIGINAL_BYTES,
 } from "../src/app/terminal/catalog.ts";
 
 import { deriveNavigationRecords } from "../src/app/terminal/search.ts";
@@ -5753,6 +5768,7 @@ Object.assign(CLOSED_SOURCE_FIELDS, {
   },
 });
 export const TERMINAL_GENERATED_MODULE_NAMES = [...SHARD_NAMES, "observatory-window", "search"];
+const STATIC_TERMINAL_FILE = /^(?:data|history-archive)\.[a-f0-9]{12}\.json$/;
 const hash = (raw) => createHash("sha256").update(raw).digest("hex");
 const seal = (value) => hash(Buffer.from(stableTerminal(value)));
 const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -5849,7 +5865,7 @@ export async function validateTerminalSource(id, entry, value) {
     await verifyRiskIdentity(result);
     assert.equal(result.input_hash, entry.input_hash);
     assert.equal(result.published_at, entry.as_of);
-    assert(entry.bytes <= 128 * 1024, "Risk original wire byte cap");
+    assert(entry.bytes <= MAX_RISK_ORIGINAL_BYTES, "Risk original wire byte cap");
     return result;
   } else if (entry.kind === "hmm" || entry.kind === "signal") {
     closedSource(value, "trace-" + entry.kind);
@@ -7151,9 +7167,12 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       ],
     };
   for (const name of SHARD_NAMES) {
-    const payload = normalizedTerminalPayload(payloads[name]);
-    if (payload.entities.length > 512)
+    const payload = normalizedTerminalPayload(payloads[name]),
+      admitted = failures.length;
+    if (payload.entities.length > MAX_SHARD_ENTITIES)
       failures.push("Entity budget: " + name + "=" + payload.entities.length);
+    if (payload.edges.length > MAX_SHARD_EDGES)
+      failures.push("Edge budget: " + name + "=" + payload.edges.length);
     const packed = packTerminalPayload(payload, name === "history-archive");
     assertExactRoundtrip(
       payload,
@@ -7186,8 +7205,10 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       ...packed,
     };
     const shard = { ...sealed, payloadDigest: seal(sealed) };
+    // Data and history-archive are data, not code: hashed static JSON plus a tiny JS reference.
     const staticIndex = name === "data" || name === "history-archive";
     const json = JSON.stringify(shard) + "\n";
+    const staticBytes = Buffer.byteLength(json);
     const staticSha256 = staticIndex ? hash(json) : null;
     const staticFilename = staticIndex ? name + "." + staticSha256.slice(0, 12) + ".json" : null;
     const staticReference = staticIndex
@@ -7196,7 +7217,7 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
           name,
           url: "/terminal/" + staticFilename,
           sha256: staticSha256,
-          bytes: Buffer.byteLength(json),
+          bytes: staticBytes,
         }
       : null;
     const output =
@@ -7237,29 +7258,22 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
             transport: "static-json",
             staticFilename,
             staticSha256,
-            staticBytes: Buffer.byteLength(json),
+            staticBytes,
             staticGzipBytes: gzipSync(json, { level: 9 }).length,
           }
         : {}),
     };
     report.totalRecords += payload.entities.length;
     report.totalEdges += payload.edges.length;
-    if (bytes > (name === "seed" ? 48 : 128) * 1024)
+    // JS byte budgets apply to JS: tight for the initial-path seed, runaway guards for lazy modules.
+    if (bytes > (name === "seed" ? MAX_SEED_MODULE_BYTES : MAX_LAZY_MODULE_BYTES))
       failures.push("Decoded module budget: " + name + "=" + bytes);
-    if (gzipBytes > (name === "seed" ? 12 : 32) * 1024)
+    if (gzipBytes > (name === "seed" ? MAX_SEED_MODULE_GZIP_BYTES : MAX_LAZY_MODULE_GZIP_BYTES))
       failures.push("Gzip module budget: " + name + "=" + gzipBytes);
-    if (staticIndex && Buffer.byteLength(json) > MAX_STATIC_TERMINAL_BYTES)
-      failures.push("Static JSON transport budget: " + name + "=" + Buffer.byteLength(json));
-    if (
-      bytes <= (name === "seed" ? 48 : 128) * 1024 &&
-      (!staticIndex || Buffer.byteLength(json) <= MAX_STATIC_TERMINAL_BYTES) &&
-      payload.entities.length <= 512
-    )
-      await validateTerminalShard(shard, name, manifestBinding);
-    if (name === "history" || name === "history-archive") {
-      report.shards[name].decodedHeadroomBytes = 128 * 1024 - bytes;
-      report.shards[name].decodedHeadroomRatio = (128 * 1024 - bytes) / (128 * 1024);
-    }
+    if (staticIndex && staticBytes > MAX_STATIC_TERMINAL_BYTES)
+      failures.push("Static JSON transport budget: " + name + "=" + staticBytes);
+    // Record every ceiling failure; only an admitted shard reaches the runtime validator.
+    if (failures.length === admitted) await validateTerminalShard(shard, name, manifestBinding);
     shards[name] = shard;
     modules[name] = output;
     if (staticIndex) staticFiles[staticFilename] = json;
@@ -7280,9 +7294,9 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     gzipBytes: displayGzipBytes,
     projectionDigest: observatoryWindow.projectionDigest,
   };
-  if (displayBytes > 128 * 1024)
+  if (displayBytes > MAX_LAZY_MODULE_BYTES)
     failures.push("Decoded display module budget: observatory-window=" + displayBytes);
-  if (displayGzipBytes > 32 * 1024)
+  if (displayGzipBytes > MAX_LAZY_MODULE_GZIP_BYTES)
     failures.push("Gzip display module budget: observatory-window=" + displayGzipBytes);
   const { verifyDisplayProjection } = await import("../src/app/terminal/reader.ts");
   await verifyDisplayProjection(observatoryWindow, traceEntry, observatoryWindow.projectionDigest);
@@ -7354,10 +7368,9 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
         .map((type) => [type, currentSearchRecords.filter((r) => r.type === type).length]),
     ),
   };
-  if (searchBytes > 131072)
+  if (searchBytes > MAX_LAZY_MODULE_BYTES)
     failures.push("Decoded search navigation module budget: search=" + searchBytes);
-  // Lazy palette navigation grows with the retained corpus; this is a runaway guard, not a tuning target.
-  if (searchGzipBytes > 65536)
+  if (searchGzipBytes > MAX_LAZY_MODULE_GZIP_BYTES)
     failures.push("Gzip search navigation module budget: search=" + searchGzipBytes);
   modules.search = searchOutput;
   // Explicit human approval: append navigation metadata; the accepted default history partition is untouched.
@@ -7423,8 +7436,6 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
   report.shards.history.defaultOutputSha256 = hash(historyDefaultOutput);
   report.shards.history.decodedBytes = historyBytes;
   report.shards.history.gzipBytes = historyGzip;
-  report.shards.history.decodedHeadroomBytes = 131072 - historyBytes;
-  report.shards.history.decodedHeadroomRatio = (131072 - historyBytes) / 131072;
   report.retainedNavigation = {
     records: supplementalRecords.length,
     choices: supplementalRecords.reduce((n, record) => n + record.choices.length, 0),
@@ -7438,18 +7449,14 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     fullRetainedRecords: fullRetainedNavigation.length,
     fullRetainedChoices: fullRetainedNavigation.reduce((n, record) => n + record.choices.length, 0),
   };
-  if (historyBytes > 131072)
+  if (historyBytes > MAX_LAZY_MODULE_BYTES)
     failures.push("Decoded whole history module with approved supplement=" + historyBytes);
-  if (historyGzip > 32768)
+  if (historyGzip > MAX_LAZY_MODULE_GZIP_BYTES)
     failures.push("Gzip whole history module with approved supplement=" + historyGzip);
   assert(
     !failures.length,
     "STOP: terminal capacity admission failed; no outputs written. " +
       JSON.stringify({ failures, shards: report.shards, displayModules: report.displayModules }),
-  );
-  assert(
-    report.totalRecords <= 4096 && report.totalEdges <= 8192,
-    "Terminal global navigation budget exceeded",
   );
   return {
     shards,
@@ -7494,16 +7501,17 @@ export async function generateTerminalIndex({
     mkdirSync(outputRoot, { recursive: true });
     mkdirSync(staticRoot, { recursive: true });
   }
-  // Publish content first: no generated manifest can point at a not-yet-written file.
+  // Publish content first: no generated module can point at a not-yet-written file.
   for (const [filename, json] of Object.entries(result.staticFiles)) {
     const path = resolve(staticRoot, filename);
-    if (check)
+    if (check) {
+      assert(existsSync(path), "Terminal static output is missing: " + filename);
       assert.equal(
         readFileSync(path, "utf8"),
         json,
-        "Terminal static output is stale: " + filename,
+        "Terminal static output is stale or tampered: " + filename,
       );
-    else writeFileSync(path, json);
+    } else writeFileSync(path, json);
   }
   for (const name of TERMINAL_GENERATED_MODULE_NAMES) {
     const path = resolve(outputRoot, name + ".generated.ts");
@@ -7515,6 +7523,15 @@ export async function generateTerminalIndex({
       );
     else writeFileSync(path, result.modules[name]);
   }
+  // Only superseded generations of the two static indexes are ours to remove.
+  const stale = existsSync(staticRoot)
+    ? readdirSync(staticRoot)
+        .filter((filename) => STATIC_TERMINAL_FILE.test(filename))
+        .filter((filename) => !Object.hasOwn(result.staticFiles, filename))
+        .sort()
+    : [];
+  if (check) assert.deepEqual(stale, [], "Terminal static output has stale files");
+  else for (const filename of stale) unlinkSync(resolve(staticRoot, filename));
   return result;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

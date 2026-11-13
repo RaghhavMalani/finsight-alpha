@@ -37,6 +37,20 @@ export const MAX_LAZY_MODULE_BYTES = 512 * 1024;
 export const MAX_LAZY_MODULE_GZIP_BYTES = 128 * 1024;
 // Static JSON indexes (Data, history-archive) are verified by SHA-256 before parsing.
 export const MAX_STATIC_TERMINAL_BYTES = 2 * 1024 * 1024;
+// Per-shard collection guards. Retained history adds ~12 records per daily epoch, so these
+// bound validation work against a runaway rather than budget the corpus.
+export const MAX_SHARD_ENTITIES = 8192;
+export const MAX_SHARD_EDGES = 32768;
+// Largest Risk original the terminal reads. Must equal ADMISSION_LIMIT in src/risk_manager/publication.py.
+export const MAX_RISK_ORIGINAL_BYTES = 1024 * 1024;
+/** Decoded-size ceiling for one shard: tight for the seed, runaway guards for everything lazy. */
+export function shardByteCeiling(name: TerminalShardName | undefined): number {
+  return name === "seed"
+    ? MAX_SEED_MODULE_BYTES
+    : name === "data" || name === "history-archive"
+      ? MAX_STATIC_TERMINAL_BYTES
+      : MAX_LAZY_MODULE_BYTES;
+}
 export const RELATIONS = [
   "REFERENCED_ARTIFACT",
   "ISSUE_ORIGIN",
@@ -670,12 +684,7 @@ export async function validateTerminalShard(
   expectedName?: TerminalShardName,
   expectedManifest?: PackedShard["manifestBinding"],
 ): Promise<TerminalShard> {
-  if (
-    new TextEncoder().encode(JSON.stringify(value)).byteLength >
-    (expectedName === "data" || expectedName === "history-archive"
-      ? MAX_STATIC_TERMINAL_BYTES
-      : (expectedName === "seed" ? 48 : 128) * 1024)
-  )
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > shardByteCeiling(expectedName))
     throw new Error("Terminal decoded metadata bound exceeded.");
   const layoutWire =
     !!value &&
@@ -745,9 +754,9 @@ export async function validateTerminalShard(
     typeof p.routes !== "object" ||
     Array.isArray(p.routes) ||
     !Array.isArray(p.entities) ||
-    p.entities.length > 512 ||
+    p.entities.length > MAX_SHARD_ENTITIES ||
     !Array.isArray(p.edges) ||
-    p.edges.length > 8192 ||
+    p.edges.length > MAX_SHARD_EDGES ||
     !Array.isArray(p.projections) ||
     !Array.isArray(p.bundles)
   )
@@ -1131,7 +1140,7 @@ export function unpackNavigationRecords(
   expectedCount: number,
 ): NavigationRecord[] {
   const integers = (wire: string, maximum = 20000): number[] => {
-    if (typeof wire !== "string" || wire.length > 128 * 1024)
+    if (typeof wire !== "string" || wire.length > MAX_LAZY_MODULE_BYTES)
       throw new Error("Invalid navigation integer wire.");
     const values = wire
       ? wire.split(".").map((token) => {
@@ -1331,7 +1340,7 @@ export async function validateNavigationProjection(
   value: unknown,
   expectedManifest?: PackedShard["manifestBinding"],
 ): Promise<NavigationRecord[]> {
-  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 131072)
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > MAX_LAZY_MODULE_BYTES)
     throw new Error("Search navigation decoded bound exceeded.");
   const raw = record(value, [
     "schema_version",
@@ -1418,21 +1427,36 @@ const loaders = {
   history: () => import("./generated/history.generated.ts"),
   "history-archive": () => import("./generated/history-archive.generated.ts"),
 };
+/**
+ * Fetch, authenticate, parse and validate one static index. Fail closed: any rejection names the
+ * unavailable index and its reason, and no part of the index is returned.
+ */
+export async function loadStaticTerminalShard(
+  reference: unknown,
+  name: StaticTerminalShardName,
+  expectedManifest?: PackedShard["manifestBinding"],
+): Promise<TerminalShard> {
+  const reader = await import("./reader.ts");
+  const value = await reader.readTerminalIndex(reference, name);
+  // Authentic bytes can still be the wrong shard (stale deploy): name the unavailable index.
+  return validateTerminalShard(value, name, expectedManifest).catch((error: unknown) => {
+    throw reader.staticIndexFailure(
+      "Terminal static index content is invalid.",
+      name,
+      error instanceof Error ? error.message : "shard validation failed.",
+    );
+  });
+}
 const pending = new Map<TerminalShardName, Promise<TerminalShard>>();
 export function loadTerminalShard(name: TerminalShardName): Promise<TerminalShard> {
   let result = pending.get(name);
   if (!result) {
     result = loaders[name]()
       .then(async (module) => {
-        const value =
-          name === "data" || name === "history-archive"
-            ? await (await import("./reader.ts")).readTerminalIndex(module.default, name)
-            : module.default;
-        return validateTerminalShard(
-          value,
-          name,
-          name === "seed" ? undefined : (await loadTerminalSeed()).manifestBinding,
-        );
+        const manifest = name === "seed" ? undefined : (await loadTerminalSeed()).manifestBinding;
+        return name === "data" || name === "history-archive"
+          ? loadStaticTerminalShard(module.default, name, manifest)
+          : validateTerminalShard(module.default, name, manifest);
       })
       .catch((error: unknown) => {
         pending.delete(name);
@@ -1544,7 +1568,6 @@ export async function traverseDeclared(
     depth?: number;
     nodes?: number;
     edges?: number;
-    bytes?: number;
     signal?: AbortSignal;
   } = {},
 ) {
@@ -1552,29 +1575,23 @@ export async function traverseDeclared(
     depth: options.depth ?? 4,
     nodes: options.nodes ?? 256,
     edges: options.edges ?? 512,
-    bytes: options.bytes ?? 512 * 1024,
   };
   if (
     limits.depth > 4 ||
     limits.nodes > 256 ||
     limits.edges > 512 ||
-    limits.bytes > 512 * 1024 ||
     Object.values(limits).some((n) => !count(n))
   )
     throw new Error("Declared traversal bounds cannot be widened.");
   const names = [...new Set(shardNames)];
   if (names.some((name) => !SHARD_NAMES.includes(name)))
     throw new Error("Unknown traversal shard.");
-  const reserved = 48 * 1024 + names.filter((name) => name !== "seed").length * 128 * 1024;
-  if (reserved > limits.bytes)
-    throw new Error("Declared traversal metadata reservation exceeds byte bound before loading.");
+  // Work is bounded by depth/nodes/edges; each shard load enforces its own byte ceiling.
   if (options.signal?.aborted) throw new Error("Investigation cancelled.");
   const shards = await Promise.all(names.map(loadTerminalShard));
   if (options.signal?.aborted) throw new Error("Investigation cancelled.");
-  const bytes = reserved;
   if (!shards.some((shard) => shard.entities.some((entity) => entity.key === start)))
     throw new Error("Traversal start is not a retained entity.");
-  if (bytes > limits.bytes) throw new Error("Declared metadata traversal byte bound exceeded.");
   const visited = new Set([start]),
     selected: TerminalEdge[] = [];
   let frontier = [start];
@@ -1608,11 +1625,8 @@ export async function traverseDeclared(
     );
   return {
     incomplete,
-    metadataAccounting:
-      "Conservative admission reservation: 48 KiB seed plus 128 KiB per requested lazy shard, checked before import.",
     nodes: [...visited].sort(),
     edges: selected,
-    bytes,
     limitation:
       (incomplete
         ? "Bounded incomplete navigation: the selected depth limit has an unexplored frontier. "

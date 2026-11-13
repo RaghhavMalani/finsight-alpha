@@ -6,38 +6,134 @@ import {
   selectProjection,
   stableTerminal,
   terminalDigest,
+  MAX_LAZY_MODULE_BYTES,
+  MAX_RISK_ORIGINAL_BYTES,
   MAX_STATIC_TERMINAL_BYTES,
   type DisplayProjection,
   type StaticTerminalShardName,
 } from "./catalog.ts";
 
-/** Authenticate the complete static transport before parsing or validating its packed shard. */
+const STATIC_INDEX_LABEL = { data: "Data index", "history-archive": "Retained history index" };
+const STATIC_REFERENCE_FIELDS = ["schema_version", "name", "url", "sha256", "bytes"];
+/** One user-facing sentence: which index is unavailable and why. Nothing from it is shown. */
+export function staticIndexFailure(
+  prefix: string,
+  name: StaticTerminalShardName,
+  reason: string,
+): Error {
+  return new Error(prefix + " " + STATIC_INDEX_LABEL[name] + " is unavailable: " + reason);
+}
+/** Read at most `limit` bytes; null means the body ran past it and the download was stopped. */
+async function boundedBody(response: Response, limit: number): Promise<Uint8Array | null> {
+  const stream = response.body?.getReader();
+  if (!stream) {
+    const all = new Uint8Array(await response.arrayBuffer());
+    return all.byteLength > limit ? null : all;
+  }
+  const bytes = new Uint8Array(limit);
+  let length = 0;
+  for (;;) {
+    const { done, value } = await stream.read();
+    if (done) return bytes.subarray(0, length);
+    if (length + value.byteLength > limit) {
+      await stream.cancel().catch(() => undefined);
+      return null;
+    }
+    bytes.set(value, length);
+    length += value.byteLength;
+  }
+}
+/**
+ * Authenticate the complete static transport before parsing or validating its packed shard.
+ * Fail closed: any rejection means the index is unavailable and no part of it is returned.
+ */
 export async function readTerminalIndex(
   reference: unknown,
   expectedName: StaticTerminalShardName,
 ): Promise<unknown> {
-  const ref = object(reference, ["schema_version", "name", "url", "sha256", "bytes"]);
+  const invalid = (reason: string) =>
+    staticIndexFailure("Terminal static index reference is invalid.", expectedName, reason);
+  if (!reference || typeof reference !== "object" || Array.isArray(reference))
+    throw invalid("the generated reference is not an object.");
+  const ref = reference as Record<string, unknown>,
+    fields = Object.keys(ref);
   if (
-    ref.schema_version !== "terminal-static-shard/1" ||
-    ref.name !== expectedName ||
-    typeof ref.sha256 !== "string" ||
-    !/^[a-f0-9]{64}$/.test(ref.sha256) ||
-    ref.url !== "/terminal/" + expectedName + "." + ref.sha256.slice(0, 12) + ".json" ||
-    !count(ref.bytes) ||
-    ref.bytes === 0 ||
-    ref.bytes > MAX_STATIC_TERMINAL_BYTES
+    fields.length !== STATIC_REFERENCE_FIELDS.length ||
+    fields.some((field) => !STATIC_REFERENCE_FIELDS.includes(field))
   )
-    throw new Error("Terminal static index reference is invalid.");
-  const response = await fetch(ref.url as string, { credentials: "omit" });
-  if (!response.ok) throw new Error("Terminal static index is unavailable.");
-  const bytes = await response.arrayBuffer();
-  if (bytes.byteLength !== ref.bytes || bytes.byteLength > MAX_STATIC_TERMINAL_BYTES)
-    throw new Error("Terminal static index byte length changed.");
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (byte) =>
-    byte.toString(16).padStart(2, "0"),
+    throw invalid("the generated reference has missing or undeclared fields.");
+  if (ref.schema_version !== "terminal-static-shard/1")
+    throw invalid("the reference schema is not terminal-static-shard/1.");
+  if (ref.name !== expectedName) throw invalid("the reference names a different index.");
+  if (typeof ref.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(ref.sha256))
+    throw invalid("the reference SHA-256 is malformed.");
+  const url = "/terminal/" + expectedName + "." + ref.sha256.slice(0, 12) + ".json";
+  if (ref.url !== url) throw invalid("the reference URL is not the content-addressed " + url + ".");
+  if (!count(ref.bytes) || ref.bytes === 0)
+    throw invalid("the declared byte length is not a positive integer.");
+  // Reject before any download: a reference cannot authorize a read past the ceiling.
+  if (ref.bytes > MAX_STATIC_TERMINAL_BYTES)
+    throw invalid(
+      "the declared " +
+        ref.bytes +
+        " bytes exceed the " +
+        MAX_STATIC_TERMINAL_BYTES +
+        "-byte ceiling.",
+    );
+  const expectedBytes = ref.bytes;
+  let response: Response;
+  try {
+    response = await fetch(url, { credentials: "omit" });
+  } catch (error) {
+    throw staticIndexFailure(
+      "Terminal static index is unavailable.",
+      expectedName,
+      url + " could not be fetched (" + (error instanceof Error ? error.message : "network") + ").",
+    );
+  }
+  if (response.status !== 200)
+    throw staticIndexFailure(
+      "Terminal static index is unavailable.",
+      expectedName,
+      url + " returned HTTP " + response.status + ".",
+    );
+  const changed = (reason: string) =>
+    staticIndexFailure("Terminal static index byte length changed.", expectedName, reason);
+  // Content-Length may describe a compressed body, so it can only prove an oversize response.
+  const declared = Number(response.headers.get("content-length") ?? "0");
+  if (declared > MAX_STATIC_TERMINAL_BYTES) {
+    await response.body?.cancel().catch(() => undefined);
+    throw changed(
+      "the server declares " + declared + " bytes; " + expectedBytes + " were expected.",
+    );
+  }
+  // Never buffer past the authenticated length (itself bounded by the ceiling above).
+  const bytes = await boundedBody(response, expectedBytes);
+  if (!bytes)
+    throw changed("the response is longer than the expected " + expectedBytes + " bytes.");
+  if (bytes.byteLength !== expectedBytes)
+    throw changed("expected " + expectedBytes + " bytes, received " + bytes.byteLength + ".");
+  const digest = Array.from(
+    new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as BufferSource)),
+    (byte) => byte.toString(16).padStart(2, "0"),
   ).join("");
-  if (digest !== ref.sha256) throw new Error("Terminal static index SHA-256 changed.");
-  return strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  if (digest !== ref.sha256)
+    throw staticIndexFailure(
+      "Terminal static index SHA-256 changed.",
+      expectedName,
+      "expected " + ref.sha256.slice(0, 12) + "…, received " + digest.slice(0, 12) + "….",
+    );
+  try {
+    return strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch (error) {
+    throw staticIndexFailure(
+      "Terminal static index content is invalid.",
+      expectedName,
+      "authenticated bytes are not strict UTF-8 JSON (" +
+        (error instanceof Error ? error.message : "decode failed") +
+        ").",
+    );
+  }
 }
 
 // Closed public field/type grammar, shared structurally across the reviewed complete-source contracts.
@@ -2268,7 +2364,8 @@ export async function validateFullOriginal(
     closedOriginal(value, "market-series");
     validateMarketReplay(value, id.slice("market:".length), entry.as_of);
   } else if (entry.kind === "risk-state" || entry.kind === "risk-sweep") {
-    if (entry.bytes > 256 * 1024) throw new Error("Risk original wire exceeds 256 KiB budget.");
+    if (entry.bytes > MAX_RISK_ORIGINAL_BYTES)
+      throw new Error("Risk original wire exceeds the 1 MiB admission limit.");
     const { validateRisk, verifyRiskIdentity } = await import("../../risk-manager/contracts.ts");
     const result = validateRisk(value, entry.kind);
     await verifyRiskIdentity(result);
@@ -2363,7 +2460,7 @@ export async function verifyDisplayProjection(
   expectedBinding: ReplayEntry,
   expectedDigest: string,
 ): Promise<DisplayProjection> {
-  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 128 * 1024)
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > MAX_LAZY_MODULE_BYTES)
     throw new Error("Display projection decoded size bound exceeded.");
   const p = object(value, [
     "schema_version",
