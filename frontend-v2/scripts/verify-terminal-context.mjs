@@ -1318,7 +1318,20 @@ check("current manifest preserves every pinned admitted entry and route key", ()
     SIXTH_RECONCILED_MAIN,
     RECONCILED_MAIN,
   ];
-  for (const commit of pinned) {
+  // Also the parent commit and the merge base with main, so entries published after the last
+  // pinned main cannot be rewritten either. Each is skipped only when Git cannot resolve it.
+  const resolve = (rev) => {
+    const run = spawnSync("git", ["rev-parse", "--verify", "-q", rev + "^{commit}"], { cwd: root });
+    return run.status === 0 ? run.stdout.toString("utf8").trim() : undefined;
+  };
+  const mainBase = resolve("origin/main")
+    ? spawnSync("git", ["merge-base", "HEAD", "origin/main"], { cwd: root })
+    : undefined;
+  const recent = [
+    resolve("HEAD^1"),
+    mainBase?.status === 0 ? mainBase.stdout.toString("utf8").trim() : undefined,
+  ].filter(Boolean);
+  for (const commit of [...pinned, ...recent]) {
     const prior = JSON.parse(git("show", commit + ":frontend-v2/public/replay-manifest.json"));
     for (const [id, entry] of Object.entries(prior.artifacts))
       assert.deepEqual(manifest.artifacts[id], entry, "admitted entry changed or removed: " + id);
@@ -1329,6 +1342,7 @@ check("current manifest preserves every pinned admitted entry and route key", ()
     assert(Object.hasOwn(manifest.artifacts, id), "route names an unknown artifact: " + id);
   freezeProof.appendOnlyPublication = {
     pinnedMains: pinned,
+    recentManifests: recent,
     currentArtifacts: Object.keys(manifest.artifacts).length,
     currentRoutes: Object.keys(manifest.routes).length,
   };
@@ -1983,7 +1997,7 @@ await checkAsync(
       "history-archive",
       actualLayoutArchive.manifestBinding,
     );
-    // Retained history is append-only: the archive may grow but never drop below its admitted 332.
+    // Floor only; every pinned retained identity is checked against the served shards later.
     assert(archive.entities.length >= 332);
     const current = await referenceRepairCatalog.loadTerminalShard("history");
     assert.equal(current.entities.length, 16);
@@ -2772,7 +2786,7 @@ if (!coreOnly || projectionsOnly) {
             generated.searchProjection,
             generated.shards.seed.manifestBinding,
           );
-          assert(records.length >= 529); // current navigation grows with the retained corpus
+          assert(records.length >= 529); // floor; pinned identities are checked separately
           assert.deepEqual(JSON.parse(JSON.stringify(records)), generated.currentSearchRecords);
           continue;
         }
@@ -2784,6 +2798,59 @@ if (!coreOnly || projectionsOnly) {
         assert(admitted.entities.length <= catalog.MAX_SHARD_ENTITIES);
         assert(admitted.entities.every((e) => e.availability === "AVAILABLE"));
       }
+    },
+  );
+  await checkAsync(
+    "every retained history and navigation identity derived at the pinned main is still served",
+    async () => {
+      // The same derivation over the fixed RECONCILED_MAIN manifest gives the identities that must
+      // never disappear; growth elsewhere cannot hide a loss here.
+      const pinnedRaw = git("show", RECONCILED_MAIN + ":frontend-v2/public/replay-manifest.json");
+      const pinned = await generator.deriveTerminalCatalog(JSON.parse(pinnedRaw), {
+        manifestBytes: pinnedRaw,
+        readArtifactBytes,
+      });
+      const [history, archive] = await Promise.all([
+        catalog.loadTerminalShard("history"),
+        catalog.loadTerminalShard("history-archive"),
+      ]);
+      const servedHistory = new Set([...history.entities, ...archive.entities].map((e) => e.key));
+      const pinnedHistory = pinned.logicalHistory.entities.map((e) => e.key);
+      assert(pinnedHistory.length >= 348 && servedHistory.size >= 348);
+      assert.deepEqual(
+        pinnedHistory.filter((key) => !servedHistory.has(key)),
+        [],
+        "retained history entity lost",
+      );
+      // A record that leaves the current surface must remain reachable in the history scope,
+      // composed exactly as the search service composes it.
+      const search = await import("../src/app/terminal/search.ts"),
+        { capabilityFor } = await import("../src/app/terminal/capabilities.ts");
+      const current = await catalog.loadSearchNavigation(),
+        supplement = await catalog.loadRetainedSearchNavigation(),
+        derived = search.deriveNavigationRecords(
+          {
+            entities: catalog.catalogEntities([history, archive]),
+            bindings: { ...history.bindings, ...archive.bindings },
+            routes: { ...history.routes, ...archive.routes },
+            projectionPins: {},
+          },
+          "history",
+          capabilityFor,
+        );
+      const reachable = new Set([...current, ...supplement, ...derived].map((r) => r.key));
+      const pinnedCurrent = pinned.currentSearchRecords.map((r) => r.key);
+      assert(pinnedCurrent.length >= 529 && current.length >= 529);
+      assert.deepEqual(
+        pinnedCurrent.filter((key) => !reachable.has(key)),
+        [],
+        "navigation record lost",
+      );
+      projectionProof.pinnedIdentityRetention = {
+        pinnedMain: RECONCILED_MAIN,
+        historyEntities: pinnedHistory.length,
+        currentNavigationRecords: pinnedCurrent.length,
+      };
     },
   );
   await checkAsync(
@@ -4153,7 +4220,8 @@ if (!coreOnly || projectionsOnly) {
       assert.equal(sameLength.at(-1), 0x0a);
       sameLength[sameLength.length - 1] = 0x20; // still valid JSON, same length, different digest
       const notJSON = Buffer.from("{not json}\n");
-      const wrongShard = Buffer.from(JSON.stringify({ ...value, name: "risk" }) + "\n");
+      // Authentic, correctly sealed bytes of the other static index: only the name check rejects.
+      const wrongShard = generatedStaticShard("history-archive").bytes;
       const flipped = (reference.sha256[0] === "0" ? "1" : "0") + reference.sha256.slice(1);
       const cases = [
         [
@@ -4314,7 +4382,8 @@ if (!coreOnly || projectionsOnly) {
           await assert.rejects(
             catalog.loadStaticTerminalShard(wrong, "data", seedBinding),
             (error) =>
-              error.message.startsWith("Terminal static index content is invalid. " + label),
+              error.message.startsWith("Terminal static index content is invalid. " + label) &&
+              error.message.endsWith("Terminal shard identity is invalid."),
           );
           globalThis.fetch = async () => new Response(bytes);
           const admitted = await catalog.loadStaticTerminalShard(reference, "data", seedBinding);
@@ -5402,6 +5471,41 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
             ([id, entry]) => entry.status === "AVAILABLE" && reader.canInspectOriginal(id, entry),
           ).length,
         );
+        // Independent of the reader: every original inspectable at RECONCILED_MAIN must still be.
+        // That set is every AVAILABLE entry except the dynamics/product/plugin/world/regime
+        // families, the Forge baseline/reality listings and the oversized India HMM; its digest
+        // pins it, so an always-false reader cannot pass.
+        const pinnedManifest = JSON.parse(
+          git("show", RECONCILED_MAIN + ":frontend-v2/public/replay-manifest.json"),
+        );
+        const uninspectable = (id) =>
+          ["dynamics:", "product:", "plugins:", "world:", "regime:"].some((prefix) =>
+            id.startsWith(prefix),
+          ) || ["forge:baseline", "forge:reality", "observatory:IN-MKT:hmm"].includes(id);
+        const pinnedInspectable = Object.entries(pinnedManifest.artifacts)
+          .filter(([id, entry]) => entry.status === "AVAILABLE" && !uninspectable(id))
+          .map(([id]) => id)
+          .sort();
+        assert.equal(pinnedInspectable.length, 343);
+        assert.equal(
+          hash(JSON.stringify(pinnedInspectable)),
+          "9089f3b13725f9ffde7a12190762b1b6ff2f39be85c321fc5760f637e0b2ceea",
+        );
+        assert(supported >= pinnedInspectable.length);
+        for (const id of pinnedInspectable) {
+          assert(
+            reader.canInspectOriginal(id, manifest.artifacts[id]),
+            "no longer inspectable " + id,
+          );
+          assert(
+            capabilities.capabilityFor({
+              feature: "original-inspection",
+              artifactId: id,
+              binding: data.bindings[id],
+            }).enabled,
+            "inspection capability withdrawn " + id,
+          );
+        }
         navigationProof.originalInspection = {
           bindings: CURRENT_AVAILABLE_BINDINGS,
           supported,
