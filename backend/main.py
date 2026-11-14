@@ -208,6 +208,8 @@ app.include_router(tape.router)
 app.include_router(ml.router)
 app.include_router(paper.router)
 app.include_router(live.router)
+from backend.routes import geo_graph
+app.include_router(geo_graph.router)
 
 
 # The NEW front-end (frontend-v2 / FinSight Terminal) is the primary UI.
