@@ -1,0 +1,1171 @@
+{
+ "schema_version": "geo-graph-seed/1",
+ "version": "v1",
+ "description": "Hand-seeded, source-cited supply-chain graph. available_at is when this project fetched and checked each source; the documents may have been public earlier. Coordinates are approximate city or passage centroids from general geographic reference, not from the cited documents; each located node states its precision.",
+ "nodes": [
+  {
+   "id": "facility:tsmc:fab-12a",
+   "type": "facility",
+   "name": "TSMC Fab 12A",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu)",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-12b",
+   "type": "facility",
+   "name": "TSMC Fab 12B",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu)",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-20",
+   "type": "facility",
+   "name": "TSMC Fab 20",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu)",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-1",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 1",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu)",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-14a",
+   "type": "facility",
+   "name": "TSMC Fab 14A",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan)",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-14b",
+   "type": "facility",
+   "name": "TSMC Fab 14B",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan)",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-18a",
+   "type": "facility",
+   "name": "TSMC Fab 18A",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan)",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-18b",
+   "type": "facility",
+   "name": "TSMC Fab 18B",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan)",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-15a",
+   "type": "facility",
+   "name": "TSMC Fab 15A",
+   "lat": 24.1477,
+   "lon": 120.6736,
+   "location_precision": "city centroid (Taichung)",
+   "attrs": {
+    "city": "Taichung",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-15b",
+   "type": "facility",
+   "name": "TSMC Fab 15B",
+   "lat": 24.1477,
+   "lon": 120.6736,
+   "location_precision": "city centroid (Taichung)",
+   "attrs": {
+    "city": "Taichung",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-22",
+   "type": "facility",
+   "name": "TSMC Fab 22",
+   "lat": 22.6273,
+   "lon": 120.3014,
+   "location_precision": "city centroid (Kaohsiung)",
+   "attrs": {
+    "city": "Kaohsiung",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-16",
+   "type": "facility",
+   "name": "TSMC Fab 16 (TSMC Nanjing)",
+   "lat": 32.0603,
+   "lon": 118.7969,
+   "location_precision": "city centroid (Nanjing)",
+   "attrs": {
+    "city": "Nanjing",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-10",
+   "type": "facility",
+   "name": "TSMC Fab 10 (TSMC China)",
+   "lat": 31.2304,
+   "lon": 121.4737,
+   "location_precision": "city centroid (Shanghai)",
+   "attrs": {
+    "city": "Shanghai",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:arizona",
+   "type": "facility",
+   "name": "TSMC TSMC Arizona",
+   "lat": 33.4484,
+   "lon": -112.074,
+   "location_precision": "city centroid (Phoenix)",
+   "attrs": {
+    "city": "Phoenix",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-11",
+   "type": "facility",
+   "name": "TSMC Fab 11 (TSMC Washington)",
+   "lat": 45.5871,
+   "lon": -122.3995,
+   "location_precision": "city centroid (Camas)",
+   "attrs": {
+    "city": "Camas",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:jasm",
+   "type": "facility",
+   "name": "TSMC Japan Advanced Semiconductor Manufacturing (JASM)",
+   "lat": 32.8031,
+   "lon": 130.7079,
+   "location_precision": "city centroid (Kumamoto)",
+   "attrs": {
+    "city": "Kumamoto",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-3",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 3",
+   "lat": 24.9936,
+   "lon": 121.301,
+   "location_precision": "city centroid (Taoyuan)",
+   "attrs": {
+    "city": "Taoyuan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-6",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 6",
+   "lat": 24.5602,
+   "lon": 120.8214,
+   "location_precision": "city centroid (Miaoli)",
+   "attrs": {
+    "city": "Miaoli",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "company:tsmc",
+   "type": "company",
+   "name": "Taiwan Semiconductor Manufacturing Co. Ltd.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "company:nvidia",
+   "type": "company",
+   "name": "NVIDIA Corporation",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "company:amd",
+   "type": "company",
+   "name": "Advanced Micro Devices, Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "company:apple",
+   "type": "company",
+   "name": "Apple Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "company:globalfoundries",
+   "type": "company",
+   "name": "GLOBALFOUNDRIES Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "company:analog-devices",
+   "type": "company",
+   "name": "Analog Devices, Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "company:samsung-electronics",
+   "type": "company",
+   "name": "Samsung Electronics Co., Ltd.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+    "title": "NVIDIA Corporation Form 10-K, fiscal year ended 2026-01-25",
+    "date": "2026-01-25",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We utilize foundries, such as Taiwan Semiconductor Manufacturing Company Limited, or TSMC, and Samsung Electronics Co., Ltd., or Samsung, to produce our semiconductor wafers."
+   }
+  },
+  {
+   "id": "sector:sic-3674",
+   "type": "sector",
+   "name": "SIC 3674 Semiconductors & Related Devices",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "sector:sic-3571",
+   "type": "sector",
+   "name": "SIC 3571 Electronic Computers",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "security:tsm",
+   "type": "security",
+   "name": "TSM (NYSE)",
+   "attrs": {
+    "ticker": "TSM",
+    "exchange": "NYSE"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "security:nvda",
+   "type": "security",
+   "name": "NVDA (Nasdaq)",
+   "attrs": {
+    "ticker": "NVDA",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "security:amd",
+   "type": "security",
+   "name": "AMD (Nasdaq)",
+   "attrs": {
+    "ticker": "AMD",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "security:aapl",
+   "type": "security",
+   "name": "AAPL (Nasdaq)",
+   "attrs": {
+    "ticker": "AAPL",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "security:gfs",
+   "type": "security",
+   "name": "GFS (Nasdaq)",
+   "attrs": {
+    "ticker": "GFS",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "security:adi",
+   "type": "security",
+   "name": "ADI (Nasdaq)",
+   "attrs": {
+    "ticker": "ADI",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "chokepoint:hormuz",
+   "type": "chokepoint",
+   "name": "Strait of Hormuz",
+   "lat": 26.5667,
+   "lon": 56.25,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 20.9,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-02",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "chokepoint:bab-el-mandeb",
+   "type": "chokepoint",
+   "name": "Bab el-Mandeb",
+   "lat": 12.5833,
+   "lon": 43.3333,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 4.2,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-02",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "chokepoint:suez",
+   "type": "chokepoint",
+   "name": "Suez Canal and SUMED Pipeline",
+   "lat": 30.5852,
+   "lon": 32.2654,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 4.9,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-02",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "chokepoint:malacca",
+   "type": "chokepoint",
+   "name": "Strait of Malacca",
+   "lat": 2.5,
+   "lon": 101.5,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 23.2,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-02",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "operates:tsmc:fab-12a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-12a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-12b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-12b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-20",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-20",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-1",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-1",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-14a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-14a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-14b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-14b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-18a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-18a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-18b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-18b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-15a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-15a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-15b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-15b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-22",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-22",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-16",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-16",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-10",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-10",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:arizona",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:arizona",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-11",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-11",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:jasm",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:jasm",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-3",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-3",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-6",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-6",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "listed_as:tsmc:tsm",
+   "type": "listed_as",
+   "src": "company:tsmc",
+   "dst": "security:tsm",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists TSM on NYSE for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "exposed_to:tsm:sic-3674",
+   "type": "exposed_to",
+   "src": "security:tsm",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "listed_as:nvidia:nvda",
+   "type": "listed_as",
+   "src": "company:nvidia",
+   "dst": "security:nvda",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists NVDA on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "exposed_to:nvda:sic-3674",
+   "type": "exposed_to",
+   "src": "security:nvda",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "listed_as:amd:amd",
+   "type": "listed_as",
+   "src": "company:amd",
+   "dst": "security:amd",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists AMD on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "exposed_to:amd:sic-3674",
+   "type": "exposed_to",
+   "src": "security:amd",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "listed_as:apple:aapl",
+   "type": "listed_as",
+   "src": "company:apple",
+   "dst": "security:aapl",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists AAPL on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "exposed_to:aapl:sic-3571",
+   "type": "exposed_to",
+   "src": "security:aapl",
+   "dst": "sector:sic-3571",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3571.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "listed_as:globalfoundries:gfs",
+   "type": "listed_as",
+   "src": "company:globalfoundries",
+   "dst": "security:gfs",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists GFS on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "exposed_to:gfs:sic-3674",
+   "type": "exposed_to",
+   "src": "security:gfs",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "listed_as:analog-devices:adi",
+   "type": "listed_as",
+   "src": "company:analog-devices",
+   "dst": "security:adi",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists ADI on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "exposed_to:adi:sic-3674",
+   "type": "exposed_to",
+   "src": "security:adi",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": ""
+   }
+  },
+  {
+   "id": "supplies:tsmc:nvidia",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:nvidia",
+   "confidence": 0.95,
+   "mechanism": "TSMC produces NVIDIA semiconductor wafers; NVIDIA is fabless.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+    "title": "NVIDIA Corporation Form 10-K, fiscal year ended 2026-01-25",
+    "date": "2026-01-25",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We utilize foundries, such as Taiwan Semiconductor Manufacturing Company Limited, or TSMC, and Samsung Electronics Co., Ltd., or Samsung, to produce our semiconductor wafers."
+   }
+  },
+  {
+   "id": "supplies:samsung-electronics:nvidia",
+   "type": "supplies",
+   "src": "company:samsung-electronics",
+   "dst": "company:nvidia",
+   "confidence": 0.8,
+   "mechanism": "Samsung is named as one of the foundries producing NVIDIA wafers.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+    "title": "NVIDIA Corporation Form 10-K, fiscal year ended 2026-01-25",
+    "date": "2026-01-25",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We utilize foundries, such as Taiwan Semiconductor Manufacturing Company Limited, or TSMC, and Samsung Electronics Co., Ltd., or Samsung, to produce our semiconductor wafers."
+   }
+  },
+  {
+   "id": "supplies:tsmc:amd",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:amd",
+   "confidence": 0.95,
+   "mechanism": "TSMC produces all AMD microprocessor and GPU wafers at 7 nm or smaller.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000018/amd-20251227.htm",
+    "title": "Advanced Micro Devices Form 10-K, fiscal year ended 2025-12-27",
+    "date": "2025-12-27",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We rely on Taiwan Semiconductor Manufacturing Company Limited (TSMC) for the production of all wafers for microprocessor and GPU products at 7 nanometer (nm) or smaller nodes, and we rely primarily on GLOBALFOUNDRIES Inc."
+   }
+  },
+  {
+   "id": "supplies:globalfoundries:amd",
+   "type": "supplies",
+   "src": "company:globalfoundries",
+   "dst": "company:amd",
+   "confidence": 0.8,
+   "mechanism": "AMD relies primarily on GLOBALFOUNDRIES for wafers at larger nodes.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000018/amd-20251227.htm",
+    "title": "Advanced Micro Devices Form 10-K, fiscal year ended 2025-12-27",
+    "date": "2025-12-27",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We rely on Taiwan Semiconductor Manufacturing Company Limited (TSMC) for the production of all wafers for microprocessor and GPU products at 7 nanometer (nm) or smaller nodes, and we rely primarily on GLOBALFOUNDRIES Inc."
+   }
+  },
+  {
+   "id": "supplies:tsmc:analog-devices",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:analog-devices",
+   "confidence": 0.7,
+   "mechanism": "TSMC is among the foundries supplying more than half of ADI wafers.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/6281/000000628125000153/adi-20251101.htm",
+    "title": "Analog Devices Form 10-K, fiscal year ended 2025-11-01",
+    "date": "2025-11-01",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We currently source more than half of our wafer requirements annually from third-party wafer foundries, including Taiwan Semiconductor Manufacturing Company (TSMC) and others."
+   }
+  },
+  {
+   "id": "supplies:tsmc:apple",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:apple",
+   "confidence": 0.7,
+   "mechanism": "Apple names TSMC on the supplier list in its 2025 environmental report.",
+   "source": {
+    "url": "https://www.apple.com/jp/environment/pdf/Apple_Environmental_Progress_Report_2025.pdf",
+    "title": "Apple Environmental Progress Report 2025 (supplier list)",
+    "date": "2025",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "Taiwan Semiconductor Manufacturing Company Limited"
+   }
+  }
+ ]
+}
