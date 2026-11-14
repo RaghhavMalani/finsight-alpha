@@ -10,6 +10,8 @@ a layer now point here. `AsOfContext` (`src/data/as_of.py`) is an in-repo class 
   - Endpoints: `https://www.sec.gov/files/company_tickers.json` (ticker -> CIK) and
     `https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json`. No other URL is allowed.
   - Header `User-Agent: FinSight-Forge research (github.com/RaghhavMalani/finsight-alpha)`; no email.
+  - Redirects are refused (`allow_redirects=False`; 3xx is an error), and values or dates that
+    are non-finite or not strictly `YYYY-MM-DD` quarantine only their own row.
   - Fair access is enforced in code: a process-wide sliding one-second window, at most
     10 requests/second (`RateLimiter` refuses a higher setting).
   - Licence recorded on every capture: `PUBLIC_INFORMATION`, terms
@@ -69,6 +71,9 @@ book.fundamentals("AAPL", "revenues_fy", "2024-03-01T00:00:00Z")
 - Every observation is re-checked on load: period end <= `available_at` <= capture clock,
   `filed` >= period end, and `available_at` must equal the rule applied to `filed`, so a
   backdated availability is rejected. `as_of` needs an explicit timezone; unknown fields raise.
+- Each AVAILABLE result has `period_age_days` (as_of minus period end); optional `max_age_days`
+  turns an older value into NOT_MEASURED with a `stale` reason. Evidence also carries
+  `ticker_link: PRESENT_DAY` and `ticker_map_captured_at`.
 - Ticker -> CIK uses the SEC map captured with the data. It is a present-day link, not a
   point-in-time identity (ticker reuse is not modelled); observations are keyed by CIK.
 
