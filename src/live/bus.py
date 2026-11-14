@@ -9,9 +9,12 @@ SSE client resume from ``Last-Event-ID``.
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 from collections import deque
 from typing import Callable
+
+logger = logging.getLogger("finsight.live.bus")
 
 
 class Subscription:
@@ -58,7 +61,10 @@ class Bus:
                 except RuntimeError:
                     self._remove(sub)  # its loop has closed
         for callback in callbacks:
-            callback(event)
+            try:
+                callback(event)
+            except Exception:  # noqa: BLE001 - a listener must never break ingestion
+                logger.exception("live bus listener failed")
 
     def subscribe(self, *, types: set[str] | None = None, maxsize: int = 1000) -> Subscription:
         sub = Subscription(self, asyncio.get_running_loop(), maxsize, types)
@@ -84,6 +90,10 @@ class Bus:
         if after_seq is not None:
             items = [e for e in items if e["seq"] > after_seq]
         return items[-limit:]
+
+    def first_seq(self) -> int | None:
+        with self._lock:
+            return self._history[0]["seq"] if self._history else None
 
     @property
     def subscribers(self) -> int:

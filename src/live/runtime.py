@@ -60,18 +60,21 @@ class LiveService:
         for obs in observations:
             try:
                 record = self.store.append(obs)
-            except StoreError as error:
-                rejected += 1
+            except (StoreError, ValueError, TypeError, KeyError, AttributeError) as error:
+                rejected += 1  # one bad row is rejected; it never poisons the rest of the batch
                 logger.warning("live store rejected a row: %s", error)
                 continue
             if record is None:
                 continue
             self.bus.publish(record)
             stored.append(record)
-            for suggestion in self.triggers.evaluate(record):
-                derived = self.store.append(suggestion)
-                if derived is not None:
-                    self.bus.publish(derived)
+            try:
+                for suggestion in self.triggers.evaluate(record):
+                    derived = self.store.append(suggestion)
+                    if derived is not None:
+                        self.bus.publish(derived)
+            except (StoreError, ValueError, TypeError, KeyError) as error:
+                logger.warning("research trigger failed on %s: %s", record["id"], error)
         return stored, rejected
 
     def record_health(self, snapshot: dict) -> dict | None:
@@ -110,7 +113,7 @@ class LiveService:
 
     def _last_successes(self) -> dict[str, datetime]:
         out: dict[str, datetime] = {}
-        for record in self.store.since(None, types={"feed.health"}, limit=100000, lookback_days=2):
+        for record in self.store.since(None, types={"feed.health"}, limit=100000):
             at = record["payload"].get("last_success_at")
             if at:
                 out[record["source_id"]] = model.parse_iso(at)
@@ -121,6 +124,8 @@ class LiveService:
         if self.mode == "online":
             for manifest in self.store.seal_closed_days():
                 logger.info("sealed live day %s (%s rows)", manifest["day"], manifest["rows"])
+            if self.risk is not None:
+                self.risk.restore(self.store.records({"risk.alert"}))
             self.scheduler = Scheduler(self.feeds, on_result=self._on_result, on_health=self._on_health,
                                        clock=self.clock, last_success=self._last_successes())
             await self.scheduler.start(self._stop)
@@ -135,6 +140,17 @@ class LiveService:
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
+        if self.store is not None:
+            self.store.close()
+
+    def backlog(self, after_seq: int, types: set[str] | None = None) -> tuple[list[dict], int | None]:
+        """Events after ``after_seq`` and, if some cannot be served, the first seq still held."""
+        if self.store is not None and self.mode == "online":
+            return self.store.since(None, types=types, after_seq=after_seq, limit=100000), None
+        held = self.bus.recent(limit=1)
+        events = self.bus.recent(types=types, after_seq=after_seq, limit=100000)
+        first = self.bus.first_seq()
+        return events, first if first is not None and held and first > after_seq + 1 else None
 
     async def _seal_loop(self) -> None:
         while not self._stop.is_set():
@@ -144,11 +160,15 @@ class LiveService:
                 await asyncio.wait_for(self._stop.wait(), timeout=(tomorrow - now).total_seconds() + 5)
                 return
             except asyncio.TimeoutError:
-                self.store.seal_closed_days()
+                try:
+                    self.store.seal_closed_days()  # per-day failures land in store.seal_errors
+                except Exception as error:  # noqa: BLE001 - the loop must survive to seal tomorrow
+                    self.store.seal_errors["*"] = f"{type(error).__name__}: {error}"
+                    logger.exception("live seal loop failed")
 
     async def replay(self, days: list[str] | None = None, *, speed: float = 60.0, max_gap_s: float = 2.0) -> int:
         """Publish recorded days in stored order, pacing gaps by ``speed`` (capped)."""
-        days = days or self.store.sealed_days() or self.store.days()
+        days = days or sorted(set(self.store.sealed_days()) | set(self.store.days()))
         self.replay_status = {"days": days, "published": 0, "state": "RUNNING"}
         previous = None
         for day in days:
@@ -170,7 +190,8 @@ class LiveService:
             "schema_version": "live-health/1", "mode": self.mode, "now": model.iso(self.clock()),
             "started_at": model.iso(self.started_at),
             "store": {"root_configured": True, "days": self.store.days() if self.store else [],
-                      "sealed_days": self.store.sealed_days() if self.store else []},
+                      "sealed_days": self.store.sealed_days() if self.store else [],
+                      "seal_errors": dict(self.store.seal_errors) if self.store else {}},
             "bus": {"subscribers": self.bus.subscribers},
             "feeds": feeds,
             "replay": self.replay_status or None,
@@ -184,7 +205,7 @@ async def start_from_env() -> LiveService | None:
     if mode not in ("online", "offline"):
         return None
     names = {n.strip() for n in os.getenv("FINSIGHT_LIVE_FEEDS", "").split(",") if n.strip()} or None
-    store = LiveStore()
+    store = LiveStore(readonly=mode == "offline")  # replay never writes, so it never takes the writer lock
     service = LiveService(store, mode=mode, feeds=all_feeds(names) if mode == "online" else [])
     set_service(service)
     await service.start()
