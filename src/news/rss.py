@@ -8,6 +8,11 @@ are not clearly permissive is ``LOCAL_ONLY``.
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
+
+try:  # hardened parser when available; the DOCTYPE/ENTITY refusal below applies either way
+    from defusedxml.ElementTree import fromstring as _fromstring
+except ImportError:  # pragma: no cover
+    _fromstring = ET.fromstring
 from email.utils import parsedate_to_datetime
 from datetime import timezone
 
@@ -32,7 +37,10 @@ SOURCES = {
 
 def parse_rss(raw: bytes) -> list[dict]:
     """Items as {title, link, guid, category, published (UTC ISO or None)}; malformed items skipped."""
-    root = ET.fromstring(raw.lstrip(b"\xef\xbb\xbf").strip())
+    body = raw.lstrip(b"\xef\xbb\xbf").strip()
+    if b"<!DOCTYPE" in body[:4096].upper() or b"<!ENTITY" in body.upper():
+        raise ValueError("RSS with a DOCTYPE or ENTITY declaration is refused")
+    root = _fromstring(body)
     items = []
     for item in root.iter("item"):
         title = (item.findtext("title") or "").strip()

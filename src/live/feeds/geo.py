@@ -6,6 +6,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import zipfile
 from datetime import datetime, timedelta, timezone
 
@@ -72,7 +73,11 @@ class GDELTEvents(Feed):
     delay = "15_MIN_BATCH: GDELT publishes machine-coded events from news every 15 minutes"
     confidence = "UNOFFICIAL"
     parser = "live-gdelt/1"
-    index_url = "http://data.gdeltproject.org/gdeltv2/lastupdate.txt"
+    index_url = "https://data.gdeltproject.org/gdeltv2/lastupdate.txt"
+    # The index is remote text: only an export file on GDELT's own host is ever followed.
+    export_pattern = re.compile(r"https?://data\.gdeltproject\.org/gdeltv2/(\d{14})\.export\.CSV\.zip")
+    max_zip_bytes = 8 * 1024 * 1024
+    max_csv_bytes = 64 * 1024 * 1024
     keep = 60  # most-mentioned conflict events with a location per batch
     licence = model.licence(
         "OPEN_WITH_CITATION", "The GDELT Project (gdeltproject.org)",
@@ -85,14 +90,25 @@ class GDELTEvents(Feed):
         if not line:
             raise FeedError("GDELT lastupdate lists no export file")
         size, md5, url = line.split()
-        archive = http_get(url, max_bytes=8 * 1024 * 1024)
+        match = self.export_pattern.fullmatch(url)
+        if not match or not size.isdigit() or int(size) > self.max_zip_bytes:
+            raise FeedError("GDELT index lists an unexpected export entry")
+        url = f"https://data.gdeltproject.org/gdeltv2/{match.group(1)}.export.CSV.zip"
+        archive = http_get(url, max_bytes=self.max_zip_bytes)
         if hashlib.md5(archive.raw).hexdigest() != md5:  # noqa: S324 - GDELT publishes md5
             raise FeedError("GDELT export checksum mismatch")
         return self.parse(archive, listed_md5=md5)
 
     def parse(self, fetched: Fetched, listed_md5: str | None = None):
         with zipfile.ZipFile(io.BytesIO(fetched.raw)) as archive:
-            text = archive.read(archive.namelist()[0]).decode("utf-8", errors="replace")
+            info = archive.infolist()
+            if len(info) != 1 or info[0].file_size > self.max_csv_bytes:
+                raise FeedError("GDELT export archive is not one bounded CSV")
+            with archive.open(info[0]) as member:
+                data = member.read(self.max_csv_bytes + 1)
+            if len(data) > self.max_csv_bytes:
+                raise FeedError("GDELT export CSV exceeds its decompression bound")
+            text = data.decode("utf-8", errors="replace")
         rows = [r for r in csv.reader(io.StringIO(text), delimiter="\t") if len(r) == 61]
         chosen = []
         for r in rows:
@@ -172,13 +188,13 @@ class NWSAlerts(Feed):
             lat, lon = _centroid(feature.get("geometry"))
             out.append(self.observation(
                 source_id=p["id"], revision=p["sent"], observed_at=p["sent"],
-                effective_at=p.get("effective"), fetched=fetched,
+                effective_at=p["sent"], fetched=fetched,
                 payload={
                     "kind": "nws_alert", "event": p.get("event"), "severity": p.get("severity"),
                     "certainty": p.get("certainty"), "urgency": p.get("urgency"),
                     "message_type": p.get("messageType"), "headline": p.get("headline"),
                     "area": p.get("areaDesc"), "sender": p.get("senderName"),
-                    "onset": p.get("onset"), "expires": p.get("expires"),
+                    "effective": p.get("effective"), "onset": p.get("onset"), "expires": p.get("expires"),
                     "lat": lat, "lon": lon,
                     "location_basis": "POLYGON_MEAN_VERTEX" if lat is not None else "NOT_MEASURED: zone-coded alert",
                 },

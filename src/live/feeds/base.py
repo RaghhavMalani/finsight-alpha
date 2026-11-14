@@ -42,20 +42,34 @@ def http_get(url: str, *, params: dict | None = None, headers: dict | None = Non
     """GET with the project User-Agent. ``secret_params`` never reach a log or record."""
     sent = {"User-Agent": model.USER_AGENT, "Accept": "*/*", **(headers or {})}
     try:
-        response = requests.get(url, params=params, headers=sent, timeout=timeout)
+        # No redirects: a feed reads the host it names, never wherever a response points.
+        with requests.get(url, params=params, headers=sent, timeout=timeout, stream=True,
+                          allow_redirects=False) as response:
+            if response.status_code == 429:
+                retry = response.headers.get("Retry-After")
+                raise FeedError("HTTP 429 rate limited",
+                                retry_after=float(retry) if retry and retry.isdigit() else None)
+            if response.status_code != 200:
+                raise FeedError(f"HTTP {response.status_code}")
+            declared = response.headers.get("Content-Length")
+            if declared and declared.isdigit() and int(declared) > max_bytes:
+                raise FeedError(f"response exceeds {max_bytes} bytes")
+            chunks, size = [], 0
+            for chunk in response.iter_content(65536):
+                size += len(chunk)
+                if size > max_bytes:  # stop reading at the cap instead of buffering everything
+                    raise FeedError(f"response exceeds {max_bytes} bytes")
+                chunks.append(chunk)
     except requests.RequestException as error:
         raise FeedError("transport unavailable: " + type(error).__name__) from None
-    if response.status_code == 429:
-        retry = response.headers.get("Retry-After")
-        raise FeedError("HTTP 429 rate limited",
-                        retry_after=float(retry) if retry and retry.isdigit() else None)
-    if response.status_code != 200:
-        raise FeedError(f"HTTP {response.status_code}")
-    if len(response.content) > max_bytes:
-        raise FeedError(f"response exceeds {max_bytes} bytes")
     public = {k: v for k, v in (params or {}).items() if k not in secret_params}
     shown = requests.Request("GET", url, params=public).prepare().url or url
-    return Fetched(response.content, shown, model.iso(model.utcnow()))
+    return Fetched(b"".join(chunks), shown, model.iso(model.utcnow()))
+
+
+def content_revision(values) -> str:
+    """Revision for sources without a version clock: hash of the substantive values only."""
+    return "c:" + model.sha256_hex(model.canonical(values))[:16]
 
 
 class Feed:
@@ -82,9 +96,14 @@ class Feed:
     def fetch(self) -> list[Observation]:
         raise NotImplementedError
 
+    # SOURCE_VERSION: the provider's own version clock (USGS updated, ALFRED vintage, NWS sent).
+    # CONTENT_HASH: a hash of the substantive values; the store keeps A -> B -> A as three rows.
+    revision_basis = "SOURCE_VERSION"
+
     def provenance(self, fetched: Fetched, **extra) -> dict:
         return {"feed": self.name, "url": fetched.url, "fetched_at": fetched.fetched_at,
-                "content_sha256": fetched.sha256, "parser": self.parser, "delay": self.delay, **extra}
+                "content_sha256": fetched.sha256, "parser": self.parser, "delay": self.delay,
+                "revision_basis": self.revision_basis, **extra}
 
     def observation(self, *, source_id: str, revision: str, observed_at: str, effective_at: str | None,
                     payload: dict, fetched: Fetched, source: str | None = None,

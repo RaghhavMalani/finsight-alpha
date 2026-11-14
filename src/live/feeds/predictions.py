@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 
 from .. import model
-from .base import Feed, Fetched, http_get
+from .base import Feed, Fetched, content_revision, http_get
 
 
 def _float(value):
@@ -29,6 +29,7 @@ class Polymarket(Feed):
     parser = "live-polymarket/1"
     url = "https://gamma-api.polymarket.com/markets"
     keep = 25
+    revision_basis = "CONTENT_HASH"
     licence = model.licence(
         "UNVERIFIED", "Polymarket (Gamma public API)", "https://polymarket.com/tos", "LOCAL_ONLY",
         "Public read API; redistribution terms not reviewed. Local display only")
@@ -50,7 +51,7 @@ class Polymarket(Feed):
             yes = prices[outcomes.index("Yes")] if "Yes" in outcomes and len(prices) == len(outcomes) else None
             event_slug = ((m.get("events") or [{}])[0] or {}).get("slug")
             out.append(self.observation(
-                source_id=str(m["id"]), revision=m["updatedAt"],
+                source_id=str(m["id"]), revision=content_revision(quote),
                 observed_at=m["updatedAt"], effective_at=None, fetched=fetched,
                 payload={"kind": "prediction_market", "venue": "polymarket", "question": m.get("question"),
                          "slug": m.get("slug"), **quote, "yes_price": yes,
@@ -74,6 +75,7 @@ class Kalshi(Feed):
     url = "https://api.elections.kalshi.com/trade-api/v2/events"
     categories = {"Economics", "Financials", "Companies"}
     keep = 30
+    revision_basis = "CONTENT_HASH"
     licence = model.licence(
         "UNVERIFIED", "Kalshi (public trade API v2)", "https://kalshi.com/regulatory/terms", "LOCAL_ONLY",
         "Public market data; redistribution terms not reviewed. Local display only")
@@ -94,15 +96,20 @@ class Kalshi(Feed):
         candidates.sort(key=lambda em: (-(_float(em[1].get("volume_24h_fp")) or 0.0), em[1]["ticker"]))
         out = []
         for event, m in candidates[: self.keep]:
-            quote = {"last_price": _float(m.get("last_price_dollars")), "yes_bid": _float(m.get("yes_bid_dollars")),
+            traded = (_float(m.get("volume_fp")) or _float(m.get("volume_24h_fp")) or 0.0) > 0
+            last = _float(m.get("last_price_dollars"))
+            bid = _float(m.get("yes_bid_dollars"))
+            quote = {"last_price": last if traded or last else None,  # "0.0000" with no trades is no price
+                     "yes_bid": bid if bid else None,  # a zero bid means no bid
                      "yes_ask": _float(m.get("yes_ask_dollars"))}
             out.append(self.observation(
-                source_id=m["ticker"], revision=m["updated_time"],
+                source_id=m["ticker"], revision=content_revision(quote),
                 observed_at=m["updated_time"], effective_at=None, fetched=fetched,
                 payload={"kind": "prediction_market", "venue": "kalshi", "event_ticker": m.get("event_ticker"),
                          "event_title": event.get("title"), "category": event.get("category"),
                          "question": m.get("title"), "outcome": m.get("yes_sub_title"), **quote,
                          "yes_price": quote["last_price"],
+                         "price_status": "MEASURED" if quote["last_price"] is not None else "NOT_MEASURED: no trades",
                          "price_basis": "last traded YES price in dollars per $1 contract; not a calibrated probability",
                          "volume_24h": _float(m.get("volume_24h_fp")), "close_time": m.get("close_time")},
             ))

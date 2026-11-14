@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from src.regime_intelligence.providers import alfred_observations
 
 from .. import model
-from .base import Feed, FeedError, Fetched, http_get
+from .base import Feed, FeedError, Fetched, content_revision, http_get
 
 FRED_URL = "https://api.stlouisfed.org/fred/series/observations"
 
@@ -96,6 +96,7 @@ class EIASpot(Feed):
     confidence = "OFFICIAL"
     parser = "live-eia/1"
     required_env = (("EIA_API_KEY",),)
+    revision_basis = "CONTENT_HASH"
     url = "https://api.eia.gov/v2/petroleum/pri/spt/data/"
     licence = model.licence(
         "PUBLIC_DOMAIN", "U.S. Energy Information Administration",
@@ -117,7 +118,8 @@ class EIASpot(Feed):
             date.fromisoformat(row["period"])
             value = row.get("value")
             out.append(self.observation(
-                source_id=f"{row['series']}:{row['period']}", revision="value:" + str(value),
+                source_id=f"{row['series']}:{row['period']}",
+                revision=content_revision({"value": value, "units": row.get("units")}),
                 observed_at=row["period"] + "T00:00:00Z", effective_at=None, fetched=fetched,
                 payload={"kind": "eia_spot", "series": row["series"],
                          "description": row.get("series-description"), "period": row["period"],

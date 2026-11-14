@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from .. import model
-from .base import Feed, FeedError, Fetched, http_get
+from .base import Feed, FeedError, Fetched, content_revision, http_get
 
 YAHOO_LICENCE = model.licence(
     "UNVERIFIED", "Yahoo Finance via the yfinance library",
@@ -39,7 +39,7 @@ def bar_observations(feed: Feed, frame: pd.DataFrame, ticker: str, fetched: Fetc
               for k in ("Open", "High", "Low", "Close", "Volume") if k in row}
     start = row["Date"].to_pydatetime()
     end = start + bar
-    revision = model.sha256_hex(model.canonical(values))[:16]
+    revision = content_revision(values)
     return [feed.observation(
         source_id=f"{ticker}:{model.iso(start)}", revision=revision, observed_at=model.iso(end),
         effective_at=None, fetched=fetched,
@@ -56,6 +56,7 @@ class YahooUSQuotes(Feed):
     delay = "DELAYED: Yahoo Finance via yfinance, unofficial; delay not guaranteed (commonly up to 15 min)"
     confidence = "UNOFFICIAL"
     parser = "live-yfinance/1"
+    revision_basis = "CONTENT_HASH"
     licence = YAHOO_LICENCE
 
     def __init__(self, tickers: list[str] | None = None):
@@ -92,6 +93,7 @@ class AlpacaIEX(Feed):
     delay = "IEX_ONLY: latest minute bar from the IEX venue alone; not consolidated tape or NBBO"
     confidence = "PROVISIONAL"
     parser = "live-alpaca/1"
+    revision_basis = "CONTENT_HASH"
     url = "https://data.alpaca.markets/v2/stocks/bars/latest"
     required_env = (("APCA_API_KEY_ID", "ALPACA_API_KEY_ID", "ALPACA_API_KEY"),
                     ("APCA_API_SECRET_KEY", "ALPACA_API_SECRET_KEY", "ALPACA_SECRET_KEY"))
@@ -128,6 +130,8 @@ class NSEEndOfDay(Feed):
     delay = "END_OF_DAY: official NSE bhavcopy imported by the operator; published after the close"
     confidence = "OFFICIAL"
     parser = "live-nse/1"
+    revision_basis = "CONTENT_HASH"
+    session_close = "10:00:00Z"  # NSE equity close 15:30 IST
     licence = model.licence(
         "UNVERIFIED", "National Stock Exchange of India (bhavcopy)", "https://www.nseindia.com/",
         "LOCAL_ONLY", "No NSE redistribution grant verified")
@@ -150,7 +154,7 @@ class NSEEndOfDay(Feed):
         raw = Path(self.bhavcopy).read_bytes()
         calendar = json.loads(Path(self.calendar_path).read_text(encoding="utf-8"))
         provider = NSEProvider(self.bhavcopy, calendar=calendar)
-        end = (pd.Timestamp(calendar["end"]) + pd.Timedelta(days=1)).date().isoformat()
+        end = calendar["end"]  # evidence bounds the window; the provider reads sessions before `end`
         start = max(calendar["start"], (pd.Timestamp(calendar["end"]) - pd.Timedelta(days=10)).date().isoformat())
         fetched = Fetched(raw, "file:operator-bhavcopy", model.iso(model.utcnow()))
         out = []
@@ -163,12 +167,14 @@ class NSEEndOfDay(Feed):
                 continue
             row = frame.iloc[-1]
             day = pd.Timestamp(row["Date"]).date().isoformat()
-            values = {"close": float(row["Close"]), "open": float(row["Open"]), "high": float(row["High"]),
-                      "low": float(row["Low"]), "volume": float(row["Volume"])}
+            values = {k.lower(): (None if pd.isna(row[k]) else float(row[k]))
+                      for k in ("Open", "High", "Low", "Close", "Volume")}
+            if values["close"] is None:
+                continue  # no close is no observation; never a zero
             out.append(self.observation(
-                source_id=f"{ticker}:{day}", revision=model.sha256_hex(model.canonical(values))[:16],
-                observed_at=day + "T00:00:00Z", effective_at=None, fetched=fetched,
+                source_id=f"{ticker}:{day}", revision=content_revision(values),
+                observed_at=f"{day}T{self.session_close}", effective_at=None, fetched=fetched,
                 payload={"kind": "eod", "ticker": ticker, "session": day,
-                         "period_convention": "UTC date-only session", **values, "currency": "INR",
+                         "observed_basis": "session close 15:30 IST", **values, "currency": "INR",
                          "delay": self.delay}))
         return out

@@ -8,7 +8,7 @@ from dataclasses import replace
 from src.news.rss import SOURCES, parse_rss
 
 from .. import model
-from .base import Feed, FeedError, Fetched, http_get
+from .base import Feed, FeedError, Fetched, content_revision, http_get
 
 
 class CentralBankRSS(Feed):
@@ -19,6 +19,7 @@ class CentralBankRSS(Feed):
     delay = "POLLED_30_MIN: publisher RSS; publication time is the publisher's pubDate"
     confidence = "OFFICIAL"
     parser = "live-rss/1"
+    revision_basis = "CONTENT_HASH"
     licence = model.licence("MIXED", "See per-source licence", "per-source", "LOCAL_ONLY")
 
     def __init__(self, sources: dict | None = None):
@@ -44,7 +45,8 @@ class CentralBankRSS(Feed):
         for item in parse_rss(fetched.raw):
             observed = item["published"] or fetched.fetched_at
             obs = self.observation(
-                source_id=item["guid"], revision="1", observed_at=observed, effective_at=item["published"],
+                source_id=item["guid"], observed_at=observed, effective_at=item["published"],
+                revision=content_revision([item["title"], item["link"], item["category"], item["published"]]),
                 fetched=fetched, source="rss:" + source,
                 payload={"kind": "headline", "publisher": attribution, "title": item["title"],
                          "url": item["link"], "category": item["category"],
