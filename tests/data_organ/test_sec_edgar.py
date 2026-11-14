@@ -151,10 +151,12 @@ class FakeResponse:
         self.status_code, self.content = status, content
 
 
-def test_fetch_uses_declared_agent_bounded_urls_and_cik_mapping():
+def test_fetch_uses_declared_agent_bounded_urls_and_cik_mapping(monkeypatch):
+    monkeypatch.delenv("FINSIGHT_SEC_CONTACT", raising=False)
     seen = []
 
-    def transport(url, headers, timeout):
+    def transport(url, headers, timeout, allow_redirects):
+        assert allow_redirects is False
         seen.append((url, headers["User-Agent"]))
         return FakeResponse(200, TICKERS if url == sec_edgar.TICKERS_URL else FACTS)
 
@@ -162,6 +164,7 @@ def test_fetch_uses_declared_agent_bounded_urls_and_cik_mapping():
         "fixt-syn", transport=transport, limiter=sec_edgar.RateLimiter()
     )
     assert seen == [(sec_edgar.TICKERS_URL, sec_edgar.USER_AGENT), (FACTS_URL, sec_edgar.USER_AGENT)]
+    assert "user_agent_contact_configured" not in captures[0][0].metadata
     meta = captures[0][0].metadata
     assert (meta["ticker"], meta["cik"]) == ("FIXT-SYN", CIK)
     assert meta["ticker_map"]["sha256"] == sha256(TICKERS).hexdigest()
@@ -183,3 +186,39 @@ def test_rate_limiter_never_exceeds_ten_requests_per_second():
     assert starts[-1] >= 3.0
     with pytest.raises(ValueError, match="10 requests"):
         sec_edgar.RateLimiter(per_second=11)
+
+
+def test_redirects_are_refused_and_bad_contact_reports_itself(monkeypatch):
+    monkeypatch.delenv("FINSIGHT_SEC_CONTACT", raising=False)
+    with pytest.raises(ValueError, match="redirect refused: HTTP 302"):
+        sec_edgar.get(FACTS_URL, transport=lambda *a, **k: FakeResponse(302, b""))
+    with pytest.raises(ValueError, match="bounded SEC"):
+        sec_edgar.get(FACTS_URL.replace("9999999999", "999999999٩"))
+    monkeypatch.setenv("FINSIGHT_SEC_CONTACT", "not an email")
+    with pytest.raises(ValueError, match="FINSIGHT_SEC_CONTACT"):
+        sec_edgar.get(FACTS_URL, transport=lambda *a, **k: FakeResponse(200, FACTS))
+
+
+def test_capture_identity_does_not_depend_on_contact_setting(monkeypatch):
+    monkeypatch.delenv("FINSIGHT_SEC_CONTACT", raising=False)
+    plain = parse()[0][0].identity
+    monkeypatch.setenv("FINSIGHT_SEC_CONTACT", "research@example.org")
+    assert parse()[0][0].identity == plain
+
+
+def test_overflowing_values_and_loose_dates_quarantine_only_that_row(tmp_path):
+    def sabotage(facts):
+        rows = facts["Assets"]["units"]["USD"]
+        rows.append({**rows[0], "accn": "9999999999-23-000097", "val": 10**400})
+        rows.append({**rows[0], "accn": "9999999999-23-000096", "end": "20231231"})
+        rows.append({**rows[0], "accn": "9999999999-23-000095", "filed": "2024-W07-3"})
+
+    captures = parse(mutated(sabotage))
+    reasons = sorted(r["quarantine_reason"] for r in rows_of(captures) if r.get("quarantine_reason"))
+    assert reasons == [
+        "Invalid companyfacts date",
+        "Invalid companyfacts date",
+        "Non-numeric or non-finite companyfacts value",
+    ]
+    _, results = ingest(tmp_path, captures)
+    assert (results[0]["admitted"], results[0]["quarantined"]) == (11, 3)

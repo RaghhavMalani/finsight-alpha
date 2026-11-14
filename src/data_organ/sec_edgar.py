@@ -10,6 +10,7 @@ filing for the same concept/period is a new row; nothing is overwritten.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import threading
@@ -145,18 +146,21 @@ LIMITER = RateLimiter()
 def get(url, *, transport=None, limiter=None):
     """One rate-limited SEC GET with the declared User-Agent. Never fetches elsewhere."""
     if url != TICKERS_URL and not re.fullmatch(
-        r"https://data\.sec\.gov/api/xbrl/companyfacts/CIK\d{10}\.json", url
+        r"https://data\.sec\.gov/api/xbrl/companyfacts/CIK[0-9]{10}\.json", url
     ):
         raise ValueError("Only the bounded SEC ticker map and companyfacts are allowed")
     if transport is None:
         import requests
 
         transport = requests.get
+    headers = request_headers()  # a bad contact setting surfaces its own message
     (limiter or LIMITER).wait()
     try:
-        response = transport(url, headers=request_headers(), timeout=(10, 35))
+        response = transport(url, headers=headers, timeout=(10, 35), allow_redirects=False)
     except Exception as error:  # transport errors never echo request details
         raise ValueError("SEC EDGAR transport unavailable: " + type(error).__name__) from None
+    if 300 <= response.status_code < 400:
+        raise ValueError("SEC EDGAR redirect refused: HTTP " + str(response.status_code))
     if response.status_code != 200:
         raise ValueError("SEC EDGAR unavailable: HTTP " + str(response.status_code))
     if len(response.content) > MAX_RESPONSE_BYTES:
@@ -176,6 +180,13 @@ def cik_for(ticker, raw):
     if len(matches) != 1:
         raise ValueError("Ticker is absent from or ambiguous in SEC company_tickers.json")
     return matches.pop()
+
+
+def _iso_date(value):
+    """Strict YYYY-MM-DD; fromisoformat alone also accepts 20231231 and week dates."""
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        raise ValueError("Date must be YYYY-MM-DD")
+    return date.fromisoformat(value)
 
 
 def _row(asset, field, kind, entry):
@@ -199,21 +210,30 @@ def _row(asset, field, kind, entry):
     if not all(isinstance(entry.get(k), str) and entry[k] for k in ("end", "filed", "accn", "form")):
         return row | {"quarantine_reason": "Missing companyfacts filing provenance"}, None
     try:
-        period_end, filing_day = date.fromisoformat(end), date.fromisoformat(filed)
+        period_end, filing_day = _iso_date(end), _iso_date(filed)
     except ValueError:
         return row | {"quarantine_reason": "Invalid companyfacts date"}, None
     row["available_at"] = edgar_available_at(filed)
     if filing_day < period_end:
         return row | {"quarantine_reason": "Filing date precedes period end"}, None
-    if type(row["value"]) not in (int, float):
-        return row | {"quarantine_reason": "Non-numeric companyfacts value"}, None
+    try:
+        if type(row["value"]) not in (int, float) or not math.isfinite(float(row["value"])):
+            raise ValueError
+    except (OverflowError, ValueError):
+        value = row["value"]
+        if type(value) is int:  # keep downstream diagnostics away from float overflow
+            value = {"invalid_numeric": f"int with {len(str(abs(value)))} digits"}
+        return row | {
+            "value": value,
+            "quarantine_reason": "Non-numeric or non-finite companyfacts value",
+        }, None
     row["value"] = float(row["value"])
     if kind == "instant":
         if entry.get("start"):
             return row | {"quarantine_reason": "Instant concept reported with a duration"}, None
         return row, None
     try:
-        days = (period_end - date.fromisoformat(entry.get("start") or "")).days
+        days = (period_end - _iso_date(entry.get("start") or "")).days
     except ValueError:
         return row | {"quarantine_reason": "Duration concept without a valid start"}, None
     suffix = next((s for s, low, high in DURATIONS if low <= days <= high), None)
@@ -297,7 +317,6 @@ def companyfacts(raw, *, captured_at, source_url, ticker, cik, ticker_evidence):
                 "cik": cik,
                 "ticker_map": ticker_evidence,
                 "user_agent": USER_AGENT,
-                "user_agent_contact_configured": bool(os.environ.get("FINSIGHT_SEC_CONTACT", "").strip()),
                 "excluded_rows": dict(sorted(excluded.items())),
                 "collapsed_same_instant_duplicates": collapsed,
             },
