@@ -20,7 +20,7 @@ const functions: Record<string, string> = {
 };
 export const COMMAND_CODES = Object.keys(functions);
 
-export function parseCommand(text: string, currentTicker = "SPY"): CommandTarget {
+export function parseLegacyCommand(text: string, currentTicker = "SPY"): CommandTarget {
   const tokens = text.trim().toUpperCase().split(/\s+/).filter(Boolean);
   if (["GO", "<GO>"].includes(tokens.at(-1) ?? "")) tokens.pop();
   if (!tokens.length) throw new Error("Enter a ticker and function, for example RELIANCE IN DES.");
@@ -58,3 +58,6 @@ export function parseCommand(text: string, currentTicker = "SPY"): CommandTarget
     instrument: asset,
   };
 }
+
+// Existing consumers keep the verified listing grammar; terminal UI delegates to the shared resolver.
+export const parseCommand = parseLegacyCommand;

@@ -26,6 +26,13 @@ def test_identical_memory_evidence_is_a_noop(monkeypatch):
     monkeypatch.setattr(s, "evaluator_hash", lambda root: source_hash)
     first = s.run(ROOT, publish_artifacts=False)
     assert first["status"] == "PARTIAL"
+    from src.risk_manager.publication import prepare_public
+    from src.risk_manager.contracts import canonical
+    logical, wire, raw = prepare_public(first["receipt"], ROOT)
+    from src.risk_manager.publication import ADMISSION_LIMIT, COMPACT_THRESHOLD
+    assert len(canonical(logical) + b"\n") > COMPACT_THRESHOLD
+    assert wire["schema_version"] == "risk-sweep/2" and len(raw) <= ADMISSION_LIMIT
+    assert logical == first["receipt"] and first["writes"] == 0
     monkeypatch.setattr(s, "previous", lambda root, manifest: (
         first["state_ref"], "risk:sweep:" + "a" * 64, first["state"], first["receipt"],
         first["receipt"]["payload"]["observations"]))

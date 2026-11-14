@@ -1,13 +1,14 @@
 """Strict recursively closed risk contracts; no scientific computations."""
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
 import math
 import re
 from typing import Annotated, Literal
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, field_validator, model_validator
 
 BASE = "16db82c5f2f50b98253df9989c586cd45aa98f6b"
 CLAIM_NAMES = ("inference_certified", "market_claim_eligible", "causal_claim_eligible",
@@ -424,6 +425,81 @@ class SweepEnvelope(Closed):
     licence: Licence
     claim_flags: ClaimFlags
     payload: SweepPayload
+
+# Wire models reuse the complete logical fields, without inheriting validators
+# that require expanded references. Every hydrated value is validated again.
+DecimalIndex = Annotated[str, Field(pattern=r"^(0|[1-9][0-9]{0,2})$")]
+ObservationWire = create_model(
+    "ObservationWire", __base__=Closed,
+    **{name: (field.annotation, deepcopy(field)) for name, field in Observation.model_fields.items()
+       if name not in {"schema_version", "evidence_refs"}},
+    schema_version=(Literal["risk-observation-wire/1"], ...),
+    evidence_ref_indices=(Annotated[list[DecimalIndex], Field(min_length=1, max_length=30)], ...))
+SweepWirePayload = create_model(
+    "SweepWirePayload", __base__=Closed,
+    **{name: (field.annotation, deepcopy(field)) for name, field in SweepPayload.model_fields.items()
+       if name != "observations"},
+    observations=(Annotated[list[ObservationWire], Field(max_length=1000)], ...),
+    evidence_ref_table=(Annotated[list[EvidenceRef], Field(max_length=1000)], ...))
+SweepWireEnvelope = create_model(
+    "SweepWireEnvelope", __base__=Closed,
+    **{name: (field.annotation, deepcopy(field)) for name, field in SweepEnvelope.model_fields.items()
+       if name not in {"schema_version", "payload"}},
+    schema_version=(Literal["risk-sweep/2"], ...), payload=(SweepWirePayload, ...))
+
+
+def hydrate_sweep(value):
+    """Closed, bounded transport decoding; never change logical evidence."""
+    if value.get("schema_version") == "risk-sweep/1":
+        return SweepEnvelope.model_validate(value).model_dump(mode="json")
+    wire = SweepWireEnvelope.model_validate(value).model_dump(mode="json")
+    payload = wire["payload"]
+    table = payload.pop("evidence_ref_table")
+    keys = [canonical(ref) for ref in table]
+    if len(set(keys)) != len(keys):
+        raise ValueError("Duplicate evidence table entry")
+    used = set()
+    for row in payload["observations"]:
+        refs = []
+        for index in row.pop("evidence_ref_indices"):
+            slot = int(index)
+            if str(slot) != index:
+                raise ValueError("Noncanonical evidence table index")
+            if slot >= len(table):
+                raise ValueError("Evidence table index out of range")
+            if slot not in used:
+                if slot != len(used):
+                    raise ValueError("Evidence table first-use order substituted")
+                used.add(slot)
+            refs.append(deepcopy(table[slot]))
+        row.update(schema_version="risk-observation/1", evidence_refs=refs)
+    if len(used) != len(table):
+        raise ValueError("Unused evidence table entry")
+    wire["schema_version"] = "risk-sweep/1"
+    return SweepEnvelope.model_validate(wire).model_dump(mode="json")
+
+
+def pack_sweep(value):
+    """Deterministic producer codec; publication decides whether v2 is needed."""
+    logical = SweepEnvelope.model_validate(value).model_dump(mode="json")
+    wire = deepcopy(logical)
+    table, slots = [], {}
+    for row in wire["payload"]["observations"]:
+        indices = []
+        for ref in row.pop("evidence_refs"):
+            key = canonical(ref)
+            if key not in slots:
+                slots[key] = len(table)
+                table.append(ref)
+            indices.append(str(slots[key]))
+        row.update(schema_version="risk-observation-wire/1", evidence_ref_indices=indices)
+    wire["schema_version"] = "risk-sweep/2"
+    wire["payload"]["evidence_ref_table"] = table
+    # Validate the transport bounds and complete lossless semantic roundtrip.
+    if canonical(hydrate_sweep(wire)) != canonical(logical):
+        raise ValueError("Lossy Risk receipt transport")
+    return wire
+
 
 def partition(issue):
     if issue["status"] == "RESOLVED":

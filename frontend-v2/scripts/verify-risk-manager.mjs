@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 import { PINNED_POLICY, REPLAY_BINDINGS, FILE_BINDINGS } from "../src/risk-manager/bindings.ts";
 import { validateReplayManifest } from "../src/replay/contracts.ts";
@@ -20,7 +22,52 @@ const {
   partition,
   reviewedMonitoringBundle,
   utcMicros,
+  RISK_ADMISSION_LIMIT,
+  RISK_COMPACT_THRESHOLD,
+  RISK_SELECTED_BUDGET,
+  RISK_TOTAL_BUDGET,
 } = await import("../src/risk-manager/contracts.ts");
+
+// Both languages must admit exactly the same sizes: parse each declaration, trust neither side.
+const sizeConstant = (source, name, pattern) => {
+  const match = source.match(pattern);
+  assert(match, "Size constant declaration missing: " + name);
+  const factors = match[1].split("*").map((factor) => factor.trim());
+  assert(
+    factors.every((factor) => /^[0-9]+$/.test(factor)),
+    "Literal size constant: " + name,
+  );
+  return factors.reduce((product, factor) => product * Number(factor), 1);
+};
+const pythonPublication = readFileSync(
+  new URL("../../src/risk_manager/publication.py", import.meta.url),
+  "utf8",
+);
+const tsContracts = readFileSync(
+  new URL("../src/risk-manager/contracts.ts", import.meta.url),
+  "utf8",
+);
+assert(!/^LIMIT\s*=/m.test(pythonPublication), "Ambiguous Python LIMIT reintroduced");
+for (const [python, ts, runtime] of [
+  ["ADMISSION_LIMIT", "RISK_ADMISSION_LIMIT", RISK_ADMISSION_LIMIT],
+  ["COMPACT_THRESHOLD", "RISK_COMPACT_THRESHOLD", RISK_COMPACT_THRESHOLD],
+]) {
+  const fromPython = sizeConstant(
+    pythonPublication,
+    python,
+    new RegExp("^" + python + "\\s*=\\s*([0-9* ]+?)\\s*$", "m"),
+  );
+  const fromTs = sizeConstant(
+    tsContracts,
+    ts,
+    new RegExp("^export const " + ts + "\\s*=\\s*([0-9* ]+?);\\s*$", "m"),
+  );
+  assert(Number.isSafeInteger(fromPython) && fromPython > 0, python);
+  assert.equal(fromTs, fromPython, ts + " must equal Python " + python);
+  assert.equal(runtime, fromTs, ts + " runtime value must match its declaration");
+}
+assert.equal(RISK_ADMISSION_LIMIT, 1024 * 1024);
+assert(RISK_COMPACT_THRESHOLD < RISK_ADMISSION_LIMIT);
 
 // Lossless generated sharing must preserve every admitted epoch and nested binding.
 const renderedCatalog = (await import("../src/risk-manager/monitoring-catalog.generated.ts"))
@@ -58,7 +105,7 @@ for (const [id, entry] of Object.entries(manifest.artifacts)) {
   assert.match(id, /^risk:(state|sweep):[a-f0-9]{64}$/);
   assert.equal(entry.url, "/artifacts/replay/" + id.replaceAll(":", "-") + ".json");
   const bytes = readFileSync(new URL(entry.url.slice(1), publicRoot));
-  assert(bytes.length <= 128 * 1024);
+  assert(bytes.length <= RISK_ADMISSION_LIMIT);
   assert.equal(bytes.length, entry.bytes);
   assert.equal(hash(bytes), entry.sha256);
   assert.equal(entry.sha256, id.split(":").at(-1));
@@ -70,6 +117,143 @@ for (const [id, entry] of Object.entries(manifest.artifacts)) {
   checks++;
 }
 assert(values.size >= 3, "Genuine retained artifacts must exist before UI acceptance");
+
+// Independent Python producer vectors: no sweep, capture, publication or source fixture edits.
+const vectorsProcess = spawnSync(
+  process.env.RISK_PYTHON || "python",
+  [
+    "-c",
+    `
+from pathlib import Path
+import json
+from src.risk_manager.contracts import decode, pack_sweep, digest, canonical
+root=Path.cwd()
+manifest=decode((root/'frontend-v2/public/replay-manifest.json').read_bytes())
+vectors=[]
+for identity,entry in manifest['artifacts'].items():
+    if entry['kind']!='risk-sweep': continue
+    logical=decode((root/'frontend-v2/public'/entry['url'].lstrip('/')).read_bytes())
+    vectors.append(dict(identity=identity,logical=logical,wire=pack_sweep(logical),observations_sha256=digest(logical['payload']['observations'])))
+# This is the same admitted, memory-only genesis used by backend QA, never an operational sweep.
+from unittest.mock import patch
+from src.risk_manager import sweep
+from src.risk_manager.publication import prepare_public, entry, ADMISSION_LIMIT, COMPACT_THRESHOLD
+from hashlib import sha256
+with patch.object(sweep,'previous',return_value=(None,None,None,None,[])):
+    result=sweep.run(root,publish_artifacts=False)
+assert result['status']=='PARTIAL' and result['writes']==0
+logical,wire,raw=prepare_public(result['receipt'],root)
+assert len(raw)<=ADMISSION_LIMIT and len(canonical(logical)+b'\\n')>COMPACT_THRESHOLD
+assert wire['schema_version']=='risk-sweep/2' and len(raw)<len(canonical(logical)+b'\\n')
+identity='risk:sweep:'+sha256(raw).hexdigest()
+vectors.append(dict(identity=None,label='ENGINEERING_QA_CURRENT_OVERFLOW',entry=entry(identity,logical,raw),logical=logical,wire=wire,observations_sha256=digest(logical['payload']['observations'])))
+print(json.dumps(vectors,ensure_ascii=True,separators=(',',':'),allow_nan=False))
+`,
+  ],
+  { cwd: fileURLToPath(repo), encoding: "utf8", maxBuffer: 8 * 1024 * 1024 },
+);
+assert.equal(vectorsProcess.status, 0, vectorsProcess.stderr + vectorsProcess.stdout);
+const transportVectors = JSON.parse(vectorsProcess.stdout.trim().split(/\r?\n/).at(-1));
+let transportChecks = 0;
+const { validateTerminalSource } = await import("./generate-terminal-index.mjs");
+for (const vector of transportVectors) {
+  if (vector.identity)
+    assert.equal(
+      stable(vector.logical),
+      stable(values.get(vector.identity)),
+      "Python stdout preserves original Unicode exactly",
+    );
+  else assert.equal(vector.label, "ENGINEERING_QA_CURRENT_OVERFLOW");
+  const hydrated = validateRisk(vector.wire, "risk-sweep");
+  await verifyRiskIdentity(hydrated);
+  assert.equal(stable(hydrated), stable(vector.logical));
+  assert.equal(
+    hash(Buffer.from(stable(hydrated.payload.observations))),
+    vector.observations_sha256,
+  );
+  const raw = Buffer.from(stable(vector.wire) + "\n");
+  const id = "risk:sweep:" + hash(raw);
+  const entry = {
+    ...(vector.entry ?? manifest.artifacts[vector.identity]),
+    bytes: raw.length,
+    sha256: hash(raw),
+    url: "/artifacts/replay/" + id.replaceAll(":", "-") + ".json",
+  };
+  assert.equal(
+    stable(await validateTerminalSource(id, entry, vector.wire)),
+    stable(vector.logical),
+    "Terminal joins retain complete hydrated references while original binding stays wire-based",
+  );
+  transportChecks += 3;
+}
+const vector = transportVectors.find((v) => v.wire.payload.evidence_ref_table.length > 2);
+assert(vector);
+for (const index of [
+  0,
+  1.0,
+  true,
+  null,
+  "",
+  "-0",
+  "+0",
+  "00",
+  "01",
+  "1.0",
+  "1e0",
+  " 0",
+  "0 ",
+  "0\n",
+  "0\r",
+  "0\u2028",
+  "0\u2029",
+  "1000",
+  "999",
+]) {
+  const bad = structuredClone(vector.wire);
+  bad.payload.observations[0].evidence_ref_indices[0] = index;
+  assert.throws(() => validateRisk(bad, "risk-sweep"));
+  transportChecks++;
+}
+for (const attack of [
+  "duplicate",
+  "unused",
+  "order",
+  "legacy-field",
+  "row-version",
+  "unknown",
+  "empty",
+  "nested",
+]) {
+  const bad = structuredClone(vector.wire),
+    p = bad.payload,
+    table = p.evidence_ref_table;
+  if (attack === "duplicate") table.push(structuredClone(table[0]));
+  if (attack === "unused") table.push({ ...table[0], selector_id: "unreferenced" });
+  if (attack === "order") {
+    [table[0], table[1]] = [table[1], table[0]];
+    for (const row of p.observations)
+      row.evidence_ref_indices = row.evidence_ref_indices.map((i) =>
+        i === "0" ? "1" : i === "1" ? "0" : i,
+      );
+  }
+  if (attack === "legacy-field") p.observations[0].evidence_refs = [table[0]];
+  if (attack === "row-version") p.observations[0].schema_version = "risk-observation/1";
+  if (attack === "unknown") p.unreviewed = true;
+  if (attack === "empty") table.length = 0;
+  if (attack === "nested") table[0].evidence_ref_indices = ["0"];
+  assert.throws(() => validateRisk(bad, "risk-sweep"));
+  transportChecks++;
+}
+// Logical hashes remain independent of a valid wire checksum/table shape.
+const wrong = structuredClone(vector.wire);
+wrong.payload.observations[0].fingerprint = "a".repeat(64);
+await assert.rejects(
+  async () => verifyRiskIdentity(validateRisk(wrong, "risk-sweep")),
+  /Observation derivation/,
+);
+transportChecks++;
+checks += transportChecks;
+
 const state = values.get(manifest.routes["/risk-manager/state"]);
 const sweep = values.get(manifest.routes["/risk-manager/sweep"]);
 assert.equal(state.kind, "risk-state");
@@ -79,8 +263,31 @@ assert.equal(state.payload.sweep_fingerprint, sweep.payload.fingerprint);
 const selectedBytes =
   manifest.artifacts[manifest.routes["/risk-manager/state"]].bytes +
   manifest.artifacts[manifest.routes["/risk-manager/sweep"]].bytes;
-assert(selectedBytes <= 256 * 1024);
-assert(selectedBytes + projectionBytes.length <= 512 * 1024);
+assert(selectedBytes <= RISK_SELECTED_BUDGET);
+assert(selectedBytes + projectionBytes.length <= RISK_TOTAL_BUDGET);
+// Admission bites one byte past the shared limit, before any content check.
+const padTo = (value, size) => {
+  const padded = { ...structuredClone(value), pad: "" };
+  padded.pad = "x".repeat(size - Buffer.byteLength(JSON.stringify(padded)) - 1);
+  assert.equal(Buffer.byteLength(JSON.stringify(padded)) + 1, size);
+  return padded;
+};
+assert.throws(
+  () => validateRisk(padTo(state, RISK_ADMISSION_LIMIT + 1), "risk-state"),
+  /exceeds admission limit/,
+);
+assert.throws(
+  () => validateRisk(padTo(state, RISK_ADMISSION_LIMIT), "risk-state"),
+  (error) => !/admission limit/.test(error.message),
+);
+// An unpacked receipt above the compact threshold is admissible by size but never a wire.
+const overflow = transportVectors.find((v) => v.label === "ENGINEERING_QA_CURRENT_OVERFLOW");
+assert(Buffer.byteLength(stable(overflow.logical)) + 1 > RISK_COMPACT_THRESHOLD);
+assert.throws(
+  () => validateRisk(structuredClone(overflow.logical), "risk-sweep"),
+  /must use packed transport/,
+);
+checks += 3;
 const coverageRef = state.payload.evidence_index.find((ref) => ref.selector_id === "risk_coverage");
 const coverage = values.get(coverageRef.artifact_id);
 assert.equal(coverage.payload.issues.length, 0);
@@ -359,6 +566,8 @@ assert.equal(
 // Exercise the still-supported direct-reference schema in legacy provenance rejection probes.
 function directReferenceFixture() {
   const value = structuredClone(state);
+  // Direct-reference legacy probes also hydrate the full reviewed policy from its bound leaf.
+  value.payload.policy = structuredClone(coverage.payload.policy);
   for (let index = 0; index < value.payload.issues.length; index++)
     value.payload.issues[index].evidence_refs = structuredClone(
       checkedIssueReferences(state.payload.issues[index], sweep),
@@ -614,7 +823,10 @@ assert(Math.max(...times) <= 100, "1000-Issue filter/sort/selection budget");
 const validations = performance
   .getEntriesByName("risk-contract-validation")
   .map((entry) => entry.duration);
-assert(Math.max(...validations) <= 50, "Synchronous recursive validation budget");
+assert(
+  Math.max(...validations) <= 50,
+  "Synchronous recursive validation budget: " + Math.max(...validations) + "ms",
+);
 const workspace = readFileSync(
   new URL("../src/risk-manager/RiskWorkspace.tsx", import.meta.url),
   "utf8",
@@ -641,6 +853,12 @@ console.log(
       schema_version: "risk-ui-static-proof/1",
       checks,
       risk_artifacts: values.size,
+      transport: {
+        cross_language_vectors: transportVectors.length,
+        checks: transportChecks,
+        wire_schema: "risk-sweep/2",
+        logical_roundtrip: "EXACT",
+      },
       issues: state.payload.issues.length,
       coverage_slots: coverage.payload.coverage.length,
       origin_proofs: originProofs,

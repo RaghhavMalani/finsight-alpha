@@ -7,14 +7,19 @@ import os
 import base64
 import json
 import re
-from .contracts import StateEnvelope,SweepEnvelope,canonical,decode,digest,counts,CLAIMS,identity,clock
+from .contracts import StateEnvelope,SweepEnvelope,canonical,decode,digest,counts,CLAIMS,identity,clock,hydrate_sweep,pack_sweep,SweepWireEnvelope
 from .policy import load,projection,validate_rule
 from .reducer import lifecycle_history,checked_lifecycle_ids
 from .monitoring import ALIASES, bundle_at, monitoring_catalog, monitoring_operation
 
 LICENCE=dict(status="FIRST_PARTY",permitted_uses=["publish_derived"],dataset_key="project:risk-manager-evidence",valid_through=None)
 KINDS={"risk-state":StateEnvelope,"risk-sweep":SweepEnvelope}
-LIMIT=128*1024
+# Largest single risk artifact any reader accepts on the wire. Retained states are ~128 KiB today and grow a few
+# KiB per Data epoch; 1 MiB is ~8x headroom and still bounds parse/validation work.
+ADMISSION_LIMIT=1024*1024
+# Format selection only: a logical receipt above this is published as packed risk-sweep/2. It stays at the
+# original value so every already-published receipt re-derives to the same wire format.
+COMPACT_THRESHOLD=128*1024
 CATEGORIES={"DATA","MODEL","RESEARCH_HYGIENE","PORTFOLIO","SIMULATOR","SYSTEM"}
 
 def safe_payload(value):
@@ -170,11 +175,8 @@ def validate_observation_sources(receipts):
         visit(pair)
 
 
-def _validate_public(value, root, staged=None, *, catalog=None):
-    if value.get("kind") not in KINDS:
-        raise ValueError("Unapproved risk kind")
-    model=KINDS[value["kind"]].model_validate(value)
-    parsed=model.model_dump(mode="json")
+def _validate_semantic(parsed, root, staged=None, *, catalog=None):
+    """Full scientific/source validation on an already closed logical value."""
     safe_payload(parsed)
     policy=load(root)
     if parsed["claim_flags"]!=CLAIMS or parsed["licence"]!=LICENCE:
@@ -298,10 +300,54 @@ def _validate_public(value, root, staged=None, *, catalog=None):
         if parsed["published_at"]!=p["published_at"]:
             raise ValueError("Receipt publication clock mismatch")
     validate_refs(refs,root,staged=staged,cutoff=parsed["evidence_cutoff"],catalog=catalog)
-    raw=canonical(parsed)+b"\n"
-    if len(raw)>LIMIT:
-        raise ValueError("Risk artifact exceeds 128 KiB budget")
-    return parsed,raw
+    return parsed
+
+
+def _validate_public(value, root, staged=None, *, catalog=None):
+    """Incoming wire only: an oversized legacy receipt is never auto-repacked."""
+    raw=canonical(value)+b"\n"
+    if len(raw)>ADMISSION_LIMIT:
+        raise ValueError("Risk artifact exceeds admission limit")
+    if value.get("kind") not in KINDS:
+        raise ValueError("Unapproved risk kind")
+    if value["kind"]=="risk-sweep" and value.get("schema_version")!="risk-sweep/2" and len(raw)>COMPACT_THRESHOLD:
+        # The producer never emits this wire: format selection packs it. Raising the
+        # admission limit must not start accepting a non-canonical transport.
+        raise ValueError("Risk receipt above compact threshold must use packed transport")
+    if value["kind"]=="risk-sweep" and value.get("schema_version")=="risk-sweep/2":
+        # Verify source authority once before any repeated reference allocation.
+        # Wire-byte/list bounds alone must not allow a large forged source list
+        # to be expanded into thousands of copies before its binding rejects.
+        SweepWireEnvelope.model_validate(value)
+        validate_refs(value["payload"]["evidence_ref_table"],root,staged=staged,
+                      cutoff=value["evidence_cutoff"],catalog=catalog)
+    parsed=(hydrate_sweep(value) if value["kind"]=="risk-sweep" else
+            StateEnvelope.model_validate(value).model_dump(mode="json"))
+    safe_payload(value)
+    return _validate_semantic(parsed,root,staged=staged,catalog=catalog),raw
+
+
+def prepare_public(value, root, staged=None, *, catalog=None):
+    """Producer boundary: return logical view, selected wire, actual wire bytes."""
+    with monitoring_operation():
+        if value.get("kind")!="risk-sweep":
+            checked,raw=_validate_public(value,root,staged=staged,catalog=catalog)
+            return checked,value,raw
+        if value.get("schema_version")=="risk-sweep/2":
+            logical,_=_validate_public(value,root,staged=staged,catalog=catalog)
+        else:
+            logical=SweepEnvelope.model_validate(value).model_dump(mode="json")
+            _validate_semantic(logical,root,staged=staged,catalog=catalog)
+        legacy=canonical(logical)+b"\n"
+        wire=logical if len(legacy)<=COMPACT_THRESHOLD else pack_sweep(logical)
+        # pack_sweep checks the closed wire and exact logical roundtrip. The
+        # identical logical value has already passed every semantic/source check.
+        raw=canonical(wire)+b"\n"
+        if len(raw)>ADMISSION_LIMIT:
+            raise ValueError("Risk artifact exceeds admission limit")
+        if wire["schema_version"]=="risk-sweep/2" and len(raw)>=len(legacy):
+            raise ValueError("Risk receipt transport is not smaller")
+        return logical,wire,raw
 
 @contextmanager
 def writer_lock(root):
@@ -334,7 +380,7 @@ def publish(root, state, sweep, *, expected_manifest, interrupt=None, extra_stat
     prepared=[]
     staged={}
     for value in values:
-        checked,raw=validate_public(value,root,staged=staged)
+        checked,wire,raw=prepare_public(value,root,staged=staged)
         kind="state" if checked["kind"]=="risk-state" else "sweep"
         ident="risk:"+kind+":"+sha256(raw).hexdigest()
         prepared.append((ident,checked,raw))
@@ -426,7 +472,7 @@ def publish(root, state, sweep, *, expected_manifest, interrupt=None, extra_stat
     return {"state_ref":m["routes"].get("/risk-manager/state"),"sweep_ref":prepared[-1][0],
             "writes":len(owned)+2}
 
-def read_artifact(root, manifest, identity):
+def read_artifact(root, manifest, identity, *, wire=False):
     e=manifest["artifacts"].get(identity)
     if not e or not re.fullmatch(r"risk:(state|sweep):[a-f0-9]{64}",identity):
         raise ValueError("Unknown risk artifact")
@@ -434,13 +480,16 @@ def read_artifact(root, manifest, identity):
     if e.get("url")!=expected_url:
         raise ValueError("Risk manifest path substitution")
     raw=(Path(root)/"frontend-v2/public"/expected_url.lstrip("/")).read_bytes()
-    if len(raw)!=e["bytes"] or sha256(raw).hexdigest()!=e["sha256"] or e["sha256"]!=identity.rsplit(":",1)[-1]:
+    if len(raw)>ADMISSION_LIMIT or len(raw)!=e["bytes"] or sha256(raw).hexdigest()!=e["sha256"] or e["sha256"]!=identity.rsplit(":",1)[-1]:
         raise ValueError("Risk bytes mismatch")
     value=decode(raw)
-    validate_public(value,root)
+    if canonical(value)+b"\n"!=raw:
+        # One logical artifact has one identity; padding cannot ride under the admission limit.
+        raise ValueError("Risk bytes are not canonical")
+    checked,_=validate_public(value,root)
     if entry(identity,value,raw)!=e:
         raise ValueError("Risk manifest entry substitution")
-    return value
+    return value if wire else checked
 
 
 def checked_primary(value,state):

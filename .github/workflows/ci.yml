@@ -1,95 +1,70 @@
 name: CI
 
 on:
+  # Branches are tested through their pull request; pushes run CI only on main.
   push:
+    branches: [main]
   pull_request:
+  # The daily organ publication is pushed with the workflow token, which never triggers `push`.
+  # Run the full suite after it so retained-evidence growth cannot break main unseen.
+  workflow_run:
+    workflows: ["Checked organs"]
+    types: [completed]
+    # Only main: a dispatched publication on another branch is tested by that branch's own PR.
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  backend:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      APP_ENV: test
-      FINSIGHT_DATA_DIR: /tmp/finsight-data
-      OPENBLAS_NUM_THREADS: "1"
-      OMP_NUM_THREADS: "1"
-      MKL_NUM_THREADS: "1"
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Verify that research preregistration predates every outcome commit.
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e . -r requirements-test.txt
-      - run: python -m compileall -q backend src tests
-      - name: Verify immutable plugin registry, checked Replay and retained closed research
-        run: python scripts/verify_plugin_replay.py
-      - name: Verify derived Data Organ evidence and immutable Phase 0-2 archive
-        run: python scripts/verify_data_organ.py
-      - name: Verify Phase 5 regime publications, sealed lineage and archive boundary
-        run: python scripts/verify_regimes.py
-      - name: Verify Phase 6 metadata, exact retained references and immutable Phase 5 freeze
-        run: python scripts/verify_factors.py
-      - name: Verify Phase 7 retained risk state, lifecycle and immutable Phase 0-6 subsets
-        run: python scripts/verify_risk_manager.py
-      - name: Verify Research OS frozen evidence and closed engine gate
-        run: python scripts/verify_research_os.py
-      - name: Verify seed-disjoint inference tournament and retained closed baseline
-        run: python scripts/verify_inference_calibration_v011.py
-      - name: Inference tournament infrastructure canary cannot certify a method
-        run: python scripts/run_inference_calibration_v011.py canary
-      - name: Verify frozen Forge baseline bytes
-        run: |
-          python - <<'PY'
-          import hashlib
-          import json
-          from pathlib import Path
-          root = Path("data/exports/forge_v0_2_5_real_baseline")
-          manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-          bad = [name for name, digest in manifest["artifacts"].items()
-                 if hashlib.sha256((root / name).read_bytes()).hexdigest() != digest]
-          if bad:
-              raise SystemExit("Frozen Forge byte mismatch: " + ", ".join(bad))
-          print(f"Verified {len(manifest['artifacts'])} frozen Forge file hashes")
-          PY
-      - name: Verify frozen Dynamics lineage
-        run: |
-          python scripts/verify_dynamics_d0_2_1.py
-          python scripts/verify_dynamics_d0_3.py
-          python scripts/verify_dynamics_d0_3_1.py
-          python scripts/verify_dynamics_d0_3_2.py
-          python scripts/verify_dynamics_d0_3_2_1.py
-          python scripts/verify_dynamics_d0_3_3.py
-          python scripts/verify_dynamics_d0_3_3_1.py
-          python scripts/verify_dynamics_d0_3_3_2.py
-          python scripts/verify_dynamics_d0_3_4.py
-          python scripts/verify_dynamics_d0_4.py
-          python scripts/verify_dynamics_d0_4_1.py
-          python scripts/verify_dynamics_d0_4_1_1.py
-          python scripts/verify_dynamics_d0_4_2.py
-      - name: Verify release authorship and legal attribution
-        run: |
-          git config --local user.name "Raghhav Malani"
-          git config --local user.email "96712854+RaghhavMalani@users.noreply.github.com"
-          python scripts/verify_release_authorship.py
-      - name: Verify agent-eval anti-gaming contracts
-        run: pytest -q tests/test_agent_eval_metrics.py tests/sabotage
-      - name: Phase 6 read-only metadata, reference and archive sabotage suite
-        run: pytest -q tests/factors
-      - name: Phase 7 closed-schema, reducer, publication sabotage and GET-only API suite
-        run: pytest -q tests/risk_manager
-      - run: pytest -q --ignore=tests/regimes --ignore=tests/factors --ignore=tests/risk_manager
+# A newer commit on the same pull request supersedes the older run; main always runs to completion.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_run' && 'publication' || 'code' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-  regimes:
-    # Phase 5 families A-K admit real-shaped captures through the Data Organ; run in parallel.
+jobs:
+  # Independent shards of the former single backend job, so wall time is the slowest shard,
+  # not the sum. Every check that ran before still runs exactly once.
+  backend:
+    name: backend (${{ matrix.shard }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: archives
+            run: |
+              python -m compileall -q backend src tests
+              python scripts/verify_plugin_replay.py
+              python scripts/verify_data_organ.py
+              python scripts/verify_regimes.py
+              python scripts/verify_factors.py
+          - shard: frozen
+            run: |
+              python scripts/verify_risk_manager.py
+              python scripts/verify_research_os.py
+              python scripts/verify_inference_calibration_v011.py
+              python scripts/run_inference_calibration_v011.py canary
+              python scripts/verify_forge_baseline_bytes.py
+              for v in d0_2_1 d0_3 d0_3_1 d0_3_2 d0_3_2_1 d0_3_3 d0_3_3_1 d0_3_3_2 d0_3_4 d0_4 d0_4_1 d0_4_1_1 d0_4_2; do
+                python scripts/verify_dynamics_$v.py
+              done
+              git config --local user.name "Raghhav Malani"
+              git config --local user.email "96712854+RaghhavMalani@users.noreply.github.com"
+              python scripts/verify_release_authorship.py
+          - shard: sabotage-factors
+            run: |
+              pytest -q tests/test_agent_eval_metrics.py tests/sabotage
+              pytest -q tests/factors
+          - shard: risk
+            run: pytest -q tests/risk_manager
+          - shard: general
+            # Files are independent; --dist loadfile keeps each file's tests on one worker.
+            run: pytest -q -n auto --dist loadfile --ignore=tests/regimes --ignore=tests/factors --ignore=tests/risk_manager --ignore=tests/sabotage --ignore=tests/test_agent_eval_metrics.py
+          - shard: regimes
+            # Phase 5 families A-K admit real-shaped captures through the Data Organ.
+            run: pytest -q tests/regimes
     env:
       APP_ENV: test
       FINSIGHT_DATA_DIR: /tmp/finsight-data
@@ -99,25 +74,76 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Publication remediation tests read immutable sealed outputs from Git.
+          # Research preregistration and publication remediation read immutable history from Git.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e . pytest httpx
-      - name: Series SDK, no-holdout runs, arch GARCH, filtered HMMs, lineage, publication and API
-        run: pytest -q tests/regimes
+      - run: python -m pip install -e . -r requirements-test.txt
+      - name: ${{ matrix.shard }}
+        run: ${{ matrix.run }}
 
   frontend:
+    name: frontend (${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: static
+            run: |
+              npm run lint
+              npx prettier --check src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts src/dynamics/BoundaryStructureMicroscope.tsx src/dynamics/hawkes-boundary-contracts.ts scripts/verify-hawkes-boundary.mjs src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts scripts/verify-market-regime.mjs src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx scripts/verify-regime-product.mjs src/regimes scripts/verify-regimes.mjs src/factors scripts/verify-factors.mjs src/routes/factors.tsx
+              npx tsc --noEmit
+              for v in hawkes-identifiability hawkes-boundary market-regime regime-product observatory neural globe markets shell replay agents plugins data regimes factors; do
+                node scripts/verify-$v.mjs
+              done
+              node scripts/generate-terminal-index.mjs --check
+              node scripts/verify-terminal-context.mjs
+              npm run build
+          - shard: risk
+            run: |
+              npx prettier --check src/risk-manager src/routes/risk.tsx src/lib/book.ts src/lib/demoBook.ts src/components/risk/RiskLiveCommandCenter.tsx scripts/verify-risk-manager.mjs
+              node scripts/verify-risk-manager.mjs
+              node scripts/verify-risk-local.mjs
+          - shard: browser-terminal
+            browsers: true
+            run: |
+              npm run verify:terminal:initial
+              serve
+              node scripts/verify-terminal-browser.mjs --url "$APP" --static-index-only
+          - shard: browser-observatory-markets-replay
+            browsers: true
+            run: |
+              serve
+              node scripts/verify-observatory.mjs --url "$APP"
+              node scripts/verify-markets.mjs --url "$APP"
+              node scripts/verify-replay.mjs --url "$APP"
+          - shard: browser-agents-shell-plugins-data
+            browsers: true
+            run: |
+              serve
+              node scripts/verify-agents.mjs --url "$APP"
+              node scripts/verify-shell.mjs --url "$APP"
+              node scripts/verify-plugins.mjs --url "$APP"
+              node scripts/verify-data.mjs --url "$APP"
+          - shard: browser-regimes-factors-risk
+            browsers: true
+            run: |
+              serve
+              node scripts/verify-regimes.mjs --url "$APP"
+              node scripts/verify-factors.mjs --url "$APP"
+              node scripts/verify-risk-browser.mjs --url "$APP"
     env:
       # Only loopback can enter Live. Required by the explicit, mocked local-Live contract checks.
       VITE_ENABLE_LOCAL_LIVE: "true"
+      APP: http://127.0.0.1:4174
     defaults:
       run:
         working-directory: frontend-v2
+        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
@@ -130,77 +156,33 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install the closed-schema dependency for the synthetic browser failure fixture
+          cache: pip
+      - name: Install the closed-schema dependency for synthetic failure fixtures
         run: python -m pip install pydantic==2.13.4
       - run: npm ci
-      - run: npm run lint
-      - run: npx eslint src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
-      - run: npx prettier --check src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts
-      - run: npx eslint src/dynamics/BoundaryStructureMicroscope.tsx src/dynamics/hawkes-boundary-contracts.ts
-      - run: npx prettier --check src/dynamics/BoundaryStructureMicroscope.tsx src/dynamics/hawkes-boundary-contracts.ts scripts/verify-hawkes-boundary.mjs
-      - run: npx tsc --noEmit
-      - run: node scripts/verify-hawkes-identifiability.mjs
-      - run: node scripts/verify-hawkes-boundary.mjs
-      - run: npx eslint src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts
-      - run: npx prettier --check src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts scripts/verify-market-regime.mjs
-      - run: node scripts/verify-market-regime.mjs
-      - run: npx eslint src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx
-      - run: npx prettier --check src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx scripts/verify-regime-product.mjs
-      - run: node scripts/verify-regime-product.mjs
-      - run: node scripts/verify-observatory.mjs
-      - run: node scripts/verify-neural.mjs
-      - run: node scripts/verify-globe.mjs
-      - run: node scripts/verify-markets.mjs
-      - run: node scripts/verify-shell.mjs
-      - run: node scripts/verify-replay.mjs
-      - run: node scripts/verify-agents.mjs
-      - run: node scripts/verify-plugins.mjs
-      - run: node scripts/verify-data.mjs
-      - run: npx eslint src/regimes scripts/verify-regimes.mjs
-      - run: npx prettier --check src/regimes scripts/verify-regimes.mjs
-      - run: node scripts/verify-regimes.mjs
-      - run: npx eslint src/factors scripts/verify-factors.mjs
-      - run: npx prettier --check src/factors scripts/verify-factors.mjs src/routes/factors.tsx
-      - run: node scripts/verify-factors.mjs
-      - name: Risk Manager boundary, policy, retained counts and lazy local-lab checks
-        run: |
-          npx eslint src/risk-manager src/routes/risk.tsx scripts/verify-risk-manager.mjs
-          npx prettier --check src/risk-manager src/routes/risk.tsx src/lib/book.ts src/lib/demoBook.ts src/components/risk/RiskLiveCommandCenter.tsx scripts/verify-risk-manager.mjs
-          node scripts/verify-risk-manager.mjs
-          node scripts/verify-risk-local.mjs
-      - run: npm run build
-      - name: Install browsers for workspace and native-key checks
+      - name: Build the production preview
+        if: matrix.browsers
+        run: npm run build
+      - name: Cache Playwright browsers
+        if: matrix.browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('frontend-v2/package-lock.json') }}
+      - name: Install browsers (Chromium, Firefox, Chrome, Edge)
+        if: matrix.browsers
         run: |
           npx playwright install --with-deps chromium firefox
           npx playwright install chrome msedge
-      - name: Observatory scene labels never overlap (production preview, software WebGL)
+      - name: ${{ matrix.shard }}
         run: |
-          node scripts/preview-built.mjs &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:4174/observatory && break; sleep 1; done
-          node scripts/verify-observatory.mjs --url http://127.0.0.1:4174
-      - name: Markets Overview and desk render data, failure and signed-out states at 1440 and 390 px
-        run: |
-          curl -sf -o /dev/null http://127.0.0.1:4174/markets || (node scripts/preview-built.mjs &)
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:4174/markets && break; sleep 1; done
-          node scripts/verify-markets.mjs --url http://127.0.0.1:4174
-      - name: Unmocked public Replay has no failed requests or live-source traffic
-        run: node scripts/verify-replay.mjs --url http://127.0.0.1:4174
-      - name: Agents reference views and recorded-grade sabotage checks
-        run: node scripts/verify-agents.mjs --url http://127.0.0.1:4174
-      - name: Chrome, Edge and Firefox release the shell keys and preserve F5/F7
-        run: node scripts/verify-shell.mjs --url http://127.0.0.1:4174
-      - name: Plugin run Replay and byte, scope, claim and tenant sabotage
-        run: node scripts/verify-plugins.mjs --url http://127.0.0.1:4174
-      - name: Data Organ real evidence, desktop/mobile and publication sabotage in three browsers
-        run: node scripts/verify-data.mjs --url http://127.0.0.1:4174
-      - name: Regime evidence modes, lineage and fail-closed sabotage in three browsers
-        run: node scripts/verify-regimes.mjs --url http://127.0.0.1:4174
-
-      - name: FACTORS real retained US/India, reference sabotage and Replay traffic in three browsers
-        run: node scripts/verify-factors.mjs --url http://127.0.0.1:4174
-
-      - name: Risk Manager real Replay and fail-closed boundaries in Chrome, Edge and Firefox
-        run: node scripts/verify-risk-browser.mjs --url http://127.0.0.1:4174
+          serve() {
+            node scripts/preview-built.mjs &
+            for i in $(seq 1 60); do curl -sf -o /dev/null "$APP/" && return 0; sleep 1; done
+            echo "Production preview did not start" >&2; return 1
+          }
+          set -e
+          ${{ matrix.run }}
 
   truth-contract:
     runs-on: ubuntu-latest

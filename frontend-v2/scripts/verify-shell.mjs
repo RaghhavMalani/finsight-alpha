@@ -180,8 +180,13 @@ if (urlIndex > 0) {
             `${name}: ${w.key} was captured`,
           );
         }
-        if (w.id === "risk")
+        if (w.id === "risk") {
+          // A reference listing has no Risk assessment; Risk offers an explicit choice instead.
+          await page
+            .getByRole("button", { name: "Clear unsupported listing", exact: true })
+            .click();
           await page.getByRole("region", { name: "Risk issue feed", exact: true }).waitFor();
+        }
         page.off("dialog", onDialog);
       }
       // All captured keys remain native while editing; contenteditable, textarea and select too.

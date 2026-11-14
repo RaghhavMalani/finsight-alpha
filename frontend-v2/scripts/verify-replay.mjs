@@ -422,7 +422,9 @@ if (flag > 0) {
           .catch(() => {});
       },
     );
-    await race.goto(`${base}/markets/SIMF`, { waitUntil: "networkidle" });
+    // Replay has no public view for an unknown listing; race on a recorded one so the
+    // returning Replay view is real, and check the unknown listing stays strict.
+    await race.goto(`${base}/markets/SPY`, { waitUntil: "networkidle" });
     await race.getByRole("button", { name: "Local Live", exact: true }).click();
     await race.locator('.shell[data-mode="live"]').waitFor();
     await race.getByRole("button", { name: "Replay", exact: true }).first().click();
@@ -430,6 +432,9 @@ if (flag > 0) {
     await race.waitForTimeout(1200);
     assert.equal(await race.locator(".mk-candles").count(), 0);
     await race.getByText("Weekly market evidence", { exact: true }).waitFor();
+    await race.goto(`${base}/markets/SIMF`, { waitUntil: "networkidle" });
+    await race.getByText("CONTEXT NOT APPLICABLE", { exact: true }).waitFor();
+    assert.equal(await race.getByText("Weekly market evidence", { exact: true }).count(), 0);
     await race.close();
     console.log(
       `${views} unmocked Replay views at 1440/390: zero failed requests, zero API/vendor traffic, plus denied-source and SHA sabotage checks.`,

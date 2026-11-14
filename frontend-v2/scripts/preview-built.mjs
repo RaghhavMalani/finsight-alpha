@@ -6,6 +6,8 @@ import { Readable } from "node:stream";
 import app from "../.vercel/output/functions/__server.func/index.mjs";
 
 const root = resolve(".vercel/output/static");
+// PREVIEW_PORT lets parallel checkouts run browser verifiers side by side; CI uses the default.
+const port = Number(process.env.PREVIEW_PORT ?? 4174);
 const mime = {
   ".js": "text/javascript",
   ".css": "text/css",
@@ -17,7 +19,7 @@ const mime = {
 };
 createServer(async (req, res) => {
   try {
-    const url = new URL(req.url, "http://127.0.0.1:4174");
+    const url = new URL(req.url, "http://127.0.0.1:" + port);
     const path = resolve(root, "." + decodeURIComponent(url.pathname));
     if (path.startsWith(root + sep) && (await stat(path).catch(() => null))?.isFile()) {
       res.writeHead(200, { "content-type": mime[extname(path)] || "application/octet-stream" });
@@ -38,4 +40,4 @@ createServer(async (req, res) => {
     res.writeHead(500);
     res.end("Production preview failed");
   }
-}).listen(4174, "127.0.0.1", () => console.log("Production build: http://127.0.0.1:4174"));
+}).listen(port, "127.0.0.1", () => console.log("Production build: http://127.0.0.1:" + port));

@@ -2,16 +2,25 @@ import assert from "node:assert/strict";
 import { readFileSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolve, sep } from "node:path";
 import { chromium, firefox } from "playwright";
-import { stable, validateRisk } from "../src/risk-manager/contracts.ts";
+import {
+  stable,
+  validateRisk,
+  RISK_ADMISSION_LIMIT,
+  RISK_SELECTED_BUDGET,
+  RISK_TOTAL_BUDGET,
+} from "../src/risk-manager/contracts.ts";
 import { checkedIssueReferences } from "../src/risk-manager/evidence.ts";
 const at = process.argv.indexOf("--url");
 assert(at >= 0 && process.argv[at + 1], "Pass --url for the built preview");
 const base = process.argv[at + 1].replace(/\/$/, "");
 const root = new URL("../public/", import.meta.url);
 const repo = fileURLToPath(new URL("../../", import.meta.url));
-const shots = new URL("../../docs/screenshots/", import.meta.url);
+const shots = process.env.RISK_SCREENSHOT_DIR
+  ? pathToFileURL(resolve(process.env.RISK_SCREENSHOT_DIR) + sep)
+  : new URL("../../docs/screenshots/", import.meta.url);
 mkdirSync(shots, { recursive: true });
 const manifestRaw = readFileSync(new URL("replay-manifest.json", root));
 const manifest = JSON.parse(manifestRaw);
@@ -46,9 +55,10 @@ const report = {
 };
 // Isolated engineering contexts replace the trusted build anchor as well as sealed fixture bytes.
 // Production has no runtime override. Real contexts below never install this response handler.
-async function syntheticReadView(context, changed) {
+async function syntheticReadView(context, changed, extraIds = []) {
   const needed = new Set([
     ...Object.keys(readProjection.artifacts),
+    ...extraIds,
     changed.routes["/risk-manager/state"],
     changed.routes["/risk-manager/sweep"],
   ]);
@@ -81,11 +91,194 @@ async function syntheticReadView(context, changed) {
     await route.fulfill({ response, body });
   });
 }
+// Engineering transport fixtures never replace retained bytes on disk.
+function transportWire(logical) {
+  const wire = structuredClone(logical),
+    table = [],
+    slots = new Map();
+  wire.schema_version = "risk-sweep/2";
+  for (const row of wire.payload.observations) {
+    const refs = row.evidence_refs;
+    delete row.evidence_refs;
+    row.schema_version = "risk-observation-wire/1";
+    row.evidence_ref_indices = refs.map((ref) => {
+      const key = stable(ref);
+      if (!slots.has(key)) {
+        slots.set(key, table.length);
+        table.push(ref);
+      }
+      return String(slots.get(key));
+    });
+  }
+  wire.payload.evidence_ref_table = table;
+  return wire;
+}
+const ownerWire = transportWire(validateRisk(sweep, "risk-sweep"));
+const ownerRaw = Buffer.from(stable(ownerWire) + "\n");
+const ownerId = "risk:sweep:" + sha(ownerRaw);
+function fixtureEntry(value, raw) {
+  const id = "risk:sweep:" + sha(raw);
+  return [
+    id,
+    {
+      ...manifest.artifacts[sweepId],
+      bytes: raw.length,
+      sha256: sha(raw),
+      url: "/artifacts/replay/" + id.replaceAll(":", "-") + ".json",
+      input_hash: value.input_hash,
+      as_of: value.published_at,
+      observed_at: value.published_at,
+      available_at: value.published_at,
+    },
+  ];
+}
+const failureProcess = spawnSync(
+  process.env.RISK_PYTHON || "python",
+  ["scripts/risk_browser_failure_fixture.py"],
+  { cwd: repo, encoding: "utf8" },
+);
+assert.equal(failureProcess.status, 0, failureProcess.stderr + failureProcess.stdout);
+const failureFixture = JSON.parse(failureProcess.stdout.trim().split(/\r?\n/).at(-1)).receipt;
+failureFixture.payload.prior_sweep_ref = ownerId;
+for (const row of failureFixture.payload.history_index)
+  if (row.sweep_ref === sweepId) row.sweep_ref = ownerId;
+
 const channels = process.env.RISK_BROWSER_CHANNELS?.split(",") ?? ["chrome", "msedge", "firefox"];
 for (const name of channels) {
   const browser = await (name === "firefox" ? firefox : chromium).launch(
     name === "firefox" ? { headless: true } : { headless: true, channel: name },
   );
+  for (const attack of [
+    "success",
+    "failed-v2-owner",
+    "numeric-index",
+    "leading-zero",
+    "out-of-range",
+    "duplicate",
+    "unused",
+    "order",
+    "legacy-field",
+    "row-version",
+    "unknown",
+    "empty",
+    "nested",
+    "observation-hash",
+    "missing-observation",
+    "cutoff",
+    "claim",
+    "oversized",
+  ]) {
+    let value = structuredClone(ownerWire),
+      raw;
+    if (attack === "failed-v2-owner") value = structuredClone(failureFixture);
+    else {
+      const p = value.payload,
+        table = p.evidence_ref_table,
+        row = p.observations[0];
+      if (attack === "numeric-index") row.evidence_ref_indices[0] = 0;
+      if (attack === "leading-zero") row.evidence_ref_indices[0] = "00";
+      if (attack === "out-of-range") row.evidence_ref_indices[0] = "999";
+      if (attack === "duplicate") table.push(structuredClone(table[0]));
+      if (attack === "unused") table.push({ ...table[0], selector_id: "unreferenced" });
+      if (attack === "order") {
+        [table[0], table[1]] = [table[1], table[0]];
+        for (const o of p.observations)
+          o.evidence_ref_indices = o.evidence_ref_indices.map((x) =>
+            x === "0" ? "1" : x === "1" ? "0" : x,
+          );
+      }
+      if (attack === "legacy-field") row.evidence_refs = [table[0]];
+      if (attack === "row-version") row.schema_version = "risk-observation/1";
+      if (attack === "unknown") p.unreviewed = true;
+      if (attack === "empty") table.length = 0;
+      if (attack === "nested") table[0].evidence_ref_indices = ["0"];
+      if (attack === "observation-hash") row.fingerprint = "a".repeat(64);
+      if (attack === "missing-observation") p.observations.shift();
+      if (attack === "cutoff") value.evidence_cutoff = "2026-10-01T00:00:00Z";
+      if (attack === "claim") value.claim_flags.validated_alpha = true;
+    }
+    raw = Buffer.from(stable(value) + "\n");
+    if (attack === "oversized")
+      raw = Buffer.concat([raw, Buffer.alloc(RISK_ADMISSION_LIMIT + 1 - raw.length, 32)]);
+    const [id, entry] = fixtureEntry(value, raw),
+      m = structuredClone(manifest);
+    const [, ownerEntry] = fixtureEntry(ownerWire, ownerRaw);
+    m.artifacts[ownerId] = ownerEntry;
+    m.artifacts[id] = entry;
+    m.routes["/risk-manager/sweep"] = id;
+    m.routes["/risk-manager/sweep?sweep_id=" + value.payload.sweep_id] = id;
+    m.as_of = value.published_at > m.as_of ? value.published_at : m.as_of;
+    const c = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await c.newPage(),
+      seen = new Map(),
+      privateRequests = [];
+    page.on("request", (request) => {
+      if (/\/(?:api|data\/raw)\//.test(request.url())) privateRequests.push(request.url());
+    });
+    page.on("response", (response) => {
+      if (/\/artifacts\/replay\/risk-(?:state|sweep)-/.test(response.url()))
+        seen.set(
+          response.url(),
+          response.body().then((b) => b.length),
+        );
+    });
+    await syntheticReadView(c, m, [ownerId]);
+    await c.route("**/replay-manifest.json", (route) => route.fulfill({ json: m }));
+    await c.route("**" + ownerEntry.url, (route) =>
+      route.fulfill({ body: ownerRaw, contentType: "application/json" }),
+    );
+    await c.route("**" + entry.url, (route) =>
+      route.fulfill({ body: raw, contentType: "application/json" }),
+    );
+    await page.goto(base + "/risk");
+    const positive = attack === "success" || attack === "failed-v2-owner";
+    if (positive) {
+      await page
+        .getByRole("region", { name: "Risk issue feed" })
+        .waitFor()
+        .catch(async (error) => {
+          console.error(
+            "TRANSPORT_BROWSER_DIAGNOSTIC",
+            JSON.stringify({
+              browser: name,
+              attack,
+              url: page.url(),
+              alerts: await page.getByRole("alert").allTextContents(),
+              text: (await page.locator("body").innerText()).slice(0, 4000),
+            }),
+          );
+          throw error;
+        });
+      if (attack === "failed-v2-owner")
+        await page.getByText("FAILED SWEEP · PREVIOUS STATE RETAINED", { exact: true }).waitFor();
+      await page.waitForLoadState("networkidle");
+      assert.equal(
+        await page.getByRole("region", { name: "Risk issue feed" }).locator("tbody tr").count(),
+        real.length + (attack === "failed-v2-owner" ? 1 : 0),
+      );
+      assert((await Promise.all(seen.values())).reduce((a, b) => a + b, 0) <= RISK_SELECTED_BUDGET);
+      if (attack === "failed-v2-owner")
+        assert(seen.has(base + ownerEntry.url), "Owning v2 receipt is actually read");
+    } else {
+      await page.getByRole("alert").waitFor();
+      assert.equal(await page.getByRole("region", { name: "Risk issue feed" }).count(), 0);
+    }
+    assert.deepEqual(privateRequests, []);
+    report.synthetic.push({
+      browser: name,
+      evidence_class: "SYNTHETIC_TEST_ONLY",
+      case: "transport-" + attack,
+      result: positive ? "PASS" : "FAILED_CLOSED",
+      riskBytes: (await Promise.all(seen.values())).reduce((a, b) => a + b, 0),
+    });
+    await c.unrouteAll({ behavior: "wait" });
+    await c.close();
+  }
+  if (process.argv.includes("--transport-only")) {
+    await browser.close();
+    console.log(name + ": isolated v2 transport checks PASS");
+    continue;
+  }
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     reducedMotion: "reduce",
@@ -140,8 +333,8 @@ for (const name of channels) {
     .filter((r) => /risk-(state|sweep)-/.test(r.url))
     .reduce((n, r) => n + r.bytes, 0);
   const totalBytes = bodies.reduce((n, r) => n + r.bytes, 0);
-  assert(riskBytes <= 256 * 1024, "Initial selected risk data budget");
-  assert(totalBytes <= 512 * 1024, "Initial total data budget");
+  assert(riskBytes <= RISK_SELECTED_BUDGET, "Initial selected risk data budget");
+  assert(totalBytes <= RISK_TOTAL_BUDGET, "Initial total data budget");
   assert(
     !bodies.some((body) => body.url.endsWith("/replay-manifest.json")),
     "Global history metadata is deferred until explicit interaction",
@@ -298,6 +491,9 @@ for (const name of channels) {
       result: "PASS",
     };
   }
+  // The selected panel is part of the URL context and survives reload; measure the feed explicitly.
+  await page.getByRole("button", { name: "Issue console", exact: true }).click();
+  await feed.waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   const warmStart = Date.now();
   await page.reload();
@@ -598,10 +794,10 @@ for (const name of channels) {
       .reduce((sum, row) => sum + row.bytes, 0);
     const failedTotalBytes = failedReadRows.reduce((sum, row) => sum + row.bytes, 0);
     assert(
-      failedRiskBytes <= 256 * 1024,
+      failedRiskBytes <= RISK_SELECTED_BUDGET,
       "Failed scene counts source receipt within initial Risk budget",
     );
-    assert(failedTotalBytes <= 512 * 1024, "Failed scene total initial data budget");
+    assert(failedTotalBytes <= RISK_TOTAL_BUDGET, "Failed scene total initial data budget");
     assert.equal(
       await p.getByRole("region", { name: "Risk issue feed" }).locator("tbody tr").count(),
       real.length + 1,
@@ -645,5 +841,6 @@ for (const name of channels) {
       ": real Replay, history, filters, mobile keyboard, zero private traffic and isolated failure checks PASS",
   );
 }
+mkdirSync(new URL(".", measureFile), { recursive: true });
 writeFileSync(measureFile, JSON.stringify(report, null, 2) + "\n");
 console.log(JSON.stringify(report));

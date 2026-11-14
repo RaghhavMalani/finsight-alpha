@@ -701,7 +701,8 @@ if (baseUrl) {
       await page.getByRole("heading", { name: "RISK", exact: true }).waitFor();
       await page.locator(".mk-candles svg").waitFor();
       await gotoLocalLive(page, `${baseUrl}/markets/BAD%3B`);
-      await page.getByRole("alert").filter({ hasText: "Invalid ticker" }).waitFor();
+      // The shared investigation context rejects the path before the Overview child renders.
+      await page.getByRole("alert").filter({ hasText: "Enter a valid ticker." }).waitFor();
       assert.equal(await page.locator(".mk-candles").count(), 0);
       await page.close();
       views += 3;

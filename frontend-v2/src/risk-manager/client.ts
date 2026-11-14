@@ -9,6 +9,9 @@ import {
   verifyRiskIdentity,
   stable,
   reviewedMonitoringBundle,
+  RISK_ADMISSION_LIMIT,
+  RISK_SELECTED_BUDGET,
+  RISK_TOTAL_BUDGET,
   type State,
   type Sweep,
   type Ref,
@@ -127,7 +130,7 @@ export async function readChecked(
   if (!response.ok) throw new Error("Checked risk artifact unavailable.");
   const raw = await response.arrayBuffer();
   if (
-    raw.byteLength > 128 * 1024 ||
+    raw.byteLength > RISK_ADMISSION_LIMIT ||
     raw.byteLength !== entry.bytes ||
     (await sha256(raw)) !== entry.sha256 ||
     entry.sha256 !== id.split(":").at(-1)
@@ -136,6 +139,7 @@ export async function readChecked(
   const value = validateRisk(
     strictJSON(new TextDecoder("utf-8", { fatal: true }).decode(raw)),
     expectedKind,
+    raw.byteLength,
   );
   await verifyRiskIdentity(value);
   checkReferencedEntries(value, manifest);
@@ -202,8 +206,8 @@ export async function loadRisk(signal?: AbortSignal, sweepId?: string): Promise<
       if (
         !entry ||
         (!sweepId &&
-          (riskBytes + entry.bytes > 256 * 1024 ||
-            RISK_READ_PLAN.projection.bytes + riskBytes + entry.bytes > 512 * 1024))
+          (riskBytes + entry.bytes > RISK_SELECTED_BUDGET ||
+            RISK_READ_PLAN.projection.bytes + riskBytes + entry.bytes > RISK_TOTAL_BUDGET))
       )
         throw new Error("Risk source receipt exceeds the bounded read budget.");
       riskBytes += entry.bytes;

@@ -10,8 +10,14 @@ permissions:
 
 jobs:
   frozen-calibration:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Bit-exact replay needs the recorded environment: the calibration was frozen on Windows with
+    # the dependency versions stored in calibration.json. Unpinned Linux installs drifted and failed
+    # every week on generated-data identity, which hid whether the evidence itself was intact.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
     env:
       APP_ENV: test
       FINSIGHT_DATA_DIR: /tmp/finsight-research-verification
@@ -24,9 +30,17 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12.0" # recorded in calibration.json; the verifier checks it
           cache: pip
-      - run: python -m pip install -e . pytest httpx
+      - name: Install the project with the dependency versions recorded in the frozen calibration
+        run: |
+          python - <<'PY' > "$RUNNER_TEMP/recorded-environment.txt"
+          import json
+          recorded = json.load(open("data/exports/research_os_v0_1/calibration.json"))["environment"]["dependencies"]
+          for name, version in sorted(recorded.items()):
+              print(f"{name}=={version}")
+          PY
+          python -m pip install -e . pytest httpx -r "$RUNNER_TEMP/recorded-environment.txt"
       - name: Recompute the unchanged 8000 null and 8000 planted worlds
         run: python scripts/verify_research_os.py --full-calibration
       - name: Exercise the fail-closed result and provenance contracts

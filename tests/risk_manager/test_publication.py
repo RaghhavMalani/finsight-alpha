@@ -1,11 +1,14 @@
 from pathlib import Path
 from copy import deepcopy
+import re
 import shutil
 import pytest
 from src.risk_manager.sweep import run
-from src.risk_manager.publication import validate_public,safe_payload,publish
-from src.risk_manager.contracts import digest,canonical
+from src.risk_manager.publication import validate_public,safe_payload,publish,ADMISSION_LIMIT,COMPACT_THRESHOLD
+from src.risk_manager.contracts import digest,canonical,pack_sweep
 ROOT=Path(__file__).resolve().parents[2]
+# Any rejection that is about bytes rather than content.
+SIZE_REJECTION=re.compile("admission limit|compact threshold|KiB")
 
 def test_budget_two_kinds_and_claims(preflight):
     page=preflight["coverage_state"]; state=preflight["state"]
@@ -20,7 +23,7 @@ def test_budget_two_kinds_and_claims(preflight):
     staged={ref["artifact_id"]:(page,canonical(page)+b"\n")}
     for value in [page,state]:
         _,raw=validate_public(value,ROOT,staged=staged)
-        assert len(raw)<=128*1024 and set(value["claim_flags"].values())=={False}
+        assert len(raw)<=ADMISSION_LIMIT and set(value["claim_flags"].values())=={False}
     bad=deepcopy(page); bad["kind"]="risk-history"
     with pytest.raises(ValueError): validate_public(bad,ROOT)
 
@@ -120,7 +123,7 @@ def test_coverage_leaf_reference_clocks_and_sources_cannot_be_substituted(prefli
 
 @pytest.mark.parametrize("sabotage", ["observation_id", "observation_fingerprint", "witness_clock", "transition_issue"])
 def test_receipt_observation_cross_join_substitution(preflight, sabotage):
-    value = deepcopy(preflight["receipt"])
+    value = pack_sweep(preflight["receipt"])
     payload = value["payload"]
     if sabotage == "observation_id":
         payload["observations"][0]["observation_id"] = "a" * 64
@@ -130,8 +133,10 @@ def test_receipt_observation_cross_join_substitution(preflight, sabotage):
         payload["observations"][0]["witnessed_at"] = "2026-10-15T12:00:00Z"
     elif sabotage == "transition_issue":
         payload["transitions"][0]["issue_id"] = "risk-issue:" + "a" * 64
-    with pytest.raises(ValueError):
+    assert len(canonical(value) + b"\n") <= ADMISSION_LIMIT
+    with pytest.raises(ValueError) as rejected:
         validate_public(value, ROOT)
+    assert not SIZE_REJECTION.search(str(rejected.value))
 
 
 def test_atomic_pair_rejects_valid_unrelated_state(preflight, tmp_path):
@@ -163,7 +168,7 @@ def test_nonnull_container_producer_run_and_unknown_policy_selector(preflight):
 
 @pytest.mark.parametrize("sabotage", ["missing", "extra", "duplicate", "hash", "bytes"])
 def test_receipt_input_inventory_bound_even_after_rehashing(preflight, sabotage):
-    value = deepcopy(preflight["receipt"])
+    value = pack_sweep(preflight["receipt"])
     payload = value["payload"]
     if sabotage == "missing":
         payload["inputs"].pop()
@@ -179,8 +184,10 @@ def test_receipt_input_inventory_bound_even_after_rehashing(preflight, sabotage)
                                         policy_sha256=payload["policy_sha256"], evaluator_source_hash=payload["evaluator_source_hash"],
                                         scope="RETAINED_RISK_EVIDENCE"))
     value["input_hash"] = payload["fingerprint"]
-    with pytest.raises(ValueError):
+    assert len(canonical(value) + b"\n") <= ADMISSION_LIMIT
+    with pytest.raises(ValueError) as rejected:
         validate_public(value, ROOT)
+    assert not SIZE_REJECTION.search(str(rejected.value))
 
 
 def test_publisher_rejects_unreviewed_evaluator_hash_before_writing(preflight, tmp_path):
@@ -228,7 +235,7 @@ def test_primary_links_preserve_full_source_observations(preflight):
         assert observation["evidence_refs"]!=issue["evidence_refs"]
         assert issue["origin_records"]==observation["origin_records"]
         assert issue["last_observation_id"] in issue["observation_ids"]
-    assert len(canonical(state))+1<=128*1024
+    assert len(canonical(state))+1<=ADMISSION_LIMIT
 
 
 @pytest.mark.parametrize("sabotage",["fingerprint","missing_observation","other_issue","mixed","evidence_at"])
@@ -259,3 +266,72 @@ def test_resealed_primary_source_pointer_rejected_before_writes(preflight,tmp_pa
         publish(tmp_path,state,receipt,expected_manifest=original,extra_states=[preflight["coverage_state"]])
     assert (tmp_path/"frontend-v2/public/replay-manifest.json").read_bytes()==original
     assert list((tmp_path/"frontend-v2/public/artifacts/replay").glob("risk-*.json"))==[]
+
+
+def test_current_receipt_capacity_uses_exact_wire_without_relaxing_ingress(preflight):
+    from src.risk_manager.contracts import hydrate_sweep
+    from src.risk_manager.publication import prepare_public
+    logical = preflight['receipt']
+    original = canonical(logical) + b'\n'
+    assert COMPACT_THRESHOLD < len(original) <= ADMISSION_LIMIT
+    # Admissible by size, yet still refused: only the packed transport may carry it.
+    with pytest.raises(ValueError, match='must use packed transport'):
+        validate_public(logical, ROOT)
+    checked, wire, raw = prepare_public(logical, ROOT)
+    assert wire['schema_version'] == 'risk-sweep/2'
+    assert raw == canonical(wire) + b'\n'
+    assert len(raw) < len(original) and len(raw) <= ADMISSION_LIMIT
+    assert canonical(checked) == canonical(logical) == canonical(hydrate_sweep(wire))
+    assert len(checked['payload']['observations']) == len(logical['payload']['observations'])
+    assert [o['origin_records'] for o in checked['payload']['observations']] == [o['origin_records'] for o in logical['payload']['observations']]
+    _, state_wire, state_raw = prepare_public(preflight['state'], ROOT, staged={
+        preflight['state']['payload']['evidence_index'][0]['artifact_id']:
+            (preflight['coverage_state'], canonical(preflight['coverage_state']) + b'\n')})
+    assert state_wire == preflight['state'] and len(state_raw) <= ADMISSION_LIMIT
+
+
+def test_resealed_pool_target_cannot_change_observation_sources(preflight):
+    from src.risk_manager.contracts import pack_sweep
+    from src.risk_manager.publication import prepare_public
+    _, wire, _ = prepare_public(preflight['receipt'], ROOT)
+    assert validate_public(wire, ROOT)[0] == preflight['receipt']
+    logical = deepcopy(preflight['receipt'])
+    target = logical['payload']['observations'][0]
+    other = next(o for o in logical['payload']['observations'] if o['evidence_refs'] != target['evidence_refs'])
+    target['evidence_refs'] = deepcopy(other['evidence_refs'])
+    # Rebuild a canonical table and rehash the outer wire, leaving the logical
+    # observation digest as the independent authority. No size/ordering shortcut.
+    bad = pack_sweep(logical)
+    assert len(canonical(bad) + b'\n') <= ADMISSION_LIMIT
+    with pytest.raises(ValueError, match='Observation derivation'):
+        validate_public(bad, ROOT)
+
+
+def test_small_legacy_receipt_stays_byte_identical():
+    from src.risk_manager.contracts import decode
+    from src.risk_manager.publication import prepare_public
+    manifest = decode((ROOT / 'frontend-v2/public/replay-manifest.json').read_bytes())
+    for identity, entry in manifest['artifacts'].items():
+        if entry['kind'] != 'risk-sweep': continue
+        raw = (ROOT / 'frontend-v2/public' / entry['url'].lstrip('/')).read_bytes()
+        original = decode(raw)
+        logical, wire, prepared = prepare_public(original, ROOT)
+        assert wire == original == logical
+        assert prepared == raw
+
+
+def test_forged_source_table_rejects_before_reference_expansion(monkeypatch):
+    from src.risk_manager import publication
+    from src.risk_manager.contracts import decode, pack_sweep
+    manifest = decode((ROOT / 'frontend-v2/public/replay-manifest.json').read_bytes())
+    entry = manifest['artifacts'][manifest['routes']['/risk-manager/sweep']]
+    original = decode((ROOT / 'frontend-v2/public' / entry['url'].lstrip('/')).read_bytes())
+    wire = pack_sweep(original)
+    ref = next(r for r in wire['payload']['evidence_ref_table'] if r['type'] == 'REPLAY_ARTIFACT')
+    ref['source_ids'] = ['forged'] * 200
+    assert len(canonical(wire) + b'\n') <= ADMISSION_LIMIT
+    def no_expansion(*args, **kwargs):
+        raise AssertionError('Forged source reached repeated-reference allocation')
+    monkeypatch.setattr(publication, 'hydrate_sweep', no_expansion)
+    with pytest.raises(ValueError, match='Reference binding'):
+        publication.validate_public(wire, ROOT)
