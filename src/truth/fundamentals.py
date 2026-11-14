@@ -82,12 +82,15 @@ class FundamentalValue:
     value: float | None = None
     reason: str | None = None
     evidence: dict | None = None
+    period_age_days: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
-def point_in_time(observations, *, ticker, asset, field, as_of) -> FundamentalValue:
+def point_in_time(
+    observations, *, ticker, asset, field, as_of, max_age_days=None, ticker_link=None
+) -> FundamentalValue:
     """The as_of guard: nothing filed after ``as_of`` can influence the answer."""
     cutoff = utc(as_of)
     base = {"ticker": ticker, "field": field, "as_of": _iso(cutoff)}
@@ -111,16 +114,31 @@ def point_in_time(observations, *, ticker, asset, field, as_of) -> FundamentalVa
             **base,
             reason="Filings available at the same instant disagree for this period",
         )
+    age = (cutoff - period).days
+    if max_age_days is not None and age > max_age_days:
+        return FundamentalValue(
+            NOT_MEASURED,
+            **base,
+            reason=f"stale: latest available period ended {age} days before as_of (max {max_age_days})",
+            period_age_days=age,
+        )
     chosen = min(final, key=lambda o: (o.revision, o.source_version_id or ""))
-    return FundamentalValue(AVAILABLE, **base, value=chosen.value, evidence=chosen.evidence())
+    return FundamentalValue(
+        AVAILABLE,
+        **base,
+        value=chosen.value,
+        evidence=chosen.evidence() | (ticker_link or {}),
+        period_age_days=age,
+    )
 
 
 class FundamentalsBook:
     """Admitted SEC observations plus the ticker->CIK links captured with them."""
 
-    def __init__(self, observations, tickers):
+    def __init__(self, observations, tickers, ticker_map_clocks=None):
         self.observations = tuple(observations)
         self.tickers = dict(tickers)
+        self.ticker_map_clocks = dict(ticker_map_clocks or {})
 
     @classmethod
     def from_registry(cls, registry, tenant_id):
@@ -128,12 +146,15 @@ class FundamentalsBook:
             e["identity"]: Capture(**e["payload"])
             for e in registry.entries(tenant_id, "SOURCE_VERSION")
         }
-        observations, tickers = [], {}
+        observations, tickers, clocks = [], {}, {}
         for entry in registry.entries(tenant_id, "ADMISSION"):
             capture = captures[entry["payload"]["source_version_id"]]
             if capture.source != SEC_SOURCE:
                 continue
             ticker, asset = capture.metadata["ticker"], "CIK" + capture.metadata["cik"]
+            clock = (capture.metadata.get("ticker_map") or {}).get("captured_at")
+            if clock and clock > clocks.get(ticker, ""):
+                clocks[ticker] = clock
             if tickers.setdefault(ticker, asset) != asset:
                 tickers[ticker] = None  # conflicting captured links: never guess
             for row in entry["payload"]["observations"]:
@@ -156,9 +177,9 @@ class FundamentalsBook:
                         source_version_id=capture.identity,
                     )
                 )
-        return cls(observations, tickers)
+        return cls(observations, tickers, clocks)
 
-    def fundamentals(self, ticker, field, as_of) -> FundamentalValue:
+    def fundamentals(self, ticker, field, as_of, *, max_age_days=None) -> FundamentalValue:
         if field not in FIELDS:
             raise ValueError("Undeclared fundamentals field: " + str(field))
         key = ticker.strip().upper()
@@ -179,9 +200,21 @@ class FundamentalsBook:
                 reason="Captured SEC ticker maps disagree on the CIK",
             )
         return point_in_time(
-            self.observations, ticker=key, asset=self.tickers[key], field=field, as_of=as_of
+            self.observations,
+            ticker=key,
+            asset=self.tickers[key],
+            field=field,
+            as_of=as_of,
+            max_age_days=max_age_days,
+            # SEC's current ticker map, applied at any as_of: not a PIT identity.
+            ticker_link={
+                "ticker_link": "PRESENT_DAY",
+                "ticker_map_captured_at": self.ticker_map_clocks.get(key),
+            },
         )
 
 
-def fundamentals(ticker, field, as_of, *, book: FundamentalsBook) -> FundamentalValue:
-    return book.fundamentals(ticker, field, as_of)
+def fundamentals(
+    ticker, field, as_of, *, book: FundamentalsBook, max_age_days=None
+) -> FundamentalValue:
+    return book.fundamentals(ticker, field, as_of, max_age_days=max_age_days)

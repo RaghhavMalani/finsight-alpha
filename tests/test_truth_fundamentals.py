@@ -36,7 +36,7 @@ def book(tmp_path):
         source_url=sec_edgar.COMPANYFACTS_URL.format(cik="9999999999"),
         ticker="FIXT-SYN",
         cik="9999999999",
-        ticker_evidence={"sha256": sha256(b"fixture").hexdigest()},
+        ticker_evidence={"sha256": sha256(b"fixture").hexdigest(), "captured_at": "2025-03-01T11:59:00Z"},
     )
     service = Service(Registry(tmp_path / "admissions.duckdb"), tmp_path / "captures")
     for cap, body, rows in captures:
@@ -149,3 +149,19 @@ def test_as_of_needs_an_explicit_timezone_and_fields_are_declared(book):
         book.fundamentals("FIXT-SYN", "assets", "2024-05-01T00:00:00")
     with pytest.raises(ValueError, match="Undeclared"):
         book.fundamentals("FIXT-SYN", "eps_diluted", "2024-05-01T00:00:00Z")
+
+
+def test_period_age_and_optional_staleness_cutoff(book):
+    fresh = book.fundamentals("FIXT-SYN", "assets", "2025-03-01T00:00:00Z")
+    assert (fresh.status, fresh.period_age_days) == (AVAILABLE, 426)  # 2023-12-31 -> 2025-03-01
+    stale = book.fundamentals("FIXT-SYN", "assets", "2025-03-01T00:00:00Z", max_age_days=400)
+    assert (stale.status, stale.value, stale.period_age_days) == (NOT_MEASURED, None, 426)
+    assert stale.reason.startswith("stale")
+    ok = fundamentals("FIXT-SYN", "assets", "2025-03-01T00:00:00Z", book=book, max_age_days=430)
+    assert ok.value == 5.35e9
+
+
+def test_ticker_link_is_disclosed_as_present_day(book):
+    evidence = book.fundamentals("FIXT-SYN", "assets", "2024-05-01T00:00:00Z").evidence
+    assert evidence["ticker_link"] == "PRESENT_DAY"
+    assert evidence["ticker_map_captured_at"] == "2025-03-01T11:59:00Z"
