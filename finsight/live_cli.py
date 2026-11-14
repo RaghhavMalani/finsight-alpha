@@ -42,6 +42,16 @@ def _parser() -> argparse.ArgumentParser:
     return p
 
 
+SECRET_MARKERS = ("KEY", "SECRET", "TOKEN", "PASSWORD", "DSN", "DATABASE_URL", "CREDENTIAL")
+
+
+def frontend_env(env: dict, api_base: str) -> dict:
+    """The frontend never needs provider credentials: it gets a filtered environment."""
+    kept = {k: v for k, v in env.items()
+            if k.startswith("VITE_") or not any(m in k.upper() for m in SECRET_MARKERS)}
+    return {**kept, "VITE_ENABLE_LOCAL_LIVE": "true", "VITE_API_BASE_URL": env.get("VITE_API_BASE_URL", api_base)}
+
+
 def _load_env(path: str) -> None:
     if path and Path(path).is_file():
         from dotenv import load_dotenv
@@ -128,8 +138,7 @@ def main(argv: list[str] | None = None) -> int:
         if npm is None or not (frontend / "node_modules").is_dir():
             print("frontend skipped: run `npm ci` in frontend-v2 first (or pass --no-frontend)")
         else:
-            fenv = {**env, "VITE_ENABLE_LOCAL_LIVE": "true",
-                    "VITE_API_BASE_URL": env.get("VITE_API_BASE_URL", f"http://{args.host}:{args.port}")}
+            fenv = frontend_env(env, f"http://{args.host}:{args.port}")
             cmd = [npm, "run", "dev", "--", "--port", str(args.frontend_port)]
             children.append(("frontend", _spawn(cmd, cwd=frontend, env=fenv)))
             print(f"frontend http://localhost:{args.frontend_port}")
