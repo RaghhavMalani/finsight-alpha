@@ -31,6 +31,7 @@ class Rule:
     near_km: float | None = None  # nearest hub within this radius
     fresh_days: float | None = None  # input effective/observed within this many days of ingestion
     question: str = ""
+    key: str = "subject"  # "subject": once per source item (a revised quake is the same quake); "record": per row
 
 
 RULES = (
@@ -46,14 +47,16 @@ RULES = (
          question="Extreme NWS alert ({event}) {distance_km:.0f} km from {hub}: operational exposure for "
                   "exchanges or data centres near {hub}?"),
     Rule("macro-revision", 1, "macro.release", "fred_vintage", {"is_revision": ("==", True)}, fresh_days=3,
+         key="record",
          question="{series} for {period} was revised from {previous_vintage_value} to {value} "
                   "(vintage {vintage}): which retained studies used the earlier vintage?"),
     Rule("prediction-move", 1, "prediction.update", "prediction_market", {"move_pp": (">=", 10.0)},
+         key="record",
          question="{venue} market '{question}' moved {move_pp:.1f} pp to {yes_price}: what news or data "
                   "release explains it, and does any covered asset price the same event?"),
 )
 
-_OPS = {">=": lambda a, b: a is not None and a >= b, "==": lambda a, b: a == b}
+_OPS = {">=": lambda a, b: a is not None and a >= b, "==": lambda a, b: a is not None and a == b}
 
 
 def rules_digest() -> str:
@@ -100,7 +103,9 @@ class Triggers:
             except (KeyError, ValueError):
                 continue
             out.append(Observation(
-                type="research.progress", source="finsight:triggers", source_id=f"{rule.id}:{record['id']}",
+                type="research.progress", source="finsight:triggers",
+                source_id=(f"{rule.id}:{record['source']}:{record['source_id']}" if rule.key == "subject"
+                           else f"{rule.id}:{record['id']}"),
                 revision=f"v{rule.version}", observed_at=record["available_at"], effective_at=None,
                 licence=LICENCE, confidence="DERIVED",
                 provenance={"feed": "triggers", "url": "internal:src/live/triggers.py",

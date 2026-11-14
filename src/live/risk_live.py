@@ -64,8 +64,17 @@ class LiveRisk:
             yield ("R-DATA-FRESHNESS", days > FRESHNESS_DAYS, round(days, 4), FRESHNESS_DAYS, "GT",
                    "SOURCE_STALE", f"last success {days:.2f} days before evaluation")
 
+    def restore(self, alerts: list[dict]) -> None:
+        """Rebuild the last outcome per (rule, feed) from stored alerts, so a restart neither
+        repeats an open FINDING nor misses its CLEAR."""
+        for alert in sorted(alerts, key=lambda a: a["seq"]):
+            p = alert.get("payload") or {}
+            if p.get("rule_id") in COVERED and p.get("subject"):
+                self._outcomes[(p["rule_id"], p["subject"])] = p["outcome"]
+
     def evaluate(self, snap: dict, health_record: dict) -> list[Observation]:
-        """Alerts only on outcome transitions; an initial CLEAR is not news."""
+        """Alerts only on outcome transitions; an initial CLEAR is not news, and a finding
+        clears only when the feed is UP again (DEGRADED -> DOWN is worse, not resolved)."""
         if snap["status"] in ("UNAVAILABLE", "STARTING"):
             return []
         alerts = []
@@ -73,6 +82,8 @@ class LiveRisk:
             outcome = "FINDING" if triggered else "CLEAR"
             key = (rule_id, snap["feed"])
             if self._outcomes.get(key, "CLEAR") == outcome:
+                continue
+            if outcome == "CLEAR" and rule_id != "R-DATA-FRESHNESS" and snap["status"] != "UP":
                 continue
             self._outcomes[key] = outcome
             rule = self.rules[rule_id]

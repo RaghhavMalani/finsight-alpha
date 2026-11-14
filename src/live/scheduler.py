@@ -41,6 +41,7 @@ class FeedState:
     rows_new_last: int = 0
     rejected_last: int = 0
     partial_errors: list[str] = field(default_factory=list)
+    inflight: object = None  # a fetch still running in its thread after a timeout
 
     def snapshot(self, now: datetime) -> dict:
         f = self.feed
@@ -71,7 +72,8 @@ def failure_delay(feed: Feed, consecutive: int, rng: random.Random, retry_after:
     """30 s, 60 s, 120 s, ... capped at min(cadence, 1 h), never below the rate limit or Retry-After."""
     cap = min(max(feed.cadence_s, BACKOFF_BASE_S), MAX_BACKOFF_S)
     raw = min(cap, BACKOFF_BASE_S * 2 ** max(consecutive - 1, 0))
-    return max(feed.min_interval_s, retry_after or 0.0, raw * (1 + rng.uniform(0, JITTER)))
+    retry = min(retry_after or 0.0, MAX_BACKOFF_S)  # a server cannot park a feed for longer than an hour
+    return max(feed.min_interval_s, retry, raw * (1 + rng.uniform(0, JITTER)))
 
 
 # on_result(feed, observations) -> (rows_new, rejected); on_health(snapshot)
@@ -111,11 +113,22 @@ class Scheduler:
         feed = state.feed
         if state.status == "UNAVAILABLE":
             return state.snapshot(self.clock())
+        if state.inflight is not None and not state.inflight.done():
+            # A timed-out fetch is still running in its thread: never start a second one beside it.
+            state.last_error = "SKIPPED: previous fetch still running after its timeout"
+            state.next_due_at = self.clock() + timedelta(seconds=max(feed.min_interval_s, 30.0))
+            return state.snapshot(self.clock())
+        state.inflight = None
         state.attempts += 1
         state.last_attempt_at = self.clock()
         retry_after = None
         try:
-            rows = await asyncio.wait_for(asyncio.to_thread(feed.fetch), self.fetch_timeout_s)
+            task = asyncio.ensure_future(asyncio.to_thread(feed.fetch))
+            try:
+                rows = await asyncio.wait_for(asyncio.shield(task), self.fetch_timeout_s)
+            except asyncio.TimeoutError:
+                state.inflight = task
+                raise
             new, rejected = await self.on_result(feed, rows)
         except Exception as error:  # noqa: BLE001 - any failure is a failed attempt, never a dead loop
             state.failures += 1
