@@ -1,4 +1,5 @@
 # Engineering test dependencies; separate from runtime and manual risk dispatch.
 pytest
+pytest-xdist==3.8.0
 httpx
 PyYAML==6.0.2
