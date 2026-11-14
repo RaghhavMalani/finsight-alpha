@@ -91,7 +91,16 @@ def test_admission_keeps_every_filing_and_its_provenance(tmp_path):
     ]
     restated = [o for o in observations if o["revision"] == "9999999999-24-000050"]
     assert {o["field"] for o in restated} == {"revenues_fy", "assets", "eps_diluted_fy"}
-    assert all(o["form"] == "10-K/A" and o["filed"] == "2024-06-03" for o in restated)
+    # The sealed observation contract keeps six core fields; filing provenance rides in the
+    # capture metadata, keyed by the admitted row.
+    assert all(set(o) == {"asset", "field", "value", "observed_at", "available_at", "revision"} for o in observations)
+    provenance = {}
+    for e in registry.entries("t1", "SOURCE_VERSION"):
+        provenance |= e["payload"]["metadata"]["filing_provenance"]
+    assert len(provenance) == len(observations)
+    for o in restated:
+        filing = provenance[sec_edgar.provenance_key(o)]
+        assert filing["form"] == "10-K/A" and filing["filed"] == "2024-06-03"
 
 
 def test_filing_after_capture_is_not_admissible_yet(tmp_path):
@@ -114,7 +123,11 @@ def test_backdated_or_impossible_filings_are_quarantined(tmp_path):
     registry, results = ingest(tmp_path, captures)
     assert results[0]["quarantined"] == 4
     quarantine = registry.entries("t1", "ADMISSION")[0]["payload"]["quarantine"]
-    assert {q["reason"] for q in quarantine} == set(reasons)
+    # The provider withholds the availability claim, so the sealed validator refuses the row;
+    # the provider's own reason is preserved on the quarantined row.
+    assert {q["reason"] for q in quarantine} == {"Missing observation schema"}
+    assert sorted(q["row"]["quarantine_reason"] for q in quarantine) == sorted(reasons)
+    assert all("available_at" not in q["row"] for q in quarantine)
 
 
 def test_identical_same_instant_duplicates_collapse_without_overwriting():

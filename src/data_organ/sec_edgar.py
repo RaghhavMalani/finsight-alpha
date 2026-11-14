@@ -37,6 +37,19 @@ def request_headers():
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 MAX_REQUESTS_PER_SECOND = 10
+# The shared observation contract (contracts.py) is sealed by earlier freezes and keeps only the six
+# core fields. Filing provenance therefore travels in capture metadata, keyed by the admitted row.
+PROVENANCE_FIELDS = ("effective_start", "filed", "form", "fiscal_year", "fiscal_period", "frame", "xbrl_concept")
+
+
+def provenance_key(row):
+    return f'{row["field"]}|{row["observed_at"]}|{row["revision"]}'
+
+
+def _withhold(row):
+    """A row the provider cannot stand behind makes no availability claim, so admission refuses it."""
+    held = {k: v for k, v in row.items() if k != "available_at"}
+    return held | {"claimed_available_at": row.get("available_at")}
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 ADAPTER_VERSION = "sec-edgar-companyfacts/1"
 AVAILABILITY_RULE = (
@@ -292,6 +305,13 @@ def companyfacts(raw, *, captured_at, source_url, ticker, cik, ticker_evidence):
             by_unit[unit],
             key=lambda r: (r["field"], r["observed_at"], r["available_at"] or "", r["revision"] or ""),
         )
+        provenance = {}
+        for r in rows:
+            if not r.get("quarantine_reason"):
+                provenance.setdefault(
+                    provenance_key(r), {k: r[k] for k in PROVENANCE_FIELDS if r.get(k) is not None}
+                )
+        rows = [_withhold(r) if r.get("quarantine_reason") else r for r in rows]
         cap = Capture(
             SOURCE,
             source_url,
@@ -319,6 +339,7 @@ def companyfacts(raw, *, captured_at, source_url, ticker, cik, ticker_evidence):
                 "user_agent": USER_AGENT,
                 "excluded_rows": dict(sorted(excluded.items())),
                 "collapsed_same_instant_duplicates": collapsed,
+                "filing_provenance": provenance,
             },
         )
         captures.append((cap, raw, rows))

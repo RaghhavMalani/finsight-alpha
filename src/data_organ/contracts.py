@@ -68,22 +68,7 @@ class Capture:
             raise ValueError("Source byte substitution")
 
 
-# Optional per-row filing provenance, kept only when a provider supplies it, so
-# rows from providers that never set these keys normalize exactly as before.
-PROVENANCE_FIELDS = (
-    "effective_start",
-    "filed",
-    "form",
-    "fiscal_year",
-    "fiscal_period",
-    "frame",
-    "xbrl_concept",
-)
-
-
 def validate_observation(row, capture):
-    if row.get("quarantine_reason"):
-        raise ValueError(str(row["quarantine_reason"]))
     required = {"asset", "field", "value", "observed_at", "available_at"}
     if not required <= set(row):
         raise ValueError("Missing observation schema")
@@ -102,11 +87,9 @@ def validate_observation(row, capture):
         or row["field"] not in capture.schema
     ):
         raise ValueError("Undeclared asset/field")
-    return (
-        {k: row[k] for k in sorted(required)}
-        | {"revision": str(row.get("revision", "0"))}
-        | {k: row[k] for k in PROVENANCE_FIELDS if k in row}
-    )
+    return {k: row[k] for k in sorted(required)} | {
+        "revision": str(row.get("revision", "0"))
+    }
 
 
 def public_metadata(capture):

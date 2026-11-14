@@ -16,7 +16,7 @@ from typing import Any
 from finsight.plugins.contracts import utc
 from src.data.as_of import AsOfViolation
 from src.data_organ.contracts import Capture
-from src.data_organ.sec_edgar import FIELDS, edgar_available_at
+from src.data_organ.sec_edgar import FIELDS, edgar_available_at, provenance_key
 from src.data_organ.sec_edgar import SOURCE as SEC_SOURCE
 
 AVAILABLE, NOT_MEASURED, AMBIGUOUS = "AVAILABLE", "NOT_MEASURED", "AMBIGUOUS"
@@ -157,7 +157,12 @@ class FundamentalsBook:
                 clocks[ticker] = clock
             if tickers.setdefault(ticker, asset) != asset:
                 tickers[ticker] = None  # conflicting captured links: never guess
+            provenance = capture.metadata.get("filing_provenance", {})
             for row in entry["payload"]["observations"]:
+                filing = provenance.get(provenance_key(row))
+                if not filing or not filing.get("filed"):
+                    raise ValueError("Admitted SEC observation has no filing provenance")
+                row = row | filing
                 observations.append(
                     FundamentalObservation(
                         asset=row["asset"],
