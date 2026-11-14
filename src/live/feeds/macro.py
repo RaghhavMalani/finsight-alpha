@@ -27,8 +27,10 @@ class FREDVintages(Feed):
     confidence = "OFFICIAL"
     parser = "live-fred/1"
     required_env = (("FRED_API_KEY",),)
+    # Revised monthly/quarterly prints. Daily series (e.g. DGS10) exceed ALFRED's 2000-vintage cap
+    # for the unrestricted real-time period that the shared parser requires.
     series = {"UNRATE": "neutral", "PAYEMS": "neutral", "CPIAUCSL": "neutral",
-              "FEDFUNDS": "neutral", "DGS10": "neutral"}
+              "FEDFUNDS": "neutral", "GDPC1": "neutral"}
     window_days = 730
     licence = model.licence(
         "PUBLIC_DOMAIN_CITATION_REQUESTED",
