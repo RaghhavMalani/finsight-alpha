@@ -21,7 +21,7 @@ Commit as `docs/upgrade-plan.md` (replacing v1). Run one phase per PR: "Read doc
 | Factors | Ken French library (already in `src/regime_intelligence/french.py`) | IIM Ahmedabad Indian Fama-French / momentum factor library |
 | Macro | FRED / ALFRED (vintages) | RBI DBIE, MOSPI releases |
 | Volatility index | VIX | India VIX |
-| Filings / fundamentals | SEC EDGAR (AsOf) | Limited free point-in-time data; label coverage honestly |
+| Filings / fundamentals | SEC EDGAR companyfacts (Truth layer: `src/truth` + `src/data_organ`; the separate AsOf project is retired) | Limited free point-in-time data; label coverage honestly |
 | Costs | commissions + spread | STT, exchange fees, GST, stamp duty, spread |
 | Events | USGS, NOAA, GDELT, NASA FIRMS | same + IMD (monsoon, cyclones) |
 
