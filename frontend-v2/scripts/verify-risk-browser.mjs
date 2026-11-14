@@ -841,5 +841,6 @@ for (const name of channels) {
       ": real Replay, history, filters, mobile keyboard, zero private traffic and isolated failure checks PASS",
   );
 }
+mkdirSync(new URL(".", measureFile), { recursive: true });
 writeFileSync(measureFile, JSON.stringify(report, null, 2) + "\n");
 console.log(JSON.stringify(report));
