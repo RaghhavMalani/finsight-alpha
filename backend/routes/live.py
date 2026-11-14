@@ -66,9 +66,7 @@ def recent(request: Request, type: str | None = None, since: str | None = None,
         except ValueError as error:
             raise HTTPException(422, f"since must be a seq or an ISO timestamp: {error}") from error
     if service.store is not None and service.mode == "online":
-        events = service.store.since(after_at, types=types, limit=100000)
-        if after_seq is not None:
-            events = [e for e in events if e["seq"] > after_seq]
+        events = service.store.since(after_at, types=types, limit=100000, after_seq=after_seq)
     else:
         events = service.bus.recent(types=types, after_seq=after_seq, limit=100000)
         if after_at:
@@ -83,7 +81,7 @@ def recent(request: Request, type: str | None = None, since: str | None = None,
 async def stream(request: Request, type: str | None = None, since_seq: int | None = Query(None, ge=0),
                  max_events: int | None = Query(None, ge=1, le=100000),
                  heartbeat_s: float = Query(15.0, ge=0.05, le=60.0)) -> StreamingResponse:
-    """SSE. Resumes after ``since_seq`` or the ``Last-Event-ID`` header from the in-memory buffer."""
+    """SSE. Resumes after ``since_seq`` or ``Last-Event-ID``; an ``event: gap`` frame reports lost events."""
     _gate(request)
     service = runtime.get_service()
     if service is None:
@@ -94,12 +92,20 @@ async def stream(request: Request, type: str | None = None, since_seq: int | Non
         since_seq = int(header)
     subscription = service.bus.subscribe(types=types)  # before the backlog, so nothing falls between
 
+    def gap(reason: str, **counts) -> str:
+        body = {"type": "gap", "reason": reason, **counts}
+        return f"event: gap\ndata: {model.canonical(body)}\n\n"
+
     async def events():
-        sent, last = 0, since_seq if since_seq is not None else -1
+        sent, last, dropped = 0, since_seq if since_seq is not None else -1, 0
         try:
             yield "retry: 5000\n\n"
             if since_seq is not None:
-                for event in service.bus.recent(types=types, after_seq=since_seq, limit=100000):
+                backlog, first_held = service.backlog(since_seq, types)
+                if first_held is not None:
+                    yield gap("history before this seq is no longer held", missing_after_seq=since_seq,
+                              first_available_seq=first_held)
+                for event in backlog:
                     yield _frame(event)
                     last, sent = event["seq"], sent + 1
                     if max_events and sent >= max_events:
@@ -108,10 +114,13 @@ async def stream(request: Request, type: str | None = None, since_seq: int | Non
                 if await request.is_disconnected():
                     return
                 event = await subscription.get(timeout=heartbeat_s)
+                if subscription.dropped > dropped:
+                    yield gap("client too slow; events dropped", dropped=subscription.dropped - dropped)
+                    dropped = subscription.dropped
                 if event is None:
                     yield ": keep-alive\n\n"
                     continue
-                if event["seq"] <= last and service.mode == "online":
+                if event["seq"] <= last:
                     continue  # already sent from the backlog
                 yield _frame(event)
                 last, sent = event["seq"], sent + 1
