@@ -107,6 +107,13 @@ def main(argv: list[str] | None = None) -> int:
         except KeyboardInterrupt:
             return 0
 
+    def _interrupt(*_):
+        raise KeyboardInterrupt
+
+    for name in ("SIGTERM", "SIGBREAK"):  # stop children on these too, not only Ctrl+C
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), _interrupt)
+
     env = {**os.environ, "FINSIGHT_LIVE": "offline" if args.offline else "online"}
     if feeds:
         env["FINSIGHT_LIVE_FEEDS"] = ",".join(sorted(feeds))
