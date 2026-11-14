@@ -41,15 +41,12 @@ def test_every_stored_row_has_every_provenance_field(store, clock):
         assert all(k in r["provenance"] for k in model.PROVENANCE_FIELDS), r["source"]
         assert r["provenance"]["delay"], "every row carries its delay label"
         assert r["id"] == model.record_id(r["source"], r["source_id"], r["revision"])
-        assert model.parse_iso(r["available_at"]) >= model.parse_iso(r["observed_at"]) - store_skew()
+        stamp = model.parse_iso(r["available_at"])
+        assert stamp >= model.parse_iso(r["observed_at"])  # nothing is known before it is ingested
+        assert r["effective_at"] is None or stamp >= model.parse_iso(r["effective_at"])
+        assert stamp >= model.parse_iso(r["provenance"]["fetched_at"])
     seqs = [r["seq"] for r in records]
     assert seqs == list(range(1, len(records) + 1))
-
-
-def store_skew():
-    from src.live.store import FUTURE_SKEW
-
-    return FUTURE_SKEW
 
 
 def test_same_source_id_revision_is_stored_once(store, clock):
@@ -58,6 +55,7 @@ def test_same_source_id_revision_is_stored_once(store, clock):
     clock.advance(minutes=5)
     assert store.append(row) is None
     assert store.append(row.as_dict()) is None
+    store.close()
     reopened = LiveStore(store.root, clock=clock)  # idempotent across restarts too
     assert reopened.append(row) is None
     lines = (store.segments / f"{T0.date()}.jsonl").read_text(encoding="utf-8").splitlines()
