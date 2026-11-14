@@ -390,6 +390,21 @@ npm run dev
 
 Vite prints the local terminal URL after startup.
 
+### Start the live spine
+
+One command starts the API with the live feed scheduler and the frontend dev server; Ctrl+C stops all of it:
+
+```bash
+python -m finsight live                 # or .\live.ps1 on Windows PowerShell
+python -m finsight live --no-frontend   # API and feeds only
+python -m finsight live --offline       # replay recorded days instead of fetching
+```
+
+Events stream from `GET /live/stream` (Server-Sent Events), with `GET /live/health` and `GET /live/recent` as
+the polling fallback. Every observation is appended outside the repository (`FINSIGHT_LIVE_DIR`, default
+`~/.finsight-forge/live`) with its provenance, licence and delay label, and closed days are sealed for replay.
+Feeds without a key report `UNAVAILABLE`. Details: [docs/q2-live-spine.md](docs/q2-live-spine.md).
+
 ### Configure data providers
 
 Copy the relevant environment template and provide only the services you intend to use:
