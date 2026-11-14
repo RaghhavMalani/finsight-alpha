@@ -108,3 +108,22 @@ In flight
   GDELT labels batches by window END and publishes early (rows refused as future) -> window start;
   FRED DGS10 exceeds ALFRED's 2000-vintage cap -> GDPC1. Both re-verified live.
 - Data Organ `adapters.fetch` writes into `data/exports/replay-source`; the live FRED feed does not use it.
+
+## 2026-11-14 — Q0 to Q4 status and two gotchas
+
+- Merged: #30 (M0 + Q0, CI now 13 parallel shards, ~16 min) and #32 (Q2 Live Spine). Open: #33 (Q1 fundamentals),
+  #34 (Q4 part 1 knowledge graph). In progress: Q3 visual system (`q3/visual-research`, uncommitted work in
+  `.milestones/q3-visual`), generator cleanup (`q0/generator-simplify`, not started).
+- **Sealed source files.** `eval/factors/v0.1/phase5-freeze.json` and `eval/risk_manager/v0.1/phase0-6-freeze.json`
+  seal 933 paths by SHA-256, including existing *source* files: all of `src/data_organ/*.py`, `src/truth/{__init__,
+  contracts,ledger,run_registry}.py`, `src/geo/{__init__,usgs}.py`, `src/news/*`, `src/execution`, `src/dynamics`,
+  `src/rag`, `src/research_os`, `src/data`, `src/regimes`, `src/ml`, `src/prediction_markets`, `src/verifiers`,
+  `frontend-v2/src/replay/*`, and `docs/screenshots/phase*`. Editing one fails `backend (archives|frozen|risk)` and
+  several frontend shards with "Frozen evidence mutated". Add new modules beside them instead. Q1 first changed
+  `src/data_organ/contracts.py` and failed CI; filing provenance now rides in capture metadata.
+  Quick check before pushing: list `git diff --name-only origin/main...HEAD` against both inventories' `files` keys.
+- **Usage limits.** Four concurrent sub-agents exhaust the 5-hour window in about an hour. Keep to two or three,
+  tell them to be economical, and do small fixes directly.
+- SEC EDGAR needs `FINSIGHT_SEC_CONTACT` (403 without a contact). Model spend cap is $0.
+- Next: merge #33 and #34 on green; resume Q3 (three `?look=` Research directions, screenshots, design review);
+  widen the Q4 seed (each edge needs its own cited source); then Q5 dry run with a labelled mock model.
