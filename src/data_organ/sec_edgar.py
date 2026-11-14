@@ -10,6 +10,7 @@ filing for the same concept/period is a new row; nothing is overwritten.
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -24,6 +25,14 @@ from .contracts import Capture
 SOURCE = "sec:edgar-companyfacts"
 USER_AGENT = "FinSight-Forge research (github.com/RaghhavMalani/finsight-alpha)"
 HEADERS = {"User-Agent": USER_AGENT, "Accept-Encoding": "gzip, deflate"}
+
+
+def request_headers():
+    """SEC fair access asks for a contact in the User-Agent; only an explicitly configured one is sent."""
+    contact = os.environ.get("FINSIGHT_SEC_CONTACT", "").strip()
+    if contact and not re.fullmatch(r"[^\s@<>()]+@[^\s@<>()]+\.[A-Za-z]{2,}", contact):
+        raise ValueError("FINSIGHT_SEC_CONTACT must be a plain email address")
+    return {**HEADERS, "User-Agent": USER_AGENT + (" " + contact if contact else "")}
 TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 MAX_REQUESTS_PER_SECOND = 10
@@ -145,7 +154,7 @@ def get(url, *, transport=None, limiter=None):
         transport = requests.get
     (limiter or LIMITER).wait()
     try:
-        response = transport(url, headers=dict(HEADERS), timeout=(10, 35))
+        response = transport(url, headers=request_headers(), timeout=(10, 35))
     except Exception as error:  # transport errors never echo request details
         raise ValueError("SEC EDGAR transport unavailable: " + type(error).__name__) from None
     if response.status_code != 200:
@@ -288,6 +297,7 @@ def companyfacts(raw, *, captured_at, source_url, ticker, cik, ticker_evidence):
                 "cik": cik,
                 "ticker_map": ticker_evidence,
                 "user_agent": USER_AGENT,
+                "user_agent_contact_configured": bool(os.environ.get("FINSIGHT_SEC_CONTACT", "").strip()),
                 "excluded_rows": dict(sorted(excluded.items())),
                 "collapsed_same_instant_duplicates": collapsed,
             },
