@@ -22,8 +22,15 @@ The bus only carries stored records. Live and replay therefore emit the same seq
   `provenance.feed_claimed_available_at` for audit. Stamps never go backwards when the wall clock does.
 - Idempotent by `(source, source_id, revision)`; `id = sha256(source \x1f source_id \x1f revision)`. A revised
   value is a new revision row, never an overwrite.
-- Refused: missing provenance or licence fields, unknown type or confidence, NaN/Infinity, and an `observed_at`
-  more than 10 minutes after ingestion.
+- Content-hash revisions (`provenance.revision_basis: CONTENT_HASH`: EIA, quotes, prediction markets, RSS) are
+  duplicates only when equal to the latest stored revision, so A -> B -> A stores the return as `A~1`.
+- `observed_at`, `effective_at` and `provenance.fetched_at` never exceed `available_at`: up to 10 minutes ahead
+  is clamped and flagged (`<field>_clamped_from`), beyond that refused. Future-intent times (NWS onset/expiry)
+  live in the payload. Also refused: missing provenance or licence fields, unknown type or confidence, NaN/Infinity.
+- One writer process per root (OS lock on `store.lock`; readers and offline replay open read-only). A batch is
+  all-or-nothing; memory changes only after write + fsync, and a failed write is truncated back. A torn tail
+  from a crash is moved to `quarantine/` at open; a damaged day is reported in `seal_errors` and never sealed,
+  without blocking startup or other days. A wall clock stepping back or jumping forward is flagged in provenance.
 - `seal_day(day)` (past days only; also run at startup and after each UTC midnight) copies the segment to
   `sealed/<day>.<sha16>.jsonl` and writes `sealed/<day>.manifest.json` (sha256, rows, seq range, source and type
   counts). Re-sealing is a no-op; a changed segment or sealed file fails closed. Replay reads only verified sealed
@@ -70,7 +77,10 @@ Keys come from the environment only (`FRED_API_KEY`, `EIA_API_KEY`, `APCA_API_KE
 `ALPACA_*`). A missing key gives `UNAVAILABLE: no key (...)`; the feed is never polled and the rest keep working.
 NSE needs `FINSIGHT_NSE_BHAVCOPY` and `FINSIGHT_NSE_CALENDAR` (official session evidence) and otherwise reports the
 provider's own UNAVAILABLE reason; it never scrapes. Requests carry
-`User-Agent: FinSight-Forge research (github.com/RaghhavMalani/finsight-alpha)` (yfinance uses its own client).
+`User-Agent: FinSight-Forge research (github.com/RaghhavMalani/finsight-alpha)` (yfinance uses its own client),
+never follow redirects, and stop reading at a byte cap. GDELT follows only `https://data.gdeltproject.org`
+export files named by its index, checks the published md5, and bounds the unzipped CSV. RSS refuses DOCTYPE and
+ENTITY declarations. The frontend child process gets an environment without provider credentials.
 Data Organ's `fetch` writes captures into `data/exports`, so FRED reuses the shared ALFRED parser
 (`src.regime_intelligence.providers.alfred_observations`) with its own transport instead.
 
@@ -90,7 +100,9 @@ Thin adapter, read-only, over the reviewed policy `eval/risk_manager/v0.1/policy
 
 - `R-DATA-ATTEMPT` (HIGH): feed DOWN. `R-DATA-HEALTH` (MEDIUM): feed DEGRADED.
   `R-DATA-FRESHNESS` (MEDIUM): last success older than the policy's daily 7-day bound.
-- Alerts only on outcome transitions (FINDING, then CLEAR), each citing the health record it was computed from.
+- Alerts only on outcome transitions, each citing the health record it was computed from. A finding clears only
+  when the feed is UP again (DEGRADED -> DOWN is worse, not resolved); last outcomes are rebuilt from stored
+  alerts at startup.
 - Not covered: `R-DATA-GAPS`, `R-DATA-MIRROR`, all MODEL, RESEARCH, PORTFOLIO, SIMULATOR and SYSTEM rules. They
   need retained evidence bundles, not live feed inputs. No Risk publication artifact is written.
 
@@ -113,7 +125,9 @@ python -m finsight live --scheduler-only --duration 300   # headless; prints hea
 
 The API starts the spine only when `FINSIGHT_LIVE` is `online` or `offline` (the launcher sets it); a plain
 `uvicorn backend.main:app` is unchanged. Routes sit behind the usual session gate and are local only (503 in
-production). `GET /live/stream?type=a,b&since_seq=N` (also honours `Last-Event-ID`; 15 s keep-alive comments);
+production). `GET /live/stream?type=a,b&since_seq=N` (also honours `Last-Event-ID`; 15 s keep-alive comments;
+backlog older than the in-memory ring comes from the store; an `event: gap` frame reports events a slow client
+lost or history no longer held, so a client knows to re-poll `/live/recent`);
 `GET /live/health`; `GET /live/recent?type=&since=<seq or ISO available_at>&limit=`.
 
 ## Tests
