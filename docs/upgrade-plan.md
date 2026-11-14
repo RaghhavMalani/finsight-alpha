@@ -21,7 +21,7 @@ Commit as `docs/upgrade-plan.md` (replacing v1). Run one phase per PR: "Read doc
 | Factors | Ken French library (already in `src/regime_intelligence/french.py`) | IIM Ahmedabad Indian Fama-French / momentum factor library |
 | Macro | FRED / ALFRED (vintages) | RBI DBIE, MOSPI releases |
 | Volatility index | VIX | India VIX |
-| Filings / fundamentals | SEC EDGAR (AsOf) | Limited free point-in-time data; label coverage honestly |
+| Filings / fundamentals | SEC EDGAR companyfacts (Truth layer: `src/truth` + `src/data_organ`; the separate AsOf project is retired) | Limited free point-in-time data; label coverage honestly |
 | Costs | commissions + spread | STT, exchange fees, GST, stamp duty, spread |
 | Events | USGS, NOAA, GDELT, NASA FIRMS | same + IMD (monsoon, cyclones) |
 
@@ -95,7 +95,7 @@ Plus a command line with mnemonics (`RELIANCE IN DES <GO>`, `TSM GE <GO>`, `SPY 
 > - Apply the design tokens from `docs/forge-reference.html`, and rebuild the Agents workspace to match it.
 
 ### Phase 2: the nervous system and the plugin SDK
-> 1. **Signal store.** Typed, point-in-time signals: `name`, `asset`, `value`, `observed_at`, `available_at`, `source`, `licence`, `version`. Reads take an `as_of` and never return anything not yet available. Back it with Parquet/DuckDB locally; reuse `src/data/as_of.py` and AsOf's predecessor index ideas. Add property and metamorphic tests: future-append invariance, ticker-rename invariance, price-scaling invariance for return-based signals.
+> 1. **Signal store.** Typed, point-in-time signals: `name`, `asset`, `value`, `observed_at`, `available_at`, `source`, `licence`, `version`. Reads take an `as_of` and never return anything not yet available. Back it with Parquet/DuckDB locally; reuse `src/data/as_of.py` and the vintage-predecessor lookup in `src/data_organ/revisions.py`. Add property and metamorphic tests: future-append invariance, ticker-rename invariance, price-scaling invariance for return-based signals.
 > 2. **Plugin SDK** (`finsight.plugins`): a `Model` base class with declared `inputs`/`outputs`, `fit(train)`, `predict(rows)` and an optional `trace()`. Registering a plugin automatically gives it the nested chronological split, an Arena entry, the honesty harness (null world, planted signal, leakage sabotage, factor-neutrality regression), an Observatory trace and run-registry records. Wrap the existing HMM, GBM suite, MLP, Monte Carlo VaR, Hawkes and the D0.4.2 modules as plugins.
 > 3. **Run registry:** extend `src/truth/ledger.py` with immutable runs (commit, data hash, as_of, seed, config, splits, metrics, artifacts) and every holdout opening counted.
 > 4. **Scheduled workflows (₹0 compute):** `.github/workflows/organs.yml` runs nightly. It refreshes allowed data, recomputes signals, runs plugins, runs Risk Manager sweeps (Phase 7 fills these in), publishes replay artifacts (repo or Release assets with SHA), and commits the manifest. Workflows must be idempotent and fail closed.

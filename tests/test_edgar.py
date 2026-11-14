@@ -101,3 +101,15 @@ def test_fetch_filings_writes_text(tmp_path):
     assert len(paths) == 1
     content = paths[0].read_text(encoding="utf-8")
     assert "SEC EDGAR" in content and "Risk Factors" in content
+
+
+def test_sec_contact_is_sent_only_when_configured(monkeypatch):
+    from src.data_organ import sec_edgar
+    monkeypatch.delenv("FINSIGHT_SEC_CONTACT", raising=False)
+    assert sec_edgar.request_headers()["User-Agent"] == sec_edgar.USER_AGENT
+    monkeypatch.setenv("FINSIGHT_SEC_CONTACT", "research@example.org")
+    assert sec_edgar.request_headers()["User-Agent"] == sec_edgar.USER_AGENT + " research@example.org"
+    monkeypatch.setenv("FINSIGHT_SEC_CONTACT", "x\r\nInjected: header")
+    import pytest
+    with pytest.raises(ValueError):
+        sec_edgar.request_headers()

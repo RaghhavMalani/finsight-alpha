@@ -1,0 +1,62 @@
+{
+  "fixture_notice": "SYNTHETIC TEST FIXTURE in the shape of SEC XBRL companyfacts. Not SEC data: the company, CIK, accession numbers and values are fictitious. A live capture was not possible (SEC returned HTTP 403 to the project User-Agent). Restatement case: 10-K/A 9999999999-24-000050 restates FY2023.",
+  "cik": 9999999999,
+  "entityName": "SYNTHETIC FIXTURE CO",
+  "facts": {
+    "dei": {
+      "EntityCommonStockSharesOutstanding": {
+        "label": "Entity Common Stock, Shares Outstanding",
+        "units": {
+          "shares": [
+            {"end": "2024-02-01", "val": 400000000, "accn": "9999999999-24-000001", "fy": 2023, "fp": "FY", "form": "10-K", "filed": "2024-02-14", "frame": "CY2024Q1I"}
+          ]
+        }
+      }
+    },
+    "us-gaap": {
+      "Revenues": {
+        "label": "Revenues",
+        "units": {
+          "USD": [
+            {"start": "2022-01-01", "end": "2022-12-31", "val": 1000000000, "accn": "9999999999-23-000001", "fy": 2022, "fp": "FY", "form": "10-K", "filed": "2023-02-15"},
+            {"start": "2023-01-01", "end": "2023-03-31", "val": 260000000, "accn": "9999999999-23-000010", "fy": 2023, "fp": "Q1", "form": "10-Q", "filed": "2023-05-05", "frame": "CY2023Q1"},
+            {"start": "2023-01-01", "end": "2023-06-30", "val": 530000000, "accn": "9999999999-23-000020", "fy": 2023, "fp": "Q2", "form": "10-Q", "filed": "2023-08-04"},
+            {"start": "2023-04-01", "end": "2023-06-30", "val": 270000000, "accn": "9999999999-23-000020", "fy": 2023, "fp": "Q2", "form": "10-Q", "filed": "2023-08-04", "frame": "CY2023Q2"},
+            {"start": "2022-01-01", "end": "2022-12-31", "val": 1000000000, "accn": "9999999999-24-000001", "fy": 2023, "fp": "FY", "form": "10-K", "filed": "2024-02-14", "frame": "CY2022"},
+            {"start": "2023-01-01", "end": "2023-12-31", "val": 1100000000, "accn": "9999999999-24-000001", "fy": 2023, "fp": "FY", "form": "10-K", "filed": "2024-02-14"},
+            {"start": "2023-01-01", "end": "2023-12-31", "val": 1050000000, "accn": "9999999999-24-000050", "fy": 2023, "fp": "FY", "form": "10-K/A", "filed": "2024-06-03"},
+            {"start": "2023-01-01", "end": "2023-12-31", "val": 1050000000, "accn": "9999999999-25-000001", "fy": 2024, "fp": "FY", "form": "10-K", "filed": "2025-02-12", "frame": "CY2023"},
+            {"start": "2024-01-01", "end": "2024-12-31", "val": 1200000000, "accn": "9999999999-25-000001", "fy": 2024, "fp": "FY", "form": "10-K", "filed": "2025-02-12", "frame": "CY2024"}
+          ]
+        }
+      },
+      "Assets": {
+        "label": "Assets",
+        "units": {
+          "USD": [
+            {"end": "2022-12-31", "val": 5000000000, "accn": "9999999999-23-000001", "fy": 2022, "fp": "FY", "form": "10-K", "filed": "2023-02-15"},
+            {"end": "2023-12-31", "val": 5400000000, "accn": "9999999999-24-000001", "fy": 2023, "fp": "FY", "form": "10-K", "filed": "2024-02-14"},
+            {"end": "2023-12-31", "val": 5350000000, "accn": "9999999999-24-000050", "fy": 2023, "fp": "FY", "form": "10-K/A", "filed": "2024-06-03", "frame": "CY2023Q4I"}
+          ]
+        }
+      },
+      "EarningsPerShareDiluted": {
+        "label": "Earnings Per Share, Diluted",
+        "units": {
+          "USD/shares": [
+            {"start": "2023-01-01", "end": "2023-12-31", "val": 2.5, "accn": "9999999999-24-000001", "fy": 2023, "fp": "FY", "form": "10-K", "filed": "2024-02-14"},
+            {"start": "2023-01-01", "end": "2023-12-31", "val": 2.38, "accn": "9999999999-24-000050", "fy": 2023, "fp": "FY", "form": "10-K/A", "filed": "2024-06-03", "frame": "CY2023"}
+          ]
+        }
+      },
+      "InventoryNet": {
+        "label": "Inventory, Net",
+        "units": {
+          "USD": [
+            {"end": "2023-12-31", "val": 75000000, "accn": "9999999999-24-000001", "fy": 2023, "fp": "FY", "form": "10-K", "filed": "2024-02-14"}
+          ]
+        }
+      }
+    }
+  }
+}
