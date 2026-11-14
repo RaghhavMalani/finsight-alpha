@@ -124,8 +124,9 @@ def test_risk_alerts_follow_feed_state_and_write_no_publication(tmp_path):
             clock.advance(seconds=60)
     asyncio.run(go(15))
     seen = [(a["payload"]["rule_id"], a["payload"]["outcome"]) for a in alerts]
-    assert seen == [("R-DATA-HEALTH", "FINDING"), ("R-DATA-ATTEMPT", "FINDING"), ("R-DATA-HEALTH", "CLEAR"),
-                    ("R-DATA-ATTEMPT", "CLEAR"), ("R-DATA-HEALTH", "FINDING"), ("R-DATA-HEALTH", "CLEAR")]
+    # DEGRADED -> DOWN is worse, not resolved; findings clear only once the feed is UP again.
+    assert seen == [("R-DATA-HEALTH", "FINDING"), ("R-DATA-ATTEMPT", "FINDING"),
+                    ("R-DATA-ATTEMPT", "CLEAR"), ("R-DATA-HEALTH", "CLEAR")]
     down = alerts[1]
     assert down["payload"]["severity"] == "HIGH" and down["payload"]["reason_code"] == "SOURCE_ATTEMPT_FAILED"
     assert down["provenance"]["policy_sha256"] == service.risk.policy["sha256"]

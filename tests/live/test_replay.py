@@ -42,7 +42,8 @@ def test_replay_of_sealed_day_is_identical_to_the_live_stream(tmp_path):
     assert manifest["rows"] == len(live)
 
     replayed = []
-    offline = LiveService(LiveStore(tmp_path / "live", clock=clock), bus=Bus(), mode="offline", clock=clock)
+    offline = LiveService(LiveStore(tmp_path / "live", clock=clock, readonly=True), bus=Bus(), mode="offline",
+                          clock=clock)
     offline.bus.on_event(replayed.append)
     published = asyncio.run(offline.replay(speed=0))
     assert published == len(live)
@@ -57,7 +58,7 @@ def test_replay_reads_only_verified_sealed_bytes(tmp_path):
     manifest = store.seal_day(T0.date().isoformat())
     sealed = store.sealed / manifest["file"]
     sealed.write_bytes(sealed.read_bytes().replace(b"usgs", b"USGS", 1))
-    offline = LiveService(LiveStore(tmp_path / "live", clock=clock), mode="offline", clock=clock)
+    offline = LiveService(LiveStore(tmp_path / "live", clock=clock, readonly=True), mode="offline", clock=clock)
     try:
         asyncio.run(offline.replay(speed=0))
     except ValueError as error:
