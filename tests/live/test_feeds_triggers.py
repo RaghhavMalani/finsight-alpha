@@ -18,6 +18,9 @@ def test_parsers_label_delay_licence_and_never_invent_values():
     zone_coded = [o for o in obs["nws"] if o.payload["lat"] is None]
     assert zone_coded and all(o.payload["location_basis"].startswith("NOT_MEASURED") for o in zone_coded)
     assert all(o.payload["quad_class"] in (3, 4) and o.payload["lat"] is not None for o in obs["gdelt"])
+    # GDELT labels batches by window END and publishes early (seen live: label 06:30 fetched 06:19).
+    assert {(o.payload["gdelt_dateadded"], o.observed_at) for o in obs["gdelt"]} == {
+        ("20261114060000", "2026-11-14T05:45:00.000000Z")}
     assert all(o.revision.startswith("vintage:") for o in obs["fred"])
     assert all(o.payload["kind"] == "eia_spot" and o.effective_at is None for o in obs["eia"])  # no release time given
     assert [o.source_id for o in obs["polymarket"]] == ["900001"]  # sports market skipped

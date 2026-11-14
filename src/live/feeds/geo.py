@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import zipfile
+from datetime import datetime, timedelta, timezone
 
 from .. import model
 from .base import Feed, FeedError, Fetched, http_get
@@ -60,6 +61,7 @@ class USGSQuakes(Feed):
 G_ID, G_DAY, G_A1, G_A1C, G_A2, G_A2C, G_IS_ROOT, G_CODE, G_ROOT, G_QUAD, G_GOLD = 0, 1, 6, 7, 16, 17, 25, 26, 28, 29, 30
 G_MENTIONS, G_SOURCES, G_ARTICLES, G_TONE = 31, 32, 33, 34
 G_PLACE, G_CC, G_LAT, G_LON, G_ADDED, G_URL = 52, 53, 56, 57, 59, 60
+BATCH = timedelta(minutes=15)
 
 
 class GDELTEvents(Feed):
@@ -101,13 +103,18 @@ class GDELTEvents(Feed):
         out = []
         for r in chosen[: self.keep]:
             added = r[G_ADDED]
-            stamp = f"{added[:4]}-{added[4:6]}-{added[6:8]}T{added[8:10]}:{added[10:12]}:{added[12:14]}Z"
+            label = datetime.strptime(added, "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+            # GDELT labels a batch by the END of its 15-minute window and publishes it before
+            # that instant, so the label is in the future at fetch time. The window start is
+            # the latest instant the batch can honestly claim.
+            stamp = model.iso(label - BATCH)
             num = lambda v: float(v) if v not in ("", None) else None  # noqa: E731
             out.append(self.observation(
-                source_id=r[G_ID], revision=added, observed_at=stamp, effective_at=stamp, fetched=fetched,
+                source_id=r[G_ID], revision=added, observed_at=stamp, effective_at=None, fetched=fetched,
                 listed_md5=listed_md5,
                 payload={
-                    "kind": "gdelt_event", "event_day": r[G_DAY], "event_code": r[G_CODE],
+                    "kind": "gdelt_event", "event_day": r[G_DAY], "gdelt_dateadded": added,
+                    "observed_basis": "GDELT batch window start (DATEADDED minus 15 min)", "event_code": r[G_CODE],
                     "root_code": r[G_ROOT], "is_root_event": r[G_IS_ROOT] == "1",
                     "quad_class": int(r[G_QUAD]),
                     "goldstein": num(r[G_GOLD]), "num_mentions": int(r[G_MENTIONS] or 0),
