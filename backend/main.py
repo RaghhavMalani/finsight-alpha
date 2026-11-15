@@ -208,6 +208,8 @@ app.include_router(tape.router)
 app.include_router(ml.router)
 app.include_router(paper.router)
 app.include_router(live.router)
+from backend.routes import truth as truth_routes
+app.include_router(truth_routes.router)
 
 
 # The NEW front-end (frontend-v2 / FinSight Terminal) is the primary UI.

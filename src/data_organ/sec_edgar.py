@@ -50,6 +50,8 @@ def _withhold(row):
     """A row the provider cannot stand behind makes no availability claim, so admission refuses it."""
     held = {k: v for k, v in row.items() if k != "available_at"}
     return held | {"claimed_available_at": row.get("available_at")}
+
+
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
 ADAPTER_VERSION = "sec-edgar-companyfacts/1"
 AVAILABILITY_RULE = (
