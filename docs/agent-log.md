@@ -96,3 +96,15 @@ In flight
   disabled. `main`'s preview script has no `PREVIEW_PORT`; it always binds 4174.
 - Dispatched research-os-full-verification on the PR branch: run 43443555790.
 - Next: CI green on PR #30 -> mark ready -> merge (merge commit, not squash). Then M1 (retire AsOf, SEC EDGAR).
+
+## 2026-11-14 — Q2 Live Spine on `q2/live-spine` (worktree `.milestones/q2-live`)
+
+- Built `src/live` (store, bus, feeds, scheduler, Risk adapter, triggers, runtime), `backend/routes/live.py`,
+  `python -m finsight live` + `live.ps1`, `tests/live` (24 pass, 1 network test opt-in). Doc: `docs/q2-live-spine.md`.
+- Store root defaults to `~/.finsight-forge/live` (refuses paths inside the repo). Not pushed.
+- `src/config.py` runs `load_dotenv()`, which walks up from the worktree and finds the MAIN clone's `.env`:
+  FRED/EIA/Alpaca keys are live in every worktree process. Missing-key tests must `monkeypatch.delenv`.
+- Live run (5.5 min): 11/12 feeds up; NSE UNAVAILABLE (needs operator bhavcopy + calendar). Found and fixed:
+  GDELT labels batches by window END and publishes early (rows refused as future) -> window start;
+  FRED DGS10 exceeds ALFRED's 2000-vintage cap -> GDPC1. Both re-verified live.
+- Data Organ `adapters.fetch` writes into `data/exports/replay-source`; the live FRED feed does not use it.

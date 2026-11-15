@@ -1,0 +1,6 @@
+{"_fixture": "SYNTHETIC shape-only test data; not real markets", "cursor": "", "events": [
+  {"event_ticker": "SYNTH-EV1", "category": "Economics", "title": "Synthetic economics event", "markets": [
+    {"ticker": "SYNTH-EV1-A", "event_ticker": "SYNTH-EV1", "title": "Synthetic outcome A?", "yes_sub_title": "A", "status": "active", "last_price_dollars": "0.3100", "yes_bid_dollars": "0.3000", "yes_ask_dollars": "0.3200", "volume_24h_fp": "120.00", "updated_time": "2026-11-14T04:00:00.000000Z", "close_time": "2026-12-31T00:00:00Z"}]},
+  {"event_ticker": "SYNTH-EV2", "category": "Sports", "title": "Synthetic sports event", "markets": [
+    {"ticker": "SYNTH-EV2-A", "status": "active", "last_price_dollars": "0.5000", "volume_24h_fp": "9999.00", "updated_time": "2026-11-14T04:00:00Z"}]}
+]}

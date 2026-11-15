@@ -41,6 +41,7 @@ from backend.routes import (
     graph,
     health,
     intelligence,
+    live,
     macro,
     market_data,
     ml,
@@ -87,7 +88,12 @@ async def _lifespan(_app: FastAPI):
     config.validate_runtime_config()
     init_db()
     logger.info("Metadata database initialized and production configuration validated.")
+    # The live spine runs only when `python -m finsight live` sets FINSIGHT_LIVE.
+    from src.live import runtime as live_runtime
+
+    await live_runtime.start_from_env()
     yield
+    await live_runtime.stop()
 
 
 app = FastAPI(
@@ -201,6 +207,7 @@ app.include_router(regime.router)
 app.include_router(tape.router)
 app.include_router(ml.router)
 app.include_router(paper.router)
+app.include_router(live.router)
 
 
 # The NEW front-end (frontend-v2 / FinSight Terminal) is the primary UI.

@@ -1,0 +1,4 @@
+[
+  {"_fixture": "SYNTHETIC shape-only test data; not a real market", "id": "900001", "question": "Synthetic test market A?", "slug": "synthetic-a", "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0.42\", \"0.58\"]", "lastTradePrice": 0.41, "bestBid": 0.41, "bestAsk": 0.43, "updatedAt": "2026-11-14T05:00:00.000000Z", "volume24hr": 1000.0, "endDate": "2026-12-31T00:00:00Z", "events": [{"slug": "synthetic-a-event"}]},
+  {"_fixture": "SYNTHETIC shape-only test data; sports markets are skipped", "id": "900002", "question": "Synthetic team A vs team B", "slug": "synthetic-b", "outcomes": "[\"A\", \"B\"]", "outcomePrices": "[\"0.5\", \"0.5\"]", "updatedAt": "2026-11-14T05:00:00Z", "sportsMarketType": "moneyline", "volume24hr": 5000.0}
+]

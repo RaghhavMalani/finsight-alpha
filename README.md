@@ -114,10 +114,11 @@ The main branch contains the financial substrate and the first agent-evaluation 
 
 ### Truth and data lineage
 
-The truth layer defines what was knowable at a requested time and records how every derived value was produced:
+The Truth layer (`src/truth` + `src/data_organ`) owns point-in-time correctness: it defines what was knowable at a requested time and records how every derived value was produced. It has no external dependency; the separate AsOf project is retired.
 
 - Mandatory `as_of` boundaries for time-sensitive reads
 - Observation, availability, source, and revision metadata
+- `fundamentals(ticker, field, as_of)` over SEC EDGAR companyfacts, available from the filing date; missing values are `NOT_MEASURED`
 - Content-addressed computation contracts
 - Epistemic states that separate known, unavailable, stale, partial, and undefined values
 - Tenant-aware immutable snapshots and license policies
@@ -389,6 +390,21 @@ npm run dev
 ```
 
 Vite prints the local terminal URL after startup.
+
+### Start the live spine
+
+One command starts the API with the live feed scheduler and the frontend dev server; Ctrl+C stops all of it:
+
+```bash
+python -m finsight live                 # or .\live.ps1 on Windows PowerShell
+python -m finsight live --no-frontend   # API and feeds only
+python -m finsight live --offline       # replay recorded days instead of fetching
+```
+
+Events stream from `GET /live/stream` (Server-Sent Events), with `GET /live/health` and `GET /live/recent` as
+the polling fallback. Every observation is appended outside the repository (`FINSIGHT_LIVE_DIR`, default
+`~/.finsight-forge/live`) with its provenance, licence and delay label, and closed days are sealed for replay.
+Feeds without a key report `UNAVAILABLE`. Details: [docs/q2-live-spine.md](docs/q2-live-spine.md).
 
 ### Configure data providers
 
