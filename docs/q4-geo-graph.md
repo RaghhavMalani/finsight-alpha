@@ -7,52 +7,73 @@ propagation function, the API and the tests. The seed is deliberately small; wid
 
 - `src/geo/graph/model.py` — typed nodes (`facility`, `port`, `chokepoint`, `company`, `security`, `sector`) and
   edges (`operates`, `supplies`, `ships_through`, `listed_as`, `exposed_to`). Every node and edge carries a
-  `Source`: https URL, title, the document's own date, `available_at`, and a supporting excerpt where the
-  document states the fact in words. Each edge also has a confidence in (0, 1] and a one-line mechanism.
-  Loading rejects an edge with no source, a non-https URL, an empty mechanism, an unknown type, endpoints of the
-  wrong node type, or an `available_at` earlier than the source's own date.
-- `src/geo/graph/seed/v1.json` — 37 nodes, 36 edges:
-  - 18 TSMC fabs from TSMC's own fab list, with `operates` edges.
-  - `supplies` edges quoted from filings: TSMC → NVIDIA and Samsung → NVIDIA (NVIDIA 10-K FY2026), TSMC → AMD and
-    GlobalFoundries → AMD (AMD 10-K FY2025), TSMC → Analog Devices (ADI 10-K FY2025), TSMC → Apple (Apple
-    Environmental Progress Report 2025 supplier list).
-  - Listings and SIC sectors for TSM, NVDA, AMD, AAPL, GFS, ADI from SEC EDGAR filer profiles.
+  `Source`: https URL, title, a real `YYYY-MM-DD` date, what that date means (`filed`, `published`, `created`,
+  `updated` or `retrieved`), `available_at`, and where the document states the fact in words, the sentence and
+  its page. Each edge also has a confidence in (0, 1] and a one-line mechanism. A `supplies` edge must quote a
+  sentence, not just a company name. Loading rejects anything unsourced or malformed.
+- `src/geo/graph/seed/v1.json` — 44 nodes, 46 edges:
+  - 25 TSMC manufacturing fabs from TSMC's own fab list, with `operates` edges.
+  - `supplies` edges quoted from the documents: TSMC → NVIDIA and Samsung → NVIDIA (NVIDIA 10-K, filed
+    2026-02-25; same sentence, same confidence), TSMC → AMD and GlobalFoundries → AMD (AMD 10-K, filed 2026-02-04),
+    TSMC → Analog Devices (ADI 10-K, filed 2025-11-25), and TSMC, Samsung, GlobalFoundries and Analog Devices →
+    Apple (Apple 2025 Environmental Progress Report, p. 32: manufacturers with Apple-related production).
+  - Listings and SIC sectors for TSM, NVDA, AMD, AAPL, GFS and ADI from SEC EDGAR filer profiles.
   - Four oil chokepoints (Hormuz, Bab el-Mandeb, Suez/SUMED, Malacca) with EIA 1H2025 flows. They have no
-    `ships_through` edges yet, so propagation reports them as sites with no sourced operator.
-- `src/geo/graph/graph.py` — `load_graph()` and `propagate(graph, event, as_of=...)`. An event (kind, lat, lon,
-  time, magnitude) reaches located sites inside a declared radius (earthquake: 100 km at M6, doubling per
-  magnitude, capped at 600 km), then the operator, its sourced customers one hop deep, their listings and
-  sectors. Score = proximity × product of edge confidences. The result lists every hop with its source.
-- `backend/routes/geo_graph.py` — `GET /geo/graph`, `POST /geo/graph/propagate`. Read-only, behind the normal
-  session gate. A future `as_of` is refused.
+    `ships_through` edges yet.
+- `src/geo/graph/graph.py` — `load_graph()` and `propagate(graph, event, as_of=...)`. An event reaches located
+  sites inside a declared radius, then the companies linked to each site (`operates`, `ships_through`), their
+  sourced customers one supply hop on, their listings and sectors. Score = proximity × the product of edge
+  confidences; a security's score is its best single chain. Every hop is returned with its source.
+- `backend/routes/geo_graph.py` — `GET /geo/graph?as_of=` and `POST /geo/graph/propagate`. Read-only, behind the
+  normal session gate. A future or naive `as_of` is 422; an unknown version is 404.
+
+## What the status means
+
+| Status | Meaning |
+|---|---|
+| `AVAILABLE` | at least one security is reached through sourced edges |
+| `PARTIAL` | sites lie in the radius but the graph has no sourced link from them to a security (`unlinked_sites`) |
+| `NO_COVERAGE` | no sourced site lies in the radius; this says nothing about real exposure (`nearest_site_km`) |
+| `BELOW_THRESHOLD` | an earthquake under M5.0, below the declared disruption threshold |
+| `UNAVAILABLE` | `as_of` precedes the event, or the graph had no sourced sites at the event time |
+
+An empty list is never returned as `AVAILABLE`.
 
 ## Point-in-time rule
 
-`available_at` in the seed is when this project fetched and checked each source (14 Nov 2026), not when the
-document was first public. Propagation uses only items available at or before both the event and `as_of`, so
-replaying a 2024 event returns nothing rather than using relationships we learned later. That is conservative
-on purpose. Backfilling earlier `available_at` values needs evidence of earlier publication (for filings, the
-EDGAR `filed` date) and should be done edge by edge.
+`available_at` is when this project fetched and checked each source (14–15 Nov 2026), not when the document was
+first public. Propagation uses only nodes and edges available at or before both the event and `as_of`, and an
+edge needs both endpoints known. Replaying a 2024 event therefore returns `UNAVAILABLE` rather than using
+relationships learned later. Backfilling earlier dates needs evidence edge by edge; for a filing that is its
+EDGAR filing date, which is why filings are dated `filed` and never by fiscal period end.
+
+## Declared, unfitted choices
+
+- Radius: earthquake 50 km at M5, doubling per magnitude, capped at 600 km; cyclone 300 km; conflict 200 km;
+  other disruption 150 km.
+- Coordinates are city or passage centroids from general geographic reference, not from the cited documents.
+  A fab can be tens of km from its city centroid, so distances are whole km and carry the precision label.
 
 ## How to run
 
 ```bash
 pytest -q tests/test_geo_graph.py
-python -c "from src.geo.graph import load_graph, propagate; print(propagate(load_graph(), {'kind':'earthquake','magnitude':6.8,'lat':23.9,'lon':121.6,'time':'2026-11-14T12:00:00Z'}, as_of='2026-11-14T12:30:00Z')['securities'])"
 ```
 
 ## Verified
 
-- 16 tests: every seed item is sourced; seven malformed-edge cases are rejected; a quake near Taichung reaches
-  TSM, NVDA and AMD through cited hops; a distant quake reaches nothing; `as_of` before the event is
-  UNAVAILABLE; the API works and the real app requires a session.
-- Sabotage: with the `available_at` filter removed from `propagate`, the "edge learned after the event" test fails.
+- 45 tests. A magnitude 6.8 quake near Taichung reaches TSM, AMD, NVDA, ADI and AAPL through cited hops.
+- Sabotage sweep: 45 guards removed one at a time (source URL, title, date, date basis, sentence excerpt, ids,
+  types, coordinates, confidence, mechanism, duplicates, schema, version, both availability filters, the cutoff,
+  every status, the radius threshold and cap, confidence weighting, `ships_through` traversal, the route's
+  future-`as_of`, version and NaN handling). Each removal fails at least one test.
+- An independent adversarial review found one blocker (empty results reported as `AVAILABLE`) and eleven
+  should-fix items; all are fixed here.
 
 ## Knowingly left
 
 - Seed breadth: the brief asks for 50–80 companies, including ASML, Samsung fabs, Micron, Intel, shipping and
-  energy names with `ships_through` edges, and Indian ports (JNPT, Mundra, Chennai, Visakhapatnam). Each needs
-  its own cited source; none is added without one.
-- Coordinates are approximate centroids from general geographic reference, labelled per node.
-- Portfolio exposure (G3) and wiring live `geo.event` records into propagation are not built yet.
-- Radii are declared, coarse and unfitted.
+  energy names with `ships_through` edges, and Indian ports. Each needs its own cited source.
+- Portfolio exposure (G3) and wiring live `geo.event` records into propagation.
+- EDGAR filer-profile pages answer 403 to clients without a declared contact, so a reader may need a browser
+  to open those citations.
