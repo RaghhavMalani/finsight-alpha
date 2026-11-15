@@ -114,10 +114,11 @@ The main branch contains the financial substrate and the first agent-evaluation 
 
 ### Truth and data lineage
 
-The truth layer defines what was knowable at a requested time and records how every derived value was produced:
+The Truth layer (`src/truth` + `src/data_organ`) owns point-in-time correctness: it defines what was knowable at a requested time and records how every derived value was produced. It has no external dependency; the separate AsOf project is retired.
 
 - Mandatory `as_of` boundaries for time-sensitive reads
 - Observation, availability, source, and revision metadata
+- `fundamentals(ticker, field, as_of)` over SEC EDGAR companyfacts, available from the filing date; missing values are `NOT_MEASURED`
 - Content-addressed computation contracts
 - Epistemic states that separate known, unavailable, stale, partial, and undefined values
 - Tenant-aware immutable snapshots and license policies
