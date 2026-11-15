@@ -1,8 +1,10 @@
 """Sourced exposure for live events: a quake near a mapped site becomes a suggested research
 question that names the securities the knowledge graph reaches, with the cited chain for each.
 
-Suggestion only: nothing here runs a model or a paid call. The graph is read as of the moment the
-quake was stored, so a relationship learned later can never appear in an earlier suggestion.
+Suggestion only: nothing here runs a model or a paid call. The graph is cut at the origin time of
+the quake (never later than when it was stored), so a relationship this project learned after the
+event cannot appear in its suggestion. A quake near an exchange or semiconductor hub also gets the
+separate hub suggestion from ``triggers``; the two answer different questions.
 """
 from __future__ import annotations
 
@@ -24,12 +26,22 @@ def _graph():
     return load_graph()
 
 
+def _number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _place(value) -> str:
+    """Feed free text, reduced to printable characters and a bounded length."""
+    text = "".join(ch for ch in str(value or "") if ch.isprintable())[:80].strip()
+    return text or "location as reported"
+
+
 def suggest(record: dict, graph=None) -> list[Observation]:
     payload = record.get("payload") or {}
     if record.get("type") != "geo.event" or payload.get("kind") != "earthquake":
         return []
-    if any(payload.get(k) is None for k in ("mag", "lat", "lon")):
-        return []  # no magnitude or location: no guess
+    if not all(_number(payload.get(k)) for k in ("mag", "lat", "lon")):
+        return []  # no numeric magnitude or location: no guess
     graph = graph or _graph()
     event = {"kind": "earthquake", "magnitude": payload["mag"], "lat": payload["lat"], "lon": payload["lon"],
              "time": record["observed_at"]}
@@ -51,15 +63,17 @@ def suggest(record: dict, graph=None) -> list[Observation]:
                       "source_url": h["source"]["url"], "source_date": h["source"]["date"],
                       "source_date_basis": h["source"]["date_basis"]} for h in best["hops"]],
         })
-    nearest = result["sites"][0]
+    # Name the site that carries the strongest chain, not merely the nearest one.
+    top = securities[0]
     tickers = ", ".join(s["ticker"] or s["security"] for s in securities)
-    question = (f"M{payload['mag']} earthquake {nearest['distance_km']} km from {nearest['name']} "
-                f"({payload.get('place') or 'location as reported'}): sourced links reach {tickers}. "
+    question = (f"M{payload['mag']} earthquake {top['distance_km']} km from {graph.nodes[top['site']].name} "
+                f"({_place(payload.get('place'))}): sourced links reach {tickers}. "
                 "Did comparable events move these names beyond a matched control, and for how long?")
     return [Observation(
         type="research.progress", source="finsight:exposure",
         source_id=f"{RULE_ID}:{record['source']}:{record['source_id']}",
-        revision=f"v{RULE_VERSION}:{graph.sha256[:12]}", observed_at=record["available_at"], effective_at=None,
+        # One suggestion per quake per rule version; the graph that produced it is in provenance.
+        revision=f"v{RULE_VERSION}", observed_at=record["available_at"], effective_at=None,
         licence=LICENCE, confidence="DERIVED",
         provenance={"feed": "exposure", "url": "internal:src/live/exposure.py", "fetched_at": record["available_at"],
                     "content_sha256": graph.sha256, "parser": "live-exposure/1",

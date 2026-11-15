@@ -68,13 +68,16 @@ class LiveService:
                 continue
             self.bus.publish(record)
             stored.append(record)
-            try:
-                for suggestion in (*self.triggers.evaluate(record), *exposure.suggest(record)):
-                    derived = self.store.append(suggestion)
-                    if derived is not None:
-                        self.bus.publish(derived)
-            except (StoreError, ValueError, TypeError, KeyError) as error:
-                logger.warning("research trigger failed on %s: %s", record["id"], error)
+            # Each derived step is isolated: one failing must not drop the suggestions of the
+            # other, and neither may stop the rows that follow.
+            for name, derive in (("research trigger", self.triggers.evaluate), ("sourced exposure", exposure.suggest)):
+                try:
+                    for suggestion in derive(record):
+                        derived = self.store.append(suggestion)
+                        if derived is not None:
+                            self.bus.publish(derived)
+                except Exception as error:  # noqa: BLE001 - a derived step is never worth losing ingestion
+                    logger.warning("%s failed on %s: %s", name, record.get("id"), error)
         return stored, rejected
 
     def record_health(self, snapshot: dict) -> dict | None:
