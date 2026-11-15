@@ -16,7 +16,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from . import model
+from . import exposure, model
 from .bus import Bus
 from .feeds import all_feeds
 from .feeds.base import Feed
@@ -69,7 +69,7 @@ class LiveService:
             self.bus.publish(record)
             stored.append(record)
             try:
-                for suggestion in self.triggers.evaluate(record):
+                for suggestion in (*self.triggers.evaluate(record), *exposure.suggest(record)):
                     derived = self.store.append(suggestion)
                     if derived is not None:
                         self.bus.publish(derived)
