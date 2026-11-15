@@ -75,3 +75,27 @@ def test_reads_are_tenant_local_and_local_only(monkeypatch, tmp_path):
     assert other["status"] == "NOT_MEASURED"  # admissions of a different organization are not visible
     assert get(client(monkeypatch, tmp_path, org=None), as_of="2025-01-01T00:00:00Z").status_code == 401
     assert get(client(monkeypatch, tmp_path, production=True), as_of="2025-01-01T00:00:00Z").status_code == 503
+
+
+def test_offsets_are_normalised_and_the_restatement_stays_hidden(monkeypatch, tmp_path):
+    admit(tmp_path)
+    c = client(monkeypatch, tmp_path)
+    # 2024-06-04T09:00+05:30 is 03:30Z, half an hour before the 10-K/A became available (04:00Z).
+    assert get(c, as_of="2024-06-04T09:00:00+05:30").json()["value"] == 1.1e9
+    assert get(c, as_of="2024-06-04T09:31:00+05:30").json()["value"] == 1.05e9
+
+
+def test_broken_stored_evidence_is_503_not_a_client_error(monkeypatch, tmp_path):
+    admit(tmp_path)
+    c = client(monkeypatch, tmp_path)
+    for fault in (ValueError("Admitted SEC observation has no filing provenance"), KeyError("ticker")):
+        def broken(registry, tenant_id, fault=fault):
+            raise fault
+        monkeypatch.setattr(truth.FundamentalsBook, "from_registry", staticmethod(broken))
+        response = get(c, as_of="2025-01-01T00:00:00Z")
+        assert response.status_code == 503 and "provenance" not in response.text
+    monkeypatch.undo()
+    corrupt = tmp_path / "replay-source/data-organ/3"
+    corrupt.mkdir(parents=True)
+    (corrupt / "registry.duckdb").write_bytes(b"not a database")
+    assert get(client(monkeypatch, tmp_path, org=3), as_of="2025-01-01T00:00:00Z").status_code == 503
