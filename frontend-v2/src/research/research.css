@@ -562,6 +562,22 @@
   gap: 12px;
 }
 
+.rs-synthetic {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 9;
+  transform: translate(-50%, -50%);
+  padding: 8px 14px;
+  font: 600 13px var(--vx-mono);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--vx-red);
+  box-shadow: inset 0 0 0 1px var(--vx-red);
+  background: rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
 /* States ------------------------------------------------------------------------------ */
 .rs-wait,
 .rs-unavailable {

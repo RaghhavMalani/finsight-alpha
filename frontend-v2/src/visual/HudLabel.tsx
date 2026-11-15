@@ -16,7 +16,9 @@ export function HudLabel({
 }) {
   return (
     <div className={`vx-hud ${wide ? "vx-hud-wide" : ""}`}>
-      <span className="vx-hud-k">{k}</span>
+      <span className="vx-hud-k" data-copy>
+        {k}
+      </span>
       <span className="vx-hud-v" style={tone ? { color: `var(--vx-${tone})` } : undefined}>
         {children}
       </span>

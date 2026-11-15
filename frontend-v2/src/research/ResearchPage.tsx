@@ -36,6 +36,7 @@ const ResearchScene = lazy(() => import("./ResearchScene"));
 
 export default function ResearchPage({ look, renderer }: { look: Look; renderer: "auto" | "2d" }) {
   const load = useResearchGraph();
+  const probe = useSyntheticProbe(load.status === "ok" ? load.graph : null);
   return (
     <ForgeShell bleed>
       <div
@@ -53,7 +54,8 @@ export default function ResearchPage({ look, renderer }: { look: Look; renderer:
         {load.status === "unavailable" && <Unavailable reason={load.reason} />}
         {load.status === "ok" && (
           <Workspace
-            graph={load.graph}
+            key={probe ? "synthetic" : "sealed"}
+            graph={probe ?? load.graph}
             sha256={load.sha256}
             url={load.url}
             look={look}
@@ -63,6 +65,17 @@ export default function ResearchPage({ look, renderer }: { look: Look; renderer:
       </div>
     </ForgeShell>
   );
+}
+
+/** Verifier-only: swaps in a scale probe when the test harness asked for one before load. */
+function useSyntheticProbe(graph: ResearchGraph | null) {
+  const [probe, setProbe] = useState<ResearchGraph | null>(null);
+  useEffect(() => {
+    const ask = window.__researchSynthetic;
+    if (!graph || !ask) return;
+    void import("./perf-synthetic").then((m) => setProbe(m.synthesize(graph, ask.nodes)));
+  }, [graph]);
+  return probe;
 }
 
 function Unavailable({ reason }: { reason: string }) {
@@ -158,7 +171,8 @@ function Workspace({
     bus.reduced = reduced;
     if (started.current) return;
     started.current = true;
-    if (reduced) {
+    // The hook starts conservative (reduced) until it reads the media query; read it here.
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
       bus.t = replay.duration;
       bus.step = total;
       setStep(total);
@@ -299,6 +313,10 @@ function Workspace({
   const skeptic = graph.nodes.find((n) => n.id === "SK")!;
   const questions = graph.nodes.filter((n) => n.kind === "question");
   const fact = (n: GraphNode, k: string) => n.facts.find((f) => f.k === k);
+  // Scorecard values appear only once the replay has reached the event that sealed them.
+  const findingState = views[graph.nodes.indexOf(flagship)].state;
+  const findingShown = findingState !== "dormant";
+  const gateClosed = findingState === "challenged";
 
   return (
     <ProvenanceProvider sources={sources} study={study}>
@@ -402,6 +420,11 @@ function Workspace({
           </div>
         </div>
 
+        {"synthetic" in graph && (
+          <div className="rs-synthetic" data-synthetic role="note">
+            Synthetic scale probe · not evidence
+          </div>
+        )}
         <header className="rs-mast">
           <HudKicker>Research · replay of sealed evidence</HudKicker>
           <h1>
@@ -434,7 +457,7 @@ function Workspace({
           <div className="rs-live">
             <span className="rs-live-row">
               <LiveDot state="fresh" label="Replay" />
-              <span className="rs-live-detail">
+              <span className="rs-live-detail" data-copy>
                 sha-256{" "}
                 <Hash h={{ v: sha256, src: "projection", ptr: "" }} label="Projection SHA-256" />{" "}
                 verified
@@ -466,22 +489,31 @@ function Workspace({
               </div>
             );
           })}
-          <div
-            className="rs-score-row rs-score-sk"
-            data-shown={views[graph.nodes.indexOf(skeptic)].state !== "dormant"}
-          >
+          <div className="rs-score-row rs-score-sk" data-shown={gateClosed}>
             <span className="rs-score-k">skeptic</span>
             <span>
-              <Num n={fact(skeptic, "Settings passed")!.n!} label="Skeptic settings passed" /> of{" "}
-              <Num n={fact(skeptic, "Settings total")!.n!} label="Skeptic settings total" />{" "}
-              settings · <Src t={fact(skeptic, "Old gate")!.t!} label="Engine gate" />
+              {gateClosed ? (
+                <>
+                  <Num n={fact(skeptic, "Settings passed")!.n!} label="Skeptic settings passed" />{" "}
+                  of <Num n={fact(skeptic, "Settings total")!.n!} label="Skeptic settings total" />{" "}
+                  settings · <Src t={fact(skeptic, "Old gate")!.t!} label="Engine gate" />
+                </>
+              ) : (
+                "pending"
+              )}
             </span>
           </div>
-          <div className="rs-score-row">
+          <div className="rs-score-row" data-shown={findingShown}>
             <span className="rs-score-k">holdouts</span>
             <span>
-              <Num n={fact(flagship, "Holdout openings")!.n!} label="Holdout openings" /> opened
-              once each
+              {findingShown ? (
+                <>
+                  <Num n={fact(flagship, "Holdout openings")!.n!} label="Holdout openings" /> opened
+                  once each
+                </>
+              ) : (
+                "pending"
+              )}
             </span>
           </div>
         </aside>

@@ -366,7 +366,7 @@ function build({ sources, docs, manifests }) {
       ],
       verdicts: [
         {
-          k: "Holm (46-trial family)",
+          k: "Holm, whole trial family",
           n: num("v0.1/flagship.json", [...P, "correction", "HOLM"], "p"),
         },
         { k: "Benjamini–Hochberg", n: num("v0.1/flagship.json", [...P, "correction", "BH"], "p") },
