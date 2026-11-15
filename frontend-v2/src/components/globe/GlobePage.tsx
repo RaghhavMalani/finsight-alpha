@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ForgeShell } from "@/app/shell/ForgeShell";
-import { useReducedMotion } from "@/components/observatory/useReducedMotion";
+import { useReducedMotion } from "@/visual/useReducedMotion";
 import {
   CELESTRAK_GROUPS,
   GEO_INPUTS,

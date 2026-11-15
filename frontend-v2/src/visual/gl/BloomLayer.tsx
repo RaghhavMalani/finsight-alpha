@@ -5,6 +5,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { BLOOM } from "@/visual/tokens";
 
 /**
  * three's UnrealBloomPass at radius 0.55 and threshold 0.05; OutputPass applies ACES tone
@@ -18,7 +19,7 @@ export default function BloomLayer({ strength }: { strength: number }) {
     dpr = useThree((s) => s.viewport.dpr);
   const { composer, bloom } = useMemo(() => {
     const composer = new EffectComposer(gl);
-    const bloom = new UnrealBloomPass(new Vector2(256, 256), 0.8, 0.55, 0.05);
+    const bloom = new UnrealBloomPass(new Vector2(256, 256), 0.8, BLOOM.radius, BLOOM.threshold);
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(bloom);
     composer.addPass(new OutputPass());

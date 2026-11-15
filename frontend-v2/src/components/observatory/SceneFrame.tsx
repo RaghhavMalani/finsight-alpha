@@ -22,7 +22,7 @@ import {
 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
-const BloomLayer = lazy(() => import("./BloomLayer"));
+const BloomLayer = lazy(() => import("@/visual/gl/BloomLayer"));
 /** Width the docked readout takes from the stage (320px card + 2×16px margin). */
 export const PANEL = 352;
 

@@ -12,10 +12,10 @@ import {
   Vector3,
   type Group,
 } from "three";
-import { createLineBundle, createPointCloud } from "./bundles";
+import { createLineBundle, createPointCloud } from "@/visual/gl/bundles";
 import { esc, gauss, rng, sigma } from "./format";
-import { GlowCurves } from "./GlowCurves";
-import { GlowPoints } from "./GlowPoints";
+import { GlowCurves } from "@/visual/gl/GlowCurves";
+import { GlowPoints } from "@/visual/gl/GlowPoints";
 import { interpolate, occupancy, SIGMA, stationary, type HMMView } from "./hmm-model";
 import { pickNearest, showTip, useCanvasPointer } from "./pointer";
 import type { LabelLayer, LabelSpec } from "./SceneLabels";

@@ -13,7 +13,7 @@ import { byOrder } from "./regime-palette";
 import { FAMILY_COLORS, paintAucRibbon, signalView } from "./signal-model";
 import { SignalReadout, SignalStatus } from "./SignalReadout";
 import { Timeline } from "./Timeline";
-import { useReducedMotion } from "./useReducedMotion";
+import { useReducedMotion } from "@/visual/useReducedMotion";
 import { useTrainingStream } from "./useTrainingStream";
 import { manifestTickers, type Manifest, type ModelTrace } from "./types";
 import { loadReplayManifest } from "@/replay/client";
