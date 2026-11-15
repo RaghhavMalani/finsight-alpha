@@ -27,6 +27,13 @@ propagation function, the API and the tests. The seed is deliberately small; wid
 - `backend/routes/geo_graph.py` — `GET /geo/graph?as_of=` and `POST /geo/graph/propagate`. Read-only, behind the
   normal session gate. A future or naive `as_of` is 422; an unknown version is 404.
 
+## Live link
+
+`src/live/exposure.py` runs every stored earthquake through `propagate` as of the moment it was stored. When
+sourced links reach a security, the live store gets a `research.progress` record with `status: SUGGESTED`: a
+question naming the tickers, plus the best cited chain for each (edge, mechanism, source URL and date). Nothing
+runs a model. A quake that predates the graph, is under M5, or reaches no sourced link gets no suggestion.
+
 ## What the status means
 
 | Status | Meaning |
@@ -74,6 +81,6 @@ pytest -q tests/test_geo_graph.py
 
 - Seed breadth: the brief asks for 50–80 companies, including ASML, Samsung fabs, Micron, Intel, shipping and
   energy names with `ships_through` edges, and Indian ports. Each needs its own cited source.
-- Portfolio exposure (G3) and wiring live `geo.event` records into propagation.
+- Portfolio exposure (G3).
 - EDGAR filer-profile pages answer 403 to clients without a declared contact, so a reader may need a browser
   to open those citations.
