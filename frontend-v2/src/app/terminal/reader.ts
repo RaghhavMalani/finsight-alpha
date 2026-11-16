@@ -10,15 +10,19 @@ import {
   MAX_RISK_ORIGINAL_BYTES,
   MAX_STATIC_TERMINAL_BYTES,
   type DisplayProjection,
-  type StaticTerminalShardName,
+  type StaticTerminalIndexName,
 } from "./catalog.ts";
 
-const STATIC_INDEX_LABEL = { data: "Data index", "history-archive": "Retained history index" };
+const STATIC_INDEX_LABEL = {
+  data: "Data index",
+  "history-archive": "Retained history index",
+  "retained-navigation": "Retained navigation index",
+};
 const STATIC_REFERENCE_FIELDS = ["schema_version", "name", "url", "sha256", "bytes"];
 /** One user-facing sentence: which index is unavailable and why. Nothing from it is shown. */
 export function staticIndexFailure(
   prefix: string,
-  name: StaticTerminalShardName,
+  name: StaticTerminalIndexName,
   reason: string,
 ): Error {
   return new Error(prefix + " " + STATIC_INDEX_LABEL[name] + " is unavailable: " + reason);
@@ -49,7 +53,7 @@ async function boundedBody(response: Response, limit: number): Promise<Uint8Arra
  */
 export async function readTerminalIndex(
   reference: unknown,
-  expectedName: StaticTerminalShardName,
+  expectedName: StaticTerminalIndexName,
 ): Promise<unknown> {
   const invalid = (reason: string) =>
     staticIndexFailure("Terminal static index reference is invalid.", expectedName, reason);
