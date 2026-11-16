@@ -261,7 +261,11 @@ const { chromium } = await import("playwright");
 const browser = await chromium.launch({
   args: process.env.OBS_SOFTWARE_GL
     ? ["--enable-unsafe-swiftshader", "--use-angle=swiftshader"]
-    : ["--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
+    : [
+        "--enable-unsafe-swiftshader",
+        "--ignore-gpu-blocklist",
+        ...(process.env.RESEARCH_GPU ? ["--use-angle=d3d11", "--enable-gpu"] : []),
+      ],
 });
 const shotDir = resolve(repo, "docs/screenshots");
 const failures = [];
