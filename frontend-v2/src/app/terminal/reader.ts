@@ -10,15 +10,19 @@ import {
   MAX_RISK_ORIGINAL_BYTES,
   MAX_STATIC_TERMINAL_BYTES,
   type DisplayProjection,
-  type StaticTerminalShardName,
+  type StaticTerminalIndexName,
 } from "./catalog.ts";
 
-const STATIC_INDEX_LABEL = { data: "Data index", "history-archive": "Retained history index" };
+const STATIC_INDEX_LABEL = {
+  data: "Data index",
+  "history-archive": "Retained history index",
+  "retained-navigation": "Retained navigation index",
+};
 const STATIC_REFERENCE_FIELDS = ["schema_version", "name", "url", "sha256", "bytes"];
 /** One user-facing sentence: which index is unavailable and why. Nothing from it is shown. */
 export function staticIndexFailure(
   prefix: string,
-  name: StaticTerminalShardName,
+  name: StaticTerminalIndexName,
   reason: string,
 ): Error {
   return new Error(prefix + " " + STATIC_INDEX_LABEL[name] + " is unavailable: " + reason);
@@ -49,7 +53,7 @@ async function boundedBody(response: Response, limit: number): Promise<Uint8Arra
  */
 export async function readTerminalIndex(
   reference: unknown,
-  expectedName: StaticTerminalShardName,
+  expectedName: StaticTerminalIndexName,
 ): Promise<unknown> {
   const invalid = (reason: string) =>
     staticIndexFailure("Terminal static index reference is invalid.", expectedName, reason);
@@ -99,9 +103,14 @@ export async function readTerminalIndex(
     );
   const changed = (reason: string) =>
     staticIndexFailure("Terminal static index byte length changed.", expectedName, reason);
-  // Content-Length may describe a compressed body, so it can only prove an oversize response.
+  // A compressed body's Content-Length only proves oversize; an unencoded one must match exactly.
   const declared = Number(response.headers.get("content-length") ?? "0");
-  if (declared > MAX_STATIC_TERMINAL_BYTES) {
+  if (
+    declared > MAX_STATIC_TERMINAL_BYTES ||
+    (response.headers.has("content-length") &&
+      !response.headers.get("content-encoding") &&
+      declared !== expectedBytes)
+  ) {
     await response.body?.cancel().catch(() => undefined);
     throw changed(
       "the server declares " + declared + " bytes; " + expectedBytes + " were expected.",

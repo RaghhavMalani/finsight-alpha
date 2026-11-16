@@ -86,3 +86,4 @@ frontend-v2/src/app/terminal/generated/history-archive.generated.ts
 frontend-v2/src/app/terminal/generated/search.generated.ts
 frontend-v2/public/terminal/data.*.json
 frontend-v2/public/terminal/history-archive.*.json
+frontend-v2/public/terminal/retained-navigation.*.json
