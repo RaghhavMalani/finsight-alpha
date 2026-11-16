@@ -67,6 +67,23 @@ const root = path.resolve(frontend, "..");
 const manifestRaw = readFileSync(path.join(frontend, "public/replay-manifest.json"));
 const manifest = JSON.parse(manifestRaw);
 const hash = (value) => createHash("sha256").update(value).digest("hex");
+// Independent seal for tampered fixtures: sorted-key JSON and node:crypto, not terminalDigest.
+const sealDigest = (value) =>
+  hash(
+    JSON.stringify(value, (_, item) =>
+      item && typeof item === "object" && !Array.isArray(item)
+        ? Object.fromEntries(
+            Object.keys(item)
+              .sort()
+              .map((key) => [key, item[key]]),
+          )
+        : item,
+    ),
+  );
+const resealWith = (value) => {
+  const { payloadDigest: _digest, ...sealed } = value;
+  return { ...sealed, payloadDigest: sealDigest(sealed) };
+};
 // Node exercises the same lazy HTTP boundary using the generated static bytes.
 const networkFetch = globalThis.fetch;
 globalThis.fetch = async (input, options) => {
@@ -87,6 +104,23 @@ function generatedStaticShard(name) {
   assert.equal(bytes.length, reference.bytes);
   assert.equal(hash(bytes), reference.sha256);
   assert.equal(reference.url, `/terminal/${name}.${reference.sha256.slice(0, 12)}.json`);
+  return { reference, bytes, value: JSON.parse(bytes) };
+}
+function generatedRetainedNavigation() {
+  const source = readFileSync(
+    path.join(frontend, "src/app/terminal/generated/history.generated.ts"),
+    "utf8",
+  );
+  const reference = JSON.parse(
+    source.match(/export const retainedNavigation = (\{.*?\}) as const;/s)[1],
+  );
+  const bytes = readFileSync(path.join(frontend, "public", reference.url));
+  assert.equal(bytes.length, reference.bytes);
+  assert.equal(hash(bytes), reference.sha256);
+  assert.equal(
+    reference.url,
+    "/terminal/retained-navigation." + reference.sha256.slice(0, 12) + ".json",
+  );
   return { reference, bytes, value: JSON.parse(bytes) };
 }
 const artifact = (id) =>
@@ -1588,6 +1622,10 @@ check("Ctrl or Cmd K uses the same focus-capturing palette opener as the visible
 const referenceRepairCatalog = await import("../src/app/terminal/catalog.ts");
 const shardProof = { attacks: [] };
 const actualArchive = generatedStaticShard("history-archive").value;
+check("the verifier's independent seal agrees with the shipped archive digest", () => {
+  const { payloadDigest, ...sealed } = actualArchive;
+  assert.equal(sealDigest(sealed), payloadDigest);
+});
 await checkAsync(
   "the actual static archive and default history validate as plain sealed shards",
   async () => {
@@ -1608,6 +1646,7 @@ await checkAsync(
 );
 for (const [name, mutate, reseal] of [
   ["another shard's name", (p) => (p.name = "risk"), true],
+  ["superseded v1 version", (p) => (p.schema_version = "terminal-shard/1"), true],
   ["superseded packed version", (p) => (p.schema_version = "terminal-shard/2"), true],
   ["unknown version", (p) => (p.schema_version = "terminal-shard/4"), true],
   ["missing payload", (p) => delete p.payload, true],
@@ -1632,7 +1671,7 @@ for (const [name, mutate, reseal] of [
     mutate(changed);
     if (reseal) {
       const { payloadDigest: _digest, ...sealed } = changed;
-      changed.payloadDigest = await referenceRepairCatalog.terminalDigest(sealed);
+      changed.payloadDigest = sealDigest(sealed);
     }
     await assert.rejects(
       referenceRepairCatalog.validateTerminalShard(
@@ -2004,10 +2043,7 @@ if (!coreOnly || projectionsOnly) {
   const readArtifactBytes = (_id, entry) => readFileSync(path.join(frontend, "public", entry.url));
   const clone = (v) => structuredClone(v);
   const decode = (shard) => shard.payload;
-  const reseal = async (value) => {
-    const { payloadDigest: _digest, ...sealed } = value;
-    return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
-  };
+  const reseal = async (value) => resealWith(value);
   const repack = async (shard, payload) => reseal({ ...shard, payload });
   const resealProjection = async (value) => {
     const { projectionDigest: _digest, ...sealed } = value;
@@ -2423,10 +2459,7 @@ if (!coreOnly || projectionsOnly) {
     const { validateNavigationSeed } = await import(
       "data:text/javascript;base64," + Buffer.from(seedJavaScript).toString("base64")
     );
-    const resealNavigation = async (value) => {
-      const { payloadDigest: _digest, ...sealed } = value;
-      return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
-    };
+    const resealNavigation = async (value) => resealWith(value);
     await checkAsync(
       "compact navigation seed independently matches exact generated default seed and source manifest without any original fetch",
       async () => {
@@ -3513,6 +3546,23 @@ if (!coreOnly || projectionsOnly) {
           }
         },
       );
+      await checkAsync(
+        "static index transport rejects a mismatched unencoded Content-Length unread",
+        async () => {
+          const priorFetch = globalThis.fetch,
+            pulled = { bytes: 0 };
+          globalThis.fetch = async () =>
+            fakeResponse({ "content-length": String(bytes.length - 1) }, () => bytes, pulled);
+          try {
+            await assert.rejects(reader.readTerminalIndex(reference, "data"), (error) =>
+              error.message.startsWith("Terminal static index byte length changed. " + label),
+            );
+            assert(pulled.bytes <= bytes.length, "body must not be consumed");
+          } finally {
+            globalThis.fetch = priorFetch;
+          }
+        },
+      );
       await checkAsync("static index transport stops reading an endless body", async () => {
         const priorFetch = globalThis.fetch,
           pulled = { bytes: 0 },
@@ -3546,6 +3596,104 @@ if (!coreOnly || projectionsOnly) {
           globalThis.fetch = priorFetch;
         }
       });
+    }
+    // Retained navigation transport through the real loader. Fresh catalog instances keep an
+    // earlier cached success from hiding a fault; a resolve hook serves one crafted reference.
+    {
+      const retained = generatedRetainedNavigation();
+      const historyModule = new URL(
+        "../src/app/terminal/generated/history.generated.ts",
+        import.meta.url,
+      ).href;
+      const wrong = structuredClone(retained.value);
+      wrong.records[0].key += "x";
+      const craftedBody = Buffer.from(JSON.stringify(resealWith(wrong)) + "\n"),
+        craftedSha = hash(craftedBody),
+        crafted = {
+          schema_version: "terminal-static-shard/1",
+          name: "retained-navigation",
+          url: "/terminal/retained-navigation." + craftedSha.slice(0, 12) + ".json",
+          sha256: craftedSha,
+          bytes: craftedBody.length,
+        };
+      const { registerHooks } = await import("node:module");
+      registerHooks({
+        resolve(specifier, context, next) {
+          const resolved = next(specifier, context);
+          return resolved.url === historyModule &&
+            context.parentURL?.includes("retained-sabotage-content")
+            ? { ...resolved, url: historyModule + "?retained-sabotage-content", shortCircuit: true }
+            : resolved;
+        },
+        load(url, context, next) {
+          return url === historyModule + "?retained-sabotage-content"
+            ? {
+                format: "module",
+                shortCircuit: true,
+                source: "export const retainedNavigation = " + JSON.stringify(crafted) + ";\n",
+              }
+            : next(url, context);
+        },
+      });
+      const transport = await import("../src/app/terminal/catalog.ts?retained-sabotage-transport");
+      const flipped = Buffer.from(retained.bytes);
+      flipped[flipped.length - 1] ^= 0x2a;
+      const withFetch = async (respond, action) => {
+        const priorFetch = globalThis.fetch;
+        let requests = 0;
+        globalThis.fetch = async () => {
+          requests++;
+          return respond();
+        };
+        try {
+          await action();
+          return requests;
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      };
+      for (const [label, respond, prefix] of [
+        ["flipped byte", () => new Response(flipped), "Terminal static index SHA-256 changed."],
+        [
+          "truncated body",
+          () => new Response(retained.bytes.subarray(0, retained.bytes.length - 1)),
+          "Terminal static index byte length changed.",
+        ],
+        [
+          "HTTP 404",
+          () => new Response("missing", { status: 404 }),
+          "Terminal static index is unavailable.",
+        ],
+      ])
+        await checkAsync("retained navigation transport rejects " + label, async () => {
+          const requests = await withFetch(respond, () =>
+            assert.rejects(transport.loadRetainedSearchNavigation(), (error) =>
+              error.message.startsWith(prefix + " Retained navigation index is unavailable: "),
+            ),
+          );
+          assert.equal(requests, 1);
+        });
+      await checkAsync(
+        "retained navigation recovers once the served index is authentic",
+        async () => {
+          assert((await transport.loadRetainedSearchNavigation()).length > 0);
+        },
+      );
+      await checkAsync(
+        "retained navigation names the index for authentic invalid content",
+        async () => {
+          const content = await import("../src/app/terminal/catalog.ts?retained-sabotage-content");
+          await withFetch(
+            () => new Response(craftedBody),
+            () =>
+              assert.rejects(content.loadRetainedSearchNavigation(), (error) =>
+                error.message.startsWith(
+                  "Terminal static index content is invalid. Retained navigation index is unavailable: ",
+                ),
+              ),
+          );
+        },
+      );
     }
     await checkAsync(
       "bound original reader rejects caller substitution and oversized India original before fetch",
@@ -4231,38 +4379,57 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         );
       },
     );
-    for (const [name, change] of [
-      ["unknown field", (value) => (value.private_field = "never")],
-      [
-        "superseded packed version",
-        (value) => (value.schema_version = "terminal-search-navigation/1"),
-      ],
-      ["unknown record field", (value) => (value.records[0].private_field = "never")],
-      ["noncanonical order", (value) => value.records.reverse()],
-      ["mismatched key", (value) => (value.records[0].key += "x")],
-      ["unknown choice field", (value) => (value.records[0].choices[0].private_field = "never")],
-      ["unroutable view", (value) => (value.records[0].choices[0].view = { workspace: "nowhere" })],
-      [
-        "partial selection",
-        (value) => (value.records.find((r) => r.choices[0].artifactId).choices[0].cutoff = null),
-      ],
-      ["unknown availability", (value) => (value.records[0].choices[0].availability = "HOSTED")],
-      ["manifest mismatch", (value) => (value.manifestBinding.sha256 = "a".repeat(64))],
+    const currentNavigation = () =>
+      JSON.parse(
+        readFileSync(
+          path.join(frontend, "src/app/terminal/generated/search.generated.ts"),
+          "utf8",
+        ).match(/export default (.+) as const;/)[1],
+      );
+    await checkAsync("retained navigation index validates as served", async () => {
+      const records = await catalog.validateNavigationProjection(
+        generatedRetainedNavigation().value,
+        shards[0].manifestBinding,
+        catalog.MAX_STATIC_TERMINAL_BYTES,
+      );
+      assert(records.length > 0);
+    });
+    for (const [scope, load, ceiling] of [
+      ["", currentNavigation, undefined],
+      ["retained ", () => generatedRetainedNavigation().value, catalog.MAX_STATIC_TERMINAL_BYTES],
     ])
-      await checkAsync("navigation projection rejects " + name, async () => {
-        const raw = JSON.parse(
-          readFileSync(
-            path.join(frontend, "src/app/terminal/generated/search.generated.ts"),
-            "utf8",
-          ).match(/export default (.+) as const;/)[1],
-        );
-        change(raw);
-        const { payloadDigest: _digest, ...sealed } = raw;
-        raw.payloadDigest = await catalog.terminalDigest(sealed);
-        await assert.rejects(() =>
-          catalog.validateNavigationProjection(raw, shards[0].manifestBinding),
-        );
-      });
+      for (const [name, change] of [
+        ["unknown field", (value) => (value.private_field = "never")],
+        [
+          "superseded packed version",
+          (value) => (value.schema_version = "terminal-search-navigation/1"),
+        ],
+        ["unknown record field", (value) => (value.records[0].private_field = "never")],
+        ["noncanonical order", (value) => value.records.reverse()],
+        ["mismatched key", (value) => (value.records[0].key += "x")],
+        ["unknown choice field", (value) => (value.records[0].choices[0].private_field = "never")],
+        [
+          "unroutable view",
+          (value) => (value.records[0].choices[0].view = { workspace: "nowhere" }),
+        ],
+        [
+          "partial selection",
+          (value) => (value.records.find((r) => r.choices[0].artifactId).choices[0].cutoff = null),
+        ],
+        ["unknown availability", (value) => (value.records[0].choices[0].availability = "HOSTED")],
+        ["manifest mismatch", (value) => (value.manifestBinding.sha256 = "a".repeat(64))],
+      ])
+        await checkAsync(scope + "navigation projection rejects " + name, async () => {
+          const raw = load();
+          change(raw);
+          await assert.rejects(() =>
+            catalog.validateNavigationProjection(
+              resealWith(raw),
+              shards[0].manifestBinding,
+              ceiling,
+            ),
+          );
+        });
     if (failures.length === failureStart) completedAreas.add("search");
     failureStart = failures.length;
     const commandOptions = {
