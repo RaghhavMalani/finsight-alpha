@@ -677,7 +677,7 @@
 /* Narrow: overlays become sheets, the rail folds to two lines. ------------------------- */
 @media (max-width: 700px) {
   .rs {
-    height: 1000px;
+    height: 1040px;
     flex: none;
   }
   .rs-mast {
@@ -689,7 +689,7 @@
     font-size: 19px;
   }
   .rs-status {
-    top: 214px;
+    top: 268px;
     right: 16px;
     left: 16px;
     align-items: flex-start;
@@ -757,7 +757,7 @@
     overflow-x: auto;
   }
   .rs-ro-row {
-    grid-template-columns: 44px 44px 58px 120px 50px 34px 46px 50px;
+    grid-template-columns: 50px 50px 58px 124px 46px 30px 44px 46px;
     gap: 6px;
   }
   .rs-ro-foot {

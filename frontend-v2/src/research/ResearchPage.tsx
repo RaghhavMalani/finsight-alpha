@@ -316,7 +316,7 @@ function Workspace({
   const insets: Insets = useMemo(
     () =>
       narrow
-        ? { top: 292, bottom: 150, left: 8, right: 8 }
+        ? { top: 340, bottom: 150, left: 8, right: 8 }
         : { top: 214, bottom: 150, left: 24, right: 24 },
     [narrow],
   );
@@ -682,7 +682,7 @@ function Readout({ graph, look }: { graph: ResearchGraph; look: Look }) {
   return (
     <div className="rs-readout" role="table" aria-label="Primary trials, sealed values">
       <div className="rs-ro-row rs-ro-head" role="row" data-copy>
-        <span role="columnheader">primary</span>
+        <span role="columnheader">trial</span>
         <span role="columnheader">t</span>
         <span role="columnheader">estimate</span>
         <span role="columnheader">95% CI</span>
