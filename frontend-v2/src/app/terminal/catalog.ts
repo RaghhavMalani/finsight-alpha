@@ -21,6 +21,7 @@ export const SHARD_NAMES = [
 ] as const;
 export type TerminalShardName = (typeof SHARD_NAMES)[number];
 export type StaticTerminalShardName = "data" | "history-archive";
+export type StaticTerminalIndexName = StaticTerminalShardName | "retained-navigation";
 export type StaticTerminalReference = {
   schema_version: "terminal-static-shard/1";
   name: StaticTerminalShardName;
@@ -36,7 +37,7 @@ export const MAX_SEED_MODULE_GZIP_BYTES = 12 * 1024;
 export const MAX_LAZY_MODULE_BYTES = 512 * 1024;
 export const MAX_LAZY_MODULE_GZIP_BYTES = 128 * 1024;
 // Static JSON indexes (Data, history-archive) are verified by SHA-256 before parsing.
-export const MAX_STATIC_TERMINAL_BYTES = 2 * 1024 * 1024;
+export const MAX_STATIC_TERMINAL_BYTES = 8 * 1024 * 1024;
 // Per-shard collection guards. Retained history adds ~12 records per daily epoch, so these
 // bound validation work against a runaway rather than budget the corpus.
 export const MAX_SHARD_ENTITIES = 8192;
@@ -117,21 +118,17 @@ export type TerminalPayload = {
   bundles: TerminalBundle[];
   projectionPins?: Record<string, string>;
 };
-export type PackedValue = null | boolean | number | string | PackedValue[];
-export type PackedShard = {
+export type ManifestBinding = { sha256: string; bytes: number; asOf: string };
+/** Plain-JSON shard wire: the payload is the logical content, sealed by one SHA-256 digest. */
+export type ShardWire = {
+  schema_version: "terminal-shard/3";
   generator_contract: typeof TERMINAL_CONTRACT;
   name: TerminalShardName;
-  manifestBinding: { sha256: string; bytes: number; asOf: string };
-  strings: string[];
-  texts: number[][];
-  structures: PackedValue[];
-  payload: PackedValue;
+  manifestBinding: ManifestBinding;
+  payload: TerminalPayload;
   payloadDigest: string;
-} & (
-  | { schema_version: "terminal-shard/1"; layouts?: never }
-  | { schema_version: "terminal-shard/2"; name: "history-archive"; layouts: number[][] }
-);
-export type TerminalShard = TerminalPayload & Pick<PackedShard, "name" | "manifestBinding">;
+};
+export type TerminalShard = TerminalPayload & Pick<ShardWire, "name" | "manifestBinding">;
 const HASH = /^[a-f0-9]{64}$/;
 const ENTITY_TYPES = new Set([
   "admission",
@@ -247,385 +244,7 @@ function text(value: unknown, maximum = 4096): value is string {
     ![...value].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
   );
 }
-// !1 is a versioned 32-byte hash fragment; !! escapes a literal leading ! exactly once.
-function encodeHashFragment(hex: string): string {
-  const bytes = hex
-    .match(/../g)!
-    .map((pair) => String.fromCharCode(parseInt(pair, 16)))
-    .join("");
-  return "!1" + btoa(bytes).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-}
-function decodeTerminalFragment(fragment: string): string {
-  let value = fragment;
-  if (fragment.startsWith("!!")) value = fragment.slice(1);
-  else if (fragment.startsWith("!1")) {
-    const encoded = fragment.slice(2);
-    if (!/^[A-Za-z0-9_-]{43}$/.test(encoded)) throw new Error("Malformed terminal hash fragment.");
-    let bytes: string;
-    try {
-      bytes = atob(encoded.replaceAll("-", "+").replaceAll("_", "/") + "=");
-    } catch {
-      throw new Error("Malformed terminal hash fragment.");
-    }
-    if (bytes.length !== 32) throw new Error("Terminal hash fragment byte count changed.");
-    value = Array.from(bytes, (byte) => byte.charCodeAt(0).toString(16).padStart(2, "0")).join("");
-    if (encodeHashFragment(value) !== fragment)
-      throw new Error("Noncanonical terminal hash fragment.");
-  } else if (fragment.startsWith("!")) throw new Error("Unknown terminal fragment encoding.");
-  if (value.length > 8192) throw new Error("Terminal decoded fragment bound exceeded.");
-  return value;
-}
-// Compact references use all JSON-safe printable ASCII digits. Old $/@ base36
-// references remain readable; decoded scalar values and bounds are unchanged.
-const REFERENCE_DIGITS = Array.from({ length: 94 }, (_, i) => String.fromCharCode(i + 33))
-  .filter((c) => c !== '"' && c !== "\\")
-  .join("");
-function referenceIndex(n: number): string {
-  let result = "";
-  do {
-    result = REFERENCE_DIGITS[n % 92] + result;
-    n = Math.floor(n / 92);
-  } while (n);
-  return result;
-}
-function unpackReferenceIndex(wire: string): number {
-  if (!wire || wire.length > 3) throw new Error("Malformed compact terminal reference.");
-  let n = 0;
-  for (const digit of wire) {
-    const value = REFERENCE_DIGITS.indexOf(digit);
-    if (value < 0) throw new Error("Malformed compact terminal reference.");
-    n = n * 92 + value;
-  }
-  if (referenceIndex(n) !== wire) throw new Error("Noncanonical compact terminal reference.");
-  return n;
-}
-export function packTerminalPayload(
-  value: unknown,
-  withLayouts = false,
-): {
-  strings: string[];
-  texts: number[][];
-  structures: PackedValue[];
-  payload: PackedValue;
-  layouts?: number[][];
-} {
-  const strings: string[] = [],
-    indexes = new Map<string, number>(),
-    structures: PackedValue[] = [],
-    refs = new Map<string, number>();
-  const intern = (s: string) => {
-    let n = indexes.get(s);
-    if (n === undefined) {
-      n = strings.length;
-      strings.push(s);
-      indexes.set(s, n);
-    }
-    return n;
-  };
-  function signedSignature(v: unknown): string {
-    const negative: (string | number)[][] = [];
-    function visit(value: unknown, path: (string | number)[]) {
-      if (Object.is(value, -0)) negative.push(path);
-      else if (Array.isArray(value)) value.forEach((child, i) => visit(child, [...path, i]));
-      else if (value && typeof value === "object")
-        for (const [key, child] of Object.entries(value)) visit(child, [...path, key]);
-    }
-    visit(v, []);
-    return stableTerminal(v) + "|" + stableTerminal(negative);
-  }
-  function encode(v: unknown): PackedValue {
-    if (typeof v === "string") return "&" + referenceIndex(intern(v));
-    if (Object.is(v, -0)) return "!-0";
-    if (v && typeof v === "object") {
-      const signature = signedSignature(v),
-        prior = refs.get(signature);
-      if (prior !== undefined) return "%" + referenceIndex(prior);
-      const packed: PackedValue = Array.isArray(v)
-        ? [0, ...v.map(encode)]
-        : [
-            1,
-            ...Object.entries(v)
-              .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-              .flatMap(([k, x]) => [intern(k), encode(x)]),
-          ];
-      const n = structures.length;
-      structures.push(packed);
-      refs.set(signature, n);
-      return "%" + referenceIndex(n);
-    }
-    if (v === null || typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v)))
-      return v;
-    throw new Error("Terminal projection contains an unsupported value.");
-  }
-  const payload = encode(value),
-    fragments: string[] = [],
-    fragmentIds = new Map<string, number>();
-  const texts = strings.map((s) => {
-    // Share exact clock substrings too; no date parsing, rounding or reformatting.
-    // Keep the existing 32-part wire bound for adversarial multi-clock strings.
-    let parts = s
-      .split(/([a-f0-9]{64}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z)/)
-      .filter(Boolean);
-    if (parts.length > 32) parts = s.split(/([a-f0-9]{64})/).filter(Boolean);
-    return parts.map((part) => {
-      let n = fragmentIds.get(part);
-      if (n === undefined) {
-        n = fragments.length;
-        fragments.push(
-          HASH.test(part) ? encodeHashFragment(part) : part.startsWith("!") ? "!" + part : part,
-        );
-        fragmentIds.set(part, n);
-      }
-      return n;
-    });
-  });
-  if (!withLayouts) return { strings: fragments, texts, structures, payload };
-  const layouts: number[][] = [],
-    layoutIds = new Map<string, number>();
-  const records = structures.map((row) => {
-    if (!Array.isArray(row) || row[0] !== 1) return row;
-    const keys: number[] = [],
-      values: PackedValue[] = [];
-    for (let i = 1; i < row.length; i += 2) {
-      keys.push(row[i] as number);
-      values.push(row[i + 1]);
-    }
-    const signature = JSON.stringify(keys);
-    let index = layoutIds.get(signature);
-    if (index === undefined) {
-      index = layouts.length;
-      layouts.push(keys);
-      layoutIds.set(signature, index);
-    }
-    return [2, index, ...values];
-  });
-  // Archive-only wire ordering: preserve every pool member and decoded value.
-  if (texts.length > 20000 || records.length > 20000 || layouts.length > 256)
-    throw new Error("Terminal archive packing table bound exceeded.");
-  const frequencies = Array<number>(texts.length).fill(0);
-  const reference = (value: PackedValue): { string: boolean; index: number } | null => {
-    if (typeof value !== "string" || value === "!-0") return null;
-    if (value[0] !== "&" && value[0] !== "%") throw new Error("Invalid archive packing reference.");
-    const string = value[0] === "&",
-      index = unpackReferenceIndex(value.slice(1));
-    if (!count(index, (string ? texts : records).length - 1))
-      throw new Error("Archive packing reference is outside its pool.");
-    return { string, index };
-  };
-  const countText = (index: number) => {
-    if (!count(index, frequencies.length - 1) || frequencies[index] >= Number.MAX_SAFE_INTEGER)
-      throw new Error("Archive text frequency is outside its bound.");
-    frequencies[index]++;
-  };
-  for (const row of records) {
-    if (!Array.isArray(row) || (row[0] !== 0 && row[0] !== 2))
-      throw new Error("Invalid archive packing record.");
-    for (const value of row.slice(row[0] === 0 ? 1 : 2)) {
-      const ref = reference(value);
-      if (ref?.string) countText(ref.index);
-    }
-  }
-  const root = reference(payload);
-  if (root?.string) countText(root.index);
-  for (const keys of layouts) {
-    if (keys.length > 128) throw new Error("Archive layout key bound exceeded.");
-    keys.forEach(countText);
-  }
-  const textOrder = frequencies
-      .map((frequency, index) => ({ frequency, index }))
-      .sort((a, b) => b.frequency - a.frequency || a.index - b.index)
-      .map(({ index }) => index),
-    structureOrder = records
-      .map((_, index) => index)
-      .sort((a, b) => {
-        const left = records[a] as PackedValue[],
-          right = records[b] as PackedValue[];
-        return (
-          Number(left[0]) - Number(right[0]) ||
-          (left[0] === 2 ? Number(left[1]) - Number(right[1]) : 0) ||
-          a - b
-        );
-      });
-  const inverse = (order: number[]): number[] => {
-    const result = Array<number>(order.length).fill(-1);
-    for (const [next, previous] of order.entries()) {
-      if (!count(previous, order.length - 1) || result[previous] !== -1)
-        throw new Error("Archive packing permutation is not bijective.");
-      result[previous] = next;
-    }
-    if (result.some((index) => index === -1))
-      throw new Error("Archive packing permutation is incomplete.");
-    return result;
-  };
-  const textMap = inverse(textOrder),
-    structureMap = inverse(structureOrder);
-  const remap = (value: PackedValue): PackedValue => {
-    const ref = reference(value);
-    return ref
-      ? (ref.string ? "&" : "%") + referenceIndex((ref.string ? textMap : structureMap)[ref.index])
-      : value;
-  };
-  const finalLayouts: number[][] = [],
-    layoutMap = new Map<number, number>();
-  const finalRecords = structureOrder.map((index) => {
-    const row = records[index] as PackedValue[];
-    if (row[0] === 0) return [0, ...row.slice(1).map(remap)];
-    const prior = row[1] as number;
-    if (!count(prior, layouts.length - 1)) throw new Error("Invalid archive layout reference.");
-    if (!layoutMap.has(prior)) {
-      layoutMap.set(prior, finalLayouts.length);
-      finalLayouts.push(layouts[prior].map((key) => textMap[key]));
-    }
-    return [2, layoutMap.get(prior)!, ...row.slice(2).map(remap)];
-  });
-  if (layoutMap.size !== layouts.length) throw new Error("Unused archive packing layout.");
-  return {
-    strings: fragments,
-    texts: textOrder.map((index) => texts[index]),
-    structures: finalRecords,
-    payload: remap(payload),
-    layouts: finalLayouts,
-  };
-}
-export function unpackTerminalPayload(
-  strings: readonly string[],
-  value: PackedValue,
-  structures: readonly PackedValue[] = [],
-  texts?: readonly number[][],
-  layouts?: readonly number[][],
-): unknown {
-  if (
-    strings.length > 20000 ||
-    strings.some((s) => typeof s !== "string" || s.length > 8193) ||
-    structures.length > 20000
-  )
-    throw new Error("Terminal dictionary is outside its bound.");
-  const fragments = strings.map(decodeTerminalFragment);
-  const dictionary = texts
-    ? texts.map((parts) => {
-        if (
-          !Array.isArray(parts) ||
-          parts.length > 32 ||
-          parts.some((i) => !count(i, strings.length - 1))
-        )
-          throw new Error("Invalid terminal text fragments.");
-        const value = parts.map((i) => fragments[i]).join("");
-        if (value.length > 8192) throw new Error("Terminal text expansion bound exceeded.");
-        return value;
-      })
-    : fragments;
-  if (dictionary.length > 20000) throw new Error("Terminal text dictionary bound exceeded.");
-  let fields: string[][] | undefined;
-  const layoutIndex = (n: unknown, maximum: number): n is number =>
-    count(n, maximum) && !Object.is(n, -0);
-  if (layouts !== undefined) {
-    if (!Array.isArray(layouts) || layouts.length > 256)
-      throw new Error("Terminal layout table bound exceeded.");
-    const seen = new Set<string>(),
-      nameIds = new Map<string, number>();
-    fields = Array.from(layouts, (keys) => {
-      if (
-        !Array.isArray(keys) ||
-        keys.length > 128 ||
-        Array.from(keys).some((key) => !layoutIndex(key, dictionary.length - 1))
-      )
-        throw new Error("Invalid terminal layout keys.");
-      const names = keys.map((key) => dictionary[key]);
-      if (
-        names.some(
-          (name, i) =>
-            typeof name !== "string" ||
-            ["__proto__", "prototype", "constructor"].includes(name) ||
-            (i > 0 && names[i - 1] >= name),
-        )
-      )
-        throw new Error("Duplicate, unsorted or unsafe terminal layout field.");
-      // Intern decoded names before comparing layouts; never duplicate expanded key text.
-      const signature = names
-        .map((name) => {
-          let id = nameIds.get(name);
-          if (id === undefined) {
-            id = nameIds.size;
-            nameIds.set(name, id);
-          }
-          return id;
-        })
-        .join(",");
-      if (seen.has(signature)) throw new Error("Duplicate terminal layout.");
-      seen.add(signature);
-      return names;
-    });
-    const used = new Set<number>();
-    for (const row of structures) {
-      if (!Array.isArray(row) || (row[0] !== 0 && row[0] !== 2))
-        throw new Error("Mixed or malformed terminal layout record.");
-      if (row[0] === 0) continue;
-      const index = row[1];
-      if (!layoutIndex(index, fields.length - 1) || row.length !== fields[index].length + 2)
-        throw new Error("Invalid terminal layout record arity or index.");
-      if (!used.has(index)) {
-        if (index !== used.size) throw new Error("Noncanonical terminal layout order.");
-        used.add(index);
-      }
-    }
-    if (used.size !== layouts.length) throw new Error("Unused terminal layout.");
-  }
-  let visited = 0;
-  const active = new Set<number>();
-  function decode(v: PackedValue, depth: number): unknown {
-    if (++visited > 200000 || depth > 64)
-      throw new Error("Terminal metadata decoding bound exceeded.");
-    if (typeof v === "string") {
-      if (v === "!-0") return -0;
-      const compact = v[0] === "%" || v[0] === "&";
-      if (!compact && !/^[$@][0-9a-z]+$/.test(v)) throw new Error("Malformed terminal reference.");
-      const n = compact ? unpackReferenceIndex(v.slice(1)) : parseInt(v.slice(1), 36),
-        stringReference = v[0] === "$" || v[0] === "&",
-        pool = stringReference ? dictionary : structures;
-      if (!count(n, pool.length - 1) || (!compact && n.toString(36) !== v.slice(1)))
-        throw new Error("Invalid terminal dictionary reference.");
-      if (stringReference) return dictionary[n];
-      if (active.has(n)) throw new Error("Cyclic terminal structure reference.");
-      active.add(n);
-      const decoded = decode(structures[n], depth + 1);
-      active.delete(n);
-      return decoded;
-    }
-    if (Array.isArray(v)) {
-      if (v[0] === 0) return v.slice(1).map((x) => decode(x, depth + 1));
-      if (fields) {
-        const index = v[1];
-        if (
-          v[0] !== 2 ||
-          !layoutIndex(index, fields.length - 1) ||
-          v.length !== fields[index].length + 2
-        )
-          throw new Error("Malformed terminal layout record.");
-        const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
-        fields[index].forEach((name, i) => {
-          result[name] = decode(v[i + 2], depth + 1);
-        });
-        return result;
-      }
-      if (v[0] !== 1 || v.length % 2 !== 1) throw new Error("Malformed terminal record.");
-      const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
-      for (let i = 1; i < v.length; i += 2) {
-        const key = v[i];
-        if (!count(key, dictionary.length - 1))
-          throw new Error("Invalid terminal field reference.");
-        const name = dictionary[key];
-        if (["__proto__", "prototype", "constructor"].includes(name) || Object.hasOwn(result, name))
-          throw new Error("Duplicate or unsafe terminal field.");
-        result[name] = decode(v[i + 1], depth + 1);
-      }
-      return result;
-    }
-    if (v === null || typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v)))
-      return v;
-    throw new Error("Malformed packed terminal scalar.");
-  }
-  return decode(value, 0);
-}
+const UNSAFE_KEYS = ["__proto__", "prototype", "constructor"];
 function validateBinding(id: string, entry: unknown): asserts entry is ReplayEntry {
   const r = record(entry, [
     "status",
@@ -642,7 +261,8 @@ function validateBinding(id: string, entry: unknown): asserts entry is ReplayEnt
     "reason",
     "scope",
   ]);
-  if (Object.keys(r).length !== 13) throw new Error("Incomplete terminal artifact binding.");
+  if (Object.keys(r).length !== 13 || UNSAFE_KEYS.includes(id))
+    throw new Error("Incomplete terminal artifact binding.");
   const l = record(r.licence, [
     "status",
     "permitted_uses",
@@ -682,30 +302,21 @@ function validateBinding(id: string, entry: unknown): asserts entry is ReplayEnt
 export async function validateTerminalShard(
   value: unknown,
   expectedName?: TerminalShardName,
-  expectedManifest?: PackedShard["manifestBinding"],
+  expectedManifest?: ManifestBinding,
 ): Promise<TerminalShard> {
   if (new TextEncoder().encode(JSON.stringify(value)).byteLength > shardByteCeiling(expectedName))
     throw new Error("Terminal decoded metadata bound exceeded.");
-  const layoutWire =
-    !!value &&
-    typeof value === "object" &&
-    (value as Record<string, unknown>).schema_version === "terminal-shard/2";
   const raw = record(value, [
     "schema_version",
     "generator_contract",
     "name",
     "manifestBinding",
-    "strings",
-    "texts",
-    "structures",
     "payload",
     "payloadDigest",
-    ...(layoutWire ? ["layouts"] : []),
   ]);
   const manifest = record(raw.manifestBinding, ["sha256", "bytes", "asOf"]);
   if (
-    (raw.schema_version !== "terminal-shard/1" && !layoutWire) ||
-    (layoutWire && (raw.name !== "history-archive" || !Array.isArray(raw.layouts))) ||
+    raw.schema_version !== "terminal-shard/3" ||
     raw.generator_contract !== TERMINAL_CONTRACT ||
     !SHARD_NAMES.includes(raw.name as TerminalShardName) ||
     (expectedName && raw.name !== expectedName) ||
@@ -714,38 +325,24 @@ export async function validateTerminalShard(
     !count(manifest.bytes, 2 * 1024 * 1024) ||
     !text(manifest.asOf) ||
     !Number.isFinite(Date.parse(manifest.asOf)) ||
-    !Array.isArray(raw.strings) ||
-    !Array.isArray(raw.structures) ||
-    !Array.isArray(raw.texts) ||
     !text(raw.payloadDigest) ||
     !HASH.test(raw.payloadDigest)
   )
     throw new Error("Terminal shard identity is invalid.");
   if (expectedManifest && stableTerminal(manifest) !== stableTerminal(expectedManifest))
     throw new Error("Terminal shards do not share one build-verified manifest.");
-  const sealed = {
-    schema_version: raw.schema_version,
-    generator_contract: raw.generator_contract,
-    name: raw.name,
-    manifestBinding: raw.manifestBinding,
-    strings: raw.strings,
-    texts: raw.texts,
-    structures: raw.structures,
-    payload: raw.payload,
-    ...(layoutWire ? { layouts: raw.layouts } : {}),
-  };
-  if ((await terminalDigest(sealed)) !== raw.payloadDigest)
+  const { payloadDigest, ...sealed } = raw;
+  if ((await terminalDigest(sealed)) !== payloadDigest)
     throw new Error("Terminal shard digest mismatch.");
-  const p = record(
-    unpackTerminalPayload(
-      raw.strings as string[],
-      raw.payload as PackedValue,
-      raw.structures as PackedValue[],
-      raw.texts as number[][],
-      layoutWire ? (raw.layouts as number[][]) : undefined,
-    ),
-    ["bindings", "routes", "entities", "edges", "projections", "bundles", "projectionPins"],
-  );
+  const p = record(raw.payload, [
+    "bindings",
+    "routes",
+    "entities",
+    "edges",
+    "projections",
+    "bundles",
+    "projectionPins",
+  ]);
   if (
     !p.bindings ||
     typeof p.bindings !== "object" ||
@@ -1019,6 +616,7 @@ export async function validateTerminalShard(
     if (
       !route.startsWith("/") ||
       route.startsWith("//") ||
+      UNSAFE_KEYS.includes(route) ||
       typeof id !== "string" ||
       !Object.hasOwn(p.bindings, id)
     )
@@ -1026,7 +624,7 @@ export async function validateTerminalShard(
   return {
     ...(p as TerminalPayload),
     name: raw.name as TerminalShardName,
-    manifestBinding: manifest as PackedShard["manifestBinding"],
+    manifestBinding: manifest as ManifestBinding,
   };
 }
 
@@ -1044,316 +642,88 @@ export type NavigationRecord = Pick<
   key: string;
   choices: NavigationChoice[];
 };
-export type PackedNavigation = {
-  strings: string[];
-  hashes: string[];
-  views: string[];
-  selections: string[];
-  columns: string[];
-};
-/** Template references are exact equality compression, not inferred entity relationships. */
-export function packNavigationRecords(records: readonly NavigationRecord[]): PackedNavigation {
-  const strings: string[] = [],
-    indexes = new Map<string, number>(),
-    views: string[] = [],
-    selections: string[] = [];
-  const intern = (value: string) => {
-    let n = indexes.get(value);
-    if (n === undefined) {
-      n = strings.length;
-      strings.push(value);
-      indexes.set(value, n);
-    }
-    return n;
-  };
-  const integers = (values: number[]) => values.map((n) => (n + 4).toString(36)).join(".");
-  const unique = (values: string[], value: string) => {
-    const n = values.indexOf(value);
-    if (n >= 0) return n;
-    values.push(value);
-    return values.length - 1;
-  };
-  const rows = records.map(
-    (record) =>
-      [
-        intern(record.type),
-        intern(record.namespace),
-        intern(record.id),
-        intern(record.label.replaceAll("%", "%%").split(record.id).join("%i%")),
-        record.market === "US" ? 1 : record.market === "INDIA" ? 2 : 0,
-        record.choices.map((choice) => [
-          unique(
-            selections,
-            integers([
-              choice.artifactId === null ? -1 : intern(choice.artifactId),
-              choice.cutoff === null ? -1 : intern(choice.cutoff),
-            ]),
-          ),
-          unique(
-            views,
-            integers(
-              Object.entries(choice.view)
-                .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-                .flatMap(([key, value]) => [
-                  intern(key),
-                  value === record.id
-                    ? -1
-                    : value === choice.cutoff
-                      ? -2
-                      : value === choice.artifactId
-                        ? -3
-                        : intern(String(value)),
-                ]),
-            ),
-          ),
-          ["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"].indexOf(choice.availability),
-        ]),
-      ] as const,
-  );
-  const hashes: string[] = [];
-  const encoded = strings.map((value) =>
-    value.replaceAll("!", "!!").replace(/[a-f0-9]{64}/g, (hex) => {
-      const bytes = hex
-        .match(/../g)!
-        .map((pair) => String.fromCharCode(parseInt(pair, 16)))
-        .join("");
-      const n = unique(
-        hashes,
-        btoa(bytes).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, ""),
-      );
-      return "!" + n.toString(36) + "!";
-    }),
-  );
-  return {
-    strings: encoded,
-    hashes,
-    views,
-    selections,
-    columns: [
-      ...Array.from({ length: 5 }, (_, i) => integers(rows.map((row) => row[i] as number))),
-      rows.map((row) => integers(row[5].flat())).join("/"),
-    ],
-  };
-}
-export function unpackNavigationRecords(
-  value: PackedNavigation,
-  expectedCount: number,
-): NavigationRecord[] {
-  const integers = (wire: string, maximum = 20000): number[] => {
-    if (typeof wire !== "string" || wire.length > MAX_LAZY_MODULE_BYTES)
-      throw new Error("Invalid navigation integer wire.");
-    const values = wire
-      ? wire.split(".").map((token) => {
-          const n = parseInt(token, 36);
-          if (
-            !/^[0-9a-z]+$/.test(token) ||
-            !Number.isSafeInteger(n) ||
-            n.toString(36) !== token ||
-            n < 1 ||
-            n > maximum + 4
-          )
-            throw new Error("Invalid navigation index.");
-          return n - 4;
-        })
-      : [];
-    if (values.length > 20000) throw new Error("Navigation integer bound exceeded.");
-    return values;
-  };
-  if (
-    !count(expectedCount, 4096) ||
-    expectedCount < 1 ||
-    !Array.isArray(value.strings) ||
-    value.strings.length > 12000 ||
-    !Array.isArray(value.hashes) ||
-    value.hashes.length > 4096 ||
-    !Array.isArray(value.views) ||
-    value.views.length > 4096 ||
-    !Array.isArray(value.selections) ||
-    value.selections.length > 4096 ||
-    !Array.isArray(value.columns) ||
-    value.columns.length !== 6
-  )
-    throw new Error("Invalid navigation collections.");
-  const hashes = value.hashes.map((wire) => {
-    if (typeof wire !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(wire))
-      throw new Error("Invalid navigation hash.");
-    const bytes = atob(wire.replaceAll("-", "+").replaceAll("_", "/") + "=");
-    const hex = Array.from(bytes, (byte) => byte.charCodeAt(0).toString(16).padStart(2, "0")).join(
-      "",
-    );
-    if (bytes.length !== 32 || encodeHashFragment(hex).slice(2) !== wire)
-      throw new Error("Noncanonical navigation hash.");
-    return hex;
-  });
-  const strings = value.strings.map((wire) => {
-    if (typeof wire !== "string" || wire.length > 8192) throw new Error("Invalid navigation text.");
-    let out = "";
-    for (let i = 0; i < wire.length; i++) {
-      if (wire[i] !== "!") {
-        out += wire[i];
-        continue;
-      }
-      if (wire[i + 1] === "!") {
-        out += "!";
-        i++;
-        continue;
-      }
-      const end = wire.indexOf("!", i + 1),
-        token = wire.slice(i + 1, end),
-        n = parseInt(token, 36);
-      if (
-        end < 0 ||
-        !/^[0-9a-z]+$/.test(token) ||
-        !count(n, hashes.length - 1) ||
-        n.toString(36) !== token
-      )
-        throw new Error("Invalid navigation hash reference.");
-      out += hashes[n];
-      i = end;
-    }
-    if (!text(out, 8192)) throw new Error("Invalid expanded navigation text.");
-    return out;
-  });
-  const stringAt = (n: number) => {
-    if (!count(n, strings.length - 1)) throw new Error("Invalid navigation text reference.");
-    return strings[n];
-  };
-  const views = value.views.map((wire) => {
-    const values = integers(wire);
-    if (!values.length || values.length % 2 || values.length > 50)
-      throw new Error("Invalid navigation view.");
-    return values;
-  });
-  const selections = value.selections.map((wire) => {
-    const values = integers(wire);
-    if (values.length !== 2 || values.some((n) => n < -1))
-      throw new Error("Invalid navigation selection.");
-    const artifactId = values[0] === -1 ? null : stringAt(values[0]),
-      cutoff = values[1] === -1 ? null : stringAt(values[1]);
-    if (
-      (artifactId !== null && !isArtifactId(artifactId)) ||
-      (cutoff !== null && !Number.isFinite(Date.parse(cutoff))) ||
-      (artifactId === null) !== (cutoff === null)
-    )
-      throw new Error("Invalid exact navigation selection.");
-    return { artifactId, cutoff };
-  });
-  const columns = value.columns.slice(0, 5).map((wire) => integers(wire)),
-    choiceRows = value.columns[5].split("/");
-  if (
-    columns.some((column) => column.length !== expectedCount) ||
-    choiceRows.length !== expectedCount
-  )
-    throw new Error("Navigation record count changed.");
-  let priorKey = "";
-  return choiceRows.map((wire, row) => {
-    const type = stringAt(columns[0][row]),
-      namespace = stringAt(columns[1][row]),
-      id = stringAt(columns[2][row]),
-      template = stringAt(columns[3][row]),
-      marketCode = columns[4][row];
-    if (
-      !ENTITY_TYPES.has(type) ||
-      !NAMESPACES.has(namespace) ||
-      ![0, 1, 2].includes(marketCode) ||
-      !text(id, 180)
-    )
-      throw new Error("Invalid navigation identity.");
-    let label = "";
-    for (let i = 0; i < template.length; i++) {
-      if (template[i] !== "%") label += template[i];
-      else if (template[i + 1] === "%") {
-        label += "%";
-        i++;
-      } else if (template.slice(i, i + 3) === "%i%") {
-        label += id;
-        i += 2;
-      } else throw new Error("Invalid navigation label template.");
-    }
-    const market =
-      marketCode === 1 ? ("US" as const) : marketCode === 2 ? ("INDIA" as const) : undefined;
-    const key = [type, namespace, id, market ?? "ALL"].join("|");
-    if (key <= priorKey || !text(label))
-      throw new Error("Navigation canonical order/label changed.");
-    priorKey = key;
-    const values = integers(wire),
-      choices: NavigationChoice[] = [];
-    if (!values.length || values.length % 3 || values.length > 1536)
-      throw new Error("Navigation choices exceed their bound.");
-    for (let i = 0; i < values.length; i += 3) {
-      const [selectionIndex, viewIndex, capability] = values.slice(i, i + 3);
-      if (
-        !count(selectionIndex, selections.length - 1) ||
-        !count(viewIndex, views.length - 1) ||
-        ![0, 1, 2].includes(capability)
-      )
-        throw new Error("Invalid navigation choice reference.");
-      const selection = selections[selectionIndex],
-        view: Record<string, string> = Object.create(null) as Record<string, string>;
-      const entries = views[viewIndex];
-      for (let j = 0; j < entries.length; j += 2) {
-        const field = stringAt(entries[j]),
-          n = entries[j + 1],
-          v =
-            n === -1
-              ? id
-              : n === -2
-                ? selection.cutoff
-                : n === -3
-                  ? selection.artifactId
-                  : stringAt(n);
-        if (
-          ["__proto__", "prototype", "constructor"].includes(field) ||
-          Object.hasOwn(view, field) ||
-          typeof v !== "string"
-        )
-          throw new Error("Invalid navigation selector.");
-        view[field] = v;
-      }
-      serializeInvestigationContext({
-        version: 1,
-        ...(market ? { market } : {}),
-        ...(selection.artifactId ? { anchor: { artifactId: selection.artifactId } } : {}),
-        view: view as InvestigationView,
-      });
-      choices.push({
-        ...selection,
-        view: view as InvestigationView,
-        availability: (["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"] as const)[capability],
-      });
-    }
-    const workspace = choices[0].view.workspace;
-    if (choices.some((choice) => choice.view.workspace !== workspace))
-      throw new Error("Navigation workspace identity changed.");
-    return { key, id, type, namespace, label, workspace, ...(market ? { market } : {}), choices };
-  });
-}
-export type NavigationProjection = PackedNavigation & {
-  schema_version: "terminal-search-navigation/1";
+export type NavigationProjection = {
+  schema_version: "terminal-search-navigation/2";
   generator_contract: typeof TERMINAL_CONTRACT;
-  manifestBinding: PackedShard["manifestBinding"];
-  recordCount: number;
-  logicalDigest: string;
+  manifestBinding: ManifestBinding;
+  records: NavigationRecord[];
   payloadDigest: string;
 };
+const AVAILABILITY = ["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"];
+/** Closed navigation grammar: canonical key order, exact selections and routable views only. */
+function validateNavigationRecords(value: unknown): NavigationRecord[] {
+  if (!Array.isArray(value) || !value.length || value.length > 4096)
+    throw new Error("Invalid navigation collections.");
+  let priorKey = "";
+  for (const item of value) {
+    const r = record(item, [
+      "key",
+      "id",
+      "type",
+      "namespace",
+      "label",
+      "workspace",
+      "market",
+      "choices",
+    ]);
+    if (
+      !text(r.type, 80) ||
+      !ENTITY_TYPES.has(r.type) ||
+      !text(r.namespace, 80) ||
+      !NAMESPACES.has(r.namespace) ||
+      !text(r.id, 180) ||
+      (r.market !== undefined && r.market !== "US" && r.market !== "INDIA")
+    )
+      throw new Error("Invalid navigation identity.");
+    const key = [r.type, r.namespace, r.id, r.market ?? "ALL"].join("|");
+    if (r.key !== key || key <= priorKey || !text(r.label))
+      throw new Error("Navigation canonical order/label changed.");
+    priorKey = key;
+    if (!Array.isArray(r.choices) || !r.choices.length || r.choices.length > 512)
+      throw new Error("Navigation choices exceed their bound.");
+    for (const value of r.choices) {
+      const choice = record(value, ["artifactId", "cutoff", "view", "availability"]);
+      const { artifactId, cutoff, view } = choice;
+      if (
+        !("artifactId" in choice && "cutoff" in choice) ||
+        (artifactId !== null && (typeof artifactId !== "string" || !isArtifactId(artifactId))) ||
+        (cutoff !== null && (!text(cutoff) || !Number.isFinite(Date.parse(cutoff)))) ||
+        (artifactId === null) !== (cutoff === null) ||
+        !AVAILABILITY.includes(String(choice.availability))
+      )
+        throw new Error("Invalid exact navigation selection.");
+      if (
+        !view ||
+        typeof view !== "object" ||
+        Array.isArray(view) ||
+        Object.entries(view).some(([field, v]) => UNSAFE_KEYS.includes(field) || !text(v))
+      )
+        throw new Error("Invalid navigation selector.");
+      serializeInvestigationContext({
+        version: 1,
+        ...(r.market ? { market: r.market as Market } : {}),
+        ...(artifactId ? { anchor: { artifactId: artifactId as string } } : {}),
+        view: view as InvestigationView,
+      });
+      if ((view as InvestigationView).workspace !== r.workspace)
+        throw new Error("Navigation workspace identity changed.");
+    }
+  }
+  return value as NavigationRecord[];
+}
 export async function validateNavigationProjection(
   value: unknown,
-  expectedManifest?: PackedShard["manifestBinding"],
+  expectedManifest?: ManifestBinding,
+  ceiling = MAX_LAZY_MODULE_BYTES,
 ): Promise<NavigationRecord[]> {
-  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > MAX_LAZY_MODULE_BYTES)
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > ceiling)
     throw new Error("Search navigation decoded bound exceeded.");
   const raw = record(value, [
     "schema_version",
     "generator_contract",
     "manifestBinding",
-    "recordCount",
-    "logicalDigest",
+    "records",
     "payloadDigest",
-    "strings",
-    "hashes",
-    "views",
-    "selections",
-    "columns",
   ]);
   const manifest = record(raw.manifestBinding, ["sha256", "bytes", "asOf"]);
   if (
@@ -1366,11 +736,10 @@ export async function validateNavigationProjection(
   )
     throw new Error("Search navigation manifest binding is invalid.");
   if (
-    Object.keys(raw).length !== 11 ||
-    raw.schema_version !== "terminal-search-navigation/1" ||
+    Object.keys(raw).length !== 5 ||
+    raw.schema_version !== "terminal-search-navigation/2" ||
     raw.generator_contract !== TERMINAL_CONTRACT ||
     !HASH.test(String(raw.payloadDigest)) ||
-    !HASH.test(String(raw.logicalDigest)) ||
     (expectedManifest !== undefined &&
       stableTerminal(raw.manifestBinding) !== stableTerminal(expectedManifest))
   )
@@ -1378,9 +747,7 @@ export async function validateNavigationProjection(
   const { payloadDigest, ...sealed } = raw;
   if ((await terminalDigest(sealed)) !== payloadDigest)
     throw new Error("Search navigation digest mismatch.");
-  const records = unpackNavigationRecords(raw as PackedNavigation, raw.recordCount as number);
-  if ((await terminalDigest(records)) !== raw.logicalDigest)
-    throw new Error("Search navigation semantic set changed.");
+  const records = validateNavigationRecords(structuredClone(raw.records));
   const freeze = (value: unknown) => {
     if (value && typeof value === "object") {
       for (const child of Object.values(value)) freeze(child);
@@ -1406,10 +773,25 @@ export function loadRetainedSearchNavigation(): Promise<NavigationRecord[]> {
   retainedNavigationPending ??= Promise.all([
     import("./generated/history.generated.ts"),
     loadTerminalSeed(),
+    import("./reader.ts"),
   ])
-    .then(([module, seed]) =>
-      validateNavigationProjection(module.retainedNavigation, seed.manifestBinding),
-    )
+    .then(async ([module, seed, reader]) => {
+      const value = await reader.readTerminalIndex(
+        module.retainedNavigation,
+        "retained-navigation",
+      );
+      return validateNavigationProjection(
+        value,
+        seed.manifestBinding,
+        MAX_STATIC_TERMINAL_BYTES,
+      ).catch((error: unknown) => {
+        throw reader.staticIndexFailure(
+          "Terminal static index content is invalid.",
+          "retained-navigation",
+          error instanceof Error ? error.message : "navigation validation failed.",
+        );
+      });
+    })
     .catch((error: unknown) => {
       retainedNavigationPending = undefined;
       throw error;
@@ -1434,7 +816,7 @@ const loaders = {
 export async function loadStaticTerminalShard(
   reference: unknown,
   name: StaticTerminalShardName,
-  expectedManifest?: PackedShard["manifestBinding"],
+  expectedManifest?: ManifestBinding,
 ): Promise<TerminalShard> {
   const reader = await import("./reader.ts");
   const value = await reader.readTerminalIndex(reference, name);

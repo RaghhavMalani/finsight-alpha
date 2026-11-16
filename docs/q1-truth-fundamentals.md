@@ -77,6 +77,10 @@ book.fundamentals("AAPL", "revenues_fy", "2024-03-01T00:00:00Z")
 - Ticker -> CIK uses the SEC map captured with the data. It is a present-day link, not a
   point-in-time identity (ticker reuse is not modelled); observations are keyed by CIK.
 
+API: `GET /truth/fundamentals?ticker=&field=&as_of=[&max_age_days=]` returns the same result as JSON. It is
+tenant-local and local-only like the other Data Organ reads, never fetches upstream, and refuses a naive
+`as_of`.
+
 ## How to run
 
 ```sh

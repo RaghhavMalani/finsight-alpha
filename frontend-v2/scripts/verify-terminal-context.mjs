@@ -45,8 +45,7 @@ import {
   RELATIONS,
 } from "../src/app/terminal/links.ts";
 
-const amendmentOnly = process.argv.includes("--amendment-contracts-only");
-const coreOnly = process.argv.includes("--core-only") || amendmentOnly;
+const coreOnly = process.argv.includes("--core-only");
 const projectionsOnly = process.argv.includes("--projections-only");
 const navigationOnly = process.argv.includes("--navigation-only");
 const completedAreas = new Set(["context", "compatibility", "links"]);
@@ -68,11 +67,28 @@ const root = path.resolve(frontend, "..");
 const manifestRaw = readFileSync(path.join(frontend, "public/replay-manifest.json"));
 const manifest = JSON.parse(manifestRaw);
 const hash = (value) => createHash("sha256").update(value).digest("hex");
+// Independent seal for tampered fixtures: sorted-key JSON and node:crypto, not terminalDigest.
+const sealDigest = (value) =>
+  hash(
+    JSON.stringify(value, (_, item) =>
+      item && typeof item === "object" && !Array.isArray(item)
+        ? Object.fromEntries(
+            Object.keys(item)
+              .sort()
+              .map((key) => [key, item[key]]),
+          )
+        : item,
+    ),
+  );
+const resealWith = (value) => {
+  const { payloadDigest: _digest, ...sealed } = value;
+  return { ...sealed, payloadDigest: sealDigest(sealed) };
+};
 // Node exercises the same lazy HTTP boundary using the generated static bytes.
 const networkFetch = globalThis.fetch;
 globalThis.fetch = async (input, options) => {
   const url = typeof input === "string" ? input : input.url;
-  if (/^\/terminal\/(?:data|history-archive)\.[a-f0-9]{12}\.json$/.test(url))
+  if (/^\/terminal\/(?:data|history-archive|retained-navigation)\.[a-f0-9]{12}\.json$/.test(url))
     return new Response(readFileSync(path.join(frontend, "public", url)), {
       headers: { "content-type": "application/json" },
     });
@@ -88,6 +104,23 @@ function generatedStaticShard(name) {
   assert.equal(bytes.length, reference.bytes);
   assert.equal(hash(bytes), reference.sha256);
   assert.equal(reference.url, `/terminal/${name}.${reference.sha256.slice(0, 12)}.json`);
+  return { reference, bytes, value: JSON.parse(bytes) };
+}
+function generatedRetainedNavigation() {
+  const source = readFileSync(
+    path.join(frontend, "src/app/terminal/generated/history.generated.ts"),
+    "utf8",
+  );
+  const reference = JSON.parse(
+    source.match(/export const retainedNavigation = (\{.*?\}) as const;/s)[1],
+  );
+  const bytes = readFileSync(path.join(frontend, "public", reference.url));
+  assert.equal(bytes.length, reference.bytes);
+  assert.equal(hash(bytes), reference.sha256);
+  assert.equal(
+    reference.url,
+    "/terminal/retained-navigation." + reference.sha256.slice(0, 12) + ".json",
+  );
   return { reference, bytes, value: JSON.parse(bytes) };
 }
 const artifact = (id) =>
@@ -1587,460 +1620,69 @@ check("Ctrl or Cmd K uses the same focus-capturing palette opener as the visible
 });
 
 const referenceRepairCatalog = await import("../src/app/terminal/catalog.ts");
-check(
-  "compact references cross every radix boundary and retain literal/Unicode/clock strings",
-  () => {
-    const value = Array.from({ length: 8500 }, (_, i) => "reference-" + i);
-    value.push(
-      "%literal",
-      "&literal",
-      "!!literal",
-      "Unicode भारत",
-      "2026-10-31T07:07:00.827359Z".repeat(40),
-    );
-    const packed = referenceRepairCatalog.packTerminalPayload(value);
-    assert.deepEqual(
-      referenceRepairCatalog.unpackTerminalPayload(
-        packed.strings,
-        packed.payload,
-        packed.structures,
-        packed.texts,
-      ),
-      value,
-    );
-  },
-);
-check("compact references retain signed zero and all numeric scalar bounds", () => {
-  const value = [-0, 0, -1, 1, Number.MIN_VALUE, Number.MAX_VALUE, 1.25, null, true, false];
-  const packed = referenceRepairCatalog.packTerminalPayload(value);
-  assert.deepEqual(
-    referenceRepairCatalog.unpackTerminalPayload(
-      packed.strings,
-      packed.payload,
-      packed.structures,
-      packed.texts,
-    ),
-    value,
-  );
+const shardProof = { attacks: [] };
+const actualArchive = generatedStaticShard("history-archive").value;
+check("the verifier's independent seal agrees with the shipped archive digest", () => {
+  const { payloadDigest, ...sealed } = actualArchive;
+  assert.equal(sealDigest(sealed), payloadDigest);
 });
-check(
-  "compact references reject empty invalid oversized noncanonical and out-of-pool indices",
-  () => {
-    for (const wire of ["&", "%", "&!!", '%"', "&!!!!", "%~", "&~"])
-      assert.throws(() => referenceRepairCatalog.unpackTerminalPayload(["x"], wire, [], [[0]]));
-  },
-);
-check("compact references retain legacy base36 strings and structures", () => {
-  assert.equal(referenceRepairCatalog.unpackTerminalPayload(["x"], "$0"), "x");
-  assert.deepEqual(referenceRepairCatalog.unpackTerminalPayload(["x"], "@0", [[0, "$0"]]), ["x"]);
-});
-
-const layoutCodecProof = {
-  evidenceClass: "ENGINEERING_QA",
-  schema: "terminal-shard/2",
-  attacks: [],
-};
-const layoutDecode = (packed) =>
-  referenceRepairCatalog.unpackTerminalPayload(
-    packed.strings,
-    packed.payload,
-    packed.structures,
-    packed.texts,
-    packed.layouts,
-  );
-function exactLayoutValue(a, b) {
-  if (Object.is(a, b)) return;
-  assert(a !== null && b !== null && typeof a === "object" && typeof b === "object");
-  assert.equal(Array.isArray(a), Array.isArray(b));
-  assert.deepEqual(Object.keys(a).sort(), Object.keys(b).sort());
-  for (const key of Object.keys(a)) exactLayoutValue(a[key], b[key]);
-}
-function legacyLayoutPack(legacy) {
-  const layouts = [],
-    ids = new Map();
-  const structures = legacy.structures.map((row) => {
-    if (row[0] === 0) return row;
-    const keys = [],
-      values = [];
-    for (let i = 1; i < row.length; i += 2) {
-      keys.push(row[i]);
-      values.push(row[i + 1]);
-    }
-    const key = JSON.stringify(keys);
-    if (!ids.has(key)) {
-      ids.set(key, layouts.length);
-      layouts.push(keys);
-    }
-    return [2, ids.get(key), ...values];
-  });
-  return { ...legacy, structures, layouts };
-}
-const orderingDigits = Array.from({ length: 94 }, (_, i) => String.fromCharCode(i + 33))
-  .filter((c) => c !== '"' && c !== "\\")
-  .join("");
-function orderingIndex(wire) {
-  let n = 0;
-  for (const c of wire) {
-    const d = orderingDigits.indexOf(c);
-    assert(d >= 0);
-    n = n * 92 + d;
-  }
-  return n;
-}
-function orderingReference(n) {
-  let s = "";
-  do {
-    s = orderingDigits[n % 92] + s;
-    n = Math.floor(n / 92);
-  } while (n);
-  return s;
-}
-// Recover all old wire members independently from decoded identity, including signed zero.
-function restoreLayoutOrdering(packed, legacy) {
-  assert.deepEqual(packed.strings, legacy.strings);
-  assert.equal(packed.texts.length, legacy.texts.length);
-  assert.equal(packed.structures.length, legacy.structures.length);
-  const textOrder = packed.texts.map((parts) =>
-    legacy.texts.findIndex((old) => isDeepStrictEqual(parts, old)),
-  );
-  const oldValues = legacy.structures.map((_, i) =>
-    referenceRepairCatalog.unpackTerminalPayload(
-      legacy.strings,
-      "@" + i.toString(36),
-      legacy.structures,
-      legacy.texts,
-    ),
-  );
-  const structureOrder = packed.structures.map((_, i) => {
-    const v = layoutDecode({ ...packed, payload: "@" + i.toString(36) });
-    return oldValues.findIndex((old) => isDeepStrictEqual(v, old));
-  });
-  for (const [order, size] of [
-    [textOrder, legacy.texts.length],
-    [structureOrder, legacy.structures.length],
-  ]) {
-    assert(order.every((i) => i >= 0));
-    assert.equal(new Set(order).size, size, "No omitted or doubled pool member");
-  }
-  const reference = (v) => {
-    if (typeof v !== "string" || v === "!-0") return v;
-    const map = v[0] === "&" ? textOrder : structureOrder;
-    return v[0] + orderingReference(map[orderingIndex(v.slice(1))]);
-  };
-  const structures = [],
-    texts = [];
-  packed.structures.forEach((row, i) => {
-    structures[structureOrder[i]] =
-      row[0] === 0
-        ? [0, ...row.slice(1).map(reference)]
-        : [1, ...packed.layouts[row[1]].flatMap((k, n) => [textOrder[k], reference(row[n + 2])])];
-  });
-  packed.texts.forEach((v, i) => {
-    texts[textOrder[i]] = v;
-  });
-  return { structures, texts, payload: reference(packed.payload), textOrder, structureOrder };
-}
-
-for (const [name, value] of [
-  ["empty and repeated objects", [{}, {}, { a: 1, b: true }, { a: 2, b: false }]],
-  [
-    "Unicode clocks hashes and finite IEEE scalars",
-    {
-      भारत: [
-        "&literal",
-        "%literal",
-        "!-0",
-        "!",
-        "a".repeat(64),
-        "2026-11-01T07:42:18.604587Z",
-        -0,
-        0,
-        Number.MIN_VALUE,
-        Number.MAX_VALUE,
-        -1.25,
-        null,
-      ],
-    },
-  ],
-])
-  check("layout codec exact deterministic legacy coexistence: " + name, () => {
-    const legacy = referenceRepairCatalog.packTerminalPayload(value),
-      packed = referenceRepairCatalog.packTerminalPayload(value, true);
-    assert.equal(legacy.layouts, undefined);
-    exactLayoutValue(layoutDecode(legacy), value);
-    exactLayoutValue(layoutDecode(packed), value);
-    assert.deepEqual(packed, referenceRepairCatalog.packTerminalPayload(value, true));
-    const restored = restoreLayoutOrdering(packed, legacy);
-    assert.deepEqual(restored.structures, legacy.structures);
-    assert.deepEqual(packed.strings, legacy.strings);
-    assert.deepEqual(restored.texts, legacy.texts);
-    assert.equal(restored.payload, legacy.payload);
-  });
-const orderingProof = {
-  schema: "terminal-shard/2",
-  ordering: "text-frequency/layout-cluster/1",
-  cases: [],
-};
-const orderingValues = [
-  ["empty text", ""],
-  ["literal scalar", -0],
-  ["empty array", []],
-  ["empty object", {}],
-  [
-    "ties and repeated references",
-    [
-      { a: "same", b: "other" },
-      { a: "same", b: "other" },
-      { a: "other", b: "same" },
-    ],
-  ],
-  ["nested forward references", { a: [{ z: [1, 2] }], b: { c: [{ z: [1, 2] }] } }],
-  [
-    "multiple layouts and arrays",
-    [{ a: [1, "भारत"] }, { b: [true, null] }, { a: [2, "%literal"] }, []],
-  ],
-  [
-    "finite scalar identities",
-    {
-      a: [
-        -0,
-        0,
-        -Number.MIN_VALUE,
-        Number.MIN_VALUE,
-        -Number.MAX_VALUE,
-        Number.MAX_VALUE,
-        1.25,
-        true,
-        false,
-        null,
-      ],
-    },
-  ],
-  [
-    "escaped literals and exact clocks",
-    { a: ["!1", "!-0", "%x", "&x", "2026-11-02T07:49:26.402654Z", "a".repeat(64)] },
-  ],
-  [
-    "radix boundaries",
-    Array.from({ length: 150 }, (_, i) => ({ id: "value-" + i, group: String(i % 4) })),
-  ],
-];
-for (const [name, value] of orderingValues)
-  check("archive ordering preserves full original wire: " + name, () => {
-    const legacy = referenceRepairCatalog.packTerminalPayload(value),
-      original = legacyLayoutPack(legacy),
-      packed = referenceRepairCatalog.packTerminalPayload(value, true),
-      inverse = restoreLayoutOrdering(packed, legacy);
-    assert.deepEqual(inverse.structures, legacy.structures);
-    assert.deepEqual(inverse.texts, legacy.texts);
-    assert.equal(inverse.payload, legacy.payload);
-    exactLayoutValue(layoutDecode(packed), value);
-    exactLayoutValue(layoutDecode(original), value);
-    assert.deepEqual(packed, referenceRepairCatalog.packTerminalPayload(value, true));
-    const counts = Array(legacy.texts.length).fill(0),
-      count = (v) => {
-        if (typeof v === "string" && v[0] === "&") counts[orderingIndex(v.slice(1))]++;
-      };
-    count(original.payload);
-    for (const row of original.structures) row.slice(row[0] === 0 ? 1 : 2).forEach(count);
-    for (const keys of original.layouts) for (const k of keys) counts[k]++;
-    assert.deepEqual(
-      inverse.textOrder,
-      counts
-        .map((count, index) => ({ count, index }))
-        .sort((a, b) => b.count - a.count || a.index - b.index)
-        .map((x) => x.index),
-    );
-    assert.deepEqual(
-      inverse.structureOrder,
-      original.structures
-        .map((_, i) => i)
-        .sort(
-          (a, b) =>
-            original.structures[a][0] - original.structures[b][0] ||
-            (original.structures[a][0] === 2
-              ? original.structures[a][1] - original.structures[b][1]
-              : 0) ||
-            a - b,
-        ),
-    );
-    orderingProof.cases.push(name);
-  });
-
-check("layout codec shared references hydrate isolated records", () => {
-  const packed = referenceRepairCatalog.packTerminalPayload({ a: { key: 1 }, b: { key: 1 } }, true);
-  const value = layoutDecode(packed);
-  value.a.key = 9;
-  assert.equal(value.b.key, 1);
-});
-check("layout codec accepts exact declared layout and key-width boundaries", () => {
-  const layouts = Array.from({ length: 256 }, (_, i) => ({
-    ["field" + String(i).padStart(3, "0")]: i,
-  }));
-  const wide = Object.fromEntries(
-    Array.from({ length: 128 }, (_, i) => ["field" + String(i).padStart(3, "0"), i]),
-  );
-  for (const value of [layouts, wide])
-    exactLayoutValue(layoutDecode(referenceRepairCatalog.packTerminalPayload(value, true)), value);
-});
-check("layout codec never merges signed-zero and positive-zero object records", () => {
-  const value = [{ a: -0 }, { a: 0 }, { a: -Number.MIN_VALUE }, { a: Number.MIN_VALUE }];
-  exactLayoutValue(layoutDecode(referenceRepairCatalog.packTerminalPayload(value, true)), value);
-});
-const simpleLayout = () => ({
-  strings: ["a", "b"],
-  texts: [[0], [1]],
-  structures: [[2, 0, 1]],
-  layouts: [[0]],
-  payload: "@0",
-});
-const layoutAttacks = [
-  ["sparse layout table", (p) => (p.layouts = Array(1))],
-  ["sparse key row", (p) => (p.layouts[0] = Array(1))],
-  ["table not array", (p) => (p.layouts = {})],
-  ["table overflow", (p) => (p.layouts = Array.from({ length: 257 }, () => []))],
-  ["key width overflow", (p) => (p.layouts[0] = Array(129).fill(0))],
-  ["key row not array", (p) => (p.layouts[0] = null)],
-  [
-    "duplicate decoded names",
-    (p) => {
-      p.strings[1] = "a";
-      p.layouts[0] = [0, 1];
-      p.structures[0].push(2);
-    },
-  ],
-  [
-    "unsorted decoded names",
-    (p) => {
-      p.layouts[0] = [1, 0];
-      p.structures[0].push(2);
-    },
-  ],
-  [
-    "duplicate layouts",
-    (p) => {
-      p.layouts.push([0]);
-      p.structures.push([2, 1, 2]);
-    },
-  ],
-  [
-    "duplicate layouts through duplicate dictionary text",
-    (p) => {
-      p.strings[1] = "a";
-      p.layouts.push([1]);
-      p.structures.push([2, 1, 2]);
-    },
-  ],
-  ["unused layout", (p) => p.layouts.push([1])],
-  [
-    "noncanonical first use",
-    (p) => {
-      p.layouts.push([1]);
-      p.structures = [
-        [2, 1, 1],
-        [2, 0, 2],
-      ];
-    },
-  ],
-  ["mixed legacy object", (p) => (p.structures[0] = [1, 0, 1])],
-  ["unknown object tag", (p) => (p.structures[0][0] = 9)],
-  ["nonarray structure", (p) => (p.structures[0] = 1)],
-  ["missing field", (p) => p.structures[0].pop()],
-  ["extra field", (p) => p.structures[0].push(2)],
-  ["structure cycle", (p) => (p.structures[0][2] = "@0")],
-  ["infinite scalar", (p) => (p.structures[0][2] = Infinity)],
-  ["NaN scalar", (p) => (p.structures[0][2] = NaN)],
-  ["fragment expansion", (p) => (p.strings[0] = "x".repeat(8194))],
-  ["text width", (p) => (p.texts[0] = Array(33).fill(0))],
-];
-for (const value of [-0, -1, 0.5, "0", null, NaN, Infinity, 20000]) {
-  layoutAttacks.push([
-    "invalid key index " + String(value) + (Object.is(value, -0) ? " negative-zero" : ""),
-    (p) => (p.layouts[0][0] = value),
-  ]);
-  layoutAttacks.push([
-    "invalid layout index " + String(value) + (Object.is(value, -0) ? " negative-zero" : ""),
-    (p) => (p.structures[0][1] = value),
-  ]);
-}
-for (const name of ["__proto__", "prototype", "constructor"])
-  layoutAttacks.push(["unsafe decoded key " + name, (p) => (p.strings[0] = name)]);
-for (const [name, mutate] of layoutAttacks)
-  check("layout codec rejects " + name, () => {
-    const packed = simpleLayout();
-    mutate(packed);
-    assert.throws(() => layoutDecode(packed));
-    layoutCodecProof.attacks.push(name);
-  });
-check("layout codec preserves depth and visit rejection", () => {
-  let value = null;
-  for (let i = 0; i < 66; i++) value = [0, value];
-  assert.throws(() =>
-    layoutDecode({ strings: [], texts: [], structures: [], layouts: [], payload: value }),
-  );
-  assert.throws(() =>
-    layoutDecode({
-      strings: [],
-      texts: [],
-      structures: [],
-      layouts: [],
-      payload: [0, ...Array(200001).fill(null)],
-    }),
-  );
-});
-const actualLayoutArchive = generatedStaticShard("history-archive").value;
 await checkAsync(
-  "layout codec validates the actual current archive and legacy default history",
+  "the actual static archive and default history validate as plain sealed shards",
   async () => {
     const archive = await referenceRepairCatalog.validateTerminalShard(
-      actualLayoutArchive,
+      actualArchive,
       "history-archive",
-      actualLayoutArchive.manifestBinding,
+      actualArchive.manifestBinding,
     );
     // Floor only; every pinned retained identity is checked against the served shards later.
     assert(archive.entities.length >= 332);
     const current = await referenceRepairCatalog.loadTerminalShard("history");
     assert.equal(current.entities.length, 16);
-    layoutCodecProof.actualArchive = {
+    shardProof.actualArchive = {
       records: archive.entities.length,
-      layouts: actualLayoutArchive.layouts.length,
-      schema: actualLayoutArchive.schema_version,
+      schema: actualArchive.schema_version,
     };
   },
 );
 for (const [name, mutate, reseal] of [
-  ["v2 outside archive", (p) => (p.name = "risk"), true],
-  ["v1 with layouts", (p) => (p.schema_version = "terminal-shard/1"), true],
-  ["unknown version", (p) => (p.schema_version = "terminal-shard/3"), true],
-  ["missing table", (p) => delete p.layouts, true],
+  ["another shard's name", (p) => (p.name = "risk"), true],
+  ["superseded v1 version", (p) => (p.schema_version = "terminal-shard/1"), true],
+  ["superseded packed version", (p) => (p.schema_version = "terminal-shard/2"), true],
+  ["unknown version", (p) => (p.schema_version = "terminal-shard/4"), true],
+  ["missing payload", (p) => delete p.payload, true],
   ["unknown envelope field", (p) => (p.privateScope = "invented"), true],
+  ["unknown payload field", (p) => (p.payload.privateScope = "invented"), true],
   ["altered manifest cohort", (p) => (p.manifestBinding.sha256 = "a".repeat(64)), true],
-  ["altered digest covered layout", (p) => (p.layouts[0][0] = 0), false],
+  ["unsealed payload mutation", (p) => (p.payload.entities[0].label += " changed"), false],
   [
     "oversized complete envelope",
-    (p) => p.strings.push("x".repeat(referenceRepairCatalog.MAX_STATIC_TERMINAL_BYTES)),
+    (p) => p.payload.bundles.push("x".repeat(referenceRepairCatalog.MAX_STATIC_TERMINAL_BYTES)),
     true,
   ],
-  ["resealed invalid arity", (p) => p.structures.find((row) => row[0] === 2).pop(), true],
-  ["resealed duplicate layout", (p) => p.layouts.push(p.layouts[0]), true],
+  ["resealed edge to an unknown entity", (p) => (p.payload.edges[0].to = "unknown"), true],
+  [
+    "resealed entity without its binding",
+    (p) => (p.payload.entities[0].artifactId = "data-organ:costs:" + "0".repeat(64)),
+    true,
+  ],
 ])
-  await checkAsync("layout shard rejects " + name, async () => {
-    const changed = structuredClone(actualLayoutArchive);
+  await checkAsync("static shard rejects " + name, async () => {
+    const changed = structuredClone(actualArchive);
     mutate(changed);
     if (reseal) {
       const { payloadDigest: _digest, ...sealed } = changed;
-      changed.payloadDigest = await referenceRepairCatalog.terminalDigest(sealed);
+      changed.payloadDigest = sealDigest(sealed);
     }
     await assert.rejects(
       referenceRepairCatalog.validateTerminalShard(
         changed,
-        undefined,
-        actualLayoutArchive.manifestBinding,
+        "history-archive",
+        actualArchive.manifestBinding,
       ),
     );
-    layoutCodecProof.attacks.push(name);
+    shardProof.attacks.push(name);
   });
-check("layout archive overflow hits real capacity barrier and writes zero outputs", () => {
+check("archive overflow hits the real static capacity barrier and writes zero outputs", () => {
   const directories = [
     [path.join(frontend, "src/app/terminal/generated"), (n) => n.endsWith(".generated.ts")],
     [path.join(frontend, "public/terminal"), (n) => n.endsWith(".json")],
@@ -2055,7 +1697,7 @@ check("layout archive overflow hits real capacity barrier and writes zero output
       ),
     );
   const before = snapshot();
-  const fixture = `import assert from 'node:assert/strict';import{registerHooks}from'node:module';import{pathToFileURL}from'node:url';import{resolve}from'node:path';const target=pathToFileURL(resolve('frontend-v2/scripts/generate-terminal-index.mjs')).href;registerHooks({load(url,ctx,next){const r=next(url,ctx);if(url!==target)return r;const s=String(r.source),anchor='const packed = packTerminalPayload(payload, name === "history-archive");';assert.equal(s.split(anchor).length,2);return {...r,source:s.replace(anchor,anchor+'\\nif(name === "history-archive") packed.strings.push(...Array.from({length:300},(_,i)=>String(i).padStart(8,"0")+"x".repeat(8184)));')};}});const{generateTerminalIndex}=await import(target);await assert.rejects(generateTerminalIndex(),e=>{assert(e.message.startsWith('STOP: terminal capacity admission failed; no outputs written.'));assert(e.message.includes('Static JSON transport budget: history-archive='));return true;});console.log('PASS_REAL_CAPACITY_BARRIER_ZERO_OUTPUTS');`;
+  const fixture = `import assert from 'node:assert/strict';import{registerHooks}from'node:module';import{pathToFileURL}from'node:url';import{resolve}from'node:path';const target=pathToFileURL(resolve('frontend-v2/scripts/generate-terminal-index.mjs')).href;registerHooks({load(url,ctx,next){const r=next(url,ctx);if(url!==target)return r;const s=String(r.source),anchor='const shard = { ...sealed, payloadDigest: seal(sealed) };';assert.equal(s.split(anchor).length,2);return {...r,source:s.replace(anchor,'if(name === "history-archive") sealed.payload = {...sealed.payload, bundles: [...sealed.payload.bundles, ...Array.from({length:1100},(_,i)=>String(i).padStart(8,"0")+"x".repeat(8184))]};\\n'+anchor)};}});const{generateTerminalIndex}=await import(target);await assert.rejects(generateTerminalIndex(),e=>{assert(e.message.startsWith('STOP: terminal capacity admission failed; no outputs written.'));assert(e.message.includes('Static JSON transport budget: history-archive='));return true;});console.log('PASS_REAL_CAPACITY_BARRIER_ZERO_OUTPUTS');`;
   const run = spawnSync(process.execPath, ["--input-type=module", "-e", fixture], {
     cwd: root,
     encoding: "utf8",
@@ -2064,308 +1706,9 @@ check("layout archive overflow hits real capacity barrier and writes zero output
   assert.equal(run.status, 0, run.stderr);
   assert(run.stdout.includes("PASS_REAL_CAPACITY_BARRIER_ZERO_OUTPUTS"));
   assert.deepEqual(snapshot(), before);
-  layoutCodecProof.capacityFailureWrites = 0;
+  shardProof.capacityFailureWrites = 0;
 });
 
-const searchAmendmentProof = {};
-if (amendmentOnly) {
-  const generator = await import("./generate-terminal-index.mjs"),
-    commands = await import("../src/app/terminal/commands.ts"),
-    catalog = await import("../src/app/terminal/catalog.ts"),
-    search = await import("../src/app/terminal/search.ts");
-
-  const projectionRaw = () =>
-    JSON.parse(
-      readFileSync(
-        path.join(frontend, "src/app/terminal/generated/search.generated.ts"),
-        "utf8",
-      ).match(/export default (.+) as const;/)[1],
-    );
-  const resealNavigation = async (value) => {
-    const { payloadDigest: _old, ...sealed } = value;
-    return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
-  };
-  await checkAsync(
-    "self-contained search projection verifies closed binding and both digests with no second module/network",
-    async () => {
-      const oldFetch = globalThis.fetch;
-      let fetches = 0;
-      globalThis.fetch = async () => {
-        fetches++;
-        throw new Error("No validation network permitted");
-      };
-      try {
-        const rows = await catalog.validateNavigationProjection(projectionRaw());
-        assert.equal(rows.length, 529);
-        assert.equal(fetches, 0);
-      } finally {
-        globalThis.fetch = oldFetch;
-      }
-    },
-  );
-  for (const [name, mutate] of [
-    ["manifest bytes", (value) => (value.manifestBinding.bytes = -1)],
-    ["manifest unknown field", (value) => (value.manifestBinding.scientific = [1])],
-    ["logical digest", (value) => (value.logicalDigest = "a".repeat(64))],
-    ["raw scientific array", (value) => (value.weekly_values = [1, 2])],
-  ])
-    await checkAsync("self-contained projection rejects resealed " + name, async () => {
-      const raw = projectionRaw();
-      mutate(raw);
-      const sealed = await resealNavigation(raw);
-      await assert.rejects(() => catalog.validateNavigationProjection(sealed));
-    });
-  for (const [name, mutate] of [
-    ["manifest SHA", (value) => (value.manifestBinding.sha256 = "a".repeat(64))],
-    ["payload digest", (value) => (value.payloadDigest = "a".repeat(64))],
-  ])
-    await checkAsync("self-contained projection rejects unsealed " + name, async () => {
-      const raw = projectionRaw();
-      mutate(raw);
-      await assert.rejects(() => catalog.validateNavigationProjection(raw));
-    });
-  for (const [name, mutate] of [
-    ["availability", (rows) => (rows[0].choices[0].availability = "LOCAL_LIVE_ONLY")],
-    ["unknown capability", (rows) => (rows[0].choices[0].availability = "HOSTED_API_VERIFIED")],
-    ["exact ID", (rows) => (rows.at(-1).id = "changed-id")],
-    ["unknown type", (rows) => (rows[0].type = "private-account")],
-    ["unknown workspace", (rows) => (rows[0].choices[0].view.workspace = "private")],
-    ["canonical order", (rows) => rows.reverse()],
-  ])
-    await checkAsync("self-contained projection rejects repacked " + name, async () => {
-      const raw = projectionRaw(),
-        rows = structuredClone(await catalog.validateNavigationProjection(raw));
-      mutate(rows);
-      Object.assign(raw, catalog.packNavigationRecords(rows));
-      const sealed = await resealNavigation(raw);
-      await assert.rejects(() => catalog.validateNavigationProjection(sealed));
-    });
-  await checkAsync(
-    "build rejects a well-shaped resealed foreign search manifest epoch",
-    async () => {
-      const raw = projectionRaw(),
-        expected = structuredClone(raw.manifestBinding);
-      raw.manifestBinding.sha256 = "b".repeat(64);
-      const sealed = await resealNavigation(raw);
-      await assert.rejects(() => catalog.validateNavigationProjection(sealed, expected));
-    },
-  );
-  check("cold search has no static capability import or full resolver evaluation", () => {
-    const source = readFileSync(path.join(frontend, "src/app/terminal/search.ts"), "utf8"),
-      tree = ts.createSourceFile(
-        "search.ts",
-        source,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS,
-      );
-    for (const node of tree.statements)
-      if (ts.isImportDeclaration(node) && node.moduleSpecifier.text.includes("capabilities"))
-        assert(node.importClause.isTypeOnly);
-    const node = tree.statements.find(
-      (node) => ts.isFunctionDeclaration(node) && node.name?.text === "searchNavigation",
-    );
-    assert(node);
-    assert(!node.getText(tree).includes("capabilityFor("));
-  });
-  check("cold navigation loader imports only search projection, never seed", () => {
-    const source = readFileSync(path.join(frontend, "src/app/terminal/catalog.ts"), "utf8"),
-      tree = ts.createSourceFile(
-        "catalog.ts",
-        source,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TS,
-      ),
-      node = tree.statements.find(
-        (node) => ts.isFunctionDeclaration(node) && node.name?.text === "loadSearchNavigation",
-      );
-    assert(node);
-    assert(node.getText(tree).includes("search.generated"));
-    assert(!/loadTerminalSeed|seed.generated/.test(node.getText(tree)));
-  });
-  for (const state of ["PUBLIC_REPLAY", "LOCAL_LIVE_ONLY", "UNAVAILABLE"])
-    check("navigation label never upgrades " + state, () => {
-      const cap = search.navigationCapability(state, {
-        type: "market-factor",
-        workspace: "market",
-      });
-      assert.equal(cap.label, state);
-      assert.equal(cap.enabled, state === "PUBLIC_REPLAY");
-      assert.equal(cap.allowedActionClass, "navigate");
-      assert.equal(cap.evidenceRef, undefined);
-    });
-
-  check(
-    "mixed navigation choices keep unavailable disabled and exact public alternative enabled",
-    () => {
-      const original = projectionRaw(),
-        rows = catalog.unpackNavigationRecords(original, original.recordCount),
-        record = structuredClone(rows.find((r) => r.type === "market-factor" && r.id === "US-MKT"));
-      const first = record.choices[0];
-      first.availability = "UNAVAILABLE";
-      record.choices.push({
-        ...structuredClone(first),
-        artifactId: "market:IN-MKT",
-        availability: "PUBLIC_REPLAY",
-      });
-      const response = search.searchLoaded(
-        "US-MKT",
-        { version: 1, view: { workspace: "risk" } },
-        { entities: [], bindings: {}, navigation: [record] },
-      );
-      const result = response.results[0];
-      assert.equal(result.choices.length, 2);
-      assert.equal(result.choices[0].target, undefined);
-      assert(result.choices[1].target);
-      assert(result.requiresChoice);
-      assert.equal(result.capability.label, "UNAVAILABLE");
-    },
-  );
-  for (const state of ["HOSTED_API_VERIFIED", "toString", "__proto__"])
-    check("unknown navigation capability never enables " + state, () =>
-      assert.throws(() =>
-        search.navigationCapability(state, { type: "workspace", workspace: "market" }),
-      ),
-    );
-  const sourceIds = [
-    Object.keys(manifest.artifacts).find((id) => id.startsWith("forge:run:")),
-    "world:quakes",
-    "world:satellites",
-  ];
-  for (const id of sourceIds) {
-    await checkAsync("current navigation full source positive " + id, async () => {
-      await generator.validateTerminalSource(id, manifest.artifacts[id], artifact(id));
-    });
-    await checkAsync(
-      "current navigation closed source rejects unknown private field " + id,
-      async () => {
-        const value = artifact(id);
-        value.engineering_private = "sentinel";
-        await assert.rejects(() =>
-          generator.validateTerminalSource(id, manifest.artifacts[id], value),
-        );
-      },
-    );
-  }
-  await checkAsync(
-    "async complete-ID commands preserve pinned historical anchors with lowercase and whitespace grammar",
-    async () => {
-      const data = await search.terminalSearch.load([], true);
-      let cases = 0;
-      for (const type of ["issue", "model-run"]) {
-        const record = data.navigation.find(
-          (record) =>
-            record.type === type &&
-            (type !== "model-run" || record.namespace === "regime") &&
-            record.choices.some(
-              (choice) =>
-                choice.artifactId &&
-                choice.artifactId !== currentStateId &&
-                choice.view.workspace === (type === "issue" ? "risk" : "regimes"),
-            ),
-        );
-        assert(record);
-        const choice = record.choices.find(
-          (choice) => choice.artifactId && choice.artifactId !== currentStateId,
-        );
-        const context = {
-          version: 1,
-          ...(record.market ? { market: record.market } : {}),
-          anchor: { artifactId: choice.artifactId },
-          view: choice.view,
-        };
-        const input =
-          type === "issue" ? "issue  " + record.id + " <go>" : "run REGIME:" + record.id + " go";
-        const result = await commands.resolveCommandInput(input, context);
-        assert.equal(result.status, "READY");
-        assert.equal(result.target.context.anchor.artifactId, choice.artifactId);
-        cases++;
-      }
-      searchAmendmentProof.pinnedExactCommands = cases;
-    },
-  );
-  await checkAsync(
-    "async legacy navigation retains every existing function and rejects factor/exchange coercion",
-    async () => {
-      const functions = [
-          "DES",
-          "GP",
-          "OMON",
-          "FA",
-          "REG",
-          "GE",
-          "RISK",
-          "FACT",
-          "EXEC",
-          "RES",
-          "OBS",
-          "AGENTS",
-          "DATA",
-        ],
-        context = { version: 1, view: { workspace: "risk" } };
-      for (const fn of functions) {
-        const result = await commands.resolveCommandInput("SPY US " + fn, context, {
-          legacy: true,
-        });
-        assert.notEqual(result.status, "REJECTED", fn);
-        if (fn === "OBS") assert.equal(result.status, "CHOOSE");
-      }
-      for (const text of ["US-MKT US GP", "IN-MKT IN GP", "US-MKT OMON"]) {
-        const result = await commands.resolveCommandInput(text, context, { legacy: true });
-        assert.equal(result.status, "REJECTED", text);
-      }
-      searchAmendmentProof.legacyFunctions = functions;
-    },
-  );
-  await checkAsync(
-    "approved lossless encoding preserves exact epoch wire hashes history partitions and whole-file caps",
-    async () => {
-      const bytes = readFileSync(
-        path.join(frontend, "src/app/terminal/generated/history.generated.ts"),
-      );
-      const marker = bytes.indexOf("// Approved retained navigation supplement;");
-      assert(marker > 0);
-      assert.equal(
-        hash(bytes.subarray(0, marker)),
-        "a0ffef796c945190ef1d09fec06937ccb2b24cd395823234c8d229a0796b9f24",
-      );
-      assert.equal(
-        hash(
-          readFileSync(
-            path.join(frontend, "src/app/terminal/generated/history-archive.generated.ts"),
-          ),
-        ),
-        "00dcd9110c1128f4ad5dec0d892fe2fed01b9f1d6f3bea23455f7d6bb9fcb825",
-      );
-      assert(bytes.length <= catalog.MAX_LAZY_MODULE_BYTES);
-      assert(gzipSync(bytes, { level: 9 }).length <= catalog.MAX_LAZY_MODULE_GZIP_BYTES);
-      const defaultHistory = await catalog.loadTerminalShard("history"),
-        archiveHistory = await catalog.loadTerminalShard("history-archive");
-      assert.equal(defaultHistory.entities.length, 16);
-      assert.equal(defaultHistory.edges.length, 0);
-      assert.equal(Object.keys(defaultHistory.bindings).length, 16);
-      assert.equal(archiveHistory.entities.length, 332);
-      assert.equal(archiveHistory.edges.length, 552);
-      assert.equal(Object.keys(archiveHistory.bindings).length, 31);
-      const records = await catalog.loadRetainedSearchNavigation();
-      assert.equal(records.length, 572);
-      assert.equal(
-        records.reduce((n, r) => n + r.choices.length, 0),
-        986,
-      );
-      searchAmendmentProof.history = {
-        records: 572,
-        choices: 986,
-        wholeModuleDecodedBytes: bytes.length,
-        wholeModuleGzipBytes: gzipSync(bytes, { level: 9 }).length,
-        defaultPartitionUnchanged: true,
-        archivePartitionUnchanged: true,
-        wireEncodingChangedWithApproval: true,
-      };
-    },
-  );
-}
 const projectionProof = {
   provenance: "ENGINEERING_QA_READ_ONLY_OR_IN_MEMORY_MUTATIONS_OF_ACTUAL_RETAINED_METADATA",
 };
@@ -2699,23 +2042,9 @@ if (!coreOnly || projectionsOnly) {
 
   const readArtifactBytes = (_id, entry) => readFileSync(path.join(frontend, "public", entry.url));
   const clone = (v) => structuredClone(v);
-  const decode = (shard) =>
-    catalog.unpackTerminalPayload(
-      shard.strings,
-      shard.payload,
-      shard.structures,
-      shard.texts,
-      shard.layouts,
-    );
-  const reseal = async (value) => {
-    const { payloadDigest: _digest, ...sealed } = value;
-    return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
-  };
-  const repack = async (shard, payload) =>
-    reseal({
-      ...shard,
-      ...catalog.packTerminalPayload(payload, shard.schema_version === "terminal-shard/2"),
-    });
+  const decode = (shard) => shard.payload;
+  const reseal = async (value) => resealWith(value);
+  const repack = async (shard, payload) => reseal({ ...shard, payload });
   const resealProjection = async (value) => {
     const { projectionDigest: _digest, ...sealed } = value;
     return { ...sealed, projectionDigest: await catalog.terminalDigest(sealed) };
@@ -3130,10 +2459,7 @@ if (!coreOnly || projectionsOnly) {
     const { validateNavigationSeed } = await import(
       "data:text/javascript;base64," + Buffer.from(seedJavaScript).toString("base64")
     );
-    const resealNavigation = async (value) => {
-      const { payloadDigest: _digest, ...sealed } = value;
-      return { ...sealed, payloadDigest: await catalog.terminalDigest(sealed) };
-    };
+    const resealNavigation = async (value) => resealWith(value);
     await checkAsync(
       "compact navigation seed independently matches exact generated default seed and source manifest without any original fetch",
       async () => {
@@ -3364,125 +2690,6 @@ if (!coreOnly || projectionsOnly) {
           arrayScope: "one representative per array structural path",
         });
       },
-    );
-  check(
-    "packing preserves exact IEEE-754 values and signed zero inside deduplicated structures",
-    () => {
-      const values = [
-        [-0, 0, Number.MIN_VALUE, Number.MAX_VALUE, Number.EPSILON, 0.1, 1.0000000000000002],
-        [{ v: -0 }, { v: 0 }],
-        [{ v: [-0, 0, 0.1] }, { v: [0, -0, 0.1] }],
-      ];
-      function equal(a, b) {
-        if (typeof a === "number") {
-          assert(Object.is(a, b), "Exact finite IEEE-754 value changed");
-          return;
-        }
-        if (a && typeof a === "object") {
-          assert.deepEqual(Object.keys(a), Object.keys(b));
-          for (const key of Object.keys(a)) equal(a[key], b[key]);
-          return;
-        }
-        assert.equal(a, b);
-      }
-      for (const value of values) {
-        const packed = catalog.packTerminalPayload(value);
-        equal(
-          value,
-          catalog.unpackTerminalPayload(
-            packed.strings,
-            packed.payload,
-            packed.structures,
-            packed.texts,
-          ),
-        );
-      }
-    },
-  );
-  const zeroDigest = "0".repeat(64),
-    canonicalHashFragment = "!1" + "A".repeat(43);
-  check("hash fragments use canonical version1 encoding for exactly32 bytes", () =>
-    assert.deepEqual(catalog.packTerminalPayload(zeroDigest).strings, [canonicalHashFragment]),
-  );
-  const collisionValues = [
-    "",
-    zeroDigest,
-    "a".repeat(64),
-    "A".repeat(64),
-    "f".repeat(64) + zeroDigest,
-    "prefix:" + zeroDigest + ":suffix",
-    canonicalHashFragment,
-    "!!" + canonicalHashFragment,
-    "!2future",
-    "!",
-    "!!",
-    "!-0",
-    "$0",
-    "@0",
-    "日本語 !1 μ",
-    "x".repeat(8192),
-    "!" + "x".repeat(8191),
-  ];
-  for (const [index, value] of collisionValues.entries())
-    check("hash-fragment exact collision/Unicode/boundary roundtrip " + index, () => {
-      const packed = catalog.packTerminalPayload(value);
-      assert.equal(
-        catalog.unpackTerminalPayload(
-          packed.strings,
-          packed.payload,
-          packed.structures,
-          packed.texts,
-        ),
-        value,
-      );
-    });
-  for (const [index, value] of [
-    "!1",
-    "!1" + "A".repeat(42),
-    "!1" + "A".repeat(44),
-    "!1" + "A".repeat(42) + "=",
-    "!1" + "A".repeat(42) + "B",
-    "!1" + "A".repeat(42) + "+",
-    "!1" + "A".repeat(42) + "/",
-    "!1" + "A".repeat(41) + "==",
-    "!2" + "A".repeat(43),
-    "!x",
-    "!",
-    "x".repeat(8193),
-    "!!" + "x".repeat(8192),
-  ].entries())
-    check("malformed/noncanonical/oversized hash fragment rejects " + index, () =>
-      assert.throws(() => catalog.unpackTerminalPayload([value], "$0", [], [[0]])),
-    );
-  check("literal marker is escaped and decoded exactly once", () => {
-    assert.equal(
-      catalog.unpackTerminalPayload(["!!1" + "A".repeat(43)], "$0", [], [[0]]),
-      canonicalHashFragment,
-    );
-    assert.equal(catalog.unpackTerminalPayload(["!!!-0"], "$0", [], [[0]]), "!!-0");
-  });
-  check("fragment decoding retains dictionary and joined text bounds", () => {
-    assert.throws(() => catalog.unpackTerminalPayload(Array(20001).fill("x"), "$0", [], [[0]]));
-    assert.throws(() =>
-      catalog.unpackTerminalPayload([canonicalHashFragment], "$0", [], [Array(129).fill(0)]),
-    );
-  });
-
-  for (const value of [NaN, Infinity, -Infinity, undefined])
-    check(`packing rejects unsupported nonfinite/undefined ${String(value)}`, () =>
-      assert.throws(() => catalog.packTerminalPayload({ value })),
-    );
-  for (const [name, strings, value, structures, texts] of [
-    ["cyclic structure", [], "@0", [[0, "@0"]], undefined],
-    ["noncanonical reference", ["x"], "$00", [], undefined],
-    ["out-of-bounds string", ["x"], "$1", [], undefined],
-    ["out-of-bounds fragment", ["x"], "$0", [], [[1]]],
-    ["unsafe object prototype", ["__proto__"], [1, 0, 1], [], undefined],
-    ["duplicate field", ["x"], [1, 0, 1, 0, 2], [], undefined],
-    ["nonfinite scalar", [], Infinity, [], undefined],
-  ])
-    check(`packed decoder rejects ${name}`, () =>
-      assert.throws(() => catalog.unpackTerminalPayload(strings, value, structures, texts)),
     );
   const indiaTraceId = "observatory:IN-MKT:hmm",
     indiaTrace = artifact(indiaTraceId);
@@ -3785,26 +2992,6 @@ if (!coreOnly || projectionsOnly) {
           }
       },
     );
-    await checkAsync(
-      "packed metadata expands without dropping any admitted exact field",
-      async () => {
-        for (const shard of actualShards) {
-          const payload = decode(shard),
-            packed = catalog.packTerminalPayload(payload);
-          assert.equal(
-            catalog.stableTerminal(
-              catalog.unpackTerminalPayload(
-                packed.strings,
-                packed.payload,
-                packed.structures,
-                packed.texts,
-              ),
-            ),
-            catalog.stableTerminal(payload),
-          );
-        }
-      },
-    );
     check(
       "catalogue preserves every original AVAILABLE binding and all current/historical aliases",
       () => {
@@ -3964,9 +3151,9 @@ if (!coreOnly || projectionsOnly) {
           ),
         );
       });
-    await checkAsync("shard integrity rejects modified dictionary without resealing", async () => {
+    await checkAsync("shard integrity rejects a modified payload without resealing", async () => {
       const value = clone(seed);
-      value.strings[0] += "X";
+      value.payload.entities[0].label += "X";
       await assert.rejects(() =>
         catalog.validateTerminalShard(value, "seed", seed.manifestBinding),
       );
@@ -4359,6 +3546,23 @@ if (!coreOnly || projectionsOnly) {
           }
         },
       );
+      await checkAsync(
+        "static index transport rejects a mismatched unencoded Content-Length unread",
+        async () => {
+          const priorFetch = globalThis.fetch,
+            pulled = { bytes: 0 };
+          globalThis.fetch = async () =>
+            fakeResponse({ "content-length": String(bytes.length - 1) }, () => bytes, pulled);
+          try {
+            await assert.rejects(reader.readTerminalIndex(reference, "data"), (error) =>
+              error.message.startsWith("Terminal static index byte length changed. " + label),
+            );
+            assert(pulled.bytes <= bytes.length, "body must not be consumed");
+          } finally {
+            globalThis.fetch = priorFetch;
+          }
+        },
+      );
       await checkAsync("static index transport stops reading an endless body", async () => {
         const priorFetch = globalThis.fetch,
           pulled = { bytes: 0 },
@@ -4392,6 +3596,104 @@ if (!coreOnly || projectionsOnly) {
           globalThis.fetch = priorFetch;
         }
       });
+    }
+    // Retained navigation transport through the real loader. Fresh catalog instances keep an
+    // earlier cached success from hiding a fault; a resolve hook serves one crafted reference.
+    {
+      const retained = generatedRetainedNavigation();
+      const historyModule = new URL(
+        "../src/app/terminal/generated/history.generated.ts",
+        import.meta.url,
+      ).href;
+      const wrong = structuredClone(retained.value);
+      wrong.records[0].key += "x";
+      const craftedBody = Buffer.from(JSON.stringify(resealWith(wrong)) + "\n"),
+        craftedSha = hash(craftedBody),
+        crafted = {
+          schema_version: "terminal-static-shard/1",
+          name: "retained-navigation",
+          url: "/terminal/retained-navigation." + craftedSha.slice(0, 12) + ".json",
+          sha256: craftedSha,
+          bytes: craftedBody.length,
+        };
+      const { registerHooks } = await import("node:module");
+      registerHooks({
+        resolve(specifier, context, next) {
+          const resolved = next(specifier, context);
+          return resolved.url === historyModule &&
+            context.parentURL?.includes("retained-sabotage-content")
+            ? { ...resolved, url: historyModule + "?retained-sabotage-content", shortCircuit: true }
+            : resolved;
+        },
+        load(url, context, next) {
+          return url === historyModule + "?retained-sabotage-content"
+            ? {
+                format: "module",
+                shortCircuit: true,
+                source: "export const retainedNavigation = " + JSON.stringify(crafted) + ";\n",
+              }
+            : next(url, context);
+        },
+      });
+      const transport = await import("../src/app/terminal/catalog.ts?retained-sabotage-transport");
+      const flipped = Buffer.from(retained.bytes);
+      flipped[flipped.length - 1] ^= 0x2a;
+      const withFetch = async (respond, action) => {
+        const priorFetch = globalThis.fetch;
+        let requests = 0;
+        globalThis.fetch = async () => {
+          requests++;
+          return respond();
+        };
+        try {
+          await action();
+          return requests;
+        } finally {
+          globalThis.fetch = priorFetch;
+        }
+      };
+      for (const [label, respond, prefix] of [
+        ["flipped byte", () => new Response(flipped), "Terminal static index SHA-256 changed."],
+        [
+          "truncated body",
+          () => new Response(retained.bytes.subarray(0, retained.bytes.length - 1)),
+          "Terminal static index byte length changed.",
+        ],
+        [
+          "HTTP 404",
+          () => new Response("missing", { status: 404 }),
+          "Terminal static index is unavailable.",
+        ],
+      ])
+        await checkAsync("retained navigation transport rejects " + label, async () => {
+          const requests = await withFetch(respond, () =>
+            assert.rejects(transport.loadRetainedSearchNavigation(), (error) =>
+              error.message.startsWith(prefix + " Retained navigation index is unavailable: "),
+            ),
+          );
+          assert.equal(requests, 1);
+        });
+      await checkAsync(
+        "retained navigation recovers once the served index is authentic",
+        async () => {
+          assert((await transport.loadRetainedSearchNavigation()).length > 0);
+        },
+      );
+      await checkAsync(
+        "retained navigation names the index for authentic invalid content",
+        async () => {
+          const content = await import("../src/app/terminal/catalog.ts?retained-sabotage-content");
+          await withFetch(
+            () => new Response(craftedBody),
+            () =>
+              assert.rejects(content.loadRetainedSearchNavigation(), (error) =>
+                error.message.startsWith(
+                  "Terminal static index content is invalid. Retained navigation index is unavailable: ",
+                ),
+              ),
+          );
+        },
+      );
     }
     await checkAsync(
       "bound original reader rejects caller substitution and oversized India original before fetch",
@@ -5077,28 +4379,57 @@ if ((!coreOnly && !projectionsOnly) || navigationOnly) {
         );
       },
     );
-    for (const [name, change] of [
-      ["unknown field", (value) => (value.private_field = "never")],
-      ["record count", (value) => value.recordCount--],
-      ["noncanonical integer", (value) => (value.columns[0] = "00." + value.columns[0])],
-      ["hash alias", (value) => (value.hashes[0] += "=")],
-      ["unknown view", (value) => (value.views[0] = "0.0")],
-      ["manifest mismatch", (value) => (value.manifestBinding.sha256 = "a".repeat(64))],
+    const currentNavigation = () =>
+      JSON.parse(
+        readFileSync(
+          path.join(frontend, "src/app/terminal/generated/search.generated.ts"),
+          "utf8",
+        ).match(/export default (.+) as const;/)[1],
+      );
+    await checkAsync("retained navigation index validates as served", async () => {
+      const records = await catalog.validateNavigationProjection(
+        generatedRetainedNavigation().value,
+        shards[0].manifestBinding,
+        catalog.MAX_STATIC_TERMINAL_BYTES,
+      );
+      assert(records.length > 0);
+    });
+    for (const [scope, load, ceiling] of [
+      ["", currentNavigation, undefined],
+      ["retained ", () => generatedRetainedNavigation().value, catalog.MAX_STATIC_TERMINAL_BYTES],
     ])
-      await checkAsync("compact navigation rejects " + name, async () => {
-        const raw = JSON.parse(
-          readFileSync(
-            path.join(frontend, "src/app/terminal/generated/search.generated.ts"),
-            "utf8",
-          ).match(/export default (.+) as const;/)[1],
-        );
-        change(raw);
-        const { payloadDigest: _digest, ...sealed } = raw;
-        raw.payloadDigest = await catalog.terminalDigest(sealed);
-        await assert.rejects(() =>
-          catalog.validateNavigationProjection(raw, shards[0].manifestBinding),
-        );
-      });
+      for (const [name, change] of [
+        ["unknown field", (value) => (value.private_field = "never")],
+        [
+          "superseded packed version",
+          (value) => (value.schema_version = "terminal-search-navigation/1"),
+        ],
+        ["unknown record field", (value) => (value.records[0].private_field = "never")],
+        ["noncanonical order", (value) => value.records.reverse()],
+        ["mismatched key", (value) => (value.records[0].key += "x")],
+        ["unknown choice field", (value) => (value.records[0].choices[0].private_field = "never")],
+        [
+          "unroutable view",
+          (value) => (value.records[0].choices[0].view = { workspace: "nowhere" }),
+        ],
+        [
+          "partial selection",
+          (value) => (value.records.find((r) => r.choices[0].artifactId).choices[0].cutoff = null),
+        ],
+        ["unknown availability", (value) => (value.records[0].choices[0].availability = "HOSTED")],
+        ["manifest mismatch", (value) => (value.manifestBinding.sha256 = "a".repeat(64))],
+      ])
+        await checkAsync(scope + "navigation projection rejects " + name, async () => {
+          const raw = load();
+          change(raw);
+          await assert.rejects(() =>
+            catalog.validateNavigationProjection(
+              resealWith(raw),
+              shards[0].manifestBinding,
+              ceiling,
+            ),
+          );
+        });
     if (failures.length === failureStart) completedAreas.add("search");
     failureStart = failures.length;
     const commandOptions = {
@@ -5611,8 +4942,7 @@ if (!coreOnly && !projectionsOnly && !navigationOnly)
     ),
   );
 const report = {
-  layoutCodec: layoutCodecProof,
-  archiveOrdering: orderingProof,
+  staticShards: shardProof,
   transport: transportProof,
   schema_version: "phase75-terminal-context-proof/1",
   status: failures.length ? "FAIL" : missingAreas.length ? "INCOMPLETE" : "PASS",
@@ -5634,7 +4964,6 @@ const report = {
   freeze: freezeProof,
   projections: projectionProof,
   navigation: navigationProof,
-  searchAmendment: searchAmendmentProof,
 };
 const proofDir = path.resolve(root, process.env.TERMINAL_PROOF_DIR ?? ".tmp/phase75/context");
 mkdirSync(proofDir, { recursive: true });

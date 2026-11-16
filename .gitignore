@@ -89,3 +89,4 @@ frontend-v2/public/research/
 frontend-v2/src/research/pin.generated.ts
 frontend-v2/public/terminal/data.*.json
 frontend-v2/public/terminal/history-archive.*.json
+frontend-v2/public/terminal/retained-navigation.*.json

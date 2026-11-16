@@ -31,11 +31,8 @@ import {
   SHARD_NAMES,
   TERMINAL_CONTRACT,
   stableTerminal,
-  packTerminalPayload,
-  unpackTerminalPayload,
   validateTerminalShard,
   catalogEntities,
-  packNavigationRecords,
   validateNavigationProjection,
   MAX_SEED_MODULE_BYTES,
   MAX_SEED_MODULE_GZIP_BYTES,
@@ -5768,7 +5765,24 @@ Object.assign(CLOSED_SOURCE_FIELDS, {
   },
 });
 export const TERMINAL_GENERATED_MODULE_NAMES = [...SHARD_NAMES, "observatory-window", "search"];
-const STATIC_TERMINAL_FILE = /^(?:data|history-archive)\.[a-f0-9]{12}\.json$/;
+const STATIC_TERMINAL_FILE = /^(?:data|history-archive|retained-navigation)\.[a-f0-9]{12}\.json$/;
+/** Content-addressed static JSON plus the reference the bundle keeps (url, SHA-256, length). */
+function staticIndexFile(name, value) {
+  const json = JSON.stringify(value) + "\n",
+    sha256 = hash(json),
+    filename = name + "." + sha256.slice(0, 12) + ".json";
+  return {
+    json,
+    filename,
+    reference: {
+      schema_version: "terminal-static-shard/1",
+      name,
+      url: "/terminal/" + filename,
+      sha256,
+      bytes: Buffer.byteLength(json),
+    },
+  };
+}
 const hash = (raw) => createHash("sha256").update(raw).digest("hex");
 const seal = (value) => hash(Buffer.from(stableTerminal(value)));
 const compare = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -7173,53 +7187,21 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       failures.push("Entity budget: " + name + "=" + payload.entities.length);
     if (payload.edges.length > MAX_SHARD_EDGES)
       failures.push("Edge budget: " + name + "=" + payload.edges.length);
-    const packed = packTerminalPayload(payload, name === "history-archive");
-    assertExactRoundtrip(
-      payload,
-      unpackTerminalPayload(
-        packed.strings,
-        packed.payload,
-        packed.structures,
-        packed.texts,
-        packed.layouts,
-      ),
-    );
-    assert.equal(
-      stableTerminal(
-        unpackTerminalPayload(
-          packed.strings,
-          packed.payload,
-          packed.structures,
-          packed.texts,
-          packed.layouts,
-        ),
-      ),
-      stableTerminal(payload),
-      "Lossy terminal packing",
-    );
     const sealed = {
-      schema_version: name === "history-archive" ? "terminal-shard/2" : "terminal-shard/1",
+      schema_version: "terminal-shard/3",
       generator_contract: TERMINAL_CONTRACT,
       name,
       manifestBinding,
-      ...packed,
+      payload,
     };
     const shard = { ...sealed, payloadDigest: seal(sealed) };
     // Data and history-archive are data, not code: hashed static JSON plus a tiny JS reference.
     const staticIndex = name === "data" || name === "history-archive";
     const json = JSON.stringify(shard) + "\n";
     const staticBytes = Buffer.byteLength(json);
-    const staticSha256 = staticIndex ? hash(json) : null;
-    const staticFilename = staticIndex ? name + "." + staticSha256.slice(0, 12) + ".json" : null;
-    const staticReference = staticIndex
-      ? {
-          schema_version: "terminal-static-shard/1",
-          name,
-          url: "/terminal/" + staticFilename,
-          sha256: staticSha256,
-          bytes: staticBytes,
-        }
-      : null;
+    const staticIndexOutput = staticIndex ? staticIndexFile(name, shard) : null;
+    const staticFilename = staticIndexOutput?.filename ?? null;
+    const staticReference = staticIndexOutput?.reference ?? null;
     const output =
       "// Generated from checked retained public metadata; do not edit or commit.\n// prettier-ignore\nexport default " +
       JSON.stringify(staticReference ?? shard) +
@@ -7237,27 +7219,12 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
       bindings: Object.keys(payload.bindings).length,
       projections: payload.projections.length,
       decodedBytes: bytes,
-      unpackedJSONBytes: Buffer.byteLength(stableTerminal(payload)),
-      ...(packed.layouts
-        ? {
-            layoutEncoding: "terminal-shard/2",
-            poolOrdering: "text-frequency/layout-cluster/1",
-            textPoolMembers: packed.texts.length,
-            structurePoolMembers: packed.structures.length,
-            layouts: packed.layouts.length,
-            layoutKeyIndices: packed.layouts.reduce((n, keys) => n + keys.length, 0),
-            maxLayoutKeys: Math.max(0, ...packed.layouts.map((keys) => keys.length)),
-          }
-        : {}),
-      fragmentEncoding: "terminal-fragment/1",
-      encodedHashFragments: packed.strings.filter((part) => part.startsWith("!1")).length,
-      escapedLiteralFragments: packed.strings.filter((part) => part.startsWith("!!")).length,
       gzipBytes,
       ...(staticIndex
         ? {
             transport: "static-json",
             staticFilename,
-            staticSha256,
+            staticSha256: staticReference.sha256,
             staticBytes,
             staticGzipBytes: gzipSync(json, { level: 9 }).length,
           }
@@ -7273,7 +7240,9 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     if (staticIndex && staticBytes > MAX_STATIC_TERMINAL_BYTES)
       failures.push("Static JSON transport budget: " + name + "=" + staticBytes);
     // Record every ceiling failure; only an admitted shard reaches the runtime validator.
-    if (failures.length === admitted) await validateTerminalShard(shard, name, manifestBinding);
+    // The runtime validator sees exactly the served JSON, not the in-memory object.
+    if (failures.length === admitted)
+      await validateTerminalShard(JSON.parse(json), name, manifestBinding);
     shards[name] = shard;
     modules[name] = output;
     if (staticIndex) staticFiles[staticFilename] = json;
@@ -7290,7 +7259,6 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     bindings: 1,
     projections: 1,
     decodedBytes: displayBytes,
-    unpackedJSONBytes: Buffer.byteLength(stableTerminal(observatoryWindow)),
     gzipBytes: displayGzipBytes,
     projectionDigest: observatoryWindow.projectionDigest,
   };
@@ -7329,12 +7297,10 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     "Search navigation has an unverified complete source",
   );
   const searchSeal = {
-    schema_version: "terminal-search-navigation/1",
+    schema_version: "terminal-search-navigation/2",
     generator_contract: TERMINAL_CONTRACT,
     manifestBinding,
-    recordCount: currentSearchRecords.length,
-    logicalDigest: seal(currentSearchRecords),
-    ...packNavigationRecords(currentSearchRecords),
+    records: currentSearchRecords,
   };
   const searchProjection = { ...searchSeal, payloadDigest: seal(searchSeal) };
   const searchOutput =
@@ -7343,18 +7309,11 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
     " as const;\n";
   const searchBytes = Buffer.byteLength(searchOutput),
     searchGzipBytes = gzipSync(searchOutput, { level: 9 }).length;
-  const searchDecoded = await validateNavigationProjection(searchProjection, manifestBinding);
-  assertExactRoundtrip(currentSearchRecords, searchDecoded);
-  assert.equal(
-    seal(searchDecoded),
-    seal(currentSearchRecords),
-    "Current search semantic set changed",
-  );
+  await validateNavigationProjection(JSON.parse(JSON.stringify(searchProjection)), manifestBinding);
   report.searchNavigation = {
     records: currentSearchRecords.length,
     decodedBytes: searchBytes,
     gzipBytes: searchGzipBytes,
-    logicalDigest: searchProjection.logicalDigest,
     payloadDigest: searchProjection.payloadDigest,
     sourceEntities: currentSearchSource.entities.length,
     semanticSetEqual: true,
@@ -7412,47 +7371,35 @@ export async function deriveTerminalCatalog(manifest, { manifestBytes, readArtif
   ))
     await source(id);
   const retainedSeal = {
-    schema_version: "terminal-search-navigation/1",
+    schema_version: "terminal-search-navigation/2",
     generator_contract: TERMINAL_CONTRACT,
     manifestBinding,
-    recordCount: supplementalRecords.length,
-    logicalDigest: seal(supplementalRecords),
-    ...packNavigationRecords(supplementalRecords),
+    records: supplementalRecords,
   };
   const retainedNavigation = { ...retainedSeal, payloadDigest: seal(retainedSeal) };
-  assertExactRoundtrip(
-    supplementalRecords,
-    await validateNavigationProjection(retainedNavigation, manifestBinding),
+  // Retained navigation is data: served as SHA-verified static JSON, referenced from history.
+  const retainedFile = staticIndexFile("retained-navigation", retainedNavigation);
+  await validateNavigationProjection(
+    JSON.parse(retainedFile.json),
+    manifestBinding,
+    MAX_STATIC_TERMINAL_BYTES,
   );
-  const historyDefaultOutput = modules.history;
+  staticFiles[retainedFile.filename] = retainedFile.json;
   modules.history +=
-    "// Approved retained navigation supplement; accepted default history payload is unchanged.\n// prettier-ignore\nexport const retainedNavigation = " +
-    JSON.stringify(retainedNavigation) +
+    "// Retained navigation index reference; the records are hashed static JSON.\n// prettier-ignore\nexport const retainedNavigation = " +
+    JSON.stringify(retainedFile.reference) +
     " as const;\n";
-  const historyBytes = Buffer.byteLength(modules.history),
-    historyGzip = gzipSync(modules.history, { level: 9 }).length;
-  report.shards.history.defaultPayloadDecodedBytes = report.shards.history.decodedBytes;
-  report.shards.history.defaultPayloadGzipBytes = report.shards.history.gzipBytes;
-  report.shards.history.defaultOutputSha256 = hash(historyDefaultOutput);
-  report.shards.history.decodedBytes = historyBytes;
-  report.shards.history.gzipBytes = historyGzip;
   report.retainedNavigation = {
     records: supplementalRecords.length,
     choices: supplementalRecords.reduce((n, record) => n + record.choices.length, 0),
-    logicalDigest: retainedNavigation.logicalDigest,
     payloadDigest: retainedNavigation.payloadDigest,
-    defaultPartitionUnchanged: true,
-    defaultOutputSha256: hash(historyDefaultOutput),
-    archiveOutputSha256: hash(modules["history-archive"]),
-    wholeModuleDecodedBytes: historyBytes,
-    wholeModuleGzipBytes: historyGzip,
-    fullRetainedRecords: fullRetainedNavigation.length,
-    fullRetainedChoices: fullRetainedNavigation.reduce((n, record) => n + record.choices.length, 0),
+    staticFilename: retainedFile.filename,
+    staticBytes: retainedFile.reference.bytes,
   };
-  if (historyBytes > MAX_LAZY_MODULE_BYTES)
-    failures.push("Decoded whole history module with approved supplement=" + historyBytes);
-  if (historyGzip > MAX_LAZY_MODULE_GZIP_BYTES)
-    failures.push("Gzip whole history module with approved supplement=" + historyGzip);
+  if (retainedFile.reference.bytes > MAX_STATIC_TERMINAL_BYTES)
+    failures.push(
+      "Static JSON transport budget: retained-navigation=" + retainedFile.reference.bytes,
+    );
   assert(
     !failures.length,
     "STOP: terminal capacity admission failed; no outputs written. " +
