@@ -44,8 +44,10 @@ export const STATE = {
   unavailable: { color: "muted", glow: 0.28 },
   falsified: { color: "red", glow: 0.55 },
   repaired: { color: "amber", glow: 0.5 },
+  held: { color: "cyanSoft", glow: 0.8 },
+  uncalibrated: { color: "red", glow: 0.5 },
   challenge: { color: "magenta", glow: 1 },
-  challenged: { color: "red", glow: 0.85 },
+  challenged: { color: "amber", glow: 0.9 },
   frozen: { color: "fg", glow: 1 },
 } as const satisfies Record<string, { color: ColorName; glow: number }>;
 export type EvidenceState = keyof typeof STATE;

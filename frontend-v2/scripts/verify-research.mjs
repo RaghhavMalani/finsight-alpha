@@ -1,4 +1,4 @@
-// Usage: node scripts/verify-research.mjs [--url http://127.0.0.1:4178] [--screenshots]
+// Usage: node scripts/verify-research.mjs [--url http://127.0.0.1:4178] [--screenshots] [--perf]
 // Without --url: the generated projection is checked against the sealed Research OS files,
 // value by value, and the contract's refusals are exercised. With --url, a browser checks the
 // built /research route: real nodes, provenance on every rendered number, refusal of a
@@ -17,22 +17,67 @@ const urlFlag = process.argv.indexOf("--url");
 const base = urlFlag > 0 ? process.argv[urlFlag + 1]?.replace(/\/$/, "") : null;
 const shots = process.argv.includes("--screenshots");
 
-// 1. Projection integrity against the pin and the sealed sources --------------------------
+// 1. Projection integrity, checked independently of the page's contract and of the hashes
+//    the generator wrote: sources are hashed here and compared with the export manifests,
+//    and the manifests with the repository freeze inventory. States and derived values are
+//    recomputed from the sealed records with this file's own implementation.
 const pinText = readFileSync(resolve(frontend, "src/research/pin.generated.ts"), "utf8");
 const pin = {
   url: /url: "([^"]+)"/.exec(pinText)[1],
   sha256: /sha256: "([0-9a-f]{64})"/.exec(pinText)[1],
+  bytes: Number(/bytes: (\d+)/.exec(pinText)[1]),
 };
 const bytes = readFileSync(resolve(frontend, "public", pin.url.slice(1)));
+assert.equal(bytes.length, pin.bytes, "projection length does not match the pin");
 assert.equal(sha(bytes), pin.sha256, "projection bytes do not match the compiled pin");
-const graph = validateGraph(JSON.parse(bytes.toString("utf8")));
-let checks = 2;
+const graph = JSON.parse(bytes.toString("utf8"));
+let checks = 3;
 
-const docs = {};
+// Inline structure check (not the page's validateGraph).
+assert.equal(graph.schema_version, "research-graph/1");
+assert.equal(graph.status, "AVAILABLE", `projection unavailable: ${graph.reason}`);
+const ids = new Set(graph.nodes.map((n) => n.id));
+assert.equal(ids.size, graph.nodes.length, "duplicate node ids");
+for (const e of graph.edges) assert(ids.has(e.from) && ids.has(e.to), `edge ${e.from}→${e.to}`);
+for (let i = 1; i < graph.timeline.length; i++)
+  assert(
+    Date.parse(graph.timeline[i].at) >= Date.parse(graph.timeline[i - 1].at),
+    "timeline order",
+  );
+
+// Sources: hashed here, against the manifests, and the manifests against the freeze inventory.
+const FREEZE = "eval/factors/v0.1/phase5-freeze.json";
+const freeze = JSON.parse(readFileSync(resolve(repo, FREEZE), "utf8")).files;
+const manifests = {};
+for (const dir of ["data/exports/research_os_v0_1", "data/exports/research_os_v0_1_1"]) {
+  const m = readFileSync(resolve(repo, dir, "manifest.json"));
+  assert.equal(
+    sha(m),
+    freeze[`${dir}/manifest.json`]?.sha256,
+    `${dir}/manifest.json not in ${FREEZE}`,
+  );
+  manifests[dir] = JSON.parse(m.toString("utf8")).files;
+  checks++;
+}
+const docs = {},
+  hashes = {};
 for (const [key, s] of Object.entries(graph.sources)) {
   const file = readFileSync(resolve(repo, s.path));
-  assert.equal(sha(file), s.sha256, `${key} changed since the projection was built`);
-  if (s.path.endsWith(".json")) docs[key] = JSON.parse(file.toString("utf8"));
+  const digest = sha(file),
+    dir = s.path.replace(/\/[^/]+$/, ""),
+    name = s.path.slice(dir.length + 1);
+  if (s.path === FREEZE) {
+    // The inventory is the anchor itself; it is tracked and CI-checked by its own gate.
+  } else if (s.path.endsWith("manifest.json"))
+    assert.equal(
+      digest,
+      freeze[s.path]?.sha256,
+      `${s.path} is not the manifest sealed in ${FREEZE}`,
+    );
+  else assert.equal(digest, manifests[dir]?.[name], `${key} is not sealed by its manifest`);
+  assert.equal(s.sha256, digest, `${key}: projection names a different SHA-256`);
+  hashes[s.path] = digest;
+  docs[key] = s.path.endsWith(".json") ? JSON.parse(file.toString("utf8")) : file.toString("utf8");
   checks++;
 }
 const resolvePtr = (doc, ptr) =>
@@ -41,24 +86,123 @@ const resolvePtr = (doc, ptr) =>
     .slice(1)
     .map((k) => k.replace(/~1/g, "/").replace(/~0/g, "~"))
     .reduce((v, k) => (v == null ? undefined : v[k]), doc);
+const pre = docs["v0.1/preregistration.json"],
+  flagship = docs["v0.1/flagship.json"];
+const alpha = pre.tests.find((t) => t.method === "HAC").alpha;
+// Normal quantiles by bisection on a series erf, independent of the generator's method.
+const erf = (x) => {
+  let sum = 0,
+    term = x;
+  for (let n = 0; n < 80; n++) {
+    sum += term / (2 * n + 1);
+    term *= (-x * x) / (n + 1);
+  }
+  return (2 / Math.sqrt(Math.PI)) * sum;
+};
+const quantile = (p) => {
+  let lo = -6,
+    hi = 6;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lo + hi) / 2;
+    if (0.5 * (1 + erf(mid / Math.SQRT2)) < p) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+};
+assert(Math.abs(graph.study.z_crit.v - quantile(1 - alpha)) < 1e-6, "critical z recomputed");
 let numbers = 0;
+const allFacts = (n) => [
+  ...n.facts,
+  ...(n.cost ?? []),
+  ...(n.verdicts ?? []),
+  ...(n.rule?.inputs ?? []),
+];
 for (const n of graph.nodes)
-  for (const f of [...n.facts, ...(n.cost ?? []), ...(n.verdicts ?? [])]) {
+  for (const f of allFacts(n)) {
     if (!f.n) continue;
     numbers++;
-    assert(graph.sources[f.n.src], `${n.id} ${f.k} cites an unsealed source`);
-    if (f.n.formula) continue; // Derived: both pointers are checked to exist below.
+    assert(hashes[graph.sources[f.n.src]?.path], `${n.id} ${f.k} cites an unsealed source`);
+    if (f.n.formula) continue;
     const raw = resolvePtr(docs[f.n.src], f.n.ptr);
     assert(Object.is(raw ?? null, f.n.v), `${n.id} ${f.k}: projection ${f.n.v} ≠ source ${raw}`);
   }
+// Re-derive every trial's state, rule result, t and wall time from the sealed record.
+const z975 = quantile(0.975);
 const runs = graph.nodes.filter((n) => n.kind === "experiment" || n.kind === "counterfactual");
-const flagship = docs["v0.1/flagship.json"];
 assert.equal(runs.length, Object.keys(flagship.records).length, "every frozen trial is a node");
-for (const r of runs) assert(flagship.records[r.id.slice(2)], `${r.id} is not a frozen trial`);
-assert.equal(graph.timeline.length > 100, true, "recorded events present");
-checks += numbers + runs.length;
+for (const r of runs) {
+  const rec = flagship.records[r.id.slice(2)];
+  assert(rec, `${r.id} is not a frozen trial`);
+  const res = rec.payload.result,
+    holm = rec.payload.correction.HOLM;
+  const placebo = r.kind === "counterfactual";
+  const passes = holm != null && holm <= alpha;
+  const expected =
+    res.status === "UNAVAILABLE"
+      ? "unavailable"
+      : placebo
+        ? passes
+          ? "falsified"
+          : "held"
+        : passes && res.ci_lower > 0
+          ? "verified"
+          : "inconclusive";
+  assert.equal(r.state, expected, `${r.id} state`);
+  if (res.status !== "UNAVAILABLE") {
+    const t = res.estimate / ((res.ci_upper - res.ci_lower) / (2 * z975));
+    assert(Math.abs(r.t.v - t) < 1e-6, `${r.id} t`);
+    assert.equal(r.rule.met, placebo ? passes : passes && res.ci_lower > 0, `${r.id} rule`);
+  }
+  const ev = flagship.attempts.filter((a) => a.attempt === rec.attempt);
+  const wall =
+    (Date.parse(ev.find((a) => a.kind === "SUCCESS").at) -
+      Date.parse(ev.find((a) => a.kind === "START").at)) /
+    1000;
+  assert(Math.abs(r.cost[0].n.v - wall) < 1e-9, `${r.id} wall time`);
+  checks += 3;
+}
+// Verdicts that are not plain fields, re-derived here.
+const node = (id) => graph.nodes.find((n) => n.id === id);
+const suite = docs["v0.1/tests.json"],
+  cal = docs["v0.1/calibration.json"],
+  rep = docs["v0.1/repeatability.json"],
+  summary = docs["v0.1.1/summary.json"],
+  guard = docs["v0.1.1/pre-confirmation-guard-repair.json"],
+  conf = docs["v0.1.1/confirmation.json"];
+assert.equal(
+  node("TESTS").state,
+  suite.failures === 0 && suite.errors === 0 ? "verified" : "falsified",
+);
+assert.equal(node("TESTS").verdict.t, `${suite.failures} failures · ${suite.errors} errors`);
+assert.equal(node("CAL").state, cal.status === "NOT_CALIBRATED" ? "uncalibrated" : "verified");
+for (const [name, c] of Object.entries(cal.cases)) {
+  const word = (v) => (v ? "accepted" : "rejected");
+  assert.equal(
+    node(`CAL:${name}`).verdict.t,
+    `null size ${word(c.null_accepted)} · power ${word(c.power_accepted)}`,
+  );
+}
+assert.equal(node("REP").state, rep.status === "IDENTICAL" ? "verified" : "falsified");
+const logged = /Selection does not match frozen discovery/.test(
+  docs["v0.1.1/pre-confirmation-rejection.log"],
+);
+const reproduced = conf.selection_hash === guard.old_selection_sha256;
+assert.equal(
+  node("SK:guard").verdict.t,
+  `${logged ? "rejected" : "no rejection recorded"} · selection ${reproduced ? "reproduced" : "not reproduced"}`,
+);
+const dims = ["STATISTICAL", "CROSS_MARKET", "REGIME_DEPENDENCE", "ECONOMIC"];
+assert.equal(
+  node("F").state,
+  dims.some((d) => flagship.scorecard[d] === "SUPPORTED") ? "verified" : "inconclusive",
+);
+assert.equal(
+  node("F").finalState,
+  summary.old_gate === "PERMANENTLY_CLOSED" ? "challenged" : undefined,
+);
+checks += 8;
 
-// Contract refusals: each mutation must be rejected.
+// The page's own contract must refuse these mutations too (defence in depth).
 for (const [name, mutate] of [
   ["unsealed source", (g) => (g.nodes[0].facts.find((f) => f.n).n.src = "nowhere.json")],
   ["non-numeric value", (g) => (g.nodes.find((n) => n.cost).cost[0].n.v = "0.13")],
@@ -73,7 +217,7 @@ for (const [name, mutate] of [
   checks++;
 }
 console.log(
-  `${checks} research projection checks passed: ${graph.nodes.length} nodes, ${numbers} numbers traced to sealed bytes`,
+  `${checks} research projection checks passed: ${graph.nodes.length} nodes, ${numbers} numbers traced to sealed bytes; states, t, wall time and verdicts recomputed`,
 );
 
 // 2. Lazy boundary: no three.js in the route chunk or the page's static import closure -------
@@ -278,25 +422,27 @@ try {
   await flat.close();
   console.log("2D fallback: every node positioned without WebGL");
 
-  // Frame time: the real graph, then a verifier-only synthetic scale probe (~200 nodes).
-  for (const [label, synthetic] of [
-    ["real", null],
-    ["synthetic", 200],
-  ]) {
-    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    if (synthetic)
-      await p.addInitScript((n) => (window.__researchSynthetic = { nodes: n }), synthetic);
-    await p.goto(`${base}/research`);
-    if (synthetic) await p.locator("[data-synthetic]").waitFor({ timeout: 20000 });
-    await p.locator('[data-replay="done"]').waitFor({ state: "attached", timeout: 40000 });
-    await p.evaluate(() => delete window.__researchMetrics);
-    await p.waitForFunction(() => window.__researchMetrics, null, { timeout: 20000 });
-    const m = await p.evaluate(() => window.__researchMetrics);
-    console.log(
-      `Frame time (${label}): ${m.nodes} nodes, ${m.edges} edges, median ${m.median.toFixed(1)} fps, p5 ${m.p5.toFixed(1)} fps · ${m.renderer}`,
-    );
-    await p.close();
-  }
+  // Frame time needs a build made with VITE_PERF_PROBE=true (sampler and synthetic probe
+  // exist only there); run with --perf against such a build.
+  if (process.argv.includes("--perf"))
+    for (const [label, synthetic] of [
+      ["real", null],
+      ["synthetic", 200],
+    ]) {
+      const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      if (synthetic)
+        await p.addInitScript((n) => (window.__researchSynthetic = { nodes: n }), synthetic);
+      await p.goto(`${base}/research`);
+      if (synthetic) await p.locator("[data-synthetic]").waitFor({ timeout: 20000 });
+      await p.locator('[data-replay="done"]').waitFor({ state: "attached", timeout: 40000 });
+      await p.evaluate(() => delete window.__researchMetrics);
+      await p.waitForFunction(() => window.__researchMetrics, null, { timeout: 20000 });
+      const m = await p.evaluate(() => window.__researchMetrics);
+      console.log(
+        `Frame time (${label}): ${m.nodes} nodes, ${m.edges} edges, median ${m.median.toFixed(1)} fps, p5 ${m.p5.toFixed(1)} fps · ${m.renderer}`,
+      );
+      await p.close();
+    }
 } catch (error) {
   failures.push(error);
 } finally {

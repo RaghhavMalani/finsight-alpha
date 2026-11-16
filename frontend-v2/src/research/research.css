@@ -94,7 +94,11 @@
   font: 500 11px/1.3 var(--vx-mono);
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  text-shadow: 0 0 10px #000;
+  text-shadow:
+    0 0 3px #000,
+    0 0 6px #000,
+    0 0 12px #000,
+    0 0 18px #000;
 }
 .rs-glabel.is-center {
   justify-content: center;
@@ -340,8 +344,8 @@
   box-shadow: 0 0 6px var(--vx-magenta);
 }
 .rs-ticks i.k-challenged[data-on="true"] {
-  background: var(--vx-red);
-  box-shadow: 0 0 6px var(--vx-red);
+  background: var(--vx-amber);
+  box-shadow: 0 0 6px var(--vx-amber);
 }
 .rs-ticks i.k-freeze[data-on="true"] {
   background: var(--vx-fg);
@@ -395,9 +399,11 @@
   color: var(--vx-amber) !important;
 }
 .k-fail,
-.k-reject,
-.k-challenged {
+.k-reject {
   color: var(--vx-red) !important;
+}
+.k-challenged {
+  color: var(--vx-amber) !important;
 }
 .k-challenge {
   color: var(--vx-magenta) !important;
@@ -406,7 +412,7 @@
   color: var(--vx-fg) !important;
 }
 
-/* Composer: a slim command rail on the bottom edge, honest about being inert. */
+/* Composer: one prompt line in the command bar's language, honest about being inert. */
 .rs-composer {
   position: absolute;
   left: 0;
@@ -414,53 +420,57 @@
   bottom: 0;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   height: 44px;
   margin: 0;
   padding: 0 24px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.55));
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.94), rgba(0, 0, 0, 0.6));
   box-shadow: inset 0 1px 0 rgba(63, 224, 255, 0.1);
 }
-.rs-composer label {
+.rs-c-line {
+  flex: 1;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
+  height: 30px;
+  padding: 0 12px;
+  background: rgba(10, 13, 16, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(231, 234, 236, 0.1);
+  border-radius: 4px;
 }
-.rs-composer span {
-  font: 500 11px var(--vx-mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--vx-muted);
+.rs-c-caret {
+  color: var(--vx-amber);
+  font: 600 13px var(--vx-mono);
 }
-.rs-composer input {
-  width: 104px;
+.rs-c-line input {
+  flex: 1;
   min-width: 0;
-  padding: 2px 0;
   background: transparent;
   border: 0;
-  border-bottom: 1px dashed rgba(154, 162, 169, 0.35);
   color: var(--vx-muted);
   font: 12px var(--vx-mono);
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
   cursor: not-allowed;
 }
-.rs-composer input::placeholder {
-  color: #7d858c;
-}
-.rs-c-hyp {
-  flex: 1;
-}
-.rs-c-hyp input {
-  width: 100%;
+.rs-c-line input::placeholder {
+  color: #9aa2a9;
 }
 .rs-composer button {
   all: unset;
-  padding: 5px 14px;
+  padding: 6px 14px;
   font: 600 11px var(--vx-mono);
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--vx-muted);
-  box-shadow: inset 0 0 0 1px rgba(154, 162, 169, 0.3);
+  color: #9aa2a9;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(154, 162, 169, 0.12) 0 4px,
+    transparent 4px 8px
+  );
+  box-shadow: inset 0 0 0 1px rgba(154, 162, 169, 0.28);
+  border-radius: 4px;
   cursor: not-allowed;
 }
 .rs-c-note {
@@ -468,6 +478,46 @@
   font: 11px var(--vx-mono);
   color: var(--vx-amber);
   white-space: nowrap;
+}
+
+/* Persistent readout of the sealed primary trials. */
+.rs-readout {
+  margin-top: 10px;
+  font: 11px/1.55 var(--vx-mono);
+  font-variant-numeric: tabular-nums;
+  pointer-events: auto;
+}
+.rs-ro-row {
+  display: grid;
+  grid-template-columns: 56px 52px 64px 132px 58px 40px 50px 56px;
+  gap: 8px;
+  color: var(--vx-fg);
+}
+.rs-ro-row > span {
+  white-space: nowrap;
+}
+.rs-ro-row i {
+  font-style: normal;
+  color: var(--vx-muted);
+  padding: 0 2px;
+}
+.rs-ro-head {
+  color: var(--vx-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.rs-ro-name {
+  color: var(--vx-cyan);
+  letter-spacing: 0.08em;
+}
+.rs-ro-foot {
+  margin-top: 3px;
+  color: var(--vx-muted);
+}
+.rs-rule {
+  margin: 2px 0 4px;
+  font: 12px/1.5 var(--vx-ui);
+  color: #cfd5da;
 }
 
 /* Node HUD: a translucent instrument readout, framed by corner ticks in its state colour. */
@@ -513,6 +563,17 @@
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--hud-tone);
+}
+.rs-hud {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  padding-bottom: 32px;
+}
+.rs-hud-grab {
+  display: none;
+}
+.rs-hud-x {
+  display: none;
 }
 .rs-hud-top button {
   all: unset;
@@ -616,7 +677,7 @@
 /* Narrow: overlays become sheets, the rail folds to two lines. ------------------------- */
 @media (max-width: 700px) {
   .rs {
-    height: 900px;
+    height: 1000px;
     flex: none;
   }
   .rs-mast {
@@ -628,7 +689,7 @@
     font-size: 19px;
   }
   .rs-status {
-    top: 118px;
+    top: 214px;
     right: 16px;
     left: 16px;
     align-items: flex-start;
@@ -657,20 +718,49 @@
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
-  .rs-composer {
-    height: auto;
-    flex-wrap: wrap;
-    gap: 6px 14px;
-    padding: 10px 16px 12px;
+  .rs-hud-grab {
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: -4px auto 8px;
+    border-radius: 2px;
+    background: rgba(231, 234, 236, 0.3);
   }
-  .rs-composer label:not(.rs-c-hyp) {
+  .rs-hud-esc {
     display: none;
   }
-  .rs-c-hyp {
-    flex: 1 1 60%;
+  .rs-hud-x {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: -12px -12px -12px 0;
+    font-size: 22px;
+    color: var(--vx-fg);
+  }
+  .rs-glabel,
+  .rs-pin {
+    max-width: calc(100vw - 32px);
+  }
+  .rs-composer {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 16px 12px;
+    gap: 6px 10px;
   }
   .rs-c-note {
     flex-basis: 100%;
+    white-space: normal;
+  }
+  .rs-readout {
+    margin-top: 6px;
+    overflow-x: auto;
+  }
+  .rs-ro-row {
+    grid-template-columns: 44px 44px 58px 120px 50px 34px 46px 50px;
+    gap: 6px;
+  }
+  .rs-ro-foot {
     white-space: normal;
   }
   .rs-hud {

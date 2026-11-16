@@ -46,6 +46,7 @@ const FILES = {
   "v0.1/mutations.json": ["v0.1", "mutations.json"],
   "v0.1/repeatability.json": ["v0.1", "repeatability.json"],
   "v0.1/final-tests.json": ["v0.1", "final-tests.json"],
+  "v0.1/tests.json": ["v0.1", "tests.json"],
   "v0.1/freeze-receipt.json": ["v0.1", "freeze-receipt.json"],
   "v0.1/publication.json": ["v0.1", "publication.json"],
   "v0.1.1/freeze-receipt.json": ["v0.1.1", "freeze-receipt.json"],
@@ -54,18 +55,34 @@ const FILES = {
   "v0.1.1/confirmation.json": ["v0.1.1", "confirmation.json"],
   "v0.1.1/summary.json": ["v0.1.1", "summary.json"],
   "v0.1.1/pre-confirmation-guard-repair.json": ["v0.1.1", "pre-confirmation-guard-repair.json"],
+  "v0.1.1/pre-confirmation-rejection.log": ["v0.1.1", "pre-confirmation-rejection.log"],
 };
+/** The repository's freeze inventory that already seals both export manifests by SHA-256. */
+const FREEZE = "eval/factors/v0.1/phase5-freeze.json";
 
 class Unavailable extends Error {}
 
 function loadSources() {
   const manifests = {};
+  const freezePath = resolve(repo, FREEZE);
+  if (!existsSync(freezePath)) throw new Unavailable(`${FREEZE} is not present`);
+  const freezeBytes = readFileSync(freezePath);
+  const freeze = JSON.parse(freezeBytes);
   for (const [version, dir] of Object.entries(ROOTS)) {
     const path = resolve(repo, dir, "manifest.json");
     if (!existsSync(path)) throw new Unavailable(`${dir}/manifest.json is not present`);
     const bytes = readFileSync(path);
-    manifests[version] = { dir, bytes, sha256: sha256(bytes), json: JSON.parse(bytes) };
+    const digest = sha256(bytes),
+      anchored = freeze.files?.[`${dir}/manifest.json`]?.sha256;
+    // The manifest itself is anchored in the freeze inventory, so a rewritten manifest
+    // cannot re-seal edited evidence.
+    if (anchored !== digest)
+      throw new Unavailable(
+        `${dir}/manifest.json SHA-256 ${digest.slice(0, 12)}… is not the one sealed in ${FREEZE}`,
+      );
+    manifests[version] = { dir, bytes, sha256: digest, json: JSON.parse(bytes) };
   }
+  manifests.freeze = { path: FREEZE, sha256: sha256(freezeBytes), bytes: freezeBytes.length };
   const sources = {},
     docs = {};
   for (const [key, [version, file]] of Object.entries(FILES)) {
@@ -87,7 +104,9 @@ function loadSources() {
       sealed_by: `${m.dir}/manifest.json`,
       manifest_sha256: m.sha256,
     };
-    docs[key] = JSON.parse(bytes.toString("utf8"));
+    docs[key] = file.endsWith(".json")
+      ? JSON.parse(bytes.toString("utf8"))
+      : bytes.toString("utf8");
   }
   return { sources, docs, manifests };
 }
@@ -113,6 +132,39 @@ function repair(text) {
     : { t: fixed, repaired: "UTF-8 dash misdecoded as cp1252 in source; shown repaired" };
 }
 
+/** Inverse standard normal CDF (Acklam), |error| < 1.2e-9. */
+function invNorm(p) {
+  const a = [
+    -39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716,
+    2.506628277459239,
+  ];
+  const b = [
+    -54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972,
+    -13.28068155288572,
+  ];
+  const c = [
+    -0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734,
+    4.374664141464968, 2.938163982698783,
+  ];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const q = p < 0.5 ? p : 1 - p;
+  let x;
+  if (q < 0.02425) {
+    const r = Math.sqrt(-2 * Math.log(q));
+    x =
+      (((((c[0] * r + c[1]) * r + c[2]) * r + c[3]) * r + c[4]) * r + c[5]) /
+      ((((d[0] * r + d[1]) * r + d[2]) * r + d[3]) * r + 1);
+  } else {
+    const r = q - 0.5,
+      t = r * r;
+    x =
+      ((((((a[0] * t + a[1]) * t + a[2]) * t + a[3]) * t + a[4]) * t + a[5]) * r) /
+      (((((b[0] * t + b[1]) * t + b[2]) * t + b[3]) * t + b[4]) * t + 1);
+    return p < 0.5 ? x : -x;
+  }
+  return p < 0.5 ? x : -x;
+}
+
 function build({ sources, docs, manifests }) {
   const pre = docs["v0.1/preregistration.json"],
     flag = docs["v0.1/flagship.json"],
@@ -127,7 +179,31 @@ function build({ sources, docs, manifests }) {
     sel = docs["v0.1.1/selection.json"],
     conf = docs["v0.1.1/confirmation.json"],
     summary = docs["v0.1.1/summary.json"],
-    guard = docs["v0.1.1/pre-confirmation-guard-repair.json"];
+    guard = docs["v0.1.1/pre-confirmation-guard-repair.json"],
+    rejectionLog = docs["v0.1.1/pre-confirmation-rejection.log"],
+    suite = docs["v0.1/tests.json"];
+
+  // The primary test's alpha and alternative come from the preregistration; the rule
+  // that turns a record into a state is shown with its inputs in every trial's panel.
+  const primaryTest = pre.tests.findIndex((t) => t.method === "HAC");
+  if (primaryTest < 0 || pre.tests[primaryTest].alternative !== "greater")
+    throw new Unavailable("Preregistration has no one-sided HAC primary test");
+  const ALPHA = pre.tests[primaryTest].alpha;
+  const alphaNum = {
+    v: ALPHA,
+    src: "v0.1/preregistration.json",
+    ptr: ptr(["tests", primaryTest, "alpha"]),
+    fmt: "p",
+  };
+  const zCrit = {
+    v: invNorm(1 - ALPHA),
+    src: "v0.1/preregistration.json",
+    ptr: ptr(["tests", primaryTest, "alpha"]),
+    ptr2: ptr(["tests", primaryTest, "alternative"]),
+    fmt: "x",
+    formula: "Φ⁻¹(1 − α): one-sided critical value of the asymptotic normal HAC test",
+  };
+  const Z975 = invNorm(0.975);
 
   /** A number with provenance. `null` stays null with a reason; missing is never zero. */
   const num = (src, path, fmt, extra = {}) => {
@@ -264,7 +340,7 @@ function build({ sources, docs, manifests }) {
       iOpen = idx.find((i) => flag.attempts[i].kind === "HOLDOUT_OPEN"),
       iDone = idx.find((i) => flag.attempts[i].kind === "SUCCESS");
     const holm = corr.HOLM,
-      supported = res.status !== "UNAVAILABLE" && holm != null && holm <= 0.05 && res.ci_lower > 0;
+      supported = res.status !== "UNAVAILABLE" && holm != null && holm <= ALPHA && res.ci_lower > 0;
     const counterfactual = kind === "PLACEBO";
     const state =
       res.status === "UNAVAILABLE"
@@ -272,7 +348,7 @@ function build({ sources, docs, manifests }) {
         : counterfactual
           ? supported
             ? "falsified"
-            : "verified"
+            : "held"
           : supported
             ? "verified"
             : "inconclusive";
@@ -342,6 +418,44 @@ function build({ sources, docs, manifests }) {
         ptr: ptr([...base, "artifact", "payload_sha256"]),
       },
       edgeKind: kind,
+      rule:
+        res.status === "UNAVAILABLE"
+          ? null
+          : {
+              text: counterfactual
+                ? "A placebo breaks specificity iff its Holm-adjusted p ≤ α (preregistration falsification rule). Shown as held when it does not."
+                : "Supported iff Holm-adjusted p ≤ α and the 95% CI lower bound > 0 (preregistration acceptance rule).",
+              src: "v0.1/preregistration.json",
+              ptr: counterfactual ? ptr(["hypothesis", "falsification", 2]) : ptr(["acceptance"]),
+              inputs: [
+                { k: "α (primary test)", n: alphaNum },
+                {
+                  k: "Holm-adjusted p",
+                  n: num("v0.1/flagship.json", [...P, "correction", "HOLM"], "p"),
+                },
+                ...(counterfactual
+                  ? []
+                  : [
+                      {
+                        k: "95% CI lower",
+                        n: num("v0.1/flagship.json", [...P, "result", "ci_lower"], "ret"),
+                      },
+                    ]),
+              ],
+              met: counterfactual ? holm != null && holm <= ALPHA : supported,
+            },
+      t:
+        res.status === "UNAVAILABLE"
+          ? null
+          : {
+              v: res.estimate / ((res.ci_upper - res.ci_lower) / (2 * Z975)),
+              src: "v0.1/flagship.json",
+              ptr: ptr([...P, "result", "estimate"]),
+              ptr2: ptr([...P, "result", "ci_upper"]) + " and " + ptr([...P, "result", "ci_lower"]),
+              fmt: "x",
+              formula:
+                "estimate ÷ SE, SE = (CI upper − CI lower) ÷ (2 × Φ⁻¹(0.975)); the record states an asymptotic normal 95% CI",
+            },
       state,
       model,
       cost: [
@@ -419,8 +533,9 @@ function build({ sources, docs, manifests }) {
     group: "finding",
     label: { t: "finding · scorecard", src: "v0.1/flagship.json", ptr: ptr(["scorecard"]) },
     verdict: txt("v0.1/flagship.json", ["scorecard", "STATISTICAL"]),
-    state: "inconclusive",
-    finalState: "challenged",
+    // Supported only if a scorecard dimension says so; otherwise as the scorecard states.
+    state: DIMS.some((d) => flag.scorecard[d] === "SUPPORTED") ? "verified" : "inconclusive",
+    finalState: summary.old_gate === "PERMANENTLY_CLOSED" ? "challenged" : undefined,
     facts: [
       ...DIMS.map((d) => ({
         k: d.replace(/_/g, " ").toLowerCase(),
@@ -461,7 +576,12 @@ function build({ sources, docs, manifests }) {
     group: "calibration",
     label: { t: "calibration · v0.1", src: "v0.1/calibration.json", ptr: ptr(["status"]) },
     verdict: txt("v0.1/calibration.json", ["status"]),
-    state: cal.status === "CALIBRATED" ? "verified" : "falsified",
+    state:
+      cal.status === "CALIBRATED"
+        ? "verified"
+        : cal.status === "NOT_CALIBRATED"
+          ? "uncalibrated"
+          : "unavailable",
     facts: [
       { k: "Null worlds", n: num("v0.1/calibration.json", ["total_null_worlds"], "int") },
       { k: "Worlds per case", n: num("v0.1/calibration.json", ["worlds_per_case"], "int") },
@@ -485,7 +605,8 @@ function build({ sources, docs, manifests }) {
   );
   for (const name of Object.keys(cal.cases).sort()) {
     const c = cal.cases[name],
-      ok = c.null_accepted && c.power_accepted;
+      ok = c.null_accepted === true && c.power_accepted === true;
+    const part = (v) => (v === true ? "accepted" : v === false ? "rejected" : "unrecorded");
     node({
       id: `CAL:${name}`,
       kind: "check",
@@ -496,9 +617,10 @@ function build({ sources, docs, manifests }) {
         ptr: ptr(["cases", name]),
       },
       verdict: {
-        t: ok ? "ACCEPTED" : "NULL SIZE REJECTED",
+        t: `null size ${part(c.null_accepted)} · power ${part(c.power_accepted)}`,
         src: "v0.1/calibration.json",
         ptr: ptr(["cases", name, "null_accepted"]),
+        note: `and ${ptr(["cases", name, "power_accepted"])}`,
       },
       state: ok ? "verified" : "falsified",
       facts: [
@@ -602,7 +724,13 @@ function build({ sources, docs, manifests }) {
   });
   edge("REP", "F", "VERIFIES", "v0.1/repeatability.json", ["status"]);
   timeline.push(
-    ev("v0.1/repeatability.json", ["generated_at"], "REP", "resolve", "Rerun identical"),
+    ev(
+      "v0.1/repeatability.json",
+      ["generated_at"],
+      "REP",
+      "resolve",
+      `Rerun ${String(rep.status).toLowerCase()}`,
+    ),
   );
 
   node({
@@ -610,10 +738,23 @@ function build({ sources, docs, manifests }) {
     kind: "verifier",
     group: "tests",
     label: { t: "test suite", src: "v0.1/final-tests.json", ptr: ptr(["total_passed"]) },
-    verdict: { t: "PASSED", src: "v0.1/final-tests.json", ptr: ptr(["total_passed"]) },
-    state: "verified",
+    verdict: {
+      t: `${suite.failures} failures · ${suite.errors} errors`,
+      src: "v0.1/tests.json",
+      ptr: ptr(["failures"]),
+      note: `and ${ptr(["errors"])}`,
+    },
+    state:
+      typeof suite.failures !== "number" || typeof suite.errors !== "number"
+        ? "unavailable"
+        : suite.failures === 0 && suite.errors === 0
+          ? "verified"
+          : "falsified",
     facts: [
       { k: "Tests passed", n: num("v0.1/final-tests.json", ["total_passed"], "int") },
+      { k: "Failures (focused run)", n: num("v0.1/tests.json", ["failures"], "int") },
+      { k: "Errors (focused run)", n: num("v0.1/tests.json", ["errors"], "int") },
+      { k: "Full regression", t: txt("v0.1/tests.json", ["full_regression"]) },
       {
         k: "Independent reference passed",
         n: num("v0.1/final-tests.json", ["independent_reference_passed"], "int"),
@@ -681,6 +822,11 @@ function build({ sources, docs, manifests }) {
   );
   timeline.push(ev("v0.1.1/selection.json", ["selected_at"], "SK", "start", "Method selected"));
 
+  const logLines = String(rejectionLog).split(String.fromCharCode(10));
+  const guardLine =
+    logLines.findIndex((l) => /Selection does not match frozen discovery/.test(l)) + 1;
+  const guardRejected = guardLine > 0,
+    guardReproduced = conf.selection_hash === guard.old_selection_sha256;
   node({
     id: "SK:guard",
     kind: "check",
@@ -691,11 +837,12 @@ function build({ sources, docs, manifests }) {
       ptr: ptr(["reason"]),
     },
     verdict: {
-      t: "REJECTED, THEN REPRODUCED",
-      src: "v0.1.1/pre-confirmation-guard-repair.json",
-      ptr: ptr(["reason"]),
+      t: `${guardRejected ? "rejected" : "no rejection recorded"} · selection ${guardReproduced ? "reproduced" : "not reproduced"}`,
+      src: "v0.1.1/pre-confirmation-rejection.log",
+      ptr: `line ${guardLine}`,
+      note: "selection hash in confirmation.json /selection_hash compared with guard repair /old_selection_sha256",
     },
-    state: "repaired",
+    state: guardRejected ? (guardReproduced ? "repaired" : "falsified") : "unavailable",
     facts: [
       { k: "Reason", t: txt("v0.1.1/pre-confirmation-guard-repair.json", ["reason"]) },
       { k: "Scope", t: txt("v0.1.1/pre-confirmation-guard-repair.json", ["scope"]) },
@@ -776,14 +923,15 @@ function build({ sources, docs, manifests }) {
   timeline.push(
     ev("v0.1.1/confirmation.json", ["completed_at"], "SK", "resolve", "Confirmation complete"),
   );
-  timeline.push({
-    at: manifests["v0.1.1"].json.sealed_at,
-    node: "F",
-    kind: "challenged",
-    label: "Old gate permanently closed",
-    src: "v0.1.1/manifest.json",
-    ptr: ptr(["sealed_at"]),
-  });
+  if (summary.old_gate === "PERMANENTLY_CLOSED")
+    timeline.push({
+      at: manifests["v0.1.1"].json.sealed_at,
+      node: "F",
+      kind: "challenged",
+      label: `Old gate ${String(summary.old_gate).toLowerCase().replace(/_/g, " ")}`,
+      src: "v0.1.1/manifest.json",
+      ptr: ptr(["sealed_at"]),
+    });
 
   // Stable order: by time, then by declaration order within the same instant.
   const seq = timeline.map((e, i) => [e, i]);
@@ -799,6 +947,9 @@ function build({ sources, docs, manifests }) {
     reason: null,
     study: {
       title: txt("v0.1/preregistration.json", ["hypothesis", "name"]),
+      alpha: alphaNum,
+      z_crit: zCrit,
+      holdout_openings: num("v0.1/flagship.json", ["holdout_openings"], "int"),
       series: txt("v0.1/flagship.json", ["series_label"]),
       preregistration_hash: {
         v: receipt.preregistration_hash,
@@ -831,13 +982,21 @@ function build({ sources, docs, manifests }) {
         path: `${ROOTS["v0.1"]}/manifest.json`,
         sha256: manifests["v0.1"].sha256,
         bytes: manifests["v0.1"].bytes.length,
-        sealed_by: null,
+        sealed_by: FREEZE,
+        manifest_sha256: manifests.freeze.sha256,
+      },
+      [FREEZE]: {
+        path: FREEZE,
+        sha256: manifests.freeze.sha256,
+        bytes: manifests.freeze.bytes,
+        sealed_by: "repository freeze inventory (CI-checked)",
       },
       "v0.1.1/manifest.json": {
         path: `${ROOTS["v0.1.1"]}/manifest.json`,
         sha256: manifests["v0.1.1"].sha256,
         bytes: manifests["v0.1.1"].bytes.length,
-        sealed_by: null,
+        sealed_by: FREEZE,
+        manifest_sha256: manifests.freeze.sha256,
       },
     },
     nodes,

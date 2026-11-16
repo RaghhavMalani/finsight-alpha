@@ -107,15 +107,22 @@ export const stateColor = (s: EvidenceState): ColorName => STATE[s].color;
 
 /** The colour a transition flares in: failures and challenges are louder than resolves. */
 export function flareColor(kind: EventKind | null, state: EvidenceState): ColorName {
-  if (kind === "fail" || kind === "reject" || kind === "challenged") return "red";
+  if (kind === "fail" || kind === "reject") return "red";
+  if (kind === "challenged") return "amber";
   if (kind === "challenge") return "magenta";
   if (kind === "start" || kind === "holdout") return "amber";
   return stateColor(state);
 }
 
 /** A running skeptic reads as challenging; once sealed, as a recorded challenge. */
-export const stateLabel = (v: NodeView) =>
-  v.running && v.state === "challenge" ? "challenging" : STATE_LABEL[v.state];
+export const stateLabel = (v: NodeView, n?: GraphNode) =>
+  v.running && v.state === "challenge"
+    ? "challenging"
+    : n?.rule && (v.state === "inconclusive" || v.state === "verified")
+      ? n.rule.met
+        ? "supported by rule"
+        : "rule not met"
+      : STATE_LABEL[v.state];
 
 export const KIND_LABEL: Record<GraphNode["kind"], string> = {
   hypothesis: "Hypothesis",
@@ -136,6 +143,8 @@ export const STATE_LABEL: Record<EvidenceState, string> = {
   unavailable: "unavailable",
   falsified: "failed",
   repaired: "rejected, then reproduced",
+  held: "control held",
+  uncalibrated: "not calibrated",
   challenge: "challenge recorded",
   challenged: "challenged · gate closed",
   frozen: "frozen",

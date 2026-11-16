@@ -30,6 +30,8 @@ import type { Replay } from "./model";
 import { paintAt } from "./paint";
 
 const BloomLayer = lazy(() => import("@/visual/gl/BloomLayer"));
+/** Frame-time sampling exists only in builds made for the verifier's scale probe. */
+const PERF_PROBE = import.meta.env.VITE_PERF_PROBE === "true";
 const SEG = 14,
   PARTICLES_PER_EDGE = 5;
 
@@ -349,6 +351,15 @@ export default function ResearchScene({
         onCreated={({ gl }) => {
           gl.toneMapping = ACESFilmicToneMapping;
           gl.toneMappingExposure = 1;
+          // A lost context (driver reset, too many contexts) hands over to the 2D renderer.
+          gl.domElement.addEventListener(
+            "webglcontextlost",
+            (event) => {
+              event.preventDefault();
+              onFail();
+            },
+            { once: true },
+          );
         }}
         aria-hidden="true"
         tabIndex={-1}
@@ -378,7 +389,7 @@ export default function ResearchScene({
             </Suspense>
           </Boundary>
         )}
-        <Metrics graph={graph} layout={layout} />
+        {PERF_PROBE && <Metrics graph={graph} layout={layout} />}
       </Canvas>
     </Boundary>
   );

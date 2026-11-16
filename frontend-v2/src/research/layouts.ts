@@ -87,7 +87,11 @@ function curveDefault(a: Vec3, b: Vec3, bow: number): [Vec3, Vec3] {
 }
 
 /** Radial neural bloom: the hypothesis blooms into trials; evidence streams to the finding. */
+/** Bloom's radial scale: no effect at the base ring, 1.25 world units per unit of t. */
+export const radiusOfT = (t: number) => 6 + 1.25 * t;
+
 function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
+  const zc = graph.study.z_crit.v ?? 0;
   const pos: Vec3[] = graph.nodes.map(() => [0, 0, 0]);
   const at = (id: string) => g.idx.get(id)!;
   const H: Vec3 = [-7.5, 0, 0],
@@ -104,16 +108,19 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
     ["INDIA", -1],
   ] as const) {
     const { trials, placebos } = g.runs[c];
-    trials.forEach((i, k) => {
-      const a = sign * (38 + (142 * k) / Math.max(1, trials.length - 1)) * deg,
-        r = 5.4 + (k % 2) * 0.55 + hash01(i) * 0.2;
-      pos[i] = [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), (hash01(i + 7) - 0.5) * 1.6];
-    });
-    placebos.forEach((i, k) => {
-      const a = sign * (60 + (110 * k) / Math.max(1, placebos.length - 1)) * deg,
-        r = 7.3;
-      pos[i] = [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), (hash01(i + 3) - 0.5) * 1.2];
-    });
+    // Radius encodes the sealed record: distance from the hypothesis is the trial's t
+    // (estimate ÷ SE). Trials without a result sit on the no-effect ring.
+    const place = (i: number, a: number) => {
+      const t = graph.nodes[i].t?.v ?? 0,
+        r = radiusOfT(t);
+      pos[i] = [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), (hash01(i + 7) - 0.5) * 0.6];
+    };
+    trials.forEach((i, k) =>
+      place(i, sign * (36 + (104 * k) / Math.max(1, trials.length - 1)) * deg),
+    );
+    placebos.forEach((i, k) =>
+      place(i, sign * (150 + (28 * k) / Math.max(1, placebos.length - 1)) * deg),
+    );
   }
   const CAL: Vec3 = [10.4, 3.5, 0],
     MUT: Vec3 = [11.6, -4.1, 0],
@@ -156,9 +163,26 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
   const labels: Layout["labels"] = [
     { text: "US TRIALS", at: [H[0] - 1.5, H[1] + 8.1, 0], tone: "muted", align: "center" },
     { text: "INDIA TRIALS", at: [H[0] - 1.5, H[1] - 8.3, 0], tone: "muted", align: "center" },
-    { text: "PLACEBO RING", at: [H[0] - 7.9, H[1] + 2.3, 0], tone: "muted", align: "right" },
+    {
+      text: "PLACEBOS",
+      at: [H[0] - radiusOfT(0) - 1.6, H[1] + 2.4, 0],
+      tone: "muted",
+      align: "right",
+    },
+    {
+      text: "NO EFFECT",
+      at: [H[0] + radiusOfT(0) * 0.71, H[1] + radiusOfT(0) * 0.71 + 0.4, 0],
+      tone: "muted",
+      align: "left",
+    },
+    {
+      text: "CRITICAL VALUE",
+      at: [H[0] + radiusOfT(zc) * 0.71, H[1] + radiusOfT(zc) * 0.71 + 0.4, 0],
+      tone: "amber",
+      align: "left",
+    },
   ];
-  const guides = [circle(H, 5.65, 96), circle(H, 7.3, 96)];
+  const guides = [circle(H, radiusOfT(0), 120), circle(H, radiusOfT(zc), 120)];
   return {
     pos,
     dim: pos.map(() => 1),
@@ -230,10 +254,11 @@ function depth(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
   const sheets: [number, number, number, string, ColorName][] = [
     [Z.pre, 3.6, 3.6, "PREREGISTRATION", "muted"],
     [Z.trials, 7.6, 4.6, "TRIALS", "muted"],
-    [Z.finding, 7.4, 5, "FINDING", "muted"],
-    [Z.skeptic, 4.4, 4.4, "SKEPTIC", "magenta"],
+    [Z.finding, 7.4, 5, "VERIFIERS", "muted"],
+    [Z.skeptic, 4.4, 4.4, "CHALLENGE", "magenta"],
   ];
-  const guides = sheets.map(([z, w, h]) => frame(z, w, h));
+  void frame;
+  const guides: Vec3[][] = [];
   const labels: Layout["labels"] = sheets.map(([z, w, h, text, tone]) => ({
     text,
     at: [-w, h + 0.7, z] as Vec3,

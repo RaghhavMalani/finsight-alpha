@@ -71,6 +71,8 @@ export default function ResearchPage({ look, renderer }: { look: Look; renderer:
 function useSyntheticProbe(graph: ResearchGraph | null) {
   const [probe, setProbe] = useState<ResearchGraph | null>(null);
   useEffect(() => {
+    // Only a build made with VITE_PERF_PROBE=true honours the probe; production ignores it.
+    if (import.meta.env.VITE_PERF_PROBE !== "true") return;
     const ask = window.__researchSynthetic;
     if (!graph || !ask) return;
     void import("./perf-synthetic").then((m) => setProbe(m.synthesize(graph, ask.nodes)));
@@ -104,6 +106,28 @@ function useStageSize() {
     return () => ro.disconnect();
   }, []);
   return { ref, ...size };
+}
+
+/** Anchor labels in priority order: when two collide, the later one is hidden. */
+const PIN_ORDER = ["H", "F", "SK", "CAL", "MUT", "TESTS", "REP"];
+function declutter(els: (HTMLElement | null | undefined)[]) {
+  const taken: DOMRect[] = [];
+  for (const el of els) {
+    if (!el) continue;
+    el.style.visibility = "visible";
+    const box = (el.firstElementChild as HTMLElement | null) ?? el;
+    const r = box.getBoundingClientRect();
+    if (!r.width) continue;
+    const hit = taken.some(
+      (t) =>
+        r.left < t.right + 4 &&
+        r.right > t.left - 4 &&
+        r.top < t.bottom + 2 &&
+        r.bottom > t.top - 2,
+    );
+    if (hit) el.style.visibility = "hidden";
+    else taken.push(r);
+  }
 }
 
 const ORDER: GraphNode["kind"][] = [
@@ -157,6 +181,7 @@ function Workspace({
   );
   const replay = useMemo(() => buildReplay(graph), [graph]);
   const bus = useRef(new SceneBus()).current;
+  const nodeIndex = useMemo(() => new Map(graph.nodes.map((n, i) => [n.id, i])), [graph]);
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [selected, setSelected] = useState(-1);
@@ -248,13 +273,17 @@ function Workspace({
       labels.current.forEach((l, i) => {
         if (l) l.style.transform = `translate(${lbls[i * 3]}px, ${lbls[i * 3 + 1]}px)`;
       });
+      declutter([
+        ...PIN_ORDER.map((id) => pins.current[nodeIndex.get(id) ?? -1]),
+        ...labels.current,
+      ]);
       if (hover.current && bus.focus >= 0)
         hover.current.style.transform = `translate(${nodes[bus.focus * 3]}px, ${nodes[bus.focus * 3 + 1]}px)`;
     };
     return () => {
       bus.onProject = null;
     };
-  }, [bus]);
+  }, [bus, nodeIndex]);
   useEffect(() => {
     const p = projected.current;
     if (hover.current && p && focus >= 0)
@@ -287,8 +316,8 @@ function Workspace({
   const insets: Insets = useMemo(
     () =>
       narrow
-        ? { top: 196, bottom: 150, left: 8, right: 8 }
-        : { top: 132, bottom: 150, left: 24, right: 24 },
+        ? { top: 292, bottom: 150, left: 8, right: 8 }
+        : { top: 214, bottom: 150, left: 24, right: 24 },
     [narrow],
   );
   const sources: Record<string, SourceFile> = useMemo(
@@ -358,7 +387,7 @@ function Workspace({
               style={{ color: `var(--vx-${l.tone})` }}
               aria-hidden="true"
             >
-              {l.text}
+              <span>{l.text}</span>
             </span>
           ))}
           {graph.nodes.map((n, i) =>
@@ -374,7 +403,7 @@ function Workspace({
               >
                 <span className="rs-pin-in">
                   <b>{PINNED[n.id]}</b>
-                  <small>{stateLabel(views[i])}</small>
+                  <small>{stateLabel(views[i], n)}</small>
                 </span>
               </span>
             ) : null,
@@ -389,7 +418,7 @@ function Workspace({
               className={`rs-node rs-node-${n.kind}`}
               data-node-id={n.id}
               data-state={views[i].state}
-              aria-label={`${KIND_LABEL[n.kind]}: ${n.label.t}. ${stateLabel(views[i])}.`}
+              aria-label={`${KIND_LABEL[n.kind]}: ${n.label.t}. ${stateLabel(views[i], n)}.`}
               aria-expanded={selected === i}
               onClick={() => setSelected(i)}
               onPointerEnter={() => setFocus(i)}
@@ -413,7 +442,8 @@ function Workspace({
                   {graph.nodes[focus].label.t}
                 </b>
                 <span>
-                  {KIND_LABEL[graph.nodes[focus].kind]} · {stateLabel(views[focus])}
+                  {KIND_LABEL[graph.nodes[focus].kind]} ·{" "}
+                  {stateLabel(views[focus], graph.nodes[focus])}
                 </span>
               </>
             )}
@@ -436,6 +466,7 @@ function Workspace({
             <Hash h={graph.study.preregistration_hash} label="Preregistration hash" /> <i>·</i>{" "}
             frozen <Stamp s={graph.study.frozen_at} label="Frozen at" />
           </p>
+          <Readout graph={graph} look={look} />
         </header>
 
         <div className="rs-status">
@@ -455,14 +486,21 @@ function Workspace({
             ))}
           </div>
           <div className="rs-live">
-            <span className="rs-live-row">
-              <LiveDot state="fresh" label="Replay" />
-              <span className="rs-live-detail" data-copy>
-                sha-256{" "}
-                <Hash h={{ v: sha256, src: "projection", ptr: "" }} label="Projection SHA-256" />{" "}
-                verified
+            {"synthetic" in graph ? (
+              <span className="rs-live-row">
+                <LiveDot state="dead" label="Synthetic" />
+                <span className="rs-live-detail">not verified · scale probe</span>
               </span>
-            </span>
+            ) : (
+              <span className="rs-live-row">
+                <LiveDot state="fresh" label="Replay" />
+                <span className="rs-live-detail" data-copy>
+                  sha-256{" "}
+                  <Hash h={{ v: sha256, src: "projection", ptr: "" }} label="Projection SHA-256" />{" "}
+                  verified
+                </span>
+              </span>
+            )}
             <span className="rs-live-row">
               <LiveDot state="dead" label="Live" />
               <span className="rs-live-detail" data-copy>
@@ -508,8 +546,8 @@ function Workspace({
             <span>
               {findingShown ? (
                 <>
-                  <Num n={fact(flagship, "Holdout openings")!.n!} label="Holdout openings" /> opened
-                  once each
+                  <Num n={fact(flagship, "Holdout openings")!.n!} label="Holdout openings" />{" "}
+                  holdout openings
                 </>
               ) : (
                 "pending"
@@ -598,6 +636,7 @@ function Workspace({
   );
 }
 
+/** A single prompt line in the command bar's language; inert until runs exist. */
 function Composer() {
   return (
     <form
@@ -605,33 +644,85 @@ function Composer() {
       aria-label="New research run"
       onSubmit={(e) => e.preventDefault()}
     >
-      <label className="rs-c-hyp">
-        <span>Hypothesis</span>
-        <input disabled placeholder="State a falsifiable hypothesis" />
+      <label className="rs-c-line">
+        <span className="rs-c-caret" aria-hidden="true">
+          ›
+        </span>
+        <span className="vx-sr">Research prompt</span>
+        <input
+          disabled
+          placeholder="hypothesis · as-of · universe · budget · rigor"
+          aria-describedby="rs-c-note"
+        />
       </label>
-      <label>
-        <span>As of</span>
-        <input disabled placeholder="evidence cutoff" />
-      </label>
-      <label>
-        <span>Universe</span>
-        <input disabled placeholder="instruments" />
-      </label>
-      <label>
-        <span>Budget</span>
-        <input disabled placeholder="compute" />
-      </label>
-      <label>
-        <span>Rigor</span>
-        <input disabled placeholder="preregistered" />
-      </label>
-      <button type="submit" disabled>
+      <button type="submit" disabled aria-disabled="true">
         Run
       </button>
-      <p className="rs-c-note" data-copy>
-        Runs start in Q2/Q5. This build replays sealed evidence only.
+      <p id="rs-c-note" className="rs-c-note" data-copy>
+        Inert: runs start in Q2/Q5; this build replays sealed evidence.
       </p>
     </form>
+  );
+}
+
+/**
+ * The sealed numbers for the two primary trials, always on screen. Every value is a Num
+ * with its source; t is derived from the record's CI with its formula one click away.
+ */
+function Readout({ graph, look }: { graph: ResearchGraph; look: Look }) {
+  const rows = ["R:US:PRIMARY", "R:INDIA:PRIMARY"]
+    .map((id) => graph.nodes.find((n) => n.id === id))
+    .filter((n): n is GraphNode => !!n);
+  const f = (n: GraphNode, k: string) => n.facts.find((x) => x.k === k)?.n;
+  const v = (n: GraphNode, k: string, label: string) => {
+    const x = f(n, k);
+    return x ? <Num n={x} label={`${n.label.t} ${label}`} /> : "unavailable";
+  };
+  const holm = (n: GraphNode) => n.verdicts?.find((x) => x.k.startsWith("Holm"))?.n;
+  return (
+    <div className="rs-readout" role="table" aria-label="Primary trials, sealed values">
+      <div className="rs-ro-row rs-ro-head" role="row" data-copy>
+        <span role="columnheader">primary</span>
+        <span role="columnheader">t</span>
+        <span role="columnheader">estimate</span>
+        <span role="columnheader">95% CI</span>
+        <span role="columnheader">Holm p</span>
+        <span role="columnheader">n</span>
+        <span role="columnheader">power</span>
+        <span role="columnheader">MDE</span>
+      </div>
+      {rows.map((n) => (
+        <div className="rs-ro-row" role="row" key={n.id}>
+          <span role="cell" className="rs-ro-name">
+            {n.country}
+          </span>
+          <span role="cell">{n.t ? <Num n={n.t} label={`${n.label.t} t`} /> : "unavailable"}</span>
+          <span role="cell">{v(n, "Estimate · monthly intercept", "estimate")}</span>
+          <span role="cell">
+            {v(n, "95% CI lower", "CI lower")}
+            <i>…</i>
+            {v(n, "95% CI upper", "CI upper")}
+          </span>
+          <span role="cell">
+            {holm(n) ? <Num n={holm(n)!} label={`${n.label.t} Holm p`} /> : "unavailable"}
+          </span>
+          <span role="cell">{v(n, "Observations", "n")}</span>
+          <span role="cell">{v(n, "Prospective power", "power")}</span>
+          <span role="cell">{v(n, "MDE at 80% power", "MDE")}</span>
+        </div>
+      ))}
+      <div className="rs-ro-foot">
+        holdouts used <Num n={graph.study.holdout_openings} label="Holdout openings" /> · α{" "}
+        <Num n={graph.study.alpha} label="Primary test alpha" />
+        {look === "bloom" && (
+          <>
+            {" "}
+            · radius from the hypothesis = t · outer ring = critical z{" "}
+            <Num n={graph.study.z_crit} label="One-sided critical value" />
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -672,10 +763,19 @@ function NodeHud({
         data-hud={node.id}
         style={{ ["--hud-tone" as string]: `var(--vx-${tone})` }}
       >
+        <i className="rs-hud-grab" aria-hidden="true" />
         <div className="rs-hud-top">
           <span className="rs-hud-kind">{KIND_LABEL[node.kind]}</span>
-          <button type="button" onClick={onClose} aria-label="Close node details">
-            ESC
+          <button
+            type="button"
+            className="rs-hud-close"
+            onClick={onClose}
+            aria-label="Close node details"
+          >
+            <span className="rs-hud-esc">ESC</span>
+            <span className="rs-hud-x" aria-hidden="true">
+              ×
+            </span>
           </button>
         </div>
         <h2>
@@ -683,7 +783,11 @@ function NodeHud({
         </h2>
         <div className="rs-hud-verdict" style={{ color: `var(--vx-${tone})` }}>
           <i aria-hidden="true" />
-          {STATE_LABEL[state]}
+          {node.rule && state !== "dormant"
+            ? node.rule.met
+              ? "supported by rule"
+              : "rule not met"
+            : STATE_LABEL[state]}
           {node.verdict && state !== "dormant" && (
             <>
               {" · "}
@@ -692,6 +796,23 @@ function NodeHud({
           )}
         </div>
 
+        {node.rule && (
+          <>
+            <HudKicker tone={node.rule.met ? "cyan" : "amber"}>State rule</HudKicker>
+            <p className="rs-rule" {...prov(graph.sources, node.rule.src)}>
+              {node.rule.text}
+            </p>
+            {node.rule.inputs.map((x, i) => (
+              <FactRow key={i} f={x} />
+            ))}
+            <HudLabel k="Result">{node.rule.met ? "met" : "not met"}</HudLabel>
+          </>
+        )}
+        {node.t && (
+          <HudLabel k="t (estimate ÷ SE)">
+            <Num n={node.t} label="t statistic" />
+          </HudLabel>
+        )}
         <HudKicker>Evidence</HudKicker>
         {node.facts.length ? (
           node.facts.map((f, i) => <FactRow key={i} f={f} />)

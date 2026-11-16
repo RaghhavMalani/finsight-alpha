@@ -27,6 +27,10 @@ export type GraphNode = {
   world?: RefValue;
   model?: TextValue | null;
   cost?: Fact[];
+  /** The preregistered rule that produced `state`, with its sealed inputs. */
+  rule?: { text: string; src: string; ptr: string; inputs: Fact[]; met: boolean } | null;
+  /** estimate ÷ SE, derived with its formula; drives Bloom's radius. */
+  t?: NumValue | null;
   verdicts?: Fact[];
   facts: Fact[];
 };
@@ -47,6 +51,9 @@ export type ResearchGraph = {
   reason: null;
   study: {
     title: TextValue;
+    alpha: NumValue;
+    z_crit: NumValue;
+    holdout_openings: NumValue;
     series: TextValue;
     preregistration_hash: RefValue;
     frozen_at: RefValue;
