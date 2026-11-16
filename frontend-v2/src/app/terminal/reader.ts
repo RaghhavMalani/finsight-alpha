@@ -103,9 +103,14 @@ export async function readTerminalIndex(
     );
   const changed = (reason: string) =>
     staticIndexFailure("Terminal static index byte length changed.", expectedName, reason);
-  // Content-Length may describe a compressed body, so it can only prove an oversize response.
+  // A compressed body's Content-Length only proves oversize; an unencoded one must match exactly.
   const declared = Number(response.headers.get("content-length") ?? "0");
-  if (declared > MAX_STATIC_TERMINAL_BYTES) {
+  if (
+    declared > MAX_STATIC_TERMINAL_BYTES ||
+    (response.headers.has("content-length") &&
+      !response.headers.get("content-encoding") &&
+      declared !== expectedBytes)
+  ) {
     await response.body?.cancel().catch(() => undefined);
     throw changed(
       "the server declares " + declared + " bytes; " + expectedBytes + " were expected.",

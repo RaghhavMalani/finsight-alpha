@@ -348,13 +348,15 @@ async function pageFor(browser, viewport, staticFixtures = {}) {
         responses.push({ url: response.url(), status: response.status(), redirect: true });
         return;
       }
-      const body = await response.body(),
+      // A deliberate static fixture is recorded as served: the reader may refuse it unread.
+      const fixtureBody = staticFixtures[STATIC_INDEX.exec(url.pathname)?.[1]]?.body;
+      const body = fixtureBody ?? (await response.body()),
         mime = response.headers()["content-type"] ?? "",
         js = /javascript/.test(mime) || /\.m?js$/.test(url.pathname);
       const data =
         /json/.test(mime) ||
         /\.json$/.test(url.pathname) ||
-        (js && /terminal-(?:shard|display)\/[12]/.test(body.toString("utf8")));
+        (js && /terminal-(?:shard|display)\/[123]/.test(body.toString("utf8")));
       responses.push({
         url: response.url(),
         status: response.status(),
