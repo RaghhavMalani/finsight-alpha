@@ -511,6 +511,49 @@ function Hubs() {
   return <primitive object={lines} />;
 }
 
+/** A located record from another source (F1 Command's live spine), drawn as a static spike. */
+export type GlobeMarker = { id: string; lat: number; lon: number; color: string; height?: number };
+
+/** Static spikes: no animation, so the scene only changes when a new record arrives. */
+function Markers({ markers }: { markers: GlobeMarker[] }) {
+  const lines = useMemo(() => {
+    const pos: number[] = [],
+      col: number[] = [];
+    const c = new Color(),
+      a = new Vector3(),
+      b = new Vector3();
+    for (const m of markers) {
+      if (!Number.isFinite(m.lat) || !Number.isFinite(m.lon)) continue;
+      toVec(m.lat, m.lon, R * 1.003, a);
+      toVec(m.lat, m.lon, R * (1.003 + (m.height ?? 0.08)), b);
+      c.set(m.color);
+      pos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+      col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+    }
+    const g = new BufferGeometry();
+    g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
+    g.setAttribute("color", new BufferAttribute(new Float32Array(col), 3));
+    return new LineSegments(
+      g,
+      new LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.95,
+        blending: AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+  }, [markers]);
+  useEffect(
+    () => () => {
+      lines.geometry.dispose();
+      (lines.material as LineBasicMaterial).dispose();
+    },
+    [lines],
+  );
+  return <primitive object={lines} />;
+}
+
 /** Hub and ISS names, projected each frame and hidden on the far side of the globe. */
 function GlobeLabels({ root, iss, hubs }: { root: HTMLElement; iss: Vector3; hubs: boolean }) {
   const group = useRef<Group>(null);
@@ -638,7 +681,10 @@ export default function GlobeScene({
   labelsRoot,
   interactive = true,
   view = [24, 150, 3.7],
+  markers,
 }: {
+  /** Extra located records drawn as static spikes. */
+  markers?: GlobeMarker[];
   labelsRoot: HTMLElement | null;
   /** False on the landing page: no zoom, so the page keeps its scroll. */
   interactive?: boolean;
@@ -694,6 +740,7 @@ export default function GlobeScene({
       {layers.quakes && quakes.length > 0 && (
         <Quakes quakes={quakes} now={now} selected={selected} onPick={onPick} reduced={reduced} />
       )}
+      {markers && markers.length > 0 && <Markers markers={markers} />}
       {layers.satellites && tles.length > 0 && (
         <Satellites tles={tles} onCount={onSatellites} iss={iss} />
       )}

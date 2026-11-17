@@ -1,6 +1,6 @@
 import { resolveInstrument } from "../../markets/instruments.ts";
 import type { ReplayEntry } from "../../replay/contracts.ts";
-import { WORKSPACES } from "../workspaces.ts";
+import { SECTIONS } from "../workspaces.ts";
 import {
   catalogEntities,
   loadSearchNavigation,
@@ -281,7 +281,7 @@ function rank(
     return 0;
   const mnemonic =
     entity.type === "workspace"
-      ? WORKSPACES.find((w) => w.id === entity.id)?.command.toLowerCase()
+      ? SECTIONS.find((w) => w.id === entity.id)?.command.toLowerCase()
       : undefined;
   if (
     query === id ||
@@ -502,7 +502,7 @@ export function searchLoaded(
       choices,
     });
   }
-  const execution = WORKSPACES.find((workspace) => workspace.id === "execution")!;
+  const execution = SECTIONS.find((workspace) => workspace.id === "execution")!;
   if (
     (!options.types || options.types.includes("workspace")) &&
     (!normalized || ["exec", "execution"].some((word) => word.includes(normalized)))
@@ -644,7 +644,7 @@ function searchNavigation(
     const navigation = ["workspace", "reference-listing", "market-factor"].includes(record.type),
       mnemonic =
         record.type === "workspace"
-          ? WORKSPACES.find((w) => w.id === record.id)?.command.toLowerCase()
+          ? SECTIONS.find((w) => w.id === record.id)?.command.toLowerCase()
           : undefined;
     const score = !normalized
       ? 4
@@ -664,7 +664,7 @@ function searchNavigation(
               : Infinity;
     return Number.isFinite(score) ? [{ record, score }] : [];
   });
-  const execution = WORKSPACES.find((workspace) => workspace.id === "execution")!;
+  const execution = SECTIONS.find((workspace) => workspace.id === "execution")!;
   const executionIncluded =
     (!options.types || options.types.includes("workspace")) &&
     (!normalized || ["exec", "execution"].some((word) => word.includes(normalized)));

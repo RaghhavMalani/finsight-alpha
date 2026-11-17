@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArtifactsRouteImport } from './routes/artifacts'
 import { Route as BenchRouteImport } from './routes/bench'
+import { Route as CommandRouteImport } from './routes/command'
 import { Route as DataRouteImport } from './routes/data'
 import { Route as DynamicsRouteImport } from './routes/dynamics'
 import { Route as ExecutionRouteImport } from './routes/execution'
@@ -21,6 +22,7 @@ import { Route as GlobeRouteImport } from './routes/globe'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MarketsRouteImport } from './routes/markets'
 import { Route as ObservatoryRouteImport } from './routes/observatory'
+import { Route as RegimesRouteImport } from './routes/regimes'
 import { Route as ResearchRouteImport } from './routes/research'
 import { Route as RiskRouteImport } from './routes/risk'
 import { Route as RunsRouteImport } from './routes/runs'
@@ -51,6 +53,11 @@ const ArtifactsRoute = ArtifactsRouteImport.update({
 const BenchRoute = BenchRouteImport.update({
   id: '/bench',
   path: '/bench',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommandRoute = CommandRouteImport.update({
+  id: '/command',
+  path: '/command',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DataRoute = DataRouteImport.update({
@@ -96,6 +103,11 @@ const MarketsRoute = MarketsRouteImport.update({
 const ObservatoryRoute = ObservatoryRouteImport.update({
   id: '/observatory',
   path: '/observatory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegimesRoute = RegimesRouteImport.update({
+  id: '/regimes',
+  path: '/regimes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResearchRoute = ResearchRouteImport.update({
@@ -183,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
   '/bench': typeof BenchRouteWithChildren
+  '/command': typeof CommandRoute
   '/data': typeof DataRoute
   '/dynamics': typeof DynamicsRoute
   '/execution': typeof ExecutionRoute
@@ -192,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRouteWithChildren
   '/observatory': typeof ObservatoryRoute
+  '/regimes': typeof RegimesRoute
   '/research': typeof ResearchRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
@@ -212,6 +226,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
+  '/command': typeof CommandRoute
   '/data': typeof DataRoute
   '/dynamics': typeof DynamicsRoute
   '/execution': typeof ExecutionRoute
@@ -220,6 +235,7 @@ export interface FileRoutesByTo {
   '/globe': typeof GlobeRoute
   '/login': typeof LoginRoute
   '/observatory': typeof ObservatoryRoute
+  '/regimes': typeof RegimesRoute
   '/research': typeof ResearchRoute
   '/risk': typeof RiskRoute
   '/worlds': typeof WorldsRoute
@@ -241,6 +257,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/artifacts': typeof ArtifactsRoute
   '/bench': typeof BenchRouteWithChildren
+  '/command': typeof CommandRoute
   '/data': typeof DataRoute
   '/dynamics': typeof DynamicsRoute
   '/execution': typeof ExecutionRoute
@@ -250,6 +267,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/markets': typeof MarketsRouteWithChildren
   '/observatory': typeof ObservatoryRoute
+  '/regimes': typeof RegimesRoute
   '/research': typeof ResearchRoute
   '/risk': typeof RiskRoute
   '/runs': typeof RunsRouteWithChildren
@@ -273,6 +291,7 @@ export interface FileRouteTypes {
     | '/'
     | '/artifacts'
     | '/bench'
+    | '/command'
     | '/data'
     | '/dynamics'
     | '/execution'
@@ -282,6 +301,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/markets'
     | '/observatory'
+    | '/regimes'
     | '/research'
     | '/risk'
     | '/runs'
@@ -302,6 +322,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/artifacts'
+    | '/command'
     | '/data'
     | '/dynamics'
     | '/execution'
@@ -310,6 +331,7 @@ export interface FileRouteTypes {
     | '/globe'
     | '/login'
     | '/observatory'
+    | '/regimes'
     | '/research'
     | '/risk'
     | '/worlds'
@@ -330,6 +352,7 @@ export interface FileRouteTypes {
     | '/'
     | '/artifacts'
     | '/bench'
+    | '/command'
     | '/data'
     | '/dynamics'
     | '/execution'
@@ -339,6 +362,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/markets'
     | '/observatory'
+    | '/regimes'
     | '/research'
     | '/risk'
     | '/runs'
@@ -361,6 +385,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArtifactsRoute: typeof ArtifactsRoute
   BenchRoute: typeof BenchRouteWithChildren
+  CommandRoute: typeof CommandRoute
   DataRoute: typeof DataRoute
   DynamicsRoute: typeof DynamicsRoute
   ExecutionRoute: typeof ExecutionRoute
@@ -370,6 +395,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MarketsRoute: typeof MarketsRouteWithChildren
   ObservatoryRoute: typeof ObservatoryRoute
+  RegimesRoute: typeof RegimesRoute
   ResearchRoute: typeof ResearchRoute
   RiskRoute: typeof RiskRoute
   RunsRoute: typeof RunsRouteWithChildren
@@ -398,6 +424,13 @@ declare module '@tanstack/react-router' {
       path: '/bench'
       fullPath: '/bench'
       preLoaderRoute: typeof BenchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/command': {
+      id: '/command'
+      path: '/command'
+      fullPath: '/command'
+      preLoaderRoute: typeof CommandRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/data': {
@@ -461,6 +494,13 @@ declare module '@tanstack/react-router' {
       path: '/observatory'
       fullPath: '/observatory'
       preLoaderRoute: typeof ObservatoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regimes': {
+      id: '/regimes'
+      path: '/regimes'
+      fullPath: '/regimes'
+      preLoaderRoute: typeof RegimesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/research': {
@@ -629,6 +669,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArtifactsRoute: ArtifactsRoute,
   BenchRoute: BenchRouteWithChildren,
+  CommandRoute: CommandRoute,
   DataRoute: DataRoute,
   DynamicsRoute: DynamicsRoute,
   ExecutionRoute: ExecutionRoute,
@@ -638,6 +679,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MarketsRoute: MarketsRouteWithChildren,
   ObservatoryRoute: ObservatoryRoute,
+  RegimesRoute: RegimesRoute,
   ResearchRoute: ResearchRoute,
   RiskRoute: RiskRoute,
   RunsRoute: RunsRouteWithChildren,

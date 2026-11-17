@@ -2,6 +2,7 @@ import { createFileRoute, type SearchSchemaInput } from "@tanstack/react-router"
 import { DataWorkspace } from "@/data-organ/DataWorkspace";
 import { normalizeTicker } from "@/markets/contracts";
 import { ForgeShell } from "@/app/shell/ForgeShell";
+import { WorkspaceSubnav } from "@/app/shell/WorkspaceSubnav";
 export const Route = createFileRoute("/data")({
   validateSearch: (search: Record<string, unknown> & SearchSchemaInput) => ({
     ticker: normalizeTicker(String(search.ticker ?? "")) ?? undefined,
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/data")({
   }),
   component: () => (
     <ForgeShell>
+      <WorkspaceSubnav inline search={{}} />
       <DataWorkspace />
     </ForgeShell>
   ),

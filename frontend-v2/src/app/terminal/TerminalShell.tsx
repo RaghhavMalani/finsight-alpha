@@ -14,7 +14,16 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { CommandLine } from "../command/CommandLine";
 import type { ForgeCommandPalette } from "../command/ForgeCommandPalette";
-import { FUNCTION_KEYS, isTextField, WORKSPACES } from "../workspaces";
+import {
+  CAPTURED_FUNCTION_KEYS,
+  FUNCTION_KEYS,
+  isTextField,
+  SECTIONS,
+  workspaceOfSection,
+  WORKSPACES,
+  type Workspace,
+} from "../workspaces";
+import { WorkspaceSubnav } from "../shell/WorkspaceSubnav";
 import { changeDataMode, localLiveAllowed, setCurrentTicker, useDataMode } from "../../replay/mode";
 import type { ReplayManifest } from "../../replay/contracts";
 import {
@@ -388,14 +397,6 @@ function PaletteLoading({ message, onClose }: { message?: string; onClose: () =>
   );
 }
 
-const AGENT_PAGES = [
-  ["Center", "/forge"],
-  ["Runs", "/runs"],
-  ["Bench", "/bench"],
-  ["Worlds", "/worlds"],
-  ["Artifacts", "/artifacts"],
-] as const;
-
 export function TerminalShell({
   children,
   bleed = false,
@@ -406,6 +407,7 @@ export function TerminalShell({
   loadManifest?: () => Promise<Snapshot>;
 }) {
   const route = useRouteInvestigation();
+  const navigateTo = useNavigate();
   const [registration, setRegistration] = useState<Registration>();
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
@@ -532,19 +534,23 @@ export function TerminalShell({
         event.shiftKey ||
         event.isComposing ||
         event.repeat ||
-        !FUNCTION_KEYS.includes(event.key)
+        !CAPTURED_FUNCTION_KEYS.includes(event.key)
       )
         return;
       const destination = WORKSPACES.find((w) => w.key === event.key);
       if (destination) {
         event.preventDefault();
-        route.openTarget(target(destination.id));
+        if (destination.section) route.openTarget(target(destination.section));
+        else void navigateTo({ to: destination.to as never });
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [route, target, openPalette]);
+  }, [route, target, openPalette, navigateTo]);
   const workspace = route.context.view.workspace;
+  const group = workspaceOfSection(workspace);
+  const linkFor = (w: Workspace) =>
+    w.section ? target(w.section) : { to: w.to as string, search: {} as Record<string, string> };
   const copyLink = async () => {
     try {
       const href = targetHref(target(workspace));
@@ -560,7 +566,8 @@ export function TerminalShell({
         className={`shell terminal-shell ${bleed ? "shell-bleed" : ""}`}
         data-testid="terminal-shell"
         data-mode={mode}
-        data-workspace={workspace}
+        data-workspace={group}
+        data-section={workspace}
         data-ready={ready}
       >
         <a href="#forge-main" className="shell-skip">
@@ -575,14 +582,14 @@ export function TerminalShell({
           </Link>
           <nav aria-label="Workspaces" className="shell-nav">
             {WORKSPACES.map((w) => {
-              const next = target(w.id);
+              const next = linkFor(w);
               return (
                 <Link
                   key={w.id}
                   to={next.to as never}
                   search={next.search as never}
                   className="shell-link"
-                  aria-current={workspace === w.id ? "page" : undefined}
+                  aria-current={group === w.id ? "page" : undefined}
                   title={
                     FUNCTION_KEYS.includes(w.key)
                       ? `${w.key} · ${w.command}`
@@ -623,19 +630,13 @@ export function TerminalShell({
             invalid={!!route.error}
           />
         </div>
-        {workspace === "agents" && (
-          <nav className="shell-subnav" aria-label="Agents sections">
-            {AGENT_PAGES.map(([label, to]) => (
-              <Link
-                key={to}
-                to={to}
-                search={serializeInvestigationContext(navigationContext) as never}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-        )}
+        <WorkspaceSubnav
+          search={serializeInvestigationContext(navigationContext)}
+          linkFor={(to) => {
+            const section = SECTIONS.find((s) => s.to === to);
+            return section && section.workspace !== "agents" ? target(section.id) : null;
+          }}
+        />
         <main id="forge-main" tabIndex={-1} className={bleed ? "shell-main-bleed" : "shell-main"}>
           {!route.error && compatibility.reasons.length > 0 && (
             <p className="terminal-compatibility" role="status">
