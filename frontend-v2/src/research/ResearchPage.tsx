@@ -72,7 +72,7 @@ function useSyntheticProbe(graph: ResearchGraph | null) {
   const [probe, setProbe] = useState<ResearchGraph | null>(null);
   useEffect(() => {
     // Only a build made with VITE_PERF_PROBE=true honours the probe; production ignores it.
-    if (import.meta.env.VITE_PERF_PROBE !== "true") return;
+    if (import.meta.env.VITE_PERF_PROBE !== "true" || import.meta.env.MODE !== "perf") return;
     const ask = window.__researchSynthetic;
     if (!graph || !ask) return;
     void import("./perf-synthetic").then((m) => setProbe(m.synthesize(graph, ask.nodes)));
@@ -109,7 +109,7 @@ function useStageSize() {
 }
 
 /** Anchor labels in priority order: when two collide, the later one is hidden. */
-const PIN_ORDER = ["H", "F", "SK", "CAL", "MUT", "TESTS", "REP"];
+const PIN_ORDER = ["H", "F", "SK", "R:US:PRIMARY", "R:INDIA:PRIMARY", "CAL", "MUT", "TESTS", "REP"];
 function declutter(els: (HTMLElement | null | undefined)[]) {
   const taken: DOMRect[] = [];
   for (const el of els) {
@@ -155,6 +155,8 @@ const PINNED: Record<string, string> = {
   MUT: "mutation tests",
   REP: "repeat run",
   TESTS: "test suite",
+  "R:US:PRIMARY": "US primary",
+  "R:INDIA:PRIMARY": "India primary",
 };
 
 function Workspace({
@@ -316,9 +318,9 @@ function Workspace({
   const insets: Insets = useMemo(
     () =>
       narrow
-        ? { top: 340, bottom: 150, left: 8, right: 8 }
-        : { top: 214, bottom: 150, left: 24, right: 24 },
-    [narrow],
+        ? { top: 380, bottom: 150, left: 8, right: 8 }
+        : { top: 250, bottom: 196, left: 24, right: selected >= 0 ? 432 : 24 },
+    [narrow, selected],
   );
   const sources: Record<string, SourceFile> = useMemo(
     () => ({
@@ -387,7 +389,12 @@ function Workspace({
               style={{ color: `var(--vx-${l.tone})` }}
               aria-hidden="true"
             >
-              <span>{l.text}</span>
+              <span
+                {...(l.src ? prov(graph.sources, l.src) : {})}
+                {...(l.copy ? { "data-copy": "" } : {})}
+              >
+                {l.text}
+              </span>
             </span>
           ))}
           {graph.nodes.map((n, i) =>
@@ -403,7 +410,11 @@ function Workspace({
               >
                 <span className="rs-pin-in">
                   <b>{PINNED[n.id]}</b>
-                  <small>{stateLabel(views[i], n)}</small>
+                  {n.t && n.t.v != null ? (
+                    <small {...prov(graph.sources, n.t.src)}>t {n.t.v.toFixed(3)}</small>
+                  ) : (
+                    <small>{stateLabel(views[i], n)}</small>
+                  )}
                 </span>
               </span>
             ) : null,
@@ -466,6 +477,7 @@ function Workspace({
             <Hash h={graph.study.preregistration_hash} label="Preregistration hash" /> <i>·</i>{" "}
             frozen <Stamp s={graph.study.frozen_at} label="Frozen at" />
           </p>
+          <Hero graph={graph} />
           <Readout graph={graph} look={look} />
         </header>
 
@@ -620,6 +632,7 @@ function Workspace({
           </div>
         </div>
 
+        <Legend look={look} />
         <Composer />
 
         {node && (
@@ -633,6 +646,71 @@ function Workspace({
         )}
       </div>
     </ProvenanceProvider>
+  );
+}
+
+/** The study verdict in one line, every part from a sealed field. */
+function Hero({ graph }: { graph: ResearchGraph }) {
+  const q = graph.nodes.find((n) => n.id === "Q:STATISTICAL");
+  const us = graph.nodes.find((n) => n.id === "R:US:PRIMARY"),
+    india = graph.nodes.find((n) => n.id === "R:INDIA:PRIMARY");
+  const holm = (n?: GraphNode) => n?.verdicts?.find((x) => x.k.startsWith("Holm"))?.n;
+  const t = (n: GraphNode | undefined, label: string) =>
+    n?.t ? <Num n={n.t} label={label} /> : "unavailable";
+  const hu = holm(us),
+    hi = holm(india);
+  const met = us?.rule?.met && india?.rule?.met;
+  return (
+    <p className="rs-hero">
+      {q?.verdict ? <Src t={q.verdict} label="Statistical verdict" /> : "unavailable"}
+      <i>·</i> US t {t(us, "US primary t")} <i>·</i> IN t {t(india, "India primary t")} <i>·</i>{" "}
+      Holm p {hu ? <Num n={hu} label="US Holm p" /> : "unavailable"} /{" "}
+      {hi ? <Num n={hi} label="India Holm p" /> : "unavailable"} <i>·</i> acceptance rule{" "}
+      {met ? "met" : "not met"}
+    </p>
+  );
+}
+
+/** Every visual channel, named. Anything not listed here is constant. */
+function Legend({ look }: { look: Look }) {
+  const dot = (c: string, label: string, ring = false) => (
+    <span className="rs-lg-i">
+      <i className={ring ? "is-ring" : ""} style={{ color: `var(--vx-${c})` }} />
+      {label}
+    </span>
+  );
+  return (
+    <aside className="rs-legend" aria-label="Legend" data-copy>
+      <div>
+        {dot("fg", "frozen hypothesis")}
+        {dot("cyan", "verified by its source / rule met")}
+        {dot("teal", "rule not met")}
+        {dot("cyanSoft", "control held")}
+        {dot("muted", "recorded, no rule")}
+        {dot("muted", "no result", true)}
+        {dot("amber", "running / state change")}
+        {dot("red", "failed")}
+        {dot("magenta", "skeptic")}
+      </div>
+      <div>
+        dot size: node kind (hub, trial, check) · fans: one dot per calibration case, mutant or
+        skeptic setting · lines: hypothesis to trial, trial to finding (Holm family), check to hub
+        {look === "depth"
+          ? " · brightness: depth (farther is dimmer)"
+          : " · brightness: state only"}
+      </div>
+      {look === "bloom" && (
+        <div>
+          radius = 6 + 1.25·t from the hypothesis; inside the t = 0 ring means negative t (floored
+          at t = −2.8) · two-sided trials compare with the two-sided ring · the v0.1.1 audit found
+          the asymptotic test size failing in most settings
+        </div>
+      )}
+      <div>
+        timeline ticks: amber start or holdout, cyan sealed, red failed, magenta skeptic, amber tall
+        gate change; tall ticks mark freeze, challenge and gate
+      </div>
+    </aside>
   );
 }
 
@@ -783,11 +861,7 @@ function NodeHud({
         </h2>
         <div className="rs-hud-verdict" style={{ color: `var(--vx-${tone})` }}>
           <i aria-hidden="true" />
-          {node.rule && state !== "dormant"
-            ? node.rule.met
-              ? "supported by rule"
-              : "rule not met"
-            : STATE_LABEL[state]}
+          {stateLabel({ state, running: false, flareAt: -2, flareKind: null }, node)}
           {node.verdict && state !== "dormant" && (
             <>
               {" · "}

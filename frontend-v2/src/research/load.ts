@@ -21,7 +21,7 @@ export async function loadResearchGraph(): Promise<GraphLoad> {
         reason:
           "This page cannot verify the evidence: Web Crypto is unavailable (a secure context is required).",
       };
-    const response = await fetch(url, { cache: "no-cache" });
+    const response = await fetch(url, { cache: "no-cache", signal: AbortSignal.timeout(20000) });
     if (!response.ok)
       return { status: "unavailable", reason: `${url} returned HTTP ${response.status}` };
     const declared = response.headers.get("content-length");

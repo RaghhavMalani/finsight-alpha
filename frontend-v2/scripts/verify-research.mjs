@@ -135,24 +135,47 @@ for (const r of runs) {
   assert(rec, `${r.id} is not a frozen trial`);
   const res = rec.payload.result,
     holm = rec.payload.correction.HOLM;
-  const placebo = r.kind === "counterfactual";
+  // Kind from the sealed DAG edge, not from the projection.
+  const dagNode = flagship.dag.nodes.find((n) => n.trial_id === r.id.slice(2));
+  const edgeKind = flagship.dag.edges.find((e) => e.to === dagNode.id).kind;
+  assert.equal(r.kind, edgeKind === "PLACEBO" ? "counterfactual" : "experiment", `${r.id} kind`);
+  const variant = r.id.split(":")[2];
+  const rule =
+    res.status === "UNAVAILABLE"
+      ? null
+      : variant === "PRIMARY"
+        ? "acceptance"
+        : variant === "HMM" || variant === "VOL_CLUSTER"
+          ? "regime"
+          : variant === "WRONG_DIRECTION" || variant.startsWith("SHUFFLED_REGIME")
+            ? "specificity"
+            : null;
   const passes = holm != null && holm <= alpha;
+  const met = rule === "acceptance" ? passes && res.ci_lower > 0 : rule ? passes : null;
   const expected =
     res.status === "UNAVAILABLE"
       ? "unavailable"
-      : placebo
-        ? passes
+      : rule === "specificity"
+        ? met
           ? "falsified"
           : "held"
-        : passes && res.ci_lower > 0
-          ? "verified"
-          : "inconclusive";
+        : rule
+          ? met
+            ? "verified"
+            : "inconclusive"
+          : "recorded";
   assert.equal(r.state, expected, `${r.id} state`);
+  assert.equal(r.rule ? r.rule.met : null, met, `${r.id} rule applicability`);
   if (res.status !== "UNAVAILABLE") {
     const t = res.estimate / ((res.ci_upper - res.ci_lower) / (2 * z975));
     assert(Math.abs(r.t.v - t) < 1e-6, `${r.id} t`);
-    assert.equal(r.rule.met, placebo ? passes : passes && res.ci_lower > 0, `${r.id} rule`);
-  }
+    // Sidedness, independently: which tail formula reproduces the sealed p.
+    const phi = (x) => 0.5 * (1 + erf(x / Math.SQRT2));
+    const one = Math.abs(res.p_value - (1 - phi(t))),
+      two = Math.abs(res.p_value - 2 * (1 - phi(Math.abs(t))));
+    const sided = Math.min(one, two) > 2e-3 ? null : one < two ? "one-sided" : "two-sided";
+    assert.equal(r.sided?.t ?? null, sided, `${r.id} sidedness`);
+  } else assert.equal(r.t ?? null, null, `${r.id} has no t`);
   const ev = flagship.attempts.filter((a) => a.attempt === rec.attempt);
   const wall =
     (Date.parse(ev.find((a) => a.kind === "SUCCESS").at) -
@@ -171,9 +194,16 @@ const suite = docs["v0.1/tests.json"],
   conf = docs["v0.1.1/confirmation.json"];
 assert.equal(
   node("TESTS").state,
-  suite.failures === 0 && suite.errors === 0 ? "verified" : "falsified",
+  suite.failures !== 0 || suite.errors !== 0
+    ? "falsified"
+    : /pending|do not claim green/i.test(String(suite.full_regression))
+      ? "recorded"
+      : "verified",
 );
-assert.equal(node("TESTS").verdict.t, `${suite.failures} failures · ${suite.errors} errors`);
+assert.equal(
+  node("TESTS").verdict.t,
+  `focused run: ${suite.total_passed} passed · ${suite.failures} failures · ${suite.errors} errors`,
+);
 assert.equal(node("CAL").state, cal.status === "NOT_CALIBRATED" ? "uncalibrated" : "verified");
 for (const [name, c] of Object.entries(cal.cases)) {
   const word = (v) => (v ? "accepted" : "rejected");
@@ -182,7 +212,10 @@ for (const [name, c] of Object.entries(cal.cases)) {
     `null size ${word(c.null_accepted)} · power ${word(c.power_accepted)}`,
   );
 }
-assert.equal(node("REP").state, rep.status === "IDENTICAL" ? "verified" : "falsified");
+assert.equal(
+  node("REP").state,
+  rep.status == null ? "unavailable" : rep.status === "IDENTICAL" ? "verified" : "falsified",
+);
 const logged = /Selection does not match frozen discovery/.test(
   docs["v0.1.1/pre-confirmation-rejection.log"],
 );
@@ -242,6 +275,13 @@ if (existsSync(assets)) {
     page = files.find((f) => /^ResearchPage-[\w-]+\.js$/.test(f)),
     scene = files.find((f) => /^ResearchScene-[\w-]+\.js$/.test(f));
   assert(route && page && scene, "research chunks not found in build output");
+  const probe = files.filter(
+    (f) =>
+      f.endsWith(".js") &&
+      readFileSync(resolve(assets, f), "utf8").includes("synthetic scale probe"),
+  );
+  if (!process.argv.includes("--perf"))
+    assert.deepEqual(probe, [], `production build carries the perf probe: ${probe}`);
   const initial = [...new Set([...closure(route), ...closure(page)])];
   assert(
     !initial.some(isThree),

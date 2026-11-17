@@ -31,6 +31,8 @@ export type GraphNode = {
   rule?: { text: string; src: string; ptr: string; inputs: Fact[]; met: boolean } | null;
   /** estimate ÷ SE, derived with its formula; drives Bloom's radius. */
   t?: NumValue | null;
+  /** one-sided or two-sided, read from the sealed p against t. */
+  sided?: TextValue | null;
   verdicts?: Fact[];
   facts: Fact[];
 };
@@ -53,6 +55,9 @@ export type ResearchGraph = {
     title: TextValue;
     alpha: NumValue;
     z_crit: NumValue;
+    z_crit2: NumValue;
+    settings_passed: NumValue;
+    settings_total: NumValue;
     holdout_openings: NumValue;
     series: TextValue;
     preregistration_hash: RefValue;

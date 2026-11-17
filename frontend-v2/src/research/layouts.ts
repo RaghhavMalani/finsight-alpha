@@ -17,7 +17,15 @@ export type Layout = {
   /** Cubic control points per edge, in graph edge order. */
   ctrl: [Vec3, Vec3][];
   camera: { dir: Vec3; target: Vec3; fov: number };
-  labels: { text: string; at: Vec3; tone: ColorName; align: "left" | "right" | "center" }[];
+  labels: {
+    text: string;
+    at: Vec3;
+    tone: ColorName;
+    align: "left" | "right" | "center";
+    /** Source key when the label carries an evidence number; copy marks a scale constant. */
+    src?: string;
+    copy?: boolean;
+  }[];
   /** Faint structural polylines (layer frames, orbit guides). */
   guides: Vec3[][];
   /** Thinner, straighter, smaller: the constellation reading. */
@@ -88,10 +96,60 @@ function curveDefault(a: Vec3, b: Vec3, bow: number): [Vec3, Vec3] {
 
 /** Radial neural bloom: the hypothesis blooms into trials; evidence streams to the finding. */
 /** Bloom's radial scale: no effect at the base ring, 1.25 world units per unit of t. */
-export const radiusOfT = (t: number) => 6 + 1.25 * t;
+export const T_FLOOR = -2.8;
+export const radiusOfT = (t: number) => 6 + 1.25 * Math.max(T_FLOOR, t);
+/** Trials with no result sit on their own arc outside the t scale. */
+export const NO_RESULT_R = 11;
+
+/** Labels sit on their own ring strokes, at the angle where the rings are clear of trials. */
+function ringLabels(H: Vec3, zc: number | null, z2: number | null): Layout["labels"] {
+  const on = (r: number, a: number): Vec3 => [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), 0];
+  const a = -12 * deg;
+  const out: Layout["labels"] = [
+    { text: "t = 0", at: on(radiusOfT(0), a), tone: "muted", align: "left", copy: true },
+    { text: "t = 1", at: on(radiusOfT(1), a + 5 * deg), tone: "muted", align: "left", copy: true },
+    { text: "NO RESULT", at: on(NO_RESULT_R, 180 * deg), tone: "muted", align: "right" },
+  ];
+  if (zc != null)
+    out.push({
+      text: `t = ${zc.toFixed(3)} · one-sided, before Holm`,
+      at: on(radiusOfT(zc), a - 4 * deg),
+      tone: "amber",
+      align: "left",
+      src: "v0.1/preregistration.json",
+    });
+  if (z2 != null)
+    out.push(
+      {
+        text: `|t| = ${z2.toFixed(2)} · two-sided trials`,
+        at: on(radiusOfT(z2), a - 10 * deg),
+        tone: "cyanSoft",
+        align: "left",
+        src: "v0.1/preregistration.json",
+      },
+      {
+        text: `t = −${z2.toFixed(2)}`,
+        at: on(radiusOfT(-z2), a),
+        tone: "cyanSoft",
+        align: "left",
+        src: "v0.1/preregistration.json",
+      },
+    );
+  return out;
+}
+const tick = (c: Vec3, r: number): Vec3[] => [
+  [c[0] + (r - 0.25) * Math.cos(-7 * deg), c[1] + (r - 0.25) * Math.sin(-7 * deg), 0],
+  [c[0] + (r + 0.25) * Math.cos(-7 * deg), c[1] + (r + 0.25) * Math.sin(-7 * deg), 0],
+];
+const arc = (c: Vec3, r: number, a0: number, a1: number): Vec3[] =>
+  Array.from({ length: 25 }, (_, i) => {
+    const a = a0 + ((a1 - a0) * i) / 24;
+    return [c[0] + r * Math.cos(a), c[1] + r * Math.sin(a), 0];
+  });
 
 function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
-  const zc = graph.study.z_crit.v ?? 0;
+  const zc = graph.study.z_crit.v,
+    z2 = graph.study.z_crit2.v;
   const pos: Vec3[] = graph.nodes.map(() => [0, 0, 0]);
   const at = (id: string) => g.idx.get(id)!;
   const H: Vec3 = [-7.5, 0, 0],
@@ -111,8 +169,8 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
     // Radius encodes the sealed record: distance from the hypothesis is the trial's t
     // (estimate ÷ SE). Trials without a result sit on the no-effect ring.
     const place = (i: number, a: number) => {
-      const t = graph.nodes[i].t?.v ?? 0,
-        r = radiusOfT(t);
+      const t = graph.nodes[i].t?.v,
+        r = t == null ? NO_RESULT_R : radiusOfT(t);
       pos[i] = [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), (hash01(i + 7) - 0.5) * 0.6];
     };
     trials.forEach((i, k) =>
@@ -169,20 +227,15 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
       tone: "muted",
       align: "right",
     },
-    {
-      text: "NO EFFECT",
-      at: [H[0] + radiusOfT(0) * 0.71, H[1] + radiusOfT(0) * 0.71 + 0.4, 0],
-      tone: "muted",
-      align: "left",
-    },
-    {
-      text: "CRITICAL VALUE",
-      at: [H[0] + radiusOfT(zc) * 0.71, H[1] + radiusOfT(zc) * 0.71 + 0.4, 0],
-      tone: "amber",
-      align: "left",
-    },
+    ...ringLabels(H, zc, z2),
   ];
-  const guides = [circle(H, radiusOfT(0), 120), circle(H, radiusOfT(zc), 120)];
+  const guides = [
+    circle(H, radiusOfT(0), 120),
+    ...(zc == null ? [] : [circle(H, radiusOfT(zc), 120)]),
+    ...(z2 == null ? [] : [circle(H, radiusOfT(z2), 120), circle(H, radiusOfT(-z2), 120)]),
+    tick(H, radiusOfT(1)),
+    arc(H, NO_RESULT_R, 150 * deg, 210 * deg),
+  ];
   return {
     pos,
     dim: pos.map(() => 1),
@@ -371,18 +424,6 @@ function constellation(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
     {
       text: "THE TRIALS",
       at: [centroid([...us, ...india])[0], top([...us, ...india]) + 1.1, 0],
-      tone: "muted",
-      align: "center",
-    },
-    {
-      text: "CALIBRATION",
-      at: [centroid(g.calCases)[0], top(g.calCases) + 0.9, 0],
-      tone: "muted",
-      align: "center",
-    },
-    {
-      text: "MUTATION",
-      at: [centroid(g.mutants)[0], bottom(g.mutants) - 0.9, 0],
       tone: "muted",
       align: "center",
     },

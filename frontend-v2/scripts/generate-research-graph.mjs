@@ -165,6 +165,18 @@ function invNorm(p) {
   return p < 0.5 ? x : -x;
 }
 
+/** Error function by its Maclaurin series (double precision for |x| < 6). */
+function erf(x) {
+  if (Math.abs(x) > 6) return Math.sign(x);
+  let sum = 0,
+    term = x;
+  for (let n = 0; n < 120; n++) {
+    sum += term / (2 * n + 1);
+    term *= (-x * x) / (n + 1);
+  }
+  return (2 / Math.sqrt(Math.PI)) * sum;
+}
+
 function build({ sources, docs, manifests }) {
   const pre = docs["v0.1/preregistration.json"],
     flag = docs["v0.1/flagship.json"],
@@ -204,6 +216,14 @@ function build({ sources, docs, manifests }) {
     formula: "Φ⁻¹(1 − α): one-sided critical value of the asymptotic normal HAC test",
   };
   const Z975 = invNorm(0.975);
+  const zCrit2 = {
+    v: invNorm(1 - ALPHA / 2),
+    src: "v0.1/preregistration.json",
+    ptr: ptr(["tests", primaryTest, "alpha"]),
+    fmt: "x",
+    formula:
+      "Φ⁻¹(1 − α/2): two-sided critical value at the same α, for trials whose sealed p is two-sided",
+  };
 
   /** A number with provenance. `null` stays null with a reason; missing is never zero. */
   const num = (src, path, fmt, extra = {}) => {
@@ -342,16 +362,46 @@ function build({ sources, docs, manifests }) {
     const holm = corr.HOLM,
       supported = res.status !== "UNAVAILABLE" && holm != null && holm <= ALPHA && res.ci_lower > 0;
     const counterfactual = kind === "PLACEBO";
+    const variant0 = trial.split(":")[1];
+    // Sidedness is read from the sealed record: its p equals either 1 − Φ(t) or 2(1 − Φ(|t|)).
+    const tval =
+      res.status === "UNAVAILABLE"
+        ? null
+        : res.estimate / ((res.ci_upper - res.ci_lower) / (2 * Z975));
+    const phi = (x) => 0.5 * (1 + erf(x / Math.SQRT2));
+    const sided =
+      tval == null
+        ? null
+        : Math.abs(res.p_value - (1 - phi(tval))) < 2e-3
+          ? "one-sided"
+          : Math.abs(res.p_value - 2 * (1 - phi(Math.abs(tval)))) < 2e-3
+            ? "two-sided"
+            : null;
+    // A rule is shown only where the preregistration text covers this trial.
+    const ruleKind =
+      res.status === "UNAVAILABLE"
+        ? null
+        : variant0 === "PRIMARY"
+          ? "acceptance"
+          : variant0 === "HMM" || variant0 === "VOL_CLUSTER"
+            ? "regime"
+            : variant0 === "WRONG_DIRECTION" || variant0.startsWith("SHUFFLED_REGIME")
+              ? "specificity"
+              : null;
+    const passes = holm != null && holm <= ALPHA;
+    const met = ruleKind === "acceptance" ? supported : ruleKind ? passes : null;
     const state =
       res.status === "UNAVAILABLE"
         ? "unavailable"
-        : counterfactual
-          ? supported
+        : ruleKind === "specificity"
+          ? met
             ? "falsified"
             : "held"
-          : supported
-            ? "verified"
-            : "inconclusive";
+          : ruleKind
+            ? met
+              ? "verified"
+              : "inconclusive"
+            : "recorded";
     const [country, variant] = trial.split(":");
     const wall =
       iStart != null && iDone != null
@@ -418,32 +468,47 @@ function build({ sources, docs, manifests }) {
         ptr: ptr([...base, "artifact", "payload_sha256"]),
       },
       edgeKind: kind,
-      rule:
-        res.status === "UNAVAILABLE"
-          ? null
-          : {
-              text: counterfactual
-                ? "A placebo breaks specificity iff its Holm-adjusted p ≤ α (preregistration falsification rule). Shown as held when it does not."
-                : "Supported iff Holm-adjusted p ≤ α and the 95% CI lower bound > 0 (preregistration acceptance rule).",
-              src: "v0.1/preregistration.json",
-              ptr: counterfactual ? ptr(["hypothesis", "falsification", 2]) : ptr(["acceptance"]),
-              inputs: [
-                { k: "α (primary test)", n: alphaNum },
-                {
-                  k: "Holm-adjusted p",
-                  n: num("v0.1/flagship.json", [...P, "correction", "HOLM"], "p"),
-                },
-                ...(counterfactual
-                  ? []
-                  : [
-                      {
-                        k: "95% CI lower",
-                        n: num("v0.1/flagship.json", [...P, "result", "ci_lower"], "ret"),
-                      },
-                    ]),
-              ],
-              met: counterfactual ? holm != null && holm <= ALPHA : supported,
-            },
+      sided: sided
+        ? {
+            t: sided,
+            src: "v0.1/flagship.json",
+            ptr: ptr([...P, "result", "p_value"]),
+            note: "Read by comparing the sealed p with 1 − Φ(t) and 2(1 − Φ(|t|))",
+          }
+        : null,
+      rule: !ruleKind
+        ? null
+        : {
+            text:
+              ruleKind === "acceptance"
+                ? "Supported iff Holm-adjusted p ≤ α and the 95% CI lower bound > 0 (preregistration acceptance rule)."
+                : ruleKind === "regime"
+                  ? "A regime contrast counts only if its Holm-adjusted p ≤ α (preregistered nonzero, two-sided contrast)."
+                  : "Specificity is broken iff this wrong-direction or shuffled-regime control has Holm-adjusted p ≤ α; held when it does not.",
+            src: "v0.1/preregistration.json",
+            ptr:
+              ruleKind === "acceptance"
+                ? ptr(["acceptance"])
+                : ruleKind === "regime"
+                  ? ptr(["hypothesis", "falsification", 1])
+                  : ptr(["hypothesis", "falsification", 2]),
+            inputs: [
+              { k: "α (primary test)", n: alphaNum },
+              {
+                k: "Holm-adjusted p",
+                n: num("v0.1/flagship.json", [...P, "correction", "HOLM"], "p"),
+              },
+              ...(ruleKind === "acceptance"
+                ? [
+                    {
+                      k: "95% CI lower",
+                      n: num("v0.1/flagship.json", [...P, "result", "ci_lower"], "ret"),
+                    },
+                  ]
+                : []),
+            ],
+            met,
+          },
       t:
         res.status === "UNAVAILABLE"
           ? null
@@ -713,7 +778,8 @@ function build({ sources, docs, manifests }) {
     group: "repeat",
     label: { t: "repeatability", src: "v0.1/repeatability.json", ptr: ptr(["status"]) },
     verdict: txt("v0.1/repeatability.json", ["status"]),
-    state: rep.status === "IDENTICAL" ? "verified" : "falsified",
+    state:
+      rep.status == null ? "unavailable" : rep.status === "IDENTICAL" ? "verified" : "falsified",
     facts: [
       { k: "Interpretation", t: txt("v0.1/repeatability.json", ["interpretation"]) },
       {
@@ -739,7 +805,7 @@ function build({ sources, docs, manifests }) {
     group: "tests",
     label: { t: "test suite", src: "v0.1/final-tests.json", ptr: ptr(["total_passed"]) },
     verdict: {
-      t: `${suite.failures} failures · ${suite.errors} errors`,
+      t: `focused run: ${suite.total_passed} passed · ${suite.failures} failures · ${suite.errors} errors`,
       src: "v0.1/tests.json",
       ptr: ptr(["failures"]),
       note: `and ${ptr(["errors"])}`,
@@ -747,11 +813,17 @@ function build({ sources, docs, manifests }) {
     state:
       typeof suite.failures !== "number" || typeof suite.errors !== "number"
         ? "unavailable"
-        : suite.failures === 0 && suite.errors === 0
-          ? "verified"
-          : "falsified",
+        : suite.failures !== 0 || suite.errors !== 0
+          ? "falsified"
+          : /pending|do not claim green/i.test(String(suite.full_regression))
+            ? "recorded"
+            : "verified",
     facts: [
-      { k: "Tests passed", n: num("v0.1/final-tests.json", ["total_passed"], "int") },
+      { k: "Focused run passed (tests.json)", n: num("v0.1/tests.json", ["total_passed"], "int") },
+      {
+        k: "Later count (final-tests.json)",
+        n: num("v0.1/final-tests.json", ["total_passed"], "int"),
+      },
       { k: "Failures (focused run)", n: num("v0.1/tests.json", ["failures"], "int") },
       { k: "Errors (focused run)", n: num("v0.1/tests.json", ["errors"], "int") },
       { k: "Full regression", t: txt("v0.1/tests.json", ["full_regression"]) },
@@ -949,6 +1021,9 @@ function build({ sources, docs, manifests }) {
       title: txt("v0.1/preregistration.json", ["hypothesis", "name"]),
       alpha: alphaNum,
       z_crit: zCrit,
+      z_crit2: zCrit2,
+      settings_passed: num("v0.1.1/summary.json", ["settings_passed"], "int"),
+      settings_total: num("v0.1.1/summary.json", ["settings_total"], "int"),
       holdout_openings: num("v0.1/flagship.json", ["holdout_openings"], "int"),
       series: txt("v0.1/flagship.json", ["series_label"]),
       preregistration_hash: {

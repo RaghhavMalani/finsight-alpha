@@ -31,7 +31,7 @@ import { paintAt } from "./paint";
 
 const BloomLayer = lazy(() => import("@/visual/gl/BloomLayer"));
 /** Frame-time sampling exists only in builds made for the verifier's scale probe. */
-const PERF_PROBE = import.meta.env.VITE_PERF_PROBE === "true";
+const PERF_PROBE = import.meta.env.VITE_PERF_PROBE === "true" && import.meta.env.MODE === "perf";
 const SEG = 14,
   PARTICLES_PER_EDGE = 5;
 

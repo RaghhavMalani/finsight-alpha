@@ -45,6 +45,7 @@ export const STATE = {
   falsified: { color: "red", glow: 0.55 },
   repaired: { color: "amber", glow: 0.5 },
   held: { color: "cyanSoft", glow: 0.8 },
+  recorded: { color: "muted", glow: 0.55 },
   uncalibrated: { color: "red", glow: 0.5 },
   challenge: { color: "magenta", glow: 1 },
   challenged: { color: "amber", glow: 0.9 },
