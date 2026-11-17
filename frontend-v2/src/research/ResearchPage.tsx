@@ -319,7 +319,7 @@ function Workspace({
     () =>
       narrow
         ? { top: 380, bottom: 150, left: 8, right: 8 }
-        : { top: 250, bottom: 196, left: 24, right: selected >= 0 ? 432 : 24 },
+        : { top: 96, bottom: 112, left: 480, right: selected >= 0 ? 420 : 24 },
     [narrow, selected],
   );
   const sources: Record<string, SourceFile> = useMemo(
@@ -660,6 +660,7 @@ function Hero({ graph }: { graph: ResearchGraph }) {
   const hu = holm(us),
     hi = holm(india);
   const met = us?.rule?.met && india?.rule?.met;
+  const sk = graph.nodes.find((n) => n.id === "SK")?.facts.find((f) => f.k === "Old gate")?.t;
   return (
     <p className="rs-hero">
       {q?.verdict ? <Src t={q.verdict} label="Statistical verdict" /> : "unavailable"}
@@ -667,6 +668,14 @@ function Hero({ graph }: { graph: ResearchGraph }) {
       Holm p {hu ? <Num n={hu} label="US Holm p" /> : "unavailable"} /{" "}
       {hi ? <Num n={hi} label="India Holm p" /> : "unavailable"} <i>·</i> acceptance rule{" "}
       {met ? "met" : "not met"}
+      {sk && (
+        <>
+          {" "}
+          <i>·</i> skeptic <Num n={graph.study.settings_passed} label="Skeptic settings passed" />{" "}
+          of <Num n={graph.study.settings_total} label="Skeptic settings total" /> settings passed,
+          gate <Src t={sk} label="Engine gate" />
+        </>
+      )}
     </p>
   );
 }
@@ -693,22 +702,18 @@ function Legend({ look }: { look: Look }) {
         {dot("magenta", "skeptic")}
       </div>
       <div>
-        dot size: node kind (hub, trial, check) · fans: one dot per calibration case, mutant or
-        skeptic setting · lines: hypothesis to trial, trial to finding (Holm family), check to hub
-        {look === "depth"
-          ? " · brightness: depth (farther is dimmer)"
-          : " · brightness: state only"}
+        size = node kind · fan dot = one case, mutant or setting · lines: hypothesis→trial,
+        trial→finding (Holm family), check→hub · brightness = {look === "depth" ? "depth" : "state"}
       </div>
       {look === "bloom" && (
         <div>
-          radius = 6 + 1.25·t from the hypothesis; inside the t = 0 ring means negative t (floored
-          at t = −2.8) · two-sided trials compare with the two-sided ring · the v0.1.1 audit found
-          the asymptotic test size failing in most settings
+          radius = 6 + 1.25·t (inside t = 0: negative; floor t = −2.8) · critical rings are before
+          Holm · v0.1.1 audit: asymptotic size failed in most settings
         </div>
       )}
       <div>
-        timeline ticks: amber start or holdout, cyan sealed, red failed, magenta skeptic, amber tall
-        gate change; tall ticks mark freeze, challenge and gate
+        ticks: amber start, holdout or gate · cyan sealed · red failed · magenta skeptic · tall =
+        freeze, challenge, gate
       </div>
     </aside>
   );

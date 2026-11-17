@@ -104,16 +104,16 @@ export const NO_RESULT_R = 11;
 /** Labels sit on their own ring strokes, at the angle where the rings are clear of trials. */
 function ringLabels(H: Vec3, zc: number | null, z2: number | null): Layout["labels"] {
   const on = (r: number, a: number): Vec3 => [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), 0];
-  const a = -12 * deg;
+  const a = -3 * deg;
   const out: Layout["labels"] = [
     { text: "t = 0", at: on(radiusOfT(0), a), tone: "muted", align: "left", copy: true },
-    { text: "t = 1", at: on(radiusOfT(1), a + 5 * deg), tone: "muted", align: "left", copy: true },
+    { text: "t = 1", at: on(radiusOfT(1), -9 * deg), tone: "muted", align: "left", copy: true },
     { text: "NO RESULT", at: on(NO_RESULT_R, 180 * deg), tone: "muted", align: "right" },
   ];
   if (zc != null)
     out.push({
-      text: `t = ${zc.toFixed(3)} · one-sided, before Holm`,
-      at: on(radiusOfT(zc), a - 4 * deg),
+      text: `t = ${zc.toFixed(3)} one-sided`,
+      at: on(radiusOfT(zc), 6 * deg),
       tone: "amber",
       align: "left",
       src: "v0.1/preregistration.json",
@@ -121,15 +121,15 @@ function ringLabels(H: Vec3, zc: number | null, z2: number | null): Layout["labe
   if (z2 != null)
     out.push(
       {
-        text: `|t| = ${z2.toFixed(2)} · two-sided trials`,
-        at: on(radiusOfT(z2), a - 10 * deg),
+        text: `|t| = ${z2.toFixed(2)} · two-sided`,
+        at: on(radiusOfT(z2), -18 * deg),
         tone: "cyanSoft",
         align: "left",
         src: "v0.1/preregistration.json",
       },
       {
         text: `t = −${z2.toFixed(2)}`,
-        at: on(radiusOfT(-z2), a),
+        at: on(radiusOfT(-z2), 40 * deg),
         tone: "cyanSoft",
         align: "left",
         src: "v0.1/preregistration.json",

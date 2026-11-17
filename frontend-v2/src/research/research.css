@@ -164,7 +164,8 @@
   position: absolute;
   top: 16px;
   left: 24px;
-  max-width: min(640px, calc(100% - 460px));
+  width: 440px;
+  max-width: calc(100% - 48px);
   pointer-events: none;
 }
 .rs-mast .vx-kicker {
@@ -801,8 +802,8 @@
 .rs-legend {
   position: absolute;
   left: 24px;
-  bottom: 98px;
-  max-width: min(760px, calc(100% - 48px));
+  bottom: 100px;
+  max-width: 440px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -854,5 +855,22 @@
   .rs-hud {
     -webkit-mask-image: none;
     mask-image: none;
+  }
+}
+
+/* Desktop: a left rail carries title, verdict, readout and legend; the graph owns the rest. */
+@media (min-width: 701px) {
+  .rs-score {
+    display: none;
+  }
+  .rs-mast h1 {
+    font-size: 20px;
+  }
+  .rs-hero {
+    font-size: 13px;
+  }
+  .rs-ro-row {
+    grid-template-columns: 52px 52px 62px 1fr 54px;
+    row-gap: 0;
   }
 }
