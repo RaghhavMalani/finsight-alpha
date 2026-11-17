@@ -1,5 +1,4 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { HudKicker, HudLabel } from "@/visual/HudLabel";
 import { LiveDot } from "@/visual/LiveDot";
@@ -18,7 +17,7 @@ import { webglAvailable } from "@/visual/webgl";
 import { SceneBus } from "./bus";
 import type { Fact, GraphNode, ResearchGraph } from "./contract";
 import Fallback2D from "./Fallback2D";
-import { layoutFor, LOOK_LABEL, LOOKS, type Look } from "./layouts";
+import { layoutFor, type Look } from "./layouts";
 import { useResearchGraph } from "./load";
 import {
   buildReplay,
@@ -173,7 +172,6 @@ function Workspace({
   renderer: "auto" | "2d";
 }) {
   const reduced = useReducedMotion();
-  const navigate = useNavigate();
   const stage = useStageSize();
   const narrow = stage.w < 700;
   const portrait = stage.w / Math.max(1, stage.h) < 0.85;
@@ -482,21 +480,6 @@ function Workspace({
         </header>
 
         <div className="rs-status">
-          <div className="rs-looks" role="group" aria-label="Visual direction">
-            {LOOKS.map((l) => (
-              <a
-                key={l}
-                href={`?look=${l}`}
-                aria-current={l === look ? "true" : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  void navigate({ to: "/research", search: { look: l } as never, replace: true });
-                }}
-              >
-                {LOOK_LABEL[l]}
-              </a>
-            ))}
-          </div>
           <div className="rs-live">
             {"synthetic" in graph ? (
               <span className="rs-live-row">
@@ -703,7 +686,7 @@ function Legend({ look }: { look: Look }) {
       </div>
       <div>
         size = node kind · fan dot = one case, mutant or setting · lines: hypothesis→trial,
-        trial→finding (Holm family), check→hub · brightness = {look === "depth" ? "depth" : "state"}
+        trial→finding (Holm family), check→hub · brightness = state
       </div>
       {look === "bloom" && (
         <div>

@@ -412,7 +412,7 @@ try {
   console.log("Sabotage: tampered and missing projections render UNAVAILABLE with the reason");
 
   // Looks and screenshots at both widths; no horizontal scroll at 390.
-  for (const look of ["bloom", "depth", "constellation"])
+  for (const look of ["bloom"])
     for (const [w, h] of [
       [1440, 900],
       [390, 844],
@@ -450,8 +450,17 @@ try {
       }
       await p.close();
     }
+  // Retired looks fall back to Bloom.
+  {
+    const p = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await p.goto(`${base}/research?look=depth`);
+    await p
+      .locator('[data-research-root][data-look="bloom"]')
+      .waitFor({ state: "attached", timeout: 30000 });
+    await p.close();
+  }
   console.log(
-    "Looks: bloom, depth, constellation render at 1440 and 390 with no horizontal scroll",
+    "Bloom renders at 1440 and 390 with no horizontal scroll; retired looks fall back to it",
   );
 
   // 2D fallback still conveys the graph.

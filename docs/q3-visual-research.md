@@ -51,9 +51,8 @@ replaying and settles when it is sealed. With `prefers-reduced-motion` the graph
   tokens, cost in dollars) say *unavailable*.
 - **Composer.** One inert prompt line at the bottom edge in the command bar's style. It is disabled and
   says so: this build replays sealed evidence only, and `LIVE` is shown as unavailable.
-- **Three looks**, switchable in the header or with `?look=`: `bloom` (radial neural bloom, the default because
-  the hypothesis-to-finding axis reads fastest), `depth` (layered planes in perspective) and `constellation`
-  (star-burst clusters).
+- **One look: Neural Bloom.** Depth Field and Constellation were removed because their layouts encode no
+  measured value; old `?look=` values fall back to Bloom.
 - **Fallback.** Without WebGL, or after a lost context, the same nodes and edges are drawn on a 2D canvas.
 - **Loading cost.** three.js is not in the route's initial chunks; the scene is a lazy chunk.
 
@@ -80,7 +79,7 @@ node scripts/verify-research.mjs --url http://127.0.0.1:4178      # browser chec
 - Frame rate (`--perf` against a `VITE_PERF_PROBE=true vite build --mode perf` build; the sampler and the 200-node synthetic probe
   exist only in such builds): headless Chrome, D3D11 on an RTX 4060 laptop GPU, 1440x900, vsync-capped:
   real 109 nodes median 59.9 fps (p5 56.5); synthetic 200 nodes median 59.9 fps (p5 56.2).
-- Screenshots: `docs/screenshots/q3-research-{bloom,depth,constellation}-{1440,390}.png` and
+- Screenshots: `docs/screenshots/q3-research-bloom-{1440,390}.png` and
   `q3-research-hud-{1440,390}.png`.
 
 ## Knowingly left

@@ -1,4 +1,3 @@
-import { forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY } from "d3-force";
 import type { ColorName } from "@/visual/tokens";
 import type { ResearchGraph } from "./contract";
 
@@ -249,221 +248,19 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
   };
 }
 
-/**
- * Depth field: four parallel sheets seen at an angle, like layers of a network. The past
- * (preregistration) is farthest and dimmest; the skeptic stands nearest the viewer.
- */
-function depth(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
-  const pos: Vec3[] = graph.nodes.map(() => [0, 0, 0]);
-  const at = (id: string) => g.idx.get(id)!;
-  const Z = { pre: -16, trials: -5, finding: 6, skeptic: 16 };
-  const P: Vec3 = [0, 0, Z.pre],
-    Fz: Vec3 = [0, 0, Z.finding],
-    S: Vec3 = [0, 0, Z.skeptic];
-  pos[at("H")] = P;
-  ring(P, 2.6, 45 * deg, 315 * deg, g.questions.length).forEach(
-    (p, k) => (pos[g.questions[k]] = p),
-  );
-  const rows: [number[], number][] = [
-    [g.runs.US.placebos, 3.6],
-    [g.runs.US.trials, 1.3],
-    [g.runs.INDIA.trials, -1.3],
-    [g.runs.INDIA.placebos, -3.6],
-  ];
-  for (const [ids, y] of rows)
-    ids.forEach((i, k) => (pos[i] = [-6.5 + (13 * k) / Math.max(1, ids.length - 1), y, Z.trials]));
-  pos[at("F")] = Fz;
-  const CAL: Vec3 = add(Fz, [-5.2, 3.1, 0]),
-    MUT: Vec3 = add(Fz, [5.2, 3.1, 0]),
-    REP: Vec3 = add(Fz, [-5.2, -3.1, 0]),
-    TESTS: Vec3 = add(Fz, [5.2, -3.1, 0]);
-  pos[at("CAL")] = CAL;
-  pos[at("MUT")] = MUT;
-  pos[at("REP")] = REP;
-  pos[at("TESTS")] = TESTS;
-  ring(CAL, 1.5, 60 * deg, 200 * deg, g.calCases.length).forEach(
-    (p, k) => (pos[g.calCases[k]] = p),
-  );
-  ring(MUT, 1.7, -20 * deg, 140 * deg, g.mutants.length).forEach((p, k) => (pos[g.mutants[k]] = p));
-  pos[at("SK")] = S;
-  ring(S, 3.4, 0, 2 * Math.PI * (1 - 1 / g.settings.length), g.settings.length).forEach(
-    (p, k) => (pos[g.settings[k]] = p),
-  );
-  pos[at("SK:guard")] = add(S, [-1.3, 1.3, 0]);
-  const ctrl = graph.edges.map((e): [Vec3, Vec3] => {
-    const a = pos[at(e.from)],
-      b = pos[at(e.to)],
-      dz = (b[2] - a[2]) * 0.5;
-    if (Math.abs(dz) < 0.01) return curveDefault(a, b, 0.1);
-    return [add(a, [0, 0, dz]), sub(b, [0, 0, dz])];
-  });
-  const frame = (z: number, w: number, h: number): Vec3[] => [
-    [-w, -h, z],
-    [w, -h, z],
-    [w, h, z],
-    [-w, h, z],
-    [-w, -h, z],
-  ];
-  const sheets: [number, number, number, string, ColorName][] = [
-    [Z.pre, 3.6, 3.6, "PREREGISTRATION", "muted"],
-    [Z.trials, 7.6, 4.6, "TRIALS", "muted"],
-    [Z.finding, 7.4, 5, "VERIFIERS", "muted"],
-    [Z.skeptic, 4.4, 4.4, "CHALLENGE", "magenta"],
-  ];
-  void frame;
-  const guides: Vec3[][] = [];
-  const labels: Layout["labels"] = sheets.map(([z, w, h, text, tone]) => ({
-    text,
-    at: [-w, h + 0.7, z] as Vec3,
-    tone,
-    align: "left" as const,
-  }));
-  const dim = pos.map(
-    (p) => 0.4 + 0.6 * Math.min(1, Math.max(0, (p[2] - Z.pre) / (Z.skeptic - Z.pre))) ** 0.8,
-  );
-  return {
-    pos,
-    dim,
-    ctrl,
-    camera: { dir: [-1, 0.42, 0.8], target: [0, 0, 0], fov: 30 },
-    labels,
-    guides,
-    star: false,
-    orbit: true,
-  };
-}
-
-type Sim = {
-  id: string;
-  i: number;
-  x?: number;
-  y?: number;
-  fx?: number;
-  fy?: number;
-  vx?: number;
-  vy?: number;
-};
-/** Constellation: a seeded force layout, flat, thin and starlit. */
-function constellation(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
-  // Anchors are pinned so the flow reads left to right; everything else finds its place.
-  const fixed: Record<string, [number, number]> = {
-    H: [-12, 0],
-    F: [2.5, 0],
-    SK: [14, 0],
-    CAL: [5.5, 4.6],
-    MUT: [5.5, -4.6],
-    REP: [0.5, 3.4],
-    TESTS: [0.5, -3.4],
-  };
-  const nodes: Sim[] = graph.nodes.map((n, i) => ({
-    id: n.id,
-    i,
-    ...(fixed[n.id]
-      ? { fx: fixed[n.id][0], fy: fixed[n.id][1], x: fixed[n.id][0], y: fixed[n.id][1] }
-      : {}),
-  }));
-  const links = graph.edges.map((e) => ({ source: e.from, target: e.to, kind: e.kind }));
-  let seed = 7;
-  const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
-  const sim = forceSimulation(nodes)
-    .randomSource(random)
-    .force(
-      "link",
-      forceLink<Sim, (typeof links)[number]>(links)
-        .id((d) => d.id)
-        .distance((l) =>
-          l.kind === "HOLM_FAMILY"
-            ? 9
-            : l.kind === "VERDICT"
-              ? 8
-              : l.kind === "CHALLENGES"
-                ? 9
-                : l.kind === "QUESTION"
-                  ? 2.4
-                  : 2.6,
-        )
-        .strength((l) => (l.kind === "HOLM_FAMILY" ? 0.04 : l.kind === "VERDICT" ? 0.05 : 0.5)),
-    )
-    .force("charge", forceManyBody<Sim>().strength(-1.6).distanceMax(9))
-    .force("collide", forceCollide<Sim>(0.62))
-    .force("y", forceY<Sim>(0).strength(0.035))
-    .force(
-      "x",
-      forceX<Sim>((d) => {
-        const n = graph.nodes[d.i];
-        return n.kind === "experiment" || n.kind === "counterfactual" || n.kind === "question"
-          ? -6
-          : 0;
-      }).strength((d) =>
-        graph.nodes[d.i].kind === "experiment" || graph.nodes[d.i].kind === "counterfactual"
-          ? 0.05
-          : 0,
-      ),
-    )
-    .stop();
-  for (let k = 0; k < 420; k++) sim.tick();
-  const pos: Vec3[] = nodes.map((n) => [n.x ?? 0, n.y ?? 0, 0]);
-  const at = (id: string) => g.idx.get(id)!;
-  const ctrl = graph.edges.map((e): [Vec3, Vec3] => {
-    const a = pos[at(e.from)],
-      b = pos[at(e.to)];
-    if (e.kind === "HOLM_FAMILY" || e.kind === "VERDICT")
-      return curveDefault(a, b, a[1] >= 0 ? -0.12 : 0.12);
-    if (e.kind === "CHALLENGES") return curveDefault(a, b, -0.35);
-    return [lerp(a, b, 0.33), lerp(a, b, 0.66)];
-  });
-  const centroid = (ids: number[]): Vec3 => {
-    const s = ids.reduce((acc, i) => add(acc, pos[i]), [0, 0, 0] as Vec3);
-    return mul(s, 1 / Math.max(1, ids.length));
-  };
-  const top = (ids: number[]) => Math.max(...ids.map((i) => pos[i][1]));
-  const bottom = (ids: number[]) => Math.min(...ids.map((i) => pos[i][1]));
-  const us = [...g.runs.US.trials, ...g.runs.US.placebos],
-    india = [...g.runs.INDIA.trials, ...g.runs.INDIA.placebos];
-  const labels: Layout["labels"] = [
-    {
-      text: "THE TRIALS",
-      at: [centroid([...us, ...india])[0], top([...us, ...india]) + 1.1, 0],
-      tone: "muted",
-      align: "center",
-    },
-    {
-      text: "SKEPTIC SETTINGS",
-      at: [centroid(g.settings)[0], bottom(g.settings) - 1.0, 0],
-      tone: "magenta",
-      align: "center",
-    },
-  ];
-  return {
-    pos,
-    dim: pos.map(() => 1),
-    ctrl,
-    camera: { dir: [0, 0, 1], target: [0, 0, 0], fov: 22 },
-    labels,
-    guides: [],
-    star: true,
-    orbit: false,
-  };
-}
-
 /** Portrait stages turn the composition a quarter so it reads top to bottom. */
 const turn = (p: Vec3): Vec3 => [-p[1], -p[0], p[2]];
 
 export function layoutFor(look: Look, graph: ResearchGraph, aspect: number): Layout {
   const g = groups(graph);
-  const base =
-    look === "depth"
-      ? depth(graph, g)
-      : look === "constellation"
-        ? constellation(graph, g)
-        : bloom(graph, g);
+  const base = bloom(graph, g);
   // Centre the composition on its own bounds so the camera target is the middle.
   const xs = base.pos.map((p) => p[0]),
     ys = base.pos.map((p) => p[1]);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2,
     cy = (Math.min(...ys) + Math.max(...ys)) / 2;
   const shift = (p: Vec3): Vec3 => [p[0] - cx, p[1] - cy, p[2]];
-  const portrait = aspect < 0.85 && look !== "depth";
+  const portrait = aspect < 0.85;
   const f = (p: Vec3) => (portrait ? turn(shift(p)) : shift(p));
   return {
     ...base,
