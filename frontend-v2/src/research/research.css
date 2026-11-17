@@ -678,19 +678,20 @@
 /* Narrow: overlays become sheets, the rail folds to two lines. ------------------------- */
 @media (max-width: 700px) {
   .rs {
-    height: 1040px;
+    height: 1120px;
     flex: none;
   }
   .rs-mast {
     left: 16px;
     right: 16px;
+    width: auto;
     max-width: none;
   }
   .rs-mast h1 {
     font-size: 19px;
   }
   .rs-status {
-    top: 268px;
+    top: 356px;
     right: 16px;
     left: 16px;
     align-items: flex-start;

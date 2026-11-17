@@ -318,7 +318,7 @@ function Workspace({
   const insets: Insets = useMemo(
     () =>
       narrow
-        ? { top: 380, bottom: 150, left: 8, right: 8 }
+        ? { top: 428, bottom: 150, left: 8, right: 8 }
         : { top: 96, bottom: 112, left: 480, right: selected >= 0 ? 420 : 24 },
     [narrow, selected],
   );

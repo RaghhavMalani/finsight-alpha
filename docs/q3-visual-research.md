@@ -32,13 +32,17 @@ replaying and settles when it is sealed. With `prefers-reduced-motion` the graph
   A tampered or missing file, missing Web Crypto or any error renders *unavailable* with the reason.
 - **States.** No state is asserted by the UI. Trial states follow the preregistered rule (Holm p ≤ α and CI
   lower > 0; α read from the preregistration) and each panel shows the rule with its inputs; placebos read
-  *held* when they do not pass Holm. Test suite, calibration (*not calibrated*), guard, repeat run, finding
+  *held* when they do not pass Holm. Rules appear only where the preregistration covers the trial (primary:
+  acceptance; HMM/vol-cluster: two-sided regime contrast; wrong-direction and shuffled-regime: specificity);
+  every other trial reads *recorded, no preregistered rule*. Sidedness is read from each sealed p against t. Test suite, calibration (*not calibrated*), guard, repeat run, finding
   and the gate event are derived from their source fields.
 - **Graph.** 109 real nodes: the preregistered hypothesis at the core; US and India trials, placebo ring,
   calibration, mutation tests, test suite, repeat run, the finding, and the v0.1.1 skeptic audit. In Bloom a
   trial's distance from the hypothesis is its t (estimate ÷ SE, derived from the sealed CI with the formula
-  shown), with a no-effect ring and the one-sided critical-value ring. Cyan settled, amber state changes,
-  magenta the skeptic, red failure only. A readout of the two primary trials sits under the title.
+  shown); rings are labelled on their strokes: t = 0, t = 1, the one-sided critical value and ±1.96 for
+  two-sided trials (both before Holm); trials without a result sit on a separate arc. Cyan settled, amber state changes,
+  magenta the skeptic, red failure only. A left rail holds the hero verdict line, the
+  readout of the two primary trials and a legend naming every visual channel.
 - **Replay.** A timeline scrubber replays the recorded events in order; scorecard values stay pending until
   the replay reaches the event that sealed them. This is the only motion on the page.
 - **HUD.** Clicking or pressing Enter on a node opens a translucent overlay with evidence, cost, model and
@@ -73,7 +77,7 @@ node scripts/verify-research.mjs --url http://127.0.0.1:4178      # browser chec
   horizontal scroll, and the 2D fallback positions every node.
 - `tsc`, lint (0 errors), production build, and the Observatory, neural, globe and shell verifiers pass after
   the extraction.
-- Frame rate (`--perf` against a `VITE_PERF_PROBE=true` build; the sampler and the 200-node synthetic probe
+- Frame rate (`--perf` against a `VITE_PERF_PROBE=true vite build --mode perf` build; the sampler and the 200-node synthetic probe
   exist only in such builds): headless Chrome, D3D11 on an RTX 4060 laptop GPU, 1440x900, vsync-capped:
   real 109 nodes median 59.9 fps (p5 56.5); synthetic 200 nodes median 59.9 fps (p5 56.2).
 - Screenshots: `docs/screenshots/q3-research-{bloom,depth,constellation}-{1440,390}.png` and
