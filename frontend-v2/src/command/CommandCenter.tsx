@@ -7,126 +7,27 @@ import type { GlobeMarker } from "@/components/globe/GlobeScene";
 import { loadLand, type LandData } from "@/components/globe/land";
 import { loadReplayManifest } from "@/replay/client";
 import { changeDataMode, localLiveAllowed, useDataMode } from "@/replay/mode";
+import { useLiveSpine, type SpineState } from "./live";
 import {
+  clock,
+  destination,
+  fmt,
   freshness,
+  isIndia,
+  lag,
+  MARKER,
   num,
+  provenance,
+  stamp,
+  summary,
   text,
-  useLiveSpine,
+  WORKSPACE_KEY,
   type FeedHealth,
   type LiveEvent,
-  type SpineState,
-} from "./live";
+} from "./records";
 import "./command.css";
 
 const GlobeScene = lazy(() => import("@/components/globe/GlobeScene"));
-
-const clock = (iso: string) => iso.slice(11, 19) + "Z";
-const stamp = (iso: string) => iso.slice(0, 19).replace("T", " ") + "Z";
-const fmt = (v: number) =>
-  v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const lag = (s: number | null | undefined) =>
-  s == null
-    ? "no success yet"
-    : s < 90
-      ? `lag ${Math.round(s)}s`
-      : s < 5400
-        ? `lag ${Math.round(s / 60)}m`
-        : s < 172800
-          ? `lag ${Math.round(s / 3600)}h`
-          : `lag ${Math.round(s / 86400)}d`;
-
-/** Source, clocks and licence of one record, for hover and the visible source line. */
-function provenance(e: LiveEvent) {
-  return [
-    `${e.type} · seq ${e.seq}`,
-    `source ${e.source} (${e.source_id})`,
-    `observed_at ${e.observed_at}`,
-    `available_at ${e.available_at}`,
-    `delay ${e.provenance.delay}`,
-    `confidence ${e.confidence} · licence ${e.licence.status} / ${e.licence.redistribution}`,
-  ].join("\n");
-}
-
-const isIndia = (e: LiveEvent) =>
-  e.source === "nse" ||
-  text(e.payload.currency) === "INR" ||
-  /\.(NS|BO)$/.test(text(e.payload.ticker) ?? "");
-
-/** One-line summary built only from the record's own fields. */
-function summary(e: LiveEvent): string {
-  const p = e.payload;
-  const kind = text(p.kind);
-  switch (e.type) {
-    case "geo.event":
-      if (kind === "earthquake")
-        return `${num(p.mag) !== null ? `M${num(p.mag)!.toFixed(1)} ` : ""}${text(p.place) ?? text(p.title) ?? "Earthquake"}`;
-      if (kind === "nws_alert")
-        return `${text(p.event) ?? "NWS alert"}${text(p.area) ? ` · ${text(p.area)}` : ""}`;
-      if (kind === "gdelt_event")
-        return `GDELT ${text(p.event_code) ?? ""} · ${text(p.place) ?? text(p.country) ?? "unplaced"}`;
-      return text(p.name) ?? text(p.title) ?? kind ?? "geo event";
-    case "market.tick": {
-      const close = num(p.close);
-      return `${text(p.ticker) ?? "?"} ${close !== null ? fmt(close) : "close n/a"}${text(p.currency) ? ` ${text(p.currency)}` : ""}`;
-    }
-    case "macro.release": {
-      const value = num(p.value);
-      return `${text(p.series) ?? "series"} ${value !== null ? value : "n/a"}${text(p.units) ? ` ${text(p.units)}` : ""}`;
-    }
-    case "news.headline":
-      return text(p.title) ?? "headline";
-    case "prediction.update": {
-      const yes = num(p.yes_price);
-      return `${text(p.question) ?? text(p.event_title) ?? "market"}${yes !== null ? ` · yes ${yes}` : ""}`;
-    }
-    case "risk.alert":
-      return `${text(p.severity) ?? ""} ${text(p.check_id) ?? e.source_id} · ${text(p.subject) ?? ""} · ${text(p.outcome) ?? ""}`;
-    case "research.progress":
-      return text(p.question) ?? "research suggestion";
-    case "feed.health":
-      return `${text(p.feed) ?? e.source_id} ${text(p.status) ?? ""}`;
-  }
-}
-
-/** Where a click takes the reader, with the record's own context. */
-function destination(e: LiveEvent): { to: string; search: Record<string, string> } {
-  const p = e.payload;
-  switch (e.type) {
-    case "geo.event":
-      return { to: "/globe", search: {} };
-    case "market.tick":
-      return { to: "/markets", search: text(p.ticker) ? { ticker: text(p.ticker)! } : {} };
-    case "risk.alert":
-      return { to: "/risk", search: {} };
-    case "feed.health":
-      return { to: "/data", search: { section: "health" } };
-    case "macro.release":
-      return { to: "/data", search: { section: "revisions" } };
-    case "research.progress":
-      return { to: "/research", search: text(p.question) ? { q: text(p.question)! } : {} };
-    case "news.headline":
-      return { to: "/research", search: text(p.title) ? { q: text(p.title)! } : {} };
-    case "prediction.update":
-      return {
-        to: "/research",
-        search: text(p.question) ? { q: text(p.question)! } : {},
-      };
-  }
-}
-
-const WORKSPACE_KEY: Record<string, string> = {
-  "/globe": "F3",
-  "/markets": "F6",
-  "/risk": "Alt 7",
-  "/data": "Alt 7",
-  "/research": "F2",
-};
-
-const MARKER: Record<string, string> = {
-  earthquake: "#ffd166",
-  gdelt_event: "#ff8a5b",
-  nws_alert: "#ff6fd8",
-};
 
 export function LiveDot({ state, label }: { state: "fresh" | "stale" | "dead"; label: string }) {
   return (
@@ -324,7 +225,7 @@ export function CommandCenter() {
 
   return (
     <div className="cmd" data-spine={spine.state.kind} data-mode={mode}>
-      <div className="cmd-stage" aria-hidden="true">
+      <div className="cmd-stage" aria-hidden="true" data-markers={markers.length}>
         {now > 0 && (
           <Suspense fallback={null}>
             <GlobeScene

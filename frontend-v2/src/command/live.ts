@@ -1,49 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { API_BASE } from "@/lib/api";
-
-/** Typed events on the live spine (`src/live/model.py` EVENT_TYPES). */
-export const LIVE_TYPES = [
-  "market.tick",
-  "geo.event",
-  "macro.release",
-  "news.headline",
-  "prediction.update",
-  "risk.alert",
-  "research.progress",
-  "feed.health",
-] as const;
-export type LiveType = (typeof LIVE_TYPES)[number];
-
-export type LiveEvent = {
-  seq: number;
-  id: string;
-  type: LiveType;
-  source: string;
-  source_id: string;
-  revision: string;
-  observed_at: string;
-  available_at: string;
-  effective_at: string | null;
-  licence: { status: string; attribution: string; terms_url: string; redistribution: string };
-  confidence: string;
-  provenance: { feed: string; url: string; fetched_at: string; delay: string } & Record<
-    string,
-    unknown
-  >;
-  payload: Record<string, unknown>;
-};
-
-export type FeedHealth = {
-  feed: string;
-  status: string;
-  reason?: string | null;
-  event_type?: string;
-  cadence_s?: number;
-  delay?: string;
-  lag_s?: number | null;
-  last_success_at?: string | null;
-  last_attempt_at?: string | null;
-};
+import {
+  isObject,
+  isText,
+  LIVE_TYPES,
+  parseFeeds,
+  parseLiveEvent,
+  text,
+  type FeedHealth,
+  type LiveEvent,
+} from "./records";
 
 export type SpineState =
   | { kind: "local-only" }
@@ -53,48 +19,6 @@ export type SpineState =
   | { kind: "unauthorized"; detail: string }
   | { kind: "streaming" }
   | { kind: "polling"; detail: string };
-
-const isObject = (v: unknown): v is Record<string, unknown> =>
-  !!v && typeof v === "object" && !Array.isArray(v);
-const isText = (v: unknown): v is string => typeof v === "string" && v.length > 0;
-const isInstant = (v: unknown): v is string => isText(v) && Number.isFinite(Date.parse(v));
-
-/** A record is shown only when every required field is present; anything else is dropped, never repaired. */
-export function parseLiveEvent(raw: unknown): LiveEvent | null {
-  if (!isObject(raw)) return null;
-  const { seq, type, licence, provenance, payload } = raw;
-  if (typeof seq !== "number" || !Number.isInteger(seq) || seq < 0) return null;
-  if (!LIVE_TYPES.includes(type as LiveType)) return null;
-  for (const key of ["id", "source", "source_id", "revision", "confidence"])
-    if (!isText(raw[key])) return null;
-  if (!isInstant(raw.observed_at) || !isInstant(raw.available_at)) return null;
-  if (raw.effective_at !== null && !isInstant(raw.effective_at)) return null;
-  if (!isObject(licence) || !isText(licence.status) || !isText(licence.redistribution)) return null;
-  if (!isObject(provenance) || !isText(provenance.feed) || !isText(provenance.delay)) return null;
-  if (!isObject(payload)) return null;
-  return raw as unknown as LiveEvent;
-}
-
-export const num = (v: unknown): number | null =>
-  typeof v === "number" && Number.isFinite(v) ? v : null;
-export const text = (v: unknown): string | null => (isText(v) ? v : null);
-
-export function parseFeeds(raw: unknown): FeedHealth[] {
-  if (!isObject(raw) || !Array.isArray(raw.feeds)) return [];
-  return raw.feeds.filter(
-    (f): f is FeedHealth => isObject(f) && isText(f.feed) && isText(f.status),
-  );
-}
-
-/** fresh / stale / dead, from the feed's own status, cadence and lag. Unknown is never "fresh". */
-export function freshness(feed: FeedHealth): "fresh" | "stale" | "dead" {
-  if (feed.status === "DOWN" || feed.status === "UNAVAILABLE" || !feed.last_success_at)
-    return "dead";
-  const lag = num(feed.lag_s),
-    cadence = num(feed.cadence_s);
-  if (feed.status !== "UP" || lag === null) return "stale";
-  return cadence !== null && lag > cadence * 2 + 60 ? "stale" : "fresh";
-}
 
 const MAX_EVENTS = 400;
 function merge(current: LiveEvent[], incoming: LiveEvent[]): LiveEvent[] {
