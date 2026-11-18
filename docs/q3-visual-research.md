@@ -85,11 +85,21 @@ node scripts/verify-research.mjs --url http://127.0.0.1:4178      # browser chec
 - Screenshots: `docs/screenshots/q3-research-bloom-{1440,390}.png` and
   `q3-research-hud-{1440,390}.png`.
 
+## Follow-ups landed (after #37)
+
+- The shell now has seven workspaces (#39); Research is F2.
+- A suggested question from F1 Command arrives as `?q=` and shows in the inert prompt line, marked
+  "suggested, not run" (#39).
+- Labels try vertical nudges before hiding. A nudged label keeps a thin leader back to its node, and labels
+  keep a 16 px gutter from the viewport edges.
+- The graph dims while a node's panel is open.
+- In the legend, colour and timeline rows show the swatch and its meaning, without repeating the colour's name.
+  The rail legend fades at its bottom edge, where it scrolls.
+- The verdict is set at full contrast, with its state colour as a rule on its left.
+- LIVE (not enabled in this build) uses a neutral "off" dot, not the red "dead" one.
+
 ## Knowingly left
 
-- The shell still has ten workspaces and Research sits at F6. Consolidating to seven (F2 Research) with
-  redirects is the next slice.
-- F1 Command, the Global Eye propagation arcs, Forge trajectory replay and Bench, and the Dynamics scenes are
-  not built. `<Num>` is used on Research only.
-- The page does not consume `/live/stream` yet, so suggested questions from the Live Spine do not appear.
-- Labels declutter by priority (lower-priority labels hide on collision) rather than using leader lines.
+- The Global Eye propagation arcs, Forge trajectory replay and Bench, and the Dynamics scenes are not built.
+  `<Num>` is used on Research only (U2).
+- The page does not consume `/live/stream` itself.
