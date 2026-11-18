@@ -288,6 +288,12 @@
   .shell-nav {
     order: 3;
     flex-basis: 100%;
+    /* More workspaces sit off the right edge: fade it so the row reads as scrollable. */
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+    scroll-snap-type: x proximity;
+  }
+  .shell-nav .shell-link {
+    scroll-snap-align: start;
   }
   .shell-link {
     min-height: 42px;

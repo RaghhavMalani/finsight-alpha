@@ -173,11 +173,12 @@ export function CommandCenter() {
   const stream = events.slice(0, 40);
   const live = mode === "live" && allowed;
   const connected = spine.state.kind === "streaming" || spine.state.kind === "polling";
-  const absent = connected ? null : "No records — live spine not connected.";
+  // The status panel names why there are no records; the other panels say it in one word.
+  const absent = connected ? null : "—";
 
   const feedChip = (f: Feed<unknown>, label: string) => (
     <span className={`cmd-chip ${f.status}`} title={f.note ?? undefined}>
-      {label} ·{" "}
+      globe · {label} ·{" "}
       {f.status === "live" && f.at
         ? `live ${new Date(f.at).toISOString().slice(11, 16)}Z`
         : f.status}
