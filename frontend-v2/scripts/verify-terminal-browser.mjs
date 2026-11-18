@@ -417,7 +417,8 @@ async function layoutOf(page, workspace) {
   if (terminal) {
     const shell = page.getByTestId("terminal-shell");
     await shell.waitFor({ state: "visible", timeout: 15000 });
-    assert.equal(await shell.getAttribute("data-workspace"), workspace);
+    // data-workspace names the seven-workspace group; data-section keeps the typed section.
+    assert.equal(await shell.getAttribute("data-section"), workspace);
     await page
       .getByRole("region", { name: "Investigation context", exact: true })
       .waitFor({ state: "visible" });

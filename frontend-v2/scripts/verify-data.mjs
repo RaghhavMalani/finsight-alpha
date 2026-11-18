@@ -108,8 +108,10 @@ if (flag >= 0) {
           (u) => u.pathname === "/data" && u.searchParams.get("ticker") === "US-MKT",
         );
         await page.getByLabel("Command", { exact: true }).blur();
-        await page.keyboard.press("F10");
-        await page.locator('.shell[data-workspace="data"]').waitFor();
+        // DATA is a section of Risk (Alt 7); F10 no longer names a workspace.
+        await page.keyboard.press("Alt+7");
+        await page.waitForURL((u) => u.pathname === "/risk");
+        await page.locator('.shell[data-workspace="risk"]').waitFor();
         assert.ok(
           !requests.some((u) => /:8000|\/api\//.test(u)),
           "public Replay attempted backend access",
@@ -149,7 +151,7 @@ if (flag >= 0) {
       await semantic.close();
       console.log(
         name +
-          ": desktop/mobile DATA views, factor command, F10, offline Replay and changed-byte failure passed",
+          ": desktop/mobile DATA views, factor command, Alt 7, offline Replay and changed-byte failure passed",
       );
     } finally {
       await browser.close();
