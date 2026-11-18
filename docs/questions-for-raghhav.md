@@ -21,3 +21,10 @@ Decisions taken while you were away. Newest last. Each says what I chose and how
 
 ## 2026-11-14 — India fundamentals left as a documented gap (Q1)
 - NSE and BSE terms forbid automated collection without written consent; nothing was scraped. Undo: none needed.
+
+## 2026-11-18 — Workspaces 5 and 7 use Alt 5 / Alt 7, not F5 / F7 (U1)
+- F5 reloads and F7 toggles caret browsing; the shell leaves both to the browser (verify-shell enforces it).
+- Chosen: Dynamics and Risk are labelled "Alt 5" / "Alt 7" and reached by Alt+5 / Alt+7, nav, palette, REG/OBS/RISK/DATA.
+  Alt+1..7 also open every workspace. Text fields keep F-keys and Alt+digit.
+- Undo: in `frontend-v2/src/app/workspaces.ts` set those keys to "F5"/"F7" (they are then captured) and flip the
+  native-key assertions in `scripts/verify-shell.mjs`.
