@@ -46,7 +46,11 @@ class SpineError extends Error {
 async function get(path: string, signal: AbortSignal): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, { credentials: "include", signal });
+    // A stalled spine must not hold a request (and the health check behind it) open forever.
+    response = await fetch(`${API_BASE}${path}`, {
+      credentials: "include",
+      signal: AbortSignal.any([signal, AbortSignal.timeout(REQUEST_MS)]),
+    });
   } catch (error) {
     if (signal.aborted) throw error;
     throw new SpineError(
@@ -72,6 +76,7 @@ async function get(path: string, signal: AbortSignal): Promise<unknown> {
 }
 
 const POLL_MS = 15_000;
+const REQUEST_MS = 10_000;
 const HEALTH_MS = 30_000;
 const PAGE = 200;
 const MAX_PAGES = 25;
@@ -145,6 +150,9 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
           : { kind: "not-running", detail: error instanceof Error ? error.message : "unknown" },
       );
     };
+    const downIf = (g: number) => (error: unknown) => {
+      if (g === gen) down(error);
+    };
     const readHealth = async () => {
       const g = gen;
       const body = await get("/live/health", signal);
@@ -186,8 +194,16 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
       void recent().then(() => {
         if (signal.aborted || !up || g !== gen) return;
         setState({ kind: "polling", detail });
-        if (!poll) poll = setInterval(() => void recent().catch(down), POLL_MS);
-      }, down);
+        if (!poll)
+          poll = setInterval(() => {
+            const pg = gen;
+            void recent().then(() => {
+              // Rows are arriving by polling: say so, even while a stream retry is pending.
+              if (pg === gen && up && source?.readyState !== 1 /* OPEN */)
+                setState({ kind: "polling", detail });
+            }, downIf(pg));
+          }, POLL_MS);
+      }, downIf(g));
     };
     const openStream = () => {
       if (typeof EventSource === "undefined") {
@@ -210,7 +226,7 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
         }
       };
       for (const type of LIVE_TYPES) source.addEventListener(type, onFrame as EventListener);
-      source.addEventListener("gap", () => void recent().catch(down));
+      source.addEventListener("gap", () => void recent().catch(downIf(gen)));
       source.onerror = () => {
         if (source?.readyState === EventSource.CLOSED)
           startPolling("stream closed; polling /live/recent");
