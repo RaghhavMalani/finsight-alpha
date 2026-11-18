@@ -122,7 +122,7 @@ function Graph({
       N = graph.nodes.length;
     const lines = createLineBundle(E * SEG * 2, 0);
     lines.material.uniforms.uMotion.value = 0;
-    lines.material.uniforms.uGain.value = layout.star ? 0.8 : 1;
+    lines.material.uniforms.uGain.value = 1;
     const flow = createFlowField(E * PARTICLES_PER_EDGE);
     const nodes = createPulseNodes(N);
     let v = 0;
@@ -219,7 +219,7 @@ function Graph({
       nodes.color.setXYZ(i, ...c);
       nodes.size.setX(i, n.size);
       nodes.alpha.setX(i, n.alpha);
-      nodes.ring.setX(i, n.ring ? 1 : 0);
+      nodes.ring.setX(i, n.ring);
       nodes.pulse.setX(i, n.pulse);
       nodes.flare.setX(i, n.flareAt);
       nodes.lift.setX(i, 1);
@@ -365,7 +365,7 @@ export default function ResearchScene({
         tabIndex={-1}
       >
         <color attach="background" args={["#000000"]} />
-        {layout.orbit && (
+        {
           <OrbitControls
             makeDefault
             enableDamping
@@ -373,7 +373,7 @@ export default function ResearchScene({
             enablePan={false}
             rotateSpeed={0.5}
           />
-        )}
+        }
         <CameraFit layout={layout} insets={insets} />
         <Graph
           graph={graph}
@@ -385,7 +385,7 @@ export default function ResearchScene({
         {!bloomFailed && (
           <Boundary onError={() => setBloomFailed(true)}>
             <Suspense fallback={null}>
-              <BloomLayer strength={layout.star ? BLOOM.strength * 0.8 : BLOOM.strength} />
+              <BloomLayer strength={BLOOM.strength} />
             </Suspense>
           </Boundary>
         )}

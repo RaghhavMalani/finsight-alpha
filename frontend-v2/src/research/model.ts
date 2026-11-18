@@ -118,11 +118,13 @@ export function flareColor(kind: EventKind | null, state: EvidenceState): ColorN
 export const stateLabel = (v: NodeView, n?: GraphNode) =>
   v.running && v.state === "challenge"
     ? "challenging"
-    : n?.rule && v.state === "inconclusive"
-      ? "preregistered rule not met"
-      : n?.rule && v.state === "verified"
-        ? "preregistered rule met"
-        : STATE_LABEL[v.state];
+    : n?.rule && n.rule.met == null && v.state !== "dormant"
+      ? "preregistered rule unavailable"
+      : n?.rule && v.state === "inconclusive"
+        ? "preregistered rule not met"
+        : n?.rule && v.state === "verified"
+          ? "preregistered rule met"
+          : STATE_LABEL[v.state];
 
 export const KIND_LABEL: Record<GraphNode["kind"], string> = {
   hypothesis: "Hypothesis",

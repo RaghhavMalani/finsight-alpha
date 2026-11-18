@@ -11,8 +11,6 @@ export type Vec3 = [number, number, number];
 export type Layout = {
   look: Look;
   pos: Vec3[];
-  /** Per-node light multiplier (depth fog). */
-  dim: number[];
   /** Cubic control points per edge, in graph edge order. */
   ctrl: [Vec3, Vec3][];
   camera: { dir: Vec3; target: Vec3; fov: number };
@@ -25,11 +23,8 @@ export type Layout = {
     src?: string;
     copy?: boolean;
   }[];
-  /** Faint structural polylines (layer frames, orbit guides). */
+  /** Faint structural polylines: rings, ticks and no-result arcs. */
   guides: Vec3[][];
-  /** Thinner, straighter, smaller: the constellation reading. */
-  star: boolean;
-  orbit: boolean;
   /** Anchors whose label sits above the node because their children fan out below. */
   pinAbove?: string[];
 };
@@ -253,13 +248,10 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
   ];
   return {
     pos,
-    dim: pos.map(() => 1),
     ctrl,
     camera: { dir: [0.0, -0.28, 1], target: [3.3, 0, 0], fov: 34 },
     labels,
     guides,
-    star: false,
-    orbit: true,
     pinAbove: ["MUT"],
   };
 }

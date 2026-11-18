@@ -131,11 +131,16 @@ const z975 = quantile(0.975);
 // The regime rule as a whole: four contrasts after Holm and no specificity control passing.
 const holmOf = (id) => flagship.records[id]?.payload?.correction?.HOLM;
 const passesHolm = (id) => holmOf(id) != null && holmOf(id) <= alpha;
-const regimeMet =
-  ["US:HMM", "US:VOL_CLUSTER", "INDIA:HMM", "INDIA:VOL_CLUSTER"].every(passesHolm) &&
-  !Object.keys(flagship.records)
-    .filter((id) => /:(WRONG_DIRECTION|SHUFFLED_REGIME_HMM|SHUFFLED_REGIME_VOL)$/.test(id))
-    .some(passesHolm);
+const regimeIds = ["US:HMM", "US:VOL_CLUSTER", "INDIA:HMM", "INDIA:VOL_CLUSTER"];
+const regimeControls = Object.keys(flagship.records).filter((id) =>
+  /:(WRONG_DIRECTION|SHUFFLED_REGIME_HMM|SHUFFLED_REGIME_VOL)$/.test(id),
+);
+const regimeMet = [...regimeIds, ...regimeControls].some((id) => holmOf(id) == null)
+  ? null
+  : regimeIds.every(passesHolm) &&
+    !Object.keys(flagship.records)
+      .filter((id) => /:(WRONG_DIRECTION|SHUFFLED_REGIME_HMM|SHUFFLED_REGIME_VOL)$/.test(id))
+      .some(passesHolm);
 const runs = graph.nodes.filter((n) => n.kind === "experiment" || n.kind === "counterfactual");
 assert.equal(runs.length, Object.keys(flagship.records).length, "every frozen trial is a node");
 for (const r of runs) {
@@ -175,9 +180,11 @@ for (const r of runs) {
           ? "falsified"
           : "held"
         : rule
-          ? met
-            ? "verified"
-            : "inconclusive"
+          ? met == null
+            ? "recorded"
+            : met
+              ? "verified"
+              : "inconclusive"
           : "recorded";
   assert.equal(r.state, expected, `${r.id} state`);
   assert.equal(r.rule ? r.rule.met : null, met, `${r.id} rule applicability`);

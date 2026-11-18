@@ -7,7 +7,8 @@ export type NodePaint = {
   color: ColorName;
   size: number;
   alpha: number;
-  ring: boolean;
+  /** 0 filled, 1 hollow (rule not met), 2 dashed (no result / unavailable). */
+  ring: 0 | 1 | 2;
   pulse: number;
   flareAt: number;
 };
@@ -41,7 +42,6 @@ export function paintAt(
       if (a === selected) neighbours.add(b);
       if (b === selected) neighbours.add(a);
     }
-  const star = layout.star ? 0.62 : 1;
   const nodes = graph.nodes.map((n, i): NodePaint => {
     const v = views[i],
       s = STATE[v.state],
@@ -49,9 +49,9 @@ export function paintAt(
     const focusLift = selected < 0 || selected === i ? 1 : neighbours.has(i) ? 0.85 : 0.22;
     return {
       color: stateColor(v.state),
-      size: nodeSize(n) * star * (dormant ? 0.55 : 1),
-      alpha: s.glow * layout.dim[i] * focusLift,
-      ring: v.state === "unavailable" || v.state === "inconclusive",
+      size: nodeSize(n) * (dormant ? 0.55 : 1),
+      alpha: s.glow * focusLift,
+      ring: v.state === "unavailable" ? 2 : v.state === "inconclusive" ? 1 : 0,
       pulse: v.running ? 1 : 0,
       flareAt: v.flareAt,
     };
@@ -63,8 +63,7 @@ export function paintAt(
       b = index.get(e.to)!,
       va = views[a],
       vb = views[b];
-    const dim = Math.min(layout.dim[a], layout.dim[b]);
-    const lit = (on: boolean, w: number) => (on ? w : 0.05) * dim;
+    const lit = (on: boolean, w: number) => (on ? w : 0.05);
     const focus = selected < 0 || a === selected || b === selected ? 1 : 0.3;
     let p: EdgePaint;
     switch (e.kind) {

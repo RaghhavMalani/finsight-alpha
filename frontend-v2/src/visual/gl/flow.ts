@@ -124,8 +124,11 @@ export class PulseNodeMaterial extends ShaderMaterial {
           float core = r < 1.0 ? pow(1.0 - r, 2.4) : 0.0;
           float halo = r < 1.0 ? pow(1.0 - r, 1.2) * 0.35 : 0.0;
           float ringR = 0.62;
-          float ring = vRing * exp(-pow((r - ringR) * 9.0, 2.0)) * 0.9;
-          float fill = (1.0 - vRing) * (core + halo) + ring + vRing * halo * 0.25;
+          float hollow = min(vRing, 1.0);
+          vec2 q = gl_PointCoord - 0.5;
+          float dash = vRing > 1.5 ? step(0.5, fract(atan(q.y, q.x) * 1.909859)) : 1.0;
+          float ring = hollow * dash * exp(-pow((r - ringR) * 9.0, 2.0)) * 0.9;
+          float fill = (1.0 - hollow) * (core + halo) + ring + hollow * halo * (vRing > 1.5 ? 0.08 : 0.25);
           float flareRing = vF * exp(-pow((d - (1.0 - vF)) * 7.0, 2.0)) * 1.2;
           float a = (fill + flareRing) * vA;
           if (a <= 0.002) discard;

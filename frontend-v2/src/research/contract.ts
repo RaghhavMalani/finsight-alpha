@@ -28,7 +28,7 @@ export type GraphNode = {
   model?: TextValue | null;
   cost?: Fact[];
   /** The preregistered rule that produced `state`, with its sealed inputs. */
-  rule?: { text: string; src: string; ptr: string; inputs: Fact[]; met: boolean } | null;
+  rule?: { text: string; src: string; ptr: string; inputs: Fact[]; met: boolean | null } | null;
   /** estimate ÷ SE, derived with its formula; drives Bloom's radius. */
   t?: NumValue | null;
   /** one-sided or two-sided, read from the sealed p against t. */

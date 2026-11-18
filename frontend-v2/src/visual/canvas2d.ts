@@ -46,7 +46,7 @@ export function glowNode(
   r: number,
   color: ColorName,
   alpha: number,
-  ring = false,
+  ring: boolean | "dashed" = false,
 ) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
   g.addColorStop(0, rgba(color, ring ? 0.1 * alpha : alpha));
@@ -57,10 +57,12 @@ export function glowNode(
   ctx.arc(x, y, r * 3, 0, Math.PI * 2);
   ctx.fill();
   if (ring) {
+    ctx.setLineDash(ring === "dashed" ? [3, 3] : []);
     ctx.lineWidth = 1;
     ctx.strokeStyle = rgba(color, alpha);
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 }

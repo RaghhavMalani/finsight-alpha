@@ -93,7 +93,15 @@ export default function Fallback2D({
       });
       p.nodes.forEach((n, i) => {
         const [x, y] = scr(layout.pos[i]);
-        glowNode(ctx, x, y, Math.max(2, n.size * s * 0.32), n.color, Math.min(1, n.alpha), n.ring);
+        glowNode(
+          ctx,
+          x,
+          y,
+          Math.max(2, n.size * s * 0.32),
+          n.color,
+          Math.min(1, n.alpha),
+          n.ring === 2 ? "dashed" : n.ring === 1,
+        );
       });
       const nodes = new Float32Array(graph.nodes.length * 3),
         labels = new Float32Array(layout.labels.length * 3);

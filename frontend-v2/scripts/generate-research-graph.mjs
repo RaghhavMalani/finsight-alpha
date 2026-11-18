@@ -347,9 +347,11 @@ function build({ sources, docs, manifests }) {
     /:(WRONG_DIRECTION|SHUFFLED_REGIME_HMM|SHUFFLED_REGIME_VOL)$/.test(id),
   );
   const regimeK = contrasts.filter((id) => holmOf(id) != null && holmOf(id) <= ALPHA).length;
+  const regimeMissing = [...contrasts, ...controls].some((id) => holmOf(id) == null);
   const regimeRule = {
     k: regimeK,
-    met: regimeK === 4 && controls.every((id) => !(holmOf(id) != null && holmOf(id) <= ALPHA)),
+    // Missing is not "not met": any absent Holm p leaves the rule unavailable.
+    met: regimeMissing ? null : regimeK === 4 && controls.every((id) => !(holmOf(id) <= ALPHA)),
   };
   const dagIndex = new Map(flag.dag.edges.map((e, i) => [e.to, i]));
   const attemptsByRun = new Map();
@@ -413,9 +415,11 @@ function build({ sources, docs, manifests }) {
             ? "falsified"
             : "held"
           : ruleKind === "regime"
-            ? regimeRule.met
-              ? "verified"
-              : "inconclusive"
+            ? regimeRule.met == null
+              ? "recorded"
+              : regimeRule.met
+                ? "verified"
+                : "inconclusive"
             : ruleKind
               ? met
                 ? "verified"
