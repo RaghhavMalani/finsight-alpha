@@ -51,7 +51,7 @@ export function paintAt(
       color: stateColor(v.state),
       size: nodeSize(n) * star * (dormant ? 0.55 : 1),
       alpha: s.glow * layout.dim[i] * focusLift,
-      ring: v.state === "unavailable",
+      ring: v.state === "unavailable" || v.state === "inconclusive",
       pulse: v.running ? 1 : 0,
       flareAt: v.flareAt,
     };

@@ -100,45 +100,60 @@ export const radiusOfT = (t: number) => 6 + 1.25 * Math.max(T_FLOOR, t);
 /** Trials with no result sit on their own arc outside the t scale. */
 export const NO_RESULT_R = 11;
 
-/** Labels sit on their own ring strokes, at the angle where the rings are clear of trials. */
+/** Ring labels in the upper-left quadrant, away from the hypothesis→finding bundle. */
+export const RING_ANGLES = { neg: 140, zero: 131, one: 122, crit: 112, two: 97 } as const;
 function ringLabels(H: Vec3, zc: number | null, z2: number | null): Layout["labels"] {
-  const on = (r: number, a: number): Vec3 => [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), 0];
-  const a = -3 * deg;
+  const on = (r: number, deg_: number): Vec3 => [
+    H[0] + (r + 0.35) * Math.cos(deg_ * deg),
+    H[1] + (r + 0.35) * Math.sin(deg_ * deg),
+    0,
+  ];
   const out: Layout["labels"] = [
-    { text: "t = 0", at: on(radiusOfT(0), a), tone: "muted", align: "left", copy: true },
-    { text: "t = 1", at: on(radiusOfT(1), -9 * deg), tone: "muted", align: "left", copy: true },
-    { text: "NO RESULT", at: on(NO_RESULT_R, 180 * deg), tone: "muted", align: "right" },
+    {
+      text: "t = 0",
+      at: on(radiusOfT(0), RING_ANGLES.zero),
+      tone: "muted",
+      align: "right",
+      copy: true,
+    },
+    {
+      text: "t = 1",
+      at: on(radiusOfT(1), RING_ANGLES.one),
+      tone: "muted",
+      align: "right",
+      copy: true,
+    },
   ];
   if (zc != null)
     out.push({
       text: `t = ${zc.toFixed(3)} one-sided`,
-      at: on(radiusOfT(zc), 6 * deg),
+      at: on(radiusOfT(zc), RING_ANGLES.crit),
       tone: "amber",
-      align: "left",
+      align: "right",
       src: "v0.1/preregistration.json",
     });
   if (z2 != null)
     out.push(
       {
-        text: `|t| = ${z2.toFixed(2)} · two-sided`,
-        at: on(radiusOfT(z2), -18 * deg),
+        text: `|t| = ${z2.toFixed(2)} two-sided`,
+        at: on(radiusOfT(z2), RING_ANGLES.two),
         tone: "cyanSoft",
-        align: "left",
+        align: "right",
         src: "v0.1/preregistration.json",
       },
       {
         text: `t = −${z2.toFixed(2)}`,
-        at: on(radiusOfT(-z2), 40 * deg),
+        at: on(radiusOfT(-z2), RING_ANGLES.neg),
         tone: "cyanSoft",
-        align: "left",
+        align: "right",
         src: "v0.1/preregistration.json",
       },
     );
   return out;
 }
-const tick = (c: Vec3, r: number): Vec3[] => [
-  [c[0] + (r - 0.25) * Math.cos(-7 * deg), c[1] + (r - 0.25) * Math.sin(-7 * deg), 0],
-  [c[0] + (r + 0.25) * Math.cos(-7 * deg), c[1] + (r + 0.25) * Math.sin(-7 * deg), 0],
+const tick = (c: Vec3, r: number, a: number): Vec3[] => [
+  [c[0] + (r - 0.22) * Math.cos(a * deg), c[1] + (r - 0.22) * Math.sin(a * deg), 0],
+  [c[0] + (r + 0.22) * Math.cos(a * deg), c[1] + (r + 0.22) * Math.sin(a * deg), 0],
 ];
 const arc = (c: Vec3, r: number, a0: number, a1: number): Vec3[] =>
   Array.from({ length: 25 }, (_, i) => {
@@ -147,6 +162,7 @@ const arc = (c: Vec3, r: number, a0: number, a1: number): Vec3[] =>
   });
 
 function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
+  const noResult: number[] = [];
   const zc = graph.study.z_crit.v,
     z2 = graph.study.z_crit2.v;
   const pos: Vec3[] = graph.nodes.map(() => [0, 0, 0]);
@@ -170,6 +186,7 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
     const place = (i: number, a: number) => {
       const t = graph.nodes[i].t?.v,
         r = t == null ? NO_RESULT_R : radiusOfT(t);
+      if (t == null) noResult.push(a);
       pos[i] = [H[0] + r * Math.cos(a), H[1] + r * Math.sin(a), (hash01(i + 7) - 0.5) * 0.6];
     };
     trials.forEach((i, k) =>
@@ -218,8 +235,8 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
     return curveDefault(a, b, 0.08);
   });
   const labels: Layout["labels"] = [
-    { text: "US TRIALS", at: [H[0] - 1.5, H[1] + 8.1, 0], tone: "muted", align: "center" },
-    { text: "INDIA TRIALS", at: [H[0] - 1.5, H[1] - 8.3, 0], tone: "muted", align: "center" },
+    { text: "US TRIALS", at: [H[0] + 3.5, H[1] + 9.6, 0], tone: "muted", align: "center" },
+    { text: "INDIA TRIALS", at: [H[0] + 3.5, H[1] - 9.8, 0], tone: "muted", align: "center" },
     {
       text: "PLACEBOS",
       at: [H[0] - radiusOfT(0) - 1.6, H[1] + 2.4, 0],
@@ -232,8 +249,13 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
     circle(H, radiusOfT(0), 120),
     ...(zc == null ? [] : [circle(H, radiusOfT(zc), 120)]),
     ...(z2 == null ? [] : [circle(H, radiusOfT(z2), 120), circle(H, radiusOfT(-z2), 120)]),
-    tick(H, radiusOfT(1)),
-    arc(H, NO_RESULT_R, 150 * deg, 210 * deg),
+    tick(H, radiusOfT(0), RING_ANGLES.zero),
+    tick(H, radiusOfT(1), RING_ANGLES.one),
+    ...(zc == null ? [] : [tick(H, radiusOfT(zc), RING_ANGLES.crit)]),
+    ...(z2 == null
+      ? []
+      : [tick(H, radiusOfT(z2), RING_ANGLES.two), tick(H, radiusOfT(-z2), RING_ANGLES.neg)]),
+    ...noResult.map((a) => arc(H, NO_RESULT_R, a - 5 * deg, a + 5 * deg)),
   ];
   return {
     pos,

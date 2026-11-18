@@ -22,7 +22,7 @@ export type Origin = {
   /** Why the value is absent. Missing is never shown as zero. */
   reason?: string;
 };
-export type NumFormat = "ret" | "p" | "rate" | "int" | "bps" | "sec" | "x";
+export type NumFormat = "ret" | "pp" | "p" | "rate" | "int" | "bps" | "sec" | "x";
 export type NumValue = Origin & { v: number | null; fmt: NumFormat };
 export type RefValue = Origin & { v: string | null };
 export type TextValue = Origin & { t: string | null; repaired?: string };

@@ -317,7 +317,7 @@ function Workspace({
     () =>
       narrow
         ? { top: 428, bottom: 150, left: 8, right: 8 }
-        : { top: 96, bottom: 112, left: 480, right: selected >= 0 ? 420 : 24 },
+        : { top: 96, bottom: 112, left: 540, right: selected >= 0 ? 420 : 24 },
     [narrow, selected],
   );
   const sources: Record<string, SourceFile> = useMemo(
@@ -475,8 +475,13 @@ function Workspace({
             <Hash h={graph.study.preregistration_hash} label="Preregistration hash" /> <i>·</i>{" "}
             frozen <Stamp s={graph.study.frozen_at} label="Frozen at" />
           </p>
-          <Hero graph={graph} />
-          <Readout graph={graph} look={look} />
+          <Hero
+            graph={graph}
+            tone={stateColor(
+              views[graph.nodes.findIndex((n) => n.id === "Q:STATISTICAL")]?.state ?? "dormant",
+            )}
+          />
+          <Readout graph={graph} />
         </header>
 
         <div className="rs-status">
@@ -499,7 +504,7 @@ function Workspace({
             <span className="rs-live-row">
               <LiveDot state="dead" label="Live" />
               <span className="rs-live-detail" data-copy>
-                unavailable · runs start in Q2/Q5
+                live runs are not enabled in this build
               </span>
             </span>
           </div>
@@ -615,7 +620,7 @@ function Workspace({
           </div>
         </div>
 
-        <Legend look={look} />
+        <Legend graph={graph} />
         <Composer />
 
         {node && (
@@ -633,7 +638,7 @@ function Workspace({
 }
 
 /** The study verdict in one line, every part from a sealed field. */
-function Hero({ graph }: { graph: ResearchGraph }) {
+function Hero({ graph, tone }: { graph: ResearchGraph; tone: ColorName }) {
   const q = graph.nodes.find((n) => n.id === "Q:STATISTICAL");
   const us = graph.nodes.find((n) => n.id === "R:US:PRIMARY"),
     india = graph.nodes.find((n) => n.id === "R:INDIA:PRIMARY");
@@ -642,29 +647,73 @@ function Hero({ graph }: { graph: ResearchGraph }) {
     n?.t ? <Num n={n.t} label={label} /> : "unavailable";
   const hu = holm(us),
     hi = holm(india);
-  const met = us?.rule?.met && india?.rule?.met;
+  const alpha = graph.study.alpha.v;
+  // Derived only from sealed Holm p and α; missing pieces make the phrase unavailable.
+  const legs =
+    hu?.v == null || hi?.v == null || alpha == null
+      ? null
+      : [hu.v, hi.v].filter((v) => v <= alpha).length;
+  const phrase =
+    legs == null
+      ? "Holm result unavailable"
+      : legs === 0
+        ? "neither leg passes Holm"
+        : legs === 1
+          ? "one leg passes Holm"
+          : "both legs pass Holm";
+  const rule =
+    us?.rule == null || india?.rule == null
+      ? "unavailable"
+      : us.rule.met && india.rule.met
+        ? "met"
+        : "not met";
   const sk = graph.nodes.find((n) => n.id === "SK")?.facts.find((f) => f.k === "Old gate")?.t;
+  const g = (children: React.ReactNode) => <span className="rs-nw">{children}</span>;
   return (
-    <p className="rs-hero">
-      {q?.verdict ? <Src t={q.verdict} label="Statistical verdict" /> : "unavailable"}
-      <i>·</i> US t {t(us, "US primary t")} <i>·</i> IN t {t(india, "India primary t")} <i>·</i>{" "}
-      Holm p {hu ? <Num n={hu} label="US Holm p" /> : "unavailable"} /{" "}
-      {hi ? <Num n={hi} label="India Holm p" /> : "unavailable"} <i>·</i> acceptance rule{" "}
-      {met ? "met" : "not met"}
+    <div className="rs-hero">
+      <p className="rs-hero-1" style={{ color: `var(--vx-${tone})` }}>
+        {q?.verdict ? <Src t={q.verdict} label="Statistical verdict" /> : "unavailable"} — {phrase}
+      </p>
+      <p className="rs-hero-2">
+        {g(<>US t {t(us, "US primary t")}</>)} <i>·</i> {g(<>IN t {t(india, "India primary t")}</>)}{" "}
+        <i>·</i>{" "}
+        {g(
+          <>
+            Holm p {hu ? <Num n={hu} label="US Holm p" /> : "unavailable"} /{" "}
+            {hi ? <Num n={hi} label="India Holm p" /> : "unavailable"}
+          </>,
+        )}{" "}
+        <i>·</i>{" "}
+        {g(
+          <>
+            acceptance rule {rule} (Holm p ≤ α <Num n={graph.study.alpha} label="α" />, CI lower{" "}
+            {">"} 0)
+          </>,
+        )}
+      </p>
       {sk && (
-        <>
-          {" "}
-          <i>·</i> skeptic <Num n={graph.study.settings_passed} label="Skeptic settings passed" />{" "}
-          of <Num n={graph.study.settings_total} label="Skeptic settings total" /> settings passed,
-          gate <Src t={sk} label="Engine gate" />
-        </>
+        <p className="rs-hero-3">
+          skeptic audit:{" "}
+          {g(
+            <>
+              <Num n={graph.study.settings_passed} label="Skeptic settings passed" /> of{" "}
+              <Num n={graph.study.settings_total} label="Skeptic settings total" /> settings passed
+            </>,
+          )}{" "}
+          <i>·</i>{" "}
+          {g(
+            <>
+              gate <Src t={sk} label="Engine gate" />
+            </>,
+          )}
+        </p>
       )}
-    </p>
+    </div>
   );
 }
 
 /** Every visual channel, named. Anything not listed here is constant. */
-function Legend({ look }: { look: Look }) {
+function Legend({ graph }: { graph: ResearchGraph }) {
   const dot = (c: string, label: string, ring = false) => (
     <span className="rs-lg-i">
       <i className={ring ? "is-ring" : ""} style={{ color: `var(--vx-${c})` }} />
@@ -672,29 +721,38 @@ function Legend({ look }: { look: Look }) {
     </span>
   );
   return (
-    <aside className="rs-legend" aria-label="Legend" data-copy>
-      <div>
+    <aside className="rs-legend" aria-label="Legend">
+      <div data-copy>
         {dot("fg", "frozen hypothesis")}
-        {dot("cyan", "verified by its source / rule met")}
-        {dot("teal", "rule not met")}
-        {dot("cyanSoft", "control held")}
+        {dot("cyan", "rule met / verified by source")}
+        {dot("muted", "rule not met", true)}
+        {dot("up", "control held")}
         {dot("muted", "recorded, no rule")}
-        {dot("muted", "no result", true)}
         {dot("amber", "running / state change")}
         {dot("red", "failed")}
         {dot("magenta", "skeptic")}
       </div>
-      <div>
-        size = node kind · fan dot = one case, mutant or setting · lines: hypothesis→trial,
-        trial→finding (Holm family), check→hub · brightness = state
+      <div data-copy>
+        radius = 6 + 1.25·t from the hypothesis; dots inside the t = 0 ring are trials with negative
+        t, the four nearest the hypothesis are the scorecard questions; floor t = −2.8; no-result
+        trials sit on short outer arcs
       </div>
-      {look === "bloom" && (
-        <div>
-          radius = 6 + 1.25·t (inside t = 0: negative; floor t = −2.8) · critical rings are before
-          Holm · v0.1.1 audit: asymptotic size failed in most settings
-        </div>
-      )}
+      <div data-copy>
+        rings are pre-Holm thresholds (one-sided for one-sided trials, ±two-sided for two-sided);
+        the verdict uses Holm-adjusted p
+      </div>
       <div>
+        the v0.1.1 audit passed{" "}
+        <Num n={graph.study.settings_passed} label="Skeptic settings passed" /> of{" "}
+        <Num n={graph.study.settings_total} label="Skeptic settings total" /> settings for the
+        asymptotic test
+      </div>
+      <div data-copy>
+        size = node kind · fan dot = one calibration case, mutant or setting · faint lines into the
+        finding: one per trial in the Holm family, constant opacity · other lines: hypothesis→trial,
+        check→hub · brightness = state
+      </div>
+      <div data-copy>
         ticks: amber start, holdout or gate · cyan sealed · red failed · magenta skeptic · tall =
         freeze, challenge, gate
       </div>
@@ -725,7 +783,7 @@ function Composer() {
         Run
       </button>
       <p id="rs-c-note" className="rs-c-note" data-copy>
-        Inert: runs start in Q2/Q5; this build replays sealed evidence.
+        Inert: live runs are not enabled in this build; it replays sealed evidence.
       </p>
     </form>
   );
@@ -735,7 +793,7 @@ function Composer() {
  * The sealed numbers for the two primary trials, always on screen. Every value is a Num
  * with its source; t is derived from the record's CI with its formula one click away.
  */
-function Readout({ graph, look }: { graph: ResearchGraph; look: Look }) {
+function Readout({ graph }: { graph: ResearchGraph }) {
   const rows = ["R:US:PRIMARY", "R:INDIA:PRIMARY"]
     .map((id) => graph.nodes.find((n) => n.id === id))
     .filter((n): n is GraphNode => !!n);
@@ -745,50 +803,51 @@ function Readout({ graph, look }: { graph: ResearchGraph; look: Look }) {
     return x ? <Num n={x} label={`${n.label.t} ${label}`} /> : "unavailable";
   };
   const holm = (n: GraphNode) => n.verdicts?.find((x) => x.k.startsWith("Holm"))?.n;
+  const ci = (n: GraphNode, k: string, label: string) => {
+    const x = f(n, k);
+    return x ? <Num n={{ ...x, fmt: "pp" }} label={`${n.label.t} ${label} (%)`} /> : "unavailable";
+  };
   return (
-    <div className="rs-readout" role="table" aria-label="Primary trials, sealed values">
-      <div className="rs-ro-row rs-ro-head" role="row" data-copy>
-        <span role="columnheader">trial</span>
-        <span role="columnheader">t</span>
-        <span role="columnheader">estimate</span>
-        <span role="columnheader">95% CI</span>
-        <span role="columnheader">Holm p</span>
-        <span role="columnheader">n</span>
-        <span role="columnheader">power</span>
-        <span role="columnheader">MDE</span>
-      </div>
-      {rows.map((n) => (
-        <div className="rs-ro-row" role="row" key={n.id}>
-          <span role="cell" className="rs-ro-name">
-            {n.country}
-          </span>
-          <span role="cell">{n.t ? <Num n={n.t} label={`${n.label.t} t`} /> : "unavailable"}</span>
-          <span role="cell">{v(n, "Estimate · monthly intercept", "estimate")}</span>
-          <span role="cell">
-            {v(n, "95% CI lower", "CI lower")}
-            <i>…</i>
-            {v(n, "95% CI upper", "CI upper")}
-          </span>
-          <span role="cell">
-            {holm(n) ? <Num n={holm(n)!} label={`${n.label.t} Holm p`} /> : "unavailable"}
-          </span>
-          <span role="cell">{v(n, "Observations", "n")}</span>
-          <span role="cell">{v(n, "Prospective power", "power")}</span>
-          <span role="cell">{v(n, "MDE at 80% power", "MDE")}</span>
+    <>
+      <div className="rs-readout-wrap">
+        <div className="rs-readout" role="table" aria-label="Primary trials, sealed values">
+          <div className="rs-ro-row rs-ro-head" role="row" data-copy>
+            <span role="columnheader">trial</span>
+            <span role="columnheader">n</span>
+            <span role="columnheader">t</span>
+            <span role="columnheader">power</span>
+            <span role="columnheader">est</span>
+            <span role="columnheader">MDE</span>
+            <span role="columnheader">95% CI</span>
+            <span role="columnheader">Holm p</span>
+          </div>
+          {rows.map((n) => (
+            <div className="rs-ro-row" role="row" key={n.id}>
+              <span role="cell" className="rs-ro-name">
+                {n.country === "INDIA" ? "IN" : n.country}
+              </span>
+              <span role="cell">{v(n, "Observations", "n")}</span>
+              <span role="cell">
+                {n.t ? <Num n={n.t} label={`${n.label.t} t`} /> : "unavailable"}
+              </span>
+              <span role="cell">{v(n, "Prospective power", "power")}</span>
+              <span role="cell">{v(n, "Estimate · monthly intercept", "estimate")}</span>
+              <span role="cell">{v(n, "MDE at 80% power", "MDE")}</span>
+              <span role="cell" className="rs-nw">
+                [{ci(n, "95% CI lower", "CI lower")}, {ci(n, "95% CI upper", "CI upper")}]%
+              </span>
+              <span role="cell">
+                {holm(n) ? <Num n={holm(n)!} label={`${n.label.t} Holm p`} /> : "unavailable"}
+              </span>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
       <div className="rs-ro-foot">
         holdouts used <Num n={graph.study.holdout_openings} label="Holdout openings" /> · α{" "}
         <Num n={graph.study.alpha} label="Primary test alpha" />
-        {look === "bloom" && (
-          <>
-            {" "}
-            · radius from the hypothesis = t · outer ring = critical z{" "}
-            <Num n={graph.study.z_crit} label="One-sided critical value" />
-          </>
-        )}
       </div>
-    </div>
+    </>
   );
 }
 

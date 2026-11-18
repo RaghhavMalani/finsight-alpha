@@ -2,9 +2,14 @@ import type { NumFormat } from "./Num";
 
 /** Display formats for provenance values. The popover always shows the raw value. */
 export function formatNum(v: number, fmt: NumFormat): string {
+  return raw(v, fmt).replace(/^-/, "\u2212");
+}
+function raw(v: number, fmt: NumFormat): string {
   switch (fmt) {
     case "ret":
       return `${(v * 100).toFixed(2)}%`;
+    case "pp":
+      return (v * 100).toFixed(2);
     case "p":
     case "rate":
     case "x":
