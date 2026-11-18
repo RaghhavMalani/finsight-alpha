@@ -28,3 +28,8 @@ Decisions taken while you were away. Newest last. Each says what I chose and how
   Alt+1..7 also open every workspace. Text fields keep F-keys and Alt+digit.
 - Undo: in `frontend-v2/src/app/workspaces.ts` set those keys to "F5"/"F7" (they are then captured) and flip the
   native-key assertions in `scripts/verify-shell.mjs`.
+
+## 2026-11-18 — Research ships one look, Neural Bloom (Q3, #37)
+- Depth Field and Constellation were removed: their layouts encoded no measured value, which breaks "every visual
+  channel encodes a real quantity". In Bloom a trial's distance from the hypothesis is its t-statistic.
+- Old `?look=` values fall back to Bloom. Undo: restore the two scene files from commit `932890a^`.

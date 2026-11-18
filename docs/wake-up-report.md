@@ -1,35 +1,40 @@
-# Wake-up report — 14 Nov 2026, 16:10 IST
+# Wake-up report — 18 Nov 2026, 19:15 IST
 
 ## Merged since you left
-- PR #30 (M0 + Q0): connected terminal unblocked; Data/history indexes as SHA-verified static JSON; Risk limit split
-  (1 MiB admission / 128 KiB compact); verifiers check real properties; CI after publications; Research OS replay
-  pinned and green. CI is now 13 parallel shards: ~16 min wall time instead of 60+ min and timing out.
+- #30 M0 + Q0: connected terminal unblocked, SHA-verified static indexes, Risk limit split. CI is now parallel
+  shards: ~16 min instead of 60+ and timing out.
+- #32 Q2 Live Spine: append-only live store, 12 feeds, SSE `/live/stream`, `python -m finsight live`.
+- #33 Q1: AsOf retired; SEC EDGAR provider; point-in-time `fundamentals()`. #35 adds `GET /truth/fundamentals`.
+- #34 Q4 part 1: sourced knowledge graph (44 nodes, 46 cited edges) with as-of-respecting propagation.
+- #36: a live quake near a mapped site becomes a suggested research question naming the reached tickers, each
+  with its cited chain. Suggestion only: no model call, no cost.
+- #38: cap-era terminal encodings deleted; plain sealed JSON (net −1,578 lines).
+- #37 Q3 part 1: shared visual system; `/research` is an evidence graph of 109 real nodes, where a trial's
+  distance from the hypothesis is its t-statistic. Every state comes from a sealed field or a preregistered
+  rule shown in the node panel. Four rounds of code and design review.
 
 ## Open / in progress
-- Q1 `q1/truth-fundamentals`: AsOf retired in docs; SEC EDGAR companyfacts provider; `fundamentals(ticker, field,
-  as_of)` with sabotage tests. Review found no look-ahead; fixing 4 should-fix items, then PR.
-- Q2 `q2/live-spine`: append-only live store (available_at = ingestion time), 12 feeds, SSE `/live/stream`,
-  `python -m finsight live`. Review found 4 store-robustness blockers (torn lines, write ordering, startup seal
-  crash, cross-process lock); being fixed, then PR.
-- Q3 `q3/visual-research`: visual system extracted from globe/observatory; three `?look=` Research directions.
-- Q0 follow-up `q0/generator-simplify`: delete ~800 lines of cap-era generator code. Queued.
+- #39 U1: seven workspaces (F1 Command · F2 Research · F3 Global Eye · F4 Forge · Alt 5 Dynamics · F6 Markets ·
+  Alt 7 Risk) and live F1 Command over the globe. All old URLs still resolve. Local checks green after merging
+  main; code and design reviews running.
 
 ## Live now
-- In a 5.5-min real-network run 11/12 feeds came up: USGS, NWS, CelesTrak, EIA, Yahoo (delayed), Alpaca IEX,
-  Polymarket, Kalshi, Fed/ECB RSS, GDELT, FRED. NSE is unavailable by design (needs an operator bhavcopy).
-- How to run once Q2 merges: `python -m finsight live` (or `./live.ps1`).
+- `python -m finsight live`, then open F1 Command in Local Live. Without the spine, every panel says so and
+  shows no numbers.
 
 ## Needs you (≤5)
-- SEC EDGAR returns 403 without a contact email in the User-Agent. Set `FINSIGHT_SEC_CONTACT` to a mailbox you're
-  happy to expose; until then fundamentals run on a labelled synthetic fixture only.
-- Spend cap was blank → $0 model spend; Q5 will dry-run with a labelled mock.
+- `FINSIGHT_SEC_CONTACT` is still unset, so SEC EDGAR returns 403 and fundamentals run on a labelled fixture.
+- Spend cap was blank → $0 model spend; U10 (Forge v0.3 ablation) will dry-run with a labelled mock.
+- Deleting merged remote branches and enabling PR auto-fix were blocked by the permission system. Branches are
+  left in place.
 - Full list: `docs/questions-for-raghhav.md`.
 
 ## Spend
 - Model API: $0 of $0.
 
 ## Look at this first
-- PR #30's description: what M0 changed and why CI kept timing out.
+- `docs/screenshots/q3-research-bloom-1440.png` and `u1-command-live-1440.png`.
 
 ## Next up
-- Open Q1 and Q2 PRs after fixes → merge on green → Q3 integration and the design review.
+- Merge #39 on green after reviews → #37 follow-ups (leader lines, dim graph behind the HUD, 16 px label
+  gutter) → U2 `<Num>` everywhere with a CI check → U3 Global Eye v2.
