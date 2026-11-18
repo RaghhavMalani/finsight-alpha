@@ -123,10 +123,10 @@ function declutter(els: (HTMLElement | null | undefined)[]) {
     if (!r.width) continue;
     const hit = taken.some(
       (t) =>
-        r.left < t.right + 4 &&
-        r.right > t.left - 4 &&
-        r.top < t.bottom + 2 &&
-        r.bottom > t.top - 2,
+        r.left < t.right + 10 &&
+        r.right > t.left - 10 &&
+        r.top < t.bottom + 10 &&
+        r.bottom > t.top - 10,
     );
     if (hit || r.left < 4 || r.right > vw - 4) el.style.visibility = "hidden";
     else taken.push(r);
@@ -320,7 +320,7 @@ function Workspace({
   const insets: Insets = useMemo(
     () =>
       narrow
-        ? { top: 428, bottom: 150, left: 8, right: 8 }
+        ? { top: 520, bottom: 150, left: 8, right: 8 }
         : { top: 96, bottom: 112, left: 540, right: selected >= 0 ? 420 : 24 },
     [narrow, selected],
   );
@@ -486,6 +486,7 @@ function Workspace({
             )}
           />
           <Readout graph={graph} />
+          {!narrow && <Legend graph={graph} narrow={false} />}
         </header>
 
         <div className="rs-status">
@@ -624,7 +625,7 @@ function Workspace({
           </div>
         </div>
 
-        <Legend graph={graph} />
+        {narrow && <Legend graph={graph} narrow />}
         <Composer />
 
         {node && (
@@ -716,51 +717,107 @@ function Hero({ graph, tone }: { graph: ResearchGraph; tone: ColorName }) {
   );
 }
 
-/** Every visual channel, named. Anything not listed here is constant. */
-function Legend({ graph }: { graph: ResearchGraph }) {
-  const dot = (c: string, label: string, ring = false) => (
-    <span className="rs-lg-i">
-      <i className={ring ? "is-ring" : ""} style={{ color: `var(--vx-${c})` }} />
-      {label}
-    </span>
+/** Every on-canvas channel, keyed: glyph | channel | named value. Anything not listed is constant. */
+function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
+  type G = "dot" | "ring" | "dash" | "line" | "faint" | "tick" | "tall" | "none";
+  const row = (g: G, color: string, channel: string, value: React.ReactNode, copy = true) => (
+    <div className="rs-lg-row" key={channel + color + g}>
+      <i className={`rs-lg-g g-${g}`} style={{ color: `var(--vx-${color})` }} aria-hidden="true" />
+      <span className="rs-lg-c" data-copy>
+        {channel}
+      </span>
+      <span className="rs-lg-v" {...(copy ? { "data-copy": "" } : {})}>
+        {value}
+      </span>
+    </div>
+  );
+  const groups: [string, React.ReactNode[]][] = [
+    [
+      "State colours",
+      [
+        row("dot", "fg", "colour", "frozen hypothesis"),
+        row("dot", "cyan", "colour", "rule met / verified by source"),
+        row("dot", "up", "colour", "control held"),
+        row("dot", "muted", "colour", "recorded, no rule"),
+        row("dot", "amber", "colour", "running / state change"),
+        row("dot", "red", "colour", "failed"),
+        row("dot", "magenta", "colour", "skeptic"),
+      ],
+    ],
+    [
+      "Glyphs",
+      [
+        row("ring", "muted", "hollow ring", "rule not met"),
+        row("dash", "muted", "dashed ring", "no result / unavailable"),
+        row("dot", "fg", "size", "node kind: hub > trial > check"),
+        row("dot", "cyan", "fan dot", "one calibration case, mutant or setting"),
+        row("dot", "amber", "breathing", "run open (replay only)"),
+        row("ring", "cyan", "one ring", "a recorded transition"),
+        row("none", "fg", "brightness", "state"),
+      ],
+    ],
+    [
+      "Geometry",
+      [
+        row("none", "fg", "radius", "6 + 1.25·t from the hypothesis (floor t = −2.8)"),
+        row("none", "fg", "inside t = 0", "negative t"),
+        row("ring", "amber", "rings", "pre-Holm thresholds; the verdict uses Holm"),
+        row("dot", "muted", "nearest four", "scorecard questions"),
+        row("dot", "up", "outer-left", "placebo controls"),
+        row("dash", "muted", "outer arc", "trials with no result"),
+        row(
+          "none",
+          "fg",
+          "audit",
+          <>
+            <span data-copy>v0.1.1 passed</span>{" "}
+            <Num n={graph.study.settings_passed} label="Skeptic settings passed" /> of{" "}
+            <Num n={graph.study.settings_total} label="Skeptic settings total" />
+          </>,
+          false,
+        ),
+      ],
+    ],
+    [
+      "Lines",
+      [
+        row("faint", "teal", "into finding", "one per Holm-family trial, constant opacity"),
+        row("line", "cyan", "from hypothesis", "one per trial, lit by its state"),
+        row("line", "muted", "check → hub", "membership"),
+        row("dot", "amber", "moving dots", "evidence flowing during replay"),
+      ],
+    ],
+    [
+      "Timeline ticks",
+      [
+        row("tick", "amber", "amber", "start, holdout or gate"),
+        row("tick", "cyan", "cyan", "sealed"),
+        row("tick", "red", "red", "failed"),
+        row("tick", "magenta", "magenta", "skeptic"),
+        row("tall", "fg", "tall", "freeze, challenge, gate"),
+      ],
+    ],
+  ];
+  const body = (
+    <div className="rs-lg-grid">
+      {groups.map(([title, rows]) => (
+        <section key={title} className="rs-lg-group">
+          <h3 data-copy>{title}</h3>
+          {rows}
+        </section>
+      ))}
+    </div>
   );
   return (
     <aside className="rs-legend" aria-label="Legend">
-      <div data-copy>
-        {dot("fg", "frozen hypothesis")}
-        {dot("cyan", "rule met / verified by source")}
-        {dot("muted", "rule not met", true)}
-        {dot("up", "control held")}
-        {dot("muted", "recorded, no rule")}
-        {dot("amber", "running / state change")}
-        {dot("red", "failed")}
-        {dot("magenta", "skeptic")}
-      </div>
-      <div data-copy>
-        radius = 6 + 1.25·t from the hypothesis; dots inside the t = 0 ring are trials with negative
-        t, the four nearest the hypothesis are the scorecard questions; the outer-left sector of
-        each half holds the placebo controls; floor t = −2.8; no-result trials sit on short outer
-        arcs
-      </div>
-      <div data-copy>
-        rings are pre-Holm thresholds (one-sided for one-sided trials, ±two-sided for two-sided);
-        the verdict uses Holm-adjusted p
-      </div>
-      <div>
-        <span data-copy>the v0.1.1 audit passed</span>{" "}
-        <Num n={graph.study.settings_passed} label="Skeptic settings passed" /> of{" "}
-        <Num n={graph.study.settings_total} label="Skeptic settings total" /> settings for the
-        asymptotic test
-      </div>
-      <div data-copy>
-        size = node kind · fan dot = one calibration case, mutant or setting · faint lines into the
-        finding: one per trial in the Holm family, constant opacity · other lines: hypothesis→trial,
-        check→hub · brightness = state
-      </div>
-      <div data-copy>
-        ticks: amber start, holdout or gate · cyan sealed · red failed · magenta skeptic · tall =
-        freeze, challenge, gate
-      </div>
+      {narrow ? (
+        <details>
+          <summary>Legend</summary>
+          {body}
+        </details>
+      ) : (
+        body
+      )}
     </aside>
   );
 }
@@ -828,20 +885,28 @@ function Readout({ graph }: { graph: ResearchGraph }) {
           </div>
           {rows.map((n) => (
             <div className="rs-ro-row" role="row" key={n.id}>
-              <span role="cell" className="rs-ro-name">
+              <span role="cell" className="rs-ro-name c-trial" data-k="">
                 {n.country === "INDIA" ? "IN" : n.country}
               </span>
-              <span role="cell">{v(n, "Observations", "n")}</span>
-              <span role="cell">
+              <span role="cell" className="c-n" data-k="n">
+                {v(n, "Observations", "n")}
+              </span>
+              <span role="cell" className="c-t" data-k="t">
                 {n.t ? <Num n={n.t} label={`${n.label.t} t`} /> : "unavailable"}
               </span>
-              <span role="cell">{v(n, "Prospective power", "power")}</span>
-              <span role="cell">{v(n, "Estimate · monthly intercept", "estimate")}</span>
-              <span role="cell">{v(n, "MDE at 80% power", "MDE")}</span>
-              <span role="cell" className="rs-nw">
+              <span role="cell" className="c-power" data-k="power">
+                {v(n, "Prospective power", "power")}
+              </span>
+              <span role="cell" className="c-est" data-k="est">
+                {v(n, "Estimate · monthly intercept", "estimate")}
+              </span>
+              <span role="cell" className="c-mde" data-k="MDE">
+                {v(n, "MDE at 80% power", "MDE")}
+              </span>
+              <span role="cell" className="rs-nw c-ci" data-k="CI">
                 [{ci(n, "95% CI lower", "CI lower")}, {ci(n, "95% CI upper", "CI upper")}]%
               </span>
-              <span role="cell">
+              <span role="cell" className="c-holm" data-k="Holm p">
                 {holm(n) ? <Num n={holm(n)!} label={`${n.label.t} Holm p`} /> : "unavailable"}
               </span>
             </div>

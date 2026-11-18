@@ -960,3 +960,242 @@
     grid-template-columns: 30px minmax(0, 1fr);
   }
 }
+
+/* Round four: keyed legend, label plates, two-line trial blocks at 390. */
+.rs-legend {
+  bottom: 96px;
+  width: 500px;
+  max-width: calc(100% - 48px);
+  text-shadow: none;
+  pointer-events: auto;
+}
+.rs-lg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 18px;
+}
+.rs-lg-group h3 {
+  margin: 0 0 1px;
+  font: 600 11px/1.4 var(--vx-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--vx-cyan);
+}
+.rs-lg-row {
+  display: grid;
+  grid-template-columns: 14px 86px 1fr;
+  align-items: center;
+  gap: 6px;
+  font: 11px/1.35 var(--vx-mono);
+}
+.rs-lg-c {
+  color: var(--vx-muted);
+}
+.rs-lg-v {
+  color: #cfd5da;
+}
+.rs-lg-g {
+  width: 8px;
+  height: 8px;
+  justify-self: center;
+}
+.rs-lg-g.g-dot {
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+.rs-lg-g.g-ring {
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.rs-lg-g.g-dash {
+  border-radius: 50%;
+  border: 1px dashed currentColor;
+}
+.rs-lg-g.g-line,
+.rs-lg-g.g-faint {
+  width: 12px;
+  height: 1px;
+  background: currentColor;
+}
+.rs-lg-g.g-faint {
+  opacity: 0.45;
+}
+.rs-lg-g.g-tick {
+  width: 1px;
+  height: 7px;
+  background: currentColor;
+}
+.rs-lg-g.g-tall {
+  width: 1px;
+  height: 12px;
+  background: currentColor;
+}
+.rs-legend details summary {
+  cursor: pointer;
+  font: 600 11px var(--vx-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--vx-cyan);
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+/* Labels sit on solid plates, offset away from their node. */
+.rs-pin-in,
+.rs-glabel > span {
+  background: rgba(0, 0, 0, 0.88);
+  padding: 1px 5px;
+  border-radius: 2px;
+  text-shadow: none;
+}
+.rs-pin-in {
+  top: 22px;
+}
+.rs-pin.is-above .rs-pin-in {
+  bottom: 22px;
+}
+.rs-pin-hypothesis .rs-pin-in,
+.rs-pin-finding .rs-pin-in,
+.rs-pin-skeptic .rs-pin-in {
+  top: 32px;
+}
+.rs-hud {
+  -webkit-mask-image: none;
+  mask-image: none;
+  padding-bottom: 40px;
+}
+@media (max-width: 700px) {
+  .rs-legend {
+    position: absolute;
+    display: block;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    bottom: auto;
+    top: 470px;
+    padding: 0 8px;
+    z-index: 4;
+    background: rgba(0, 0, 0, 0.9);
+  }
+  .rs-lg-grid {
+    grid-template-columns: 1fr;
+    max-height: 360px;
+    overflow: auto;
+  }
+  .rs-readout-wrap {
+    -webkit-mask-image: none;
+    mask-image: none;
+    padding-right: 0;
+    overflow: visible;
+  }
+  .rs-readout-wrap::after {
+    content: none;
+  }
+  .rs-ro-head {
+    display: none !important;
+  }
+  .rs-ro-row,
+  .rs-ro-row:is(*) {
+    min-width: 0;
+    grid-template-columns: 26px 1fr 1fr 1.6fr !important;
+    grid-template-areas:
+      "trial t est ci"
+      "trial holm n power"
+      "trial mde mde mde";
+    row-gap: 0;
+    padding: 3px 0;
+    border-top: 1px solid rgba(231, 234, 236, 0.08);
+  }
+  .rs-ro-row > span[data-k]:not([data-k=""])::before {
+    content: attr(data-k) " ";
+    color: var(--vx-muted);
+  }
+  .c-trial {
+    grid-area: trial;
+  }
+  .c-t {
+    grid-area: t;
+  }
+  .c-est {
+    grid-area: est;
+  }
+  .c-ci {
+    grid-area: ci;
+  }
+  .c-holm {
+    grid-area: holm;
+  }
+  .c-n {
+    grid-area: n;
+  }
+  .c-power {
+    grid-area: power;
+  }
+  .c-mde {
+    grid-area: mde;
+  }
+}
+
+/* Legend as a keyed band under the graph on desktop; status and legend clear the rail on 390. */
+@media (min-width: 701px) {
+  .rs-legend {
+    left: 24px;
+    top: 214px;
+    bottom: 100px;
+    width: 500px;
+    max-width: none;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .rs-lg-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 14px;
+  }
+  .rs-lg-row {
+    grid-template-columns: 12px 74px minmax(0, 1fr);
+    gap: 5px;
+    align-items: start;
+  }
+  .rs-lg-g {
+    margin-top: 4px;
+  }
+}
+@media (max-width: 700px) {
+  .rs {
+    height: 1160px;
+  }
+  .rs-status {
+    top: 410px;
+  }
+  .rs-legend {
+    top: 470px;
+  }
+}
+
+.rs-legend > div.rs-lg-grid,
+.rs-legend details > .rs-lg-grid {
+  display: grid;
+}
+
+/* Desktop: the legend flows in the rail under the readout and scrolls inside the space left. */
+@media (min-width: 701px) {
+  .rs-mast {
+    bottom: 100px;
+    display: flex;
+    flex-direction: column;
+  }
+  .rs-mast > .rs-legend {
+    position: static;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: auto;
+    margin-top: 12px;
+    overflow-y: auto;
+  }
+}
+@media (min-width: 701px) {
+  .rs-mast > :not(.rs-legend) {
+    flex: none;
+  }
+}
