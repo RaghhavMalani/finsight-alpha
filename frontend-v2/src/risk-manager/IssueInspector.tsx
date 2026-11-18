@@ -4,6 +4,9 @@ import { checkedIssueReferences } from "./evidence";
 import { stamp, type Issue } from "./contracts";
 import { displayText, tone } from "./filters";
 import { PINNED_POLICY } from "./bindings";
+import { replayOrigin } from "@/visual/origins";
+import type { Origin } from "@/visual/Num";
+import { issueOrigin, RiskCopy, RiskId, RiskNum, RiskTime, sweepOrigin } from "./prov";
 export function IssueInspector({
   issue,
   bundle,
@@ -110,69 +113,90 @@ export function IssueInspector({
             {issue.severity} · {issue.category.replaceAll("_", " ")} · {issue.status}
           </div>
           <h2 id="risk-inspector-title" className="mt-2 text-base font-medium leading-snug">
-            {displayText(issue.title)}
+            <RiskCopy>{displayText(issue.title)}</RiskCopy>
           </h2>
           <p className="mono-caps mt-2 text-[8px] text-faint">
             {issue.evidence_class} · {issue.currency} · {issue.availability}
             <br />
-            {issue.country} · {issue.scope.subject_id} · {issue.model ?? "NO MODEL"}
+            {issue.country} · <RiskId>{issue.scope.subject_id}</RiskId> ·{" "}
+            <RiskId>{issue.model ?? "NO MODEL"}</RiskId>
           </p>
         </div>
         <section>
           <h3 className="mono-caps text-[9px] text-primary">WHY THIS EXISTS</h3>
-          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{issue.reason}</p>
-          <div className="mt-2 break-all font-mono text-[9px] text-faint">{issue.reason_code}</div>
+          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+            <RiskCopy>{issue.reason}</RiskCopy>
+          </p>
+          <div className="mt-2 break-all font-mono text-[9px] text-faint">
+            <RiskId>{issue.reason_code}</RiskId>
+          </div>
         </section>
         <section>
           <h3 className="mono-caps text-[9px] text-primary">EVIDENCE QUALITY</h3>
           <dl className="mt-2 grid grid-cols-[110px_1fr] gap-2 text-[10px]">
             <dt className="text-faint">Clock quality</dt>
-            <dd className="break-words font-mono">{issue.source_quality.clock_quality}</dd>
+            <dd className="break-words font-mono">
+              <RiskId>{issue.source_quality.clock_quality}</RiskId>
+            </dd>
             <dt className="text-faint">Lineage</dt>
             <dd>{issue.source_quality.lineage_status}</dd>
             <dt className="text-faint">Publication</dt>
             <dd>{issue.source_quality.permission_status}</dd>
           </dl>
           <p className="mt-2 text-[9px] text-faint">
-            {issue.source_quality.limitation_codes.join(" · ")}
+            <RiskId>{issue.source_quality.limitation_codes.join(" · ")}</RiskId>
           </p>
         </section>
         <section className="border-y border-divider py-4">
           <h3 className="mono-caps text-[9px] text-primary">RULE / POLICY</h3>
           <p className="mt-2 font-mono text-[10px]">
-            {issue.rule_id} / v{issue.rule_version}
+            <RiskId>
+              {issue.rule_id} / v{issue.rule_version}
+            </RiskId>
           </p>
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            {rule?.predicate ?? "Operational failure rule; the last valid state is retained."}
+            <RiskCopy>
+              {rule?.predicate ?? "Operational failure rule; the last valid state is retained."}
+            </RiskCopy>
           </p>
           {rule && (
-            <p className="mt-2 text-[10px] text-faint">
+            <p className="mt-2 text-[10px] text-faint" data-num-exempt="copy">
               Units: {rule.unit} · {rule.inherited_policy ?? "Phase 7 reviewed policy"}
             </p>
           )}
           <p className="mt-2 break-all font-mono text-[8px] text-faint">
-            POLICY SHA {issue.policy_sha256}
+            POLICY SHA <RiskId>{issue.policy_sha256}</RiskId>
           </p>
         </section>
         <section>
           <h3 className="mono-caps text-[9px] text-primary">CHRONOLOGY</h3>
           <dl className="mt-2 grid grid-cols-[110px_1fr] gap-2 text-[10px]">
-            {[
-              ["F3 first seen", issue.first_seen_at],
-              ["Evidence at", issue.evidence_at],
-              ["Evidence cutoff", issue.evidence_cutoff],
+            {(
               [
-                "Published",
-                issue.issue_id === bundle.sweep.payload.failure?.issue.issue_id
-                  ? bundle.sweep.published_at
-                  : (bundle.state?.published_at ?? bundle.sweep.published_at),
-              ],
-              ["Resolved", issue.resolved_at],
-            ].map(([label, value]) => (
+                ["F3 first seen", issue.first_seen_at, issueOrigin(bundle, issue, "first_seen_at")],
+                ["Evidence at", issue.evidence_at, issueOrigin(bundle, issue, "evidence_at")],
+                [
+                  "Evidence cutoff",
+                  issue.evidence_cutoff,
+                  issueOrigin(bundle, issue, "evidence_cutoff"),
+                ],
+                issue.issue_id === bundle.sweep.payload.failure?.issue.issue_id || !bundle.state
+                  ? ["Published", bundle.sweep.published_at, sweepOrigin(bundle, "/published_at")]
+                  : [
+                      "Published",
+                      bundle.state.published_at,
+                      replayOrigin(
+                        bundle.stateRef ? bundle.manifest.artifacts[bundle.stateRef] : null,
+                        "/published_at",
+                      ),
+                    ],
+                ["Resolved", issue.resolved_at, issueOrigin(bundle, issue, "resolved_at")],
+              ] as [string, string | null | undefined, Origin][]
+            ).map(([label, value, origin]) => (
               <div key={label} className="contents">
                 <dt className="text-faint">{label}</dt>
                 <dd title={value ?? "Unavailable"} className="font-mono">
-                  {stamp(value ?? null)}
+                  <RiskTime o={origin} v={value} label={label} />
                 </dd>
               </div>
             ))}
@@ -187,9 +211,9 @@ export function IssueInspector({
           {issue.evidence_refs.length === 1 &&
             issue.evidence_refs[0].type === "RISK_OBSERVATION" && (
               <p className="mt-2 break-all font-mono text-[8px] text-faint">
-                SEALED OBSERVATION {issue.last_observation_id}
+                SEALED OBSERVATION <RiskId>{issue.last_observation_id}</RiskId>
                 <br />
-                SWEEP {issue.evidence_refs[0].sweep_fingerprint}
+                SWEEP <RiskId>{issue.evidence_refs[0].sweep_fingerprint}</RiskId>
               </p>
             )}
           {sourceRefs.map((ref, index) => (
@@ -211,21 +235,43 @@ export function IssueInspector({
             >
               <span className="text-primary">{ref.type}</span>
               <br />
-              {ref.artifact_id ?? ref.path_id ?? ref.check_id}
+              <RiskId>{ref.artifact_id ?? ref.path_id ?? ref.check_id}</RiskId>
               <br />
-              {ref.sha256}
+              <RiskId>{ref.sha256}</RiskId>
               {ref.type === "REPLAY_ARTIFACT" && (
                 <span className="mt-2 block text-[9px] leading-relaxed">
-                  SOURCES {ref.source_ids?.join(" · ")}
+                  SOURCES <RiskId>{ref.source_ids?.join(" · ")}</RiskId>
                   <br />
-                  AS OF {stamp(ref.as_of ?? null)}
+                  AS OF{" "}
+                  <RiskTime
+                    o={replayOrigin(bundle.manifest.artifacts[ref.artifact_id ?? ""], "/as_of", {
+                      note: "Named by the Issue's evidence reference; checked against the manifest entry.",
+                    })}
+                    v={ref.as_of}
+                    label="Reference as of"
+                    inert
+                  />
                   <br />
-                  AVAILABLE {stamp(ref.available_at ?? null)}
+                  AVAILABLE{" "}
+                  <RiskTime
+                    o={replayOrigin(
+                      bundle.manifest.artifacts[ref.artifact_id ?? ""],
+                      "/available_at",
+                      {
+                        note: "Named by the Issue's evidence reference; checked against the manifest entry.",
+                      },
+                    )}
+                    v={ref.available_at}
+                    label="Reference available at"
+                    inert
+                  />
                   <br />
-                  RUN {ref.run_id ?? "NOT APPLICABLE"}
+                  RUN <RiskId>{ref.run_id ?? "NOT APPLICABLE"}</RiskId>
                   <br />
                   GRANT {bundle.manifest.artifacts[ref.artifact_id ?? ""]?.licence.status} ·{" "}
-                  {bundle.manifest.artifacts[ref.artifact_id ?? ""]?.licence.dataset_key}
+                  <RiskId>
+                    {bundle.manifest.artifacts[ref.artifact_id ?? ""]?.licence.dataset_key}
+                  </RiskId>
                   <br />
                   USES{" "}
                   {bundle.manifest.artifacts[ref.artifact_id ?? ""]?.licence.permitted_uses.join(
@@ -237,7 +283,7 @@ export function IssueInspector({
           ))}
           {proof && (
             <p role="status" className="mt-2 text-[10px] text-muted-foreground">
-              {proof}
+              <RiskCopy>{proof}</RiskCopy>
             </p>
           )}
           <p className="mt-3 text-[9px] text-faint">
@@ -248,25 +294,51 @@ export function IssueInspector({
         {issue.origin_records.length > 0 && (
           <details className="border-y border-divider py-3">
             <summary className="mono-caps cursor-pointer text-[9px]">
-              ORIGIN RECORDS · {issue.origin_records.length}
+              ORIGIN RECORDS ·{" "}
+              <RiskNum
+                o={issueOrigin(bundle, issue, "origin_records")}
+                v={issue.origin_records.length}
+                label="Origin records"
+                inert
+              />
             </summary>
             {issue.origin_records.map((o, index) => (
               <div key={o.id + index} className="mt-3 border-l border-divider pl-3 text-[10px]">
                 <p className={tone(o.severity)}>
-                  {o.severity} · ORIGINAL {o.status} · {o.occurrences} occurrences
+                  {o.severity} · ORIGINAL {o.status} ·{" "}
+                  <RiskNum
+                    o={issueOrigin(bundle, issue, `origin_records/${index}/occurrences`)}
+                    v={o.occurrences}
+                    label="Occurrences"
+                  />{" "}
+                  occurrences
                 </p>
-                <p className="mt-1 break-all font-mono text-[8px] text-faint">{o.id}</p>
-                <p className="mt-1 text-muted-foreground">{o.reason}</p>
+                <p className="mt-1 break-all font-mono text-[8px] text-faint">
+                  <RiskId>{o.id}</RiskId>
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  <RiskCopy>{o.reason}</RiskCopy>
+                </p>
                 <p title={o.first_seen_at ?? undefined} className="mt-1 text-faint">
-                  Original first seen: {stamp(o.first_seen_at)}
+                  Original first seen:{" "}
+                  <RiskTime
+                    o={issueOrigin(bundle, issue, `origin_records/${index}/first_seen_at`)}
+                    v={o.first_seen_at}
+                    label="Original first seen"
+                  />
                 </p>
                 <p title={o.last_seen_at ?? undefined} className="text-faint">
-                  Original last seen: {stamp(o.last_seen_at)}
+                  Original last seen:{" "}
+                  <RiskTime
+                    o={issueOrigin(bundle, issue, `origin_records/${index}/last_seen_at`)}
+                    v={o.last_seen_at}
+                    label="Original last seen"
+                  />
                 </p>
                 <details className="mt-1 text-faint">
                   <summary>Original evidence IDs</summary>
                   {o.evidence.map((id) => (
-                    <p key={id} className="break-all font-mono text-[8px]">
+                    <p key={id} className="break-all font-mono text-[8px]" data-num-exempt="id">
                       {id}
                     </p>
                   ))}
@@ -277,12 +349,14 @@ export function IssueInspector({
         )}
         <section className="border-l-2 border-primary bg-primary/5 p-3">
           <h3 className="mono-caps text-[9px] text-primary">REMEDIATION / UNBLOCK</h3>
-          <p className="mt-2 text-[11px] leading-relaxed">{issue.remediation.text}</p>
+          <p className="mt-2 text-[11px] leading-relaxed">
+            <RiskCopy>{issue.remediation.text}</RiskCopy>
+          </p>
           <p className="mt-2 text-[9px] text-faint">
-            {issue.remediation.state} · {issue.remediation.requirement_code}
+            {issue.remediation.state} · <RiskId>{issue.remediation.requirement_code}</RiskId>
           </p>
         </section>
-        <div className="text-[9px] leading-relaxed text-faint">
+        <div className="text-[9px] leading-relaxed text-faint" data-num-exempt="copy">
           {rule?.limitations}
           <br />
           Six scientific claim flags remain FALSE. HMM posterior probabilities remain uncalibrated.
@@ -291,7 +365,9 @@ export function IssueInspector({
           <summary className="mono-caps cursor-pointer text-[8px] text-faint">
             STABLE ISSUE ID
           </summary>
-          <p className="mt-2 break-all font-mono text-[9px]">{issue.issue_id}</p>
+          <p className="mt-2 break-all font-mono text-[9px]" data-num-exempt="id">
+            {issue.issue_id}
+          </p>
         </details>
       </div>
     </aside>

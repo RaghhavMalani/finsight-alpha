@@ -25,6 +25,9 @@ import {
   type FeedHealth,
   type LiveEvent,
 } from "./records";
+import { Num, ProvenanceProvider, Stamp } from "@/visual/Num";
+import { liveOrigin, num as numOf, ref } from "@/visual/origins";
+import { USGS_MONTH_FEED } from "@/components/globe/geo-data";
 import "./command.css";
 
 const GlobeScene = lazy(() => import("@/components/globe/GlobeScene"));
@@ -38,6 +41,119 @@ export function LiveDot({ state, label }: { state: "fresh" | "stale" | "dead"; l
   );
 }
 
+/** Live records arrive from the backlog or the stream; seq names the exact record. */
+const EVENTS = "GET /live/recent · /live/stream";
+const HEALTH = "GET /live/health";
+const at = (e: LiveEvent, ptr: string) => liveOrigin(EVENTS, ptr, e);
+/** Verbatim record text (a headline, a place) may contain digits; it is shown as recorded. */
+const Verbatim = ({ children }: { children: React.ReactNode }) => (
+  <span data-num-exempt="copy">{children}</span>
+);
+const Ident = ({ children }: { children: React.ReactNode }) => (
+  <span data-num-exempt="id">{children}</span>
+);
+function LiveNum({
+  e,
+  field,
+  label,
+  display,
+}: {
+  e: LiveEvent;
+  field: string;
+  label: string;
+  display: (v: number) => string;
+}) {
+  const v = num(e.payload[field]);
+  return v === null ? (
+    <>n/a</>
+  ) : (
+    <Num
+      n={numOf(at(e, `/payload/${field}`), v)}
+      display={display(v)}
+      label={label}
+      inert
+      className="vx-inherit"
+    />
+  );
+}
+function LiveClock({
+  e,
+  field,
+  label,
+}: {
+  e: LiveEvent;
+  field: "available_at" | "observed_at";
+  label: string;
+}) {
+  return (
+    <Stamp
+      s={ref(at(e, `/${field}`), e[field])}
+      display={clock(e[field])}
+      label={label}
+      inert
+      className="vx-inherit"
+    />
+  );
+}
+
+/** The record summary, with each number carrying the record it came from. */
+function Summary({ e }: { e: LiveEvent }) {
+  const p = e.payload;
+  const kind = text(p.kind);
+  switch (e.type) {
+    case "geo.event":
+      if (kind === "earthquake")
+        return (
+          <>
+            {num(p.mag) !== null && (
+              <>
+                M<LiveNum e={e} field="mag" label="Magnitude" display={(v) => v.toFixed(1)} />{" "}
+              </>
+            )}
+            <Verbatim>{text(p.place) ?? text(p.title) ?? "Earthquake"}</Verbatim>
+          </>
+        );
+      return <Verbatim>{summary(e)}</Verbatim>;
+    case "market.tick":
+      return (
+        <>
+          <span data-num-exempt="ticker">{text(p.ticker) ?? "?"}</span>{" "}
+          {num(p.close) !== null ? (
+            <LiveNum e={e} field="close" label="Close" display={fmt} />
+          ) : (
+            "close n/a"
+          )}
+          {text(p.currency) ? ` ${text(p.currency)}` : ""}
+        </>
+      );
+    case "macro.release":
+      return (
+        <>
+          <Ident>{text(p.series) ?? "series"}</Ident>{" "}
+          <LiveNum e={e} field="value" label="Value" display={(v) => String(v)} />
+          {text(p.units) ? <Verbatim> {text(p.units)}</Verbatim> : ""}
+        </>
+      );
+    case "prediction.update":
+      return (
+        <>
+          <Verbatim>{text(p.question) ?? text(p.event_title) ?? "market"}</Verbatim>
+          {num(p.yes_price) !== null && (
+            <>
+              {" "}
+              · yes <LiveNum e={e} field="yes_price" label="Yes price" display={(v) => String(v)} />
+            </>
+          )}
+        </>
+      );
+    case "risk.alert":
+    case "feed.health":
+      return <Ident>{summary(e)}</Ident>;
+    default:
+      return <Verbatim>{summary(e)}</Verbatim>;
+  }
+}
+
 function Row({ event, fresh }: { event: LiveEvent; fresh: boolean }) {
   const target = destination(event);
   return (
@@ -45,10 +161,14 @@ function Row({ event, fresh }: { event: LiveEvent; fresh: boolean }) {
       <Link to={target.to as never} search={target.search as never} title={provenance(event)}>
         <span className="cmd-row-main">
           <b className={`cmd-type cmd-type-${event.type.split(".")[0]}`}>{event.type}</b>
-          <span className="cmd-row-text">{summary(event)}</span>
+          <span className="cmd-row-text">
+            <Summary e={event} />
+          </span>
         </span>
         <span className="cmd-row-meta">
-          {event.source} · avail {clock(event.available_at)} · {WORKSPACE_KEY[target.to]} ›
+          <Ident>{event.source}</Ident> · avail{" "}
+          <LiveClock e={event} field="available_at" label="Available at" /> ·{" "}
+          <span data-num-exempt="key-label">{WORKSPACE_KEY[target.to]}</span> ›
         </span>
       </Link>
     </li>
@@ -72,7 +192,9 @@ function spineLine(state: SpineState, live: boolean) {
     case "reconnecting":
       return "Stream interrupted · reconnecting to /live/stream…";
     case "polling":
-      return `Polling /live/recent every 15 s · ${state.detail}.`;
+      return (
+        <span data-num-exempt="copy">{`Polling /live/recent every 15 s · ${state.detail}.`}</span>
+      );
   }
 }
 
@@ -83,7 +205,7 @@ function Panel({
   label,
 }: {
   title: string;
-  count?: string;
+  count?: React.ReactNode;
   children: React.ReactNode;
   label: string;
 }) {
@@ -188,11 +310,44 @@ export function CommandCenter() {
   // The status panel names why there are no records; the other panels say it in one word.
   const absent = connected ? null : "—";
 
-  const feedChip = (f: Feed<unknown>, label: string) => (
+  const feedChip = (f: Feed<unknown>, label: string, endpoint: string) => (
     <span className={`cmd-chip ${f.status}`} title={f.note ?? undefined}>
       globe · {label} ·{" "}
-      {f.status === "live" && f.at ? `${new Date(f.at).toISOString().slice(11, 16)}Z` : f.status}
+      {f.status === "live" && f.at ? (
+        <Stamp
+          s={ref(
+            liveOrigin(
+              endpoint,
+              "",
+              {},
+              {
+                note: "When this browser last read the public feed (browser clock), not a source time.",
+              },
+            ),
+            new Date(f.at).toISOString(),
+          )}
+          display={`${new Date(f.at).toISOString().slice(11, 16)}Z`}
+          label={`${label} fetched at`}
+          inert
+          className="vx-inherit"
+        />
+      ) : (
+        f.status
+      )}
     </span>
+  );
+  // A count of the records this page holds from the spine, not a value from any one record.
+  const held = (n: number, label: string) => (
+    <Num
+      n={numOf(
+        liveOrigin(EVENTS, "", {}, { formula: `count of ${label} held by this page` }),
+        n,
+        "int",
+      )}
+      label={label}
+      inert
+      className="vx-inherit"
+    />
   );
 
   const market = (rows: LiveEvent[], name: string, feedsFor: string[]) => {
@@ -209,13 +364,19 @@ export function CommandCenter() {
                   search={{ ticker: text(e.payload.ticker)! } as never}
                   title={provenance(e)}
                 >
-                  <b>{text(e.payload.ticker)}</b>
+                  <b data-num-exempt="ticker">{text(e.payload.ticker)}</b>
                   <span className="cmd-num">
-                    {num(e.payload.close) !== null ? fmt(num(e.payload.close)!) : "n/a"}
+                    <LiveNum
+                      e={e}
+                      field="close"
+                      label={`${text(e.payload.ticker)} close`}
+                      display={fmt}
+                    />
                     {text(e.payload.currency) ? ` ${text(e.payload.currency)}` : ""}
                   </span>
                   <span className="cmd-row-meta">
-                    {e.source} · {clock(e.observed_at)}
+                    <Ident>{e.source}</Ident> ·{" "}
+                    <LiveClock e={e} field="observed_at" label="Observed at" />
                   </span>
                 </Link>
               </li>
@@ -225,7 +386,12 @@ export function CommandCenter() {
           <p className="cmd-empty">{absent ?? `No ${name} market.tick records yet.`}</p>
         )}
         {delays.map((f) => (
-          <p key={f.feed} className="cmd-delay" title={f.reason ?? undefined}>
+          <p
+            key={f.feed}
+            className="cmd-delay"
+            title={f.reason ?? undefined}
+            data-num-exempt="copy"
+          >
             {f.feed}: {f.delay ?? "delay label missing"}
             {f.status !== "UP" ? ` · ${f.status}` : ""}
           </p>
@@ -235,203 +401,262 @@ export function CommandCenter() {
   };
 
   return (
-    <div className="cmd" data-spine={spine.state.kind} data-mode={mode}>
-      <div className="cmd-stage" aria-hidden="true" data-markers={markers.length}>
-        {now > 0 && (
-          <Suspense fallback={null}>
-            <GlobeScene
-              land={land}
-              quakes={quakes.data}
-              tles={sats.data}
-              now={now}
-              layers={{ quakes: true, satellites: true, hubs: true }}
-              sensor={null}
-              reduced
-              selected={null}
-              onPick={noop}
-              onLook={noop}
-              onSatellites={noop}
-              labelsRoot={null}
-              view={[24, 110, 3.3]}
-              markers={markers}
-            />
-          </Suspense>
-        )}
-      </div>
-      <div className="cmd-hud">
-        <div className="cmd-col cmd-left">
-          <header className="cmd-panel cmd-title">
-            <div className="cmd-eyebrow">F1 · Command</div>
-            <h1>Mission control</h1>
-            <p className="cmd-spine" role="status" data-spine-state={spine.state.kind}>
-              <LiveDot
-                state={
-                  connected
-                    ? "fresh"
-                    : spine.state.kind === "connecting" || spine.state.kind === "reconnecting"
-                      ? "stale"
-                      : "dead"
-                }
-                label={spine.state.kind}
+    <ProvenanceProvider>
+      <div className="cmd" data-spine={spine.state.kind} data-mode={mode}>
+        <div className="cmd-stage" aria-hidden="true" data-markers={markers.length}>
+          {now > 0 && (
+            <Suspense fallback={null}>
+              <GlobeScene
+                land={land}
+                quakes={quakes.data}
+                tles={sats.data}
+                now={now}
+                layers={{ quakes: true, satellites: true, hubs: true }}
+                sensor={null}
+                reduced
+                selected={null}
+                onPick={noop}
+                onLook={noop}
+                onSatellites={noop}
+                labelsRoot={null}
+                view={[24, 110, 3.3]}
+                markers={markers}
               />
-              <span>{spineLine(spine.state, live)}</span>
-            </p>
-            {(spine.state.kind === "not-running" || spine.state.kind === "unauthorized") && (
-              <p className="cmd-detail">{spine.state.detail}</p>
-            )}
-            {spine.state.kind === "unauthorized" && (
-              <p className="cmd-detail">
-                <Link to="/login">Local sign in ›</Link>
-              </p>
-            )}
-            {spine.state.kind === "replay" && (
-              <button
-                type="button"
-                className="cmd-button"
-                onClick={() => void changeDataMode("live", client)}
-              >
-                Switch to Local Live
-              </button>
-            )}
-            <div className="cmd-chips">
-              {feedChip(quakes, "USGS")}
-              {feedChip(sats, "CelesTrak")}
-              {connected && <span className="cmd-chip live">spine · {events.length} records</span>}
-            </div>
-          </header>
-          <Panel
-            title="Event stream"
-            label="Live event stream"
-            count={connected ? String(events.length) : undefined}
-          >
-            {stream.length ? (
-              <ul className="cmd-list cmd-stream">
-                {stream.map((e) => (
-                  <Row key={e.seq} event={e} fresh={isFresh(e)} />
-                ))}
-              </ul>
-            ) : (
-              <p className="cmd-empty">
-                {absent ??
-                  "Connected · no records yet. Events land here and on the globe as they arrive."}
-              </p>
-            )}
-          </Panel>
+            </Suspense>
+          )}
         </div>
-        <div className="cmd-col cmd-right">
-          <Panel title="Markets" label="US and India market strip">
-            <div className="cmd-markets">
-              {market(ticks.us, "US", ["yfinance_us", "alpaca_iex"])}
-              {market(ticks.india, "India", ["nse"])}
-            </div>
-          </Panel>
-          <Panel
-            title="Risk alerts"
-            label="Current risk alerts"
-            count={connected ? String(alerts.length) : undefined}
-          >
-            {alerts.length ? (
-              <ul className="cmd-list">
-                {alerts.map((e) => (
-                  <Row key={e.seq} event={e} fresh={isFresh(e)} />
-                ))}
-              </ul>
-            ) : (
-              <p className="cmd-empty">{absent ?? "No open risk.alert records."}</p>
-            )}
-          </Panel>
-          <Panel
-            title="Research in flight"
-            label="Research suggestions"
-            count={connected ? String(research.length) : undefined}
-          >
-            {research.length ? (
-              <ul className="cmd-list">
-                {research.slice(0, 8).map((e) => {
-                  const exposure = e.payload.exposure as
-                    { securities?: { ticker?: unknown; security?: unknown }[] } | undefined;
-                  const names = (exposure?.securities ?? [])
-                    .map((s) => text(s.ticker) ?? text(s.security))
-                    .filter((s): s is string => !!s);
-                  return (
-                    <li
-                      key={e.seq}
-                      className={isFresh(e) ? "cmd-new" : undefined}
-                      data-type={e.type}
-                    >
-                      <Link
-                        to="/research"
-                        search={{ q: text(e.payload.question) ?? "" } as never}
-                        title={provenance(e)}
+        <div className="cmd-hud">
+          <div className="cmd-col cmd-left">
+            <header className="cmd-panel cmd-title">
+              <div className="cmd-eyebrow" data-num-exempt="key-label">
+                F1 · Command
+              </div>
+              <h1>Mission control</h1>
+              <p className="cmd-spine" role="status" data-spine-state={spine.state.kind}>
+                <LiveDot
+                  state={
+                    connected
+                      ? "fresh"
+                      : spine.state.kind === "connecting" || spine.state.kind === "reconnecting"
+                        ? "stale"
+                        : "dead"
+                  }
+                  label={spine.state.kind}
+                />
+                <span>{spineLine(spine.state, live)}</span>
+              </p>
+              {(spine.state.kind === "not-running" || spine.state.kind === "unauthorized") && (
+                <p className="cmd-detail" data-num-exempt="copy">
+                  {spine.state.detail}
+                </p>
+              )}
+              {spine.state.kind === "unauthorized" && (
+                <p className="cmd-detail">
+                  <Link to="/login">Local sign in ›</Link>
+                </p>
+              )}
+              {spine.state.kind === "replay" && (
+                <button
+                  type="button"
+                  className="cmd-button"
+                  onClick={() => void changeDataMode("live", client)}
+                >
+                  Switch to Local Live
+                </button>
+              )}
+              <div className="cmd-chips">
+                {feedChip(quakes, "USGS", USGS_MONTH_FEED)}
+                {feedChip(sats, "CelesTrak", "CelesTrak GP groups")}
+                {connected && (
+                  <span className="cmd-chip live">
+                    spine · {held(events.length, "Records")} records
+                  </span>
+                )}
+              </div>
+            </header>
+            <Panel
+              title="Event stream"
+              label="Live event stream"
+              count={connected ? held(events.length, "Records") : undefined}
+            >
+              {stream.length ? (
+                <ul className="cmd-list cmd-stream">
+                  {stream.map((e) => (
+                    <Row key={e.seq} event={e} fresh={isFresh(e)} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="cmd-empty">
+                  {absent ??
+                    "Connected · no records yet. Events land here and on the globe as they arrive."}
+                </p>
+              )}
+            </Panel>
+          </div>
+          <div className="cmd-col cmd-right">
+            <Panel title="Markets" label="US and India market strip">
+              <div className="cmd-markets">
+                {market(ticks.us, "US", ["yfinance_us", "alpaca_iex"])}
+                {market(ticks.india, "India", ["nse"])}
+              </div>
+            </Panel>
+            <Panel
+              title="Risk alerts"
+              label="Current risk alerts"
+              count={connected ? held(alerts.length, "Open risk alerts") : undefined}
+            >
+              {alerts.length ? (
+                <ul className="cmd-list">
+                  {alerts.map((e) => (
+                    <Row key={e.seq} event={e} fresh={isFresh(e)} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="cmd-empty">{absent ?? "No open risk.alert records."}</p>
+              )}
+            </Panel>
+            <Panel
+              title="Research in flight"
+              label="Research suggestions"
+              count={connected ? held(research.length, "Research suggestions") : undefined}
+            >
+              {research.length ? (
+                <ul className="cmd-list">
+                  {research.slice(0, 8).map((e) => {
+                    const exposure = e.payload.exposure as
+                      { securities?: { ticker?: unknown; security?: unknown }[] } | undefined;
+                    const names = (exposure?.securities ?? [])
+                      .map((s) => text(s.ticker) ?? text(s.security))
+                      .filter((s): s is string => !!s);
+                    return (
+                      <li
+                        key={e.seq}
+                        className={isFresh(e) ? "cmd-new" : undefined}
+                        data-type={e.type}
                       >
-                        <span className="cmd-row-main">
-                          <b className="cmd-type cmd-type-research">
-                            {text(e.payload.status) ?? "SUGGESTED"}
-                          </b>
-                          <span className="cmd-row-text">{summary(e)}</span>
-                        </span>
-                        {names.length > 0 && (
-                          <span className="cmd-tickers">
-                            {names.map((n) => (
-                              <i key={n}>{n}</i>
-                            ))}
+                        <Link
+                          to="/research"
+                          search={{ q: text(e.payload.question) ?? "" } as never}
+                          title={provenance(e)}
+                        >
+                          <span className="cmd-row-main">
+                            <b className="cmd-type cmd-type-research">
+                              {text(e.payload.status) ?? "SUGGESTED"}
+                            </b>
+                            <span className="cmd-row-text">
+                              <Summary e={e} />
+                            </span>
                           </span>
-                        )}
-                        <span className="cmd-row-meta">
-                          {e.source} · avail {clock(e.available_at)} · F2 Research ›
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="cmd-empty">{absent ?? "No research.progress records."}</p>
-            )}
-          </Panel>
-          <Panel
-            title="Feed health"
-            label="Live feed health"
-            count={spine.healthAt ? `as of ${clock(spine.healthAt)}` : undefined}
-          >
-            {spine.feeds.length ? (
-              <ul className="cmd-list cmd-feeds">
-                {spine.feeds.map((f: FeedHealth) => {
-                  const state = freshness(f);
-                  return (
-                    <li key={f.feed} data-feed={f.feed} data-fresh={state}>
-                      <Link
-                        to="/data"
-                        search={{ section: "health" } as never}
-                        title={[
-                          `${f.feed} · ${f.status}`,
-                          f.reason ? `reason ${f.reason}` : "",
-                          `last success ${f.last_success_at ?? "never"}`,
-                          `delay ${f.delay ?? "missing"}`,
-                          spine.healthAt ? `from /live/health at ${spine.healthAt}` : "",
-                        ]
-                          .filter(Boolean)
-                          .join("\n")}
-                      >
-                        <LiveDot state={state} label={`${f.feed} ${state}`} />
-                        <b>{f.feed}</b>
-                        <span className="cmd-row-meta">
-                          {state} · {f.status} · {lag(f.lag_s)}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="cmd-empty">{absent ?? "/live/health lists no feeds."}</p>
-            )}
-            {spine.healthAt && (
-              <p className="cmd-delay">Source: GET /live/health · {stamp(spine.healthAt)}</p>
-            )}
-          </Panel>
+                          {names.length > 0 && (
+                            <span className="cmd-tickers" data-num-exempt="ticker">
+                              {names.map((n) => (
+                                <i key={n}>{n}</i>
+                              ))}
+                            </span>
+                          )}
+                          <span className="cmd-row-meta">
+                            <Ident>{e.source}</Ident> · avail{" "}
+                            <LiveClock e={e} field="available_at" label="Available at" /> ·{" "}
+                            <span data-num-exempt="key-label">F2</span> Research ›
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="cmd-empty">{absent ?? "No research.progress records."}</p>
+              )}
+            </Panel>
+            <Panel
+              title="Feed health"
+              label="Live feed health"
+              count={
+                spine.healthAt ? (
+                  <>
+                    as of{" "}
+                    <Stamp
+                      s={ref(liveOrigin(HEALTH, "/now"), spine.healthAt)}
+                      display={clock(spine.healthAt)}
+                      label="Health as of"
+                      inert
+                      className="vx-inherit"
+                    />
+                  </>
+                ) : undefined
+              }
+            >
+              {spine.feeds.length ? (
+                <ul className="cmd-list cmd-feeds">
+                  {spine.feeds.map((f: FeedHealth) => {
+                    const state = freshness(f);
+                    return (
+                      <li key={f.feed} data-feed={f.feed} data-fresh={state}>
+                        <Link
+                          to="/data"
+                          search={{ section: "health" } as never}
+                          title={[
+                            `${f.feed} · ${f.status}`,
+                            f.reason ? `reason ${f.reason}` : "",
+                            `last success ${f.last_success_at ?? "never"}`,
+                            `delay ${f.delay ?? "missing"}`,
+                            spine.healthAt ? `from /live/health at ${spine.healthAt}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join("\n")}
+                        >
+                          <LiveDot state={state} label={`${f.feed} ${state}`} />
+                          <b data-num-exempt="id">{f.feed}</b>
+                          <span className="cmd-row-meta">
+                            {state} · {f.status} ·{" "}
+                            {f.lag_s == null ? (
+                              lag(f.lag_s)
+                            ) : (
+                              <Num
+                                n={numOf(
+                                  liveOrigin(
+                                    HEALTH,
+                                    `/feeds[feed=${f.feed}]/lag_s`,
+                                    {},
+                                    {
+                                      asOf: spine.healthAt,
+                                      note: "Or a later feed.health record for this feed (its /payload/lag_s).",
+                                    },
+                                  ),
+                                  f.lag_s,
+                                  "sec",
+                                )}
+                                display={lag(f.lag_s)}
+                                label={`${f.feed} lag (s)`}
+                                inert
+                                className="vx-inherit"
+                              />
+                            )}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="cmd-empty">{absent ?? "/live/health lists no feeds."}</p>
+              )}
+              {spine.healthAt && (
+                <p className="cmd-delay">
+                  Source: GET /live/health ·{" "}
+                  <Stamp
+                    s={ref(liveOrigin(HEALTH, "/now"), spine.healthAt)}
+                    display={stamp(spine.healthAt)}
+                    label="Health snapshot"
+                    inert
+                    className="vx-inherit"
+                  />
+                </p>
+              )}
+            </Panel>
+          </div>
         </div>
       </div>
-    </div>
+    </ProvenanceProvider>
   );
 }
