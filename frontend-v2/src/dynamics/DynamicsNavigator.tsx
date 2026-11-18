@@ -1,3 +1,4 @@
+import { WorkspaceSubnav } from "@/app/shell/WorkspaceSubnav";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { ForgeShell } from "@/app/shell/ForgeShell";
@@ -164,6 +165,7 @@ export function DynamicsNavigator() {
 
   return (
     <ForgeShell>
+      <WorkspaceSubnav inline />
       <RegimeIntelligence />
       <FactorRegimeEvidence />
       <header className="border border-[#25313A] bg-[#090D10] px-4 py-4 sm:px-5">

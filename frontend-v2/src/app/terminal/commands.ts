@@ -1,5 +1,5 @@
 import type { Instrument } from "../../markets/instruments.ts";
-import { WORKSPACES } from "../workspaces.ts";
+import { findSection } from "../workspaces.ts";
 import {
   capabilityFor,
   publicDerivativeAvailable,
@@ -452,10 +452,7 @@ export function resolveTerminalCommand(
         "Retained cross-market matrix with independently labelled cutoffs and calendars; no synchronized economic comparison.",
       );
     }
-    const workspaceOnlyTarget = WORKSPACES.find(
-      (workspace) =>
-        tokens.length === 1 && (workspace.command === head || workspace.label === head),
-    );
+    const workspaceOnlyTarget = tokens.length === 1 ? findSection(head) : undefined;
     if (workspaceOnlyTarget)
       return ready(
         buildInvestigationTarget(context, workspaceOnlyTarget.id as TerminalWorkspace),
@@ -468,9 +465,7 @@ export function resolveTerminalCommand(
     const legacy = options.legacyParser(text, subjectTicker(context.subject) ?? "SPY"),
       destination = workspaceOf(legacy.to);
     if (!destination) return fail("The legacy function has no supported navigation route.");
-    const workspaceOnly =
-      tokens.length === 1 &&
-      WORKSPACES.some((workspace) => workspace.command === head || workspace.label === head);
+    const workspaceOnly = tokens.length === 1 && !!findSection(head);
     const parsed = workspaceOnly
       ? { ...context, view: { workspace: destination } as InvestigationView }
       : {

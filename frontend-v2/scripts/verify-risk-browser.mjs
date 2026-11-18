@@ -538,8 +538,10 @@ for (const name of channels) {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.reload();
   await feed.waitFor();
-  await page.keyboard.press("F3");
-  assert(new URL(page.url()).pathname === "/risk", "F3 native route");
+  // Risk is workspace 7: Alt 7 (F7 stays with the browser). It keeps the reader on /risk.
+  await page.keyboard.press("Alt+7");
+  await page.waitForLoadState("networkidle");
+  assert(new URL(page.url()).pathname === "/risk", "Alt 7 native route");
   assert.deepEqual(bad, []);
   assert.deepEqual(failed, []);
   assert.deepEqual(errors, []);

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { parseCommand } from "../src/app/command/mnemonics.ts";
-import { activeWorkspace, FUNCTION_KEYS, WORKSPACES } from "../src/app/workspaces.ts";
+import {
+  activeWorkspace,
+  CAPTURED_FUNCTION_KEYS,
+  FUNCTION_KEYS,
+  workspaceForAltDigit,
+  WORKSPACES,
+} from "../src/app/workspaces.ts";
 import { instrumentMoney, resolveInstrument } from "../src/markets/instruments.ts";
 
 let count = 0;
@@ -65,18 +71,45 @@ for (const id of ["US-MKT", "IN-MKT"]) {
 assert.equal(resolveInstrument("TCS", "IN").session, "09:15–15:30 IST");
 assert.match(instrumentMoney(1234.56, "INR"), /₹/);
 assert.match(instrumentMoney(1234.56, "USD"), /\$/);
-assert.deepEqual(FUNCTION_KEYS, ["F1", "F2", "F3", "F4", "F6", "F8", "F9", "F10"]);
-assert.equal(WORKSPACES.length, 10);
+// Seven workspaces. F5 (reload) and F7 (caret browsing) stay with the browser: those
+// workspaces are labelled and reached with Alt 5 / Alt 7, never by hijacking the F-key.
+assert.deepEqual(FUNCTION_KEYS, ["F1", "F2", "F3", "F4", "Alt 5", "F6", "Alt 7"]);
+assert.deepEqual(CAPTURED_FUNCTION_KEYS, ["F1", "F2", "F3", "F4", "F6"]);
+assert.equal(WORKSPACES.length, 7);
 for (const w of WORKSPACES) assert.equal(activeWorkspace(w.to), w.id);
 for (const p of ["/runs/a", "/bench/a", "/worlds", "/artifacts", "/reality/a"])
   assert.equal(activeWorkspace(p), "agents");
-console.log(`Shell: ${count + 23} command, exchange, currency and workspace checks passed.`);
+for (const [p, id] of [
+  ["/observatory", "dynamics"],
+  ["/factors", "market"],
+  ["/execution", "market"],
+  ["/regimes", "market"],
+  ["/data", "risk"],
+  ["/command", "command"],
+])
+  assert.equal(activeWorkspace(p), id);
+const alt = (code, extra = {}) => ({
+  altKey: true,
+  ctrlKey: false,
+  metaKey: false,
+  shiftKey: false,
+  repeat: false,
+  code,
+  ...extra,
+});
+assert.equal(workspaceForAltDigit(alt("Digit5"))?.id, "dynamics");
+assert.equal(workspaceForAltDigit(alt("Numpad7"))?.id, "risk");
+assert.equal(workspaceForAltDigit(alt("Digit8")), null);
+assert.equal(workspaceForAltDigit(alt("Digit5", { altKey: false })), null);
+assert.equal(workspaceForAltDigit(alt("Digit5", { ctrlKey: true })), null);
+console.log(`Shell: ${count + 34} command, exchange, currency and workspace checks passed.`);
 
 const urlIndex = process.argv.indexOf("--url");
 if (urlIndex > 0) {
   const base = process.argv[urlIndex + 1].replace(/\/$/, "");
   const { chromium, firefox } = await import("playwright");
   const headed = process.argv.includes("--headed");
+  const only = process.env.SHELL_ONLY;
   for (const [name, launch] of [
     ["Chrome", () => chromium.launch({ channel: "chrome", headless: !headed })],
     ["Edge", () => chromium.launch({ channel: "msedge", headless: !headed })],
@@ -89,12 +122,28 @@ if (urlIndex > 0) {
         }),
     ],
   ]) {
+    if (only && only !== name) continue;
     const browser = await launch();
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     try {
-      for (const w of WORKSPACES) {
+      const byKey = [
+        ["F1", "command"],
+        ["F2", "research"],
+        ["F3", "world"],
+        ["F4", "agents"],
+        ["F5", null],
+        ["F6", "market"],
+        ["F7", null],
+        ["Alt+5", "dynamics"],
+        ["Alt+7", "risk"],
+      ].map(([key, id]) => ({ key, id }));
+      for (const w of byKey) {
         if (process.argv.includes("--debug")) console.log(`${name}: testing ${w.key}`);
-        await page.goto(`${base}/data?ticker=RELIANCE.NS`);
+        // A browser-owned F5 reload can still be committing; one retry of an aborted load.
+        await page.goto(`${base}/data?ticker=RELIANCE.NS`).catch(async (error) => {
+          if (!/NS_BINDING_ABORTED|ERR_ABORTED/.test(error.message)) throw error;
+          await page.goto(`${base}/data?ticker=RELIANCE.NS`);
+        });
         await page.locator('.shell[data-ready="true"]').waitFor();
         await page.getByRole("button", { name: "Open command palette" }).waitFor();
         // A visible SSR button does not prove hydration; exercise a React state update first.
@@ -110,19 +159,19 @@ if (urlIndex > 0) {
         // Exercise the actual browser keyboard path, then inspect the final handled event.
         await page.evaluate(() => {
           document.activeElement?.blur();
-          window.addEventListener(
-            "keydown",
-            (e) => {
-              const record = () =>
-                sessionStorage.setItem(
-                  "key-check",
-                  JSON.stringify({ key: e.key, prevented: e.defaultPrevented }),
-                );
-              record();
-              setTimeout(record, 0);
-            },
-            { once: true },
-          );
+          // The first non-modifier keydown; a bare Alt press before Alt+5 is not the event.
+          const onKey = (e) => {
+            if (["Alt", "Control", "Shift", "Meta"].includes(e.key)) return;
+            window.removeEventListener("keydown", onKey);
+            const record = () =>
+              sessionStorage.setItem(
+                "key-check",
+                JSON.stringify({ key: e.key, prevented: e.defaultPrevented }),
+              );
+            record();
+            setTimeout(record, 0);
+          };
+          window.addEventListener("keydown", onKey);
         });
         const dialogs = [];
         const onDialog = async (d) => {
@@ -146,7 +195,7 @@ if (urlIndex > 0) {
         if (refresh) {
           if (await refresh) await page.waitForLoadState("networkidle");
         }
-        if (FUNCTION_KEYS.includes(w.key)) {
+        if (w.id) {
           await page
             .locator(`.shell[data-workspace="${w.id}"]`)
             .waitFor({ timeout: 15000 })
@@ -159,7 +208,7 @@ if (urlIndex > 0) {
           const event = JSON.parse(await page.evaluate(() => sessionStorage.getItem("key-check")));
           assert.deepEqual(
             event,
-            { key: w.key, prevented: true },
+            { key: w.key.startsWith("Alt+") ? event.key : w.key, prevented: true },
             `${name} did not release ${w.key}`,
           );
           assert.ok(
@@ -207,9 +256,12 @@ if (urlIndex > 0) {
             document.body.append(el);
             el.focus();
           }, selector);
-        for (const key of FUNCTION_KEYS) {
+        for (const key of [...CAPTURED_FUNCTION_KEYS, "Alt+5", "Alt+7"]) {
           const handled = await page.evaluate((key) => {
-            const e = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+            const init = key.startsWith("Alt+")
+              ? { key: key.slice(4), code: `Digit${key.slice(4)}`, altKey: true }
+              : { key };
+            const e = new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true });
             document.activeElement.dispatchEvent(e);
             return e.defaultPrevented;
           }, key);
@@ -233,13 +285,15 @@ if (urlIndex > 0) {
       );
       await page.keyboard.press("Escape");
       await page.getByRole("dialog").waitFor({ state: "hidden" });
-      for (const [command, workspace, ticker, graph] of [
+      for (const [command, section, ticker, graph] of [
         ["RELIANCE IN DES", "market", "RELIANCE.NS", false],
         ["SPY US GP", "market", "SPY", true],
         ["RELIANCE IB DES", "market", "500325.BO", false],
         ["FACT", "factors", "500325.BO", false],
         ["EXEC", "execution", "500325.BO", false],
       ]) {
+        // FACT and EXEC are sections of the Markets workspace.
+        const workspace = "market";
         if (process.argv.includes("--debug")) console.log(`${name}: command ${command}`);
         await page.getByLabel("Command", { exact: true }).fill(command);
         await page.getByLabel("Command", { exact: true }).press("Enter");
@@ -248,7 +302,7 @@ if (urlIndex > 0) {
         await page
           .waitForURL(
             (url) =>
-              url.pathname === (workspace === "market" ? "/markets" : "/" + workspace) &&
+              url.pathname === (section === "market" ? "/markets" : "/" + section) &&
               url.searchParams.get("ticker") === ticker &&
               url.searchParams.get("view") === (graph ? "graph" : null),
           )
@@ -268,35 +322,41 @@ if (urlIndex > 0) {
         // Router location and the old shell's workspace attribute can update
         // before the destination mounts. Wait for actual destination content,
         // then its hydrated shell, so a remount cannot erase the next command.
-        if (workspace === "market")
+        if (section === "market")
           await page
             .locator(".mk-head")
             .getByRole("heading", { name: ticker, exact: true })
             .waitFor();
-        else if (workspace === "factors") await page.locator("[data-factor-workspace]").waitFor();
-        else await page.locator(`[data-placeholder="${workspace}"]`).waitFor();
+        else if (section === "factors") await page.locator("[data-factor-workspace]").waitFor();
+        else await page.locator(`[data-placeholder="${section}"]`).waitFor();
         await page.locator(`.shell[data-ready="true"][data-workspace="${workspace}"]`).waitFor();
         await page.waitForLoadState("networkidle");
       }
+      // FACTORS and EXECUTION are Markets tabs now; the palette names them under F6.
       for (const label of ["FACTORS", "EXECUTION"]) {
         await page
-          .getByRole("navigation", { name: "Workspaces" })
-          .getByText(label, { exact: true })
+          .getByRole("navigation", { name: "Markets sections" })
+          .getByRole("link", { name: label[0] + label.slice(1).toLowerCase(), exact: true })
           .click();
         if (label === "FACTORS") await page.locator("[data-factor-workspace]").waitFor();
         else await page.locator(`[data-placeholder="${label.toLowerCase()}"]`).waitFor();
-        await page
-          .locator(`.shell[data-ready="true"][data-workspace="${label.toLowerCase()}"]`)
-          .waitFor();
+        await page.locator(`.shell[data-ready="true"][data-workspace="market"]`).waitFor();
         await page.keyboard.press("Control+k");
         await page.getByRole("dialog").getByRole("combobox").fill(label);
         await page
           .getByRole("option")
-          .filter({ hasText: `F${label === "FACTORS" ? "5" : "7"} · ${label}` })
+          .filter({ hasText: `F6 · ${label}` })
           .click();
       }
+      // The nav labels name the keys that actually work.
+      assert.deepEqual(
+        (
+          await page.getByRole("navigation", { name: "Workspaces" }).locator("kbd").allInnerTexts()
+        ).map((s) => s.trim()),
+        ["F1", "F2", "F3", "F4", "Alt 5", "F6", "Alt 7"],
+      );
       console.log(
-        `${name}: F1–F10, native F5/F7, field focus, command line, FACTORS/EXECUTION bar and palette passed.`,
+        `${name}: F1–F4/F6, Alt 5/Alt 7, native F5/F7, field focus, command line, Markets tabs and palette passed.`,
       );
     } finally {
       await browser.close();

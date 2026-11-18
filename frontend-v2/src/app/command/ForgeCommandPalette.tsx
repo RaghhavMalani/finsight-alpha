@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { WORKSPACES } from "@/app/workspaces";
+import { findSection, SECTIONS, sectionKey, WORKSPACES, type SectionId } from "@/app/workspaces";
 import { commandIntent } from "./CommandLine";
 import { useInvestigation } from "../terminal/TerminalShell";
 import { buildInvestigationTarget, targetHref, type InvestigationTarget } from "../terminal/links";
@@ -15,21 +15,24 @@ type Item = {
   detail: string;
   target?: InvestigationTarget;
   legacy?: LegacyMarketNavigation;
+  /** A plain route with no investigation context (F1 Command). */
+  plain?: { to: string };
   capability?: Capability;
   choices?: Item[];
   legacyText?: string;
 };
+const SECTION_BY_ID = new Map(SECTIONS.map((s) => [s.id as SectionId, s]));
 const href = (item: Item) =>
   item.target
     ? targetHref(item.target)
     : item.legacy
       ? item.legacy.to + "?" + new URLSearchParams(item.legacy.search).toString()
-      : undefined;
+      : item.plain?.to;
 function resolutionItems(result: CommandResolution, query: string): Item[] {
-  const workspace = WORKSPACES.find((w) =>
-    [w.command, w.label].includes(query.trim().toUpperCase() as never),
-  );
-  const label = workspace ? `${workspace.key} · ${workspace.label}` : `GO · ${query.trim()}`;
+  const workspace = findSection(query);
+  const label = workspace
+    ? `${sectionKey(workspace.id)} · ${workspace.label}`
+    : `GO · ${query.trim()}`;
   if (result.status === "READY")
     return [
       {
@@ -133,14 +136,17 @@ export function ForgeCommandPalette({
               key: "workspace|" + workspace.id,
               label: workspace.key + " · " + workspace.label,
               detail:
-                workspace.id === "execution"
-                  ? "UNAVAILABLE · Execution is future work."
+                workspace.id === "command"
+                  ? "Live mission control; reads the local live spine only in Local Live."
                   : "Workspace navigation; destination checks its exact evidence.",
-              ...(workspace.id !== "execution"
+              ...(workspace.section
                 ? {
-                    target: buildInvestigationTarget(investigation.navigationContext, workspace.id),
+                    target: buildInvestigationTarget(
+                      investigation.navigationContext,
+                      workspace.section,
+                    ),
                   }
-                : {}),
+                : { plain: { to: workspace.to } }),
             }));
           } else if (intent === "terminal") {
             const { resolveCommandInput } = await import("../terminal/commands");
@@ -171,13 +177,13 @@ export function ForgeCommandPalette({
               ...(!query.trim() ? { types: ["workspace"] } : {}),
             });
             searchItems = response.results.map((result) => {
-              const workspace =
+              const section =
                 result.type === "workspace"
-                  ? WORKSPACES.find((w) => w.id === result.id)
+                  ? SECTION_BY_ID.get(String(result.id) as SectionId)
                   : undefined;
               return {
                 key: result.key,
-                label: workspace ? workspace.key + " · " + workspace.label : result.label,
+                label: section ? sectionKey(section.id) + " · " + section.label : result.label,
                 detail:
                   "BUILD-VERIFIED NAVIGATION METADATA · " +
                   result.capability.label +
@@ -316,6 +322,9 @@ export function ForgeCommandPalette({
       const ticker = subjectTicker(item.legacy.context.subject);
       if (ticker) setCurrentTicker(ticker);
       void navigate({ to: item.legacy.to, search: item.legacy.search as never });
+      onClose();
+    } else if (item.plain) {
+      void navigate({ to: item.plain.to as never });
       onClose();
     }
   };

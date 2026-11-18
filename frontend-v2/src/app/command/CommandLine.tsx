@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WORKSPACES } from "../workspaces";
+import { findSection } from "../workspaces";
 import { useInvestigation } from "../terminal/TerminalShell";
 import type { CommandResolution } from "../terminal/commands";
 import { localLiveAllowed, setCurrentTicker, useDataMode } from "@/replay/mode";
@@ -17,8 +17,7 @@ export function commandIntent(text: string): "terminal" | "legacy" | "metadata" 
     ) ||
     (tokens.length > 1 && ["RISK", "DATA"].includes(tokens[0])) ||
     (tokens.length === 2 && ["US", "INDIA"].includes(tokens[0]) && tokens[1] === "REG") ||
-    (tokens.length === 1 &&
-      WORKSPACES.some((w) => w.command === tokens[0] || w.label === tokens[0]))
+    (tokens.length === 1 && !!findSection(tokens[0]))
   )
     return "terminal";
   return tokens.length >= 2 &&
@@ -52,6 +51,11 @@ export function CommandLine() {
     setResolution(undefined);
     setBusy(true);
     try {
+      if (/^\s*(?:CMD|COMMAND)(?:\s+(?:<GO>|GO))?\s*$/i.test(text)) {
+        setMessage("F1 Command · live mission control");
+        void navigate({ to: "/" });
+        return;
+      }
       if (investigation.error) throw new Error(investigation.error);
       const { resolveCommandInput } = await import("../terminal/commands");
       const result = await resolveCommandInput(text, investigation.navigationContext, {

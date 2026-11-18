@@ -1,5 +1,5 @@
 import { resolveInstrument, type Instrument } from "../../markets/instruments.ts";
-import { WORKSPACES } from "../workspaces.ts";
+import { findSection } from "../workspaces.ts";
 import { factorSeries } from "../../replay/factor-series.ts";
 
 export type CommandTarget = { to: string; search: Record<string, string>; instrument?: Instrument };
@@ -24,9 +24,7 @@ export function parseLegacyCommand(text: string, currentTicker = "SPY"): Command
   const tokens = text.trim().toUpperCase().split(/\s+/).filter(Boolean);
   if (["GO", "<GO>"].includes(tokens.at(-1) ?? "")) tokens.pop();
   if (!tokens.length) throw new Error("Enter a ticker and function, for example RELIANCE IN DES.");
-  const workspace = WORKSPACES.find(
-    (w) => tokens.length === 1 && (w.command === tokens[0] || w.label === tokens[0]),
-  );
+  const workspace = tokens.length === 1 ? findSection(tokens[0]) : undefined;
   if (workspace) return { to: workspace.to, search: { ticker: currentTicker } };
   if (tokens.length < 2 || tokens.length > 3)
     throw new Error("Use TICKER [EXCHANGE] FUNCTION, then GO.");

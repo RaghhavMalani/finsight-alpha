@@ -6,10 +6,22 @@ import { DEFAULT_LOOK, isLook, type Look } from "@/research/looks";
 const ResearchPage = lazy(() => import("@/research/ResearchPage"));
 
 export const Route = createFileRoute("/research")({
-  validateSearch: (search: Record<string, unknown>): { look: Look; renderer?: "2d" } => ({
-    look: isLook(search.look) ? search.look : DEFAULT_LOOK,
-    ...(search.renderer === "2d" ? { renderer: "2d" as const } : {}),
-  }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { look: Look; renderer?: "2d"; q?: string } => {
+    // A question suggested elsewhere (F1 Command) travels as ?q=; it is shown, never run.
+    const q =
+      typeof search.q === "string"
+        ? Array.from(search.q.replace(/[^\P{C}]+/gu, " ").trim())
+            .slice(0, 400) // by code point, so no lone surrogate is left
+            .join("")
+        : "";
+    return {
+      look: isLook(search.look) ? search.look : DEFAULT_LOOK,
+      ...(search.renderer === "2d" ? { renderer: "2d" as const } : {}),
+      ...(q ? { q } : {}),
+    };
+  },
   head: () => ({
     meta: [
       { title: "Research — FinSight" },
@@ -27,7 +39,7 @@ function ResearchRoute() {
   const search = Route.useSearch();
   return (
     <Suspense fallback={<div className="p-8 font-mono text-faint">LOADING RESEARCH</div>}>
-      <ResearchPage look={search.look} renderer={search.renderer ?? "auto"} />
+      <ResearchPage look={search.look} renderer={search.renderer ?? "auto"} question={search.q} />
     </Suspense>
   );
 }

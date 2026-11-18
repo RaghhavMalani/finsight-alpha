@@ -52,7 +52,12 @@ def health(request: Request) -> dict:
 @router.get("/recent")
 def recent(request: Request, type: str | None = None, since: str | None = None,
            limit: int = Query(200, ge=1, le=2000)) -> dict:
-    """Polling fallback. ``since`` is a ``seq`` (digits) or an ISO ``available_at``."""
+    """Polling fallback. ``since`` is a ``seq`` (digits) or an ISO ``available_at``.
+
+    Without ``since`` it returns the newest ``limit`` events (a backlog). With ``since`` it returns the
+    *oldest* ``limit`` events after it, so a client can page forward with ``last_seq`` until ``count``
+    is below ``limit`` and lose nothing.
+    """
     _gate(request)
     service = runtime.get_service()
     if service is None:
@@ -72,7 +77,7 @@ def recent(request: Request, type: str | None = None, since: str | None = None,
         if after_at:
             cutoff = model.parse_iso(after_at)
             events = [e for e in events if model.parse_iso(e["available_at"]) > cutoff]
-    events = events[-limit:]
+    events = events[:limit] if since else events[-limit:]
     return {"mode": service.mode, "count": len(events),
             "last_seq": events[-1]["seq"] if events else after_seq, "events": events}
 
@@ -88,8 +93,9 @@ async def stream(request: Request, type: str | None = None, since_seq: int | Non
         raise HTTPException(503, NOT_RUNNING)
     types = _types(type)
     header = request.headers.get("last-event-id")
-    if since_seq is None and header and header.isdigit():
-        since_seq = int(header)
+    if header and header.isdigit():
+        # An automatic reconnect resends the original URL; the header is where the client really is.
+        since_seq = max(since_seq if since_seq is not None else -1, int(header))
     subscription = service.bus.subscribe(types=types)  # before the backlog, so nothing falls between
 
     def gap(reason: str, **counts) -> str:

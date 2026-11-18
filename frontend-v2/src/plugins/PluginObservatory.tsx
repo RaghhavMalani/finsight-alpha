@@ -1,3 +1,4 @@
+import { WorkspaceSubnav } from "@/app/shell/WorkspaceSubnav";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ForgeShell } from "@/app/shell/ForgeShell";
@@ -50,6 +51,7 @@ export default function PluginObservatory() {
     .join(" ");
   return (
     <ForgeShell>
+      <WorkspaceSubnav inline />
       <section className="plugin-page">
         <nav className="plugin-nav" aria-label="Observatory scenes">
           <Link to="/observatory" search={{ scene: "hmm", ticker: "US-MKT" }}>

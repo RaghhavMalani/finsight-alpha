@@ -1,0 +1,356 @@
+/* F1 Command: the globe as a full-bleed backdrop with thin mono HUD panels. */
+.cmd {
+  --cmd-fg: #e7eaec;
+  --cmd-muted: #a3abb2;
+  --cmd-line: rgba(63, 224, 255, 0.16);
+  --cmd-cyan: #3fe0ff;
+  --cmd-amber: #f0a929;
+  --cmd-green: #39e6b5;
+  --cmd-red: #ff6b5b;
+  --cmd-panel: rgba(6, 10, 14, 0.93);
+  --cmd-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  color: var(--cmd-fg);
+  font:
+    13px/1.45 "Inter",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  color-scheme: dark;
+}
+.cmd-stage {
+  position: absolute;
+  inset: 0;
+  /* A constant dimming: the globe is context; the panels carry the state. */
+  filter: brightness(0.6) saturate(0.85);
+}
+.cmd-hud {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) minmax(320px, 400px);
+  gap: 16px;
+  padding: 18px 20px;
+  pointer-events: none;
+}
+.cmd-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  pointer-events: none;
+}
+.cmd-left {
+  grid-column: 1;
+}
+.cmd-right {
+  grid-column: 3;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #262b31 transparent;
+}
+.cmd-panel {
+  pointer-events: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--cmd-line);
+  background: var(--cmd-panel);
+  backdrop-filter: blur(6px);
+}
+/* The stream fills the column only while there is a stream to show. */
+.cmd:is([data-spine="streaming"], [data-spine="polling"], [data-spine="reconnecting"])
+  .cmd-left
+  .cmd-panel:last-child {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cmd-panel h2 {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: var(--cmd-cyan);
+  font: 500 11px var(--cmd-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.cmd-panel h2 span {
+  color: var(--cmd-muted);
+  letter-spacing: 0.04em;
+}
+.cmd-eyebrow {
+  color: var(--cmd-cyan);
+  font: 500 11px var(--cmd-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.cmd-title h1 {
+  margin: 4px 0 8px;
+  font:
+    600 22px/1.2 "Inter",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.01em;
+}
+.cmd-spine {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+  font: 12px/1.45 var(--cmd-mono);
+}
+.cmd-detail {
+  margin: 6px 0 0;
+  color: var(--cmd-muted);
+  font: 11px/1.45 var(--cmd-mono);
+  overflow-wrap: anywhere;
+}
+.cmd-detail a,
+.cmd-panel a:focus-visible {
+  color: var(--cmd-amber);
+}
+.cmd-button {
+  margin-top: 10px;
+  padding: 5px 10px;
+  border: 1px solid var(--cmd-amber);
+  background: transparent;
+  color: var(--cmd-amber);
+  font: 500 11px var(--cmd-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.cmd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.cmd-chip {
+  padding: 2px 7px;
+  border: 1px solid var(--cmd-line);
+  color: var(--cmd-muted);
+  font: 11px var(--cmd-mono);
+}
+.cmd-chip.live,
+.cmd-chip.replay {
+  color: var(--cmd-fg);
+}
+.cmd-chip code,
+.cmd-spine code {
+  padding: 0 4px;
+  background: rgba(255, 255, 255, 0.08);
+  font: inherit;
+}
+.cmd-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cmd-stream {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #262b31 transparent;
+}
+.cmd-list li + li {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cmd-list a,
+.cmd-market a {
+  display: block;
+  padding: 6px 0;
+  color: var(--cmd-fg);
+  text-decoration: none;
+}
+.cmd-list a:hover .cmd-row-text,
+.cmd-market a:hover b {
+  color: var(--cmd-amber);
+}
+.cmd-row-main {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+.cmd-row-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmd-row-meta {
+  display: block;
+  color: var(--cmd-muted);
+  font: 11px var(--cmd-mono);
+  overflow-wrap: anywhere;
+}
+.cmd-type {
+  flex: none;
+  font: 500 11px var(--cmd-mono);
+  color: var(--cmd-muted);
+}
+/* Colour is reserved: green / amber / red for feed health, red also for a failed risk check. */
+.cmd-type-risk {
+  color: var(--cmd-red);
+}
+.cmd-tickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+.cmd-tickers i {
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--cmd-fg);
+  font: normal 11px var(--cmd-mono);
+}
+.cmd-empty {
+  margin: 0;
+  color: var(--cmd-muted);
+  font: 12px/1.45 var(--cmd-mono);
+}
+.cmd-markets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.cmd-market h3 {
+  margin: 0 0 4px;
+  color: var(--cmd-muted);
+  font: 500 11px var(--cmd-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cmd-market ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cmd-market a {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  padding: 4px 0;
+}
+.cmd-market a b {
+  font: 500 12px var(--cmd-mono);
+}
+.cmd-num {
+  justify-self: end;
+  font: 12px var(--cmd-mono);
+  font-variant-numeric: tabular-nums;
+}
+.cmd-market .cmd-row-meta {
+  grid-column: 1 / -1;
+}
+.cmd-delay {
+  margin: 6px 0 0;
+  color: var(--cmd-muted);
+  font: 11px/1.4 var(--cmd-mono);
+}
+.cmd-feeds a {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+}
+.cmd-feeds b {
+  font: 500 12px var(--cmd-mono);
+}
+.cmd-feeds .cmd-row-meta {
+  text-align: right;
+}
+.live-dot {
+  display: inline-flex;
+  align-items: center;
+}
+.live-dot i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6c757d;
+}
+.live-dot-fresh i {
+  background: var(--cmd-green, #39e6b5);
+  box-shadow: 0 0 6px rgba(57, 230, 181, 0.7);
+}
+.live-dot-stale i {
+  background: var(--cmd-amber, #f0a929);
+}
+.live-dot-dead i {
+  background: var(--cmd-red, #ff6b5b);
+}
+.cmd .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* Motion only on state change: a record that arrives after the reader does flashes once. */
+.cmd-new {
+  animation: cmd-arrive 1.6s ease-out 1;
+}
+@keyframes cmd-arrive {
+  from {
+    background: rgba(240, 169, 41, 0.22);
+  }
+  to {
+    background: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmd-new {
+    animation: none;
+  }
+}
+@media (max-width: 1100px) {
+  .cmd-hud {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(280px, 340px);
+  }
+}
+/* Phones: status first, then a short globe, then the panels stacked with a 16 px gutter. */
+@media (max-width: 820px) {
+  .cmd {
+    position: relative;
+    inset: auto;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0 24px;
+  }
+  .cmd-stage {
+    position: relative;
+    order: -1;
+    height: min(38svh, 300px);
+    min-height: 220px;
+  }
+  .cmd-hud,
+  .cmd-col {
+    display: contents;
+  }
+  .cmd-panel {
+    margin: 0 16px;
+  }
+  .cmd-title {
+    order: -2;
+  }
+  .cmd-markets {
+    grid-template-columns: 1fr;
+  }
+  .cmd-stream {
+    max-height: 50vh;
+  }
+}

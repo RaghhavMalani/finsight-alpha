@@ -93,6 +93,29 @@ def test_health_and_recent(monkeypatch, service):
     assert c.get("/live/recent?since=yesterday").status_code == 422
 
 
+def test_recent_pages_forward_after_since_without_losing_events(monkeypatch, service):
+    """Sabotage: returning the newest ``limit`` rows after ``since`` skips the older ones."""
+    c = client(monkeypatch)
+    every = [e["seq"] for e in c.get("/live/recent?limit=2000").json()["events"]]
+    assert len(every) >= 4
+    seen, since = [], every[0] - 1
+    while True:
+        page = c.get(f"/live/recent?since={since}&limit=2").json()
+        seen += [e["seq"] for e in page["events"]]
+        if page["count"] < 2:
+            break
+        since = page["last_seq"]
+    assert seen == every
+
+
+def test_a_reconnect_resumes_from_last_event_id_not_the_original_since_seq(monkeypatch, service):
+    """EventSource reconnects with its original URL plus Last-Event-ID; the header must win."""
+    c = client(monkeypatch)
+    with c.stream("GET", "/live/stream?since_seq=0&max_events=2", headers={"Last-Event-ID": "3"}) as response:
+        seqs = [json.loads(f["data"])["seq"] for f in parse_sse("".join(response.iter_text()))]
+    assert seqs == [4, 5]
+
+
 def test_gate_and_not_running(monkeypatch, tmp_path):
     runtime.set_service(None)
     assert client(monkeypatch, org=None).get("/live/health").status_code == 401
