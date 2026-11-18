@@ -16,6 +16,8 @@ export function WorkspaceHotkeys() {
       const target = workspaceForAltDigit(event);
       if (!target) return;
       event.preventDefault();
+      // Already on the workspace's own page: keep its context (no reload, no re-validation).
+      if (window.location.pathname === target.to) return;
       void navigate({
         to: target.to as never,
         search: (target.id === "command" ? {} : { ticker }) as never,
