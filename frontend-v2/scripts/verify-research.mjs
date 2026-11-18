@@ -128,6 +128,14 @@ for (const n of graph.nodes)
   }
 // Re-derive every trial's state, rule result, t and wall time from the sealed record.
 const z975 = quantile(0.975);
+// The regime rule as a whole: four contrasts after Holm and no specificity control passing.
+const holmOf = (id) => flagship.records[id]?.payload?.correction?.HOLM;
+const passesHolm = (id) => holmOf(id) != null && holmOf(id) <= alpha;
+const regimeMet =
+  ["US:HMM", "US:VOL_CLUSTER", "INDIA:HMM", "INDIA:VOL_CLUSTER"].every(passesHolm) &&
+  !Object.keys(flagship.records)
+    .filter((id) => /:(WRONG_DIRECTION|SHUFFLED_REGIME_HMM|SHUFFLED_REGIME_VOL)$/.test(id))
+    .some(passesHolm);
 const runs = graph.nodes.filter((n) => n.kind === "experiment" || n.kind === "counterfactual");
 assert.equal(runs.length, Object.keys(flagship.records).length, "every frozen trial is a node");
 for (const r of runs) {
@@ -151,7 +159,14 @@ for (const r of runs) {
             ? "specificity"
             : null;
   const passes = holm != null && holm <= alpha;
-  const met = rule === "acceptance" ? passes && res.ci_lower > 0 : rule ? passes : null;
+  const met =
+    rule === "acceptance"
+      ? passes && res.ci_lower > 0
+      : rule === "regime"
+        ? regimeMet
+        : rule
+          ? passes
+          : null;
   const expected =
     res.status === "UNAVAILABLE"
       ? "unavailable"
@@ -173,7 +188,11 @@ for (const r of runs) {
     const phi = (x) => 0.5 * (1 + erf(x / Math.SQRT2));
     const one = Math.abs(res.p_value - (1 - phi(t))),
       two = Math.abs(res.p_value - 2 * (1 - phi(Math.abs(t))));
-    const sided = Math.min(one, two) > 2e-3 ? null : one < two ? "one-sided" : "two-sided";
+    const p1 = 1 - phi(t),
+      p2 = 2 * (1 - phi(Math.abs(t)));
+    const okOne = one <= 1e-3 * Math.max(p1, 1e-9) + 1e-12,
+      okTwo = two <= 1e-3 * Math.max(p2, 1e-9) + 1e-12;
+    const sided = okOne && !okTwo ? "one-sided" : okTwo && !okOne ? "two-sided" : null;
     assert.equal(r.sided?.t ?? null, sided, `${r.id} sidedness`);
   } else assert.equal(r.t ?? null, null, `${r.id} has no t`);
   const ev = flagship.attempts.filter((a) => a.attempt === rec.attempt);
@@ -255,7 +274,15 @@ console.log(
 
 // 2. Lazy boundary: no three.js in the route chunk or the page's static import closure -------
 const assets = resolve(frontend, ".vercel/output/static/assets");
-if (existsSync(assets)) {
+// With --url (CI) or --require-dist, a missing build output is a failure, not a skip.
+const needDist = !!base || process.argv.includes("--require-dist");
+if (!existsSync(assets)) {
+  assert(
+    !needDist,
+    `build output missing at ${assets}; the lazy-boundary and probe checks cannot run`,
+  );
+  console.log("Lazy boundary: skipped (no build output; pass --require-dist to enforce)");
+} else {
   const files = readdirSync(assets);
   const closure = (entry) => {
     const seen = new Set(),

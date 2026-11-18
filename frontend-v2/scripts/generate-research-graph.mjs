@@ -177,6 +177,14 @@ function erf(x) {
   return (2 / Math.sqrt(Math.PI)) * sum;
 }
 
+/** One- or two-sided by relative tolerance; null when neither or both reproduce the sealed p. */
+function sidedness(p, one, two) {
+  const near = (q) => Math.abs(p - q) <= 1e-3 * Math.max(Math.abs(q), 1e-9) + 1e-12;
+  const a = near(one),
+    b = near(two);
+  return a && !b ? "one-sided" : b && !a ? "two-sided" : null;
+}
+
 function build({ sources, docs, manifests }) {
   const pre = docs["v0.1/preregistration.json"],
     flag = docs["v0.1/flagship.json"],
@@ -332,6 +340,17 @@ function build({ sources, docs, manifests }) {
   }
 
   // Runs: the 46 frozen trials ------------------------------------------------------------------
+  // The preregistered regime rule, judged once across all four contrasts and the controls.
+  const holmOf = (id) => flag.records[id]?.payload?.correction?.HOLM;
+  const contrasts = ["US:HMM", "US:VOL_CLUSTER", "INDIA:HMM", "INDIA:VOL_CLUSTER"];
+  const controls = Object.keys(flag.records).filter((id) =>
+    /:(WRONG_DIRECTION|SHUFFLED_REGIME_HMM|SHUFFLED_REGIME_VOL)$/.test(id),
+  );
+  const regimeK = contrasts.filter((id) => holmOf(id) != null && holmOf(id) <= ALPHA).length;
+  const regimeRule = {
+    k: regimeK,
+    met: regimeK === 4 && controls.every((id) => !(holmOf(id) != null && holmOf(id) <= ALPHA)),
+  };
   const dagIndex = new Map(flag.dag.edges.map((e, i) => [e.to, i]));
   const attemptsByRun = new Map();
   flag.attempts.forEach((a, i) => {
@@ -370,13 +389,7 @@ function build({ sources, docs, manifests }) {
         : res.estimate / ((res.ci_upper - res.ci_lower) / (2 * Z975));
     const phi = (x) => 0.5 * (1 + erf(x / Math.SQRT2));
     const sided =
-      tval == null
-        ? null
-        : Math.abs(res.p_value - (1 - phi(tval))) < 2e-3
-          ? "one-sided"
-          : Math.abs(res.p_value - 2 * (1 - phi(Math.abs(tval)))) < 2e-3
-            ? "two-sided"
-            : null;
+      tval == null ? null : sidedness(res.p_value, 1 - phi(tval), 2 * (1 - phi(Math.abs(tval))));
     // A rule is shown only where the preregistration text covers this trial.
     const ruleKind =
       res.status === "UNAVAILABLE"
@@ -390,6 +403,8 @@ function build({ sources, docs, manifests }) {
               : null;
     const passes = holm != null && holm <= ALPHA;
     const met = ruleKind === "acceptance" ? supported : ruleKind ? passes : null;
+    // A single regime contrast never verifies on its own: the preregistered rule needs both
+    // models in both markets after Holm and every specificity control failing to pass.
     const state =
       res.status === "UNAVAILABLE"
         ? "unavailable"
@@ -397,11 +412,15 @@ function build({ sources, docs, manifests }) {
           ? met
             ? "falsified"
             : "held"
-          : ruleKind
-            ? met
+          : ruleKind === "regime"
+            ? regimeRule.met
               ? "verified"
               : "inconclusive"
-            : "recorded";
+            : ruleKind
+              ? met
+                ? "verified"
+                : "inconclusive"
+              : "recorded";
     const [country, variant] = trial.split(":");
     const wall =
       iStart != null && iDone != null
@@ -483,7 +502,7 @@ function build({ sources, docs, manifests }) {
               ruleKind === "acceptance"
                 ? "Supported iff Holm-adjusted p ≤ α and the 95% CI lower bound > 0 (preregistration acceptance rule)."
                 : ruleKind === "regime"
-                  ? "A regime contrast counts only if its Holm-adjusted p ≤ α (preregistered nonzero, two-sided contrast)."
+                  ? `Contributes to the preregistered regime rule: both models in both markets need Holm-adjusted p ≤ α and every wrong-direction or shuffled-regime control must fail to pass (${regimeRule.k} of 4 contrasts met; this one ${passes ? "met" : "not met"}).`
                   : "Specificity is broken iff this wrong-direction or shuffled-regime control has Holm-adjusted p ≤ α; held when it does not.",
             src: "v0.1/preregistration.json",
             ptr:
@@ -507,7 +526,7 @@ function build({ sources, docs, manifests }) {
                   ]
                 : []),
             ],
-            met,
+            met: ruleKind === "regime" ? regimeRule.met : met,
           },
       t:
         res.status === "UNAVAILABLE"
