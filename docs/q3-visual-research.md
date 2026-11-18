@@ -41,8 +41,11 @@ replaying and settles when it is sealed. With `prefers-reduced-motion` the graph
   trial's distance from the hypothesis is its t (estimate ÷ SE, derived from the sealed CI with the formula
   shown); rings are labelled on their strokes: t = 0, t = 1, the one-sided critical value and ±1.96 for
   two-sided trials (both before Holm); trials without a result sit on a separate arc. Cyan settled, amber state changes,
-  magenta the skeptic, red failure only. A left rail holds the hero verdict line, the
-  readout of the two primary trials and a legend naming every visual channel.
+  magenta the skeptic, red failure only. A left rail holds the hero verdict (sealed
+  verdict, derived Holm phrase, t and Holm p per leg, the acceptance rule with its inputs, the skeptic
+  audit), a one-row-per-trial table, and a legend naming every visual channel. Rule met is filled cyan,
+  rule not met a hollow grey ring, control held green, recorded grey. A single regime contrast never
+  verifies alone: its state follows the whole preregistered regime rule (k of 4 contrasts).
 - **Replay.** A timeline scrubber replays the recorded events in order; scorecard values stay pending until
   the replay reaches the event that sealed them. This is the only motion on the page.
 - **HUD.** Clicking or pressing Enter on a node opens a translucent overlay with evidence, cost, model and

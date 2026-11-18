@@ -100,8 +100,8 @@ export const radiusOfT = (t: number) => 6 + 1.25 * Math.max(T_FLOOR, t);
 /** Trials with no result sit on their own arc outside the t scale. */
 export const NO_RESULT_R = 11;
 
-/** Ring labels in the upper-left quadrant, away from the hypothesis→finding bundle. */
-export const RING_ANGLES = { neg: 140, zero: 131, one: 122, crit: 112, two: 97 } as const;
+/** Ring labels in the upper half, away from the hypothesis→finding bundle, each on its stroke. */
+export const RING_ANGLES = { neg: 118, zero: 131, one: 122, crit: 106, two: 75 } as const;
 function ringLabels(H: Vec3, zc: number | null, z2: number | null): Layout["labels"] {
   const on = (r: number, deg_: number): Vec3 => [
     H[0] + (r + 0.35) * Math.cos(deg_ * deg),
@@ -138,7 +138,7 @@ function ringLabels(H: Vec3, zc: number | null, z2: number | null): Layout["labe
         text: `|t| = ${z2.toFixed(2)} two-sided`,
         at: on(radiusOfT(z2), RING_ANGLES.two),
         tone: "cyanSoft",
-        align: "right",
+        align: "left",
         src: "v0.1/preregistration.json",
       },
       {
@@ -237,12 +237,6 @@ function bloom(graph: ResearchGraph, g: Groups): Omit<Layout, "look"> {
   const labels: Layout["labels"] = [
     { text: "US TRIALS", at: [H[0] + 3.5, H[1] + 9.6, 0], tone: "muted", align: "center" },
     { text: "INDIA TRIALS", at: [H[0] + 3.5, H[1] - 9.8, 0], tone: "muted", align: "center" },
-    {
-      text: "PLACEBOS",
-      at: [H[0] - radiusOfT(0) - 1.6, H[1] + 2.4, 0],
-      tone: "muted",
-      align: "right",
-    },
     ...ringLabels(H, zc, z2),
   ];
   const guides = [

@@ -110,7 +110,11 @@ function useStageSize() {
 /** Anchor labels in priority order: when two collide, the later one is hidden. */
 const PIN_ORDER = ["H", "F", "SK", "R:US:PRIMARY", "R:INDIA:PRIMARY", "CAL", "MUT", "TESTS", "REP"];
 function declutter(els: (HTMLElement | null | undefined)[]) {
-  const taken: DOMRect[] = [];
+  // HUD text blocks are obstacles too, and labels must stay fully on screen.
+  const taken: DOMRect[] = [
+    ...document.querySelectorAll(".rs-mast, .rs-legend, .rs-status, .rs-hud"),
+  ].map((e) => e.getBoundingClientRect());
+  const vw = document.documentElement.clientWidth;
   for (const el of els) {
     if (!el) continue;
     el.style.visibility = "visible";
@@ -124,7 +128,7 @@ function declutter(els: (HTMLElement | null | undefined)[]) {
         r.top < t.bottom + 2 &&
         r.bottom > t.top - 2,
     );
-    if (hit) el.style.visibility = "hidden";
+    if (hit || r.left < 4 || r.right > vw - 4) el.style.visibility = "hidden";
     else taken.push(r);
   }
 }
@@ -687,7 +691,7 @@ function Hero({ graph, tone }: { graph: ResearchGraph; tone: ColorName }) {
         {g(
           <>
             acceptance rule {rule} (Holm p ≤ α <Num n={graph.study.alpha} label="α" />, CI lower{" "}
-            {">"} 0)
+            <span data-copy>{">"} 0)</span>
           </>,
         )}
       </p>
@@ -734,15 +738,16 @@ function Legend({ graph }: { graph: ResearchGraph }) {
       </div>
       <div data-copy>
         radius = 6 + 1.25·t from the hypothesis; dots inside the t = 0 ring are trials with negative
-        t, the four nearest the hypothesis are the scorecard questions; floor t = −2.8; no-result
-        trials sit on short outer arcs
+        t, the four nearest the hypothesis are the scorecard questions; the outer-left sector of
+        each half holds the placebo controls; floor t = −2.8; no-result trials sit on short outer
+        arcs
       </div>
       <div data-copy>
         rings are pre-Holm thresholds (one-sided for one-sided trials, ±two-sided for two-sided);
         the verdict uses Holm-adjusted p
       </div>
       <div>
-        the v0.1.1 audit passed{" "}
+        <span data-copy>the v0.1.1 audit passed</span>{" "}
         <Num n={graph.study.settings_passed} label="Skeptic settings passed" /> of{" "}
         <Num n={graph.study.settings_total} label="Skeptic settings total" /> settings for the
         asymptotic test

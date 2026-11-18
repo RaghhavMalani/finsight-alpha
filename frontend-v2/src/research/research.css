@@ -941,6 +941,9 @@
   .rs-hero-2 {
     font-size: 12px;
   }
+  .rs-hero .rs-nw {
+    white-space: normal;
+  }
   .rs-readout-wrap {
     -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
     mask-image: linear-gradient(to right, #000 85%, transparent);
