@@ -115,21 +115,35 @@ function declutter(els: (HTMLElement | null | undefined)[]) {
     ...document.querySelectorAll(".rs-mast, .rs-legend, .rs-status, .rs-hud"),
   ].map((e) => e.getBoundingClientRect());
   const vw = document.documentElement.clientWidth;
-  for (const el of els) {
-    if (!el) continue;
-    el.style.visibility = "visible";
-    const box = (el.firstElementChild as HTMLElement | null) ?? el;
-    const r = box.getBoundingClientRect();
-    if (!r.width) continue;
-    const hit = taken.some(
+  const clear = (r: DOMRect) =>
+    r.left >= 4 &&
+    r.right <= vw - 4 &&
+    !taken.some(
       (t) =>
         r.left < t.right + 10 &&
         r.right > t.left - 10 &&
         r.top < t.bottom + 10 &&
         r.bottom > t.top - 10,
     );
-    if (hit || r.left < 4 || r.right > vw - 4) el.style.visibility = "hidden";
-    else taken.push(r);
+  for (const el of els) {
+    if (!el) continue;
+    el.style.visibility = "visible";
+    el.style.translate = "";
+    const box = (el.firstElementChild as HTMLElement | null) ?? el;
+    const base = box.getBoundingClientRect();
+    if (!base.width) continue;
+    // Try small vertical nudges before giving up, so a high-priority label (a primary trial's t)
+    // moves out of the way instead of disappearing. The pin itself stays at its measured radius.
+    const step = base.height + 6;
+    const offset = [0, step, -step, 2 * step, -2 * step].find((dy) =>
+      clear(new DOMRect(base.x, base.y + dy, base.width, base.height)),
+    );
+    if (offset === undefined) {
+      el.style.visibility = "hidden";
+      continue;
+    }
+    if (offset) el.style.translate = `0 ${offset}px`;
+    taken.push(new DOMRect(base.x, base.y + offset, base.width, base.height));
   }
 }
 
