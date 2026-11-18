@@ -153,11 +153,20 @@ function declutter(els: (HTMLElement | null | undefined)[]) {
       continue;
     }
     if (offset) {
-      // Moved off its node: a thin leader runs back to the node, so the label still points at it.
+      // Moved off its node: a thin leader runs from the node to the near edge of the label, so the
+      // label still points at it and the line never crosses its text. Element-local coordinates:
+      // after the move the node sits at y = -offset; the label box spans [top, bottom].
       el.style.translate = `0 ${offset}px`;
-      el.dataset.lead = "";
-      el.style.setProperty("--lead-top", `${Math.min(0, -offset)}px`);
-      el.style.setProperty("--lead-h", `${Math.abs(offset)}px`);
+      const origin = el.getBoundingClientRect().top - offset;
+      const top = base.top - origin,
+        bottom = base.bottom - origin,
+        node = -offset;
+      const [from, to] = node < top ? [node, top] : node > bottom ? [bottom, node] : [0, 0];
+      if (to - from > 1) {
+        el.dataset.lead = "";
+        el.style.setProperty("--lead-top", `${from}px`);
+        el.style.setProperty("--lead-h", `${to - from}px`);
+      }
     }
     taken.push(new DOMRect(base.x, base.y + offset, base.width, base.height));
   }
@@ -749,6 +758,18 @@ function Hero({ graph, tone }: { graph: ResearchGraph; tone: ColorName }) {
   );
 }
 
+/** Spoken names for the legend swatches (the tokens themselves are not words). */
+const COLOUR_WORD: Record<string, string> = {
+  fg: "white",
+  cyan: "cyan",
+  up: "green",
+  muted: "grey",
+  amber: "amber",
+  red: "red",
+  magenta: "magenta",
+  teal: "teal",
+};
+
 /** Every on-canvas channel, keyed: glyph | channel | named value. Anything not listed is constant. */
 function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
   type G = "dot" | "ring" | "dash" | "line" | "faint" | "tick" | "tall" | "none";
@@ -771,7 +792,7 @@ function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
         </span>
       )}
       <span className="rs-lg-v" {...(copy ? { "data-copy": "" } : {})}>
-        {channel == null && <span className="vx-sr">{color} </span>}
+        {channel == null && <span className="vx-sr">{COLOUR_WORD[color] ?? color} </span>}
         {value}
       </span>
     </div>
