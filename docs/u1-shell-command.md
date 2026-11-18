@@ -89,4 +89,6 @@ applies (`shell.css`, keyed on `data-workspace`). Markets, Risk, Dynamics and Gl
   nav key labels. One retry of a goto aborted by a browser-owned F5 reload (Firefox).
 - `verify-data.mjs`: F10 no longer exists; it reaches Risk with Alt 7 instead.
 - `verify-terminal-browser.mjs`: the terminal-shell layout check reads `data-section` (was `data-workspace`).
+- `verify-risk-browser.mjs`: pressed F3 (the old Risk key) and expected to stay on `/risk`; it now presses
+  Alt+7. Alt+digit on a workspace's own page keeps its context (no re-navigation, no re-validation).
 - No integrity or negative assertion was removed.
