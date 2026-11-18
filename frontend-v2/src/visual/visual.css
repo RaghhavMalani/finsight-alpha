@@ -149,6 +149,21 @@
 .vx-stamp {
   font-family: var(--vx-mono, monospace);
 }
+/* Keep the surrounding colour and font (tables, KPI tiles, live rows). */
+.vx-num.vx-inherit,
+.vx-hash.vx-inherit,
+.vx-stamp.vx-inherit {
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+/* Inert values sit inside a link: the link keeps the pointer and the click. */
+span.vx-num,
+span.vx-hash,
+span.vx-stamp,
+span.vx-src {
+  cursor: inherit;
+}
 .vx-na {
   color: var(--vx-muted, #9aa2a9);
   font-style: italic;

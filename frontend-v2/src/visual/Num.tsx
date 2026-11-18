@@ -11,8 +11,19 @@ import {
 import { formatNum, short, stamp } from "./num-format";
 import "./visual.css";
 
-/** Where a value came from: a sealed file and a JSON pointer into it. */
+/**
+ * What kind of source a value has. The popover never claims more than the kind allows:
+ * - "sealed": a file in the sealed table handed to ProvenanceProvider (path, SHA-256, sealer).
+ * - "replay": a checked Replay artifact. `src` is its URL and `sha256` the digest named by
+ *   /replay-manifest.json, which the client verifies before parsing. A check, not a seal.
+ * - "live": a local API response. `src` is the endpoint. Never sealed, never hashed.
+ */
+export type OriginKind = "sealed" | "replay" | "live";
+
+/** Where a value came from: a source and a JSON pointer into it. */
 export type Origin = {
+  /** Defaults to "sealed" (the Research table). */
+  kind?: OriginKind;
   src: string;
   ptr: string;
   /** A second pointer when the value is derived from two fields. */
@@ -21,6 +32,14 @@ export type Origin = {
   note?: string;
   /** Why the value is absent. Missing is never shown as zero. */
   reason?: string;
+  /** Replay only: the SHA-256 the checked manifest names for `src`. */
+  sha256?: string | null;
+  /** Replay/live: the artifact or response as-of time, when the source states one. */
+  asOf?: string | null;
+  /** Live: the record's clocks and stream sequence number, when the source states them. */
+  availableAt?: string | null;
+  observedAt?: string | null;
+  seq?: number | null;
 };
 export type NumFormat = "ret" | "pp" | "p" | "rate" | "int" | "bps" | "sec" | "x";
 export type NumValue = Origin & { v: number | null; fmt: NumFormat };
@@ -61,17 +80,21 @@ export function RunProvenance({ run, children }: { run?: RefValue; children: Rea
   return <RunScope.Provider value={run}>{children}</RunScope.Provider>;
 }
 
+const NO_SOURCES: Record<string, SourceFile> = {};
+const NO_STUDY: ProvenanceStudy = {};
+
 /**
  * Supplies the sealed-file table behind every value, and renders the one origin popover.
  * The popover is a HUD overlay near its value; on narrow screens a bottom sheet.
+ * Workspaces without sealed files (Replay, Live) use it with no table.
  */
 export function ProvenanceProvider({
-  sources,
-  study,
+  sources = NO_SOURCES,
+  study = NO_STUDY,
   children,
 }: {
-  sources: Record<string, SourceFile>;
-  study: ProvenanceStudy;
+  sources?: Record<string, SourceFile>;
+  study?: ProvenanceStudy;
   children: ReactNode;
 }) {
   const [current, setCurrent] = useState<Open | null>(null);
@@ -102,7 +125,8 @@ export function ProvenanceProvider({
     };
   }, [current, close]);
   const ctx = useMemo(() => ({ sources, study, open: setCurrent }), [sources, study]);
-  const file = current ? sources[current.origin.src] : undefined;
+  const kind = current?.origin.kind ?? "sealed";
+  const file = current && kind === "sealed" ? sources[current.origin.src] : undefined;
   const narrow = typeof window !== "undefined" && window.innerWidth < 640;
   const pos = current
     ? narrow
@@ -127,6 +151,7 @@ export function ProvenanceProvider({
           aria-label={`Origin of ${current.title}`}
           tabIndex={-1}
           data-origin-popover
+          data-origin-kind={kind}
         >
           <div className="vx-origin-head">
             <span>ORIGIN</span>
@@ -137,16 +162,64 @@ export function ProvenanceProvider({
           <div className="vx-origin-value">{current.value}</div>
           <div className="vx-origin-title">{current.title}</div>
           <dl>
-            <dt>File</dt>
-            <dd data-origin-file>{file?.path ?? `${current.origin.src} · not in sealed table`}</dd>
-            <dt>SHA-256</dt>
-            <dd className="vx-break" data-origin-sha>
-              {file?.sha256 ?? "unavailable"}
-            </dd>
-            {file?.sealed_by && (
+            {kind === "sealed" && (
               <>
-                <dt>Sealed by</dt>
-                <dd>{file.sealed_by}</dd>
+                <dt>File</dt>
+                <dd data-origin-file>
+                  {file?.path ?? `${current.origin.src} · not in sealed table`}
+                </dd>
+                <dt>SHA-256</dt>
+                <dd className="vx-break" data-origin-sha>
+                  {file?.sha256 ?? "unavailable"}
+                </dd>
+                {file?.sealed_by && (
+                  <>
+                    <dt>Sealed by</dt>
+                    <dd>{file.sealed_by}</dd>
+                  </>
+                )}
+              </>
+            )}
+            {kind === "replay" && (
+              <>
+                <dt>Source</dt>
+                <dd>checked Replay artifact · not a seal</dd>
+                <dt>File</dt>
+                <dd className="vx-break" data-origin-file>
+                  {current.origin.src}
+                </dd>
+                <dt>SHA-256</dt>
+                <dd className="vx-break" data-origin-sha>
+                  {current.origin.sha256
+                    ? `${current.origin.sha256} (named by /replay-manifest.json, verified on load)`
+                    : "unavailable · the Replay manifest names no digest"}
+                </dd>
+              </>
+            )}
+            {kind === "live" && (
+              <>
+                <dt>Source</dt>
+                <dd>live API · not sealed</dd>
+                <dt>Endpoint</dt>
+                <dd className="vx-break" data-origin-file>
+                  {current.origin.src}
+                </dd>
+                <dt>SHA-256</dt>
+                <dd data-origin-sha>none · a live response is not hashed or sealed</dd>
+                {current.origin.seq != null && (
+                  <>
+                    <dt>Seq</dt>
+                    <dd>{current.origin.seq}</dd>
+                  </>
+                )}
+                {current.origin.observedAt && (
+                  <>
+                    <dt>Observed</dt>
+                    <dd>{current.origin.observedAt}</dd>
+                  </>
+                )}
+                <dt>Available</dt>
+                <dd>{current.origin.availableAt ?? "not stated by the source"}</dd>
               </>
             )}
             <dt>Pointer</dt>
@@ -172,15 +245,24 @@ export function ProvenanceProvider({
                 <dd>{current.origin.note}</dd>
               </>
             )}
-            <dt>Run id</dt>
-            <dd className="vx-break">{current.run?.v ?? "not run-specific"}</dd>
-            <dt>Prereg</dt>
-            <dd className="vx-break">{study.preregistration?.v ?? "unavailable"}</dd>
-            <dt>As of</dt>
-            <dd>
-              {study.asOf?.v ? `evidence cutoff ${study.asOf.v}` : "unavailable"}
-              {study.frozenAt?.v ? ` · frozen ${study.frozenAt.v}` : ""}
-            </dd>
+            {kind === "sealed" ? (
+              <>
+                <dt>Run id</dt>
+                <dd className="vx-break">{current.run?.v ?? "not run-specific"}</dd>
+                <dt>Prereg</dt>
+                <dd className="vx-break">{study.preregistration?.v ?? "unavailable"}</dd>
+                <dt>As of</dt>
+                <dd>
+                  {study.asOf?.v ? `evidence cutoff ${study.asOf.v}` : "unavailable"}
+                  {study.frozenAt?.v ? ` · frozen ${study.frozenAt.v}` : ""}
+                </dd>
+              </>
+            ) : (
+              <>
+                <dt>As of</dt>
+                <dd>{current.origin.asOf ?? "not stated by the source"}</dd>
+              </>
+            )}
           </dl>
         </div>
       )}
@@ -194,6 +276,14 @@ function useOrigin() {
   return { ctx, run };
 }
 
+/** The digest a value may name: a sealed file's, or the one a checked Replay manifest names. */
+function digestOf(origin: Origin, sources: Record<string, SourceFile> | undefined) {
+  const kind = origin.kind ?? "sealed";
+  if (kind === "sealed") return sources?.[origin.src]?.sha256 ?? "";
+  if (kind === "replay") return origin.sha256 ?? "";
+  return "";
+}
+
 function OriginButton({
   title,
   display,
@@ -201,6 +291,8 @@ function OriginButton({
   origin,
   className,
   kind,
+  inert,
+  missing,
 }: {
   title: string;
   display: ReactNode;
@@ -208,20 +300,42 @@ function OriginButton({
   origin: Origin;
   className: string;
   kind: "num" | "hash" | "stamp" | "text";
+  /** A non-interactive span (for values inside a link); the origin is in the tooltip. */
+  inert?: boolean;
+  missing?: boolean;
 }) {
   const { ctx, run } = useOrigin();
-  const file = ctx?.sources[origin.src];
+  const originKind = origin.kind ?? "sealed";
+  const file = originKind === "sealed" ? ctx?.sources[origin.src] : undefined;
+  const where =
+    originKind === "live"
+      ? `${origin.src} · live API, not sealed`
+      : originKind === "replay"
+        ? `${origin.src} · checked Replay artifact`
+        : (file?.path ?? origin.src);
+  const attrs = {
+    "data-num": "",
+    "data-prov": kind,
+    "data-origin-kind": originKind,
+    "data-src": originKind === "sealed" ? (file?.path ?? "") : origin.src,
+    "data-sha": digestOf(origin, ctx?.sources),
+    "data-ptr": origin.ptr,
+    "data-na": missing ? "true" : undefined,
+    title: `${title}: ${full} · ${where}${origin.ptr ? ` ${origin.ptr}` : ""}`,
+  };
+  if (inert || !ctx)
+    return (
+      <span className={className} {...attrs}>
+        {display}
+      </span>
+    );
   return (
     <button
       type="button"
       className={className}
-      data-prov={kind}
-      data-src={file?.path ?? ""}
-      data-sha={file?.sha256 ?? ""}
-      data-ptr={origin.ptr}
-      title={`${title}: ${full} · ${file?.path ?? origin.src}`}
+      {...attrs}
       onClick={(e) =>
-        ctx?.open({
+        ctx.open({
           title,
           value: full,
           origin,
@@ -236,43 +350,80 @@ function OriginButton({
   );
 }
 
+type Show = {
+  /** The page's own formatting of the same value; the popover always shows the raw value. */
+  display?: string;
+  inert?: boolean;
+  /** Extra classes, e.g. "vx-inherit" to keep the surrounding colour and font. */
+  className?: string;
+};
+
 /** A number with its origin one click away. Null renders as "unavailable", never zero. */
-export function Num({ n, label }: { n: NumValue; label: string }) {
-  const text = n.v == null ? "unavailable" : formatNum(n.v, n.fmt);
+export function Num({
+  n,
+  label,
+  display,
+  inert,
+  className = "",
+}: { n: NumValue; label: string } & Show) {
+  const missing = n.v == null || !Number.isFinite(n.v);
+  const text = missing
+    ? n.v == null
+      ? "unavailable"
+      : "n/a"
+    : (display ?? formatNum(n.v as number, n.fmt));
   return (
     <OriginButton
       kind="num"
       title={label}
       display={text}
-      full={n.v == null ? `unavailable — ${n.reason ?? "no value"}` : String(n.v)}
+      full={missing ? `unavailable — ${n.reason ?? "no value"}` : String(n.v)}
       origin={n}
-      className={`vx-num ${n.v == null ? "vx-na" : ""}`}
+      inert={inert}
+      missing={missing}
+      className={`vx-num ${missing ? "vx-na" : ""} ${className}`}
     />
   );
 }
 
-export function Hash({ h, label }: { h: RefValue; label: string }) {
+export function Hash({
+  h,
+  label,
+  display,
+  inert,
+  className = "",
+}: { h: RefValue; label: string } & Show) {
   return (
     <OriginButton
       kind="hash"
       title={label}
-      display={h.v ? short(h.v) : "unavailable"}
+      display={h.v ? (display ?? short(h.v)) : "unavailable"}
       full={h.v ?? `unavailable — ${h.reason ?? "no value"}`}
       origin={h}
-      className="vx-hash"
+      inert={inert}
+      missing={!h.v}
+      className={`vx-hash ${className}`}
     />
   );
 }
 
-export function Stamp({ s, label }: { s: RefValue; label: string }) {
+export function Stamp({
+  s,
+  label,
+  display,
+  inert,
+  className = "",
+}: { s: RefValue; label: string } & Show) {
   return (
     <OriginButton
       kind="stamp"
       title={label}
-      display={s.v ? stamp(s.v) : "unavailable"}
-      full={s.v ?? "unavailable"}
+      display={s.v ? (display ?? stamp(s.v)) : "unavailable"}
+      full={s.v ?? `unavailable — ${s.reason ?? "no value"}`}
       origin={s}
-      className="vx-stamp"
+      inert={inert}
+      missing={!s.v}
+      className={`vx-stamp ${className}`}
     />
   );
 }
@@ -287,6 +438,7 @@ export function Src({ t, label }: { t: TextValue; label: string }) {
         display="unavailable"
         full={`unavailable — ${t.reason ?? "no value"}`}
         origin={t}
+        missing
         className="vx-src vx-na"
       />
     );
