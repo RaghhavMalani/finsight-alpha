@@ -47,9 +47,17 @@ Branch `u1/shell-command`. Source of truth: `frontend-v2/src/app/workspaces.ts`.
   `risk.alert`s (latest per check, `CLEAR` hidden), research suggestions in flight (`research.progress`, with
   the exposure tickers), feed health as `LiveDot` fresh / stale / dead with lag (from `GET /live/health`,
   updated by `feed.health` records).
-- Transport: `GET /live/health`, a `GET /live/recent?limit=200` backlog, then `GET /live/stream?since_seq=N`
-  (SSE, `withCredentials`). If the stream closes, it polls `/live/recent?since=<seq>` every 15 s; a `gap` frame
-  triggers a re-poll. Health refreshes every 30 s.
+- Transport: a `GET /live/recent?limit=200` backlog, then the `GET /live/health` snapshot, then
+  `GET /live/stream?since_seq=N` (SSE, `withCredentials`).
+  - A dropped stream reconnects by itself and resumes from `Last-Event-ID`; the backend now prefers that header
+    over the original `since_seq`. While it reconnects the dot is amber and the line says so.
+  - If the stream is refused or closed, the page polls `/live/recent?since=<seq>` every 15 s. With `since`, the
+    route returns the *oldest* 200 rows after it, so the client pages forward until a short page and skips
+    nothing. A `gap` frame triggers the same catch-up.
+  - Health is re-read every 30 s whether or not the spine is up. A spine started after the page loaded is picked
+    up without a reload. One that stops (or refuses the session) clears every record, price, feed dot and globe
+    marker it produced, so nothing outlives the spine that stated it.
+  - A `feed.health` record older than the latest `/live/health` snapshot never overwrites it.
 - **When the spine is contacted.** Only in Local Live. Replay never requests `/live/*` (verify-replay forbids
   any non-origin request in Replay). States, each named in plain words:
   - public host (Local Live not allowed): "Live data is local only…"
@@ -62,9 +70,10 @@ Branch `u1/shell-command`. Source of truth: `frontend-v2/src/app/workspaces.ts`.
   present; otherwise it is dropped, never repaired. Missing values print as "n/a". Every row's hover title carries
   type, seq, source, `observed_at`, `available_at`, delay, confidence and licence; the visible meta line shows
   source and `available_at`.
-- **Clicks carry context.** geo → F3 `/globe`; tick → F6 `/markets?ticker=…`; risk alert → `/risk`;
-  feed health → `/data?section=health`; macro → `/data?section=revisions`; research suggestion, headline and
-  prediction → F2 `/research?q=<question>` (the Research page itself was not edited).
+- **Where clicks go.** tick → F6 `/markets?ticker=…`; research suggestion, headline and prediction → F2
+  `/research?q=<question>`, where the question appears in the (inert) prompt line marked "suggested, not run".
+  geo → F3 `/globe`, risk alert → `/risk`, feed health → `/data?section=health`, macro →
+  `/data?section=revisions` open the workspace only; they do not yet select the record there.
 - Motion only on state change: a record that arrives after the reader does flashes once (none under reduced
   motion). Panels have fixed places; text ≥ 11 px on a near-opaque panel. At ≤ 820 px the globe sits on top and
   the panels stack below it.
@@ -82,7 +91,12 @@ applies (`shell.css`, keyed on `data-workspace`). Markets, Risk, Dynamics and Gl
   nothing until Local Live; an absent spine is named, shows no records, no price-like numbers and no markers;
   a **test-only** mocked spine (Playwright route interception; fixtures labelled TEST) streams records that land
   in the stream, the market strip, risk, research and on the globe (`data-markers`), with a malformed record
-  dropped, and every item links to its workspace; nav keys and Markets tabs. `--screenshots` writes
+  dropped, and every item links to its workspace. A local SSE server holds the stream open, so the verifier
+  also drops it and checks the resume from `Last-Event-ID` with no duplicate rows. It checks that an older
+  `feed.health` record does not overwrite the snapshot, that stopping the spine clears every record, number,
+  dot and marker, and that starting it again is picked up. With the stream refused it checks that polling
+  pages forward past 200 rows (`since` 102 → 399 → 599). It also checks that the suggested question arrives in
+  Research, the nav keys and the Markets tabs. `--screenshots` writes
   `docs/screenshots/u1-*.png`. Wired into CI: static loop and a `browser-command` shard.
 - `verify-shell.mjs`: seven workspaces; F1–F4/F6 captured; F5/F7 still native (unchanged assertion); Alt+5/Alt+7
   navigate; text fields keep F-keys and Alt+digit; FACT/EXEC land in Markets; palette lists them under F6;

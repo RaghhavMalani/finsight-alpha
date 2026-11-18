@@ -145,7 +145,7 @@ export function summary(e: LiveEvent): string {
       return `${text(p.question) ?? text(p.event_title) ?? "market"}${yes !== null ? ` · yes ${yes}` : ""}`;
     }
     case "risk.alert":
-      return `${text(p.severity) ?? ""} ${text(p.check_id) ?? e.source_id} · ${text(p.subject) ?? ""} · ${text(p.outcome) ?? ""}`;
+      return `${text(p.severity) ?? "n/a"} ${text(p.check_id) ?? e.source_id} · ${text(p.subject) ?? "n/a"} · ${text(p.outcome) ?? "n/a"}`;
     case "research.progress":
       return text(p.question) ?? "research suggestion";
     case "feed.health":

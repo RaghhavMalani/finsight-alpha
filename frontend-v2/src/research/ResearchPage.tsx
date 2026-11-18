@@ -33,7 +33,15 @@ import "./research.css";
 
 const ResearchScene = lazy(() => import("./ResearchScene"));
 
-export default function ResearchPage({ look, renderer }: { look: Look; renderer: "auto" | "2d" }) {
+export default function ResearchPage({
+  look,
+  renderer,
+  question,
+}: {
+  look: Look;
+  renderer: "auto" | "2d";
+  question?: string;
+}) {
   const load = useResearchGraph();
   const probe = useSyntheticProbe(load.status === "ok" ? load.graph : null);
   return (
@@ -59,6 +67,7 @@ export default function ResearchPage({ look, renderer }: { look: Look; renderer:
             url={load.url}
             look={look}
             renderer={renderer}
+            question={question}
           />
         )}
       </div>
@@ -182,12 +191,14 @@ function Workspace({
   url,
   look,
   renderer,
+  question,
 }: {
   graph: ResearchGraph;
   sha256: string;
   url: string;
   look: Look;
   renderer: "auto" | "2d";
+  question?: string;
 }) {
   const reduced = useReducedMotion();
   const stage = useStageSize();
@@ -640,7 +651,7 @@ function Workspace({
         </div>
 
         {narrow && <Legend graph={graph} narrow />}
-        <Composer />
+        <Composer question={question} />
 
         {node && (
           <NodeHud
@@ -837,7 +848,7 @@ function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
 }
 
 /** A single prompt line in the command bar's language; inert until runs exist. */
-function Composer() {
+function Composer({ question }: { question?: string }) {
   return (
     <form
       className="rs-composer"
@@ -852,6 +863,10 @@ function Composer() {
         <input
           disabled
           placeholder="hypothesis · as-of · universe · budget · rigor"
+          value={question ?? ""}
+          readOnly
+          title={question}
+          data-question={question ? "suggested" : undefined}
           aria-describedby="rs-c-note"
         />
       </label>
@@ -859,7 +874,9 @@ function Composer() {
         Run
       </button>
       <p id="rs-c-note" className="rs-c-note" data-copy>
-        Inert: live runs are not enabled in this build; it replays sealed evidence.
+        {question
+          ? "Suggested question, not run: live runs are not enabled in this build; it replays sealed evidence."
+          : "Inert: live runs are not enabled in this build; it replays sealed evidence."}
       </p>
     </form>
   );

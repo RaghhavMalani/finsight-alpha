@@ -1,9 +1,13 @@
 // F1 Command and the seven-workspace layout.
 // Static: workspace registry, route ownership, mnemonics and the live-record contract.
 // Browser (--url): F1 with the live spine absent says so and shows no numbers; with a
-// TEST-ONLY mocked /live/* (Playwright route interception) records land and link to their workspaces.
+// TEST-ONLY mocked /live/* (Playwright route interception, plus a local SSE server that holds the
+// stream open) records land and link to their workspaces; a dropped stream resumes from
+// Last-Event-ID; a spine that stops clears everything it showed and one that starts is picked up;
+// polling pages forward past 200 rows.
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
+import http from "node:http";
 import { fileURLToPath } from "node:url";
 import {
   activeWorkspace,
@@ -156,8 +160,25 @@ const LATE = rec(106, "geo.event", "gdelt", {
   lon: 114.2,
 });
 const MALFORMED = { ...rec(107, "market.tick", "yfinance_us", { ticker: "QQQ", close: 1 }) };
+// A feed.health record older than the /live/health snapshot (now = at(110)): must not overwrite it.
+const OLD_HEALTH = rec(108, "feed.health", "finsight:health", {
+  feed: "usgs",
+  status: "DOWN",
+  reason: "TEST fixture: superseded",
+  event_type: "geo.event",
+  cadence_s: 120,
+  lag_s: 0,
+  last_success_at: null,
+  delay: "near real time (test fixture)",
+});
+// Polling backlog larger than one page (limit 200).
+const BULK = Array.from({ length: 450 }, (_, i) =>
+  rec(200 + i, "market.tick", "yfinance_us", { kind: "bar", ticker: "QQQ", close: 500 + i / 100 }),
+);
 delete MALFORMED.available_at;
 for (const r of [...FIXTURE, LATE]) ok(parseLiveEvent(r), `fixture ${r.seq} parses`);
+ok(parseLiveEvent(OLD_HEALTH), "old health fixture parses");
+ok(parseLiveEvent(BULK[449]), "bulk fixture parses");
 ok(parseLiveEvent(MALFORMED) === null, "missing available_at is dropped");
 ok(parseLiveEvent({ ...LATE, type: "made.up" }) === null, "unknown type is dropped");
 ok(
@@ -254,9 +275,46 @@ if (urlIndex > 0) {
       },
     ],
   };
-  const sse = (records) =>
-    "retry: 60000\n\n" +
+  const frames = (records) =>
     records.map((r) => `id: ${r.seq}\nevent: ${r.type}\ndata: ${JSON.stringify(r)}\n\n`).join("");
+  const cors = {
+    "access-control-allow-origin": base,
+    "access-control-allow-credentials": "true",
+  };
+  // TEST-ONLY SSE server standing in for /live/stream. Like the backend, it resumes after
+  // max(since_seq, Last-Event-ID) and holds the connection open.
+  const sse = { frames: [], requests: [], clients: new Set(), status: 200 };
+  const sseServer = http.createServer((req, res) => {
+    const u = new URL(req.url, "http://sse.test");
+    const q = u.searchParams.get("since_seq");
+    const h = req.headers["last-event-id"];
+    let since = q !== null ? Number(q) : -1;
+    if (h && /^\d+$/.test(h)) since = Math.max(since, Number(h));
+    sse.requests.push({ since_seq: q, lastEventId: h ?? null });
+    if (sse.status !== 200) {
+      res.writeHead(sse.status, cors);
+      res.end();
+      return;
+    }
+    res.writeHead(200, {
+      ...cors,
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache",
+    });
+    res.write("retry: 500\n\n" + frames(sse.frames.filter((r) => r.seq > since)));
+    sse.clients.add(res);
+    req.on("close", () => sse.clients.delete(res));
+  });
+  await new Promise((resolve) => sseServer.listen(0, "127.0.0.1", resolve));
+  const ssePort = sseServer.address().port;
+  sse.drop = () => {
+    for (const res of sse.clients) res.destroy();
+    sse.clients.clear();
+  };
+  const toSse = (route) => {
+    const u = new URL(route.request().url());
+    return route.continue({ url: `http://127.0.0.1:${ssePort}${u.pathname}${u.search}` });
+  };
   // The globe is a lazy WebGL chunk; screenshots wait for its canvas and a few frames.
   const settle = async (page) => {
     await page.locator(".cmd-stage canvas").waitFor({ timeout: 30000 });
@@ -324,44 +382,28 @@ if (urlIndex > 0) {
         });
         const errors = [];
         page.on("pageerror", (e) => errors.push(e.message));
-        let streamCalls = 0;
+        let health = HEALTH;
+        sse.status = 200;
+        sse.frames = [...FIXTURE, LATE, MALFORMED];
+        sse.requests = [];
         await page.route(/127\.0\.0\.1:8000\/live\/health/, (route) =>
-          route.fulfill({
-            json: HEALTH,
-            headers: {
-              "access-control-allow-origin": base,
-              "access-control-allow-credentials": "true",
-            },
-          }),
+          route.fulfill({ json: health, headers: cors }),
         );
-        await page.route(/127\.0\.0\.1:8000\/live\/recent/, (route) =>
-          route.fulfill({
-            json: { mode: "online", count: 2, last_seq: 102, events: FIXTURE.slice(0, 2) },
-            headers: {
-              "access-control-allow-origin": base,
-              "access-control-allow-credentials": "true",
-            },
-          }),
-        );
-        await page.route(/127\.0\.0\.1:8000\/live\/stream/, (route) => {
-          streamCalls++;
-          const since = Number(new URL(route.request().url()).searchParams.get("since_seq"));
+        await page.route(/127\.0\.0\.1:8000\/live\/recent/, (route) => {
+          const since = new URL(route.request().url()).searchParams.get("since");
+          const events = since === null ? FIXTURE.slice(0, 2) : [];
           return route.fulfill({
-            status: 200,
-            contentType: "text/event-stream",
-            headers: {
-              "access-control-allow-origin": base,
-              "access-control-allow-credentials": "true",
-              "cache-control": "no-cache",
-            },
-            body: sse([...FIXTURE, LATE, MALFORMED].filter((r) => r.seq > since)),
+            json: { mode: "online", count: events.length, last_seq: 102, events },
+            headers: cors,
           });
         });
+        await page.route(/127\.0\.0\.1:8000\/live\/stream/, toSse);
         await page.goto(`${base}/`, { waitUntil: "networkidle" });
         await page.locator('.shell[data-ready="true"][data-workspace="command"]').waitFor();
         await page.getByRole("button", { name: "Switch to Local Live" }).click();
         await page.locator('.cmd-stream li[data-seq="106"]').waitFor({ timeout: 15000 });
-        ok(streamCalls >= 1, "stream requested");
+        ok(sse.requests.length >= 1, "stream requested");
+        await page.locator('.cmd[data-spine="streaming"]').waitFor();
         eq(
           await page.locator('.cmd-stream li[data-seq="107"]').count(),
           0,
@@ -370,8 +412,8 @@ if (urlIndex > 0) {
         eq(await page.locator(".cmd-stream li").count(), 6, `${width}: stream rows`);
         eq(
           await page.locator(".cmd-stage").getAttribute("data-markers"),
-          "2",
-          "geo records land on the globe",
+          "1",
+          "geo records land on the globe; USGS quakes are left to the globe's own layer",
         );
         const us = page.locator('.cmd-market[data-market="US"]');
         await us.getByText("600.25").waitFor();
@@ -420,19 +462,108 @@ if (urlIndex > 0) {
           });
         }
         if (width === 1440) {
+          // A dropped stream resumes from Last-Event-ID, adds no duplicate rows, and a replayed
+          // feed.health older than the /live/health snapshot does not overwrite it.
+          const before = sse.requests.length;
+          sse.frames.push(OLD_HEALTH);
+          sse.drop();
+          await page.locator('.cmd-stream li[data-seq="108"]').waitFor({ timeout: 15000 });
+          ok(
+            sse.requests.slice(before).some((r) => Number(r.lastEventId) >= 106),
+            "reconnect resumes from Last-Event-ID",
+          );
+          const seqs = await page
+            .locator(".cmd-stream li")
+            .evaluateAll((els) => els.map((e) => e.getAttribute("data-seq")));
+          eq(new Set(seqs).size, seqs.length, "no duplicate rows after reconnect");
+          await page.locator('.cmd[data-spine="streaming"]').waitFor();
+          eq(
+            await page.locator('.cmd-feeds li[data-feed="usgs"]').getAttribute("data-fresh"),
+            "fresh",
+            "an older feed.health record does not overwrite the health snapshot",
+          );
+          // The spine stops: everything it showed is cleared on the next health check (30 s).
+          health = {
+            schema_version: "live-health/1",
+            mode: "NOT_RUNNING",
+            reason: "TEST",
+            feeds: [],
+          };
+          await page.locator('.cmd[data-spine="not-running"]').waitFor({ timeout: 45000 });
+          eq(
+            await page.locator(".cmd-list li").count(),
+            0,
+            "stopped spine leaves records on screen",
+          );
+          eq(await page.locator(".cmd-feeds li").count(), 0, "stopped spine leaves feed dots");
+          eq(
+            numbersIn(await page.locator(".cmd-hud").innerText()),
+            0,
+            "stopped spine leaves a price-like number",
+          );
+          eq(
+            await page.locator(".cmd-stage").getAttribute("data-markers"),
+            "0",
+            "stopped spine leaves markers",
+          );
+          // The spine starts again: the page picks it up without a reload.
+          health = HEALTH;
+          await page.locator('.cmd[data-spine="streaming"]').waitFor({ timeout: 45000 });
+          await page.locator('.cmd-stream li[data-seq="106"]').waitFor();
+          checks++;
           await page.locator('section[aria-label="Research suggestions"] a').first().click();
           await page.waitForURL(
             (u) =>
               u.pathname === "/research" && u.searchParams.get("q") === FIXTURE[4].payload.question,
           );
           await page.locator('.shell[data-workspace="research"]').waitFor();
-          checks++;
+          await page.locator('.rs-composer input[data-question="suggested"]').waitFor();
+          eq(
+            await page.locator(".rs-composer input").inputValue(),
+            FIXTURE[4].payload.question,
+            "the suggested question arrives in Research",
+          );
         }
         eq(errors, [], `${width}: page errors with mocked spine`);
         await page.close();
       }
     }
-    // 4. The new nav: seven workspaces with Alt 5 / Alt 7 labels and Markets tabs.
+    // 4. Stream refused: polling takes over and pages forward past 200 rows without a gap.
+    {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+      const errors = [];
+      page.on("pageerror", (e) => errors.push(e.message));
+      const sinces = [];
+      sse.status = 503;
+      await page.route(/127\.0\.0\.1:8000\/live\/health/, (route) =>
+        route.fulfill({ json: HEALTH, headers: cors }),
+      );
+      await page.route(/127\.0\.0\.1:8000\/live\/recent/, (route) => {
+        const u = new URL(route.request().url());
+        const since = u.searchParams.get("since");
+        const limit = Number(u.searchParams.get("limit"));
+        sinces.push(since);
+        const events =
+          since === null
+            ? FIXTURE.slice(0, 2)
+            : BULK.filter((r) => r.seq > Number(since)).slice(0, limit);
+        return route.fulfill({
+          json: { mode: "online", count: events.length, last_seq: events.at(-1)?.seq, events },
+          headers: cors,
+        });
+      });
+      await page.route(/127\.0\.0\.1:8000\/live\/stream/, toSse);
+      await page.goto(`${base}/`, { waitUntil: "networkidle" });
+      await page.locator('.shell[data-ready="true"][data-workspace="command"]').waitFor();
+      await page.getByRole("button", { name: "Switch to Local Live" }).click();
+      await page.locator('.cmd[data-spine="polling"]').waitFor({ timeout: 20000 });
+      await page.locator('.cmd-stream li[data-seq="649"]').waitFor();
+      eq(sinces.slice(0, 4), [null, "102", "399", "599"], "polling pages forward with last_seq");
+      eq(errors, [], "page errors while polling");
+      sse.status = 200;
+      await page.close();
+    }
+    // 5. The new nav: seven workspaces with Alt 5 / Alt 7 labels and Markets tabs.
     {
       const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
       await page.goto(`${base}/execution`, { waitUntil: "networkidle" });
@@ -458,8 +589,10 @@ if (urlIndex > 0) {
     }
   } finally {
     await browser.close();
+    sse.drop();
+    sseServer.close();
   }
   console.log(
-    `Command browser: ${checks} checks passed (absent spine, public host, mocked spine, nav).`,
+    `Command browser: ${checks} checks passed (absent spine, public host, mocked spine, reconnect, stop/start, paging, nav).`,
   );
 }

@@ -69,6 +69,8 @@ function spineLine(state: SpineState, live: boolean) {
       return "Live spine needs a signed-in local session.";
     case "streaming":
       return live ? "Streaming /live/stream." : "";
+    case "reconnecting":
+      return "Stream interrupted · reconnecting to /live/stream…";
     case "polling":
       return `Polling /live/recent every 15 s · ${state.detail}.`;
   }
@@ -134,9 +136,19 @@ export function CommandCenter() {
 
   const geo = useMemo(
     () =>
-      events.filter(
-        (e) => e.type === "geo.event" && num(e.payload.lat) !== null && num(e.payload.lon) !== null,
-      ),
+      events.filter((e) => {
+        const lat = num(e.payload.lat),
+          lon = num(e.payload.lon);
+        return (
+          e.type === "geo.event" &&
+          lat !== null &&
+          lon !== null &&
+          Math.abs(lat) <= 90 &&
+          Math.abs(lon) <= 180 &&
+          // The globe already draws USGS quakes from its own public feed; one mark per quake.
+          e.source !== "usgs"
+        );
+      }),
     [events],
   );
   const markers = useMemo<GlobeMarker[]>(
@@ -255,7 +267,13 @@ export function CommandCenter() {
             <h1>Mission control</h1>
             <p className="cmd-spine" role="status" data-spine-state={spine.state.kind}>
               <LiveDot
-                state={connected ? "fresh" : spine.state.kind === "connecting" ? "stale" : "dead"}
+                state={
+                  connected
+                    ? "fresh"
+                    : spine.state.kind === "connecting" || spine.state.kind === "reconnecting"
+                      ? "stale"
+                      : "dead"
+                }
                 label={spine.state.kind}
               />
               <span>{spineLine(spine.state, live)}</span>

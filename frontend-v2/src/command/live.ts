@@ -18,6 +18,7 @@ export type SpineState =
   | { kind: "not-running"; detail: string }
   | { kind: "unauthorized"; detail: string }
   | { kind: "streaming" }
+  | { kind: "reconnecting" }
   | { kind: "polling"; detail: string };
 
 const MAX_EVENTS = 400;
@@ -72,10 +73,15 @@ async function get(path: string, signal: AbortSignal): Promise<unknown> {
 
 const POLL_MS = 15_000;
 const HEALTH_MS = 30_000;
+const PAGE = 200;
+const MAX_PAGES = 25;
 
 /**
- * Reads the local live spine: `/live/health`, a `/live/recent` backlog, then `/live/stream` (SSE).
- * If the stream drops, it polls `/live/recent?since=<seq>`. Nothing is requested unless `enabled`.
+ * Reads the local live spine: a `/live/recent` backlog, the `/live/health` snapshot, then
+ * `/live/stream` (SSE). If the stream closes, it polls `/live/recent?since=<seq>`, paging forward
+ * so no record is skipped. Health is re-read every 30 s whether or not the spine is up: a spine
+ * started after the page loaded is picked up, and one that stops clears everything it showed, so
+ * no price or "fresh" dot outlives the spine that produced it. Nothing is requested unless `enabled`.
  */
 export function useLiveSpine(enabled: boolean, allowed: boolean) {
   const [state, setState] = useState<SpineState>({ kind: allowed ? "replay" : "local-only" });
@@ -92,17 +98,21 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
       { signal } = controller;
     let source: EventSource | null = null;
     let poll: ReturnType<typeof setInterval> | null = null;
-    let health: ReturnType<typeof setInterval> | null = null;
+    let up = false;
+    // A feed.health record older than the latest /live/health snapshot must not overwrite it.
+    let snapshotMs = -Infinity;
     const accept = (raw: unknown[]) => {
       const parsed = raw.map(parseLiveEvent).filter((e): e is LiveEvent => !!e);
       if (!parsed.length) return;
       last.current = Math.max(last.current, ...parsed.map((e) => e.seq));
       setEvents((current) => merge(current, parsed));
-      const healthRecords = parsed.filter((e) => e.type === "feed.health");
+      const healthRecords = parsed
+        .filter((e) => e.type === "feed.health" && Date.parse(e.available_at) >= snapshotMs)
+        .sort((a, b) => a.seq - b.seq);
       if (healthRecords.length)
         setFeeds((current) => {
           const next = new Map(current.map((f) => [f.feed, f]));
-          for (const record of healthRecords.sort((a, b) => a.seq - b.seq)) {
+          for (const record of healthRecords) {
             const snap = record.payload as Partial<FeedHealth>;
             if (isText(snap.feed) && isText(snap.status))
               next.set(snap.feed, { ...next.get(snap.feed), ...(snap as FeedHealth) });
@@ -110,8 +120,22 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
           return [...next.values()];
         });
     };
-    const fail = (error: unknown) => {
+    const disconnect = () => {
+      source?.close();
+      source = null;
+      if (poll) clearInterval(poll);
+      poll = null;
+      up = false;
+    };
+    // The spine is gone (or refuses us): say why and drop everything it had shown.
+    const down = (error: unknown) => {
       if (signal.aborted) return;
+      disconnect();
+      last.current = -1;
+      snapshotMs = -Infinity;
+      setEvents([]);
+      setFeeds([]);
+      setHealthAt(null);
       setState(
         error instanceof SpineError
           ? error.state
@@ -125,31 +149,32 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
           { kind: "not-running", detail: text(body.reason) ?? "NOT_RUNNING" },
           "not running",
         );
+      const at = isObject(body) ? text(body.now) : null;
+      snapshotMs = at && Number.isFinite(Date.parse(at)) ? Date.parse(at) : -Infinity;
       setFeeds(parseFeeds(body));
-      setHealthAt(isObject(body) ? text(body.now) : null);
+      setHealthAt(at);
     };
+    // Without a seq: the newest PAGE records. After one: page forward until a short page.
     const recent = async () => {
-      const since = last.current >= 0 ? `&since=${last.current}` : "";
-      const body = await get(`/live/recent?limit=200${since}`, signal);
-      accept(isObject(body) && Array.isArray(body.events) ? body.events : []);
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const since = last.current >= 0 ? `&since=${last.current}` : "";
+        const body = await get(`/live/recent?limit=${PAGE}${since}`, signal);
+        const rows = isObject(body) && Array.isArray(body.events) ? body.events : [];
+        accept(rows);
+        if (!since || rows.length < PAGE) return;
+      }
     };
     const startPolling = (detail: string) => {
       source?.close();
       source = null;
-      setState({ kind: "polling", detail });
-      if (!poll) poll = setInterval(() => void recent().catch(fail), POLL_MS);
+      // Polling is claimed only once a poll has answered.
+      void recent().then(() => {
+        if (signal.aborted || !up) return;
+        setState({ kind: "polling", detail });
+        if (!poll) poll = setInterval(() => void recent().catch(down), POLL_MS);
+      }, down);
     };
-    void (async () => {
-      setState({ kind: "connecting" });
-      try {
-        await readHealth();
-        await recent();
-      } catch (error) {
-        fail(error);
-        return;
-      }
-      if (signal.aborted) return;
-      health = setInterval(() => void readHealth().catch(fail), HEALTH_MS);
+    const openStream = () => {
       if (typeof EventSource === "undefined") {
         startPolling("EventSource unavailable in this browser");
         return;
@@ -165,18 +190,35 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
         }
       };
       for (const type of LIVE_TYPES) source.addEventListener(type, onFrame as EventListener);
-      source.addEventListener("gap", () => void recent().catch(fail));
-      // A reconnecting stream keeps its state; the health check reports a stopped spine.
+      source.addEventListener("gap", () => void recent().catch(down));
       source.onerror = () => {
         if (source?.readyState === EventSource.CLOSED)
           startPolling("stream closed; polling /live/recent");
+        else setState({ kind: "reconnecting" });
       };
-    })();
+    };
+    const connect = async () => {
+      await recent();
+      await readHealth(); // after the backlog, so the snapshot is what the panel shows
+      if (signal.aborted) return;
+      up = true;
+      openStream();
+    };
+    const check = async () => {
+      try {
+        if (up) await readHealth();
+        else await connect();
+      } catch (error) {
+        down(error);
+      }
+    };
+    setState({ kind: "connecting" });
+    void check();
+    const health = setInterval(() => void check(), HEALTH_MS);
     return () => {
       controller.abort();
-      source?.close();
-      if (poll) clearInterval(poll);
-      if (health) clearInterval(health);
+      disconnect();
+      clearInterval(health);
     };
   }, [enabled, allowed]);
   return { state, events, feeds, healthAt };
