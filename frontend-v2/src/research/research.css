@@ -1199,3 +1199,40 @@
     flex: none;
   }
 }
+
+/* #37 follow-ups. */
+/* A colour row's swatch is its channel: the meaning spans the channel and value columns. */
+.rs-lg-row.is-swatch .rs-lg-v {
+  grid-column: 2 / -1;
+}
+/* The verdict reads at full contrast; its state colour is the rule on its left. */
+.rs-hero-1 {
+  color: var(--vx-fg);
+  padding-left: 10px;
+  border-left: 3px solid var(--vx-muted);
+}
+/* A nudged label keeps a leader back to its node. */
+.rs [data-lead]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: var(--lead-top);
+  width: 1px;
+  height: var(--lead-h);
+  background: rgba(207, 213, 218, 0.55);
+  pointer-events: none;
+}
+/* The graph steps back while a node's panel is open (a constant dimming, not a measured value). */
+.rs-stage[data-selected="true"] .rs-canvas,
+.rs-stage[data-selected="true"] .rs-canvas2d {
+  filter: brightness(0.62);
+}
+/* Desktop: the legend scrolls in the rail; fade its bottom edge so a cut row reads as more below. */
+@media (min-width: 701px) {
+  .rs-mast > .rs-legend {
+    padding-bottom: 28px;
+    mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
+    scrollbar-width: thin;
+    scrollbar-color: #3a4148 transparent;
+  }
+}
