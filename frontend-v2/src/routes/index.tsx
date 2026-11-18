@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from
 import { loadQuakes, loadSatellites, useFeed } from "@/components/globe/feeds";
 import type { Quake, Satellite } from "@/components/globe/geo-data";
 import { loadLand, type LandData } from "@/components/globe/land";
-import { useReducedMotion } from "@/components/observatory/useReducedMotion";
+import { useReducedMotion } from "@/visual/useReducedMotion";
 import "@/components/landing/landing.css";
 import { loadReplayManifest } from "@/replay/client";
 import { useDataMode } from "@/replay/mode";

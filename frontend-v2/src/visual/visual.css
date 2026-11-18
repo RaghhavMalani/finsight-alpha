@@ -1,0 +1,252 @@
+/* Shared HUD language: thin mono type on darkness, no boxes. Colours come from tokens.ts
+   through --vx-* properties; fallbacks keep a primitive legible outside a visual root. */
+.vx-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* LiveDot ------------------------------------------------------------------------------ */
+.vx-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--vx-muted, #9aa2a9);
+  font: 500 11px/1.4 var(--vx-mono, monospace);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.vx-live i {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.vx-live[data-live="fresh"] i {
+  background: var(--vx-cyan, #3fe0ff);
+  box-shadow:
+    0 0 6px var(--vx-cyan, #3fe0ff),
+    0 0 14px rgba(63, 224, 255, 0.45);
+}
+.vx-live[data-live="stale"] i {
+  background: var(--vx-amber, #f0a929);
+  box-shadow: 0 0 6px var(--vx-amber, #f0a929);
+}
+.vx-live[data-live="dead"] i {
+  border: 1px solid var(--vx-red, #ff4d5e);
+  background: transparent;
+}
+.vx-live i::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  color: inherit;
+  opacity: 0;
+  animation: vx-ring 900ms var(--vx-ease, ease-out) 1;
+}
+.vx-live[data-live="fresh"] i::after {
+  color: var(--vx-cyan, #3fe0ff);
+}
+@keyframes vx-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.2);
+  }
+}
+
+/* HudLabel ----------------------------------------------------------------------------- */
+.vx-hud {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 3px 0;
+  font: 12px/1.45 var(--vx-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.vx-hud-k {
+  color: var(--vx-muted, #9aa2a9);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  flex: 0 1 auto;
+}
+.vx-hud-v {
+  color: var(--vx-fg, #e7eaec);
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.vx-hud-wide {
+  display: block;
+}
+.vx-hud-wide .vx-hud-v {
+  display: block;
+  text-align: left;
+  margin-top: 2px;
+  font-family: var(--vx-ui, sans-serif);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #cfd5da;
+}
+.vx-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 6px;
+  font: 600 11px/1 var(--vx-mono, monospace);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.vx-kicker i {
+  width: 14px;
+  height: 1px;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* Provenance values ------------------------------------------------------------------- */
+.vx-num,
+.vx-hash,
+.vx-stamp,
+.vx-src {
+  all: unset;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px dotted rgba(63, 224, 255, 0.35);
+  transition: border-color var(--vx-fast, 140ms) var(--vx-ease, ease);
+}
+.vx-src {
+  border-bottom-color: rgba(231, 234, 236, 0.14);
+}
+.vx-num:hover,
+.vx-hash:hover,
+.vx-stamp:hover,
+.vx-src:hover {
+  border-bottom-color: var(--vx-cyan, #3fe0ff);
+}
+.vx-num:focus-visible,
+.vx-hash:focus-visible,
+.vx-stamp:focus-visible,
+.vx-src:focus-visible {
+  outline: 1px solid var(--vx-amber, #f0a929);
+  outline-offset: 2px;
+}
+.vx-num {
+  color: var(--vx-fg, #e7eaec);
+}
+.vx-hash,
+.vx-stamp {
+  font-family: var(--vx-mono, monospace);
+}
+.vx-na {
+  color: var(--vx-muted, #9aa2a9);
+  font-style: italic;
+}
+
+/* Origin popover: a translucent HUD with corner ticks, not a card. */
+.vx-origin {
+  position: fixed;
+  z-index: 80;
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  padding: 14px 16px 12px;
+  background: rgba(2, 5, 8, 0.86);
+  backdrop-filter: blur(14px) saturate(1.2);
+  color: var(--vx-fg, #e7eaec);
+  font: 12px/1.5 var(--vx-mono, monospace);
+  box-shadow:
+    0 0 0 1px rgba(63, 224, 255, 0.08),
+    0 18px 60px rgba(0, 0, 0, 0.7);
+  outline: none;
+  background-image:
+    linear-gradient(var(--vx-cyan, #3fe0ff), var(--vx-cyan, #3fe0ff)),
+    linear-gradient(var(--vx-cyan, #3fe0ff), var(--vx-cyan, #3fe0ff)),
+    linear-gradient(var(--vx-cyan, #3fe0ff), var(--vx-cyan, #3fe0ff)),
+    linear-gradient(var(--vx-cyan, #3fe0ff), var(--vx-cyan, #3fe0ff));
+  background-size:
+    10px 1px,
+    1px 10px,
+    10px 1px,
+    1px 10px;
+  background-position:
+    0 0,
+    0 0,
+    100% 100%,
+    100% 100%;
+  background-repeat: no-repeat;
+}
+.vx-origin.vx-sheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  max-width: none;
+  max-height: 70vh;
+  overflow: auto;
+}
+.vx-origin-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--vx-cyan, #3fe0ff);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+.vx-origin-head button {
+  all: unset;
+  cursor: pointer;
+  color: var(--vx-muted, #9aa2a9);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 0 2px;
+}
+.vx-origin-head button:focus-visible {
+  outline: 1px solid var(--vx-amber, #f0a929);
+}
+.vx-origin-value {
+  margin-top: 8px;
+  font-size: 16px;
+  color: #fff;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 12px rgba(63, 224, 255, 0.35);
+}
+.vx-origin-title {
+  color: var(--vx-muted, #9aa2a9);
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.vx-origin dl {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 4px 10px;
+  margin: 0;
+}
+.vx-origin dt {
+  color: var(--vx-muted, #9aa2a9);
+  font-size: 11px;
+}
+.vx-origin dd {
+  margin: 0;
+  font-size: 11px;
+  color: #d6dbdf;
+  min-width: 0;
+}
+.vx-break {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vx-live i::after {
+    animation: none;
+  }
+}

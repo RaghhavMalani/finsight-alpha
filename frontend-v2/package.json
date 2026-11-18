@@ -10,12 +10,13 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "postinstall": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
-    "prebuild": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
-    "prebuild:dev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
-    "predev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs",
+    "postinstall": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs && node scripts/generate-research-graph.mjs",
+    "prebuild": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs && node scripts/generate-research-graph.mjs",
+    "prebuild:dev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs && node scripts/generate-research-graph.mjs",
+    "predev": "node scripts/generate-risk-monitoring.mjs && node scripts/generate-factor-read-manifest.mjs && node scripts/generate-terminal-index.mjs && node scripts/generate-research-graph.mjs",
+    "generate:research": "node scripts/generate-research-graph.mjs",
     "generate:terminal": "node scripts/generate-terminal-index.mjs",
-    "typecheck": "node scripts/generate-terminal-index.mjs && tsc --noEmit",
+    "typecheck": "node scripts/generate-terminal-index.mjs && node scripts/generate-research-graph.mjs && tsc --noEmit",
     "verify:terminal:initial": "node scripts/verify-terminal-browser.mjs --verify-initial-packaging"
   },
   "dependencies": {

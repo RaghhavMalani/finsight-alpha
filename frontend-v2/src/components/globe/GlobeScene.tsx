@@ -28,6 +28,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { HEX } from "@/visual/tokens";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
   degreesLat,
@@ -152,7 +153,7 @@ function Land({ land, sun }: { land: LandData; sun: Vector3 }) {
     const lines = new LineSegments(
       segments([...land.coasts, ...land.borders], R * 1.002),
       new LineBasicMaterial({
-        color: 0x3fe0ff,
+        color: HEX.cyan,
         transparent: true,
         opacity: 0.32,
         depthWrite: false,
@@ -493,7 +494,7 @@ function Hubs() {
     return new LineSegments(
       g,
       new LineBasicMaterial({
-        color: 0xf0a929,
+        color: HEX.amber,
         transparent: true,
         opacity: 0.85,
         blending: AdditiveBlending,
