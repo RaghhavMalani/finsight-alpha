@@ -99,6 +99,8 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
     let source: EventSource | null = null;
     let poll: ReturnType<typeof setInterval> | null = null;
     let up = false;
+    // Bumped by down(): an answer to a request sent before the spine went down is ignored.
+    let gen = 0;
     // A feed.health record older than the latest /live/health snapshot must not overwrite it.
     let snapshotMs = -Infinity;
     const accept = (raw: unknown[]) => {
@@ -130,6 +132,7 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
     // The spine is gone (or refuses us): say why and drop everything it had shown.
     const down = (error: unknown) => {
       if (signal.aborted) return;
+      gen++;
       disconnect();
       last.current = -1;
       snapshotMs = -Infinity;
@@ -143,7 +146,9 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
       );
     };
     const readHealth = async () => {
+      const g = gen;
       const body = await get("/live/health", signal);
+      if (g !== gen) return;
       if (isObject(body) && body.mode === "NOT_RUNNING")
         throw new SpineError(
           { kind: "not-running", detail: text(body.reason) ?? "NOT_RUNNING" },
@@ -154,13 +159,22 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
       setFeeds(parseFeeds(body));
       setHealthAt(at);
     };
-    // Without a seq: the newest PAGE records. After one: page forward until a short page.
+    // Without a seq: the newest PAGE records. After one: page forward until a short page. The
+    // cursor is this call's own (from each page's last_seq), so a stream frame that lands while a
+    // page is in flight cannot make the next page skip rows.
     const recent = async () => {
+      const g = gen;
+      let cursor = last.current;
       for (let page = 0; page < MAX_PAGES; page++) {
-        const since = last.current >= 0 ? `&since=${last.current}` : "";
+        const since = cursor >= 0 ? `&since=${cursor}` : "";
         const body = await get(`/live/recent?limit=${PAGE}${since}`, signal);
+        if (g !== gen) return;
         const rows = isObject(body) && Array.isArray(body.events) ? body.events : [];
         accept(rows);
+        const seqs = rows.map((r) => (isObject(r) ? r.seq : null));
+        const lastSeq = isObject(body) ? body.last_seq : null;
+        for (const s of [lastSeq, ...seqs])
+          if (typeof s === "number" && Number.isSafeInteger(s)) cursor = Math.max(cursor, s);
         if (!since || rows.length < PAGE) return;
       }
     };
@@ -168,8 +182,9 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
       source?.close();
       source = null;
       // Polling is claimed only once a poll has answered.
+      const g = gen;
       void recent().then(() => {
-        if (signal.aborted || !up) return;
+        if (signal.aborted || !up || g !== gen) return;
         setState({ kind: "polling", detail });
         if (!poll) poll = setInterval(() => void recent().catch(down), POLL_MS);
       }, down);
@@ -180,8 +195,13 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
         return;
       }
       const since = last.current >= 0 ? `?since_seq=${last.current}` : "";
+      source?.close();
       source = new EventSource(`${API_BASE}/live/stream${since}`, { withCredentials: true });
-      source.onopen = () => setState({ kind: "streaming" });
+      source.onopen = () => {
+        if (poll) clearInterval(poll);
+        poll = null;
+        setState({ kind: "streaming" });
+      };
       const onFrame = (message: MessageEvent<string>) => {
         try {
           accept([JSON.parse(message.data)]);
@@ -204,12 +224,22 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
       up = true;
       openStream();
     };
+    // One check at a time: a slow connect must not overlap the next tick and open a second stream.
+    let busy = false;
     const check = async () => {
+      if (busy) return;
+      busy = true;
       try {
-        if (up) await readHealth();
-        else await connect();
+        if (!up) await connect();
+        else {
+          await readHealth();
+          // Polling after the stream closed: try the stream again; polling continues until it opens.
+          if (up && !source && poll) openStream();
+        }
       } catch (error) {
         down(error);
+      } finally {
+        busy = false;
       }
     };
     setState({ kind: "connecting" });

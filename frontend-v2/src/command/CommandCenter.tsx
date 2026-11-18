@@ -191,9 +191,7 @@ export function CommandCenter() {
   const feedChip = (f: Feed<unknown>, label: string) => (
     <span className={`cmd-chip ${f.status}`} title={f.note ?? undefined}>
       globe · {label} ·{" "}
-      {f.status === "live" && f.at
-        ? `live ${new Date(f.at).toISOString().slice(11, 16)}Z`
-        : f.status}
+      {f.status === "live" && f.at ? `${new Date(f.at).toISOString().slice(11, 16)}Z` : f.status}
     </span>
   );
 

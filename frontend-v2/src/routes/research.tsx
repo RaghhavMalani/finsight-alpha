@@ -12,10 +12,9 @@ export const Route = createFileRoute("/research")({
     // A question suggested elsewhere (F1 Command) travels as ?q=; it is shown, never run.
     const q =
       typeof search.q === "string"
-        ? search.q
-            .replace(/[^\P{C}]/gu, "")
-            .trim()
-            .slice(0, 400)
+        ? Array.from(search.q.replace(/[^\P{C}]+/gu, " ").trim())
+            .slice(0, 400) // by code point, so no lone surrogate is left
+            .join("")
         : "";
     return {
       look: isLook(search.look) ? search.look : DEFAULT_LOOK,

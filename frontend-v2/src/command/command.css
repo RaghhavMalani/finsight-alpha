@@ -59,7 +59,10 @@
   background: var(--cmd-panel);
   backdrop-filter: blur(6px);
 }
-.cmd-left .cmd-panel:last-child {
+/* The stream fills the column only while there is a stream to show. */
+.cmd:is([data-spine="streaming"], [data-spine="polling"], [data-spine="reconnecting"])
+  .cmd-left
+  .cmd-panel:last-child {
   flex: 1;
   min-height: 0;
   display: flex;
