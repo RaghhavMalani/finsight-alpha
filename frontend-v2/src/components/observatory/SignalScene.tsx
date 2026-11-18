@@ -11,10 +11,10 @@ import {
   type Group,
 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { createLineBundle, createPointCloud } from "./bundles";
+import { createLineBundle, createPointCloud } from "@/visual/gl/bundles";
 import { esc, gauss, monthRange, rng } from "./format";
-import { GlowCurves } from "./GlowCurves";
-import { GlowPoints } from "./GlowPoints";
+import { GlowCurves } from "@/visual/gl/GlowCurves";
+import { GlowPoints } from "@/visual/gl/GlowPoints";
 import { pickNearest, showTip, useCanvasPointer } from "./pointer";
 import { PANEL } from "./SceneFrame";
 import type { LabelLayer, LabelSpec } from "./SceneLabels";

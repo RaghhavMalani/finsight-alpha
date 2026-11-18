@@ -10,10 +10,10 @@ import {
   Vector3,
   type Group,
 } from "three";
-import { createLineBundle, createPointCloud } from "./bundles";
+import { createLineBundle, createPointCloud } from "@/visual/gl/bundles";
 import { esc, fmt } from "./format";
-import { GlowCurves } from "./GlowCurves";
-import { GlowPoints } from "./GlowPoints";
+import { GlowCurves } from "@/visual/gl/GlowCurves";
+import { GlowPoints } from "@/visual/gl/GlowPoints";
 import {
   familyHex,
   NEGATIVE,
