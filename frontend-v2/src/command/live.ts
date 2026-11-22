@@ -122,8 +122,9 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
           for (const record of healthRecords) {
             const snap = record.payload as Partial<FeedHealth>;
             if (isText(snap.feed) && isText(snap.status))
+              // Replace, not merge: every field the row shows then comes from this record, so
+              // each one's pointer (/payload/<field>) exists; a field it lacks reads unavailable.
               next.set(snap.feed, {
-                ...next.get(snap.feed),
                 ...(snap as FeedHealth),
                 via: {
                   src: "GET /live/recent · /live/stream",

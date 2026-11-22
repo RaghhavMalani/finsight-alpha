@@ -108,7 +108,6 @@ export function ProvenanceProvider({
   }, []);
   useEffect(() => {
     if (!current) return;
-    panel.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopImmediatePropagation();
@@ -159,6 +158,10 @@ export function ProvenanceProvider({
       });
     }
   }, [current, narrow]);
+  // Focus only once the panel is placed: a hidden element cannot take focus.
+  useEffect(() => {
+    if (current && (narrow || pos)) panel.current?.focus();
+  }, [current, narrow, pos]);
   return (
     <ProvenanceContext.Provider value={ctx}>
       {children}

@@ -313,8 +313,8 @@ span.vx-src.vx-src {
   min-width: 0;
 }
 .vx-break {
+  /* Long digests break where they must; ordinary words stay whole. */
   overflow-wrap: anywhere;
-  word-break: break-all;
 }
 @media (prefers-reduced-motion: reduce) {
   .vx-live i::after {
