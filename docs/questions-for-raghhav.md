@@ -35,3 +35,12 @@ Decisions taken while you were away. Newest last. Each says what I chose and how
 - Depth Field and Constellation were removed: their layouts encoded no measured value, which breaks "every visual
   channel encodes a real quantity". In Bloom a trial's distance from the hypothesis is its t-statistic.
 - Old `?look=` values fall back to Bloom. Undo: restore the two scene files from commit `932890a^`.
+
+## 2026-11-22 — Global Eye arcs use labelled scenarios until the graph grows (U3)
+- No checked Replay quake reaches a cited site: the graph's sources were checked 14–15 Nov 2026, after every
+  recorded quake, and no seed site lies inside any recorded quake's radius.
+- Chosen: three scenarios, each labelled "hypothetical, not a recorded event" and dated at the graph's cutoff
+  (Taiwan M6.8 → AVAILABLE, Hormuz conflict → PARTIAL, Hsinchu M4.8 → BELOW_THRESHOLD), plus a labelled
+  retrospective view of recorded quakes against the graph as checked. Recorded quakes stay honest
+  (UNAVAILABLE / NO_COVERAGE).
+- Undo: empty the scenario list in `scripts/export_geo_projection.py` and re-run it.

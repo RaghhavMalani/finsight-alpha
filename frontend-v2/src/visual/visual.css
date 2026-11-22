@@ -41,6 +41,10 @@
   border: 1px solid var(--vx-red, #ff4d5e);
   background: transparent;
 }
+.vx-live[data-live="off"] i {
+  border: 1px solid var(--vx-muted, #9aa2a9);
+  background: transparent;
+}
 .vx-live i::after {
   content: "";
   position: absolute;

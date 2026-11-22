@@ -125,8 +125,8 @@ function declutter(els: (HTMLElement | null | undefined)[]) {
   ].map((e) => e.getBoundingClientRect());
   const vw = document.documentElement.clientWidth;
   const clear = (r: DOMRect) =>
-    r.left >= 4 &&
-    r.right <= vw - 4 &&
+    r.left >= 16 &&
+    r.right <= vw - 16 &&
     !taken.some(
       (t) =>
         r.left < t.right + 10 &&
@@ -138,6 +138,7 @@ function declutter(els: (HTMLElement | null | undefined)[]) {
     if (!el) continue;
     el.style.visibility = "visible";
     el.style.translate = "";
+    delete el.dataset.lead;
     const box = (el.firstElementChild as HTMLElement | null) ?? el;
     const base = box.getBoundingClientRect();
     if (!base.width) continue;
@@ -151,7 +152,22 @@ function declutter(els: (HTMLElement | null | undefined)[]) {
       el.style.visibility = "hidden";
       continue;
     }
-    if (offset) el.style.translate = `0 ${offset}px`;
+    if (offset) {
+      // Moved off its node: a thin leader runs from the node to the near edge of the label, so the
+      // label still points at it and the line never crosses its text. Element-local coordinates:
+      // after the move the node sits at y = -offset; the label box spans [top, bottom].
+      el.style.translate = `0 ${offset}px`;
+      const origin = el.getBoundingClientRect().top - offset;
+      const top = base.top - origin,
+        bottom = base.bottom - origin,
+        node = -offset;
+      const [from, to] = node < top ? [node, top] : node > bottom ? [bottom, node] : [0, 0];
+      if (to - from > 1) {
+        el.dataset.lead = "";
+        el.style.setProperty("--lead-top", `${from}px`);
+        el.style.setProperty("--lead-h", `${to - from}px`);
+      }
+    }
     taken.push(new DOMRect(base.x, base.y + offset, base.width, base.height));
   }
 }
@@ -534,7 +550,7 @@ function Workspace({
               </span>
             )}
             <span className="rs-live-row">
-              <LiveDot state="dead" label="Live" />
+              <LiveDot state="off" label="Live" />
               <span className="rs-live-detail" data-copy>
                 live runs are not enabled in this build
               </span>
@@ -703,7 +719,7 @@ function Hero({ graph, tone }: { graph: ResearchGraph; tone: ColorName }) {
   const g = (children: React.ReactNode) => <span className="rs-nw">{children}</span>;
   return (
     <div className="rs-hero">
-      <p className="rs-hero-1" style={{ color: `var(--vx-${tone})` }}>
+      <p className="rs-hero-1" style={{ borderLeftColor: `var(--vx-${tone})` }}>
         {q?.verdict ? <Src t={q.verdict} label="Statistical verdict" /> : "unavailable"} — {phrase}
       </p>
       <p className="rs-hero-2">
@@ -744,16 +760,41 @@ function Hero({ graph, tone }: { graph: ResearchGraph; tone: ColorName }) {
   );
 }
 
+/** Spoken names for the legend swatches (the tokens themselves are not words). */
+const COLOUR_WORD: Record<string, string> = {
+  fg: "white",
+  cyan: "cyan",
+  up: "green",
+  muted: "grey",
+  amber: "amber",
+  red: "red",
+  magenta: "magenta",
+  teal: "teal",
+};
+
 /** Every on-canvas channel, keyed: glyph | channel | named value. Anything not listed is constant. */
 function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
   type G = "dot" | "ring" | "dash" | "line" | "faint" | "tick" | "tall" | "none";
-  const row = (g: G, color: string, channel: string, value: React.ReactNode, copy = true) => (
-    <div className="rs-lg-row" key={channel + color + g}>
+  // channel null: the swatch itself is the channel (a colour), so the meaning takes both columns.
+  const row = (
+    g: G,
+    color: string,
+    channel: string | null,
+    value: React.ReactNode,
+    copy = true,
+  ) => (
+    <div
+      className={`rs-lg-row${channel == null ? " is-swatch" : ""}`}
+      key={(channel ?? "") + color + g}
+    >
       <i className={`rs-lg-g g-${g}`} style={{ color: `var(--vx-${color})` }} aria-hidden="true" />
-      <span className="rs-lg-c" data-copy>
-        {channel}
-      </span>
+      {channel != null && (
+        <span className="rs-lg-c" data-copy>
+          {channel}
+        </span>
+      )}
       <span className="rs-lg-v" {...(copy ? { "data-copy": "" } : {})}>
+        {channel == null && <span className="vx-sr">{COLOUR_WORD[color] ?? color} </span>}
         {value}
       </span>
     </div>
@@ -762,13 +803,13 @@ function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
     [
       "State colours",
       [
-        row("dot", "fg", "colour", "frozen hypothesis"),
-        row("dot", "cyan", "colour", "rule met / verified by source"),
-        row("dot", "up", "colour", "control held"),
-        row("dot", "muted", "colour", "recorded, no rule"),
-        row("dot", "amber", "colour", "running / state change"),
-        row("dot", "red", "colour", "failed"),
-        row("dot", "magenta", "colour", "skeptic"),
+        row("dot", "fg", null, "frozen hypothesis"),
+        row("dot", "cyan", null, "rule met / verified by source"),
+        row("dot", "up", null, "control held"),
+        row("dot", "muted", null, "recorded, no rule"),
+        row("dot", "amber", null, "running / state change"),
+        row("dot", "red", null, "failed"),
+        row("dot", "magenta", null, "skeptic"),
       ],
     ],
     [
@@ -822,10 +863,10 @@ function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
     [
       "Timeline ticks",
       [
-        row("tick", "amber", "amber", "start, holdout or gate"),
-        row("tick", "cyan", "cyan", "sealed"),
-        row("tick", "red", "red", "failed"),
-        row("tick", "magenta", "magenta", "skeptic"),
+        row("tick", "amber", null, "start, holdout or gate"),
+        row("tick", "cyan", null, "sealed"),
+        row("tick", "red", null, "failed"),
+        row("tick", "magenta", null, "skeptic"),
         row("tall", "fg", "tall", "freeze, challenge, gate"),
       ],
     ],

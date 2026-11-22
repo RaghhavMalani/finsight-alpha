@@ -20,6 +20,7 @@ import {
   Quaternion,
   ShaderMaterial,
   Vector2,
+  SRGBColorSpace,
   Vector3,
   type Group,
 } from "three";
@@ -53,6 +54,7 @@ import {
 } from "./geo-data";
 import { EARTH_KM, R, toVec } from "./coords";
 import type { LandData } from "./land";
+import { arcRgb, SITE_COLORS, type GeoOverlay } from "./geo-overlay";
 import { SENSOR_PRELUDE, SENSOR_VERTEX, SENSORS, type SensorKind } from "./sensors";
 
 /** Ocean sphere: dark, lit by the real sun direction, with a fresnel rim. */
@@ -340,9 +342,12 @@ function Satellites({
   tles,
   onCount,
   iss,
+  dim = false,
 }: {
   tles: Satellite[];
   onCount: (n: number) => void;
+  /** Dim orbits and trails so a scenario's arcs read first. */
+  dim?: boolean;
   /** Written with the ISS position every second, for its label. */
   iss: Vector3;
 }) {
@@ -386,8 +391,9 @@ function Satellites({
         blending: AdditiveBlending,
         vertexShader: `void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); gl_PointSize = max(3.0, 120.0/(-mv.z));
           gl_Position = projectionMatrix*mv; }`,
-        fragmentShader: `void main(){ float d = length(gl_PointCoord-0.5); if (d>0.5) discard;
-          gl_FragColor = vec4(vec3(0.85,0.98,1.0), pow(1.0-d*2.0,1.5)); }`,
+        uniforms: { uAlpha: { value: 1 } },
+        fragmentShader: `uniform float uAlpha; void main(){ float d = length(gl_PointCoord-0.5); if (d>0.5) discard;
+          gl_FragColor = vec4(vec3(0.85,0.98,1.0), pow(1.0-d*2.0,1.5)*uAlpha); }`,
       }),
     );
     const lines = new LineSegments(
@@ -401,6 +407,10 @@ function Satellites({
     );
     return { recs, dot, lines, TRAIL, last: 0 };
   }, [tles]);
+  useEffect(() => {
+    (data.dot.material as ShaderMaterial).uniforms.uAlpha.value = dim ? 0.2 : 1;
+    (data.lines.material as LineBasicMaterial).opacity = dim ? 0.2 : 1;
+  }, [data, dim]);
   useEffect(() => onCount(data.recs.length), [data, onCount]);
   useEffect(
     () => () => {
@@ -555,8 +565,140 @@ function Markers({ markers }: { markers: GlobeMarker[] }) {
   return <primitive object={lines} />;
 }
 
+/**
+ * The knowledge-graph overlay: graph sites as dots, the selected event with its declared radius,
+ * and propagation arcs. An arc's brightness encodes its named value (hop confidence, or proximity
+ * for event to site); hue names the edge type; width is constant.
+ */
+function GraphOverlay({ overlay }: { overlay: GeoOverlay }) {
+  const data = useMemo(() => {
+    const c = new Color(),
+      a = new Vector3(),
+      b = new Vector3(),
+      d = new Vector3();
+    const pos: number[] = [],
+      col: number[] = [];
+    const STEPS = 32;
+    for (const arc of overlay.arcs) {
+      toVec(arc.a[0], arc.a[1], 1, a).normalize();
+      toVec(arc.b[0], arc.b[1], 1, b).normalize();
+      const span = a.angleTo(b);
+      const lift = arc.a[2] === arc.b[2] ? 0.02 + 0.22 * span : 0.015;
+      // The colour the legend paints: one mapping (arcRgb), set in sRGB.
+      c.setRGB(arc.rgb[0], arc.rgb[1], arc.rgb[2], SRGBColorSpace);
+      let prev: Vector3 | null = null;
+      for (let k = 0; k <= STEPS; k++) {
+        const t = k / STEPS;
+        d.copy(a).lerp(b, t).normalize();
+        const r = R * (arc.a[2] + (arc.b[2] - arc.a[2]) * t + lift * Math.sin(Math.PI * t));
+        const p = d.clone().multiplyScalar(r);
+        if (prev) {
+          pos.push(prev.x, prev.y, prev.z, p.x, p.y, p.z);
+          col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+        }
+        prev = p;
+      }
+    }
+    const ev = overlay.event;
+    if (ev) {
+      const yellow = new Color().setRGB(
+        ...arcRgb("proximity", 1, overlay.scenario),
+        SRGBColorSpace,
+      );
+      const base = toVec(ev.lat, ev.lon, R * 1.004),
+        top = toVec(ev.lat, ev.lon, R * 1.1);
+      pos.push(base.x, base.y, base.z, top.x, top.y, top.z);
+      col.push(yellow.r, yellow.g, yellow.b, yellow.r, yellow.g, yellow.b);
+      if (ev.radiusKm) {
+        const center = toVec(ev.lat, ev.lon, 1).normalize();
+        const e1 = new Vector3(0, 1, 0).cross(center).normalize(),
+          e2 = center.clone().cross(e1).normalize(),
+          ang = ev.radiusKm / EARTH_KM;
+        const ring = (t: number) =>
+          center
+            .clone()
+            .multiplyScalar(Math.cos(ang))
+            .addScaledVector(e1, Math.sin(ang) * Math.cos(t))
+            .addScaledVector(e2, Math.sin(ang) * Math.sin(t))
+            .multiplyScalar(R * 1.004);
+        for (let k = 0; k < 64; k++) {
+          const p = ring((k / 64) * Math.PI * 2),
+            q = ring(((k + 1) / 64) * Math.PI * 2);
+          pos.push(p.x, p.y, p.z, q.x, q.y, q.z);
+          col.push(yellow.r, yellow.g, yellow.b, yellow.r, yellow.g, yellow.b);
+        }
+      }
+    }
+    const g = new BufferGeometry();
+    g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
+    g.setAttribute("color", new BufferAttribute(new Float32Array(col), 3));
+    const lines = new LineSegments(
+      g,
+      new LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        blending: AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    const sp: number[] = [],
+      sc: number[] = [];
+    for (const s of overlay.sites) {
+      toVec(s.lat, s.lon, R * 1.006, a);
+      c.set(SITE_COLORS[s.type] ?? "#ffffff");
+      sp.push(a.x, a.y, a.z);
+      sc.push(c.r, c.g, c.b);
+    }
+    const sg = new BufferGeometry();
+    sg.setAttribute("position", new BufferAttribute(new Float32Array(sp), 3));
+    sg.setAttribute("aColor", new BufferAttribute(new Float32Array(sc), 3));
+    const dots = new Points(
+      sg,
+      new ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        vertexShader: `attribute vec3 aColor; varying vec3 vColor; varying float vFacing;
+          void main(){ vColor = aColor; vec4 mv = modelViewMatrix*vec4(position,1.0);
+          vFacing = dot(normalize(normalMatrix*normalize(position)), normalize(-mv.xyz));
+          gl_PointSize = max(4.0, 150.0/(-mv.z)); gl_Position = projectionMatrix*mv; }`,
+        fragmentShader: `varying vec3 vColor; varying float vFacing; void main(){
+          float d = length(gl_PointCoord-0.5); if (d > 0.5 || vFacing < 0.0) discard;
+          float ring = smoothstep(0.08, 0.0, abs(d-0.36)) + smoothstep(0.16, 0.0, d);
+          gl_FragColor = vec4(vColor, ring); }`,
+      }),
+    );
+    return { lines, dots };
+  }, [overlay]);
+  useEffect(
+    () => () => {
+      for (const o of [data.lines, data.dots]) {
+        o.geometry.dispose();
+        (o.material as ShaderMaterial).dispose();
+      }
+    },
+    [data],
+  );
+  return (
+    <>
+      <primitive object={data.lines} />
+      {overlay.sites.length > 0 && <primitive object={data.dots} />}
+    </>
+  );
+}
+
 /** Hub and ISS names, projected each frame and hidden on the far side of the globe. */
-function GlobeLabels({ root, iss, hubs }: { root: HTMLElement; iss: Vector3; hubs: boolean }) {
+function GlobeLabels({
+  root,
+  iss,
+  hubs,
+  extra,
+}: {
+  root: HTMLElement;
+  iss: Vector3;
+  hubs: boolean;
+  extra: LabelSpec[];
+}) {
   const group = useRef<Group>(null);
   const labels = useMemo(() => new LabelLayer(root, ".ge-title, .ge-controls, .ge-focus"), [root]);
   useEffect(() => () => labels.dispose(), [labels]);
@@ -582,9 +724,13 @@ function GlobeLabels({ root, iss, hubs }: { root: HTMLElement; iss: Vector3; hub
     if (!g) return;
     const facing = (p: Vector3, min: number) =>
       toward.copy(p).normalize().dot(camera.position.clone().normalize()) > min;
+    // A label is centred on its anchor; one that would be cut at the stage edge is left out.
+    const edge = 1 - (2 * (size.width < 700 ? 72 : 48)) / size.width;
+    const inside = (p: Vector3) => Math.abs(toward.copy(p).project(camera).x) <= edge;
     const list = [
-      ...(hubs ? specs.filter((s) => facing(s.pos, 0.2)) : []),
+      ...(hubs ? specs.filter((s) => facing(s.pos, 0.2) && inside(s.pos)) : []),
       ...(iss.lengthSq() > 0 && facing(iss, 0.05) ? [station] : []),
+      ...extra.filter((s) => facing(s.pos, 0.1) && inside(s.pos)),
     ];
     const key = list.map((l) => l.html).join("|");
     if (key !== shown.current) {
@@ -666,6 +812,7 @@ function CameraReadout({ onLook }: { onLook: (lat: number, lon: number, alt: num
 }
 
 export type GlobeLayers = { quakes: boolean; satellites: boolean; hubs: boolean };
+const NO_LABELS: LabelSpec[] = [];
 
 export default function GlobeScene({
   land,
@@ -683,7 +830,10 @@ export default function GlobeScene({
   interactive = true,
   view = [24, 150, 3.7],
   markers,
+  overlay,
 }: {
+  /** The knowledge-graph layers and propagation arcs (F3 Global Eye only). */
+  overlay?: GeoOverlay | null;
   /** Extra located records drawn as static spikes. */
   markers?: GlobeMarker[];
   labelsRoot: HTMLElement | null;
@@ -711,6 +861,17 @@ export default function GlobeScene({
   const iss = useMemo(() => new Vector3(), []);
   // Open over the western Pacific: Tokyo, Seoul, Hsinchu and Shenzhen and the Ring of Fire.
   const start = useMemo(() => toVec(view[0], view[1], R * view[2]), [view]);
+  const graphLabels = useMemo<LabelSpec[]>(
+    () =>
+      overlay?.labels.map((l) => ({
+        pos: toVec(l.lat, l.lon, R * l.alt),
+        html: esc(l.text),
+        cls: l.cls,
+        valign: "bottom",
+        pri: 3,
+      })) ?? NO_LABELS,
+    [overlay],
+  );
   return (
     <Canvas
       dpr={[1, 2]}
@@ -742,10 +903,13 @@ export default function GlobeScene({
         <Quakes quakes={quakes} now={now} selected={selected} onPick={onPick} reduced={reduced} />
       )}
       {markers && markers.length > 0 && <Markers markers={markers} />}
+      {overlay && <GraphOverlay overlay={overlay} />}
       {layers.satellites && tles.length > 0 && (
-        <Satellites tles={tles} onCount={onSatellites} iss={iss} />
+        <Satellites tles={tles} onCount={onSatellites} iss={iss} dim={!!overlay?.scenario} />
       )}
-      {labelsRoot && <GlobeLabels root={labelsRoot} iss={iss} hubs={layers.hubs} />}
+      {labelsRoot && (
+        <GlobeLabels root={labelsRoot} iss={iss} hubs={layers.hubs} extra={graphLabels} />
+      )}
       <CameraReadout onLook={onLook} />
       <Composer sensor={sensor} bloom={sensor ? 0.45 : 0.75} />
     </Canvas>

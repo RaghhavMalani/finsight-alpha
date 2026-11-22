@@ -97,7 +97,7 @@ jobs:
               npm run lint
               npx prettier --check src/dynamics/EventIdentifiabilityObservatory.tsx src/dynamics/hawkes-identifiability-contracts.ts src/dynamics/DynamicsNavigator.tsx src/dynamics/query.ts src/dynamics/BoundaryStructureMicroscope.tsx src/dynamics/hawkes-boundary-contracts.ts scripts/verify-hawkes-boundary.mjs src/dynamics/MarketRegimeLab.tsx src/dynamics/RegimeLandscape.tsx src/dynamics/market-regime-contracts.ts scripts/verify-market-regime.mjs src/dynamics/RegimeProduct.tsx src/dynamics/product-contracts.ts src/dynamics/snapshot-label.ts src/app/shell/ForgeShell.tsx scripts/verify-regime-product.mjs src/regimes scripts/verify-regimes.mjs src/factors scripts/verify-factors.mjs src/routes/factors.tsx
               npx tsc --noEmit
-              for v in hawkes-identifiability hawkes-boundary market-regime regime-product observatory neural globe markets shell command replay agents plugins data regimes factors research num; do
+              for v in hawkes-identifiability hawkes-boundary market-regime regime-product observatory neural globe markets shell command replay agents plugins data regimes factors research globe-graph num; do
                 node scripts/verify-$v.mjs
               done
               node scripts/generate-terminal-index.mjs --check
@@ -130,6 +130,7 @@ jobs:
               node scripts/verify-plugins.mjs --url "$APP"
               node scripts/verify-data.mjs --url "$APP"
               node scripts/verify-research.mjs --url "$APP"
+              node scripts/verify-globe-graph.mjs --url "$APP"
           - shard: browser-command
             browsers: true
             run: |
