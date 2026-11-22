@@ -63,6 +63,7 @@ export function SweepHistory({
                 o={sweepOrigin(bundle, `/payload/transition_counts/${key}`)}
                 v={sweep.transition_counts[key]}
                 label={`Transitions ${key}`}
+                inert
               />
             </p>
           </div>
@@ -76,6 +77,7 @@ export function SweepHistory({
               o={sweepOrigin(bundle, "/evidence_cutoff")}
               v={bundle.sweep.evidence_cutoff}
               label="Evidence cutoff"
+              inert
             />
           </time>
         </p>

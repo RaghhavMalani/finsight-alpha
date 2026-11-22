@@ -29,6 +29,7 @@ export function IssueFeed({
             })}
             v={rows.length}
             label="Issues in view"
+            inert
           />{" "}
           IN VIEW · READ ONLY
         </span>
@@ -89,6 +90,7 @@ export function IssueFeed({
                         o={issueOrigin(bundle, issue, "evidence_at")}
                         v={issue.evidence_at}
                         label="Evidence at"
+                        inert
                       />
                     </time>
                   </div>
@@ -99,6 +101,7 @@ export function IssueFeed({
                       o={issueOrigin(bundle, issue, "first_seen_at")}
                       v={issue.first_seen_at}
                       label="First seen"
+                      inert
                     />
                   </time>
                 </td>
