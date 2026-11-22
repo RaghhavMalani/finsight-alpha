@@ -2,7 +2,7 @@
 .globe {
   --ge-fg: #e7eaec;
   --ge-muted: #9aa2a9;
-  --ge-faint: #5f676f;
+  --ge-faint: #8a939b; /* AA (>= 4.5:1) on the panel */
   --ge-line: rgba(63, 224, 255, 0.14);
   --ge-cyan: #3fe0ff;
   --ge-amber: #f0a929;
@@ -78,7 +78,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  font: 500 10.5px/1.3 var(--ge-mono);
+  font: 500 11px/1.3 var(--ge-mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -166,7 +166,7 @@
 }
 .ge-eyebrow {
   color: var(--ge-cyan);
-  font: 500 10px var(--ge-mono);
+  font: 500 11px var(--ge-mono);
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -248,7 +248,7 @@
   border-radius: 2px;
   background: rgba(0, 0, 0, 0.5);
   color: var(--ge-muted);
-  font: 10.5px var(--ge-mono);
+  font: 11px var(--ge-mono);
   letter-spacing: 0.04em;
 }
 .ge-chip i {
@@ -346,7 +346,7 @@
 }
 .ge-neuron code {
   color: var(--ge-faint);
-  font: 10px var(--ge-mono);
+  font: 11px var(--ge-mono);
 }
 .ge-neuron b {
   color: var(--ge-geo);
@@ -519,5 +519,317 @@
 @media (prefers-reduced-motion: reduce) {
   .ge-neuron > i {
     animation: none;
+  }
+}
+/* Global Eye v2: graph labels, the propagation panel and its legend */
+.globe .lb.sec {
+  color: #e9dcff;
+  font-weight: 600;
+  text-shadow:
+    0 0 2px #000,
+    0 0 4px #000,
+    0 0 8px #000,
+    0 0 14px #000;
+}
+.globe.ge-scenario .lb.sec {
+  color: #ffd9a0;
+}
+.ge-controls .ge-seg button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ge-prop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ge-line);
+}
+.ge-prop-head strong {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.ge-prop-head .mono {
+  display: block;
+  color: var(--ge-cyan);
+  font-size: 11px;
+}
+.ge-origin {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--ge-line);
+  border-radius: 2px;
+  color: var(--ge-muted);
+  font: 11px var(--ge-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ge-origin.scenario {
+  border-color: var(--ge-amber);
+  background: var(--ge-amber);
+  color: #140d00;
+  font-weight: 600;
+}
+.ge-view {
+  align-self: flex-start;
+  max-width: 100%;
+}
+.ge-word,
+.ge-prop-unavail {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--ge-faint);
+  background: rgba(231, 234, 236, 0.04);
+  font-size: 12.5px;
+}
+.ge-word b,
+.ge-prop-unavail b {
+  display: block;
+  font: 600 12px var(--ge-mono);
+  letter-spacing: 0.04em;
+}
+.ge-word.AVAILABLE {
+  border-color: #42c98b;
+}
+.ge-word.AVAILABLE b {
+  color: #42c98b;
+}
+.ge-word.PARTIAL,
+.ge-word.NO_COVERAGE,
+.ge-word.BELOW_THRESHOLD {
+  border-color: var(--ge-amber);
+}
+.ge-word.PARTIAL b,
+.ge-word.NO_COVERAGE b,
+.ge-word.BELOW_THRESHOLD b {
+  color: var(--ge-amber);
+}
+.ge-word.UNAVAILABLE {
+  border-color: #f06464;
+}
+.ge-word.UNAVAILABLE b,
+.ge-prop-unavail b {
+  color: #f06464;
+}
+.ge-prop-unavail {
+  border-color: #f06464;
+  color: #f3a0a0;
+  overflow-wrap: anywhere;
+}
+.ge-secs,
+.ge-hops,
+.ge-sites ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ge-secs summary,
+.ge-sites summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.ge-secs summary b {
+  margin-right: 8px;
+  color: var(--ge-amber);
+}
+.ge-secs summary > span {
+  color: var(--ge-muted);
+}
+.ge-hops {
+  margin: 8px 0 4px 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--ge-line);
+}
+.ge-hops li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+.ge-hops .mono,
+.ge-faint {
+  color: var(--ge-faint);
+}
+.ge-src a {
+  color: var(--ge-cyan);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.ge-hop-type {
+  font-size: 11px;
+}
+.ge-hops q {
+  color: var(--ge-muted);
+  font-style: italic;
+}
+.ge-sites li {
+  font-size: 11px;
+  color: var(--ge-muted);
+}
+.ge-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ge-muted);
+}
+.ge-legend p {
+  margin: 0;
+}
+.ge-legend ul {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ge-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ge-ramp {
+  display: inline-grid;
+  grid-template-columns: repeat(4, 24px);
+  gap: 4px;
+}
+.ge-ramp i {
+  height: 4px;
+  border-radius: 1px;
+}
+.ge-ramp-scale {
+  display: grid;
+  grid-template-columns: repeat(4, 28px);
+  font-size: 11px;
+  color: var(--ge-faint);
+}
+.ge-dot {
+  margin-right: 8px;
+}
+.ge-dot i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 50%;
+}
+.ge-scen button[aria-pressed="true"] {
+  background: rgba(63, 224, 255, 0.1);
+}
+.ge-scen b {
+  color: var(--ge-amber);
+}
+.ge-scen em {
+  font-size: 11px;
+}
+.ge-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ge-muted);
+  font-size: 11px;
+}
+.ge-pick select {
+  width: 100%;
+  padding: 5px 6px;
+  border: 1px solid var(--ge-line);
+  border-radius: 2px;
+  background: #05090b;
+  color: var(--ge-fg);
+  font: 11px var(--ge-mono);
+}
+/* The docked panel scrolls on its own; the globe keeps the height the shell gives it. */
+@media (min-width: 1101px) {
+  .globe {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+/* A scenario is never mistaken for a recording: a solid chip on the globe, hero copy hidden. */
+.ge-hypo {
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 2px;
+  background: var(--ge-amber);
+  color: #140d00;
+  font: 600 11px var(--ge-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* Text is either legible or absent: the hero copy and the readout step aside during a scenario. */
+.globe.ge-scenario .ge-title p,
+.globe.ge-scenario .ge-readouts {
+  visibility: hidden;
+}
+.ge-clear {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid var(--ge-line);
+  border-radius: 2px;
+  background: none;
+  color: var(--ge-muted);
+  font: 11px var(--ge-mono);
+  cursor: pointer;
+}
+.ge-clear:hover {
+  color: var(--ge-fg);
+}
+/* Phones and small tablets: the answer comes first, the globe is capped, 16px gutters. */
+@media (max-width: 768px) {
+  .globe {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  .ge-stage {
+    flex: none;
+    height: 44svh;
+    min-height: 300px;
+  }
+  .ge-panel {
+    display: contents;
+  }
+  .ge-panel > * {
+    margin: 14px 16px 0;
+  }
+  .ge-panel > .ge-prop {
+    order: -1;
+    margin: 0;
+    padding: 12px 16px;
+    background: #030607;
+  }
+  .ge-title {
+    left: 16px;
+    right: 16px;
+    top: 16px;
+  }
+  .ge-title h1 {
+    font-size: 18px;
+  }
+  .ge-controls {
+    left: 16px;
+    right: 16px;
+    bottom: 12px;
+    gap: 6px;
+  }
+  .ge-focus {
+    display: none;
+  }
+  .ge-hypo {
+    top: auto;
+    bottom: calc(100% - 44px);
+    left: auto;
+    right: 16px;
+    transform: none;
   }
 }

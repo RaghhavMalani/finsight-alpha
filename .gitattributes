@@ -70,3 +70,6 @@ eval/factors/** -text
 eval/risk_manager/** -text
 data/exports/risk_manager_v0_1/** -text
 src/risk_manager/** text eol=lf
+
+# Global Eye v2 projection: content addressed and pinned by exact bytes; guards a future pretty-print.
+frontend-v2/src/components/globe/data/projection.*.json -text
