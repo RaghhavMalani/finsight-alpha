@@ -38,6 +38,10 @@ def test_point_in_time_answers_never_use_later_relationships():
             if answer is None:
                 continue
             assert (answer["status"] == "AVAILABLE") == bool(answer["securities"])
+            if answer["status"] in ("UNAVAILABLE", "BELOW_THRESHOLD"):
+                # Not evaluated: no count is written, so nothing can read it as zero.
+                assert answer["sites"] == [] and "chains_total" not in answer
+                assert "nearest_site_km" not in answer
             for row in answer["securities"]:
                 assert all(hop in projection["edges"] for hop in row["best_chain"]["hops"])
 

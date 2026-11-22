@@ -29,7 +29,7 @@ export type GeoSource = {
 };
 export type GeoNode = {
   id: string;
-  type: "facility" | "port" | "chokepoint" | "company" | "security" | "sector";
+  type: "facility" | "port" | "chokepoint" | "company" | "security" | "sector" | "unknown";
   name: string;
   lat: number | null;
   lon: number | null;
@@ -58,7 +58,10 @@ export type GeoAnswer = {
   radius_km: number | null;
   nearest_site_km: number | null;
   cutoff: string | null;
-  chains_total: number;
+  /** Whether propagate() evaluated sites and chains; false for UNAVAILABLE and BELOW_THRESHOLD. */
+  evaluated: boolean;
+  /** Missing is not zero: null when propagate() did not count chains. */
+  chains_total: number | null;
   sites: { site: string; distance_km: number; linked: boolean }[];
   securities: { security: string; score: number; sites: string[]; best_chain: GeoChain }[];
 };
@@ -123,6 +126,8 @@ function answer(raw: unknown, edges: Record<string, GeoEdge>, nodes: Record<stri
   if (!Array.isArray(a.sites) || !Array.isArray(a.securities)) fail("answer lists missing");
   if (a.status === "AVAILABLE" && a.securities.length === 0) fail("an empty AVAILABLE answer");
   if (a.status !== "AVAILABLE" && a.securities.length > 0) fail("securities outside AVAILABLE");
+  if (!["AVAILABLE", "PARTIAL", "NO_COVERAGE"].includes(a.status) && a.sites.length)
+    fail("sites listed for an unevaluated answer");
   for (const s of a.sites) if (!nodes[s.site] || !num(s.distance_km)) fail("unknown site");
   const securities = a.securities.map((r) => {
     if (!nodes[r.security] || !num(r.score) || !nodes[r.best_chain?.site]) fail("bad security");
@@ -143,7 +148,8 @@ function answer(raw: unknown, edges: Record<string, GeoEdge>, nodes: Record<stri
     radius_km: num(a.radius_km) ? a.radius_km : null,
     nearest_site_km: num(a.nearest_site_km) ? a.nearest_site_km : null,
     cutoff: typeof a.cutoff === "string" ? a.cutoff : null,
-    chains_total: num(a.chains_total) ? a.chains_total : 0,
+    evaluated: a.status === "AVAILABLE" || a.status === "PARTIAL" || a.status === "NO_COVERAGE",
+    chains_total: num(a.chains_total) ? a.chains_total : null,
     sites: a.sites,
     securities,
   } satisfies GeoAnswer;
@@ -301,11 +307,11 @@ export function parseLiveAnswer(raw: unknown, nodes: Record<string, GeoNode>): G
         mechanism: h.mechanism,
         source: h.source,
       };
-      // A node the static projection does not know is shown by its id, never renamed.
+      // A node the static projection does not know is shown by its id, never renamed or typed.
       for (const id of [h.from, h.to])
         live[id] ??= {
           id,
-          type: "company",
+          type: "unknown",
           name: id,
           lat: null,
           lon: null,

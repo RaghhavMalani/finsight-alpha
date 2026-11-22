@@ -59,6 +59,9 @@ def _compact(result: dict) -> dict:
     """The propagate() answer with hops as edge ids; sources live once in the edge table."""
     out = {k: result[k] for k in ("status", "reason", "cutoff", "nearest_site_km", "chains_total",
                                   "nodes_not_yet_available", "edges_not_yet_available") if k in result}
+    if result["status"] not in ("AVAILABLE", "PARTIAL", "NO_COVERAGE"):
+        # propagate() never looked at sites or chains here; missing is not zero, so no count.
+        out.pop("chains_total", None)
     out["radius_km"] = result["event"]["radius_km"]
     out["sites"] = [{"site": s["site"], "distance_km": s["distance_km"], "linked": s["linked"]}
                     for s in result["sites"]]
