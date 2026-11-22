@@ -751,7 +751,7 @@
     grid-template-rows: minmax(0, 1fr);
   }
 }
-/* A scenario is never mistaken for a recording: a solid chip on the globe, hero copy dimmed. */
+/* A scenario is never mistaken for a recording: a solid chip on the globe, hero copy hidden. */
 .ge-hypo {
   top: 30px;
   left: 50%;
@@ -766,9 +766,10 @@
   white-space: nowrap;
   pointer-events: none;
 }
+/* Text is either legible or absent: the hero copy and the readout step aside during a scenario. */
 .globe.ge-scenario .ge-title p,
 .globe.ge-scenario .ge-readouts {
-  opacity: 0.25;
+  visibility: hidden;
 }
 .ge-clear {
   align-self: flex-start;
