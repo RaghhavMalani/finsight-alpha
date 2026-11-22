@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -128,17 +129,36 @@ export function ProvenanceProvider({
   const kind = current?.origin.kind ?? "sealed";
   const file = current && kind === "sealed" ? sources[current.origin.src] : undefined;
   const narrow = typeof window !== "undefined" && window.innerWidth < 640;
-  const pos = current
-    ? narrow
-      ? undefined
-      : {
-          left: Math.max(12, Math.min(current.anchor.left, window.innerWidth - 392)),
-          top:
-            current.anchor.bottom + 340 > window.innerHeight
-              ? Math.max(12, current.anchor.top - 338)
-              : current.anchor.bottom + 8,
-        }
-    : undefined;
+  // Placed after measuring: below the value, else above it, else beside it; never over it.
+  // On a narrow screen the sheet is at the bottom and the value is scrolled to stay above it.
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    setPos(null);
+    if (!current || !panel.current) return;
+    const h = panel.current.offsetHeight,
+      w = panel.current.offsetWidth;
+    const anchor = () => current.return?.getBoundingClientRect() ?? current.anchor;
+    if (narrow) {
+      const r = anchor(),
+        room = window.innerHeight - h - 8;
+      if (r.bottom > room) window.scrollBy(0, r.bottom - room);
+      else if (r.top < 8) window.scrollBy(0, r.top - 8);
+      return;
+    }
+    const r = anchor(),
+      vw = window.innerWidth,
+      vh = window.innerHeight;
+    const clampX = (x: number) => Math.max(12, Math.min(x, vw - w - 12));
+    if (r.bottom + 8 + h <= vh - 12) setPos({ left: clampX(r.left), top: r.bottom + 8 });
+    else if (r.top - 8 - h >= 12) setPos({ left: clampX(r.left), top: r.top - 8 - h });
+    else {
+      const right = r.right + 12 + w <= vw - 12;
+      setPos({
+        left: right ? r.right + 12 : Math.max(12, r.left - 12 - w),
+        top: Math.max(12, Math.min(r.top - h / 2, vh - h - 12)),
+      });
+    }
+  }, [current, narrow]);
   return (
     <ProvenanceContext.Provider value={ctx}>
       {children}
@@ -146,7 +166,7 @@ export function ProvenanceProvider({
         <div
           ref={panel}
           className={`vx-origin ${narrow ? "vx-sheet" : ""}`}
-          style={pos}
+          style={narrow ? undefined : (pos ?? { left: 12, top: 12, visibility: "hidden" })}
           role="dialog"
           aria-label={`Origin of ${current.title}`}
           tabIndex={-1}
@@ -154,8 +174,15 @@ export function ProvenanceProvider({
           data-origin-kind={kind}
         >
           <div className="vx-origin-head">
-            <span>ORIGIN</span>
-            <button type="button" onClick={close} aria-label="Close origin">
+            <span>
+              ORIGIN · <span className="vx-origin-kind">{kind.toUpperCase()}</span>
+            </span>
+            <button
+              type="button"
+              className="vx-origin-close"
+              onClick={close}
+              aria-label="Close origin"
+            >
               ESC
             </button>
           </div>
@@ -321,7 +348,20 @@ function OriginButton({
     "data-sha": digestOf(origin, ctx?.sources),
     "data-ptr": origin.ptr,
     "data-na": missing ? "true" : undefined,
-    title: `${title}: ${full} · ${where}${origin.ptr ? ` ${origin.ptr}` : ""}`,
+    "data-seq": origin.seq ?? undefined,
+    "data-available-at": origin.availableAt ?? undefined,
+    title: [
+      `${title}: ${full}`,
+      `${where}${origin.ptr ? ` ${origin.ptr}` : ""}`,
+      origin.seq != null ? `seq ${origin.seq}` : "",
+      origin.observedAt ? `observed_at ${origin.observedAt}` : "",
+      origin.availableAt ? `available_at ${origin.availableAt}` : "",
+      origin.asOf ? `as of ${origin.asOf}` : "",
+      origin.formula ? `formula ${origin.formula}` : "",
+      origin.note ?? "",
+    ]
+      .filter(Boolean)
+      .join("\n"),
   };
   if (inert || !ctx)
     return (
