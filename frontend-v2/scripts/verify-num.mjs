@@ -10,12 +10,16 @@
 // report-only and prints its count. A sabotage step injects a raw number into a converted page
 // and requires the checker to flag it.
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // A numeric token: a currency amount, a percent, a decimal, or an integer of two or more digits.
-// Single digits ("F1", "1 of 3") are not tokens; they rarely carry evidence on their own.
+// Inside prose a single digit ("F1", "1 of 3") is not a token.
 export const TOKEN = /[$€£¥₹]\s?\d|\d+(?:\.\d+)?\s?%|\d*\.\d+|\d{2,}/;
+// A text node that is nothing but a number is a value, however short: a count in a tile or cell.
+export const ALONE = /^\s*[+\u2212-]?\d+(?:[.,]\d+)*\s?%?\s*$/;
+// What a missing value may render as. Never a zero.
+export const MISSING = /^(unavailable|n\/a)$/;
 // Why a number may appear without an origin. Each reason is documented in docs/u2-num-provenance.md.
 export const EXEMPT = new Set([
   "key-label", // keyboard / workspace key labels (F1 … F12, Alt 7)
@@ -68,8 +72,11 @@ for (const [s, want] of Object.entries(hits))
 assert.deepEqual(tokens("M5.2 near 10 km"), ["5.2", "10"]);
 assert.equal(TOKEN.test("unavailable"), false);
 assert.equal(TOKEN.test("n/a"), false);
+for (const s of ["7", " 0 ", "−3", "13", "4%"]) assert(ALONE.test(s), `alone: ${s}`);
+for (const s of ["F1", "1 of 3", "#7", "v2"]) assert(!ALONE.test(s), `not alone: ${s}`);
+assert(MISSING.test("unavailable") && !MISSING.test("0") && !MISSING.test("0.00"));
 console.log(
-  `verify-num static: token rule self-test passed (${Object.keys(hits).length + 4} cases)`,
+  `verify-num static: token rule self-test passed (${Object.keys(hits).length + 14} cases)`,
 );
 
 // --- Browser stage ------------------------------------------------------------------------------
@@ -99,13 +106,16 @@ const allRoutes = readdirSync(routesDir)
   .sort();
 
 /** Runs in the page: raw numeric text nodes outside provenance, plus malformed provenance. */
-function scan({ source, exempt, kinds, chrome }) {
+function scan({ source, alone, missing, exempt, kinds, chrome }) {
   const TOKEN = new RegExp(source);
+  const ALONE = new RegExp(alone);
+  const MISSING = new RegExp(missing);
   const allowed = new Set(exempt);
   const okKind = new Set(kinds);
   const raw = [],
     bad = [],
-    sealedChrome = [];
+    sealedChrome = [],
+    replay = [];
   const path = (el) => {
     const parts = [];
     for (let e = el; e && e !== document.body && parts.length < 4; e = e.parentElement)
@@ -123,7 +133,7 @@ function scan({ source, exempt, kinds, chrome }) {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     const text = n.nodeValue ?? "";
-    if (!TOKEN.test(text)) continue;
+    if (!TOKEN.test(text) && !ALONE.test(text)) continue;
     const el = n.parentElement;
     if (!el || el.closest("script,style,noscript,template,title")) continue;
     if (!visible(el)) continue;
@@ -155,18 +165,34 @@ function scan({ source, exempt, kinds, chrome }) {
       bad.push({ where: path(el), why: `${kind} value claims a SHA-256`, text: el.textContent });
     else if (sha && !/^[0-9a-f]{64}$/.test(sha))
       bad.push({ where: path(el), why: `malformed SHA-256 "${sha}"`, text: el.textContent });
-    if (/^\s*0(\.0+)?\s*$/.test(el.textContent) && el.getAttribute("data-na") === "true")
-      bad.push({ where: path(el), why: "missing value shown as zero", text: el.textContent });
+    // A missing value says so; it never renders as a number (least of all zero).
+    if (el.getAttribute("data-na") === "true" && !MISSING.test(el.textContent.trim()))
+      bad.push({
+        where: path(el),
+        why: "missing value not shown as unavailable",
+        text: el.textContent,
+      });
+    if (kind === "replay")
+      replay.push({
+        where: path(el),
+        src: el.getAttribute("data-src") ?? "",
+        sha,
+        text: el.textContent,
+      });
   }
   return {
     raw,
     bad,
     sealedChrome,
+    replay,
+    missing: document.querySelectorAll('[data-num][data-na="true"]').length,
     provenanced: document.querySelectorAll("[data-num]").length,
   };
 }
 const scanArgs = {
   source: TOKEN.source,
+  alone: ALONE.source,
+  missing: MISSING.source,
   exempt: [...EXEMPT],
   kinds: [...KINDS],
   chrome: SEALED_CHROME,
@@ -205,6 +231,36 @@ try {
     .map((k) => k.slice(7))
     .sort()[0];
   assert(ticker, "replay manifest carries no market artifact");
+  // Digests the checker reads itself: every artifact entry of the checked Replay manifest and of
+  // the Risk read manifest (its URL is taken from the generated read plan, not from the page).
+  const plan = readFileSync(
+    fileURLToPath(new URL("../src/risk-manager/read-plan.generated.ts", import.meta.url)),
+    "utf8",
+  );
+  const riskManifestUrl = /projection:\s*\{\s*url:\s*"([^"]+)"/.exec(plan)[1];
+  const riskManifest = await (await context.request.get(base + riskManifestUrl)).json();
+  const MANIFEST_FILES = new Set(["/replay-manifest.json", riskManifestUrl]);
+  const digests = new Map();
+  for (const m of [manifest, riskManifest])
+    for (const e of Object.values(m.artifacts)) if (e.url) digests.set(e.url, e.sha256);
+  /** A replay value must name a checked artifact and exactly the digest its manifest names. */
+  const judge = (r) => {
+    for (const x of r.replay) {
+      if (MANIFEST_FILES.has(x.src)) {
+        if (x.sha) r.bad.push({ ...x, why: `manifest file ${x.src} given a SHA-256` });
+      } else if (!digests.has(x.src))
+        r.bad.push({
+          ...x,
+          why: `replay source ${JSON.stringify(x.src)} is in no checked manifest`,
+        });
+      else if (digests.get(x.src) !== x.sha)
+        r.bad.push({
+          ...x,
+          why: `replay SHA ${x.sha || "(none)"} is not the manifest's for ${x.src}`,
+        });
+    }
+    return r;
+  };
   const concrete = (r) => (r === "/markets/:ticker" ? `/markets/${encodeURIComponent(ticker)}` : r);
 
   // Timer polling, not animation frames: the globe can keep a software-rendered frame loop busy.
@@ -214,7 +270,7 @@ try {
     await page.goto(base + concrete(route), { waitUntil: "networkidle", timeout: 60000 });
     await until(page, '.shell[data-ready="true"]').catch(() => {});
     await page.waitForTimeout(1500);
-    return page.evaluate(scan, scanArgs);
+    return judge(await page.evaluate(scan, scanArgs));
   };
 
   const routes = only ? [only] : [...new Set([...ENFORCED, ...allRoutes])];
@@ -285,6 +341,7 @@ try {
           rec(12, "market.tick", "yfinance_us", { ticker: "SPY", close: 600.25 }),
           rec(11, "geo.event", "gdelt", { kind: "gdelt_event", event_code: "190", lat: 1, lon: 2 }),
           rec(10, "macro.release", "fred", { series: "UNRATE", value: 4.1, units: "%" }),
+          rec(9, "market.tick", "yfinance_us", { ticker: "QQQ" }),
         ];
         const cors = {
           "access-control-allow-origin": origin,
@@ -319,7 +376,44 @@ try {
         const close = p.locator('.cmd-market [data-num][data-origin-kind="live"]').first();
         assert.equal(await close.innerText(), "600.25", "live close not provenanced");
         assert.equal(await close.getAttribute("data-sha"), "", "live close claims a SHA-256");
-        assert.match(await close.getAttribute("title"), /live API, not sealed/);
+        const title = await close.getAttribute("title");
+        assert.match(title, /live API, not sealed/);
+        // The record behind the value: its seq, clocks, source and licence.
+        assert.match(title, /seq 12/, "live value hides its seq");
+        assert.match(title, /available_at 2026-11-16T12:00:12/, "live value hides available_at");
+        assert.match(title, /observed_at 2026-11-16T12:00:11/, "live value hides observed_at");
+        assert.match(
+          title,
+          /source yfinance_us .* licence TEST_FIXTURE/,
+          "live value hides source",
+        );
+        assert.equal(await close.getAttribute("data-seq"), "12");
+        // The row link keeps the record's full provenance title.
+        assert.match(
+          await p.locator('.cmd-market a[title*="seq 12"]').first().getAttribute("title"),
+          /available_at/,
+        );
+        // A known-missing value (no close in the record) says unavailable, not 0.
+        const qqq = p.locator('.cmd-market li:has-text("QQQ") [data-num][data-na="true"]');
+        assert.equal(
+          await qqq.innerText(),
+          "unavailable",
+          "missing close not shown as unavailable",
+        );
+        // Keyboard path: the origin button beside the row opens the popover with seq and clocks.
+        const prov = p.locator('.cmd-stream li[data-seq="12"] button.cmd-prov');
+        await prov.focus();
+        await p.keyboard.press("Enter");
+        await until(p, '[data-origin-popover][data-origin-kind="live"]', 5000);
+        const pop = await p.locator("[data-origin-popover]").innerText();
+        for (const want of [
+          /ORIGIN · LIVE/,
+          /Seq\s*12/,
+          /Available\s*2026-11-16T12:00:12/,
+          /none · a live/,
+        ])
+          assert.match(pop, want, `live popover lacks ${want}`);
+        await p.keyboard.press("Escape");
       },
     },
     {
@@ -327,13 +421,23 @@ try {
       name: "origin popover",
       run: async (p) => {
         await p.goto(base + "/markets", { waitUntil: "networkidle" });
-        const first = p.locator('button[data-num][data-origin-kind="replay"]').first();
+        const first = p
+          .locator('button[data-num][data-origin-kind="replay"]:not([data-src$="manifest.json"])')
+          .first();
         await first.waitFor({ timeout: 20000 });
         const src = await first.getAttribute("data-src");
         const entry = Object.values(manifest.artifacts).find((e) => e.url === src);
-        await first.click();
+        await first.focus();
+        await p.keyboard.press("Enter");
         const pop = p.locator("[data-origin-popover]");
         await pop.waitFor();
+        await p.waitForFunction(
+          () =>
+            getComputedStyle(document.querySelector("[data-origin-popover]")).visibility ===
+            "visible",
+          null,
+          { polling: 100, timeout: 5000 },
+        );
         // Independent of the page: the digest shown is the one the manifest names for the file.
         if (entry) {
           assert.equal(await first.getAttribute("data-sha"), entry.sha256, "replay SHA mismatch");
@@ -341,7 +445,16 @@ try {
             await pop.locator("[data-origin-sha]").innerText(),
             new RegExp(entry.sha256),
           );
-        } else assert.match(await pop.locator("[data-origin-sha]").innerText(), /unavailable/);
+        } else assert.fail(`replay value names ${src}, which the manifest does not carry`);
+        // The popover sits beside or below its value, never over it.
+        const [a, b] = [await first.boundingBox(), await pop.boundingBox()];
+        assert(
+          b.y >= a.y + a.height ||
+            b.y + b.height <= a.y ||
+            b.x >= a.x + a.width ||
+            b.x + b.width <= a.x,
+          "popover covers its value",
+        );
         assert.match(await pop.innerText(), /checked Replay artifact · not a seal/);
         await p.keyboard.press("Escape");
       },
@@ -383,7 +496,7 @@ try {
     let r;
     try {
       await v.run(p);
-      r = await p.evaluate(scan, scanArgs);
+      r = judge(await p.evaluate(scan, scanArgs));
     } catch (e) {
       console.log(
         `FAIL   ${v.route} · ${v.name}: ${String(e.message).split("\n").slice(0, 3).join(" ")}`,
@@ -418,10 +531,34 @@ try {
       c.setAttribute("data-origin-kind", "live");
       c.setAttribute("data-sha", "a".repeat(64));
       c.textContent = "99.10";
-      host.prepend(a, b, c);
+      const d = document.createElement("p");
+      d.textContent = "7";
+      const real = document.querySelector(
+        '[data-origin-kind="replay"]:not([data-src$="manifest.json"])',
+      );
+      const e = real.cloneNode(true);
+      e.setAttribute("data-sha", "b".repeat(64));
+      const f = document.createElement("span");
+      f.setAttribute("data-num", "");
+      f.setAttribute("data-origin-kind", "live");
+      f.setAttribute("data-na", "true");
+      f.textContent = "0";
+      host.prepend(a, b, c, d, e, f);
       return args;
     }, scanArgs);
-    const r = await page.evaluate(scan, s);
+    const r = judge(await page.evaluate(scan, s));
+    assert(
+      r.raw.some((x) => x.text === "7"),
+      "sabotage: single-digit value not flagged",
+    );
+    assert(
+      r.bad.some((x) => /replay SHA b{64} is not the manifest/.test(x.why)),
+      "sabotage: swapped replay SHA not flagged",
+    );
+    assert(
+      r.bad.some((x) => /missing value not shown as unavailable/.test(x.why)),
+      "sabotage: missing value shown as 0 not flagged",
+    );
     assert(
       r.raw.some((x) => x.text.includes("1.37")),
       "sabotage: injected raw number not flagged",
@@ -435,7 +572,7 @@ try {
       "sabotage: live SHA claim not flagged",
     );
     console.log(
-      "SABOTAGE injected raw number, bogus exemption and live SHA claim were all flagged",
+      "SABOTAGE raw number, single digit, bogus exemption, live SHA claim, swapped replay SHA and missing-as-0 were all flagged",
     );
   }
   if (errors.length) console.log(`page errors: ${[...new Set(errors)].slice(0, 5).join(" | ")}`);
