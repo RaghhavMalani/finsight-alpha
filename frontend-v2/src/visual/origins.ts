@@ -60,6 +60,27 @@ export function num(
   };
 }
 
+/**
+ * Provenance attributes for an SVG text node, which cannot hold a Num button: the same data
+ * attributes, read by the checker, and a tooltip the caller renders as a <title> child.
+ */
+export function svgProv(origin: Origin, label: string, value: string | number) {
+  const kind = origin.kind ?? "sealed";
+  return {
+    attrs: {
+      "data-num": "",
+      "data-prov": "num",
+      "data-origin-kind": kind,
+      "data-src": origin.src,
+      "data-sha": kind === "replay" ? (origin.sha256 ?? "") : "",
+      "data-ptr": origin.ptr,
+    },
+    title: [`${label}: ${value}`, `${origin.src} ${origin.ptr}`, origin.formula ?? ""]
+      .filter(Boolean)
+      .join("\n"),
+  };
+}
+
 /** A string reference (time, hash) with an origin. */
 export function ref(origin: Origin, v: string | null | undefined, reason?: string): RefValue {
   return { ...origin, v: v ?? null, reason: v ? origin.reason : (reason ?? origin.reason) };

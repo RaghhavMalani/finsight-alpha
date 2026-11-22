@@ -11,7 +11,8 @@ import { toggleWatchlist, useWatchlist } from "./watchlist";
 import { FACTOR_SERIES, factorSeries } from "@/replay/factor-series";
 import { SourceCredit } from "@/replay/SourceCredit";
 import { Num, ProvenanceProvider, Stamp } from "@/visual/Num";
-import { num as numOf, ref, replayOrigin } from "@/visual/origins";
+import { num as numOf, ref, replayOrigin, svgProv } from "@/visual/origins";
+import type { Origin } from "@/visual/Num";
 import "./replay.css";
 
 const VIEWS = ["Relative performance", "Drawdown", "Realized volatility", "HMM regimes"] as const;
@@ -32,7 +33,22 @@ function value(w: MarketWeek, view: View) {
       : w.relative_performance;
 }
 
-function WeeklyChart({ series, view }: { series: MarketReplay; view: View }) {
+const FIELD: Record<View, string> = {
+  "Relative performance": "relative_performance",
+  Drawdown: "drawdown",
+  "Realized volatility": "realized_volatility",
+  "HMM regimes": "relative_performance",
+};
+
+function WeeklyChart({
+  series,
+  view,
+  at,
+}: {
+  series: MarketReplay;
+  view: View;
+  at: (ptr: string, formula?: string) => Origin;
+}) {
   const rows = series.weeks;
   const points = rows.map((w, i) => ({ i, value: value(w, view) }));
   const values = points.flatMap((p) => (p.value === null ? [] : [p.value]));
@@ -61,7 +77,6 @@ function WeeklyChart({ series, view }: { series: MarketReplay; view: View }) {
       <svg
         viewBox="0 0 760 270"
         role="img"
-        data-num-exempt="axis"
         aria-label={`${series.ticker}: weekly ${view.toLowerCase()}, derived results without absolute prices`}
         className="mk-replay-chart"
       >
@@ -78,30 +93,49 @@ function WeeklyChart({ series, view }: { series: MarketReplay; view: View }) {
             />
           ) : null,
         )}
-        {[0, 0.5, 1].map((p) => (
-          <g key={p}>
-            <line
-              x1="60"
-              x2="730"
-              y1={y(lo + p * spread)}
-              y2={y(lo + p * spread)}
-              stroke="#262b31"
-            />
-            <text x="48" y={y(lo + p * spread) + 4} textAnchor="end">
-              {num(lo + p * spread, 1)}
-              {view === "Drawdown" || view === "Realized volatility" ? "%" : ""}
-            </text>
-          </g>
-        ))}
+        {[0, 0.5, 1].map((p) => {
+          // The ticks are the series' own minimum, midpoint and maximum, so each names its rule.
+          const field = FIELD[view];
+          const scale = view === "Drawdown" || view === "Realized volatility" ? " × 100" : "";
+          const rule =
+            p === 0
+              ? `min of /weeks/*/${field}${scale}`
+              : p === 1
+                ? `max of /weeks/*/${field}${scale}`
+                : `midpoint of min and max of /weeks/*/${field}${scale}`;
+          const label = `${num(lo + p * spread, 1)}${view === "Drawdown" || view === "Realized volatility" ? "%" : ""}`;
+          const prov = svgProv(at(`/weeks/*/${field}`, rule), `${view} axis`, label);
+          return (
+            <g key={p}>
+              <line
+                x1="60"
+                x2="730"
+                y1={y(lo + p * spread)}
+                y2={y(lo + p * spread)}
+                stroke="#262b31"
+              />
+              <text x="48" y={y(lo + p * spread) + 4} textAnchor="end" {...prov.attrs}>
+                <title>{prov.title}</title>
+                {label}
+              </text>
+            </g>
+          );
+        })}
         {segments.map((d, i) => (
           <path key={i} d={d} fill="none" stroke="#f0a929" strokeWidth="2" />
         ))}
-        <text x="60" y="258">
-          {rows[0].week}
-        </text>
-        <text x="730" y="258" textAnchor="end">
-          {rows.at(-1)!.week}
-        </text>
+        {[
+          [60, "start", 0],
+          [730, "end", rows.length - 1],
+        ].map(([x, anchor, i]) => {
+          const prov = svgProv(at(`/weeks/${i}/week`), "Week", rows[i as number].week);
+          return (
+            <text key={i} x={x} y="258" textAnchor={anchor as "start" | "end"} {...prov.attrs}>
+              <title>{prov.title}</title>
+              {rows[i as number].week}
+            </text>
+          );
+        })}
       </svg>
       <div className="mk-replay-legend">
         {[...new Set(rows.flatMap((w) => (w.regime ? [w.regime] : [])))].map((regime) => (
@@ -322,7 +356,7 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
           {manifest.isPending || (entry?.status === "AVAILABLE" && series.isPending) ? (
             <Loading label="checked market evidence" />
           ) : series.data ? (
-            <WeeklyChart series={series.data} view={view} />
+            <WeeklyChart series={series.data} view={view} at={at} />
           ) : (
             <div className="mk-replay-unavailable" role="status">
               <b>{view} unavailable</b>
