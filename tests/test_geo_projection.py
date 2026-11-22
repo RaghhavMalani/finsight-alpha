@@ -10,7 +10,7 @@ from scripts import export_geo_projection as exporter
 
 def _committed() -> tuple[bytes, dict]:
     pin = exporter.PIN.read_text(encoding="utf-8")
-    name = re.search(r'url: "/geo/([^"]+)"', pin).group(1)
+    name = re.search(r'file: "([^"]+)"', pin).group(1)
     return (exporter.OUT_DIR / name).read_bytes(), {
         "name": name, "sha256": re.search(r'sha256: "([0-9a-f]{64})"', pin).group(1),
         "bytes": int(re.search(r"bytes: (\d+)", pin).group(1)),

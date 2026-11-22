@@ -26,22 +26,31 @@ const pinText = readFileSync(
   "utf8",
 );
 const pin = {
-  url: pinText.match(/url: "([^"]+)"/)[1],
+  file: pinText.match(/file: "([^"]+)"/)[1],
   sha256: pinText.match(/sha256: "([0-9a-f]{64})"/)[1],
   bytes: Number(pinText.match(/bytes: (\d+)/)[1]),
   maxBytes: Number(pinText.match(/maxBytes: (\d+)/)[1]),
 };
-const geoDir = resolve(frontend, "public/geo");
+// Bundled from src (Vite ?url), not served from public/: public/ holds only reviewed publications.
+const geoDir = resolve(frontend, "src/components/globe/data");
 assert.deepEqual(
   readdirSync(geoDir).filter((f) => f.startsWith("projection.")),
-  [pin.url.split("/").pop()],
+  [pin.file],
   "exactly one projection, the pinned one",
 );
-const bytes = readFileSync(resolve(frontend, "public", pin.url.slice(1)));
+assert.match(
+  pinText,
+  new RegExp(`import url from "\\./data/${pin.file.replace(/\./g, "\\.")}\\?url";`),
+);
+const bytes = readFileSync(resolve(geoDir, pin.file));
 assert.equal(bytes.length, pin.bytes, "projection length matches the pin");
 assert.equal(sha(bytes), pin.sha256, "projection SHA-256 matches the pin");
 assert.ok(pin.bytes <= pin.maxBytes);
-assert.equal(pin.url, `/geo/projection.${pin.sha256.slice(0, 16)}.json`, "content-addressed name");
+assert.equal(pin.file, `projection.${pin.sha256.slice(0, 16)}.json`, "content-addressed name");
+// The emitted asset keeps the content-addressed name, plus Vite's own hash.
+const assetRoute = new RegExp(
+  `/assets/${pin.file.replace(/\.json$/, "").replace(/\./g, "\\.")}-[^/]+\\.json$`,
+);
 const P = JSON.parse(bytes.toString("utf8"));
 assert.equal(P.schema_version, "geo-projection/1");
 
@@ -651,7 +660,7 @@ try {
         ]
       : [[1440, 900]]) {
       const { page, forbidden } = await open(w, h);
-      await page.route(`**${pin.url}`, handler);
+      await page.route(assetRoute, handler);
       await page.goto(`${base}/globe`);
       const box = page.locator("[data-geo-unavailable]");
       await box.waitFor({ timeout: 30000 });

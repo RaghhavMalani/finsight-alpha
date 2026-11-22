@@ -67,7 +67,7 @@ coordinates and magnitudes are the fixtures of `tests/test_geo_graph.py`:
 - **Replay makes no API or third-party request.** `scripts/export_geo_projection.py` loads the seed,
   verifies the Replay quakes against their manifest pin, runs `propagate()` for every recorded quake
   (at its time and retrospectively) and every scenario, and writes
-  `frontend-v2/public/geo/projection.<sha16>.json` plus
+  `frontend-v2/src/components/globe/data/projection.<sha16>.json` (imported with `?url`, so Vite emits it as a same-origin hashed asset; `public/` holds only reviewed publications, which the archive guards enforce) plus
   `frontend-v2/src/components/globe/geo-pin.generated.ts` (file name, SHA-256, bytes, size limit).
   Both are committed. The page fetches the same-origin file and refuses it before parsing unless its
   length and SHA-256 match the compiled pin; a tampered, missing or oversized file renders
@@ -80,7 +80,7 @@ coordinates and magnitudes are the fixtures of `tests/test_geo_graph.py`:
   relationships sourced by the quake's time. A refusal (e.g. 401) or a malformed answer is shown as
   UNAVAILABLE with the reason. The request is keyed on the quake's id and values, so a feed refresh
   does not resend it. Layers and scenarios still come from the pinned projection.
-- `.gitattributes` marks `frontend-v2/public/geo/projection.*.json` as `-text`. Today's compact JSON
+- `.gitattributes` marks `frontend-v2/src/components/globe/data/projection.*.json` as `-text`. Today's compact JSON
   has no newline bytes, so this only guards a future pretty-printed export against CRLF
   conversion changing the pinned bytes on Windows checkouts.
 
