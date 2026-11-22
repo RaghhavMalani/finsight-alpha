@@ -20,6 +20,7 @@ import {
   Quaternion,
   ShaderMaterial,
   Vector2,
+  SRGBColorSpace,
   Vector3,
   type Group,
 } from "three";
@@ -53,7 +54,7 @@ import {
 } from "./geo-data";
 import { EARTH_KM, R, toVec } from "./coords";
 import type { LandData } from "./land";
-import { ARC_COLORS, SITE_COLORS, type GeoOverlay } from "./geo-overlay";
+import { arcRgb, SITE_COLORS, type GeoOverlay } from "./geo-overlay";
 import { SENSOR_PRELUDE, SENSOR_VERTEX, SENSORS, type SensorKind } from "./sensors";
 
 /** Ocean sphere: dark, lit by the real sun direction, with a fresnel rim. */
@@ -341,9 +342,12 @@ function Satellites({
   tles,
   onCount,
   iss,
+  dim = false,
 }: {
   tles: Satellite[];
   onCount: (n: number) => void;
+  /** Dim orbits and trails so a scenario's arcs read first. */
+  dim?: boolean;
   /** Written with the ISS position every second, for its label. */
   iss: Vector3;
 }) {
@@ -387,8 +391,9 @@ function Satellites({
         blending: AdditiveBlending,
         vertexShader: `void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); gl_PointSize = max(3.0, 120.0/(-mv.z));
           gl_Position = projectionMatrix*mv; }`,
-        fragmentShader: `void main(){ float d = length(gl_PointCoord-0.5); if (d>0.5) discard;
-          gl_FragColor = vec4(vec3(0.85,0.98,1.0), pow(1.0-d*2.0,1.5)); }`,
+        uniforms: { uAlpha: { value: 1 } },
+        fragmentShader: `uniform float uAlpha; void main(){ float d = length(gl_PointCoord-0.5); if (d>0.5) discard;
+          gl_FragColor = vec4(vec3(0.85,0.98,1.0), pow(1.0-d*2.0,1.5)*uAlpha); }`,
       }),
     );
     const lines = new LineSegments(
@@ -402,6 +407,10 @@ function Satellites({
     );
     return { recs, dot, lines, TRAIL, last: 0 };
   }, [tles]);
+  useEffect(() => {
+    (data.dot.material as ShaderMaterial).uniforms.uAlpha.value = dim ? 0.2 : 1;
+    (data.lines.material as LineBasicMaterial).opacity = dim ? 0.2 : 1;
+  }, [data, dim]);
   useEffect(() => onCount(data.recs.length), [data, onCount]);
   useEffect(
     () => () => {
@@ -575,7 +584,8 @@ function GraphOverlay({ overlay }: { overlay: GeoOverlay }) {
       toVec(arc.b[0], arc.b[1], 1, b).normalize();
       const span = a.angleTo(b);
       const lift = arc.a[2] === arc.b[2] ? 0.02 + 0.22 * span : 0.015;
-      c.set(ARC_COLORS[arc.kind]).multiplyScalar(0.12 + 0.88 * arc.value);
+      // The colour the legend paints: one mapping (arcRgb), set in sRGB.
+      c.setRGB(arc.rgb[0], arc.rgb[1], arc.rgb[2], SRGBColorSpace);
       let prev: Vector3 | null = null;
       for (let k = 0; k <= STEPS; k++) {
         const t = k / STEPS;
@@ -591,7 +601,10 @@ function GraphOverlay({ overlay }: { overlay: GeoOverlay }) {
     }
     const ev = overlay.event;
     if (ev) {
-      const yellow = new Color(ARC_COLORS.proximity);
+      const yellow = new Color().setRGB(
+        ...arcRgb("proximity", 1, overlay.scenario),
+        SRGBColorSpace,
+      );
       const base = toVec(ev.lat, ev.lon, R * 1.004),
         top = toVec(ev.lat, ev.lon, R * 1.1);
       pos.push(base.x, base.y, base.z, top.x, top.y, top.z);
@@ -711,10 +724,13 @@ function GlobeLabels({
     if (!g) return;
     const facing = (p: Vector3, min: number) =>
       toward.copy(p).normalize().dot(camera.position.clone().normalize()) > min;
+    // A label is centred on its anchor; one that would be cut at the stage edge is left out.
+    const edge = 1 - (2 * (size.width < 700 ? 72 : 48)) / size.width;
+    const inside = (p: Vector3) => Math.abs(toward.copy(p).project(camera).x) <= edge;
     const list = [
-      ...(hubs ? specs.filter((s) => facing(s.pos, 0.2)) : []),
+      ...(hubs ? specs.filter((s) => facing(s.pos, 0.2) && inside(s.pos)) : []),
       ...(iss.lengthSq() > 0 && facing(iss, 0.05) ? [station] : []),
-      ...extra.filter((s) => facing(s.pos, 0.1)),
+      ...extra.filter((s) => facing(s.pos, 0.1) && inside(s.pos)),
     ];
     const key = list.map((l) => l.html).join("|");
     if (key !== shown.current) {
@@ -889,7 +905,7 @@ export default function GlobeScene({
       {markers && markers.length > 0 && <Markers markers={markers} />}
       {overlay && <GraphOverlay overlay={overlay} />}
       {layers.satellites && tles.length > 0 && (
-        <Satellites tles={tles} onCount={onSatellites} iss={iss} />
+        <Satellites tles={tles} onCount={onSatellites} iss={iss} dim={!!overlay?.scenario} />
       )}
       {labelsRoot && (
         <GlobeLabels root={labelsRoot} iss={iss} hubs={layers.hubs} extra={graphLabels} />

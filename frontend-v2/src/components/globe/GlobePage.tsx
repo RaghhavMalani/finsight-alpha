@@ -29,7 +29,7 @@ import type { ReplayManifest } from "@/replay/contracts";
 import { SourceCredit } from "@/replay/SourceCredit";
 import { api } from "@/lib/api";
 import { parseLiveAnswer, useGeoProjection, type GeoAnswer } from "./geo-graph";
-import { buildOverlay } from "./geo-overlay";
+import { buildOverlay, cssRgb, drawsChain } from "./geo-overlay";
 import { GeoPanel, type GeoSelection, type GeoView } from "./GeoPanel";
 
 const GlobeScene = lazy(() => import("./GlobeScene"));
@@ -113,31 +113,37 @@ export default function GlobePage() {
   const picked = events.find((e) => e.stableId === pick.selected) ?? null;
   const scenario = proj?.scenarios.find((s) => s.id === pick.selected) ?? null;
   // Local Live asks the API, behind the session gate; Replay only reads the pinned projection.
+  // Keyed on the quake's id and values, so a feed refresh does not resend the same request.
+  const [pickedId, pLat, pLon, pMag, pTime] = picked
+    ? [picked.stableId, picked.lat, picked.lon, picked.mag, picked.time]
+    : [null, 0, 0, 0, 0];
   useEffect(() => {
-    if (mode !== "live" || !picked || !proj) return;
+    if (mode !== "live" || !pickedId || !proj) return;
     let alive = true;
     const body = {
       kind: "earthquake",
-      lat: picked.lat,
-      lon: picked.lon,
-      magnitude: picked.mag,
-      time: new Date(picked.time).toISOString(),
+      lat: pLat,
+      lon: pLon,
+      magnitude: pMag,
+      time: new Date(pTime).toISOString(),
     };
     api<unknown>("/geo/graph/propagate", { method: "POST", body: JSON.stringify(body) })
       .then(
         (raw) =>
           alive &&
           setLive({
-            id: picked.stableId,
+            id: pickedId,
             answer: parseLiveAnswer(raw, proj.nodes),
-            note: `Live answer from POST /geo/graph/propagate, as of ${new Date().toISOString().slice(0, 16)}Z.`,
+            // propagate() cuts at the earlier of the quake's time and as_of, so this is the
+            // point-in-time answer: the graph as it was known when the quake happened.
+            note: `Point-in-time answer from POST /geo/graph/propagate: only relationships sourced by the quake's time (${new Date(pTime).toISOString().slice(0, 16)}Z) are used.`,
           }),
       )
       .catch(
         (e: unknown) =>
           alive &&
           setLive({
-            id: picked.stableId,
+            id: pickedId,
             answer: null,
             note: `POST /geo/graph/propagate failed: ${e instanceof Error ? e.message : String(e)}`,
           }),
@@ -145,7 +151,7 @@ export default function GlobePage() {
     return () => {
       alive = false;
     };
-  }, [mode, picked, proj]);
+  }, [mode, pickedId, pLat, pLon, pMag, pTime, proj]);
   const selection = useMemo<GeoSelection>(() => {
     if (!proj) return null;
     if (scenario)
@@ -192,11 +198,17 @@ export default function GlobePage() {
         proj,
         graphLayers,
         selection?.answer
-          ? { lat: selection.event.lat, lon: selection.event.lon, answer: selection.answer }
+          ? {
+              lat: selection.event.lat,
+              lon: selection.event.lon,
+              answer: selection.answer,
+              scenario: selection.event.origin === "scenario",
+            }
           : null,
       ),
     [proj, graphLayers, selection],
   );
+  const chainDrawn = drawsChain(selection?.answer);
   const siteCount = proj ? Object.values(proj.nodes).filter((n) => n.lat != null).length : 0;
   const companyCount = proj
     ? Object.values(proj.nodes).filter((n) => n.type === "company").length
@@ -224,7 +236,9 @@ export default function GlobePage() {
   );
   return (
     <ForgeShell bleed>
-      <div className={`globe${sensor ? ` sensor-${sensor}` : ""}`}>
+      <div
+        className={`globe${sensor ? ` sensor-${sensor}` : ""}${overlay?.scenario ? " ge-scenario" : ""}`}
+      >
         <div
           className="ge-stage"
           data-geo-arcs={overlay?.arcs.length ?? 0}
@@ -251,6 +265,17 @@ export default function GlobePage() {
             )}
           </Suspense>
           <div className="ge-labels" ref={setLabelsRoot} aria-hidden="true" />
+          {overlay?.scenario && (
+            <div className="ge-hud ge-hypo" data-geo-hypothetical>
+              Scenario · hypothetical — not a recorded event
+            </div>
+          )}
+          {/* The drawn arcs with their value and rendered colour, for checks and assistive tech. */}
+          <ol className="ge-arc-list" hidden data-geo-arc-list>
+            {overlay?.arcs.map((a) => (
+              <li key={a.key} data-kind={a.kind} data-value={a.value} data-color={cssRgb(a.rgb)} />
+            ))}
+          </ol>
           <div className="ge-frame" aria-hidden="true">
             <i />
             <i />
@@ -329,9 +354,15 @@ export default function GlobePage() {
                 <button
                   key={k}
                   type="button"
-                  aria-pressed={!!proj && graphLayers[k]}
-                  disabled={!proj}
-                  title={proj ? undefined : "The graph projection is unavailable"}
+                  aria-pressed={!!proj && graphLayers[k] && !(k === "companies" && chainDrawn)}
+                  disabled={!proj || (k === "companies" && chainDrawn)}
+                  title={
+                    !proj
+                      ? "Disabled: the graph projection was refused"
+                      : k === "companies" && chainDrawn
+                        ? "Disabled: the selected event's propagation chain is drawn in its place; clear the selection to show the companies layer"
+                        : undefined
+                  }
                   onClick={() => setGraphLayers((l) => ({ ...l, [k]: !l[k] }))}
                 >
                   {label.trim()}
@@ -395,6 +426,7 @@ export default function GlobePage() {
             view={view}
             onView={setView}
             onScenario={(id) => setPick((p) => ({ ...p, selected: id }))}
+            onClear={() => setPick((p) => ({ ...p, selected: null }))}
             arcs={overlay?.arcs.length ?? 0}
             choices={events
               .filter((e) => e.mag >= 5)

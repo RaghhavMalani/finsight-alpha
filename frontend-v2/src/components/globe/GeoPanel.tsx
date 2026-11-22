@@ -1,4 +1,4 @@
-import { ARC_COLORS, SITE_COLORS, shortName } from "./geo-overlay";
+import { arcRgb, cssRgb, SITE_COLORS, shortName, type ArcKind } from "./geo-overlay";
 import {
   STATUS_WORDS,
   type GeoAnswer,
@@ -19,7 +19,7 @@ export type GeoSelection = {
 
 const day = (iso: string) => iso.slice(0, 10);
 const km = (n: number) => `${Math.round(n).toLocaleString("en-US")} km`;
-const ARC_KEY: [keyof typeof ARC_COLORS, string][] = [
+const ARC_KEY: [ArcKind, string][] = [
   ["proximity", "event → site: proximity 1 − d/r"],
   ["operates", "site → company: operates confidence"],
   ["supplies", "company → customer: supplies confidence"],
@@ -33,9 +33,11 @@ export function GeoPanel({
   view,
   onView,
   onScenario,
+  onClear,
   arcs,
   choices,
 }: {
+  onClear: () => void;
   /** Earthquakes of M5 and above in the loaded feed, newest first, for keyboard selection. */
   choices: { id: string; label: string }[];
   geo: GeoLoad;
@@ -81,9 +83,12 @@ export function GeoPanel({
       ) : (
         <>
           <div className="ge-prop-head">
-            <span className={`ge-origin ${selection.event.origin}`}>
+            <span
+              className={`ge-origin ${selection.event.origin}`}
+              data-geo-origin={selection.event.origin}
+            >
               {selection.event.origin === "scenario"
-                ? "Scenario · hypothetical, not a recorded event"
+                ? "Scenario · hypothetical — not a recorded event"
                 : selection.event.origin === "live"
                   ? "Live · USGS"
                   : "Recorded · USGS"}
@@ -119,16 +124,10 @@ export function GeoPanel({
             </div>
           )}
           {view === "retrospective" && selection.retrospective && (
-            <p className="ge-fine">
+            <p className="ge-fine" data-geo-retrospective>
               Retrospective: the same place and magnitude against relationships this project checked
               on {day(p.graph.knowledge_cutoff)}, after the event. Not what was knowable when it
               happened.
-            </p>
-          )}
-          {selection.event.origin === "scenario" && (
-            <p className="ge-fine">
-              Dated at the graph&apos;s knowledge cutoff, {day(p.graph.knowledge_cutoff)}, so the
-              cited relationships exist. Its place and size are declared inputs, not observations.
             </p>
           )}
           {selection.pending ? (
@@ -136,13 +135,27 @@ export function GeoPanel({
               Waiting for POST /geo/graph/propagate…
             </p>
           ) : answer ? (
-            <AnswerView p={p} answer={answer} arcs={arcs} />
+            <AnswerView
+              p={p}
+              answer={answer}
+              arcs={arcs}
+              scenario={selection.event.origin === "scenario"}
+            />
           ) : (
             <p className="ge-prop-unavail" role="status" data-geo-status-word="UNAVAILABLE">
               <b>UNAVAILABLE</b> — {selection.note ?? "no answer for this event."}
             </p>
           )}
           {selection.note && answer && <p className="ge-fine">{selection.note}</p>}
+          {selection.event.origin === "scenario" && (
+            <p className="ge-fine">
+              Dated at the graph&apos;s knowledge cutoff, {day(p.graph.knowledge_cutoff)}, so the
+              cited relationships exist. Its place and size are declared inputs, not observations.
+            </p>
+          )}
+          <button type="button" className="ge-clear" onClick={onClear}>
+            Clear selection
+          </button>
         </>
       )}
       <label className="ge-pick">
@@ -187,40 +200,34 @@ export function GeoPanel({
   );
 }
 
-function AnswerView({ p, answer, arcs }: { p: GeoProjection; answer: GeoAnswer; arcs: number }) {
+function AnswerView({
+  p,
+  answer,
+  arcs,
+  scenario,
+}: {
+  p: GeoProjection;
+  answer: GeoAnswer;
+  arcs: number;
+  scenario: boolean;
+}) {
   const name = (id: string) => shortName(p.nodes[id], id);
+  const full = (id: string) => p.nodes[id]?.name ?? id;
+  // Missing is not zero: an answer that never looked at sites says so.
+  const NE = "not evaluated";
   const words = STATUS_WORDS[answer.status];
   return (
     <>
       <p className={`ge-word ${answer.status}`} role="status" data-geo-status-word={answer.status}>
-        <b>{answer.status}</b> — {words}
-        {answer.status === "AVAILABLE"
-          ? `: ${answer.securities.length} ${answer.securities.length === 1 ? "security" : "securities"}.`
-          : "."}
-        {answer.reason && answer.status !== "AVAILABLE" ? ` ${answer.reason}.` : ""}
+        <b>{answer.status}</b>
+        <span>
+          — {words}
+          {answer.status === "AVAILABLE"
+            ? `: ${answer.securities.length} ${answer.securities.length === 1 ? "security" : "securities"}.`
+            : "."}
+          {answer.reason && answer.status !== "AVAILABLE" ? ` ${answer.reason}.` : ""}
+        </span>
       </p>
-      <div className="ge-rows mono">
-        <div>
-          <span>Declared radius</span>
-          <b>{answer.radius_km != null ? km(answer.radius_km) : "none"}</b>
-        </div>
-        <div>
-          <span>Nearest sourced site</span>
-          <b>{answer.nearest_site_km != null ? `≈ ${km(answer.nearest_site_km)}` : "—"}</b>
-        </div>
-        <div>
-          <span>Sites in radius</span>
-          <b>{answer.sites.length}</b>
-        </div>
-        <div>
-          <span>Cited chains</span>
-          <b>{answer.chains_total}</b>
-        </div>
-        <div>
-          <span>Arcs drawn</span>
-          <b>{arcs}</b>
-        </div>
-      </div>
       {answer.securities.length > 0 && (
         <>
           <div className="ge-eyebrow">Reached securities · best chain each</div>
@@ -229,10 +236,13 @@ function AnswerView({ p, answer, arcs }: { p: GeoProjection; answer: GeoAnswer; 
               <li key={r.security} data-geo-security={r.security}>
                 <details>
                   <summary>
-                    <b className="mono">{name(r.security)}</b>
+                    <b className="mono" title={full(r.security)}>
+                      {name(r.security)}
+                    </b>
                     <span>
                       chain score <span className="mono">{r.score.toFixed(4)}</span> · via{" "}
-                      {name(r.best_chain.site)} ≈ {km(r.best_chain.distance_km)}
+                      <span title={full(r.best_chain.site)}>{name(r.best_chain.site)}</span> ≈{" "}
+                      {km(r.best_chain.distance_km)}
                     </span>
                   </summary>
                   <ol className="ge-hops">
@@ -240,10 +250,12 @@ function AnswerView({ p, answer, arcs }: { p: GeoProjection; answer: GeoAnswer; 
                       <li key={h.id} data-geo-hop={h.id}>
                         <div>
                           <b>
-                            {name(h.src)} → {name(h.dst)}
+                            <span title={full(h.src)}>{name(h.src)}</span> →{" "}
+                            <span title={full(h.dst)}>{name(h.dst)}</span>
                           </b>{" "}
-                          <span className="mono">
-                            {h.type} · confidence {h.confidence}
+                          <span className="mono ge-hop-type">
+                            {h.type}
+                            {h.confidence < 1 ? ` · confidence ${h.confidence}` : ""}
                           </span>
                         </div>
                         <div>{h.mechanism}</div>
@@ -264,6 +276,36 @@ function AnswerView({ p, answer, arcs }: { p: GeoProjection; answer: GeoAnswer; 
           </ol>
         </>
       )}
+      <div className="ge-rows mono">
+        <div>
+          <span>Declared radius</span>
+          <b>{answer.radius_km != null ? km(answer.radius_km) : "none"}</b>
+        </div>
+        <div>
+          <span>Nearest sourced site</span>
+          <b>
+            {answer.nearest_site_km != null
+              ? `≈ ${km(answer.nearest_site_km)}`
+              : answer.evaluated
+                ? "none"
+                : NE}
+          </b>
+        </div>
+        <div>
+          <span>Sites in radius</span>
+          <b data-geo-count="sites">{answer.evaluated ? answer.sites.length : NE}</b>
+        </div>
+        <div>
+          <span>Cited chains</span>
+          <b data-geo-count="chains">
+            {answer.evaluated && answer.chains_total != null ? answer.chains_total : NE}
+          </b>
+        </div>
+        <div>
+          <span>Arcs drawn</span>
+          <b data-geo-count="arcs">{answer.evaluated ? arcs : NE}</b>
+        </div>
+      </div>
       {answer.sites.length > 0 && (
         <details className="ge-sites">
           <summary>
@@ -284,8 +326,10 @@ function AnswerView({ p, answer, arcs }: { p: GeoProjection; answer: GeoAnswer; 
       {(answer.status === "AVAILABLE" || answer.status === "PARTIAL") && (
         <div className="ge-legend" aria-label="Arc legend">
           <p>
-            Arc brightness encodes each arc&apos;s value from 0 to 1; hue names the edge type; line
-            width is constant.
+            Arc brightness encodes each arc&apos;s value from 0 to 1; hue names the edge type
+            {scenario ? " (an amber family for a hypothetical scenario)" : ""}; line width is
+            constant. Arcs are drawn additively, so where two overlap the crossing looks brighter
+            than either value.
           </p>
           <ul>
             {ARC_KEY.map(([k, label]) => (
@@ -294,7 +338,9 @@ function AnswerView({ p, answer, arcs }: { p: GeoProjection; answer: GeoAnswer; 
                   {[0.25, 0.5, 0.75, 1].map((v) => (
                     <i
                       key={v}
-                      style={{ background: ARC_COLORS[k], opacity: 0.12 + 0.88 * v }}
+                      data-geo-swatch={k}
+                      data-value={v}
+                      style={{ background: cssRgb(arcRgb(k, v, scenario)) }}
                       title={`value ${v}`}
                     />
                   ))}
@@ -317,7 +363,7 @@ function AnswerView({ p, answer, arcs }: { p: GeoProjection; answer: GeoAnswer; 
                 {t}
               </span>
             ))}{" "}
-            · the yellow ring is the declared radius.
+            · the {scenario ? "pale amber" : "yellow"} ring is the declared radius.
           </p>
         </div>
       )}
