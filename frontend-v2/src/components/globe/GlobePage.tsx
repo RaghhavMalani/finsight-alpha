@@ -27,6 +27,10 @@ import { useDataMode } from "@/replay/mode";
 import { loadReplayManifest } from "@/replay/client";
 import type { ReplayManifest } from "@/replay/contracts";
 import { SourceCredit } from "@/replay/SourceCredit";
+import { api } from "@/lib/api";
+import { parseLiveAnswer, useGeoProjection, type GeoAnswer } from "./geo-graph";
+import { buildOverlay } from "./geo-overlay";
+import { GeoPanel, type GeoSelection, type GeoView } from "./GeoPanel";
 
 const GlobeScene = lazy(() => import("./GlobeScene"));
 const ago = (ms: number) => {
@@ -58,6 +62,13 @@ export default function GlobePage() {
   const [look, setLook] = useState<[number, number, number]>([24, 150, 10000]);
   const [satCount, setSatCount] = useState(0);
   const [labelsRoot, setLabelsRoot] = useState<HTMLDivElement | null>(null);
+  const geo = useGeoProjection();
+  const proj = geo.status === "ok" ? geo.projection : null;
+  const [graphLayers, setGraphLayers] = useState({ sites: true, companies: false });
+  const [view, setView] = useState<GeoView>("point_in_time");
+  const [live, setLive] = useState<{ id: string; answer: GeoAnswer | null; note: string } | null>(
+    null,
+  );
   useEffect(() => {
     void loadLand().then(setLand);
     if (mode === "replay") {
@@ -99,6 +110,97 @@ export default function GlobePage() {
   const coveredFrom = now - 30 * 86_400_000;
   const inputs = useMemo(() => geoInputs(events, now, coveredFrom), [events, now, coveredFrom]);
   const focus = events.find((e) => e.stableId === (pick.hover ?? pick.selected)) ?? null;
+  const picked = events.find((e) => e.stableId === pick.selected) ?? null;
+  const scenario = proj?.scenarios.find((s) => s.id === pick.selected) ?? null;
+  // Local Live asks the API, behind the session gate; Replay only reads the pinned projection.
+  useEffect(() => {
+    if (mode !== "live" || !picked || !proj) return;
+    let alive = true;
+    const body = {
+      kind: "earthquake",
+      lat: picked.lat,
+      lon: picked.lon,
+      magnitude: picked.mag,
+      time: new Date(picked.time).toISOString(),
+    };
+    api<unknown>("/geo/graph/propagate", { method: "POST", body: JSON.stringify(body) })
+      .then(
+        (raw) =>
+          alive &&
+          setLive({
+            id: picked.stableId,
+            answer: parseLiveAnswer(raw, proj.nodes),
+            note: `Live answer from POST /geo/graph/propagate, as of ${new Date().toISOString().slice(0, 16)}Z.`,
+          }),
+      )
+      .catch(
+        (e: unknown) =>
+          alive &&
+          setLive({
+            id: picked.stableId,
+            answer: null,
+            note: `POST /geo/graph/propagate failed: ${e instanceof Error ? e.message : String(e)}`,
+          }),
+      );
+    return () => {
+      alive = false;
+    };
+  }, [mode, picked, proj]);
+  const selection = useMemo<GeoSelection>(() => {
+    if (!proj) return null;
+    if (scenario)
+      return { event: scenario, answer: scenario.point_in_time, note: null, retrospective: null };
+    if (!picked) return null;
+    const event = {
+      id: picked.stableId,
+      origin: mode === "live" ? ("live" as const) : ("recorded" as const),
+      label: picked.place ?? "Unnamed location",
+      kind: "earthquake",
+      lat: picked.lat,
+      lon: picked.lon,
+      magnitude: picked.mag,
+      time: new Date(picked.time).toISOString(),
+    };
+    if (mode === "live") {
+      const answer = live?.id === picked.stableId ? live : null;
+      return answer
+        ? { event, answer: answer.answer, note: answer.note, retrospective: null }
+        : { event, answer: null, note: null, retrospective: null, pending: true };
+    }
+    const recorded = proj.events.get(picked.stableId);
+    if (!recorded)
+      return {
+        event,
+        answer: null,
+        note: "this quake is not in the checked projection; nothing is inferred for it.",
+        retrospective: null,
+      };
+    return {
+      event: recorded,
+      answer:
+        view === "retrospective" && recorded.retrospective
+          ? recorded.retrospective
+          : recorded.point_in_time,
+      note: null,
+      retrospective: recorded.retrospective,
+    };
+  }, [proj, scenario, picked, mode, live, view]);
+  const overlay = useMemo(
+    () =>
+      proj &&
+      buildOverlay(
+        proj,
+        graphLayers,
+        selection?.answer
+          ? { lat: selection.event.lat, lon: selection.event.lon, answer: selection.answer }
+          : null,
+      ),
+    [proj, graphLayers, selection],
+  );
+  const siteCount = proj ? Object.values(proj.nodes).filter((n) => n.lat != null).length : 0;
+  const companyCount = proj
+    ? Object.values(proj.nodes).filter((n) => n.type === "company").length
+    : 0;
   const exposure = useMemo(
     () =>
       HUBS.map(
@@ -123,7 +225,12 @@ export default function GlobePage() {
   return (
     <ForgeShell bleed>
       <div className={`globe${sensor ? ` sensor-${sensor}` : ""}`}>
-        <div className="ge-stage">
+        <div
+          className="ge-stage"
+          data-geo-arcs={overlay?.arcs.length ?? 0}
+          data-geo-sites={overlay?.sites.length ?? 0}
+          data-geo-companies={overlay?.labels.length ?? 0}
+        >
           <Suspense fallback={<div className="ge-status">Spinning up the globe…</div>}>
             {now > 0 && (
               <GlobeScene
@@ -139,6 +246,7 @@ export default function GlobePage() {
                 onLook={onLook}
                 onSatellites={setSatCount}
                 labelsRoot={labelsRoot}
+                overlay={overlay}
               />
             )}
           </Suspense>
@@ -211,6 +319,25 @@ export default function GlobePage() {
                 </button>
               ))}
             </div>
+            <div className="ge-seg" role="group" aria-label="Graph layers">
+              {(
+                [
+                  ["sites", `Sites ${siteCount || ""}`],
+                  ["companies", `Companies ${companyCount || ""}`],
+                ] as const
+              ).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={!!proj && graphLayers[k]}
+                  disabled={!proj}
+                  title={proj ? undefined : "The graph projection is unavailable"}
+                  onClick={() => setGraphLayers((l) => ({ ...l, [k]: !l[k] }))}
+                >
+                  {label.trim()}
+                </button>
+              ))}
+            </div>
             <div className="ge-feeds">
               {feedChip(quakes, "USGS")}
               {feedChip(sats, "CelesTrak")}
@@ -262,6 +389,21 @@ export default function GlobePage() {
           )}
         </div>
         <aside className="ge-panel" aria-label="Neural link">
+          <GeoPanel
+            geo={geo}
+            selection={selection}
+            view={view}
+            onView={setView}
+            onScenario={(id) => setPick((p) => ({ ...p, selected: id }))}
+            arcs={overlay?.arcs.length ?? 0}
+            choices={events
+              .filter((e) => e.mag >= 5)
+              .sort((a, b) => b.time - a.time)
+              .map((e) => ({
+                id: e.stableId,
+                label: `M${e.mag.toFixed(1)} · ${utc(e.time).slice(0, 10)} · ${e.place ?? "Unnamed"}`,
+              }))}
+          />
           {mode === "replay" && manifest && (
             <details className="mb-5 text-xs leading-5">
               <summary className="cursor-pointer">Sources, licences and recorded cutoffs</summary>

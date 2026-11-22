@@ -521,3 +521,198 @@
     animation: none;
   }
 }
+/* Global Eye v2: graph labels, the propagation panel and its legend */
+.globe .lb.co {
+  color: #9ff3ff;
+}
+.globe .lb.sec {
+  color: var(--ge-amber);
+}
+.ge-controls .ge-seg button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ge-prop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ge-line);
+}
+.ge-prop-head strong {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.ge-prop-head .mono {
+  display: block;
+  color: var(--ge-cyan);
+  font-size: 11px;
+}
+.ge-origin {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--ge-line);
+  border-radius: 2px;
+  color: var(--ge-muted);
+  font: 10px var(--ge-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ge-origin.scenario {
+  border-color: rgba(192, 132, 252, 0.5);
+  color: #d8b4fe;
+}
+.ge-view {
+  align-self: flex-start;
+  max-width: 100%;
+}
+.ge-word,
+.ge-prop-unavail {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--ge-faint);
+  background: rgba(231, 234, 236, 0.04);
+  font-size: 12.5px;
+}
+.ge-word b,
+.ge-prop-unavail b {
+  font-family: var(--ge-mono);
+  letter-spacing: 0.04em;
+}
+.ge-word.AVAILABLE {
+  border-color: #42c98b;
+}
+.ge-word.PARTIAL {
+  border-color: var(--ge-amber);
+}
+.ge-prop-unavail {
+  border-color: #f06464;
+  color: #f3a0a0;
+}
+.ge-secs,
+.ge-hops,
+.ge-sites ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ge-secs summary,
+.ge-sites summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.ge-secs summary b {
+  margin-right: 8px;
+  color: var(--ge-amber);
+}
+.ge-secs summary > span {
+  color: var(--ge-muted);
+}
+.ge-hops {
+  margin: 8px 0 4px 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--ge-line);
+}
+.ge-hops li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+.ge-hops .mono,
+.ge-faint {
+  color: var(--ge-faint);
+}
+.ge-src a {
+  color: var(--ge-cyan);
+}
+.ge-hops q {
+  color: var(--ge-muted);
+  font-style: italic;
+}
+.ge-sites li {
+  font-size: 11px;
+  color: var(--ge-muted);
+}
+.ge-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ge-muted);
+}
+.ge-legend p {
+  margin: 0;
+}
+.ge-legend ul {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ge-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ge-ramp {
+  display: inline-grid;
+  grid-template-columns: repeat(4, 14px);
+  gap: 2px;
+}
+.ge-ramp i {
+  height: 4px;
+  border-radius: 1px;
+}
+.ge-ramp-scale {
+  display: grid;
+  grid-template-columns: repeat(4, 16px);
+  font-size: 9px;
+  color: var(--ge-faint);
+}
+.ge-dot {
+  margin-right: 8px;
+}
+.ge-dot i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 50%;
+}
+.ge-scen button[aria-pressed="true"] {
+  background: rgba(63, 224, 255, 0.1);
+}
+.ge-scen em {
+  font-size: 10px;
+}
+.ge-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ge-muted);
+  font-size: 11px;
+}
+.ge-pick select {
+  width: 100%;
+  padding: 5px 6px;
+  border: 1px solid var(--ge-line);
+  border-radius: 2px;
+  background: #05090b;
+  color: var(--ge-fg);
+  font: 11px var(--ge-mono);
+}
+/* The docked panel scrolls on its own; the globe keeps the height the shell gives it. */
+@media (min-width: 1101px) {
+  .globe {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
