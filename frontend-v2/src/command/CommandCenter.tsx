@@ -27,7 +27,7 @@ import {
 } from "./records";
 import { Num, ProvenanceProvider, Stamp } from "@/visual/Num";
 import { liveOrigin, num as numOf, ref } from "@/visual/origins";
-import { USGS_MONTH_FEED } from "@/components/globe/geo-data";
+import { CELESTRAK_GROUPS, USGS_MONTH_FEED } from "@/components/globe/geo-data";
 import "./command.css";
 
 const GlobeScene = lazy(() => import("@/components/globe/GlobeScene"));
@@ -44,7 +44,25 @@ export function LiveDot({ state, label }: { state: "fresh" | "stale" | "dead"; l
 /** Live records arrive from the backlog or the stream; seq names the exact record. */
 const EVENTS = "GET /live/recent · /live/stream";
 const HEALTH = "GET /live/health";
-const at = (e: LiveEvent, ptr: string) => liveOrigin(EVENTS, ptr, e);
+/** Source, delay, confidence and licence of the record: shown with every value it carries. */
+const recordNote = (e: LiveEvent) =>
+  `${e.type} · source ${e.source} (${e.source_id}) · delay ${e.provenance.delay} · confidence ${e.confidence} · licence ${e.licence.status} / ${e.licence.redistribution}`;
+const at = (e: LiveEvent, ptr: string) => liveOrigin(EVENTS, ptr, e, { note: recordNote(e) });
+
+/**
+ * The keyboard and pointer path to a record's origin: a button beside the row's link (never
+ * inside it) that opens the popover with seq, clocks, source and licence.
+ */
+function RecordOrigin({ e }: { e: LiveEvent }) {
+  return (
+    <Num
+      n={numOf(at(e, "/seq"), e.seq, "int")}
+      display={`#${e.seq}`}
+      label={`Origin of ${e.type} record`}
+      className="cmd-prov"
+    />
+  );
+}
 /** Verbatim record text (a headline, a place) may contain digits; it is shown as recorded. */
 const Verbatim = ({ children }: { children: React.ReactNode }) => (
   <span data-num-exempt="copy">{children}</span>
@@ -64,12 +82,10 @@ function LiveNum({
   display: (v: number) => string;
 }) {
   const v = num(e.payload[field]);
-  return v === null ? (
-    <>n/a</>
-  ) : (
+  return (
     <Num
-      n={numOf(at(e, `/payload/${field}`), v)}
-      display={display(v)}
+      n={numOf(at(e, `/payload/${field}`), v, "x", `the record has no numeric /payload/${field}`)}
+      display={v === null ? undefined : display(v)}
       label={label}
       inert
       className="vx-inherit"
@@ -154,6 +170,15 @@ function Summary({ e }: { e: LiveEvent }) {
   }
 }
 
+/** A feed row's value names the snapshot entry or the feed.health record it was read from. */
+function feedOrigin(f: FeedHealth, field: string) {
+  const via = f.via ?? { src: HEALTH, ptr: "/feeds", as_of: null };
+  return liveOrigin(via.src, `${via.ptr}/${field}`, via, {
+    asOf: via.as_of ?? null,
+    note: via.seq != null ? "From the latest feed.health record for this feed." : undefined,
+  });
+}
+
 function Row({ event, fresh }: { event: LiveEvent; fresh: boolean }) {
   const target = destination(event);
   return (
@@ -171,6 +196,7 @@ function Row({ event, fresh }: { event: LiveEvent; fresh: boolean }) {
           <span data-num-exempt="key-label">{WORKSPACE_KEY[target.to]}</span> ›
         </span>
       </Link>
+      <RecordOrigin e={event} />
     </li>
   );
 }
@@ -321,7 +347,7 @@ export function CommandCenter() {
               "",
               {},
               {
-                note: "When this browser last read the public feed (browser clock), not a source time.",
+                note: "Public feed read directly by this browser. The time is the browser-clock fetch time, not a source timestamp.",
               },
             ),
             new Date(f.at).toISOString(),
@@ -379,6 +405,7 @@ export function CommandCenter() {
                     <LiveClock e={e} field="observed_at" label="Observed at" />
                   </span>
                 </Link>
+                <RecordOrigin e={e} />
               </li>
             ))}
           </ul>
@@ -466,7 +493,7 @@ export function CommandCenter() {
               )}
               <div className="cmd-chips">
                 {feedChip(quakes, "USGS", USGS_MONTH_FEED)}
-                {feedChip(sats, "CelesTrak", "CelesTrak GP groups")}
+                {feedChip(sats, "CelesTrak", Object.values(CELESTRAK_GROUPS).join(" + "))}
                 {connected && (
                   <span className="cmd-chip live">
                     spine · {held(events.length, "Records")} records
@@ -560,6 +587,7 @@ export function CommandCenter() {
                             <span data-num-exempt="key-label">F2</span> Research ›
                           </span>
                         </Link>
+                        <RecordOrigin e={e} />
                       </li>
                     );
                   })}
@@ -613,19 +641,7 @@ export function CommandCenter() {
                               lag(f.lag_s)
                             ) : (
                               <Num
-                                n={numOf(
-                                  liveOrigin(
-                                    HEALTH,
-                                    `/feeds[feed=${f.feed}]/lag_s`,
-                                    {},
-                                    {
-                                      asOf: spine.healthAt,
-                                      note: "Or a later feed.health record for this feed (its /payload/lag_s).",
-                                    },
-                                  ),
-                                  f.lag_s,
-                                  "sec",
-                                )}
+                                n={numOf(feedOrigin(f, "lag_s"), f.lag_s, "sec")}
                                 display={lag(f.lag_s)}
                                 label={`${f.feed} lag (s)`}
                                 inert
@@ -634,6 +650,12 @@ export function CommandCenter() {
                             )}
                           </span>
                         </Link>
+                        <Stamp
+                          s={ref(feedOrigin(f, "last_success_at"), f.last_success_at)}
+                          display="src"
+                          label={`${f.feed} last success`}
+                          className="cmd-prov"
+                        />
                       </li>
                     );
                   })}

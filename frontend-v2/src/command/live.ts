@@ -122,7 +122,17 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
           for (const record of healthRecords) {
             const snap = record.payload as Partial<FeedHealth>;
             if (isText(snap.feed) && isText(snap.status))
-              next.set(snap.feed, { ...next.get(snap.feed), ...(snap as FeedHealth) });
+              next.set(snap.feed, {
+                ...next.get(snap.feed),
+                ...(snap as FeedHealth),
+                via: {
+                  src: "GET /live/recent · /live/stream",
+                  ptr: "/payload",
+                  seq: record.seq,
+                  available_at: record.available_at,
+                  observed_at: record.observed_at,
+                },
+              });
           }
           return [...next.values()];
         });
@@ -164,7 +174,13 @@ export function useLiveSpine(enabled: boolean, allowed: boolean) {
         );
       const at = isObject(body) ? text(body.now) : null;
       snapshotMs = at && Number.isFinite(Date.parse(at)) ? Date.parse(at) : -Infinity;
-      setFeeds(parseFeeds(body));
+      const raw = isObject(body) && Array.isArray(body.feeds) ? body.feeds : [];
+      setFeeds(
+        parseFeeds(body).map((f) => ({
+          ...f,
+          via: { src: "GET /live/health", ptr: `/feeds/${raw.indexOf(f)}`, as_of: at },
+        })),
+      );
       setHealthAt(at);
     };
     // Without a seq: the newest PAGE records. After one: page forward until a short page. The

@@ -354,3 +354,22 @@
     max-height: 50vh;
   }
 }
+
+/* U2: a row's origin button sits beside its link, never inside it, so the keyboard reaches it. */
+.cmd-list li,
+.cmd-market li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.cmd-list li > a,
+.cmd-market li > a {
+  flex: 1;
+  min-width: 0;
+}
+.cmd-prov.cmd-prov.cmd-prov {
+  flex: none;
+  margin-top: 6px;
+  color: var(--cmd-muted);
+  font: 10px/1.4 var(--cmd-mono);
+}
