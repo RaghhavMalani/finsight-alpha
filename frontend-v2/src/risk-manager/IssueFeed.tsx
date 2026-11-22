@@ -1,7 +1,7 @@
 import { partition, type Issue } from "./contracts";
 import { sortIssues, displayText, tone } from "./filters";
 import type { RiskBundle } from "./client";
-import { issueOrigin, RiskCopy, RiskId, RiskNum, RiskTime, stateOrigin } from "./prov";
+import { issueOrigin, issuesOrigin, RiskCopy, RiskId, RiskNum, RiskTime } from "./prov";
 export function IssueFeed({
   bundle,
   issues,
@@ -24,9 +24,7 @@ export function IssueFeed({
         <span>ISSUE FEED</span>
         <span className="text-faint">
           <RiskNum
-            o={stateOrigin(bundle, "/payload/issues", {
-              formula: "count of retained Issues matching the reader's filters",
-            })}
+            o={issuesOrigin(bundle, "count of retained Issues matching the reader's filters")}
             v={rows.length}
             label="Issues in view"
             inert
@@ -90,7 +88,6 @@ export function IssueFeed({
                         o={issueOrigin(bundle, issue, "evidence_at")}
                         v={issue.evidence_at}
                         label="Evidence at"
-                        inert
                       />
                     </time>
                   </div>
@@ -101,7 +98,6 @@ export function IssueFeed({
                       o={issueOrigin(bundle, issue, "first_seen_at")}
                       v={issue.first_seen_at}
                       label="First seen"
-                      inert
                     />
                   </time>
                 </td>

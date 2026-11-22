@@ -6,6 +6,20 @@ import { displayText, tone } from "./filters";
 import { PINNED_POLICY } from "./bindings";
 import { replayOrigin } from "@/visual/origins";
 import type { Origin } from "@/visual/Num";
+import { RISK_READ_PLAN } from "./read-plan.generated";
+
+/**
+ * A clock the Issue's evidence reference names, located at its manifest entry. The manifest
+ * names digests; it has none of its own, so no SHA-256 is claimed for it.
+ */
+const manifestEntry = (id: string | null | undefined, field: string): Origin =>
+  replayOrigin(
+    { url: RISK_READ_PLAN.projection.url, sha256: null },
+    `/artifacts/${id ?? "?"}/${field}`,
+    {
+      note: `The Issue's evidence reference states this ${field}; the client checks it equals the checked Risk manifest entry for ${id ?? "an unnamed artifact"} (the Risk read manifest merged with terminal catalog bindings).`,
+    },
+  );
 import { issueOrigin, RiskCopy, RiskId, RiskNum, RiskTime, sweepOrigin } from "./prov";
 export function IssueInspector({
   issue,
@@ -244,9 +258,7 @@ export function IssueInspector({
                   <br />
                   AS OF{" "}
                   <RiskTime
-                    o={replayOrigin(bundle.manifest.artifacts[ref.artifact_id ?? ""], "/as_of", {
-                      note: "Named by the Issue's evidence reference; checked against the manifest entry.",
-                    })}
+                    o={manifestEntry(ref.artifact_id, "as_of")}
                     v={ref.as_of}
                     label="Reference as of"
                     inert
@@ -254,13 +266,7 @@ export function IssueInspector({
                   <br />
                   AVAILABLE{" "}
                   <RiskTime
-                    o={replayOrigin(
-                      bundle.manifest.artifacts[ref.artifact_id ?? ""],
-                      "/available_at",
-                      {
-                        note: "Named by the Issue's evidence reference; checked against the manifest entry.",
-                      },
-                    )}
+                    o={manifestEntry(ref.artifact_id, "available_at")}
                     v={ref.available_at}
                     label="Reference available at"
                     inert

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDataMode } from "@/replay/mode";
 import { ProvenanceProvider } from "@/visual/Num";
-import { RiskNum, RiskTime, stateOrigin, sweepOrigin } from "./prov";
+import { issuesOrigin, RiskNum, RiskTime, stateOrigin, sweepOrigin } from "./prov";
 import { loadRisk, readChecked, type RiskBundle } from "./client";
 import { filterIssues } from "./filters";
 import {
@@ -571,20 +571,20 @@ export function RiskWorkspace() {
                     [
                       [
                         <RiskNum
-                          o={stateOrigin(bundle, "/payload/issues", {
-                            formula:
-                              "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = CURRENT_REAL",
-                          })}
+                          o={issuesOrigin(
+                            bundle,
+                            "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = CURRENT_REAL",
+                          )}
                           v={real.length}
                           label="Current real findings"
                         />,
                         "CURRENT REAL FINDINGS",
                         <>
                           <RiskNum
-                            o={stateOrigin(bundle, "/payload/issues", {
-                              formula:
-                                "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = CURRENT_REAL and severity is HIGH or CRITICAL",
-                            })}
+                            o={issuesOrigin(
+                              bundle,
+                              "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = CURRENT_REAL and severity is HIGH or CRITICAL",
+                            )}
                             v={real.filter((i) => ["HIGH", "CRITICAL"].includes(i.severity)).length}
                             label="High or critical findings"
                           />{" "}
@@ -593,10 +593,10 @@ export function RiskWorkspace() {
                       ],
                       [
                         <RiskNum
-                          o={stateOrigin(bundle, "/payload/issues", {
-                            formula:
-                              "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = UNAVAILABLE",
-                          })}
+                          o={issuesOrigin(
+                            bundle,
+                            "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = UNAVAILABLE",
+                          )}
                           v={issues.filter((i) => partition(i) === "UNAVAILABLE").length}
                           label="Unavailable findings"
                         />,
@@ -657,9 +657,10 @@ export function RiskWorkspace() {
                           {label}{" "}
                           <span className="ml-1">
                             <RiskNum
-                              o={stateOrigin(bundle, "/payload/issues", {
-                                formula: `count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = ${key}`,
-                              })}
+                              o={issuesOrigin(
+                                bundle,
+                                `count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = ${key}`,
+                              )}
                               v={issues.filter((i) => partition(i) === key).length}
                               label={`${label} findings`}
                               inert

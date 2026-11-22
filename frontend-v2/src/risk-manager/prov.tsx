@@ -12,7 +12,27 @@ import { stamp, type Issue } from "./contracts";
 export const stateOrigin = (bundle: RiskBundle, ptr: string, extra?: Partial<Origin>): Origin =>
   bundle.stateRef
     ? replayOrigin(bundle.manifest.artifacts[bundle.stateRef], ptr, extra)
-    : { ...sweepOrigin(bundle, ptr, extra), reason: "No retained state for this sweep." };
+    : sweepOrigin(bundle, ptr, {
+        ...extra,
+        note: "No retained state accompanies this sweep; the value is read from the sweep receipt.",
+      });
+
+/**
+ * A count over the Issues on screen: the state's /payload/issues, plus a failed sweep's
+ * /payload/failure/issue. When the failure Issue is included, both artifacts are named.
+ */
+export function issuesOrigin(bundle: RiskBundle, formula: string): Origin {
+  const failure = bundle.sweep.payload.failure;
+  const sweep = bundle.manifest.artifacts[bundle.sweepRef];
+  const base = stateOrigin(bundle, "/payload/issues", { formula });
+  return failure && bundle.stateRef
+    ? {
+        ...base,
+        ptr2: `${sweep?.url ?? bundle.sweepRef} /payload/failure/issue`,
+        note: `Also counts the failed sweep's Issue from ${sweep?.url ?? bundle.sweepRef} (SHA-256 ${sweep?.sha256 ?? "unavailable"}).`,
+      }
+    : base;
+}
 export const sweepOrigin = (bundle: RiskBundle, ptr: string, extra?: Partial<Origin>): Origin =>
   replayOrigin(bundle.manifest.artifacts[bundle.sweepRef], ptr, extra);
 
