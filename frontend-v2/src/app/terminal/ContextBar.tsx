@@ -1,9 +1,11 @@
 import type { InvestigationContext, Market } from "./context";
 import { defaultContext, subjectTicker } from "./context";
 import type { ContextCompatibility } from "./compatibility";
+import { Stamp, type Origin } from "@/visual/Num";
 export type VerifiedSelection = {
   artifactId: string;
-  clocks: readonly { label: string; value: string }[];
+  /** A clock names its origin when the workspace knows it; otherwise it is shown as recorded. */
+  clocks: readonly { label: string; value: string; origin?: Origin }[];
   limitations?: readonly string[];
 };
 export function ContextBar({
@@ -85,7 +87,19 @@ export function ContextBar({
         {selection?.clocks.slice(0, 2).map((clock) => (
           <span key={clock.label} className="terminal-clock">
             <span>{clock.label}</span>
-            <b>{clock.value}</b>
+            <b>
+              {clock.origin ? (
+                <Stamp
+                  s={{ ...clock.origin, v: clock.value }}
+                  display={clock.value}
+                  label={clock.label}
+                  inert
+                  className="vx-inherit"
+                />
+              ) : (
+                clock.value
+              )}
+            </b>
           </span>
         ))}
         <details className="terminal-context-detail">

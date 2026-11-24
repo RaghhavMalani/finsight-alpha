@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { readCoverage, type RiskBundle } from "./client";
 import { type Coverage } from "./contracts";
+import { replayOrigin } from "@/visual/origins";
+import { RiskCopy, RiskId, RiskNum } from "./prov";
 export function CoverageMatrix({ bundle }: { bundle: RiskBundle }) {
   const [rows, setRows] = useState<Coverage[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +34,23 @@ export function CoverageMatrix({ bundle }: { bundle: RiskBundle }) {
       </p>
     );
   const selected = rows.filter((r) => category === "ALL" || r.category === category);
+  // The full coverage page is its own checked Replay artifact, named by the state's evidence index.
+  const pageId = bundle.state?.payload.evidence_index.find(
+    (r) => r.selector_id === "risk_coverage",
+  )?.artifact_id;
+  const at = (formula: string) =>
+    replayOrigin(pageId ? bundle.manifest.artifacts[pageId] : null, "/payload/coverage", {
+      formula,
+    });
   return (
     <section aria-label="Risk coverage matrix" className="border border-divider">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-divider bg-raised p-4">
         <div>
-          <h2 className="mono-caps text-[11px]">COVERAGE MATRIX · {rows.length} CONTRACT SLOTS</h2>
+          <h2 className="mono-caps text-[11px]">
+            COVERAGE MATRIX ·{" "}
+            <RiskNum o={at("count of /payload/coverage")} v={rows.length} label="Contract slots" />{" "}
+            CONTRACT SLOTS
+          </h2>
           <p className="mt-1 text-[11px] text-muted-foreground">
             Availability describes evaluation coverage. NOT_EVALUATED never means no risk.
           </p>
@@ -59,7 +73,11 @@ export function CoverageMatrix({ bundle }: { bundle: RiskBundle }) {
           <div key={status} className="border-r border-divider p-4">
             <div className="mono-caps text-[8px] text-faint">{status}</div>
             <div className="mt-1 font-mono text-xl">
-              {rows.filter((r) => r.availability === status).length}
+              <RiskNum
+                o={at(`count of /payload/coverage where availability = ${status}`)}
+                v={rows.filter((r) => r.availability === status).length}
+                label={`${status} slots`}
+              />
             </div>
           </div>
         ))}
@@ -83,8 +101,10 @@ export function CoverageMatrix({ bundle }: { bundle: RiskBundle }) {
             {selected.map((row) => (
               <tr key={row.check_id} className="border-b border-divider">
                 <td className="min-w-[180px] p-3">
-                  <div className="font-mono text-[9px]">{row.check_id.split(":")[0]}</div>
-                  <div className="mt-1 text-faint">
+                  <div className="font-mono text-[9px]" data-num-exempt="id">
+                    {row.check_id.split(":")[0]}
+                  </div>
+                  <div className="mt-1 text-faint" data-num-exempt="id">
                     {row.scope.subject_id} · {row.evidence_class}
                   </div>
                 </td>
@@ -102,9 +122,13 @@ export function CoverageMatrix({ bundle }: { bundle: RiskBundle }) {
                 </td>
                 <td className="min-w-[240px] p-3">
                   <div className="mono-caps text-[8px] text-primary">{row.outcome}</div>
-                  <p className="mt-1 text-muted-foreground">{row.reason}</p>
+                  <p className="mt-1 text-muted-foreground">
+                    <RiskCopy>{row.reason}</RiskCopy>
+                  </p>
                   {row.reason_code && (
-                    <p className="mt-1 font-mono text-[8px] text-faint">{row.reason_code}</p>
+                    <p className="mt-1 font-mono text-[8px] text-faint">
+                      <RiskId>{row.reason_code}</RiskId>
+                    </p>
                   )}
                 </td>
               </tr>

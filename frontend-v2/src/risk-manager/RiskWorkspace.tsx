@@ -1,5 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDataMode } from "@/replay/mode";
+import { ProvenanceProvider } from "@/visual/Num";
+import { issuesOrigin, RiskNum, RiskTime, stateOrigin, sweepOrigin } from "./prov";
 import { loadRisk, readChecked, type RiskBundle } from "./client";
 import { filterIssues } from "./filters";
 import {
@@ -375,13 +377,25 @@ export function RiskWorkspace() {
         {
           label: "Evidence cutoff",
           value: bundle.state?.evidence_cutoff ?? bundle.sweep.evidence_cutoff,
+          origin: bundle.state
+            ? stateOrigin(bundle, "/evidence_cutoff")
+            : sweepOrigin(bundle, "/evidence_cutoff"),
         },
         {
           label: bundle.state ? "Published state" : "Published sweep",
           value: bundle.state?.published_at ?? bundle.sweep.published_at,
+          origin: bundle.state
+            ? stateOrigin(bundle, "/published_at")
+            : sweepOrigin(bundle, "/published_at"),
         },
         ...(bundle.sweep.payload.status === "FAILED"
-          ? [{ label: "Failed sweep published", value: bundle.sweep.published_at }]
+          ? [
+              {
+                label: "Failed sweep published",
+                value: bundle.sweep.published_at,
+                origin: sweepOrigin(bundle, "/published_at"),
+              },
+            ]
           : []),
       ],
       limitations: [
@@ -421,336 +435,390 @@ export function RiskWorkspace() {
     [registered, registerBindings],
   );
   return (
-    <div data-risk-workspace className="mx-auto w-full max-w-[1680px] space-y-4 p-3 md:p-5">
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-divider pb-4">
-        <div>
-          <p className="mono-caps text-[9px] text-primary">F3 / EVIDENCE-DRIVEN IMMUNE SYSTEM</p>
-          <h1 className="mt-2 font-mono text-2xl font-medium tracking-tight md:text-3xl">
-            RISK MANAGER
-          </h1>
-          <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-muted-foreground">
-            Retained evidence. Deterministic rules. Immutable findings. Public portfolio checks are
-            unavailable.
-          </p>
-        </div>
-        <div className="border border-primary/40 bg-primary/5 px-4 py-3">
-          <p className="mono-caps text-[10px] text-primary">
-            {error
-              ? "EVIDENCE UNAVAILABLE"
-              : bundle?.sweep.payload.status === "FAILED"
-                ? "SWEEP FAILED"
-                : !bundle
-                  ? "VERIFYING EVIDENCE"
-                  : bundle.sweep.payload.status === "SUCCEEDED"
-                    ? "EVIDENCE EVALUATED"
-                    : "PARTIAL COVERAGE"}
-          </p>
-          <p className="mt-1 font-mono text-[9px] text-faint">
-            NO UNMEASURED CHECK IS ASSUMED CLEAR
-          </p>
-        </div>
-      </header>
-      <nav
-        aria-label="Risk workspace panels"
-        className="flex flex-wrap gap-1 border-b border-divider pb-3"
-      >
-        {[
-          ["feed", "Issue console"],
-          ["coverage", "Coverage"],
-          ["history", "Sweep history"],
-          ...(mode === "live" ? [["lab", "Local paper book / risk lab"]] : []),
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => choosePanel(key)}
-            aria-current={tab === key ? "page" : undefined}
-            className={
-              "mono-caps border px-3 py-2 text-[9px] " +
-              (tab === key
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-divider text-muted-foreground")
+    <ProvenanceProvider>
+      <div data-risk-workspace className="mx-auto w-full max-w-[1680px] space-y-4 p-3 md:p-5">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-divider pb-4">
+          <div>
+            <p className="mono-caps text-[9px] text-primary">
+              <span data-num-exempt="key-label">F3</span> / EVIDENCE-DRIVEN IMMUNE SYSTEM
+            </p>
+            <h1 className="mt-2 font-mono text-2xl font-medium tracking-tight md:text-3xl">
+              RISK MANAGER
+            </h1>
+            <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-muted-foreground">
+              Retained evidence. Deterministic rules. Immutable findings. Public portfolio checks
+              are unavailable.
+            </p>
+          </div>
+          <div className="border border-primary/40 bg-primary/5 px-4 py-3">
+            <p className="mono-caps text-[10px] text-primary">
+              {error
+                ? "EVIDENCE UNAVAILABLE"
+                : bundle?.sweep.payload.status === "FAILED"
+                  ? "SWEEP FAILED"
+                  : !bundle
+                    ? "VERIFYING EVIDENCE"
+                    : bundle.sweep.payload.status === "SUCCEEDED"
+                      ? "EVIDENCE EVALUATED"
+                      : "PARTIAL COVERAGE"}
+            </p>
+            <p className="mt-1 font-mono text-[9px] text-faint">
+              NO UNMEASURED CHECK IS ASSUMED CLEAR
+            </p>
+          </div>
+        </header>
+        <nav
+          aria-label="Risk workspace panels"
+          className="flex flex-wrap gap-1 border-b border-divider pb-3"
+        >
+          {[
+            ["feed", "Issue console"],
+            ["coverage", "Coverage"],
+            ["history", "Sweep history"],
+            ...(mode === "live" ? [["lab", "Local paper book / risk lab"]] : []),
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => choosePanel(key)}
+              aria-current={tab === key ? "page" : undefined}
+              className={
+                "mono-caps border px-3 py-2 text-[9px] " +
+                (tab === key
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-divider text-muted-foreground")
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        {tab === "lab" && mode === "live" ? (
+          <Suspense
+            fallback={
+              <p className="p-6 text-muted-foreground">Loading authenticated local paper lab…</p>
             }
           >
-            {label}
-          </button>
-        ))}
-      </nav>
-      {tab === "lab" && mode === "live" ? (
-        <Suspense
-          fallback={
-            <p className="p-6 text-muted-foreground">Loading authenticated local paper lab…</p>
-          }
-        >
-          <LocalRiskLab />
-        </Suspense>
-      ) : (
-        <>
-          {error && (
-            <div role="alert" className="border border-down/40 bg-down/5 p-4">
-              <h2 className="mono-caps text-[11px] text-down">RISK EVIDENCE LOAD FAILED</h2>
-              <p className="mt-2 text-sm">{error}</p>
-              {unsupportedSubject && (
-                <button
-                  className="mt-3 text-primary underline"
-                  onClick={() => updateContext({ ...context, subject: undefined }, "push")}
-                >
-                  Clear unsupported listing
-                </button>
-              )}
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                No successful assessment is inferred. The page will not substitute zero Issues.
-              </p>
-            </div>
-          )}
-          {!bundle && !error && (
-            <p
-              role="status"
-              className="border border-divider p-8 font-mono text-sm text-muted-foreground"
-            >
-              VERIFYING SEALED STATE / RECEIPT…
-            </p>
-          )}
-          {bundle && (
-            <>
-              {selected && !current && (
-                <p role="alert" className="border border-down/40 p-3 text-sm">
-                  ISSUE UNAVAILABLE IN THIS EXACT STATE. The requested Issue was not replaced or
-                  inferred resolved.
-                </p>
-              )}
-              {(anchorId || sweepId) && (
-                <div className="flex flex-wrap justify-between gap-2 border border-divider p-3 font-mono text-[10px]">
-                  <span>HISTORIC SWEEP · EXACT RETAINED STATE / INPUTS / POLICY</span>
-                  <button onClick={() => chooseSweep(undefined)} className="text-primary underline">
-                    Return to latest sweep
+            <LocalRiskLab />
+          </Suspense>
+        ) : (
+          <>
+            {error && (
+              <div role="alert" className="border border-down/40 bg-down/5 p-4">
+                <h2 className="mono-caps text-[11px] text-down">RISK EVIDENCE LOAD FAILED</h2>
+                <p className="mt-2 text-sm">{error}</p>
+                {unsupportedSubject && (
+                  <button
+                    className="mt-3 text-primary underline"
+                    onClick={() => updateContext({ ...context, subject: undefined }, "push")}
+                  >
+                    Clear unsupported listing
                   </button>
-                </div>
-              )}
-              {bundle.sweep.payload.failure && (
-                <div role="alert" className="border border-down/50 bg-down/5 p-4">
-                  <h2 className="mono-caps text-[11px] text-down">
-                    FAILED SWEEP · PREVIOUS STATE RETAINED
-                  </h2>
-                  <p className="mt-2 text-[12px]">{bundle.sweep.payload.failure.issue.reason}</p>
-                  <p className="mt-2 text-[10px] text-muted-foreground">
-                    Last valid publication: {stamp(bundle.state?.published_at ?? null)}. No prior
-                    Issue was resolved by this failure.
-                  </p>
-                </div>
-              )}
-              <section
-                aria-label="Immune status"
-                className="grid grid-cols-2 border border-divider bg-raised/30 lg:grid-cols-4"
+                )}
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  No successful assessment is inferred. The page will not substitute zero Issues.
+                </p>
+              </div>
+            )}
+            {!bundle && !error && (
+              <p
+                role="status"
+                className="border border-divider p-8 font-mono text-sm text-muted-foreground"
               >
-                {[
-                  [
-                    String(real.length),
-                    "CURRENT REAL FINDINGS",
-                    real.filter((i) => ["HIGH", "CRITICAL"].includes(i.severity)).length +
-                      " HIGH / CRITICAL",
-                  ],
-                  [
-                    String(issues.filter((i) => partition(i) === "UNAVAILABLE").length),
-                    "UNAVAILABLE FINDINGS",
-                    "NOT EVALUATED ≠ CLEAR",
-                  ],
-                  [
-                    stamp(bundle.sweep.evidence_cutoff),
-                    "EVIDENCE CUTOFF",
-                    "PINNED · NO WALL-CLOCK AGING",
-                  ],
-                  [
-                    stamp(bundle.sweep.published_at),
-                    "LAST PUBLISHED SWEEP",
-                    bundle.sweep.payload.status,
-                  ],
-                ].map(([value, label, detail]) => (
-                  <div key={label} className="min-w-0 border-b border-r border-divider p-4">
-                    <p className="mono-caps text-[8px] text-faint">{label}</p>
-                    <p
-                      className={
-                        "mt-2 font-mono " +
-                        (label.includes("FINDINGS") ? "text-3xl" : "text-[11px] leading-relaxed")
-                      }
+                VERIFYING SEALED STATE / RECEIPT…
+              </p>
+            )}
+            {bundle && (
+              <>
+                {selected && !current && (
+                  <p role="alert" className="border border-down/40 p-3 text-sm">
+                    ISSUE UNAVAILABLE IN THIS EXACT STATE. The requested Issue was not replaced or
+                    inferred resolved.
+                  </p>
+                )}
+                {(anchorId || sweepId) && (
+                  <div className="flex flex-wrap justify-between gap-2 border border-divider p-3 font-mono text-[10px]">
+                    <span>HISTORIC SWEEP · EXACT RETAINED STATE / INPUTS / POLICY</span>
+                    <button
+                      onClick={() => chooseSweep(undefined)}
+                      className="text-primary underline"
                     >
-                      {value}
-                    </p>
-                    <p className="mono-caps mt-2 text-[7px] text-muted-foreground">{detail}</p>
+                      Return to latest sweep
+                    </button>
                   </div>
-                ))}
-              </section>
-              {tab === "feed" && (
-                <>
-                  <div className="flex flex-wrap gap-1">
-                    {PARTITIONS.map(([key, label]) => (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          updateView({ partition: key }, "push");
-                        }}
-                        aria-pressed={view === key}
+                )}
+                {bundle.sweep.payload.failure && (
+                  <div role="alert" className="border border-down/50 bg-down/5 p-4">
+                    <h2 className="mono-caps text-[11px] text-down">
+                      FAILED SWEEP · PREVIOUS STATE RETAINED
+                    </h2>
+                    <p className="mt-2 text-[12px]">{bundle.sweep.payload.failure.issue.reason}</p>
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      Last valid publication:{" "}
+                      <RiskTime
+                        o={stateOrigin(bundle, "/published_at")}
+                        v={bundle.state?.published_at}
+                        label="Last valid publication"
+                      />
+                      . No prior Issue was resolved by this failure.
+                    </p>
+                  </div>
+                )}
+                <section
+                  aria-label="Immune status"
+                  className="grid grid-cols-2 border border-divider bg-raised/30 lg:grid-cols-4"
+                >
+                  {(
+                    [
+                      [
+                        <RiskNum
+                          o={issuesOrigin(
+                            bundle,
+                            "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = CURRENT_REAL",
+                          )}
+                          v={real.length}
+                          label="Current real findings"
+                        />,
+                        "CURRENT REAL FINDINGS",
+                        <>
+                          <RiskNum
+                            o={issuesOrigin(
+                              bundle,
+                              "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = CURRENT_REAL and severity is HIGH or CRITICAL",
+                            )}
+                            v={real.filter((i) => ["HIGH", "CRITICAL"].includes(i.severity)).length}
+                            label="High or critical findings"
+                          />{" "}
+                          HIGH / CRITICAL
+                        </>,
+                      ],
+                      [
+                        <RiskNum
+                          o={issuesOrigin(
+                            bundle,
+                            "count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = UNAVAILABLE",
+                          )}
+                          v={issues.filter((i) => partition(i) === "UNAVAILABLE").length}
+                          label="Unavailable findings"
+                        />,
+                        "UNAVAILABLE FINDINGS",
+                        "NOT EVALUATED ≠ CLEAR",
+                      ],
+                      [
+                        <RiskTime
+                          o={sweepOrigin(bundle, "/evidence_cutoff")}
+                          v={bundle.sweep.evidence_cutoff}
+                          label="Evidence cutoff"
+                        />,
+                        "EVIDENCE CUTOFF",
+                        "PINNED · NO WALL-CLOCK AGING",
+                      ],
+                      [
+                        <RiskTime
+                          o={sweepOrigin(bundle, "/published_at")}
+                          v={bundle.sweep.published_at}
+                          label="Last published sweep"
+                        />,
+                        "LAST PUBLISHED SWEEP",
+                        bundle.sweep.payload.status,
+                      ],
+                    ] as const
+                  ).map(([value, label, detail]) => (
+                    <div key={label} className="min-w-0 border-b border-r border-divider p-4">
+                      <p className="mono-caps text-[8px] text-faint">{label}</p>
+                      <p
                         className={
-                          "border px-3 py-2 font-mono text-[10px] " +
-                          (view === key
-                            ? "border-primary text-primary"
-                            : "border-divider text-faint")
+                          "mt-2 font-mono " +
+                          (label.includes("FINDINGS") ? "text-3xl" : "text-[11px] leading-relaxed")
                         }
                       >
-                        {label}{" "}
-                        <span className="ml-1">
-                          {issues.filter((i) => partition(i) === key).length}
-                        </span>
+                        {value}
+                      </p>
+                      <p className="mono-caps mt-2 text-[7px] text-muted-foreground">{detail}</p>
+                    </div>
+                  ))}
+                </section>
+                {tab === "feed" && (
+                  <>
+                    <div className="flex flex-wrap gap-1">
+                      {PARTITIONS.map(([key, label]) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            updateView({ partition: key }, "push");
+                          }}
+                          aria-pressed={view === key}
+                          className={
+                            "border px-3 py-2 font-mono text-[10px] " +
+                            (view === key
+                              ? "border-primary text-primary"
+                              : "border-divider text-faint")
+                          }
+                        >
+                          {label}{" "}
+                          <span className="ml-1">
+                            <RiskNum
+                              o={issuesOrigin(
+                                bundle,
+                                `count of /payload/issues (plus a failed sweep's /payload/failure/issue) where partition = ${key}`,
+                              )}
+                              v={issues.filter((i) => partition(i) === key).length}
+                              label={`${label} findings`}
+                              inert
+                            />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[minmax(200px,1fr)_repeat(5,auto)]">
+                      <input
+                        aria-label="Search risk issues"
+                        maxLength={160}
+                        placeholder="Search subject, rule or finding"
+                        value={query}
+                        onChange={(e) => updateView({ query: e.target.value }, "replace")}
+                        className="col-span-2 border border-divider bg-background px-3 py-2 text-[11px] md:col-span-1"
+                      />
+                      <select
+                        aria-label="Issue category"
+                        value={category}
+                        onChange={(e) =>
+                          updateView({ category: e.target.value as RiskView["category"] }, "push")
+                        }
+                        className="border border-divider bg-background p-2 font-mono text-[9px]"
+                      >
+                        {[
+                          "ALL",
+                          "DATA",
+                          "MODEL",
+                          "PORTFOLIO",
+                          "RESEARCH_HYGIENE",
+                          "SIMULATOR",
+                          "SYSTEM",
+                        ].map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                      <select
+                        aria-label="Issue severity"
+                        value={severity}
+                        onChange={(e) =>
+                          updateView({ severity: e.target.value as RiskView["severity"] }, "push")
+                        }
+                        className="border border-divider bg-background p-2 font-mono text-[9px]"
+                      >
+                        {["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"].map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                      <select
+                        aria-label="Issue country"
+                        value={country}
+                        onChange={(e) => chooseCountry(e.target.value as RiskView["country"])}
+                        className="border border-divider bg-background p-2 font-mono text-[9px]"
+                      >
+                        {["ALL", "US", "INDIA", "CROSS_MARKET", "NONE"].map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                      <select
+                        aria-label="Issue status"
+                        value={status}
+                        onChange={(e) =>
+                          updateView({ status: e.target.value as RiskView["status"] }, "push")
+                        }
+                        className="border border-divider bg-background p-2 font-mono text-[9px]"
+                      >
+                        {["ALL", "OPEN", "RESOLVED"].map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                      <select
+                        aria-label="Issue evidence class"
+                        value={evidenceClass}
+                        onChange={(e) =>
+                          updateView(
+                            { evidenceClass: e.target.value as RiskView["evidenceClass"] },
+                            "push",
+                          )
+                        }
+                        className="col-span-2 border border-divider bg-background p-2 font-mono text-[9px] md:col-span-1"
+                      >
+                        {["ALL", "REAL_RETAINED", "UNAVAILABLE", "RETAINED_SYNTHETIC"].map((v) => (
+                          <option key={v}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {current && !filtered.some((issue) => issue.issue_id === current.issue_id) && (
+                      <p role="status" className="border border-divider p-3 text-[11px]">
+                        Selected Issue is outside these filters. Its exact retained details remain
+                        open.
+                      </p>
+                    )}
+                    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                      <IssueFeed
+                        bundle={bundle}
+                        issues={filtered}
+                        selected={selected}
+                        onSelect={(id) => updateView({ issueId: id }, "push")}
+                      />
+                      <IssueInspector
+                        key={selected ?? "none"}
+                        issue={current}
+                        bundle={bundle}
+                        onClose={close}
+                      />
+                    </div>
+                    <div className="border border-divider bg-raised/20 p-4 text-[11px] leading-relaxed text-muted-foreground">
+                      <span className="mono-caps mr-3 text-[9px] text-primary">
+                        COVERAGE BOUNDARY
+                      </span>
+                      PSI / KS, calibration drift, consumer abstention receipts, public VaR / CVaR,
+                      concentration, factor exposure, liquidity and real simulator disagreement
+                      remain unavailable.
+                      <button
+                        onClick={() => choosePanel("coverage")}
+                        className="ml-3 text-primary underline underline-offset-4"
+                      >
+                        Inspect all retained check slots →
                       </button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[minmax(200px,1fr)_repeat(5,auto)]">
-                    <input
-                      aria-label="Search risk issues"
-                      maxLength={160}
-                      placeholder="Search subject, rule or finding"
-                      value={query}
-                      onChange={(e) => updateView({ query: e.target.value }, "replace")}
-                      className="col-span-2 border border-divider bg-background px-3 py-2 text-[11px] md:col-span-1"
-                    />
-                    <select
-                      aria-label="Issue category"
-                      value={category}
-                      onChange={(e) =>
-                        updateView({ category: e.target.value as RiskView["category"] }, "push")
-                      }
-                      className="border border-divider bg-background p-2 font-mono text-[9px]"
-                    >
-                      {[
-                        "ALL",
-                        "DATA",
-                        "MODEL",
-                        "PORTFOLIO",
-                        "RESEARCH_HYGIENE",
-                        "SIMULATOR",
-                        "SYSTEM",
-                      ].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                    <select
-                      aria-label="Issue severity"
-                      value={severity}
-                      onChange={(e) =>
-                        updateView({ severity: e.target.value as RiskView["severity"] }, "push")
-                      }
-                      className="border border-divider bg-background p-2 font-mono text-[9px]"
-                    >
-                      {["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                    <select
-                      aria-label="Issue country"
-                      value={country}
-                      onChange={(e) => chooseCountry(e.target.value as RiskView["country"])}
-                      className="border border-divider bg-background p-2 font-mono text-[9px]"
-                    >
-                      {["ALL", "US", "INDIA", "CROSS_MARKET", "NONE"].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                    <select
-                      aria-label="Issue status"
-                      value={status}
-                      onChange={(e) =>
-                        updateView({ status: e.target.value as RiskView["status"] }, "push")
-                      }
-                      className="border border-divider bg-background p-2 font-mono text-[9px]"
-                    >
-                      {["ALL", "OPEN", "RESOLVED"].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                    <select
-                      aria-label="Issue evidence class"
-                      value={evidenceClass}
-                      onChange={(e) =>
-                        updateView(
-                          { evidenceClass: e.target.value as RiskView["evidenceClass"] },
-                          "push",
-                        )
-                      }
-                      className="col-span-2 border border-divider bg-background p-2 font-mono text-[9px] md:col-span-1"
-                    >
-                      {["ALL", "REAL_RETAINED", "UNAVAILABLE", "RETAINED_SYNTHETIC"].map((v) => (
-                        <option key={v}>{v}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {current && !filtered.some((issue) => issue.issue_id === current.issue_id) && (
-                    <p role="status" className="border border-divider p-3 text-[11px]">
-                      Selected Issue is outside these filters. Its exact retained details remain
-                      open.
-                    </p>
-                  )}
-                  <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                    <IssueFeed
-                      issues={filtered}
-                      selected={selected}
-                      onSelect={(id) => updateView({ issueId: id }, "push")}
-                    />
-                    <IssueInspector
-                      key={selected ?? "none"}
-                      issue={current}
-                      bundle={bundle}
-                      onClose={close}
-                    />
-                  </div>
-                  <div className="border border-divider bg-raised/20 p-4 text-[11px] leading-relaxed text-muted-foreground">
-                    <span className="mono-caps mr-3 text-[9px] text-primary">
-                      COVERAGE BOUNDARY
-                    </span>
-                    PSI / KS, calibration drift, consumer abstention receipts, public VaR / CVaR,
-                    concentration, factor exposure, liquidity and real simulator disagreement remain
-                    unavailable.
-                    <button
-                      onClick={() => choosePanel("coverage")}
-                      className="ml-3 text-primary underline underline-offset-4"
-                    >
-                      Inspect all retained check slots →
-                    </button>
-                  </div>
-                </>
-              )}
-              {tab === "coverage" &&
-                (coverageAuthorized === bundle.sweepRef ? (
-                  <CoverageMatrix bundle={bundle} />
-                ) : (
-                  <section className="border border-divider p-5">
-                    <h2 className="mono-caps text-[11px]">COMPLETE RETAINED CHECK SLOTS</h2>
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      The selected state and receipt are verified. Open the complete coverage
-                      evidence explicitly.
-                    </p>
-                    <button
-                      className="mt-3 text-primary underline"
-                      onClick={() => setCoverageAuthorized(bundle.sweepRef)}
-                    >
-                      Inspect complete coverage
-                    </button>
-                  </section>
-                ))}
-              {tab === "changes" && (
-                <p role="status" className="border border-divider p-5">
-                  Changes require a verified compatible second anchor. No comparison was inferred.
-                </p>
-              )}
-              {tab === "history" && (
-                <SweepHistory bundle={bundle} onSelect={(id) => chooseSweep(id)} />
-              )}
-              <footer className="flex flex-wrap justify-between gap-2 border-t border-divider pt-3 font-mono text-[8px] leading-relaxed text-faint">
-                <span>DERIVED METADATA ONLY · CLAIMS CLOSED · NO REAL USER PORTFOLIO</span>
-                <span>MANUAL SWEEP AVAILABLE / SCHEDULE DISABLED · D6 DEFERRED</span>
-              </footer>
-            </>
-          )}
-        </>
-      )}
-    </div>
+                    </div>
+                  </>
+                )}
+                {tab === "coverage" &&
+                  (coverageAuthorized === bundle.sweepRef ? (
+                    <CoverageMatrix bundle={bundle} />
+                  ) : (
+                    <section className="border border-divider p-5">
+                      <h2 className="mono-caps text-[11px]">COMPLETE RETAINED CHECK SLOTS</h2>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        The selected state and receipt are verified. Open the complete coverage
+                        evidence explicitly.
+                      </p>
+                      <button
+                        className="mt-3 text-primary underline"
+                        onClick={() => setCoverageAuthorized(bundle.sweepRef)}
+                      >
+                        Inspect complete coverage
+                      </button>
+                    </section>
+                  ))}
+                {tab === "changes" && (
+                  <p role="status" className="border border-divider p-5">
+                    Changes require a verified compatible second anchor. No comparison was inferred.
+                  </p>
+                )}
+                {tab === "history" && (
+                  <SweepHistory bundle={bundle} onSelect={(id) => chooseSweep(id)} />
+                )}
+                <footer className="flex flex-wrap justify-between gap-2 border-t border-divider pt-3 font-mono text-[8px] leading-relaxed text-faint">
+                  <span>DERIVED METADATA ONLY · CLAIMS CLOSED · NO REAL USER PORTFOLIO</span>
+                  <span>MANUAL SWEEP AVAILABLE / SCHEDULE DISABLED · D6 DEFERRED</span>
+                </footer>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </ProvenanceProvider>
   );
 }

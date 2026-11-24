@@ -247,7 +247,7 @@ function MarketsWorkspace() {
                 : undefined
             }
           >
-            <kbd>{tab.key}</kbd>
+            <kbd data-num-exempt="key-label">{tab.key}</kbd>
             {tab.label}
           </Link>
         ))}
