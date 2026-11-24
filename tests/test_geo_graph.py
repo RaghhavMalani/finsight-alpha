@@ -274,3 +274,35 @@ def test_the_real_app_requires_a_session_for_the_graph():
     from backend.main import app
 
     assert TestClient(app).get("/geo/graph").status_code == 401
+
+
+def test_seed_v2_keeps_v1_unchanged_and_dates_every_addition_by_its_evidence():
+    v1 = seed()
+    v2 = json.loads((G.SEED_DIR / "v2.json").read_text(encoding="utf-8"))
+    assert G.LATEST == "v2" and v2["schema_version"] == v1["schema_version"]
+    # Frozen v1 facts are carried over byte-for-byte in meaning: same ids, same content.
+    assert v2["nodes"][: len(v1["nodes"])] == v1["nodes"] and v2["edges"][: len(v1["edges"])] == v1["edges"]
+    added = v2["nodes"][len(v1["nodes"]):] + v2["edges"][len(v1["edges"]):]
+    assert len(added) >= 100
+    for item in added:
+        src = item["source"]
+        if src["url"].startswith("https://web.archive.org/web/") and src["date_basis"] == "retrieved":
+            # A snapshot is relied on from its own timestamp, never earlier.
+            ts = src["url"].split("/")[4]
+            assert src["available_at"] == f"{ts[0:4]}-{ts[4:6]}-{ts[6:8]}T{ts[8:10]}:{ts[10:12]}:{ts[12:14]}Z"
+        elif src["date_basis"] == "published":
+            # A document dated by its own printed date is relied on only after that day has ended everywhere.
+            assert parse_instant(src["available_at"]) > parse_instant(src["date"] + "T23:59:59Z")
+        else:
+            assert src["date_basis"] == "retrieved" and src["available_at"] >= "2026-11-24"
+
+
+def test_chokepoints_have_cited_ships_through_edges():
+    graph = load_graph()
+    ships = [e for e in graph.edges if e.type == "ships_through"]
+    assert {e.dst for e in ships} >= {"chokepoint:hormuz", "chokepoint:suez"}
+    for e in ships:
+        assert graph.nodes[e.src].type == "company" and len(e.source.excerpt.split()) >= 8
+    # NORDEN is not listed in the graph, so a Hormuz event still reaches no security (see test above).
+    hormuz = propagate(graph, {"kind": "conflict", "lat": 26.57, "lon": 56.25, "time": T}, as_of=AS_OF)
+    assert hormuz["status"] == "PARTIAL"

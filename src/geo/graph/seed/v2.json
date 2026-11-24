@@ -2270,6 +2270,159 @@
     "excerpt": "A.P. Moller - Maersk (Maersk) and Hapag-Lloyd have decided to change the routing of one of their shared services under the Gemini Cooperation, transitioning it through the Red Sea and the Suez Canal.",
     "locator": "p. 1 (dateline: Hamburg, Feb 3, 2026)"
    }
+  },
+  {
+   "id": "company:reliance-industries",
+   "type": "company",
+   "name": "Reliance Industries Limited",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260916161504/https://www.ril.com/investors/investor-relations",
+    "title": "Investor Relations | Reliance Industries Limited",
+    "date": "2026-09-16",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-16T16:15:04Z",
+    "excerpt": "Shares NSE (NSE: Reliance)",
+    "locator": "Shares"
+   }
+  },
+  {
+   "id": "security:reliance.ns",
+   "type": "security",
+   "name": "RELIANCE (National Stock Exchange of India)",
+   "attrs": {
+    "ticker": "RELIANCE",
+    "exchange": "National Stock Exchange of India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260916161504/https://www.ril.com/investors/investor-relations",
+    "title": "Investor Relations | Reliance Industries Limited",
+    "date": "2026-09-16",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-16T16:15:04Z",
+    "excerpt": "Shares NSE (NSE: Reliance)",
+    "locator": "Shares"
+   }
+  },
+  {
+   "id": "facility:reliance:jamnagar",
+   "type": "facility",
+   "name": "Reliance Jamnagar Manufacturing Division",
+   "lat": 22.47,
+   "lon": 70.06,
+   "location_precision": "city or town centroid (Jamnagar); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Jamnagar Manufacturing Division: Village Meghpar/Padana, Taluka Lalpur, Jamnagar - 361 280, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "facility:reliance:hazira",
+   "type": "facility",
+   "name": "Reliance Hazira Manufacturing Division",
+   "lat": 21.1,
+   "lon": 72.63,
+   "location_precision": "city or town centroid (Hazira, Surat); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Hazira Manufacturing Division: Village Mora, P.O. Bhatha, Surat-Hazira Road, Surat - 394 510, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "facility:reliance:dahej",
+   "type": "facility",
+   "name": "Reliance Dahej Manufacturing Division",
+   "lat": 21.7,
+   "lon": 72.53,
+   "location_precision": "city or town centroid (Dahej); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Dahej Manufacturing Division: P. O. Dahej- 392 130, Taluka: Vagra, District Bharuch, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "facility:reliance:vadodara",
+   "type": "facility",
+   "name": "Reliance Vadodara Manufacturing Division",
+   "lat": 22.31,
+   "lon": 73.18,
+   "location_precision": "city or town centroid (Vadodara); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Vadodara Manufacturing Division: P. O. Petrochemicals, Vadodara - 391 346, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "company:kioxia",
+   "type": "company",
+   "name": "KIOXIA Corporation",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260517150715/https://www.kioxia.com/en-jp/about/location.html",
+    "title": "Locations | KIOXIA - Japan (English)",
+    "date": "2026-05-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-05-17T15:07:15Z",
+    "excerpt": "KIOXIA’s Yokkaichi Plant is one of the world’s largest and most efficient flash memory production facilities.",
+    "locator": "Yokkaichi Plant (address 800 Yamanoisshiki-cho, Yokkaichi-shi, Mie)"
+   }
+  },
+  {
+   "id": "facility:kioxia:yokkaichi",
+   "type": "facility",
+   "name": "KIOXIA Yokkaichi Plant",
+   "lat": 34.965,
+   "lon": 136.624,
+   "location_precision": "city centroid (Yokkaichi); the plant may be several km away",
+   "attrs": {
+    "kind": "flash memory fab",
+    "country": "Japan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260517150715/https://www.kioxia.com/en-jp/about/location.html",
+    "title": "Locations | KIOXIA - Japan (English)",
+    "date": "2026-05-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-05-17T15:07:15Z",
+    "excerpt": "KIOXIA’s Yokkaichi Plant is one of the world’s largest and most efficient flash memory production facilities.",
+    "locator": "Yokkaichi Plant (address 800 Yamanoisshiki-cho, Yokkaichi-shi, Mie)"
+   }
   }
  ],
  "edges": [
@@ -4124,6 +4277,108 @@
     "available_at": "2026-02-04T12:00:00Z",
     "excerpt": "A.P. Moller - Maersk (Maersk) and Hapag-Lloyd have decided to change the routing of one of their shared services under the Gemini Cooperation, transitioning it through the Red Sea and the Suez Canal.",
     "locator": "p. 1 (dateline: Hamburg, Feb 3, 2026)"
+   }
+  },
+  {
+   "id": "listed_as:reliance-industries:reliance.ns",
+   "type": "listed_as",
+   "src": "company:reliance-industries",
+   "dst": "security:reliance.ns",
+   "confidence": 1.0,
+   "mechanism": "Reliance's investor relations page quotes its shares on the NSE (NSE: Reliance).",
+   "source": {
+    "url": "https://web.archive.org/web/20260916161504/https://www.ril.com/investors/investor-relations",
+    "title": "Investor Relations | Reliance Industries Limited",
+    "date": "2026-09-16",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-16T16:15:04Z",
+    "excerpt": "Shares NSE (NSE: Reliance)",
+    "locator": "Shares"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:jamnagar",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:jamnagar",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Jamnagar Manufacturing Division: Village Meghpar/Padana, Taluka Lalpur, Jamnagar - 361 280, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:hazira",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:hazira",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Hazira Manufacturing Division: Village Mora, P.O. Bhatha, Surat-Hazira Road, Surat - 394 510, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:dahej",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:dahej",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Dahej Manufacturing Division: P. O. Dahej- 392 130, Taluka: Vagra, District Bharuch, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:vadodara",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:vadodara",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Vadodara Manufacturing Division: P. O. Petrochemicals, Vadodara - 391 346, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:kioxia:yokkaichi",
+   "type": "operates",
+   "src": "company:kioxia",
+   "dst": "facility:kioxia:yokkaichi",
+   "confidence": 1.0,
+   "mechanism": "KIOXIA lists the Yokkaichi Plant among its own locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260517150715/https://www.kioxia.com/en-jp/about/location.html",
+    "title": "Locations | KIOXIA - Japan (English)",
+    "date": "2026-05-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-05-17T15:07:15Z",
+    "excerpt": "KIOXIA’s Yokkaichi Plant is one of the world’s largest and most efficient flash memory production facilities.",
+    "locator": "Yokkaichi Plant (address 800 Yamanoisshiki-cho, Yokkaichi-shi, Mie)"
    }
   }
  ]
