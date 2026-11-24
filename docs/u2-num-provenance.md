@@ -11,14 +11,23 @@ Every provenance element renders `data-num`, `data-origin-kind`, `data-src`, `da
 a real digest exists, `data-sha`. The popover (`[data-origin-popover]`) shows only what the kind can
 truthfully say.
 
-| Kind     | `src`                                                                          | SHA-256 shown                                                                                                                                    | Clocks shown                                                       | Used by                                 |
-| -------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------- |
-| `sealed` | key into the sealed table passed to `ProvenanceProvider`                       | the sealed file's digest, and who sealed it                                                                                                      | run id, preregistration, study cutoff/freeze                       | `/research`                             |
-| `replay` | URL of a checked Replay artifact                                               | the digest `/replay-manifest.json` names for that URL (verified on load); "unavailable" if none. Labelled "checked Replay artifact · not a seal" | artifact `as_of` when the manifest states it                       | `/markets`, `/markets/$ticker`, `/risk` |
-| `live`   | the local API endpoint (`GET /live/recent · /live/stream`, `GET /live/health`) | never. "none · a live response is not hashed or sealed". Labelled "live API · not sealed"                                                        | record `seq`, `observed_at`, `available_at`; health snapshot `now` | `/` (F1 Command) in Local Live          |
+| Kind     | `src`                                                                          | SHA-256 shown                                                                                                                                    | Clocks shown                                                       | Used by                                                             |
+| -------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `sealed` | key into the sealed table passed to `ProvenanceProvider`                       | the sealed file's digest, and who sealed it                                                                                                      | run id, preregistration, study cutoff/freeze                       | `/research`                                                         |
+| `replay` | URL of a checked Replay artifact                                               | the digest `/replay-manifest.json` names for that URL (verified on load); "unavailable" if none. Labelled "checked Replay artifact · not a seal" | artifact `as_of` when the manifest states it                       | `/markets`, `/markets/$ticker`, `/risk`, Forge, `/data`, `/factors` |
+| `live`   | the local API endpoint (`GET /live/recent · /live/stream`, `GET /live/health`) | never. "none · a live response is not hashed or sealed". Labelled "live API · not sealed"                                                        | record `seq`, `observed_at`, `available_at`; health snapshot `now` | `/` (F1 Command) in Local Live                                      |
 
 Helpers in `frontend-v2/src/visual/origins.ts` build origins (`replayOrigin`, `liveOrigin`) and
 values (`num`, `ref`); non-finite or absent values become `null` with a reason, never zero.
+`frontend-v2/src/visual/route-origin.tsx` (`useRouteOrigin`, `useRouteProv`) gives the origin of a
+body read through `api(route)`: in Replay the artifact `/replay-manifest.json` routes it to (URL
+and that entry's SHA-256), in local Live the endpoint `GET <route>` (live, no SHA). Pointers address
+that JSON body. Forge pages (`src/forge/shared/forge-prov.tsx`) add `M(metric)` for adapted
+metrics: the metric's own `fieldPath`, and a `× 100` formula for percentages. `/data` uses one
+origin per `/data/<kind>` artifact. `/factors` (`src/factors/prov.tsx`) names the entry of the
+checked Factor read manifest, the manifest it actually reads through; its artifact URLs and
+digests are the same as the global manifest's. Forge and Bench artifacts are never shown as
+`sealed`: no page verifies them against a sealed table.
 Values computed in the browser from a source (counts of records, issues or weeks) keep the source's
 kind and name the rule in `formula` (for example `count of /payload/issues where partition = UNAVAILABLE`).
 The Replay manifest itself (`/replay-manifest.json`) is the root of the Replay check and has no
@@ -93,7 +102,8 @@ Two further, narrow allowances are coded in the checker:
   digest, or a missing value (`data-na`) rendered as anything but `unavailable` / `n/a`.
 - Every `data-origin-kind="replay"` element on every visited route must name either a checked
   manifest file (`/replay-manifest.json`, or the Risk read manifest whose URL the checker reads from
-  `src/risk-manager/read-plan.generated.ts`) with no SHA, or an artifact URL listed in one of those
+  `src/risk-manager/read-plan.generated.ts`, or the Factor read manifest read from
+  `src/factors/read-plan.generated.ts`) with no SHA, or an artifact URL listed in one of those
   manifests with exactly that entry's `sha256`, as read by the checker itself.
 - Further views of enforced routes: F1 Command in Local Live against a TEST-ONLY mocked spine
   (`/live/recent`, `/live/health`). The live close must be `live` with no SHA and a tooltip giving
@@ -101,38 +111,57 @@ Two further, narrow allowances are coded in the checker:
   A record without a close must show `unavailable`. The `#seq` origin button, reached by focus and
   Enter, must open a `LIVE` popover with Seq, Available and "none" for SHA. Also checked: the
   Markets popover, opened from the keyboard (its SHA equals the manifest's, and it does not cover
-  its value), and Risk with an Issue selected, Sweep history, and Coverage.
+  its value), Risk with an Issue selected, Sweep history, and Coverage, the Forge run drawer
+  (`/forge?run=…`), the first baseline detail (`/bench/$benchmarkId`), the first run detail
+  (`/runs/$runId`) on its action, turns and checks tabs, and the Data Revisions, Lineage, Costs and
+  Issues tabs.
 - Sabotage: on `/markets` it injects a raw `Sharpe 1.37`, a lone `7`, an undocumented exemption, a
   live value claiming a SHA-256, a replay value with a swapped SHA-256 and a missing value shown
   as `0`, and requires all six to be flagged.
 - Not scanned: `aria-label` and `title` text, closed `<details>`, tabs and panels the checker does
-  not open, the Local Live Markets screens, and the routes that need an id.
+  not open, the Local Live Markets screens, the 3D trajectory view, and `/reality/$artifactId`.
 - `--route /path` checks one route; `--verbose` prints every raw number.
 
 ## Enforced routes (zero raw numbers)
 
 `/` (F1 Command, Replay and mocked Local Live), `/research`, `/markets`, `/markets/$ticker`, `/risk`
-(feed, inspector, history, coverage).
+(feed, inspector, history, coverage), `/forge` (and the run drawer), `/worlds`, `/artifacts`,
+`/bench` (and `/bench/$benchmarkId`), `/runs` (and `/runs/$runId`, three tabs), `/data` (all five
+tabs).
 
-## Report-only routes (raw numbers at the U2 baseline, Replay mode)
+Exemptions used by these routes: artifact, run, world, task and plugin identifiers, versions
+(`v0.2.5`, `D0.4.2`) and hashes as `id`; the outlier rule `10 × MAD`, the citation in a lineage
+licence and fixed prose naming a version as `copy`; the Data Organ's `0 model runs / holdout
+openings` as `copy` (a design property fixed in the page, not read from any artifact); a revision
+year and the chosen Factor cutoff as `date`. Node cards in the 2D trajectory graph are buttons, so
+their values are inert spans (origin in the tooltip); the selected node's values open from the
+evidence inspector beside it.
 
-| Route                                                                                                  |                                   Raw numbers |
-| ------------------------------------------------------------------------------------------------------ | --------------------------------------------: |
-| `/runs`                                                                                                |                                           272 |
-| `/dynamics`                                                                                            |                                           116 |
-| `/observatory`                                                                                         |                                            59 |
-| `/forge`                                                                                               |                                            57 |
-| `/data`                                                                                                |                                            49 |
-| `/factors`                                                                                             |                                            47 |
-| `/globe`                                                                                               |                                            45 |
-| `/worlds`                                                                                              |                                            19 |
-| `/artifacts`                                                                                           |                                             8 |
-| `/bench`                                                                                               |                                             7 |
-| `/regimes`                                                                                             |                                             1 |
-| `/execution`                                                                                           |                                             0 |
-| `/markets/backtest`, `/markets/fundamentals`, `/markets/options`, `/markets/research`, `/markets/risk` | 0 (Live-only screens; Replay shows no values) |
+## Report-only routes (raw numbers after U2 slice 2, Replay mode)
 
-Total 680 (higher than the first U2 count of 624 because lone numbers, such as single-digit counts, are now tokens). Not visited (need an id): `/bench/$benchmarkId`, `/reality/$artifactId`, `/runs/$runId`.
+| Route                                                                                                  | Raw numbers | Why not enforced                                                         |
+| ------------------------------------------------------------------------------------------------------ | ----------: | ------------------------------------------------------------------------ |
+| `/dynamics`                                                                                            |         116 | later slice                                                              |
+| `/observatory`                                                                                         |          59 | later slice                                                              |
+| `/globe`                                                                                               |          56 | later slice (45 at the U2 baseline; its data is being changed elsewhere) |
+| `/factors`                                                                                             |           6 | overview counts, see below                                               |
+| `/regimes`                                                                                             |           1 | shared component, see below                                              |
+| `/execution`                                                                                           |           0 | no values in Replay                                                      |
+| `/markets/backtest`, `/markets/fundamentals`, `/markets/options`, `/markets/research`, `/markets/risk` |           0 | Live-only screens; Replay shows no values                                |
+
+Total 238 (680 at the U2 baseline). Not visited: `/reality/$artifactId`. `/bench/$benchmarkId` and
+`/runs/$runId` are checked through views of `/bench` and `/runs`.
+
+- `/factors` overview (`20 audited definitions`, `64` channels, `55 current + 9 derived`, `4 / 64`
+  retained views, `0` new runs): fixed counts in `FactorsWorkspace.tsx` that describe the audit and
+  ledger artifacts. Those artifacts are not read on the default view (`verify-factors` requires
+  their requests to stay deferred), so no checked origin can be named; the counts stay raw rather
+  than claim a check that did not happen. The catalogue, retained diagnostics, output audit,
+  ledger, lineage drawer and the Factor clock are provenanced. No `/factors` number is in a sealed
+  component (`src/replay/FactorRegimeEvidence.tsx` is not used by this route).
+- `/regimes`: its one raw number (`D0.4.2` in fixed prose) and every value it shows once a source is
+  chosen live in `src/dynamics/RegimeProduct.tsx`, which `/dynamics` also renders. It is converted
+  with `/dynamics`.
 
 ## Known gaps
 
