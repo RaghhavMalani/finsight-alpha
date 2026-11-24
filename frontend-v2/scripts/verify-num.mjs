@@ -50,6 +50,7 @@ export const ENFORCED = [
   "/artifacts",
   "/bench",
   "/data",
+  "/runs",
 ];
 
 function tokens(s) {
@@ -528,6 +529,20 @@ try {
         await p.waitForTimeout(800);
       },
     },
+    // /runs/$runId: the first recorded run, on each inspector tab.
+    ...["action", "turns", "checks"].map((tab) => ({
+      route: "/runs",
+      name: `run detail · ${tab}`,
+      run: async (p) => {
+        await p.goto(base + "/runs", { waitUntil: "networkidle" });
+        const href = await p.locator('a.agents-link[href^="/runs/"]').first().getAttribute("href");
+        await p.goto(base + href.replace(/tab=[a-z]+/, `tab=${tab}`), {
+          waitUntil: "networkidle",
+        });
+        await until(p, ".agents-page .agents-header h1", 20000);
+        await p.waitForTimeout(1000);
+      },
+    })),
     ...["revisions", "lineage", "costs", "issues"].map((section) => ({
       route: "/data",
       name: section,

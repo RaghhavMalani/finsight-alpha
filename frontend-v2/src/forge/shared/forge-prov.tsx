@@ -19,6 +19,8 @@ export function useForgeProv(route: string) {
   return { ...p, M };
 }
 
+export type ForgeProv = ReturnType<typeof useForgeProv>;
+
 export function formatMetric(metric: ResearchMetric) {
   const n = metric.value.toLocaleString("en-US", {
     minimumFractionDigits: metric.precision,

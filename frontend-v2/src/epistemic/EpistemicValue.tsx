@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { EpistemicType, ResearchMetric } from "@/forge/contracts/observer";
 
 const TONE: Record<EpistemicType, string> = {
@@ -35,10 +36,13 @@ export function ResearchValue({
   metric,
   compact = false,
   className = "",
+  value,
 }: {
   metric: ResearchMetric;
   compact?: boolean;
   className?: string;
+  /** The value as rendered by the caller (for example with its origin); defaults to plain text. */
+  value?: ReactNode;
 }) {
   const provenance = metric.provenance;
   return (
@@ -46,7 +50,7 @@ export function ResearchValue({
       <div className={compact ? "sr-only" : "text-[11px] text-[#7B8490]"}>{metric.label}</div>
       <div className="flex items-baseline gap-2">
         <output className="font-mono text-[15px] font-medium tabular-nums text-[#E6E8EB]">
-          {formatMetric(metric)}
+          {value ?? formatMetric(metric)}
         </output>
         {!compact && <EpistemicBadge type={provenance.epistemicType} />}
       </div>
@@ -95,7 +99,7 @@ export function HashValue({ value, label }: { value: string; label: string }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-2 font-mono text-[10px] text-[#9ba5af]">
       <span className="uppercase tracking-[0.1em] text-[#59636e]">{label}</span>
-      <span className="truncate" title={value}>
+      <span className="truncate" title={value} data-num-exempt="id">
         {value.slice(0, 12)}…
       </span>
     </span>

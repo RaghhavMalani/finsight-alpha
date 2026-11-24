@@ -7,6 +7,7 @@ import { AgentsShell } from "@/forge/shared/AgentsShell";
 import { TrajectoryEvidenceInspector } from "@/forge/runs/TrajectoryEvidenceInspector";
 import { TrajectoryExplorer } from "@/forge/runs/TrajectoryExplorer";
 import { buildTrajectoryViewModel } from "@/forge/runs/trajectory-model";
+import { useForgeProv, type ForgeProv } from "@/forge/shared/forge-prov";
 import {
   InstrumentPanel,
   LoadingState,
@@ -28,6 +29,7 @@ export function RunObserver({
 }) {
   const query = useQuery(runQuery(runId));
   const navigate = useNavigate();
+  const X = useForgeProv(`/forge/runs/${runId}`);
 
   if (query.isPending) {
     return (
@@ -75,7 +77,9 @@ export function RunObserver({
   return (
     <AgentsShell>
       <SurfaceHeader
-        eyebrow={`Run · ${run.taskId} · ${run.taskClass.replaceAll("_", " ")}`}
+        eyebrow={
+          <span data-num-exempt="id">{`Run · ${run.taskId} · ${run.taskClass.replaceAll("_", " ")}`}</span>
+        }
         title={`${run.model.replace("gpt-5.6-", "")} · ${run.decision?.verdict ?? "trajectory"}`}
         description={run.hypothesis ?? "No hypothesis was projected from this frozen trajectory."}
         meta={
@@ -96,16 +100,32 @@ export function RunObserver({
       </div>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(34rem,1fr)_20rem]">
-        <InstrumentPanel title="Execution trace" code={`${run.actions.length} ACTIONS`}>
+        <InstrumentPanel
+          title="Execution trace"
+          code={
+            <>
+              {X.N("/run/actions", run.actions.length, "Actions", String(run.actions.length), {
+                formula: "count of /run/actions",
+              })}{" "}
+              ACTIONS
+            </>
+          }
+        >
           <TrajectoryExplorer
+            runId={runId}
             model={trajectory}
             selectedSequence={selectedNode.sequence}
             onSelect={selectNode}
           />
           <div className="grid grid-cols-3 gap-px border-t border-[#1D232B] bg-[#1D232B]">
-            <ResearchValue metric={run.usage.tokens} className="bg-[#0B0E11] p-3" />
-            <ResearchValue metric={run.usage.cost} className="bg-[#0B0E11] p-3" />
-            <ResearchValue metric={run.usage.wallSeconds} className="bg-[#0B0E11] p-3" />
+            {[run.usage.tokens, run.usage.cost, run.usage.wallSeconds].map((metric) => (
+              <ResearchValue
+                key={metric.id}
+                metric={metric}
+                value={X.M(metric)}
+                className="bg-[#0B0E11] p-3"
+              />
+            ))}
           </div>
         </InstrumentPanel>
 
@@ -131,7 +151,7 @@ export function RunObserver({
           {tab === "action" ? (
             <TrajectoryEvidenceInspector run={run} node={selectedNode} compact />
           ) : null}
-          {tab === "turns" ? <TurnInspector run={run} /> : null}
+          {tab === "turns" ? <TurnInspector run={run} X={X} /> : null}
           {tab === "checks" ? <CheckInspector run={run} /> : null}
         </InstrumentPanel>
       </div>
@@ -142,7 +162,9 @@ export function RunObserver({
             Finding
           </div>
           <p className="mt-1.5 text-sm leading-6 text-[#cbd1d6]">
-            {run.decision?.reason ?? "No decision is bound to this trajectory."}
+            {run.decision
+              ? X.T("/run/decision/reason", run.decision.reason, "Recorded decision reason")
+              : "No decision is bound to this trajectory."}
           </p>
         </div>
         <StatusMark status={verdictStatus(run.decision?.verdict)} />
@@ -151,20 +173,26 @@ export function RunObserver({
   );
 }
 
-function TurnInspector({ run }: { run: RunDetail }) {
+function TurnInspector({ run, X }: { run: RunDetail; X: ForgeProv }) {
   return (
     <ol className="max-h-[610px] divide-y divide-[#171d23] overflow-y-auto">
-      {run.turns.map((turn) => (
+      {run.turns.map((turn, i) => (
         <li key={turn.sequence} className="p-3">
           <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#65707c]">
-            Model turn {turn.sequence}
+            Model turn{" "}
+            {X.N(`/model_turns/${i}/sequence`, turn.sequence, "Model turn", String(turn.sequence))}
           </div>
           <p className="mt-2 whitespace-pre-wrap break-words text-[11px] leading-5 text-[#c3cad0]">
-            {turn.text}
+            {X.T(`/model_turns/${i}/text`, turn.text, "Model turn text")}
           </p>
           <div className="mt-3 grid grid-cols-2 gap-px bg-[#1D232B]">
             {[turn.inputTokens, turn.outputTokens, turn.cost, turn.latency].map((metric) => (
-              <ResearchValue key={metric.id} metric={metric} className="bg-[#0B0E11] p-2.5" />
+              <ResearchValue
+                key={metric.id}
+                metric={metric}
+                value={X.M(metric)}
+                className="bg-[#0B0E11] p-2.5"
+              />
             ))}
           </div>
         </li>

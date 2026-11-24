@@ -44,8 +44,15 @@ export function provHelpers(at: (ptr: string, extra?: Partial<Origin>) => Origin
     display?: string,
     extra: Partial<Origin> = {},
     fmt: NumFormat = "x",
+    inert = false,
   ) => (
-    <Num n={num(at(ptr, extra), v, fmt)} label={label} display={display} className="vx-inherit" />
+    <Num
+      n={num(at(ptr, extra), v, fmt, extra.reason)}
+      label={label}
+      display={display}
+      inert={inert}
+      className="vx-inherit"
+    />
   );
   const D = (ptr: string, v: string | null | undefined, label: string, display?: string) => (
     <Stamp s={ref(at(ptr), v)} label={label} display={display} className="vx-inherit" />

@@ -11,6 +11,7 @@ import {
   UnavailableState,
 } from "@/forge/shared/SurfacePrimitives";
 import { buildAgentOverview, recordedOutcome } from "@/forge/command-center/overview-model";
+import { useForgeProv } from "@/forge/shared/forge-prov";
 
 type RunFilters = {
   model: string | undefined;
@@ -24,6 +25,7 @@ export function RunIndex(filters: RunFilters) {
   const runs = useQuery(runsQuery());
   const baseline = useQuery(baselineQuery(DEFAULT_BASELINE_ID));
   const navigate = useNavigate();
+  const R = useForgeProv(`/forge/runs?baseline_id=${DEFAULT_BASELINE_ID}`);
   if (runs.isPending || baseline.isPending)
     return (
       <AgentsShell>
@@ -74,10 +76,25 @@ export function RunIndex(filters: RunFilters) {
       <SurfaceHeader
         eyebrow="Agents · admitted trajectories"
         title="Runs"
-        description="Every trajectory in the frozen v0.2.5 baseline. Filters persist in the URL; open a run to inspect its actions, source evidence and verifier checks."
+        description={
+          <span data-num-exempt="copy">
+            Every trajectory in the frozen v0.2.5 baseline. Filters persist in the URL; open a run
+            to inspect its actions, source evidence and verifier checks.
+          </span>
+        }
         meta={<StatusMark status="INFO" label="Read only" />}
       />
-      <InstrumentPanel title="Recorded runs" code={items.length + " of " + runs.data.matched}>
+      <InstrumentPanel
+        title="Recorded runs"
+        code={
+          <>
+            {R.N("/items", items.length, "Runs shown", String(items.length), {
+              formula: "count of /items matching the URL filters",
+            })}{" "}
+            of {R.N("/matched", runs.data.matched, "Matched runs", String(runs.data.matched))}
+          </>
+        }
+      >
         <div className="agents-filters" aria-label="Run filters">
           <label>
             Task search
@@ -197,6 +214,7 @@ export function RunIndex(filters: RunFilters) {
                 <tr key={run.runId}>
                   <td>
                     <Link
+                      data-num-exempt="id"
                       className="agents-link"
                       to="/runs/$runId"
                       params={{ runId: run.runId }}
@@ -207,7 +225,14 @@ export function RunIndex(filters: RunFilters) {
                     <div className="agents-faint text-xs">{run.taskClass.replaceAll("_", " ")}</div>
                   </td>
                   <td>{run.model.replace("gpt-5.6-", "")}</td>
-                  <td className="agents-num">{run.seed}</td>
+                  <td className="agents-num">
+                    {R.N(
+                      `/items/${runs.data.items.indexOf(run)}/seed`,
+                      run.seed,
+                      "Seed",
+                      String(run.seed),
+                    )}
+                  </td>
                   <td>
                     <StatusMark
                       status={(run.decision?.verdict as "ACCEPT" | "REJECT" | "ABSTAIN") ?? "INFO"}
@@ -232,9 +257,23 @@ export function RunIndex(filters: RunFilters) {
                       }
                     />
                   </td>
-                  <td className="agents-num">{run.usage.tokens.value.toLocaleString("en-US")}</td>
-                  <td className="agents-num">{"$" + run.usage.cost.value.toFixed(5)}</td>
-                  <td className="agents-num">{run.usage.wallSeconds.value.toFixed(1)}s</td>
+                  <td className="agents-num">
+                    {R.M(
+                      run.usage.tokens,
+                      "Tokens",
+                      run.usage.tokens.value.toLocaleString("en-US"),
+                    )}
+                  </td>
+                  <td className="agents-num">
+                    {R.M(run.usage.cost, "Inference cost", "$" + run.usage.cost.value.toFixed(5))}
+                  </td>
+                  <td className="agents-num">
+                    {R.M(
+                      run.usage.wallSeconds,
+                      "Wall time",
+                      run.usage.wallSeconds.value.toFixed(1) + "s",
+                    )}
+                  </td>
                 </tr>
               ))}
               {!items.length && (

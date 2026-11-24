@@ -6,7 +6,7 @@ export function SurfaceHeader({
   description,
   meta,
 }: {
-  eyebrow: string;
+  eyebrow: ReactNode;
   title: ReactNode;
   description: ReactNode;
   meta?: ReactNode;
