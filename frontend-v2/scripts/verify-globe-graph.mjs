@@ -75,6 +75,10 @@ assert.equal(P.graph.nodes, seed.nodes.length);
 assert.equal(P.graph.edges, seed.edges.length);
 const avail = [...seed.nodes, ...seed.edges].map((x) => Date.parse(x.source.available_at));
 assert.equal(Date.parse(P.graph.knowledge_cutoff), Math.max(...avail), "knowledge cutoff");
+// propagate() answers UNAVAILABLE when no located site (facility, port, chokepoint) is known yet.
+const firstSite = Math.min(
+  ...seed.nodes.filter((n) => n.lat != null).map((n) => Date.parse(n.source.available_at)),
+);
 
 const manifest = JSON.parse(readFileSync(resolve(frontend, "public/replay-manifest.json"), "utf8"));
 const entry = manifest.artifacts[P.input.artifact];
@@ -233,8 +237,8 @@ assert.deepEqual(
 // a quake that predates every source; when none does, say so instead of requiring it.
 if (!statuses.has("UNAVAILABLE"))
   assert.ok(
-    recorded.every((e) => Date.parse(e.time) >= Math.min(...avail)),
-    "no UNAVAILABLE answer only because every recorded quake follows the earliest source",
+    recorded.every((e) => Date.parse(e.time) >= firstSite),
+    "no UNAVAILABLE answer only because every recorded quake follows the earliest sourced site",
   );
 // Recorded quakes reach cited chains at their own time (the point of seed v2).
 const recordedReach = recorded.filter((e) => e.point_in_time.status === "AVAILABLE");
@@ -500,8 +504,11 @@ try {
       .sort((a, b) => b.time.localeCompare(a.time))[0];
     await page.locator("[data-geo-choice]").selectOption(quake.id);
     assert.equal(await word(page), quake.point_in_time.status);
-    if (quake.point_in_time.status === "UNAVAILABLE") await notEvaluated(page, "UNAVAILABLE");
-    else assert.notEqual(await page.locator('[data-geo-count="sites"]').innerText(), "not evaluated");
+    // Seed v2: every recorded M5+ quake follows the earliest sourced site, so its answer is
+    // evaluated. "Not evaluated" counts are exercised by the BELOW_THRESHOLD scenario above; a
+    // refused or tampered answer renders UNAVAILABLE without counts (checked further down).
+    assert.ok(statuses.has("UNAVAILABLE") || quake.point_in_time.status !== "UNAVAILABLE");
+    assert.notEqual(await page.locator('[data-geo-count="sites"]').innerText(), "not evaluated");
     assert.match(await page.locator('[data-geo-origin="recorded"]').innerText(), /recorded/i);
     await activate(page, page.getByRole("radio", { name: /Graph as checked \d{4}-\d{2}-\d{2}/ }));
     assert.equal(await word(page), quake.retrospective.status);
