@@ -43,6 +43,11 @@ or a source; every hop is an edge of `src/geo/graph/seed/v1.json` and every answ
   out.
 - **Precision.** Coordinates are city or passage centroids; distances are whole km and approximate.
 
+> **Seed v2 (U3 part 2):** the paragraph below describes seed v1. With v2, every recorded M5+ quake
+> is evaluated at its own time: five are AVAILABLE (Java Sea M6.5 to Toyota, Xunchang to CATL,
+> Chiba to Nippon Steel, Inglewood to Methanex) and the rest are NO_COVERAGE. See
+> [u3b-graph-growth.md](u3b-graph-growth.md).
+
 ## Point in time, retrospective and scenarios
 
 The graph's sources were checked on 14–15 Nov 2026. Every quake in the checked Replay snapshot

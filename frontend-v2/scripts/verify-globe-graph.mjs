@@ -212,7 +212,7 @@ const statuses = new Set();
 const cutoff = P.graph.knowledge_cutoff;
 for (const e of P.events) {
   if (e.origin === "recorded") {
-    // Point in time: the answer as of the quake, which predates every checked source.
+    // Point in time: the answer as of the quake, using only sources available by then.
     check(e, e.point_in_time, e.time, `${e.id} at event time`);
     check(e, e.retrospective, cutoff, `${e.id} retrospective`);
     statuses.add(e.point_in_time.status).add(e.retrospective.status);
@@ -225,10 +225,20 @@ for (const e of P.events) {
   }
 }
 assert.deepEqual(
-  [...statuses].sort(),
-  ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL", "UNAVAILABLE"],
-  "every status occurs",
+  ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL"].filter((x) => !statuses.has(x)),
+  [],
+  "every evaluated status occurs",
 );
+// Seed v2 dates sources by evidence of earlier availability. UNAVAILABLE may then occur only for
+// a quake that predates every source; when none does, say so instead of requiring it.
+if (!statuses.has("UNAVAILABLE"))
+  assert.ok(
+    recorded.every((e) => Date.parse(e.time) >= Math.min(...avail)),
+    "no UNAVAILABLE answer only because every recorded quake follows the earliest source",
+  );
+// Recorded quakes reach cited chains at their own time (the point of seed v2).
+const recordedReach = recorded.filter((e) => e.point_in_time.status === "AVAILABLE");
+assert.ok(recordedReach.length >= 1, "a recorded quake reaches a security at its own time");
 const taiwan = P.events.find((e) => e.id === "scenario:taiwan-m6.8");
 assert.equal(taiwan.point_in_time.status, "AVAILABLE");
 
@@ -490,8 +500,8 @@ try {
       .sort((a, b) => b.time.localeCompare(a.time))[0];
     await page.locator("[data-geo-choice]").selectOption(quake.id);
     assert.equal(await word(page), quake.point_in_time.status);
-    assert.equal(quake.point_in_time.status, "UNAVAILABLE");
-    await notEvaluated(page, "UNAVAILABLE");
+    if (quake.point_in_time.status === "UNAVAILABLE") await notEvaluated(page, "UNAVAILABLE");
+    else assert.notEqual(await page.locator('[data-geo-count="sites"]').innerText(), "not evaluated");
     assert.match(await page.locator('[data-geo-origin="recorded"]').innerText(), /recorded/i);
     await activate(page, page.getByRole("radio", { name: /Graph as checked \d{4}-\d{2}-\d{2}/ }));
     assert.equal(await word(page), quake.retrospective.status);
@@ -500,17 +510,33 @@ try {
       /^Retrospective: .*after the event/,
     );
     assert.notEqual(await page.locator('[data-geo-count="sites"]').innerText(), "not evaluated");
+    // A recorded quake that reaches securities at its own time: drawn and listed, never labelled
+    // hypothetical, every listed security is the projection's.
+    const real = [...recordedReach].sort((a, b) => b.magnitude - a.magnitude)[0];
+    await page.locator("[data-geo-choice]").selectOption(real.id);
+    await activate(page, page.getByRole("radio", { name: "At event time", exact: true }));
+    const realWord = await word(page);
+    assert.equal(realWord, "AVAILABLE", "the recorded quake reaches securities at its own time");
+    {
+      assert.ok((await stage(page, "arcs")) > 0, "a recorded quake draws its cited chain");
+      assert.equal(await page.locator("[data-geo-hypothetical]").count(), 0, "recorded is not hypothetical");
+      const realListed = await page
+        .locator("[data-geo-security]")
+        .evaluateAll((els) => els.map((e) => e.dataset.geoSecurity));
+      assert.deepEqual(realListed, real.point_in_time.securities.map((x) => x.security));
+    }
     await noScroll(page, `/globe ${w}`);
     assert.deepEqual(forbidden, [], `/globe ${w}: Replay contacted a non-origin or API URL`);
     await page.close();
   }
   assert.deepEqual(
-    [...seen].sort(),
-    ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL", "UNAVAILABLE"],
-    "all five statuses rendered in words",
+    ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL", ...(statuses.has("UNAVAILABLE") ? ["UNAVAILABLE"] : [])]
+      .filter((x) => !seen.has(x)),
+    [],
+    "every status in the projection rendered in words (UNAVAILABLE also below: tampered and refused answers)",
   );
   console.log(
-    "Browser: layers toggle by keyboard; arcs, securities and cited hops; five statuses in words; scenario and retrospective labels; one arc colour mapping (sabotage caught); answer above the fold; Replay stayed same-origin at 1440 and 390",
+    "Browser: layers toggle by keyboard; arcs, securities and cited hops; every status in words; a recorded quake reaching securities at its own time; scenario and retrospective labels; one arc colour mapping (sabotage caught); answer above the fold; Replay stayed same-origin at 1440 and 390",
   );
 
   // Local Live, mocked: the page asks POST /geo/graph/propagate for the selected quake. A refused
