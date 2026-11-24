@@ -441,10 +441,33 @@ try {
         // Independent of the page: the digest shown is the one the manifest names for the file.
         if (entry) {
           assert.equal(await first.getAttribute("data-sha"), entry.sha256, "replay SHA mismatch");
-          assert.match(
-            await pop.locator("[data-origin-sha]").innerText(),
-            new RegExp(entry.sha256),
-          );
+          // Wait until the field is rendered visible (innerText is empty for unrendered or
+          // visibility:hidden text) instead of reading once; the assertion below stays exact.
+          // A timeout prints the popover's actual state, so a truly empty hash is told apart.
+          const shown = await p
+            .waitForFunction(
+              () => {
+                const el = document.querySelector("[data-origin-popover] [data-origin-sha]");
+                return el && el.innerText.trim() ? el.innerText : null;
+              },
+              null,
+              { polling: 100, timeout: 10000 },
+            )
+            .then((h) => h.jsonValue())
+            .catch(async () => {
+              const state = await p.evaluate(() => {
+                const pop = document.querySelector("[data-origin-popover]");
+                const el = pop?.querySelector("[data-origin-sha]");
+                return {
+                  popovers: document.querySelectorAll("[data-origin-popover]").length,
+                  kind: pop?.getAttribute("data-origin-kind"),
+                  visibility: pop && getComputedStyle(pop).visibility,
+                  textContent: el?.textContent ?? null,
+                };
+              });
+              assert.fail(`popover SHA field never rendered: ${JSON.stringify(state)}`);
+            });
+          assert.match(shown, new RegExp(entry.sha256));
         } else assert.fail(`replay value names ${src}, which the manifest does not carry`);
         // The popover sits beside or below its value, never over it.
         const [a, b] = [await first.boundingBox(), await pop.boundingBox()];
