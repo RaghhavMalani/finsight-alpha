@@ -136,7 +136,7 @@ def test_score_weights_proximity_by_every_edge_confidence():
 
 def test_empty_answers_say_why_instead_of_looking_like_no_exposure():
     graph = load_graph()
-    far = propagate(graph, {**QUAKE, "lat": 36.99, "lon": 127.11, "magnitude": 8.0}, as_of=AS_OF)
+    far = propagate(graph, {**QUAKE, "lat": 0.0, "lon": -150.0, "magnitude": 8.0}, as_of=AS_OF)  # mid-Pacific
     assert far["status"] == "NO_COVERAGE" and "says nothing about real exposure" in far["reason"]
     assert far["nearest_site_km"] > 400 and far["securities"] == []
     small = propagate(graph, {**HSINCHU, "magnitude": 2.0}, as_of=AS_OF)

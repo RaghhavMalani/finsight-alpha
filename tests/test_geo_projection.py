@@ -63,7 +63,9 @@ def test_scenarios_are_labelled_and_reach_securities_only_through_cited_edges():
         "scenario:hsinchu-m4.8": "BELOW_THRESHOLD"}
     assert all(e["label"].startswith("Scenario: ") for e in scenarios.values())
     reached = {r["security"] for r in scenarios["scenario:taiwan-m6.8"]["point_in_time"]["securities"]}
-    assert reached == {"security:tsm", "security:amd", "security:nvda", "security:adi", "security:aapl"}
+    # v1's chains are all still there; seed v2 adds UMC and Micron fabs inside the same radius.
+    assert {"security:tsm", "security:amd", "security:nvda", "security:adi", "security:aapl"} <= reached
+    assert {"security:umc", "security:2303.tw", "security:mu"} <= reached
     for edge in projection["edges"].values():
         assert edge["source"]["url"].startswith("https://") and edge["source"]["title"]
 

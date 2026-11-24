@@ -288,7 +288,8 @@ def test_a_revised_quake_is_suggested_once(store, clock):
     service.ingest([strong])
     clock.advance(minutes=3)
     service.ingest([replace(strong, revision=strong.revision + "1", payload={**strong.payload, "mag": 7.2})])
-    assert len(store.since(None, types={"research.progress"})) == 1
+    by_source = sorted(s["source"] for s in store.since(None, types={"research.progress"}))
+    assert by_source == ["finsight:exposure", "finsight:triggers"]  # each suggestion once, not per revision
 
 
 def test_replay_includes_the_open_day_after_sealed_ones(tmp_path, clock):
