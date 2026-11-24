@@ -39,7 +39,18 @@ export const SEALED_CHROME = [
   ".shell-cutoff",
 ];
 // Routes that must have zero raw numbers.
-export const ENFORCED = ["/", "/research", "/markets", "/markets/:ticker", "/risk"];
+export const ENFORCED = [
+  "/",
+  "/research",
+  "/markets",
+  "/markets/:ticker",
+  "/risk",
+  "/forge",
+  "/worlds",
+  "/artifacts",
+  "/bench",
+  "/data",
+];
 
 function tokens(s) {
   const g = new RegExp(TOKEN.source, "g");
@@ -500,6 +511,27 @@ try {
         await p.waitForTimeout(800);
       },
     },
+    {
+      route: "/forge",
+      name: "run selected",
+      run: async (p) => {
+        await p.goto(base + "/forge", { waitUntil: "networkidle" });
+        await p.locator("a.agents-seed").first().click();
+        await until(p, ".agents-drawer .agents-steps [data-num]", 20000);
+        await p.waitForTimeout(800);
+      },
+    },
+    ...["revisions", "lineage", "costs", "issues"].map((section) => ({
+      route: "/data",
+      name: section,
+      run: async (p) => {
+        await p.goto(base + "/data", { waitUntil: "networkidle" });
+        await until(p, '.data-workspace[data-state="ready"]');
+        await p.getByRole("button", { name: section, exact: false }).first().click();
+        await until(p, `.data-workspace[data-view="${section}"]`, 10000);
+        await p.waitForTimeout(800);
+      },
+    })),
     {
       route: "/risk",
       name: "coverage",

@@ -1,4 +1,5 @@
 import type { Revision } from "./contracts";
+import type { RouteProv } from "@/visual/route-origin";
 
 export function RevisionObservatory({
   revision,
@@ -6,13 +7,20 @@ export function RevisionObservatory({
   cutoff,
   onCutoff,
   country,
+  V,
+  M,
 }: {
   revision: Revision;
   mirror: Record<string, unknown>;
   cutoff?: string;
   onCutoff: (cutoff: string) => void;
   country: string;
+  /** Origins in the revisions and disagreement artifacts. */
+  V: RouteProv;
+  M: RouteProv;
 }) {
+  const S = "/payload/summary";
+  const count = (v: unknown) => (typeof v === "number" ? v : null);
   if (country === "INDIA")
     return (
       <section className="data-panel">
@@ -37,20 +45,41 @@ export function RevisionObservatory({
           York midnight after the vintage day.
         </p>
         {revision.status === "UNAVAILABLE" ? (
-          <p className="data-unavailable">{revision.reason}</p>
+          <p className="data-unavailable">{V.T(`${S}/reason`, revision.reason, "Reason")}</p>
         ) : (
           <>
             <div className="data-metrics">
               <div>
-                <b>{revision.periods}</b>
+                <b>
+                  {V.N(
+                    `${S}/periods`,
+                    revision.periods,
+                    "Observation periods",
+                    String(revision.periods),
+                  )}
+                </b>
                 <span>observation periods</span>
               </div>
               <div>
-                <b>{revision.revised_periods}</b>
+                <b>
+                  {V.N(
+                    `${S}/revised_periods`,
+                    revision.revised_periods,
+                    "Periods revised",
+                    String(revision.revised_periods),
+                  )}
+                </b>
                 <span>periods revised</span>
               </div>
               <div>
-                <b>{revision.transitions}</b>
+                <b>
+                  {V.N(
+                    `${S}/transitions`,
+                    revision.transitions,
+                    "Value transitions",
+                    String(revision.transitions),
+                  )}
+                </b>
                 <span>value transitions</span>
               </div>
             </div>
@@ -63,24 +92,47 @@ export function RevisionObservatory({
               </div>
               {revision.yearly
                 .filter((row) => !selectedYear || row.year <= selectedYear)
-                .map((row) => (
-                  <div role="row" className="revision-row" key={row.year}>
-                    <strong>{row.year}</strong>
-                    <span>{row.periods}</span>
-                    <span
-                      className="revision-bar"
-                      style={{
-                        backgroundSize: (100 * row.revised_periods) / row.periods + "% 100%",
-                      }}
-                    >
-                      {row.revised_periods}
-                    </span>
-                    <span>{row.transitions}</span>
-                  </div>
-                ))}
+                .map((row) => {
+                  const at = `${S}/yearly/${revision.yearly.indexOf(row)}`;
+                  return (
+                    <div role="row" className="revision-row" key={row.year}>
+                      <strong data-num-exempt="date">{row.year}</strong>
+                      <span>
+                        {V.N(
+                          `${at}/periods`,
+                          row.periods,
+                          `${row.year} periods`,
+                          String(row.periods),
+                        )}
+                      </span>
+                      <span
+                        className="revision-bar"
+                        style={{
+                          backgroundSize: (100 * row.revised_periods) / row.periods + "% 100%",
+                        }}
+                      >
+                        {V.N(
+                          `${at}/revised_periods`,
+                          row.revised_periods,
+                          `${row.year} periods revised`,
+                          String(row.revised_periods),
+                        )}
+                      </span>
+                      <span>
+                        {V.N(
+                          `${at}/transitions`,
+                          row.transitions,
+                          `${row.year} transitions`,
+                          String(row.transitions),
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
             <label>
-              Annual observation window through {selectedYear}. Capture vintage stays fixed.
+              Annual observation window through <span data-num-exempt="date">{selectedYear}</span>.
+              Capture vintage stays fixed.
               <input
                 type="range"
                 aria-label="Annual observation cutoff"
@@ -106,16 +158,31 @@ export function RevisionObservatory({
         <p>{String(mirror.meaning)}</p>
         <div className="data-metrics">
           <div>
-            <b>{String(mirror.pairs ?? 0)}</b>
+            <b>
+              {M.N(`${S}/pairs`, count(mirror.pairs), "Comparable periods", String(mirror.pairs))}
+            </b>
             <span>comparable periods</span>
           </div>
           <div>
-            <b>{String(mirror.different ?? "—")}</b>
+            <b>
+              {mirror.different == null
+                ? "—"
+                : M.N(
+                    `${S}/different`,
+                    count(mirror.different),
+                    "Different values",
+                    String(mirror.different),
+                  )}
+            </b>
             <span>different values</span>
           </div>
         </div>
-        <p>{String(mirror.information_basis ?? "No admitted compatible comparison")}</p>
-        <p className="data-note">
+        <p>
+          {mirror.information_basis == null
+            ? "No admitted compatible comparison"
+            : M.T(`${S}/information_basis`, String(mirror.information_basis), "Information basis")}
+        </p>
+        <p className="data-note" data-num-exempt="id">
           ALFRED UNRATE and BLS LNS14000000 share the same economic upstream. This is a mirror
           check, not independent confirmation.
         </p>
