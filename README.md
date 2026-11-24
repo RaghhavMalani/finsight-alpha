@@ -2,6 +2,8 @@
 
 > An evidence-first research environment where coding agents investigate financial systems and programmatic verifiers grade every claim.
 
+**Live demo: [finsight-alpha-web.vercel.app](https://finsight-alpha-web.vercel.app)**. This is a Replay of checked artifacts: every number traces to recorded, hash-verified files. It has no live feeds, no backend, and nothing is executed.
+
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-1f6feb?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-087f5b?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React 19](https://img.shields.io/badge/UI-React%2019-149eca?logo=react&logoColor=white)](https://react.dev/)
