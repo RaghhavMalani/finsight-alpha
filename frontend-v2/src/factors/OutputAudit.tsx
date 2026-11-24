@@ -1,6 +1,11 @@
 import { useState } from "react";
 import type { Audit } from "./contracts";
-export function OutputAudit({ data }: { data: Audit }) {
+import { useFactorProv } from "./prov";
+export function OutputAudit({ data, artifactId }: { data: Audit; artifactId?: string }) {
+  const P = useFactorProv(artifactId),
+    all = data.payload.items,
+    definitions = (data.payload as { definitions?: unknown[] }).definitions,
+    channel = (c: string) => all.filter((r) => r.output_channel === c).length;
   const [filter, setFilter] = useState(""),
     [status, setStatus] = useState("ALL"),
     rows = data.payload.items.filter(
@@ -16,7 +21,41 @@ export function OutputAudit({ data }: { data: Audit }) {
     <section className="factor-panel">
       <div className="factor-section-head">
         <h2>Declaration audit</h2>
-        <span>20 definitions · 55 current + 9 derived channels</span>
+        <span>
+          {P.N(
+            "/payload/definitions",
+            definitions?.length,
+            "Definitions",
+            undefined,
+            {
+              formula: "count of /payload/definitions",
+            },
+            "int",
+          )}{" "}
+          definitions ·{" "}
+          {P.N(
+            "/payload/items",
+            channel("current"),
+            "Current channels",
+            undefined,
+            {
+              formula: "count of /payload/items where output_channel = current",
+            },
+            "int",
+          )}{" "}
+          current +{" "}
+          {P.N(
+            "/payload/items",
+            channel("derived"),
+            "Derived channels",
+            undefined,
+            {
+              formula: "count of /payload/items where output_channel = derived",
+            },
+            "int",
+          )}{" "}
+          derived channels
+        </span>
       </div>
       <div className="factor-audit-filter">
         <label>
@@ -38,7 +77,30 @@ export function OutputAudit({ data }: { data: Audit }) {
             ))}
           </select>
         </label>
-        <span>{rows.length} / 64 reviewed channels</span>
+        <span>
+          {P.N(
+            "/payload/items",
+            rows.length,
+            "Channels shown",
+            undefined,
+            {
+              formula: "count of /payload/items matching the chosen eligibility and search text",
+            },
+            "int",
+          )}{" "}
+          /{" "}
+          {P.N(
+            "/payload/items",
+            all.length,
+            "Reviewed channels",
+            undefined,
+            {
+              formula: "count of /payload/items",
+            },
+            "int",
+          )}{" "}
+          reviewed channels
+        </span>
       </div>
       <p className="factor-footnote">
         ELIGIBLE_RETAINED permits display only. Every output remains unauthorized as a new
@@ -48,7 +110,7 @@ export function OutputAudit({ data }: { data: Audit }) {
         {rows.map((r) => (
           <details key={r.class_path + r.output_channel + r.output}>
             <summary>
-              <span>
+              <span data-num-exempt="id">
                 <b>{r.plugin_id}</b>
                 <small>
                   {r.output_channel} / {r.output}

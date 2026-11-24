@@ -250,9 +250,16 @@ try {
   );
   const riskManifestUrl = /projection:\s*\{\s*url:\s*"([^"]+)"/.exec(plan)[1];
   const riskManifest = await (await context.request.get(base + riskManifestUrl)).json();
-  const MANIFEST_FILES = new Set(["/replay-manifest.json", riskManifestUrl]);
+  // The Factor read manifest, which /factors reads its artifacts through (URL from its read plan).
+  const factorPlan = readFileSync(
+    fileURLToPath(new URL("../src/factors/read-plan.generated.ts", import.meta.url)),
+    "utf8",
+  );
+  const factorManifestUrl = /projection:\s*\{\s*url:\s*"([^"]+)"/.exec(factorPlan)[1];
+  const factorManifest = await (await context.request.get(base + factorManifestUrl)).json();
+  const MANIFEST_FILES = new Set(["/replay-manifest.json", riskManifestUrl, factorManifestUrl]);
   const digests = new Map();
-  for (const m of [manifest, riskManifest])
+  for (const m of [manifest, riskManifest, factorManifest])
     for (const e of Object.values(m.artifacts)) if (e.url) digests.set(e.url, e.sha256);
   /** A replay value must name a checked artifact and exactly the digest its manifest names. */
   const judge = (r) => {

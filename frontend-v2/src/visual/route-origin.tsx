@@ -32,7 +32,11 @@ export function useRouteOrigin(route: string) {
 
 /** Render helpers bound to one route: numbers, timestamps and recorded text with origins. */
 export function useRouteProv(route: string) {
-  const at = useRouteOrigin(route);
+  return provHelpers(useRouteOrigin(route));
+}
+
+/** Render helpers for one source, given how to build an origin for a pointer into it. */
+export function provHelpers(at: (ptr: string, extra?: Partial<Origin>) => Origin) {
   const N = (
     ptr: string,
     v: number | null | undefined,
@@ -52,4 +56,4 @@ export function useRouteProv(route: string) {
   );
   return { at, N, D, T };
 }
-export type RouteProv = ReturnType<typeof useRouteProv>;
+export type RouteProv = ReturnType<typeof provHelpers>;

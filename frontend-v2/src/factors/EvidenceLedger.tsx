@@ -1,5 +1,7 @@
 import type { Ledger } from "./contracts";
-export function EvidenceLedger({ data }: { data: Ledger }) {
+import { useFactorProv } from "./prov";
+export function EvidenceLedger({ data, artifactId }: { data: Ledger; artifactId?: string }) {
+  const P = useFactorProv(artifactId);
   return (
     <section className="factor-panel">
       <div className="factor-section-head">
@@ -11,7 +13,7 @@ export function EvidenceLedger({ data }: { data: Ledger }) {
         stays CLOSED / NOT CALIBRATED; its replacement stays NOT CONFIRMED.
       </p>
       <div className="factor-ledger">
-        {data.payload.candidates.map((c) => (
+        {data.payload.candidates.map((c, ci) => (
           <article key={c.candidate_id}>
             <header>
               <h3>{c.label}</h3>
@@ -29,9 +31,9 @@ export function EvidenceLedger({ data }: { data: Ledger }) {
                   <strong>{s.reason_code.replaceAll("_", " ")}</strong>
                   {s.underlying_verdict && <> · {s.underlying_verdict.replaceAll("_", " ")}</>}
                   <br />
-                  {s.reason}
+                  {P.T(`/payload/candidates/${ci}/stages/${key}/reason`, s.reason, "Reason")}
                 </p>
-                <ul>
+                <ul data-num-exempt="id">
                   {s.evidence_refs.map((r, i) => (
                     <li key={i} className="factor-hash">
                       {r.type === "replay_artifact" ? r.artifact_id : r.path}
