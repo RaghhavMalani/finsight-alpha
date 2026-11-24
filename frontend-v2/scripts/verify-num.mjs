@@ -529,6 +529,17 @@ try {
         await p.waitForTimeout(800);
       },
     },
+    {
+      route: "/bench",
+      name: "baseline detail",
+      run: async (p) => {
+        await p.goto(base + "/bench", { waitUntil: "networkidle" });
+        await p.locator('a.agents-link[href^="/bench/"]').first().click();
+        await until(p, ".agents-page .agents-header h1", 20000);
+        await p.waitForLoadState("networkidle");
+        await p.waitForTimeout(1000);
+      },
+    },
     // /runs/$runId: the first recorded run, on each inspector tab.
     ...["action", "turns", "checks"].map((tab) => ({
       route: "/runs",
