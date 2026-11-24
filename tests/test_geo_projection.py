@@ -70,6 +70,28 @@ def test_scenarios_are_labelled_and_reach_securities_only_through_cited_edges():
         assert edge["source"]["url"].startswith("https://") and edge["source"]["title"]
 
 
+def test_every_point_in_time_chain_uses_only_sources_available_by_the_quake():
+    """Not just the best chain per security: every chain propagate() finds for a recorded quake."""
+    from src.geo.graph import load_graph, propagate
+
+    graph = load_graph()
+    projection = json.loads(_committed()[0])
+    checked = 0
+    for e in projection["events"]:
+        if e["origin"] != "recorded" or e["point_in_time"]["status"] != "AVAILABLE":
+            continue
+        event = {"kind": "earthquake", "lat": e["lat"], "lon": e["lon"], "magnitude": e["magnitude"], "time": e["time"]}
+        result = propagate(graph, event, as_of=e["time"], max_paths=10_000)
+        assert result["chains_total"] == len(result["chains"]) == e["point_in_time"]["chains_total"]
+        for chain in result["chains"]:
+            for hop in chain["hops"]:
+                assert hop["source"]["available_at"] <= e["time"], (e["id"], hop["edge"])
+                for end in (hop["from"], hop["to"]):
+                    assert graph.nodes[end].source.available_at <= e["time"], (e["id"], end)
+            checked += 1
+    assert checked >= 5
+
+
 def test_recorded_quakes_reach_sourced_sites_at_their_own_time():
     """Seed v2: sources dated before the Replay window let real recorded quakes reach the graph."""
     projection = json.loads(_committed()[0])

@@ -38,6 +38,8 @@ the evidence supports.
 |---|---|---|---|
 | Internet Archive snapshot that contains the quoted text (URL `https://web.archive.org/web/<timestamp>/<url>`) | snapshot day / `retrieved` | the snapshot timestamp (UTC) | 132 items |
 | Document that prints its own date (press release, interim report) | printed date / `published` | noon UTC the day after the printed date, after that date has ended in every time zone | 18 items (8 of them read through a snapshot because the live page refuses automated clients) |
+
+Where a quote spans table cells or separate page elements, its locator says "joined table cells" or "joined elements". An Aramco port appears only as a section of the download list on the guidebook page, so its quote is the page's sentence about "all Aramco terminals in Saudi Arabia", and its locator names the section.
 | Page read live, no earlier evidence | fetch day / `retrieved` | the fetch instant | none needed in this batch |
 
 `tests/test_geo_graph.py` enforces all three rules on every added item. No sec.gov page was used,
@@ -112,10 +114,13 @@ quake with Toyota's linked Sunter plant.
 - **Bab el-Mandeb.** The Hapag-Lloyd release names the Red Sea and the Suez Canal, not Bab
   el-Mandeb, so no edge was drawn to that chokepoint. Malacca also has no `ships_through` edge.
 - **Aramco's crude through Hormuz** is not stated on the pages read, so there is no edge.
-- **Methanex Motunui.** A search result showed a 1News headline dated 2 Sep 2026 about Methanex
-  closing a Taranaki plant. That article was not opened, so nothing about it is in the graph. The
-  site is cited from Methanex's own page as of 15 Jul 2026; the graph models where a company
-  operates, not its output on the day.
+- **Methanex Motunui stays in the graph.** 1News reported on 2 Sep 2026 ("Methanex to close
+  Taranaki plant, citing 'decline' in gas supply",
+  https://www.1news.co.nz/2026/09/02/methanex-to-close-taranaki-plant-cites-declining-gas-supply/,
+  opened 2026-11-24). Methanex expects to "indefinitely idle" Motunui, with methanol manufacturing
+  ending at the end of February 2027. The plant was therefore still producing at the Inglewood quake
+  on 2026-10-02, and that reach stands. Once the seed can say when an `operates` edge ends, the
+  idling should be recorded.
 - **MCC Ramu NiCo (PNG, inside the M6.4 Kainantu radius).** Only secondary sources were found.
 - **Large annual-report PDFs** (CK Hutchison, Maersk) exceed the fetch limit and were not used.
 - **Seed breadth.** v2 has 22 companies, short of the ~100 aimed for. Breadth was traded for one

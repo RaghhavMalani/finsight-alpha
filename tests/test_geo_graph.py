@@ -252,6 +252,18 @@ def test_api_reads_the_graph_as_of_a_time_and_propagates():
     assert r.status_code == 200 and r.json()["status"] == "AVAILABLE" and r.json()["securities"]
 
 
+def test_api_serves_the_frozen_v1_seed_by_version_and_v2_by_default():
+    c = client()
+    v1 = c.get("/geo/graph", params={"version": "v1"})
+    assert v1.status_code == 200 and v1.json()["version"] == "v1"
+    assert len(v1.json()["nodes"]) == 44 and len(v1.json()["edges"]) == 46
+    default = c.get("/geo/graph").json()
+    assert default["version"] == "v2" and len(default["nodes"]) > 44
+    assert c.get("/geo/graph", params={"version": "v3"}).status_code == 404
+    past = {**QUAKE, "time": "2026-11-14T11:05:00Z", "as_of": "2026-11-14T11:10:00Z"}
+    assert c.post("/geo/graph/propagate?version=v1", json=past).json()["graph"]["version"] == "v1"
+
+
 def test_api_answers_bad_input_with_4xx_never_500():
     c = client()
     assert c.get("/geo/graph", params={"version": "../seed/v1"}).status_code == 404

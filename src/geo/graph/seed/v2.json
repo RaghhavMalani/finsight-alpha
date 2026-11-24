@@ -896,8 +896,8 @@
     "date": "2016-03-07",
     "date_basis": "published",
     "available_at": "2016-03-08T12:00:00Z",
-    "excerpt": "PT. Toyota Motor Manufacturing Indonesia (TMMIN), Toyota Motor Corporation's vehicle production subsidiary in Indonesia, recently completed construction of a new engine plant",
-    "locator": "Overview of TMMIN: Plant 1 Sunter, Plant 2 Sunter (North Jakarta, Indonesia)"
+    "excerpt": "Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia North Jakarta, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
    }
   },
   {
@@ -917,8 +917,8 @@
     "date": "2016-03-07",
     "date_basis": "published",
     "available_at": "2016-03-08T12:00:00Z",
-    "excerpt": "PT. Toyota Motor Manufacturing Indonesia (TMMIN), Toyota Motor Corporation's vehicle production subsidiary in Indonesia, recently completed construction of a new engine plant",
-    "locator": "Overview of TMMIN: Plant 1 Karawang, Plant 2 Karawang, Karawang Engine Plant (Karawang, Indonesia)"
+    "excerpt": "Plant 1 Karawang Plant 2 Karawang Karawang Engine Plant Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
    }
   },
   {
@@ -1324,7 +1324,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 12A Location : Tainan, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1346,7 +1346,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 12i Location : Singapore",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1368,7 +1368,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "United Semi (Fab 12X) Location : Xiamen, China",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1390,7 +1390,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "USJC (Fab 12M) Location : Kuwana, Mie, Japan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1412,7 +1412,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8A Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1434,7 +1434,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8C Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1456,7 +1456,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8D Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1478,7 +1478,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8E Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1500,7 +1500,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8F Location : Hsinchu,Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -1522,7 +1522,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8S Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -2125,7 +2125,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-09-23T21:54:38Z",
     "excerpt": "Dhamra Port Odisha",
-    "locator": "Our Ports & Terminals"
+    "locator": "map marker for Dhamra Port; joined elements (heading 'Dhamra Port' and its state line 'Odisha')"
    }
   },
   {
@@ -2178,7 +2178,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Ras Tanura North Pier and Sea Island Terminals"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Ras Tanura North Pier and Sea Island Terminals'"
    }
   },
   {
@@ -2198,7 +2198,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Yanbu Terminals"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Yanbu Terminals'"
    }
   },
   {
@@ -2218,7 +2218,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Jazan Bulk Plant Terminal"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jazan Bulk Plant Terminal'"
    }
   },
   {
@@ -2238,7 +2238,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Jeddah"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jeddah'"
    }
   },
   {
@@ -3238,8 +3238,8 @@
     "date": "2016-03-07",
     "date_basis": "published",
     "available_at": "2016-03-08T12:00:00Z",
-    "excerpt": "PT. Toyota Motor Manufacturing Indonesia (TMMIN), Toyota Motor Corporation's vehicle production subsidiary in Indonesia, recently completed construction of a new engine plant",
-    "locator": "Overview of TMMIN: Plant 1 Sunter, Plant 2 Sunter (North Jakarta, Indonesia)"
+    "excerpt": "Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia North Jakarta, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
    }
   },
   {
@@ -3255,8 +3255,8 @@
     "date": "2016-03-07",
     "date_basis": "published",
     "available_at": "2016-03-08T12:00:00Z",
-    "excerpt": "PT. Toyota Motor Manufacturing Indonesia (TMMIN), Toyota Motor Corporation's vehicle production subsidiary in Indonesia, recently completed construction of a new engine plant",
-    "locator": "Overview of TMMIN: Plant 1 Karawang, Plant 2 Karawang, Karawang Engine Plant (Karawang, Indonesia)"
+    "excerpt": "Plant 1 Karawang Plant 2 Karawang Karawang Engine Plant Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
    }
   },
   {
@@ -3545,7 +3545,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 12A Location : Tainan, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3562,7 +3562,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 12i Location : Singapore",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3579,7 +3579,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "United Semi (Fab 12X) Location : Xiamen, China",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3596,7 +3596,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "USJC (Fab 12M) Location : Kuwana, Mie, Japan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3613,7 +3613,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8A Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3630,7 +3630,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8C Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3647,7 +3647,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8D Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3664,7 +3664,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8E Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3681,7 +3681,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8F Location : Hsinchu,Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -3698,7 +3698,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-03T08:20:27Z",
     "excerpt": "Fab 8S Location : Hsinchu, Taiwan",
-    "locator": "Fab locations"
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
    }
   },
   {
@@ -4157,7 +4157,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-09-23T21:54:38Z",
     "excerpt": "Dhamra Port Odisha",
-    "locator": "Our Ports & Terminals"
+    "locator": "map marker for Dhamra Port; joined elements (heading 'Dhamra Port' and its state line 'Odisha')"
    }
   },
   {
@@ -4191,7 +4191,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Ras Tanura North Pier and Sea Island Terminals"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Ras Tanura North Pier and Sea Island Terminals'"
    }
   },
   {
@@ -4208,7 +4208,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Yanbu Terminals"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Yanbu Terminals'"
    }
   },
   {
@@ -4225,7 +4225,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Jazan Bulk Plant Terminal"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jazan Bulk Plant Terminal'"
    }
   },
   {
@@ -4242,7 +4242,7 @@
     "date_basis": "retrieved",
     "available_at": "2026-07-17T14:42:20Z",
     "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
-    "locator": "Download by Section: Port of Jeddah"
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jeddah'"
    }
   },
   {
