@@ -10,6 +10,9 @@ import { Chip, Loading, Panel } from "./ui";
 import { toggleWatchlist, useWatchlist } from "./watchlist";
 import { FACTOR_SERIES, factorSeries } from "@/replay/factor-series";
 import { SourceCredit } from "@/replay/SourceCredit";
+import { Num, ProvenanceProvider, Stamp } from "@/visual/Num";
+import { num as numOf, ref, replayOrigin, svgProv } from "@/visual/origins";
+import type { Origin } from "@/visual/Num";
 import "./replay.css";
 
 const VIEWS = ["Relative performance", "Drawdown", "Realized volatility", "HMM regimes"] as const;
@@ -30,7 +33,22 @@ function value(w: MarketWeek, view: View) {
       : w.relative_performance;
 }
 
-function WeeklyChart({ series, view }: { series: MarketReplay; view: View }) {
+const FIELD: Record<View, string> = {
+  "Relative performance": "relative_performance",
+  Drawdown: "drawdown",
+  "Realized volatility": "realized_volatility",
+  "HMM regimes": "relative_performance",
+};
+
+function WeeklyChart({
+  series,
+  view,
+  at,
+}: {
+  series: MarketReplay;
+  view: View;
+  at: (ptr: string, formula?: string) => Origin;
+}) {
   const rows = series.weeks;
   const points = rows.map((w, i) => ({ i, value: value(w, view) }));
   const values = points.flatMap((p) => (p.value === null ? [] : [p.value]));
@@ -75,30 +93,49 @@ function WeeklyChart({ series, view }: { series: MarketReplay; view: View }) {
             />
           ) : null,
         )}
-        {[0, 0.5, 1].map((p) => (
-          <g key={p}>
-            <line
-              x1="60"
-              x2="730"
-              y1={y(lo + p * spread)}
-              y2={y(lo + p * spread)}
-              stroke="#262b31"
-            />
-            <text x="48" y={y(lo + p * spread) + 4} textAnchor="end">
-              {num(lo + p * spread, 1)}
-              {view === "Drawdown" || view === "Realized volatility" ? "%" : ""}
-            </text>
-          </g>
-        ))}
+        {[0, 0.5, 1].map((p) => {
+          // The ticks are the series' own minimum, midpoint and maximum, so each names its rule.
+          const field = FIELD[view];
+          const scale = view === "Drawdown" || view === "Realized volatility" ? " × 100" : "";
+          const rule =
+            p === 0
+              ? `min of /weeks/*/${field}${scale}`
+              : p === 1
+                ? `max of /weeks/*/${field}${scale}`
+                : `midpoint of min and max of /weeks/*/${field}${scale}`;
+          const label = `${num(lo + p * spread, 1)}${view === "Drawdown" || view === "Realized volatility" ? "%" : ""}`;
+          const prov = svgProv(at(`/weeks/*/${field}`, rule), `${view} axis`, label);
+          return (
+            <g key={p}>
+              <line
+                x1="60"
+                x2="730"
+                y1={y(lo + p * spread)}
+                y2={y(lo + p * spread)}
+                stroke="#262b31"
+              />
+              <text x="48" y={y(lo + p * spread) + 4} textAnchor="end" {...prov.attrs}>
+                <title>{prov.title}</title>
+                {label}
+              </text>
+            </g>
+          );
+        })}
         {segments.map((d, i) => (
           <path key={i} d={d} fill="none" stroke="#f0a929" strokeWidth="2" />
         ))}
-        <text x="60" y="258">
-          {rows[0].week}
-        </text>
-        <text x="730" y="258" textAnchor="end">
-          {rows.at(-1)!.week}
-        </text>
+        {[
+          [60, "start", 0],
+          [730, "end", rows.length - 1],
+        ].map(([x, anchor, i]) => {
+          const prov = svgProv(at(`/weeks/${i}/week`), "Week", rows[i as number].week);
+          return (
+            <text key={i} x={x} y="258" textAnchor={anchor as "start" | "end"} {...prov.attrs}>
+              <title>{prov.title}</title>
+              {rows[i as number].week}
+            </text>
+          );
+        })}
       </svg>
       <div className="mk-replay-legend">
         {[...new Set(rows.flatMap((w) => (w.regime ? [w.regime] : [])))].map((regime) => (
@@ -143,10 +180,25 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
     series.error?.message ??
     entry?.reason ??
     "No publication-licensed derived series is installed for this instrument.";
-  const last = series.data?.weeks.at(-1);
+  const weeks = series.data?.weeks ?? [];
+  const last = weeks.at(-1);
+  const lastAt = weeks.length - 1;
   const watching = watchlist.includes(ticker);
+  // Every number below is read from the checked artifact (or the manifest) and names it.
+  const at = (ptr: string, formula?: string) =>
+    replayOrigin(entry, ptr, formula ? { formula } : {});
+  const manifestAt = (ptr: string) =>
+    replayOrigin({ url: "/replay-manifest.json", sha256: null, as_of: manifest.data?.as_of }, ptr, {
+      note: "The checked Replay manifest is the root of the Replay check; it names the artifact digests.",
+    });
+  const V = (ptr: string, v: number | null | undefined, display: string, label: string) => (
+    <Num n={numOf(at(ptr), v)} display={display} label={label} className="vx-inherit" />
+  );
+  const D = (ptr: string, v: string | null | undefined, display: string, label: string) => (
+    <Stamp s={ref(at(ptr), v)} display={display} label={label} className="vx-inherit" />
+  );
   return (
-    <>
+    <ProvenanceProvider>
       <nav className="mk-replay-views" aria-label="Public market factors">
         <span className="mk-note">Public research · market factor, not a ticker</span>
         {FACTOR_SERIES.map((s) => (
@@ -180,38 +232,96 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
                 ? "Daily research release · fixed revised vintage"
                 : "Session unavailable"}
           </span>
-          <span>{stamp(entry?.as_of ?? manifest.data?.as_of)}</span>
+          <span>
+            {entry?.as_of || manifest.data?.as_of ? (
+              <Stamp
+                s={ref(
+                  manifestAt(entry?.as_of ? `/artifacts/market:${ticker}/as_of` : "/as_of"),
+                  entry?.as_of ?? manifest.data?.as_of,
+                )}
+                display={stamp(entry?.as_of ?? manifest.data?.as_of)}
+                label="Artifact as of"
+                className="vx-inherit"
+              />
+            ) : (
+              stamp(null)
+            )}
+          </span>
         </div>
         {series.data?.method.hmm?.source_coverage && (
           <p className="mk-line">
-            {series.data.method.hmm.source_coverage.market_start}–
-            {series.data.method.hmm.source_coverage.market_end} ·{" "}
-            {series.data.method.hmm.source_coverage.observations.toLocaleString()} daily returns ·
-            captured {stamp(series.data.method.hmm.source_coverage.latest_availability)}
+            {D(
+              "/method/hmm/source_coverage/market_start",
+              series.data.method.hmm.source_coverage.market_start,
+              series.data.method.hmm.source_coverage.market_start,
+              "Coverage start",
+            )}
+            –
+            {D(
+              "/method/hmm/source_coverage/market_end",
+              series.data.method.hmm.source_coverage.market_end,
+              series.data.method.hmm.source_coverage.market_end,
+              "Coverage end",
+            )}{" "}
+            ·{" "}
+            {V(
+              "/method/hmm/source_coverage/observations",
+              series.data.method.hmm.source_coverage.observations,
+              series.data.method.hmm.source_coverage.observations.toLocaleString(),
+              "Daily returns",
+            )}{" "}
+            daily returns · captured{" "}
+            {D(
+              "/method/hmm/source_coverage/latest_availability",
+              series.data.method.hmm.source_coverage.latest_availability,
+              stamp(series.data.method.hmm.source_coverage.latest_availability),
+              "Latest availability",
+            )}
           </p>
         )}
         {factor && entry && (
-          <div className="px-5 py-3">
+          // Attribution and citation prose from the manifest licence (sealed SourceCredit).
+          <div className="px-5 py-3" data-num-exempt="copy">
             <SourceCredit licence={entry.licence} />
           </div>
         )}
         <div className="mk-replay-kpis">
           <div>
             <span>Relative performance</span>
-            <b>{last ? num(last.relative_performance) : "Unavailable"}</b>
-            <small>First admitted week = 100</small>
+            <b>
+              {last
+                ? V(
+                    `/weeks/${lastAt}/relative_performance`,
+                    last.relative_performance,
+                    num(last.relative_performance),
+                    "Relative performance",
+                  )
+                : "Unavailable"}
+            </b>
+            <small data-num-exempt="copy">First admitted week = 100</small>
           </div>
           <div>
             <span>Drawdown</span>
-            <b>{last ? pct(last.drawdown) : "Unavailable"}</b>
+            <b>
+              {last
+                ? V(`/weeks/${lastAt}/drawdown`, last.drawdown, pct(last.drawdown), "Drawdown")
+                : "Unavailable"}
+            </b>
             <small>Daily peak, sampled weekly</small>
           </div>
           <div>
             <span>Realized volatility</span>
             <b>
-              {last?.realized_volatility != null ? pct(last.realized_volatility) : "Unavailable"}
+              {last?.realized_volatility != null
+                ? V(
+                    `/weeks/${lastAt}/realized_volatility`,
+                    last.realized_volatility,
+                    pct(last.realized_volatility),
+                    "Realized volatility",
+                  )
+                : "Unavailable"}
             </b>
-            <small>20 sessions · annualized</small>
+            <small data-num-exempt="copy">20 sessions · annualized</small>
           </div>
           <div>
             <span>HMM regime</span>
@@ -246,7 +356,7 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
           {manifest.isPending || (entry?.status === "AVAILABLE" && series.isPending) ? (
             <Loading label="checked market evidence" />
           ) : series.data ? (
-            <WeeklyChart series={series.data} view={view} />
+            <WeeklyChart series={series.data} view={view} at={at} />
           ) : (
             <div className="mk-replay-unavailable" role="status">
               <b>{view} unavailable</b>
@@ -277,7 +387,14 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
             {entry?.sha256 && <p className="font-mono break-all">SHA-256 {entry.sha256}</p>}
           </details>
         </Panel>
-        <Panel title="Watchlist" meta={<Chip>{watchlist.length} instruments</Chip>}>
+        <Panel
+          title="Watchlist"
+          meta={
+            <Chip>
+              <span data-num-exempt="input">{watchlist.length} instruments</span>
+            </Chip>
+          }
+        >
           <div className="mk-replay-watchlist">
             {watchlist.map((symbol) => {
               const i = lookupInstrument(symbol),
@@ -305,7 +422,7 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
           {manifest.data?.artifacts["market:india-vix"]?.reason ??
             "No publication-licensed India VIX summary is installed."}
         </p>
-        <p className="mk-line">
+        <p className="mk-line" data-num-exempt="copy">
           NSE regular cash session: 09:15–15:30 IST. Holidays and special sessions follow the
           exchange calendar. Local Live shows a sourced, timestamped index level when available.
         </p>
@@ -324,24 +441,56 @@ export default function ReplayOverviewScreen({ ticker }: { ticker: string }) {
                 </tr>
               </thead>
               <tbody>
-                {series.data.weeks.slice(-52).map((w) => (
-                  <tr key={w.week}>
-                    <td>{w.week}</td>
-                    <td>{num(w.relative_performance)}</td>
-                    <td>{pct(w.drawdown)}</td>
-                    <td>{pct(w.realized_volatility)}</td>
-                    <td>{w.regime ?? "Unavailable"}</td>
-                  </tr>
-                ))}
+                {series.data.weeks.slice(-52).map((w, k, shown) => {
+                  const i = weeks.length - shown.length + k;
+                  return (
+                    <tr key={w.week}>
+                      <td>{D(`/weeks/${i}/week`, w.week, w.week, "Week")}</td>
+                      <td>
+                        {V(
+                          `/weeks/${i}/relative_performance`,
+                          w.relative_performance,
+                          num(w.relative_performance),
+                          `Relative performance ${w.week}`,
+                        )}
+                      </td>
+                      <td>
+                        {V(
+                          `/weeks/${i}/drawdown`,
+                          w.drawdown,
+                          pct(w.drawdown),
+                          `Drawdown ${w.week}`,
+                        )}
+                      </td>
+                      <td>
+                        {w.realized_volatility == null
+                          ? pct(null)
+                          : V(
+                              `/weeks/${i}/realized_volatility`,
+                              w.realized_volatility,
+                              pct(w.realized_volatility),
+                              `Realized volatility ${w.week}`,
+                            )}
+                      </td>
+                      <td>{w.regime ?? "Unavailable"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
           <p className="mk-line">
-            Latest 52 weeks shown. {series.data.weeks.length.toLocaleString()} weeks in the checked
-            full-history artifact.
+            <span data-num-exempt="copy">Latest 52 weeks shown.</span>{" "}
+            <Num
+              n={numOf(at("/weeks", "count of /weeks"), series.data.weeks.length)}
+              display={series.data.weeks.length.toLocaleString()}
+              label="Weeks in artifact"
+              className="vx-inherit"
+            />{" "}
+            weeks in the checked full-history artifact.
           </p>
         </Panel>
       )}
-    </>
+    </ProvenanceProvider>
   );
 }

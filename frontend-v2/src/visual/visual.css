@@ -120,30 +120,57 @@
 }
 
 /* Provenance values ------------------------------------------------------------------- */
-.vx-num,
-.vx-hash,
-.vx-stamp,
-.vx-src {
+/* Doubled classes outrank workspace button rules (such as .mk button): a value is never a box. */
+.vx-num.vx-num,
+.vx-hash.vx-hash,
+.vx-stamp.vx-stamp,
+.vx-src.vx-src {
   all: unset;
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  min-height: 0;
+  min-width: 0;
+  box-shadow: none;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
-  border-bottom: 1px dotted rgba(63, 224, 255, 0.35);
-  transition: border-color var(--vx-fast, 140ms) var(--vx-ease, ease);
+  text-decoration: underline dotted rgba(63, 224, 255, 0.4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition:
+    text-decoration-color var(--vx-fast, 140ms) var(--vx-ease, ease),
+    background-color var(--vx-fast, 140ms) var(--vx-ease, ease);
 }
-.vx-src {
-  border-bottom-color: rgba(231, 234, 236, 0.14);
+.vx-src.vx-src {
+  text-decoration-color: rgba(231, 234, 236, 0.28);
 }
-.vx-num:hover,
-.vx-hash:hover,
-.vx-stamp:hover,
-.vx-src:hover {
-  border-bottom-color: var(--vx-cyan, #3fe0ff);
+/* The origin kind shows on the value itself: sealed cyan dotted, replay amber, live green dashed. */
+.vx-num[data-origin-kind="replay"],
+.vx-stamp[data-origin-kind="replay"],
+.vx-hash[data-origin-kind="replay"] {
+  text-decoration-color: rgba(240, 169, 41, 0.5);
 }
-.vx-num:focus-visible,
-.vx-hash:focus-visible,
-.vx-stamp:focus-visible,
-.vx-src:focus-visible {
-  outline: 1px solid var(--vx-amber, #f0a929);
+.vx-num[data-origin-kind="live"],
+.vx-stamp[data-origin-kind="live"],
+.vx-hash[data-origin-kind="live"] {
+  text-decoration-color: rgba(66, 201, 139, 0.55);
+  text-decoration-style: dashed;
+}
+button.vx-num:hover,
+button.vx-hash:hover,
+button.vx-stamp:hover,
+button.vx-src:hover {
+  text-decoration-color: var(--vx-cyan, #3fe0ff);
+  background-color: rgba(63, 224, 255, 0.07);
+}
+.vx-num.vx-num:focus-visible,
+.vx-hash.vx-hash:focus-visible,
+.vx-stamp.vx-stamp:focus-visible,
+.vx-src.vx-src:focus-visible {
+  outline: 2px solid var(--vx-amber, #f0a929);
   outline-offset: 2px;
 }
 .vx-num {
@@ -152,6 +179,21 @@
 .vx-hash,
 .vx-stamp {
   font-family: var(--vx-mono, monospace);
+}
+/* Keep the surrounding colour and font (tables, KPI tiles, live rows). */
+.vx-num.vx-num.vx-inherit,
+.vx-hash.vx-hash.vx-inherit,
+.vx-stamp.vx-stamp.vx-inherit {
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+/* Inert values sit inside a link: the link keeps the pointer and the click. */
+span.vx-num.vx-num,
+span.vx-hash.vx-hash,
+span.vx-stamp.vx-stamp,
+span.vx-src.vx-src {
+  cursor: inherit;
 }
 .vx-na {
   color: var(--vx-muted, #9aa2a9);
@@ -206,16 +248,45 @@
   font-size: 11px;
   letter-spacing: 0.18em;
 }
-.vx-origin-head button {
+.vx-origin-head button.vx-origin-close {
   all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  margin: -4px -6px 0 0;
+  padding: 0 4px;
+  border: 0;
+  background: none;
   cursor: pointer;
   color: var(--vx-muted, #9aa2a9);
   font-size: 11px;
   letter-spacing: 0.1em;
-  padding: 0 2px;
 }
-.vx-origin-head button:focus-visible {
-  outline: 1px solid var(--vx-amber, #f0a929);
+.vx-origin-head button.vx-origin-close:hover {
+  color: var(--vx-fg, #e7eaec);
+}
+.vx-origin-head button.vx-origin-close:focus-visible {
+  outline: 2px solid var(--vx-amber, #f0a929);
+  outline-offset: 1px;
+}
+/* The popover names its origin kind: a coloured rule and the kind in the header. */
+.vx-origin[data-origin-kind] {
+  border-left: 2px solid var(--vx-kind, #3fe0ff);
+}
+.vx-origin[data-origin-kind="sealed"] {
+  --vx-kind: var(--vx-cyan, #3fe0ff);
+}
+.vx-origin[data-origin-kind="replay"] {
+  --vx-kind: var(--vx-amber, #f0a929);
+}
+.vx-origin[data-origin-kind="live"] {
+  --vx-kind: #42c98b;
+}
+.vx-origin-kind {
+  color: var(--vx-kind, #3fe0ff);
 }
 .vx-origin-value {
   margin-top: 8px;
@@ -246,8 +317,8 @@
   min-width: 0;
 }
 .vx-break {
+  /* Long digests break where they must; ordinary words stay whole. */
   overflow-wrap: anywhere;
-  word-break: break-all;
 }
 @media (prefers-reduced-motion: reduce) {
   .vx-live i::after {

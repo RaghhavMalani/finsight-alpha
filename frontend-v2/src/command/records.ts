@@ -41,6 +41,15 @@ export type FeedHealth = {
   lag_s?: number | null;
   last_success_at?: string | null;
   last_attempt_at?: string | null;
+  /** Where this row was last read: the /live/health snapshot entry, or a feed.health record. */
+  via?: {
+    src: string;
+    ptr: string;
+    seq?: number;
+    available_at?: string;
+    observed_at?: string;
+    as_of?: string | null;
+  };
 };
 
 export const isObject = (v: unknown): v is Record<string, unknown> =>

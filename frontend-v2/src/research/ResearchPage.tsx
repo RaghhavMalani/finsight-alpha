@@ -185,6 +185,8 @@ const ORDER: GraphNode["kind"][] = [
 /** Source attributes for raw evidence labels drawn outside a provenance button. */
 const prov = (sources: Record<string, SourceFile>, src: string) => ({
   "data-prov": "label",
+  "data-num": "",
+  "data-origin-kind": "sealed",
   "data-src": sources[src]?.path ?? "",
   "data-sha": sources[src]?.sha256 ?? "",
 });
@@ -825,7 +827,12 @@ function Legend({ graph, narrow }: { graph: ResearchGraph; narrow: boolean }) {
     [
       "Geometry",
       [
-        row("none", "fg", "radius", "6 + 1.25·t from the hypothesis (floor t = −2.8)"),
+        row(
+          "none",
+          "fg",
+          "radius",
+          <span data-copy>6 + 1.25·t from the hypothesis (floor t = −2.8)</span>,
+        ),
         row("none", "fg", "inside t = 0", "negative t"),
         row("ring", "amber", "rings", "pre-Holm thresholds; the verdict uses Holm"),
         row("dot", "muted", "nearest four", "scorecard questions"),
@@ -952,7 +959,9 @@ function Readout({ graph }: { graph: ResearchGraph }) {
             <span role="columnheader">power</span>
             <span role="columnheader">est</span>
             <span role="columnheader">MDE</span>
-            <span role="columnheader">95% CI</span>
+            <span role="columnheader" data-copy>
+              95% CI
+            </span>
             <span role="columnheader">Holm p</span>
           </div>
           {rows.map((n) => (
