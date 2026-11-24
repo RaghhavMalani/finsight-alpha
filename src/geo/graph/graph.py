@@ -11,7 +11,7 @@ import re
 from .model import Edge, Node, Source, parse_instant
 
 SEED_DIR = Path(__file__).with_name("seed")
-LATEST = "v1"
+LATEST = "v2"
 EARTH_KM = 6371.0088
 # Declared, coarse and unfitted: how far an event of each kind plausibly disrupts a site.
 MIN_QUAKE_MAGNITUDE = 5.0

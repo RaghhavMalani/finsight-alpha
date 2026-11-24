@@ -31,8 +31,17 @@ def test_point_in_time_answers_never_use_later_relationships():
     projection = json.loads(body)
     recorded = [e for e in projection["events"] if e["origin"] == "recorded"]
     assert recorded and all(e["time"] < projection["graph"]["knowledge_cutoff"] for e in recorded)
-    # Every recorded quake predates the checked sources, so none can be AVAILABLE at its own time.
-    assert {e["point_in_time"]["status"] for e in recorded} <= {"UNAVAILABLE", "BELOW_THRESHOLD"}
+    # A point-in-time answer may only use nodes and edges whose source was available by the quake.
+    for e in recorded:
+        answer = e["point_in_time"]
+        for row in answer["securities"]:
+            chain = row["best_chain"]
+            hops = [projection["edges"][h] for h in chain["hops"]]
+            used = {chain["site"], *(h["src"] for h in hops), *(h["dst"] for h in hops)}
+            for item in (*hops, *(projection["nodes"][n] for n in used)):
+                assert item["source"]["available_at"] <= e["time"], (e["id"], item["id"])
+        for site in answer["sites"]:
+            assert projection["nodes"][site["site"]]["source"]["available_at"] <= e["time"]
     for e in projection["events"]:
         for answer in (e["point_in_time"], e["retrospective"]):
             if answer is None:
@@ -57,3 +66,28 @@ def test_scenarios_are_labelled_and_reach_securities_only_through_cited_edges():
     assert reached == {"security:tsm", "security:amd", "security:nvda", "security:adi", "security:aapl"}
     for edge in projection["edges"].values():
         assert edge["source"]["url"].startswith("https://") and edge["source"]["title"]
+
+
+def test_recorded_quakes_reach_sourced_sites_at_their_own_time():
+    """Seed v2: sources dated before the Replay window let real recorded quakes reach the graph."""
+    projection = json.loads(_committed()[0])
+    recorded = [e for e in projection["events"] if e["origin"] == "recorded"]
+    by_place: dict[str, set] = {}
+    for e in recorded:
+        if e["point_in_time"]["status"] == "AVAILABLE":
+            by_place.setdefault(e["label"], set()).update(r["security"] for r in e["point_in_time"]["securities"])
+    expected = {
+        "121 km NNE of Teluknaga, Indonesia": {"security:7203.t"},  # M6.5 Java Sea: TMMIN Sunter
+        "13 km N of Xunchang, China": {"security:300750.sz", "security:3750.hk"},  # CATL Yibin
+        "15 km NNW of Xunchang, China": {"security:300750.sz", "security:3750.hk"},
+        "0 km NNE of Y\u014dkaichiba, Japan": {"security:5401.t"},  # Nippon Steel Kashima
+        "6 km E of Inglewood, New Zealand": {"security:meoh", "security:mx.to"},  # Methanex Motunui
+    }
+    for place, securities in expected.items():
+        assert securities <= by_place.get(place, set()), place
+    statuses = {e["point_in_time"]["status"] for e in recorded}
+    assert statuses <= {"AVAILABLE", "PARTIAL", "NO_COVERAGE", "BELOW_THRESHOLD"}
+    # The graph only grows with time, so a later look never reaches less than the point-in-time one.
+    for e in recorded:
+        if e["point_in_time"]["status"] == "AVAILABLE":
+            assert e["retrospective"]["status"] == "AVAILABLE"

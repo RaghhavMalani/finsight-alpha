@@ -13,6 +13,7 @@ from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel, Field, ValidationError
 
 from src.geo.graph import load_graph, propagate
+from src.geo.graph.graph import LATEST
 from src.geo.graph.model import parse_instant
 
 router = APIRouter(prefix="/geo/graph", tags=["geo-graph"])
@@ -53,12 +54,12 @@ class EventIn(BaseModel):
 
 
 @router.get("")
-def graph(version: str = "v1", as_of: str | None = None) -> dict:
+def graph(version: str = LATEST, as_of: str | None = None) -> dict:
     return _graph(version).to_dict(_as_of(as_of))
 
 
 @router.post("/propagate")
-def propagate_event(payload: dict = Body(...), version: str = "v1") -> dict:
+def propagate_event(payload: dict = Body(...), version: str = LATEST) -> dict:
     try:
         event = EventIn.model_validate(payload)
     except ValidationError as error:

@@ -1,10 +1,12 @@
 """Sourced knowledge graph: schema guards, as_of-respecting propagation, honest statuses and the API."""
+from datetime import timedelta
 import json
 
 import pytest
 
 from src.geo.graph import graph as G
 from src.geo.graph import load_graph, propagate
+from src.geo.graph.model import parse_instant
 
 T, AS_OF = "2026-11-16T00:00:00Z", "2026-11-16T01:00:00Z"  # after every source in the seed was checked
 QUAKE = {"kind": "earthquake", "magnitude": 6.8, "lat": 23.9, "lon": 121.6, "time": T}
@@ -142,7 +144,10 @@ def test_empty_answers_say_why_instead_of_looking_like_no_exposure():
     hormuz = propagate(graph, {"kind": "conflict", "lat": 26.57, "lon": 56.25, "time": T}, as_of=AS_OF)
     assert hormuz["status"] == "PARTIAL" and hormuz["securities"] == []
     assert [s["site"] for s in hormuz["unlinked_sites"]] == ["chokepoint:hormuz"]
-    early = propagate(graph, {**HSINCHU, "time": "2026-11-13T00:00:00Z"}, as_of="2026-11-13T01:00:00Z")
+    # Before the earliest sourced fact in the graph, nothing is known: UNAVAILABLE, never NO_COVERAGE.
+    first = min(parse_instant(n.source.available_at) for n in graph.nodes.values())
+    t0 = (first - timedelta(days=1)).isoformat().replace("+00:00", "Z")
+    early = propagate(graph, {**HSINCHU, "time": t0}, as_of=t0)
     assert early["status"] == "UNAVAILABLE" and early["nodes_not_yet_available"] == len(graph.nodes)
     before = propagate(graph, QUAKE, as_of="2026-11-15T23:00:00Z")
     assert before["status"] == "UNAVAILABLE" and before["reason"] == "as_of precedes the event"
@@ -232,9 +237,14 @@ def client():
 def test_api_reads_the_graph_as_of_a_time_and_propagates():
     c = client()
     body = c.get("/geo/graph").json()
-    assert body["version"] == "v1" and len(body["edges"]) >= 40 and body["edges_not_yet_available"] == 0
+    assert body["version"] == G.LATEST and len(body["edges"]) >= 40 and body["edges_not_yet_available"] == 0
     early = c.get("/geo/graph", params={"as_of": "2026-11-14T12:00:00Z"}).json()
-    assert early["edges_not_yet_available"] == 4  # the Apple edges were checked a day later
+    cut = parse_instant("2026-11-14T12:00:00Z")
+    later = [e.id for e in load_graph().edges if parse_instant(e.source.available_at) > cut]
+    # The Apple edges were checked a day later than the rest of v1, so they are not yet available.
+    apple = {e["id"] for e in seed()["edges"] if e["type"] == "supplies" and e["dst"] == "company:apple"}
+    assert len(apple) == 4 and apple <= set(later)
+    assert early["edges_not_yet_available"] == len(later) >= 4
     assert all("apple" not in e["id"] or e["type"] != "supplies" for e in early["edges"])
     # Explicit past instants: the route refuses a future as_of, so the test must not depend on "now".
     past = {**QUAKE, "time": "2026-11-14T11:05:00Z", "as_of": "2026-11-14T11:10:00Z"}
