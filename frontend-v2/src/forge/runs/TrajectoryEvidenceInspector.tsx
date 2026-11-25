@@ -3,9 +3,6 @@ import type { RunDetail } from "@/forge/contracts/observer";
 import type { TrajectoryNode } from "@/forge/runs/trajectory-model";
 import { formatNodeCost, formatNodeLatency } from "@/forge/runs/trajectory-model";
 import { StatusMark } from "@/forge/shared/SurfacePrimitives";
-import { useForgeProv } from "@/forge/shared/forge-prov";
-import type { ReactNode } from "react";
-import { nodeNums } from "./node-prov";
 
 const PRIMARY_CHECKS = [
   "artifact_binding",
@@ -23,19 +20,13 @@ export function TrajectoryEvidenceInspector({
   node: TrajectoryNode;
   compact?: boolean;
 }) {
-  const P = useForgeProv(`/forge/runs/${run.runId}`);
-  const v = nodeNums(
-    P,
-    node,
-    run.actions.findIndex((a) => a.sequence === node.sequence),
-  );
   return (
     <aside aria-label="Selected node evidence" aria-live="polite" className="min-w-0">
       <div className="border-b border-[#1D232B] p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="font-mono text-[8px] uppercase tracking-[0.12em] text-[#65707c]">
-              Node {v.sequence}
+              Node {String(node.sequence).padStart(2, "0")}
             </div>
             <h2 className="mt-1.5 truncate text-[16px] font-semibold tracking-[-0.02em] text-[#E6E8EB]">
               {node.label}
@@ -57,20 +48,16 @@ export function TrajectoryEvidenceInspector({
       </div>
 
       <dl className="grid grid-cols-3 gap-px border-b border-[#1D232B] bg-[#1D232B]">
-        <InspectorDatum label="Tokens" value={v.tokens} />
-        <InspectorDatum label="Cost" value={v.cost} tone="amber" />
-        <InspectorDatum label="Elapsed" value={v.latency} />
+        <InspectorDatum label="Tokens" value={node.tokens.toLocaleString()} />
+        <InspectorDatum label="Cost" value={formatNodeCost(node.cost)} tone="amber" />
+        <InspectorDatum label="Elapsed" value={formatNodeLatency(node.latency)} />
       </dl>
 
       <dl className="grid gap-2 border-b border-[#1D232B] p-3">
         <TextDatum label="Engine" value={node.engine} />
         <TextDatum label="Stage" value={node.stage ?? node.kind} />
         <TextDatum label="Status" value={node.status} />
-        <TextDatum
-          label="Cumulative"
-          value={formatNodeLatency(node.cumulativeLatency)}
-          shown={v.cumulative}
-        />
+        <TextDatum label="Cumulative" value={formatNodeLatency(node.cumulativeLatency)} />
       </dl>
 
       {node.metrics.length ? (
@@ -78,12 +65,7 @@ export function TrajectoryEvidenceInspector({
           className={`grid gap-px border-b border-[#1D232B] bg-[#1D232B] ${compact ? "grid-cols-2" : "sm:grid-cols-2"}`}
         >
           {node.metrics.map((metric) => (
-            <ResearchValue
-              key={metric.id}
-              metric={metric}
-              value={P.M(metric)}
-              className="bg-[#0B0E11] p-3"
-            />
+            <ResearchValue key={metric.id} metric={metric} className="bg-[#0B0E11] p-3" />
           ))}
         </div>
       ) : (
@@ -131,7 +113,7 @@ function InspectorDatum({
   tone = "default",
 }: {
   label: string;
-  value: ReactNode;
+  value: string;
   tone?: "default" | "amber";
 }) {
   return (
@@ -146,12 +128,12 @@ function InspectorDatum({
   );
 }
 
-function TextDatum({ label, value, shown }: { label: string; value: string; shown?: ReactNode }) {
+function TextDatum({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-baseline gap-2">
       <dt className="font-mono text-[7px] uppercase tracking-[0.1em] text-[#59636e]">{label}</dt>
       <dd className="truncate text-right font-mono text-[9px] text-[#c8cfd5]" title={value}>
-        {shown ?? value.replace("gpt-5.6-", "")}
+        {value.replace("gpt-5.6-", "")}
       </dd>
     </div>
   );

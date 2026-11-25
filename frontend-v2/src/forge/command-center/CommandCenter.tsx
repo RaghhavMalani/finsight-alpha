@@ -16,11 +16,6 @@ import {
   SurfaceHeader,
   UnavailableState,
 } from "@/forge/shared/SurfacePrimitives";
-import { formatMetric, useForgeProv } from "@/forge/shared/forge-prov";
-import { svgProv } from "@/visual/origins";
-
-/** Counts computed in the page from the run index projection name this rule. */
-const RUNS = "count of /items";
 import { assertRunPreview, buildAgentOverview, recordedOutcome } from "./overview-model";
 
 export function CommandCenter({
@@ -33,8 +28,6 @@ export function CommandCenter({
   const baseline = useQuery(baselineQuery(DEFAULT_BASELINE_ID));
   const runs = useQuery(runsQuery());
   const reality = useQuery(realityQuery(DEFAULT_REALITY_ID));
-  const B = useForgeProv(`/forge/baselines/${DEFAULT_BASELINE_ID}`);
-  const R = useForgeProv(`/forge/runs?baseline_id=${DEFAULT_BASELINE_ID}`);
   const navigate = useNavigate();
   const close = () => void navigate({ to: "/forge", search: { run: undefined, node: 1 } });
   if (baseline.isPending || runs.isPending || reality.isPending)
@@ -60,8 +53,6 @@ export function CommandCenter({
     return <UnavailableState title="Agents evidence is inconsistent" error={error} />;
   }
   const selected = runs.data.items.find((r) => r.runId === selectedRunId);
-  const selectedIndex = runs.data.items.findIndex((r) => r.runId === selectedRunId);
-  const matched = R.N("/matched", runs.data.matched, "Matched runs", String(runs.data.matched));
   const groups = new Map<string, RunSummary[]>();
   for (const run of overview.failures) {
     const checks = Object.entries(run.verificationChecks)
@@ -75,23 +66,12 @@ export function CommandCenter({
     <>
       <SurfaceHeader
         eyebrow="Agents · recorded baseline"
-        title={<span data-num-exempt="id">Forge v0.2.5 baseline</span>}
+        title="Forge v0.2.5 baseline"
         description={
-          <>
-            {R.N("/matched", runs.data.matched, "Research episodes", String(runs.data.matched))}{" "}
-            research episodes across{" "}
-            {B.N(
-              "/model_summaries",
-              overview.models.length,
-              "Models",
-              undefined,
-              {
-                formula: "count of /model_summaries",
-              },
-              "int",
-            )}{" "}
-            models. Deterministic verifier grades are recorded alongside every action.
-          </>
+          runs.data.matched +
+          " research episodes across " +
+          overview.models.length +
+          " models. Deterministic verifier grades are recorded alongside every action."
         }
         meta={<Binding baseline={baseline.data} />}
       />
@@ -100,66 +80,38 @@ export function CommandCenter({
           label="Verified research success"
           value={
             <>
-              {R.N(
-                "/items",
-                overview.verified,
-                "Verified research success",
-                undefined,
-                {
-                  formula: `${RUNS} where verification/verified_research_success`,
-                },
-                "int",
-              )}
-              <small> / {matched}</small>
+              {overview.verified}
+              <small> / {runs.data.matched}</small>
             </>
           }
-          note={<>{B.M(baseline.data.overall.verifiedResearch)} passed every recorded check</>}
+          note={
+            formatMetric(baseline.data.overall.verifiedResearch) + " passed every recorded check"
+          }
         />
         <Kpi
           label="Correct verdict"
           value={
             <>
-              {R.N(
-                "/items",
-                overview.correctVerdicts,
-                "Correct verdict",
-                undefined,
-                {
-                  formula: `${RUNS} where verification/checks/verdict`,
-                },
-                "int",
-              )}
-              <small> / {matched}</small>
+              {overview.correctVerdicts}
+              <small> / {runs.data.matched}</small>
             </>
           }
           note="Matches the recorded verifier expectation"
         />
         <Kpi
           label="False alpha accepted"
-          value={R.N(
-            "/items",
-            overview.falseAlpha,
-            "False alpha accepted",
-            undefined,
-            {
-              formula: `${RUNS} where verification/false_alpha_acceptance`,
-            },
-            "int",
-          )}
+          value={overview.falseAlpha}
           note="Recorded decisions on synthetic research tasks"
         />
         <Kpi
           label="Inference cost"
-          value={B.M(
-            baseline.data.admittedCost,
-            "Inference cost (admitted episodes)",
-            "$" + baseline.data.admittedCost.value.toFixed(2),
-          )}
+          value={"$" + baseline.data.admittedCost.value.toFixed(2)}
           note={
-            <>
-              Token estimate, not an invoice · {B.M(baseline.data.attempts)} attempts,{" "}
-              {B.M(baseline.data.excludedAttempts)} excluded
-            </>
+            "Token estimate, not an invoice · " +
+            baseline.data.attempts.value +
+            " attempts, " +
+            baseline.data.excludedAttempts.value +
+            " excluded"
           }
         />
       </section>
@@ -257,21 +209,7 @@ export function CommandCenter({
         </InstrumentPanel>
         <InstrumentPanel
           title="What went wrong"
-          code={
-            <>
-              {R.N(
-                "/items",
-                overview.failures.length,
-                "Runs that failed a check",
-                undefined,
-                {
-                  formula: `${RUNS} where not verification/verified_research_success`,
-                },
-                "int",
-              )}{" "}
-              of {matched} runs
-            </>
-          }
+          code={overview.failures.length + " of " + runs.data.matched + " runs"}
         >
           <div className="agents-card-body">
             {[...groups.values()]
@@ -289,18 +227,7 @@ export function CommandCenter({
                           ? "Right verdict, failed a check"
                           : "Verdict mismatch"}
                       </h3>
-                      <span className="agents-mono">
-                        {R.N(
-                          "/items",
-                          group.length,
-                          "Runs in this group",
-                          undefined,
-                          {
-                            formula: `${RUNS} where not verification/verified_research_success, task_id = ${first.taskId} and failed checks = ${failed.join(", ") || "none"}`,
-                          },
-                          "int",
-                        )}
-                      </span>
+                      <span className="agents-mono">{group.length}</span>
                     </header>
                     <p>
                       {words(first.taskClass)}. Failed: {failed.join(", ")}. These grades remain
@@ -360,52 +287,27 @@ export function CommandCenter({
             <tbody>
               {overview.models.map((model) => {
                 const modelRuns = runs.data.items.filter((r) => r.model === model.id);
-                const where = `${RUNS} where model = ${model.id}`;
                 return (
                   <tr key={model.id}>
-                    <th scope="row" data-num-exempt="id">
-                      {model.id}
-                    </th>
+                    <th scope="row">{model.id}</th>
                     <td className="agents-num" title={model.verifiedResearch.provenance.fieldPath}>
-                      {B.M(model.verifiedResearch)}
+                      {formatMetric(model.verifiedResearch)}
                     </td>
                     <td className="agents-num">
-                      {R.N(
-                        "/items",
-                        modelRuns.filter((r) => r.verificationChecks.verdict).length,
-                        "Correct verdict",
-                        undefined,
-                        { formula: `${where} and verification/checks/verdict` },
-                        "int",
-                      )}{" "}
-                      /{" "}
-                      {R.N(
-                        "/items",
-                        modelRuns.length,
-                        "Runs",
-                        undefined,
-                        { formula: where },
-                        "int",
-                      )}
+                      {modelRuns.filter((r) => r.verificationChecks.verdict).length} /{" "}
+                      {modelRuns.length}
                     </td>
                     <td className="agents-num">
-                      {R.N(
-                        "/items",
-                        modelRuns.filter((r) => r.falseAlphaAcceptance).length,
-                        "False alpha",
-                        undefined,
-                        { formula: `${where} and verification/false_alpha_acceptance` },
-                        "int",
-                      )}
+                      {modelRuns.filter((r) => r.falseAlphaAcceptance).length}
                     </td>
                     <td
                       className="agents-num"
                       title={model.costPerVerifiedFinding.provenance.fieldPath}
                     >
-                      {B.M(model.costPerVerifiedFinding)}
+                      {formatMetric(model.costPerVerifiedFinding)}
                     </td>
                     <td className="agents-num" title={model.latency.provenance.fieldPath}>
-                      {B.M(model.latency)}
+                      {formatMetric(model.latency)}
                     </td>
                   </tr>
                 );
@@ -415,14 +317,8 @@ export function CommandCenter({
         </div>
         <div className="agents-card-foot">
           <span>
-            Recorded{" "}
-            {B.D(
-              "/created_at",
-              baseline.data.createdAt,
-              "Recorded",
-              new Date(baseline.data.createdAt).toISOString().slice(0, 10),
-            )}{" "}
-            · model costs are token estimates.
+            Recorded {new Date(baseline.data.createdAt).toISOString().slice(0, 10)} · model costs
+            are token estimates.
           </span>
           <Link
             className="agents-link"
@@ -446,7 +342,6 @@ export function CommandCenter({
           key={selectedRunId}
           runId={selectedRunId}
           summary={selected}
-          summaryIndex={selectedIndex}
           node={selectedNodeSequence}
           close={close}
         />
@@ -457,7 +352,7 @@ export function CommandCenter({
 
 function Binding({ baseline }: { baseline: BaselineDetail }) {
   return (
-    <details className="agents-prov" data-num-exempt="id">
+    <details className="agents-prov">
       <summary>
         <StatusMark status="PASS" label="Manifest match" /> · v0.2.5{" "}
         <span className="agents-mono">{baseline.binding.artifactHash.slice(0, 8)}…</span>
@@ -467,7 +362,7 @@ function Binding({ baseline }: { baseline: BaselineDetail }) {
     </details>
   );
 }
-function Kpi({ label, value, note }: { label: string; value: ReactNode; note: ReactNode }) {
+function Kpi({ label, value, note }: { label: string; value: ReactNode; note: string }) {
   return (
     <div className="agents-kpi">
       <div>{label}</div>
@@ -479,9 +374,21 @@ function Kpi({ label, value, note }: { label: string; value: ReactNode; note: Re
 function words(value: string) {
   return value.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase());
 }
+function formatMetric(metric: ResearchMetric) {
+  const n = metric.value.toLocaleString("en-US", {
+    minimumFractionDigits: metric.precision,
+    maximumFractionDigits: metric.precision,
+  });
+  return metric.unit === "PERCENT"
+    ? n + "%"
+    : metric.unit === "USD"
+      ? "$" + n
+      : metric.unit === "SECONDS"
+        ? n + "s"
+        : n;
+}
 
 function RealityOverview({ reality }: { reality: RealityDetail }) {
-  const L = useForgeProv(`/forge/reality-ladders/${DEFAULT_REALITY_ID}`);
   const points = reality.checkpoints;
   const values = points.map((p) => p.sharpe.value);
   const min = Math.min(0, ...values),
@@ -505,55 +412,44 @@ function RealityOverview({ reality }: { reality: RealityDetail }) {
           >
             <line x1="48" x2="928" y1={y(0)} y2={y(0)} stroke="#262B31" />
             <path d={path} fill="none" stroke="#F0A929" strokeWidth="2.5" strokeLinejoin="round" />
-            {points.map((p, i) => {
-              const sv = svgProv(
-                L.at(p.sharpe.provenance.fieldPath),
-                `${p.label} Sharpe`,
-                p.sharpe.value,
-              );
-              return (
-                <g key={p.id}>
-                  <circle
-                    cx={x(i)}
-                    cy={y(p.sharpe.value)}
-                    r="4.5"
-                    fill="#0B0D10"
-                    stroke={p.sharpe.value < 0 ? "#F06464" : "#F0A929"}
-                    strokeWidth="2"
-                  />
-                  <text
-                    x={x(i)}
-                    y={y(p.sharpe.value) - 12}
-                    textAnchor="middle"
-                    fill="#E7EAEC"
-                    fontFamily="JetBrains Mono, monospace"
-                    fontSize="13"
-                    {...sv.attrs}
-                  >
-                    <title>{sv.title}</title>
-                    {p.sharpe.value.toFixed(2)}
-                  </text>
-                  <text
-                    x={x(i)}
-                    y="200"
-                    textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}
-                    fill="#A3ABB2"
-                    fontFamily="Inter, sans-serif"
-                    fontSize="12"
-                  >
-                    {p.label}
-                  </text>
-                </g>
-              );
-            })}
+            {points.map((p, i) => (
+              <g key={p.id}>
+                <circle
+                  cx={x(i)}
+                  cy={y(p.sharpe.value)}
+                  r="4.5"
+                  fill="#0B0D10"
+                  stroke={p.sharpe.value < 0 ? "#F06464" : "#F0A929"}
+                  strokeWidth="2"
+                />
+                <text
+                  x={x(i)}
+                  y={y(p.sharpe.value) - 12}
+                  textAnchor="middle"
+                  fill="#E7EAEC"
+                  fontFamily="JetBrains Mono, monospace"
+                  fontSize="13"
+                >
+                  {p.sharpe.value.toFixed(2)}
+                </text>
+                <text
+                  x={x(i)}
+                  y="200"
+                  textAnchor={i === 0 ? "start" : i === points.length - 1 ? "end" : "middle"}
+                  fill="#A3ABB2"
+                  fontFamily="Inter, sans-serif"
+                  fontSize="12"
+                >
+                  {p.label}
+                </text>
+              </g>
+            ))}
           </svg>
           <dl className="agents-ladder-key">
             {points.map((p) => (
               <div key={p.id}>
                 <dt>{p.label}</dt>
-                <dd className="agents-mono">
-                  {L.M(p.sharpe, `${p.label} Sharpe`, p.sharpe.value.toFixed(2))}
-                </dd>
+                <dd className="agents-mono">{p.sharpe.value.toFixed(2)}</dd>
               </div>
             ))}
           </dl>
@@ -561,18 +457,18 @@ function RealityOverview({ reality }: { reality: RealityDetail }) {
         <div className="agents-ladder-values">
           <div>
             <span className="agents-muted">Edge that survives</span>
-            <output className="agents-mono">{L.M(reality.alphaSurvival)}</output>
+            <output className="agents-mono">{formatMetric(reality.alphaSurvival)}</output>
           </div>
           <div>
             <span className="agents-muted">Biggest loss</span>
-            <output className="agents-mono">{L.M(reality.largestDegradation.change)}</output>
+            <output className="agents-mono">
+              {formatMetric(reality.largestDegradation.change)}
+            </output>
             <span className="agents-faint">{reality.largestDegradation.label}</span>
           </div>
           <div>
             <span className="agents-muted">Source artifact</span>
-            <output className="agents-mono" data-num-exempt="id">
-              {reality.binding.artifactHash.slice(0, 12)}…
-            </output>
+            <output className="agents-mono">{reality.binding.artifactHash.slice(0, 12)}…</output>
             <Link
               className="agents-link"
               to="/reality/$artifactId"
@@ -583,9 +479,7 @@ function RealityOverview({ reality }: { reality: RealityDetail }) {
             </Link>
           </div>
         </div>
-        <div className="agents-card-foot">
-          {L.T("/aggregate/finding", reality.finding, "Recorded finding")}
-        </div>
+        <div className="agents-card-foot">{reality.finding}</div>
       </InstrumentPanel>
       <InstrumentPanel title="By synthetic regime" code="Frozen reference experiment">
         <div className="agents-card-body">
@@ -605,53 +499,24 @@ function RealityOverview({ reality }: { reality: RealityDetail }) {
               </tr>
             </thead>
             <tbody>
-              {reality.regimeMatrix.map((row, i) => {
-                const at = `/aggregate/regime_matrix/${i}`;
-                return (
-                  <tr key={row.regime}>
-                    <th scope="row">{words(row.regime.toLowerCase())}</th>
-                    <td className="agents-num">
-                      {L.N(
-                        `${at}/sharpe/L0_ANALYTICAL`,
-                        row.start,
-                        "Start Sharpe",
-                        row.start.toFixed(2),
-                      )}
-                    </td>
-                    <td className="agents-num">
-                      {L.N(
-                        `${at}/sharpe/L4_COUNTERFACTUAL_STRESS`,
-                        row.stressed,
-                        "Stressed Sharpe",
-                        row.stressed.toFixed(2),
-                      )}
-                    </td>
-                    <td className="agents-num">
-                      {L.N(
-                        `${at}/alpha_survival_ratio`,
-                        row.survival,
-                        "Alpha survival",
-                        row.survival.toFixed(1) + "%",
-                        { formula: `${at}/alpha_survival_ratio × 100` },
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {reality.regimeMatrix.map((row) => (
+                <tr key={row.regime}>
+                  <th scope="row">{words(row.regime.toLowerCase())}</th>
+                  <td className="agents-num">{row.start.toFixed(2)}</td>
+                  <td className="agents-num">{row.stressed.toFixed(2)}</td>
+                  <td className="agents-num">{row.survival.toFixed(1)}%</td>
+                </tr>
+              ))}
             </tbody>
           </table>
           <p className="agents-muted mt-4">
             Seed counts:{" "}
-            {reality.regimeMatrix.map((row, i) => (
-              <span key={row.regime}>
-                {i ? " · " : ""}
-                {words(row.regime.toLowerCase())}{" "}
-                {L.N(`/aggregate/regime_matrix/${i}/seeds`, row.seeds, "Seeds", String(row.seeds))}
-              </span>
-            ))}
+            {reality.regimeMatrix
+              .map((row) => words(row.regime.toLowerCase()) + " " + row.seeds)
+              .join(" · ")}
             . These reference results do not certify tradable market alpha.
           </p>
-          <p className="agents-faint agents-mono mt-4 break-all" data-num-exempt="id">
+          <p className="agents-faint agents-mono mt-4 break-all">
             Source: /aggregate/regime_matrix · {reality.binding.artifactHash}
           </p>
         </div>
@@ -663,19 +528,15 @@ function RealityOverview({ reality }: { reality: RealityDetail }) {
 function RunPreview({
   runId,
   summary,
-  summaryIndex,
   node,
   close,
 }: {
   runId: string;
   summary: RunSummary | undefined;
-  summaryIndex: number;
   node: number;
   close: () => void;
 }) {
   const query = useQuery(runQuery(runId));
-  const R = useForgeProv(`/forge/runs?baseline_id=${DEFAULT_BASELINE_ID}`);
-  const X = useForgeProv(`/forge/runs/${runId}`);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     dialog.current?.showModal();
@@ -708,14 +569,7 @@ function RunPreview({
               : "Run unavailable"}
           </h2>
           <span className="agents-muted">
-            <span data-num-exempt="id">{summary?.taskId}</span> · seed{" "}
-            {R.N(
-              `/items/${summaryIndex}/seed`,
-              summary?.seed,
-              "Seed",
-              summary ? String(summary.seed) : undefined,
-            )}{" "}
-            · recorded execution
+            {summary?.taskId} · seed {summary?.seed} · recorded execution
           </span>
         </div>
         <button
@@ -751,41 +605,19 @@ function RunPreview({
                 />
               </span>
               <p className="agents-quote">
-                {run.decision
-                  ? X.T("/run/decision/reason", run.decision.reason, "Recorded decision reason")
-                  : "No decision is bound to this run."}
+                {run.decision?.reason ?? "No decision is bound to this run."}
               </p>
             </section>
             <section>
-              <h3>
-                Execution trace ·{" "}
-                {X.N(
-                  "/run/actions",
-                  run.actions.length,
-                  "Actions",
-                  undefined,
-                  {
-                    formula: "count of /run/actions",
-                  },
-                  "int",
-                )}{" "}
-                actions
-              </h3>
+              <h3>Execution trace · {run.actions.length} actions</h3>
               <p className="agents-muted agents-mono">
-                {X.M(run.usage.tokens)} tokens · {X.M(run.usage.cost)} ·{" "}
-                {X.M(run.usage.wallSeconds)}
+                {formatMetric(run.usage.tokens)} tokens · {formatMetric(run.usage.cost)} ·{" "}
+                {formatMetric(run.usage.wallSeconds)}
               </p>
               <ol className="agents-steps">
-                {run.actions.map((action, i) => (
+                {run.actions.map((action) => (
                   <li key={action.sequence}>
-                    <span className="agents-step-number agents-mono">
-                      {X.N(
-                        `/run/actions/${i}/sequence`,
-                        action.sequence,
-                        "Action sequence",
-                        String(action.sequence),
-                      )}
-                    </span>
+                    <span className="agents-step-number agents-mono">{action.sequence}</span>
                     <div>
                       <Link
                         className="agents-link"
@@ -795,7 +627,7 @@ function RunPreview({
                       >
                         {words(action.tool.replace("research.", ""))}
                       </Link>
-                      <small className="agents-mono" data-num-exempt="id">
+                      <small className="agents-mono">
                         {action.tool} · {action.status}
                         {action.engine ? " · " + action.engine : ""}
                       </small>
@@ -806,25 +638,8 @@ function RunPreview({
             </section>
             <section>
               <h3>
-                Checks ·{" "}
-                {X.N(
-                  "/verification/checks",
-                  Object.values(run.verificationChecks).filter(Boolean).length,
-                  "Checks passed",
-                  undefined,
-                  { formula: "count of /verification/checks that are true" },
-                  "int",
-                )}{" "}
-                of{" "}
-                {X.N(
-                  "/verification/checks",
-                  Object.keys(run.verificationChecks).length,
-                  "Checks",
-                  undefined,
-                  { formula: "count of /verification/checks" },
-                  "int",
-                )}{" "}
-                passed
+                Checks · {Object.values(run.verificationChecks).filter(Boolean).length} of{" "}
+                {Object.keys(run.verificationChecks).length} passed
               </h3>
               <ul className="agents-checks">
                 {Object.entries(run.verificationChecks).map(([name, passed]) => (
@@ -842,12 +657,8 @@ function RunPreview({
             </section>
             <section>
               <h3>Identifiers</h3>
-              <p className="agents-mono break-all" data-num-exempt="id">
-                {run.runId}
-              </p>
-              <p className="agents-muted break-all" data-num-exempt="id">
-                World: {run.worldHash}
-              </p>
+              <p className="agents-mono break-all">{run.runId}</p>
+              <p className="agents-muted break-all">World: {run.worldHash}</p>
             </section>
             <Link
               className="agents-link"

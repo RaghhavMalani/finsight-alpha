@@ -10,7 +10,6 @@ import {
   SurfaceHeader,
   UnavailableState,
 } from "@/forge/shared/SurfacePrimitives";
-import { useForgeProv } from "@/forge/shared/forge-prov";
 
 export function BenchDetail({
   benchmarkId,
@@ -20,7 +19,6 @@ export function BenchDetail({
   selectedModel?: string;
 }) {
   const query = useQuery(baselineQuery(benchmarkId));
-  const B = useForgeProv(`/forge/baselines/${benchmarkId}`);
   if (query.isPending)
     return (
       <AgentsShell>
@@ -46,14 +44,9 @@ export function BenchDetail({
   return (
     <AgentsShell>
       <SurfaceHeader
-        eyebrow={<span data-num-exempt="id">{`Bench · ${baseline.tag}`}</span>}
+        eyebrow={`Bench · ${baseline.tag}`}
         title="Real API model baseline"
-        description={
-          <span data-num-exempt="copy">
-            The exact frozen v0.2.5 summary and manifest binding. Display rounding is
-            presentation-only; provenance exposes the canonical source field.
-          </span>
-        }
+        description="The exact frozen v0.2.5 summary and manifest binding. Display rounding is presentation-only; provenance exposes the canonical source field."
         meta={<StatusMark status="PASS" label={baseline.binding.integrityStatus} />}
       />
       <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.6fr)]">
@@ -107,7 +100,7 @@ export function BenchDetail({
                       model.latency,
                     ].map((metric) => (
                       <td key={metric.id} className="px-3 py-4">
-                        <ResearchValue metric={metric} value={B.M(metric)} compact />
+                        <ResearchValue metric={metric} compact />
                       </td>
                     ))}
                   </tr>
@@ -128,10 +121,7 @@ export function BenchDetail({
         </InstrumentPanel>
 
         <div className="grid content-start gap-4">
-          <InstrumentPanel
-            title="Artifact totals"
-            code={<span data-num-exempt="id">{baseline.tag}</span>}
-          >
+          <InstrumentPanel title="Artifact totals" code={baseline.tag}>
             <div className="grid gap-px bg-[#1D232B] sm:grid-cols-2 xl:grid-cols-1">
               {[
                 baseline.overall.episodes,
@@ -139,19 +129,11 @@ export function BenchDetail({
                 baseline.allAttemptCost,
                 baseline.admittedCost,
               ].map((metric) => (
-                <ResearchValue
-                  key={metric.id}
-                  metric={metric}
-                  value={B.M(metric)}
-                  className="bg-[#0B0E11] p-3"
-                />
+                <ResearchValue key={metric.id} metric={metric} className="bg-[#0B0E11] p-3" />
               ))}
             </div>
           </InstrumentPanel>
-          <InstrumentPanel
-            title="Bindings"
-            code={<span data-num-exempt="id">{baseline.binding.sourceSchemaVersion}</span>}
-          >
+          <InstrumentPanel title="Bindings" code={baseline.binding.sourceSchemaVersion}>
             <div className="grid gap-3 p-3">
               <HashValue label="baseline" value={baseline.binding.artifactHash} />
               <HashValue label="suite" value={baseline.suiteHash} />
@@ -181,9 +163,7 @@ function UnavailableRelease({ label }: { label: string }) {
       <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#616A75]">
         UNAVAILABLE
       </div>
-      <h2 className="mt-2 text-sm font-medium text-[#aab2ba]" data-num-exempt="id">
-        {label}
-      </h2>
+      <h2 className="mt-2 text-sm font-medium text-[#aab2ba]">{label}</h2>
       <p className="mt-1 text-xs text-[#65707c]">No verified artifact is loaded.</p>
     </section>
   );

@@ -44,3 +44,12 @@ Decisions taken while you were away. Newest last. Each says what I chose and how
   retrospective view of recorded quakes against the graph as checked. Recorded quakes stay honest
   (UNAVAILABLE / NO_COVERAGE).
 - Undo: empty the scenario list in `scripts/export_geo_projection.py` and re-run it.
+
+## 2026-11-25 — Forge pages are protected evidence; no provenance in place (U2)
+- `scripts/research_archive.py` freezes all of `frontend-v2/src/forge` and `frontend-v2/src/agents`
+  (`SHARED_PATHS`) as closed phase evidence. U2 converted the Forge routes, CI rejected it, and the
+  conversion was taken back out; `/forge`, `/worlds`, `/artifacts`, `/bench` and `/runs` stay
+  report-only (363 raw numbers).
+- Options, your call: (a) leave them as they are; (b) a versioned successor of the Forge UI outside
+  the protected path, with the old one kept for the record; (c) amend the protection to admit a
+  presentation-only change. I did not touch the guard.

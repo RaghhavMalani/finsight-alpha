@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { worldsQuery } from "@/forge/data/forge-queries";
 import { AgentsShell } from "@/forge/shared/AgentsShell";
-import { useForgeProv } from "@/forge/shared/forge-prov";
 import {
   InstrumentPanel,
   LoadingState,
@@ -13,19 +12,12 @@ import {
 
 export function WorldIndex() {
   const query = useQuery(worldsQuery);
-  const { N } = useForgeProv("/forge/worlds");
   return (
     <AgentsShell evidence="worlds">
       <SurfaceHeader
         eyebrow="Agents · evidence bindings"
         title="Worlds"
-        description={
-          <span data-num-exempt="copy">
-            Synthetic world references from the frozen v0.2.5 trajectories. Standalone world
-            manifests are absent, so policies, interventions and parent relationships remain
-            unavailable.
-          </span>
-        }
+        description="Synthetic world references from the frozen v0.2.5 trajectories. Standalone world manifests are absent, so policies, interventions and parent relationships remain unavailable."
       />
       {query.isPending ? (
         <LoadingState label="world references" />
@@ -38,18 +30,7 @@ export function WorldIndex() {
       ) : (
         <InstrumentPanel
           title="Referenced worlds"
-          code={
-            <>
-              {N(
-                "/items",
-                query.data.items.length,
-                "Referenced worlds",
-                String(query.data.items.length),
-                { formula: "count of /items" },
-              )}{" "}
-              hashes bound to the release
-            </>
-          }
+          code={query.data.items.length + " hashes bound to the release"}
         >
           <div className="agents-scroll" role="region" aria-label="World references" tabIndex={0}>
             <table className="agents-table">
@@ -65,12 +46,12 @@ export function WorldIndex() {
                 </tr>
               </thead>
               <tbody>
-                {query.data.items.map((w, i) => (
+                {query.data.items.map((w) => (
                   <tr key={w.worldHash}>
-                    <td className="agents-mono" title={w.worldHash} data-num-exempt="id">
+                    <td className="agents-mono" title={w.worldHash}>
                       {w.worldHash.slice(0, 12)}…
                     </td>
-                    <td data-num-exempt="id">
+                    <td>
                       {[...new Set(w.references.map((r) => r.taskId))].map((task) => (
                         <Link
                           key={task}
@@ -89,15 +70,7 @@ export function WorldIndex() {
                         </Link>
                       ))}
                     </td>
-                    <td className="agents-num">
-                      {N(
-                        `/items/${i}/references`,
-                        w.references.length,
-                        "Run references",
-                        String(w.references.length),
-                        { formula: `count of /items/${i}/references` },
-                      )}
-                    </td>
+                    <td className="agents-num">{w.references.length}</td>
                     <td>
                       <StatusMark
                         status="INFO"

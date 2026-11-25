@@ -39,19 +39,10 @@ export const SEALED_CHROME = [
   ".shell-cutoff",
 ];
 // Routes that must have zero raw numbers.
-export const ENFORCED = [
-  "/",
-  "/research",
-  "/markets",
-  "/markets/:ticker",
-  "/risk",
-  "/forge",
-  "/worlds",
-  "/artifacts",
-  "/bench",
-  "/data",
-  "/runs",
-];
+export const ENFORCED = ["/", "/research", "/markets", "/markets/:ticker", "/risk", "/data"];
+// Rendered by frontend-v2/src/forge, which scripts/research_archive.py protects as closed phase
+// evidence (SHARED_PATHS): its components cannot be edited, so these stay report-only.
+export const PROTECTED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs"];
 
 function tokens(s) {
   const g = new RegExp(TOKEN.source, "g");
@@ -519,41 +510,6 @@ try {
         await p.waitForTimeout(800);
       },
     },
-    {
-      route: "/forge",
-      name: "run selected",
-      run: async (p) => {
-        await p.goto(base + "/forge", { waitUntil: "networkidle" });
-        await p.locator("a.agents-seed").first().click();
-        await until(p, ".agents-drawer .agents-steps [data-num]", 20000);
-        await p.waitForTimeout(800);
-      },
-    },
-    {
-      route: "/bench",
-      name: "baseline detail",
-      run: async (p) => {
-        await p.goto(base + "/bench", { waitUntil: "networkidle" });
-        await p.locator('a.agents-link[href^="/bench/"]').first().click();
-        await until(p, ".agents-page .agents-header h1", 20000);
-        await p.waitForLoadState("networkidle");
-        await p.waitForTimeout(1000);
-      },
-    },
-    // /runs/$runId: the first recorded run, on each inspector tab.
-    ...["action", "turns", "checks"].map((tab) => ({
-      route: "/runs",
-      name: `run detail · ${tab}`,
-      run: async (p) => {
-        await p.goto(base + "/runs", { waitUntil: "networkidle" });
-        const href = await p.locator('a.agents-link[href^="/runs/"]').first().getAttribute("href");
-        await p.goto(base + href.replace(/tab=[a-z]+/, `tab=${tab}`), {
-          waitUntil: "networkidle",
-        });
-        await until(p, ".agents-page .agents-header h1", 20000);
-        await p.waitForTimeout(1000);
-      },
-    })),
     ...["revisions", "lineage", "costs", "issues"].map((section) => ({
       route: "/data",
       name: section,

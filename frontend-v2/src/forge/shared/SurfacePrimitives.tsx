@@ -6,9 +6,9 @@ export function SurfaceHeader({
   description,
   meta,
 }: {
-  eyebrow: ReactNode;
-  title: ReactNode;
-  description: ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
   meta?: ReactNode;
 }) {
   return (
@@ -29,8 +29,8 @@ export function InstrumentPanel({
   children,
   className = "",
 }: {
-  title: ReactNode;
-  code?: ReactNode;
+  title: string;
+  code?: string;
   children: ReactNode;
   className?: string;
 }) {

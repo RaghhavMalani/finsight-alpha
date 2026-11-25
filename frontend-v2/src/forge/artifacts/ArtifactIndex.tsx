@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { artifactsQuery } from "@/forge/data/forge-queries";
 import { AgentsShell } from "@/forge/shared/AgentsShell";
-import { useForgeProv } from "@/forge/shared/forge-prov";
 import {
   InstrumentPanel,
   LoadingState,
@@ -12,7 +11,6 @@ import {
 
 export function ArtifactIndex() {
   const query = useQuery(artifactsQuery);
-  const { N } = useForgeProv("/forge/artifacts");
   return (
     <AgentsShell evidence="catalog">
       <SurfaceHeader
@@ -32,18 +30,7 @@ export function ArtifactIndex() {
       ) : (
         <InstrumentPanel
           title="Source artifacts"
-          code={
-            <>
-              {N(
-                "/items",
-                query.data.items.length,
-                "Source artifacts",
-                String(query.data.items.length),
-                { formula: "count of /items" },
-              )}{" "}
-              bound to this release
-            </>
-          }
+          code={query.data.items.length + " bound to this release"}
         >
           <div className="agents-scroll" role="region" aria-label="Artifact bindings" tabIndex={0}>
             <table className="agents-table">
@@ -63,9 +50,7 @@ export function ArtifactIndex() {
                   <tr key={a.binding.artifactId}>
                     <td>
                       {a.kind.replaceAll("_", " ").toLowerCase()}
-                      <div className="agents-faint agents-mono text-xs" data-num-exempt="id">
-                        {a.binding.artifactId}
-                      </div>
+                      <div className="agents-faint agents-mono text-xs">{a.binding.artifactId}</div>
                     </td>
                     <td>
                       <StatusMark
@@ -78,12 +63,7 @@ export function ArtifactIndex() {
                       />
                     </td>
                     <td className="agents-num" title={a.sourceFileCount.provenance.fieldPath}>
-                      {N(
-                        a.sourceFileCount.provenance.fieldPath,
-                        a.sourceFileCount.value,
-                        "Source files",
-                        String(a.sourceFileCount.value),
-                      )}
+                      {a.sourceFileCount.value}
                     </td>
                     <td className="agents-muted">
                       {a.kind === "REAL_API_BASELINE"
@@ -93,7 +73,7 @@ export function ArtifactIndex() {
                           : "Scope unavailable"}
                     </td>
                     <td>
-                      <details className="agents-artifact-binding" data-num-exempt="id">
+                      <details className="agents-artifact-binding">
                         <summary className="agents-mono">
                           {a.binding.artifactHash.slice(0, 12)}…
                         </summary>
