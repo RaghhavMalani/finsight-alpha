@@ -38,9 +38,9 @@ the evidence supports.
 |---|---|---|---|
 | Internet Archive snapshot that contains the quoted text (URL `https://web.archive.org/web/<timestamp>/<url>`) | snapshot day / `retrieved` | the snapshot timestamp (UTC) | 132 items |
 | Document that prints its own date (press release, interim report) | printed date / `published` | noon UTC the day after the printed date, after that date has ended in every time zone | 18 items (8 of them read through a snapshot because the live page refuses automated clients) |
+| Page read live, no earlier evidence | fetch day / `retrieved` | the fetch instant | none needed in this batch |
 
 Where a quote spans table cells or separate page elements, its locator says "joined table cells" or "joined elements". An Aramco port appears only as a section of the download list on the guidebook page, so its quote is the page's sentence about "all Aramco terminals in Saudi Arabia", and its locator names the section.
-| Page read live, no earlier evidence | fetch day / `retrieved` | the fetch instant | none needed in this batch |
 
 `tests/test_geo_graph.py` enforces all three rules on every added item. No sec.gov page was used,
 because it refuses clients without a declared contact.
