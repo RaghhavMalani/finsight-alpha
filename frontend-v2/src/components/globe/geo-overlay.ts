@@ -32,7 +32,11 @@ export type GeoOverlay = {
   labels: OverlayLabel[];
   event: { lat: number; lon: number; radiusKm: number | null } | null;
   scenario: boolean;
+  /** Reached securities drawn on the globe without a label (beyond MAX_LABELS); listed in the panel. */
+  moreLabels: number;
 };
+/** At most this many ticker labels on the globe, the highest chain scores first. */
+export const MAX_LABELS = 5;
 
 /** Hue names the edge type. Scenario arcs use an amber family so a hypothesis never looks recorded. */
 export const ARC_COLORS: Record<ArcKind, string> = {
@@ -92,12 +96,15 @@ function ticker(p: GeoProjection, id: string) {
   return listing ? shortName(p.nodes[listing.dst], listing.dst) : null;
 }
 
-function tier(ids: string[], lat: number, lon: number, level: number) {
+function tier(ids: string[], lat: number, lon: number, level: number, fan = false) {
   const out = new Map<string, [number, number, number]>();
+  // A fanned tier spaces its nodes wider and staggers alternate ones in latitude, so the labels
+  // of neighbours never sit on one line.
+  const step = fan ? SPREAD * 1.6 : SPREAD;
   ids.forEach((id, k) =>
     out.set(id, [
-      Math.max(-80, Math.min(80, lat + 2 * level)),
-      lon + (k - (ids.length - 1) / 2) * SPREAD,
+      Math.max(-80, Math.min(80, lat + 2 * level + (fan && k % 2 ? 4 : 0))),
+      lon + (k - (ids.length - 1) / 2) * step,
       TIERS[level],
     ]),
   );
@@ -119,6 +126,7 @@ export function buildOverlay(
   const sites: OverlaySite[] = [];
   const arcs: OverlayArc[] = [];
   const labels: OverlayLabel[] = [];
+  let moreLabels = 0;
   const scenario = !!selected?.scenario && drawsChain(selected.answer);
   const arc = (key: string, a: OverlayArc["a"], b: OverlayArc["b"], value: number, kind: ArcKind) =>
     arcs.push({ key, a, b, value, kind, rgb: arcRgb(kind, value, scenario) });
@@ -162,7 +170,7 @@ export function buildOverlay(
         if (h.type === "supplies") add(1, h.dst);
         if (h.type === "listed_as") add(2, h.dst);
       }
-    const pos = new Map([0, 1, 2].flatMap((k) => [...tier(levels[k], ev[0], ev[1], k)]));
+    const pos = new Map([0, 1, 2].flatMap((k) => [...tier(levels[k], ev[0], ev[1], k, true)]));
     for (const r of answer.securities)
       for (const h of r.best_chain.hops) {
         if (h.type === "exposed_to") continue;
@@ -171,8 +179,10 @@ export function buildOverlay(
         const b = site ? pos.get(h.src) : pos.get(h.dst);
         if (a && b && !arcs.some((x) => x.key === h.id)) arc(h.id, a, b, h.confidence, h.type);
       }
-    // Tickers only on the globe; company names live in the panel.
-    for (const id of levels[2]) label(id, pos.get(id)!);
+    // Tickers only on the globe, the top MAX_LABELS by chain score (securities arrive ranked);
+    // company names and the rest live in the panel.
+    for (const id of levels[2].slice(0, MAX_LABELS)) label(id, pos.get(id)!);
+    moreLabels = Math.max(0, levels[2].length - MAX_LABELS);
   } else if (layers.companies) {
     // Each operator floats above its largest site cluster, tethered to every site it operates;
     // the other companies ring it, joined only by cited supplies edges.
@@ -215,6 +225,7 @@ export function buildOverlay(
     arcs,
     labels,
     scenario,
+    moreLabels,
     event: selected
       ? { lat: selected.lat, lon: selected.lon, radiusKm: selected.answer.radius_km }
       : null,

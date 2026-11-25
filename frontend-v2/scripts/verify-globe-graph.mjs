@@ -75,6 +75,10 @@ assert.equal(P.graph.nodes, seed.nodes.length);
 assert.equal(P.graph.edges, seed.edges.length);
 const avail = [...seed.nodes, ...seed.edges].map((x) => Date.parse(x.source.available_at));
 assert.equal(Date.parse(P.graph.knowledge_cutoff), Math.max(...avail), "knowledge cutoff");
+// propagate() answers UNAVAILABLE when no located site (facility, port, chokepoint) is known yet.
+const firstSite = Math.min(
+  ...seed.nodes.filter((n) => n.lat != null).map((n) => Date.parse(n.source.available_at)),
+);
 
 const manifest = JSON.parse(readFileSync(resolve(frontend, "public/replay-manifest.json"), "utf8"));
 const entry = manifest.artifacts[P.input.artifact];
@@ -212,7 +216,7 @@ const statuses = new Set();
 const cutoff = P.graph.knowledge_cutoff;
 for (const e of P.events) {
   if (e.origin === "recorded") {
-    // Point in time: the answer as of the quake, which predates every checked source.
+    // Point in time: the answer as of the quake, using only sources available by then.
     check(e, e.point_in_time, e.time, `${e.id} at event time`);
     check(e, e.retrospective, cutoff, `${e.id} retrospective`);
     statuses.add(e.point_in_time.status).add(e.retrospective.status);
@@ -225,10 +229,20 @@ for (const e of P.events) {
   }
 }
 assert.deepEqual(
-  [...statuses].sort(),
-  ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL", "UNAVAILABLE"],
-  "every status occurs",
+  ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL"].filter((x) => !statuses.has(x)),
+  [],
+  "every evaluated status occurs",
 );
+// Seed v2 dates sources by evidence of earlier availability. UNAVAILABLE may then occur only for
+// a quake that predates every source; when none does, say so instead of requiring it.
+if (!statuses.has("UNAVAILABLE"))
+  assert.ok(
+    recorded.every((e) => Date.parse(e.time) >= firstSite),
+    "no UNAVAILABLE answer only because every recorded quake follows the earliest sourced site",
+  );
+// Recorded quakes reach cited chains at their own time (the point of seed v2).
+const recordedReach = recorded.filter((e) => e.point_in_time.status === "AVAILABLE");
+assert.ok(recordedReach.length >= 1, "a recorded quake reaches a security at its own time");
 const taiwan = P.events.find((e) => e.id === "scenario:taiwan-m6.8");
 assert.equal(taiwan.point_in_time.status, "AVAILABLE");
 
@@ -422,6 +436,40 @@ try {
       checkMapping(drawn, true, (k, v, s) => contract(k, v, s, (x) => 0.3 + 0.7 * x)),
     );
     assert.throws(() => checkMapping(drawn, false), undefined, "scenario palette must differ");
+    // At most five ticker labels (top chain scores); the rest are named by a "+N more" chip.
+    const nSec = taiwan.point_in_time.securities.length;
+    assert.equal(await stage(page, "companies"), Math.min(5, nSec), "globe labels capped at five");
+    if (nSec > 5)
+      assert.equal(
+        Number(await page.locator("[data-geo-more]").getAttribute("data-geo-more")),
+        nSec - 5,
+      );
+    // Layout: the scenario chip never overlaps the kicker or title; scenario badges clear their titles.
+    const overlaps = (a, b) =>
+      a &&
+      b &&
+      a.x < b.x + b.width &&
+      b.x < a.x + a.width &&
+      a.y < b.y + b.height &&
+      b.y < a.y + a.height;
+    const chipBox = await page.locator("[data-geo-hypothetical]").boundingBox();
+    for (const sel of [".ge-title .ge-eyebrow", ".ge-title h1"])
+      assert.ok(
+        !overlaps(chipBox, await page.locator(sel).boundingBox()),
+        `${w}: chip overlaps ${sel}`,
+      );
+    for (const row of await page.locator("[data-geo-scenario]").all()) {
+      const [bb, sb] = [
+        await row.locator("b").boundingBox(),
+        await row.locator("span").first().boundingBox(),
+      ];
+      assert.ok(bb.x + bb.width <= sb.x, `${w}: scenario badge overlaps its title`);
+    }
+    // Each reached-security row is one line.
+    for (const row of await page.locator("[data-geo-security] summary").all()) {
+      const box = await row.boundingBox();
+      assert.ok(box.height <= 24, `${w}: security row wraps (${box.height}px)`);
+    }
     // On the globe: tickers only, at a readable size.
     const tickers = new Set(
       Object.values(P.nodes)
@@ -490,8 +538,11 @@ try {
       .sort((a, b) => b.time.localeCompare(a.time))[0];
     await page.locator("[data-geo-choice]").selectOption(quake.id);
     assert.equal(await word(page), quake.point_in_time.status);
-    assert.equal(quake.point_in_time.status, "UNAVAILABLE");
-    await notEvaluated(page, "UNAVAILABLE");
+    // Seed v2: every recorded M5+ quake follows the earliest sourced site, so its answer is
+    // evaluated. "Not evaluated" counts are exercised by the BELOW_THRESHOLD scenario above; a
+    // refused or tampered answer renders UNAVAILABLE without counts (checked further down).
+    assert.ok(statuses.has("UNAVAILABLE") || quake.point_in_time.status !== "UNAVAILABLE");
+    assert.notEqual(await page.locator('[data-geo-count="sites"]').innerText(), "not evaluated");
     assert.match(await page.locator('[data-geo-origin="recorded"]').innerText(), /recorded/i);
     await activate(page, page.getByRole("radio", { name: /Graph as checked \d{4}-\d{2}-\d{2}/ }));
     assert.equal(await word(page), quake.retrospective.status);
@@ -500,17 +551,61 @@ try {
       /^Retrospective: .*after the event/,
     );
     assert.notEqual(await page.locator('[data-geo-count="sites"]').innerText(), "not evaluated");
+    // A recorded quake that reaches securities at its own time: drawn and listed, never labelled
+    // hypothetical, every listed security is the projection's.
+    const real = [...recordedReach].sort((a, b) => b.magnitude - a.magnitude)[0];
+    await page.locator("[data-geo-choice]").selectOption(real.id);
+    await activate(page, page.getByRole("radio", { name: "At event time", exact: true }));
+    const realWord = await word(page);
+    assert.equal(realWord, "AVAILABLE", "the recorded quake reaches securities at its own time");
+    {
+      assert.ok((await stage(page, "arcs")) > 0, "a recorded quake draws its cited chain");
+      assert.equal(
+        await page.locator("[data-geo-hypothetical]").count(),
+        0,
+        "recorded is not hypothetical",
+      );
+      const realListed = await page
+        .locator("[data-geo-security]")
+        .evaluateAll((els) => els.map((e) => e.dataset.geoSecurity));
+      assert.deepEqual(
+        realListed,
+        real.point_in_time.securities.map((x) => x.security),
+      );
+      // The view turns to the selected quake: its ticker label is drawn, not hidden on the far side.
+      await page.waitForTimeout(1500);
+      assert.ok(
+        (await page.locator(".ge-labels .lb.sec").count()) >= 1,
+        "recorded chain label visible",
+      );
+      if (shots) {
+        await page.evaluate(() => {
+          document.querySelector(".ge-panel").scrollTop = 0;
+          window.scrollTo(0, 0);
+        });
+        // At phone width the answer comes first; show the globe with the quake's chain instead.
+        if (w < 768) await page.locator(".ge-stage").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(800);
+        await page.screenshot({ path: resolve(shotDir, `u3-globe-recorded-${w}.png`) });
+      }
+    }
     await noScroll(page, `/globe ${w}`);
     assert.deepEqual(forbidden, [], `/globe ${w}: Replay contacted a non-origin or API URL`);
     await page.close();
   }
   assert.deepEqual(
-    [...seen].sort(),
-    ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL", "UNAVAILABLE"],
-    "all five statuses rendered in words",
+    [
+      "AVAILABLE",
+      "BELOW_THRESHOLD",
+      "NO_COVERAGE",
+      "PARTIAL",
+      ...(statuses.has("UNAVAILABLE") ? ["UNAVAILABLE"] : []),
+    ].filter((x) => !seen.has(x)),
+    [],
+    "every status in the projection rendered in words (UNAVAILABLE also below: tampered and refused answers)",
   );
   console.log(
-    "Browser: layers toggle by keyboard; arcs, securities and cited hops; five statuses in words; scenario and retrospective labels; one arc colour mapping (sabotage caught); answer above the fold; Replay stayed same-origin at 1440 and 390",
+    "Browser: layers toggle by keyboard; arcs, securities and cited hops; every status in words; a recorded quake reaching securities at its own time; scenario and retrospective labels; one arc colour mapping (sabotage caught); answer above the fold; Replay stayed same-origin at 1440 and 390",
   );
 
   // Local Live, mocked: the page asks POST /geo/graph/propagate for the selected quake. A refused

@@ -23,7 +23,9 @@ def test_a_quake_near_mapped_fabs_suggests_a_question_with_cited_tickers():
     p = s.payload
     assert p["status"] == "SUGGESTED" and p["auto_run"] is False and p["model_calls"] == 0 and p["cost_usd"] == 0
     tickers = [row["ticker"] for row in p["exposure"]["securities"]]
-    assert tickers[0] == "TSM" and {"NVDA", "AMD", "ADI"} <= set(tickers)
+    scores = {row["ticker"]: row["score"] for row in p["exposure"]["securities"]}
+    # TSM shares the top score (other foundries' fabs sit at the same Taiwan city centroids in seed v2).
+    assert scores["TSM"] == max(scores.values()) and {"NVDA", "AMD", "ADI"} <= set(tickers)
     assert all(t in p["question"] for t in ("M6.8", "TSM", "NVDA", "AMD"))
     for row in p["exposure"]["securities"]:
         assert row["hops"] and 0 < row["score"] <= 1 and row["site_precision"]
@@ -38,13 +40,20 @@ def test_a_quake_near_mapped_fabs_suggests_a_question_with_cited_tickers():
 
 def test_the_graph_is_cut_at_the_quake_origin_time():
     """Sabotage: cutting the graph at the storage time instead of the origin time makes this fail."""
-    # Originated before any source in the graph had been checked: nothing may be suggested,
-    # even when the record is stored (backfilled) days later.
-    early = quake(6.8, 23.9, 121.6, observed="2026-11-13T09:58:00.000000Z", available="2026-11-13T10:00:00.000000Z")
+    # Originated before any source in the graph was available: nothing may be suggested,
+    # even when the record is stored (backfilled) years later.
+    early = quake(6.8, 23.9, 121.6, observed="2015-01-01T09:58:00.000000Z", available="2015-01-01T10:00:00.000000Z")
     assert exposure.suggest(early) == []
-    backfilled = quake(6.8, 23.9, 121.6, observed="2026-11-13T09:58:00.000000Z",
+    backfilled = quake(6.8, 23.9, 121.6, observed="2015-01-01T09:58:00.000000Z",
                        available="2026-11-16T10:00:00.000000Z")
     assert exposure.suggest(backfilled) == []
+    # Originated on 13 Nov 2026: UMC and Micron sources were public, the TSMC fab list was only
+    # checked on 14 Nov, so the answer names UMC and MU but never TSM, however late it is stored.
+    for available in ("2026-11-13T10:00:00.000000Z", "2026-11-16T10:00:00.000000Z"):
+        [before_tsmc] = exposure.suggest(quake(6.8, 23.9, 121.6, observed="2026-11-13T09:58:00.000000Z",
+                                               available=available))
+        tickers = {r["ticker"] for r in before_tsmc.payload["exposure"]["securities"]}
+        assert {"UMC", "MU"} <= tickers and "TSM" not in tickers
     # Originated on 14 Nov: the Apple edges were only checked on 15 Nov, so AAPL must be absent,
     # again even if the record is stored after they were known.
     for available in ("2026-11-14T12:00:00.000000Z", "2026-11-16T10:00:00.000000Z"):
@@ -87,7 +96,8 @@ def test_the_service_stores_one_exposure_suggestion_per_quake(tmp_path):
     # A revised quake is the same quake. Near a hub it gets both suggestions, once each.
     assert by_source.count("finsight:exposure") == 1 and by_source.count("finsight:triggers") == 1
     stored = next(s for s in suggestions if s["source"] == "finsight:exposure")
-    assert stored["payload"]["exposure"]["securities"][0]["ticker"] == "TSM"
+    rows = stored["payload"]["exposure"]["securities"]
+    assert next(r for r in rows if r["ticker"] == "TSM")["score"] == rows[0]["score"]
     assert stored["available_at"] >= stored["observed_at"] and stored["licence"]["redistribution"] == "LOCAL_ONLY"
     store.close()
 

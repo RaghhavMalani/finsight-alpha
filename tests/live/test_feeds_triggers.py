@@ -80,8 +80,10 @@ def test_suggestions_are_stored_with_provenance_linking_their_input(tmp_path):
     strong = usgs.__class__(**{**usgs.as_dict(), "source_id": "synthetic-m7",
                                "payload": {**usgs.payload, "mag": 7.1, "lat": 24.5, "lon": 121.5}})
     stored, _ = service.ingest([strong])
-    suggestions = service.store.since(None, types={"research.progress"})
-    assert len(suggestions) == 1
+    everything = service.store.since(None, types={"research.progress"})
+    # The hub trigger; seed v2 sources predate the fixture quake, so a sourced-exposure suggestion joins it.
+    assert sorted(s["source"] for s in everything) == ["finsight:exposure", "finsight:triggers"]
+    suggestions = [s for s in everything if s["source"] == "finsight:triggers"]
     assert suggestions[0]["provenance"]["inputs"][0]["id"] == stored[0]["id"]
     assert suggestions[0]["payload"]["hub"] == "Hsinchu"
     assert model.parse_iso(suggestions[0]["available_at"]) >= model.parse_iso(stored[0]["available_at"])

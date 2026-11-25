@@ -235,15 +235,15 @@ function AnswerView({
             {answer.securities.map((r) => (
               <li key={r.security} data-geo-security={r.security}>
                 <details>
-                  <summary>
+                  <summary className="ge-sec-row">
                     <b className="mono" title={full(r.security)}>
                       {name(r.security)}
                     </b>
-                    <span>
+                    <span className="ge-sec-via" title={full(r.best_chain.site)}>
                       chain score <span className="mono">{r.score.toFixed(4)}</span> · via{" "}
-                      <span title={full(r.best_chain.site)}>{name(r.best_chain.site)}</span> ≈{" "}
-                      {km(r.best_chain.distance_km)}
+                      {name(r.best_chain.site)}
                     </span>
+                    <span className="ge-sec-km mono">≈ {km(r.best_chain.distance_km)}</span>
                   </summary>
                   <ol className="ge-hops">
                     {r.best_chain.hops.map((h) => (

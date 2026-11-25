@@ -1,0 +1,4385 @@
+{
+ "schema_version": "geo-graph-seed/2",
+ "version": "v2",
+ "description": "Seed v1 (unchanged) plus sourced additions for U3 part 2. v1 items keep available_at = when this project fetched and checked each source (14-15 Nov 2026). Added items are dated by evidence of earlier public availability: an Internet Archive snapshot that contains the statement (date_basis retrieved, available_at = the snapshot timestamp), or a document that prints its own date (date_basis published, available_at = noon UTC the day after that date); otherwise the fetch instant on 2026-11-24. Coordinates are approximate city, district or port centroids from general geographic reference, not from the cited documents. Confidence conventions: operates 1.0 when the company lists the site as its own, 0.9 when the same source says a majority-owned subsidiary runs it, 0.5 for a joint venture; ships_through 0.8 when the company says its own vessels or earnings were directly affected by the passage. Companies without a sourced listing are left unlisted.",
+ "nodes": [
+  {
+   "id": "facility:tsmc:fab-2",
+   "type": "facility",
+   "name": "TSMC Fab 2",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-3",
+   "type": "facility",
+   "name": "TSMC Fab 3",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-5",
+   "type": "facility",
+   "name": "TSMC Fab 5",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-8",
+   "type": "facility",
+   "name": "TSMC Fab 8",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-12a",
+   "type": "facility",
+   "name": "TSMC Fab 12A",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-12b",
+   "type": "facility",
+   "name": "TSMC Fab 12B",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-20",
+   "type": "facility",
+   "name": "TSMC Fab 20",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-1",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 1",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-6",
+   "type": "facility",
+   "name": "TSMC Fab 6",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-14a",
+   "type": "facility",
+   "name": "TSMC Fab 14A",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-14b",
+   "type": "facility",
+   "name": "TSMC Fab 14B",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-18a",
+   "type": "facility",
+   "name": "TSMC Fab 18A",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-18b",
+   "type": "facility",
+   "name": "TSMC Fab 18B",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-2",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 2",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-15a",
+   "type": "facility",
+   "name": "TSMC Fab 15A",
+   "lat": 24.1477,
+   "lon": 120.6736,
+   "location_precision": "city centroid (Taichung); the site may be tens of km away",
+   "attrs": {
+    "city": "Taichung",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-15b",
+   "type": "facility",
+   "name": "TSMC Fab 15B",
+   "lat": 24.1477,
+   "lon": 120.6736,
+   "location_precision": "city centroid (Taichung); the site may be tens of km away",
+   "attrs": {
+    "city": "Taichung",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-5",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 5",
+   "lat": 24.1477,
+   "lon": 120.6736,
+   "location_precision": "city centroid (Taichung); the site may be tens of km away",
+   "attrs": {
+    "city": "Taichung",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-22",
+   "type": "facility",
+   "name": "TSMC Fab 22",
+   "lat": 22.6273,
+   "lon": 120.3014,
+   "location_precision": "city centroid (Kaohsiung); the site may be tens of km away",
+   "attrs": {
+    "city": "Kaohsiung",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-16",
+   "type": "facility",
+   "name": "TSMC Fab 16 (TSMC Nanjing)",
+   "lat": 32.0603,
+   "lon": 118.7969,
+   "location_precision": "city centroid (Nanjing); the site may be tens of km away",
+   "attrs": {
+    "city": "Nanjing",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-10",
+   "type": "facility",
+   "name": "TSMC Fab 10 (TSMC China)",
+   "lat": 31.2304,
+   "lon": 121.4737,
+   "location_precision": "city centroid (Shanghai); the site may be tens of km away",
+   "attrs": {
+    "city": "Shanghai",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:arizona",
+   "type": "facility",
+   "name": "TSMC Arizona",
+   "lat": 33.4484,
+   "lon": -112.074,
+   "location_precision": "city centroid (Phoenix); the site may be tens of km away",
+   "attrs": {
+    "city": "Phoenix",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:fab-11",
+   "type": "facility",
+   "name": "TSMC Fab 11 (TSMC Washington)",
+   "lat": 45.5871,
+   "lon": -122.3995,
+   "location_precision": "city centroid (Camas); the site may be tens of km away",
+   "attrs": {
+    "city": "Camas",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:jasm",
+   "type": "facility",
+   "name": "TSMC JASM (Japan Advanced Semiconductor Manufacturing)",
+   "lat": 32.8031,
+   "lon": 130.7079,
+   "location_precision": "city centroid (Kumamoto); the site may be tens of km away",
+   "attrs": {
+    "city": "Kumamoto",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-3",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 3",
+   "lat": 24.9936,
+   "lon": 121.301,
+   "location_precision": "city centroid (Taoyuan); the site may be tens of km away",
+   "attrs": {
+    "city": "Taoyuan",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "facility:tsmc:ap-6",
+   "type": "facility",
+   "name": "TSMC Advanced Backend Fab 6",
+   "lat": 24.5602,
+   "lon": 120.8214,
+   "location_precision": "city centroid (Miaoli); the site may be tens of km away",
+   "attrs": {
+    "city": "Miaoli",
+    "kind": "semiconductor fab"
+   },
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "company:tsmc",
+   "type": "company",
+   "name": "Taiwan Semiconductor Manufacturing Co. Ltd.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "company:nvidia",
+   "type": "company",
+   "name": "NVIDIA Corporation",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "company:amd",
+   "type": "company",
+   "name": "Advanced Micro Devices, Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "company:apple",
+   "type": "company",
+   "name": "Apple Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "company:globalfoundries",
+   "type": "company",
+   "name": "GLOBALFOUNDRIES Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "company:analog-devices",
+   "type": "company",
+   "name": "Analog Devices, Inc.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "company:samsung-electronics",
+   "type": "company",
+   "name": "Samsung Electronics Co., Ltd.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+    "title": "NVIDIA Corporation Form 10-K for fiscal 2026 (accession 0001045810-26-000021)",
+    "date": "2026-02-25",
+    "date_basis": "filed",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We utilize foundries, such as Taiwan Semiconductor Manufacturing Company Limited, or TSMC, and Samsung Electronics Co., Ltd., or Samsung, to produce our semiconductor wafers.",
+    "locator": ""
+   }
+  },
+  {
+   "id": "sector:sic-3674",
+   "type": "sector",
+   "name": "SIC 3674 Semiconductors & Related Devices",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "sector:sic-3571",
+   "type": "sector",
+   "name": "SIC 3571 Electronic Computers",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "security:tsm",
+   "type": "security",
+   "name": "TSM (NYSE)",
+   "attrs": {
+    "ticker": "TSM",
+    "exchange": "NYSE"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "security:nvda",
+   "type": "security",
+   "name": "NVDA (Nasdaq)",
+   "attrs": {
+    "ticker": "NVDA",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "security:amd",
+   "type": "security",
+   "name": "AMD (Nasdaq)",
+   "attrs": {
+    "ticker": "AMD",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "security:aapl",
+   "type": "security",
+   "name": "AAPL (Nasdaq)",
+   "attrs": {
+    "ticker": "AAPL",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "security:gfs",
+   "type": "security",
+   "name": "GFS (Nasdaq)",
+   "attrs": {
+    "ticker": "GFS",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "security:adi",
+   "type": "security",
+   "name": "ADI (Nasdaq)",
+   "attrs": {
+    "ticker": "ADI",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "chokepoint:hormuz",
+   "type": "chokepoint",
+   "name": "Strait of Hormuz",
+   "lat": 26.5667,
+   "lon": 56.25,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 20.9,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-03-03",
+    "date_basis": "updated",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": "Table 1, 1H25 column"
+   }
+  },
+  {
+   "id": "chokepoint:bab-el-mandeb",
+   "type": "chokepoint",
+   "name": "Bab el-Mandeb",
+   "lat": 12.5833,
+   "lon": 43.3333,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 4.2,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-03-03",
+    "date_basis": "updated",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": "Table 1, 1H25 column"
+   }
+  },
+  {
+   "id": "chokepoint:suez",
+   "type": "chokepoint",
+   "name": "Suez Canal and SUMED Pipeline",
+   "lat": 30.5852,
+   "lon": 32.2654,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 4.9,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-03-03",
+    "date_basis": "updated",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": "Table 1, 1H25 column"
+   }
+  },
+  {
+   "id": "chokepoint:malacca",
+   "type": "chokepoint",
+   "name": "Strait of Malacca",
+   "lat": 2.5,
+   "lon": 101.5,
+   "location_precision": "approximate centre of the passage",
+   "attrs": {
+    "oil_flow_mbd_1h2025": 23.2,
+    "flow_unit": "million barrels per day"
+   },
+   "source": {
+    "url": "https://www.eia.gov/international/content/analysis/special_topics/World_Oil_Transit_Chokepoints/",
+    "title": "EIA: World Oil Transit Chokepoints",
+    "date": "2026-03-03",
+    "date_basis": "updated",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": "Table 1, 1H25 column"
+   }
+  },
+  {
+   "id": "company:toyota",
+   "type": "company",
+   "name": "Toyota Motor Corporation",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260610103317/https://global.toyota/en/ir/stock/outline/",
+    "title": "Stock Overview | Stock Information & Ratings | Shareholders & Investors News | Toyota Motor Corporation Official Global Website",
+    "date": "2026-06-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-10T10:33:17Z",
+    "excerpt": "Securities code 7203 (Japan)",
+    "locator": "Corporate Stock Summary (As of March 31, 2025)"
+   }
+  },
+  {
+   "id": "security:7203.t",
+   "type": "security",
+   "name": "7203 (Tokyo Stock Exchange)",
+   "attrs": {
+    "ticker": "7203",
+    "exchange": "Tokyo Stock Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260610103317/https://global.toyota/en/ir/stock/outline/",
+    "title": "Stock Overview | Stock Information & Ratings | Shareholders & Investors News | Toyota Motor Corporation Official Global Website",
+    "date": "2026-06-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-10T10:33:17Z",
+    "excerpt": "Securities code 7203 (Japan)",
+    "locator": "Corporate Stock Summary (As of March 31, 2025)"
+   }
+  },
+  {
+   "id": "facility:toyota:tmmin-sunter",
+   "type": "facility",
+   "name": "TMMIN Sunter Plants 1 and 2 (Toyota Motor Manufacturing Indonesia)",
+   "lat": -6.12,
+   "lon": 106.88,
+   "location_precision": "district centroid (North Jakarta); the plants may be several km away",
+   "attrs": {
+    "kind": "vehicle and engine plant",
+    "country": "Indonesia"
+   },
+   "source": {
+    "url": "https://global.toyota/en/detail/11335257/",
+    "title": "Toyota Begins Production at Efficient New Engine Plant in Indonesia",
+    "date": "2016-03-07",
+    "date_basis": "published",
+    "available_at": "2016-03-08T12:00:00Z",
+    "excerpt": "Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia North Jakarta, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
+   }
+  },
+  {
+   "id": "facility:toyota:tmmin-karawang",
+   "type": "facility",
+   "name": "TMMIN Karawang Plants and Karawang Engine Plant (Toyota Motor Manufacturing Indonesia)",
+   "lat": -6.3,
+   "lon": 107.3,
+   "location_precision": "regency town centroid (Karawang); the plants may be tens of km away",
+   "attrs": {
+    "kind": "vehicle and engine plant",
+    "country": "Indonesia"
+   },
+   "source": {
+    "url": "https://global.toyota/en/detail/11335257/",
+    "title": "Toyota Begins Production at Efficient New Engine Plant in Indonesia",
+    "date": "2016-03-07",
+    "date_basis": "published",
+    "available_at": "2016-03-08T12:00:00Z",
+    "excerpt": "Plant 1 Karawang Plant 2 Karawang Karawang Engine Plant Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
+   }
+  },
+  {
+   "id": "company:nippon-steel",
+   "type": "company",
+   "name": "Nippon Steel Corporation",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260610185258/https://www.nipponsteel.com/en/ir/faq/",
+    "title": "Investor FAQs | Nippon Steel Corporation",
+    "date": "2026-06-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-10T18:52:58Z",
+    "excerpt": "The stock code is 5401 in Japan.",
+    "locator": "Investor FAQs: Shares"
+   }
+  },
+  {
+   "id": "security:5401.t",
+   "type": "security",
+   "name": "5401 (Tokyo Stock Exchange)",
+   "attrs": {
+    "ticker": "5401",
+    "exchange": "Tokyo Stock Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260610185258/https://www.nipponsteel.com/en/ir/faq/",
+    "title": "Investor FAQs | Nippon Steel Corporation",
+    "date": "2026-06-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-10T18:52:58Z",
+    "excerpt": "The stock code is 5401 in Japan.",
+    "locator": "Investor FAQs: Shares"
+   }
+  },
+  {
+   "id": "facility:nippon-steel:kashima",
+   "type": "facility",
+   "name": "Nippon Steel East Nippon Works, Kashima Area",
+   "lat": 35.966,
+   "lon": 140.645,
+   "location_precision": "city centroid (Kashima, Ibaraki); the works may be several km away",
+   "attrs": {
+    "kind": "integrated steelworks",
+    "country": "Japan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260712033551/https://www.nipponsteel.com/en/company/bases/",
+    "title": "Manufacturing Bases | Nippon Steel Corporation",
+    "date": "2026-07-12",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-12T03:35:51Z",
+    "excerpt": "Kashima Area 3 Hikari, Kashima City, Ibaraki Pref. 314-0014, Japan",
+    "locator": "East Nippon Works"
+   }
+  },
+  {
+   "id": "facility:nippon-steel:kimitsu",
+   "type": "facility",
+   "name": "Nippon Steel East Nippon Works, Kimitsu Area",
+   "lat": 35.33,
+   "lon": 139.902,
+   "location_precision": "city centroid (Kimitsu, Chiba); the works may be several km away",
+   "attrs": {
+    "kind": "integrated steelworks",
+    "country": "Japan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260712033551/https://www.nipponsteel.com/en/company/bases/",
+    "title": "Manufacturing Bases | Nippon Steel Corporation",
+    "date": "2026-07-12",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-12T03:35:51Z",
+    "excerpt": "Kimitsu Area 1 Kimitsu, Kimitsu City, Chiba Pref. 299-1141, Japan",
+    "locator": "East Nippon Works"
+   }
+  },
+  {
+   "id": "company:catl",
+   "type": "company",
+   "name": "Contemporary Amperex Technology Co., Limited (CATL)",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "Listed on the shenzhen stock Exchange (stock code: 300750).",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "security:300750.sz",
+   "type": "security",
+   "name": "300750 (Shenzhen Stock Exchange)",
+   "attrs": {
+    "ticker": "300750",
+    "exchange": "Shenzhen Stock Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "Listed on the shenzhen stock Exchange (stock code: 300750).",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "security:3750.hk",
+   "type": "security",
+   "name": "3750 (Hong Kong Stock Exchange)",
+   "attrs": {
+    "ticker": "03750",
+    "exchange": "Hong Kong Stock Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "Listed on the Main Board of the Hong kong stock Exchange (stock code: 03750 . HK)",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "facility:catl:yibin",
+   "type": "facility",
+   "name": "CATL Yibin Plant",
+   "lat": 28.77,
+   "lon": 104.62,
+   "location_precision": "city centroid (Yibin, Sichuan); the plant may be tens of km away",
+   "attrs": {
+    "kind": "battery plant",
+    "country": "China"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "3 plants selected as Lighthouse factory by the World Economic Forum: CATL-Ningde Plant, CATL-Yibin Plant, CATL-Liyang Plant",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "facility:catl:ningde",
+   "type": "facility",
+   "name": "CATL Ningde Plant",
+   "lat": 26.66,
+   "lon": 119.55,
+   "location_precision": "city centroid (Ningde, Fujian); the plant may be tens of km away",
+   "attrs": {
+    "kind": "battery plant",
+    "country": "China"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "3 plants selected as Lighthouse factory by the World Economic Forum: CATL-Ningde Plant, CATL-Yibin Plant, CATL-Liyang Plant",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "facility:catl:liyang",
+   "type": "facility",
+   "name": "CATL Liyang Plant",
+   "lat": 31.42,
+   "lon": 119.48,
+   "location_precision": "city centroid (Liyang, Jiangsu); the plant may be tens of km away",
+   "attrs": {
+    "kind": "battery plant",
+    "country": "China"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "3 plants selected as Lighthouse factory by the World Economic Forum: CATL-Ningde Plant, CATL-Yibin Plant, CATL-Liyang Plant",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "company:methanex",
+   "type": "company",
+   "name": "Methanex Corporation",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260715095933/https://www.methanex.com/about-us/global-locations/new-zealand/",
+    "title": "New Zealand - Methanex | Methanex",
+    "date": "2026-07-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-15T09:59:33Z",
+    "excerpt": "NASDAQ: MEOH",
+    "locator": "page header"
+   }
+  },
+  {
+   "id": "security:meoh",
+   "type": "security",
+   "name": "MEOH (Nasdaq)",
+   "attrs": {
+    "ticker": "MEOH",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260715095933/https://www.methanex.com/about-us/global-locations/new-zealand/",
+    "title": "New Zealand - Methanex | Methanex",
+    "date": "2026-07-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-15T09:59:33Z",
+    "excerpt": "NASDAQ: MEOH",
+    "locator": "page header"
+   }
+  },
+  {
+   "id": "security:mx.to",
+   "type": "security",
+   "name": "MX (Toronto Stock Exchange)",
+   "attrs": {
+    "ticker": "MX",
+    "exchange": "Toronto Stock Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260715095933/https://www.methanex.com/about-us/global-locations/new-zealand/",
+    "title": "New Zealand - Methanex | Methanex",
+    "date": "2026-07-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-15T09:59:33Z",
+    "excerpt": "TSX: MX",
+    "locator": "page header"
+   }
+  },
+  {
+   "id": "facility:methanex:motunui",
+   "type": "facility",
+   "name": "Methanex Motunui methanol plant, Taranaki",
+   "lat": -39.0,
+   "lon": 174.24,
+   "location_precision": "town centroid (Waitara); the Motunui plant lies a few km east",
+   "attrs": {
+    "kind": "methanol plant",
+    "country": "New Zealand"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260715095933/https://www.methanex.com/about-us/global-locations/new-zealand/",
+    "title": "New Zealand - Methanex | Methanex",
+    "date": "2026-07-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-15T09:59:33Z",
+    "excerpt": "Methanex is New Zealand’s only methanol manufacturer. We produce methanol at our plant in Taranaki; approximately 95 per cent of our production is exported to customers in the Asia Pacific region.",
+    "locator": "contact address: 409 Main North Road, SH3, Motunui"
+   }
+  },
+  {
+   "id": "facility:methanex:damietta",
+   "type": "facility",
+   "name": "Methanex Egypt methanol plant, Damietta",
+   "lat": 31.42,
+   "lon": 31.81,
+   "location_precision": "city centroid (Damietta); the plant may be several km away",
+   "attrs": {
+    "kind": "methanol plant",
+    "country": "Egypt"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260915124109/https://www.methanex.com/about-us/global-locations/egypt/",
+    "title": "Egypt - Methanex | Methanex",
+    "date": "2026-09-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-15T12:41:09Z",
+    "excerpt": "Methanex Egypt is a joint venture of Methanex Corporation which holds a 50% interest, together with the Egyptian government partners in addition to the Arab Petroleum Investments Corporation (APICORP).",
+    "locator": "Egypt"
+   }
+  },
+  {
+   "id": "port:jakarta:jict",
+   "type": "port",
+   "name": "Jakarta International Container Terminal (JICT), Tanjung Priok",
+   "lat": -6.1,
+   "lon": 106.88,
+   "location_precision": "port centroid (Tanjung Priok, Jakarta)",
+   "attrs": {
+    "country": "Indonesia",
+    "kind": "container terminal"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20250802222546/https://www.jict.co.id/about",
+    "title": "Jakarta International Container Terminal",
+    "date": "2025-08-02",
+    "date_basis": "retrieved",
+    "available_at": "2025-08-02T22:25:46Z",
+    "excerpt": "Jakarta International Container Terminal (JICT), a joint venture between Hutchison Port and Pelabuhan Indonesia (Persero) is the largest container terminal in Indonesia.",
+    "locator": "About JICT: JICT in brief"
+   }
+  },
+  {
+   "id": "company:hutchison-ports",
+   "type": "company",
+   "name": "Hutchison Ports",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20250802222546/https://www.jict.co.id/about",
+    "title": "Jakarta International Container Terminal",
+    "date": "2025-08-02",
+    "date_basis": "retrieved",
+    "available_at": "2025-08-02T22:25:46Z",
+    "excerpt": "Jakarta International Container Terminal (JICT), a joint venture between Hutchison Port and Pelabuhan Indonesia (Persero) is the largest container terminal in Indonesia.",
+    "locator": "About JICT: JICT in brief"
+   }
+  },
+  {
+   "id": "company:norden",
+   "type": "company",
+   "name": "Dampskibsselskabet NORDEN A/S",
+   "attrs": {},
+   "source": {
+    "url": "https://mb.cision.com/Main/21709/4345048/4078415.pdf",
+    "title": "Dampskibsselskabet NORDEN A/S Interim Report First Quarter 2026 (Announcement No. 108)",
+    "date": "2026-05-06",
+    "date_basis": "published",
+    "available_at": "2026-05-07T12:00:00Z",
+    "excerpt": "Losses in Dry cargo were driven by regional positioning as well as the Persian Gulf conflict, which directly impacted earnings through the closure of the Strait of Hormuz and one-off regional bunker premiums.",
+    "locator": "p. 2, Business highlights"
+   }
+  },
+  {
+   "id": "company:umc",
+   "type": "company",
+   "name": "United Microelectronics Corporation (UMC)",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20250811143358/https://www.umc.com/en/News/press_release/Content/investor/20240425",
+    "title": "UMC Files Form 20-F for 2023 with US Securities and Exchange Commission",
+    "date": "2024-04-25",
+    "date_basis": "published",
+    "available_at": "2024-04-26T12:00:00Z",
+    "excerpt": "UMC (NYSE: UMC, TWSE: 2303) is a leading global semiconductor foundry company.",
+    "locator": "About UMC"
+   }
+  },
+  {
+   "id": "security:umc",
+   "type": "security",
+   "name": "UMC (NYSE)",
+   "attrs": {
+    "ticker": "UMC",
+    "exchange": "NYSE"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20250811143358/https://www.umc.com/en/News/press_release/Content/investor/20240425",
+    "title": "UMC Files Form 20-F for 2023 with US Securities and Exchange Commission",
+    "date": "2024-04-25",
+    "date_basis": "published",
+    "available_at": "2024-04-26T12:00:00Z",
+    "excerpt": "UMC (NYSE: UMC, TWSE: 2303) is a leading global semiconductor foundry company.",
+    "locator": "About UMC"
+   }
+  },
+  {
+   "id": "security:2303.tw",
+   "type": "security",
+   "name": "2303 (Taiwan Stock Exchange)",
+   "attrs": {
+    "ticker": "2303",
+    "exchange": "Taiwan Stock Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20250811143358/https://www.umc.com/en/News/press_release/Content/investor/20240425",
+    "title": "UMC Files Form 20-F for 2023 with US Securities and Exchange Commission",
+    "date": "2024-04-25",
+    "date_basis": "published",
+    "available_at": "2024-04-26T12:00:00Z",
+    "excerpt": "UMC (NYSE: UMC, TWSE: 2303) is a leading global semiconductor foundry company.",
+    "locator": "About UMC"
+   }
+  },
+  {
+   "id": "facility:umc:fab-12a",
+   "type": "facility",
+   "name": "UMC Fab 12A",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "semiconductor fab",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 12A Location : Tainan, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-12i",
+   "type": "facility",
+   "name": "UMC Fab 12i",
+   "lat": 1.3521,
+   "lon": 103.8198,
+   "location_precision": "city centroid (Singapore); the site may be tens of km away",
+   "attrs": {
+    "city": "Singapore",
+    "kind": "semiconductor fab",
+    "country": "Singapore"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 12i Location : Singapore",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-12x",
+   "type": "facility",
+   "name": "UMC United Semi (Fab 12X)",
+   "lat": 24.4798,
+   "lon": 118.0894,
+   "location_precision": "city centroid (Xiamen); the site may be tens of km away",
+   "attrs": {
+    "city": "Xiamen",
+    "kind": "semiconductor fab",
+    "country": "China"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "United Semi (Fab 12X) Location : Xiamen, China",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-12m",
+   "type": "facility",
+   "name": "UMC USJC (Fab 12M)",
+   "lat": 35.0622,
+   "lon": 136.6838,
+   "location_precision": "city centroid (Kuwana); the site may be tens of km away",
+   "attrs": {
+    "city": "Kuwana",
+    "kind": "semiconductor fab",
+    "country": "Japan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "USJC (Fab 12M) Location : Kuwana, Mie, Japan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-8a",
+   "type": "facility",
+   "name": "UMC Fab 8A",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8A Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-8c",
+   "type": "facility",
+   "name": "UMC Fab 8C",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8C Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-8d",
+   "type": "facility",
+   "name": "UMC Fab 8D",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8D Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-8e",
+   "type": "facility",
+   "name": "UMC Fab 8E",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8E Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-8f",
+   "type": "facility",
+   "name": "UMC Fab 8F",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8F Location : Hsinchu,Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "facility:umc:fab-8s",
+   "type": "facility",
+   "name": "UMC Fab 8S",
+   "lat": 24.8138,
+   "lon": 120.9675,
+   "location_precision": "city centroid (Hsinchu); the site may be tens of km away",
+   "attrs": {
+    "city": "Hsinchu",
+    "kind": "semiconductor fab",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8S Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "company:micron",
+   "type": "company",
+   "name": "Micron Technology, Inc.",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260714041632/https://investors.micron.com/news-releases/news-release-details/micron-technology-inc-reports-results-first-quarter-fiscal-2025",
+    "title": "Micron Technology, Inc. Reports Results for the First Quarter of Fiscal 2025",
+    "date": "2024-12-18",
+    "date_basis": "published",
+    "available_at": "2024-12-19T12:00:00Z",
+    "excerpt": "Micron Technology, Inc. (Nasdaq: MU) today announced results for its first quarter of fiscal 2025, which ended November 28, 2024.",
+    "locator": "dateline: BOISE, Idaho, Dec. 18, 2024"
+   }
+  },
+  {
+   "id": "security:mu",
+   "type": "security",
+   "name": "MU (Nasdaq)",
+   "attrs": {
+    "ticker": "MU",
+    "exchange": "Nasdaq"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260714041632/https://investors.micron.com/news-releases/news-release-details/micron-technology-inc-reports-results-first-quarter-fiscal-2025",
+    "title": "Micron Technology, Inc. Reports Results for the First Quarter of Fiscal 2025",
+    "date": "2024-12-18",
+    "date_basis": "published",
+    "available_at": "2024-12-19T12:00:00Z",
+    "excerpt": "Micron Technology, Inc. (Nasdaq: MU) today announced results for its first quarter of fiscal 2025, which ended November 28, 2024.",
+    "locator": "dateline: BOISE, Idaho, Dec. 18, 2024"
+   }
+  },
+  {
+   "id": "facility:micron:hiroshima",
+   "type": "facility",
+   "name": "Micron manufacturing location, Hiroshima",
+   "lat": 34.3853,
+   "lon": 132.4553,
+   "location_precision": "city centroid (Hiroshima); the site may be tens of km away",
+   "attrs": {
+    "city": "Hiroshima",
+    "kind": "memory manufacturing location",
+    "country": "Japan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "facility:micron:taichung",
+   "type": "facility",
+   "name": "Micron manufacturing location, Taichung",
+   "lat": 24.1477,
+   "lon": 120.6736,
+   "location_precision": "city centroid (Taichung); the site may be tens of km away",
+   "attrs": {
+    "city": "Taichung",
+    "kind": "memory manufacturing location",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "facility:micron:tainan",
+   "type": "facility",
+   "name": "Micron manufacturing location, Tainan",
+   "lat": 22.9999,
+   "lon": 120.227,
+   "location_precision": "city centroid (Tainan); the site may be tens of km away",
+   "attrs": {
+    "city": "Tainan",
+    "kind": "memory manufacturing location",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "facility:micron:taoyuan",
+   "type": "facility",
+   "name": "Micron manufacturing location, Taoyuan",
+   "lat": 24.9936,
+   "lon": 121.301,
+   "location_precision": "city centroid (Taoyuan); the site may be tens of km away",
+   "attrs": {
+    "city": "Taoyuan",
+    "kind": "memory manufacturing location",
+    "country": "Taiwan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "facility:micron:singapore",
+   "type": "facility",
+   "name": "Micron manufacturing location, Singapore",
+   "lat": 1.3521,
+   "lon": 103.8198,
+   "location_precision": "city centroid (Singapore); the site may be tens of km away",
+   "attrs": {
+    "city": "Singapore",
+    "kind": "memory manufacturing location",
+    "country": "Singapore"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "facility:micron:xian",
+   "type": "facility",
+   "name": "Micron manufacturing location, Xian",
+   "lat": 34.3416,
+   "lon": 108.9398,
+   "location_precision": "city centroid (Xian); the site may be tens of km away",
+   "attrs": {
+    "city": "Xian",
+    "kind": "memory manufacturing location",
+    "country": "China"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "security:005930.ks",
+   "type": "security",
+   "name": "005930 (Korea Exchange)",
+   "attrs": {
+    "ticker": "005930",
+    "exchange": "Korea Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924213605/https://www.samsung.com/global/ir/stock-information/listing-Info/",
+    "title": "Listing Information │ Stock Information │ Investor Relations │ Samsung Global |",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T21:36:05Z",
+    "excerpt": "Samsung Electronics' original shares are listed on the Korea Exchange (KRX).",
+    "locator": "Listing Information: Ticker Symbols"
+   }
+  },
+  {
+   "id": "facility:samsung:giheung",
+   "type": "facility",
+   "name": "Samsung foundry manufacturing site, Giheung",
+   "lat": 37.2747,
+   "lon": 127.115,
+   "location_precision": "city centroid (Giheung); the site may be tens of km away",
+   "attrs": {
+    "city": "Giheung",
+    "kind": "semiconductor fab",
+    "country": "South Korea"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Giheung Giheung, Korea",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "facility:samsung:hwaseong",
+   "type": "facility",
+   "name": "Samsung foundry manufacturing site, Hwaseong",
+   "lat": 37.1995,
+   "lon": 126.8312,
+   "location_precision": "city centroid (Hwaseong); the site may be tens of km away",
+   "attrs": {
+    "city": "Hwaseong",
+    "kind": "semiconductor fab",
+    "country": "South Korea"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Hwaseong Hwaseong, Korea",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "facility:samsung:pyeongtaek",
+   "type": "facility",
+   "name": "Samsung foundry manufacturing site, Pyeongtaek",
+   "lat": 36.9921,
+   "lon": 127.1129,
+   "location_precision": "city centroid (Pyeongtaek); the site may be tens of km away",
+   "attrs": {
+    "city": "Pyeongtaek",
+    "kind": "semiconductor fab",
+    "country": "South Korea"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Pyeongtaek Pyeongtaek, Korea",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "facility:samsung:austin",
+   "type": "facility",
+   "name": "Samsung foundry manufacturing site, Austin",
+   "lat": 30.2672,
+   "lon": -97.7431,
+   "location_precision": "city centroid (Austin); the site may be tens of km away",
+   "attrs": {
+    "city": "Austin",
+    "kind": "semiconductor fab",
+    "country": "United States"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Austin Texas, USA",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "facility:samsung:taylor",
+   "type": "facility",
+   "name": "Samsung foundry manufacturing site, Taylor",
+   "lat": 30.5708,
+   "lon": -97.4094,
+   "location_precision": "city centroid (Taylor); the site may be tens of km away",
+   "attrs": {
+    "city": "Taylor",
+    "kind": "semiconductor fab",
+    "country": "United States"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Taylor Texas, USA",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "company:sk-hynix",
+   "type": "company",
+   "name": "SK hynix Inc.",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260427025714/https://www.skhynix.com/ir/UI-FR-IR03/",
+    "title": "SK hynix IR: Listing Information",
+    "date": "2026-04-27",
+    "date_basis": "retrieved",
+    "available_at": "2026-04-27T02:57:14Z",
+    "excerpt": "Original shares Common stocks Korea Stock Exchange KS 000660",
+    "locator": "Our Stock (page heading Listing Information; the page has no HTML title)"
+   }
+  },
+  {
+   "id": "security:000660.ks",
+   "type": "security",
+   "name": "000660 (Korea Exchange)",
+   "attrs": {
+    "ticker": "000660",
+    "exchange": "Korea Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260427025714/https://www.skhynix.com/ir/UI-FR-IR03/",
+    "title": "SK hynix IR: Listing Information",
+    "date": "2026-04-27",
+    "date_basis": "retrieved",
+    "available_at": "2026-04-27T02:57:14Z",
+    "excerpt": "Original shares Common stocks Korea Stock Exchange KS 000660",
+    "locator": "Our Stock (page heading Listing Information; the page has no HTML title)"
+   }
+  },
+  {
+   "id": "facility:sk-hynix:icheon",
+   "type": "facility",
+   "name": "SK hynix fabs, Icheon",
+   "lat": 37.272,
+   "lon": 127.435,
+   "location_precision": "city centroid (Icheon); the site may be tens of km away",
+   "attrs": {
+    "city": "Icheon",
+    "kind": "memory fab",
+    "country": "South Korea"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260613025706/https://news.skhynix.com/semiconductor-101-sk-hynix-on-where-chips-are-made-and-used/",
+    "title": "Semiconductor 101: SK hynix on Where Chips Are Made & Used",
+    "date": "2026-06-13",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-13T02:57:06Z",
+    "excerpt": "SK hynix operates three fabs at its headquarters in Icheon—M10, M14, and M16.",
+    "locator": "Current Sites"
+   }
+  },
+  {
+   "id": "facility:sk-hynix:cheongju",
+   "type": "facility",
+   "name": "SK hynix fabs, Cheongju",
+   "lat": 36.6424,
+   "lon": 127.489,
+   "location_precision": "city centroid (Cheongju); the site may be tens of km away",
+   "attrs": {
+    "city": "Cheongju",
+    "kind": "memory fab",
+    "country": "South Korea"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260613025706/https://news.skhynix.com/semiconductor-101-sk-hynix-on-where-chips-are-made-and-used/",
+    "title": "Semiconductor 101: SK hynix on Where Chips Are Made & Used",
+    "date": "2026-06-13",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-13T02:57:06Z",
+    "excerpt": "In Cheongju, the company runs a fab called M15 which strengthens the company’s NAND flash business.",
+    "locator": "Current Sites"
+   }
+  },
+  {
+   "id": "company:adani-ports",
+   "type": "company",
+   "name": "Adani Ports and Special Economic Zone Ltd",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260901100512/https://www.adaniports.com/investors",
+    "title": "Investor Relations - Adani Ports and SEZ Ltd",
+    "date": "2026-09-01",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-01T10:05:12Z",
+    "excerpt": "Listed on: BSE & NSE Tickers: BSE – 532921 NSE – ADANIPORTS",
+    "locator": "Listing Information"
+   }
+  },
+  {
+   "id": "security:adaniports.ns",
+   "type": "security",
+   "name": "ADANIPORTS (National Stock Exchange of India)",
+   "attrs": {
+    "ticker": "ADANIPORTS",
+    "exchange": "National Stock Exchange of India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260901100512/https://www.adaniports.com/investors",
+    "title": "Investor Relations - Adani Ports and SEZ Ltd",
+    "date": "2026-09-01",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-01T10:05:12Z",
+    "excerpt": "Listed on: BSE & NSE Tickers: BSE – 532921 NSE – ADANIPORTS",
+    "locator": "Listing Information"
+   }
+  },
+  {
+   "id": "port:adani:mundra",
+   "type": "port",
+   "name": "Mundra Port",
+   "lat": 22.74,
+   "lon": 69.7,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Mundra Port, Gujarat | India's largest commercial port",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:hazira",
+   "type": "port",
+   "name": "Hazira Port",
+   "lat": 21.1,
+   "lon": 72.63,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Hazira Port, Gujarat",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:dahej",
+   "type": "port",
+   "name": "Dahej Port",
+   "lat": 21.7,
+   "lon": 72.53,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Dahej Port, Gujarat",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:tuna",
+   "type": "port",
+   "name": "Tuna Terminal",
+   "lat": 22.92,
+   "lon": 70.1,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Tuna Terminal, Gujarat",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:mormugao",
+   "type": "port",
+   "name": "Mormugao Terminal",
+   "lat": 15.41,
+   "lon": 73.8,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Mormugao, Goa",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:vizhinjam",
+   "type": "port",
+   "name": "Vizhinjam Port",
+   "lat": 8.38,
+   "lon": 76.99,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Vizhinjam Port, Kerala",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:kattupalli",
+   "type": "port",
+   "name": "Kattupalli Port",
+   "lat": 13.3,
+   "lon": 80.34,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Kattupalli Port, Tamil Nadu",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:krishnapatnam",
+   "type": "port",
+   "name": "Krishnapatnam Port",
+   "lat": 14.25,
+   "lon": 80.12,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Krishnapatnam Port",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:gangavaram",
+   "type": "port",
+   "name": "Gangavaram Port",
+   "lat": 17.62,
+   "lon": 83.23,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Gangavaram Port",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "port:adani:dhamra",
+   "type": "port",
+   "name": "Dhamra Port",
+   "lat": 20.82,
+   "lon": 86.97,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Dhamra Port Odisha",
+    "locator": "map marker for Dhamra Port; joined elements (heading 'Dhamra Port' and its state line 'Odisha')"
+   }
+  },
+  {
+   "id": "company:saudi-aramco",
+   "type": "company",
+   "name": "Saudi Arabian Oil Company (Aramco)",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260710203813/https://www.aramco.com/en/investors/shareholder-information/share-information",
+    "title": "Share information | Aramco",
+    "date": "2026-07-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-10T20:38:13Z",
+    "excerpt": "Saudi Arabian Oil Co on Saudi Exchange: 2222",
+    "locator": "Share Tools"
+   }
+  },
+  {
+   "id": "security:2222.sr",
+   "type": "security",
+   "name": "2222 (Saudi Exchange)",
+   "attrs": {
+    "ticker": "2222",
+    "exchange": "Saudi Exchange"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260710203813/https://www.aramco.com/en/investors/shareholder-information/share-information",
+    "title": "Share information | Aramco",
+    "date": "2026-07-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-10T20:38:13Z",
+    "excerpt": "Saudi Arabian Oil Co on Saudi Exchange: 2222",
+    "locator": "Share Tools"
+   }
+  },
+  {
+   "id": "port:aramco:ras-tanura",
+   "type": "port",
+   "name": "Aramco terminals, Port of Ras Tanura (North Pier, Sea Island)",
+   "lat": 26.64,
+   "lon": 50.16,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "Saudi Arabia"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Ras Tanura North Pier and Sea Island Terminals'"
+   }
+  },
+  {
+   "id": "port:aramco:yanbu",
+   "type": "port",
+   "name": "Aramco terminals, Port of Yanbu",
+   "lat": 24.09,
+   "lon": 38.06,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "Saudi Arabia"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Yanbu Terminals'"
+   }
+  },
+  {
+   "id": "port:aramco:jazan",
+   "type": "port",
+   "name": "Aramco bulk plant terminal, Port of Jazan",
+   "lat": 16.89,
+   "lon": 42.55,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "Saudi Arabia"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jazan Bulk Plant Terminal'"
+   }
+  },
+  {
+   "id": "port:aramco:jeddah",
+   "type": "port",
+   "name": "Aramco terminal, Port of Jeddah",
+   "lat": 21.49,
+   "lon": 39.17,
+   "location_precision": "port centroid (approximate)",
+   "attrs": {
+    "country": "Saudi Arabia"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jeddah'"
+   }
+  },
+  {
+   "id": "company:hapag-lloyd",
+   "type": "company",
+   "name": "Hapag-Lloyd AG",
+   "attrs": {},
+   "source": {
+    "url": "https://www.hapag-lloyd.com/content/dam/website/downloads/pdf/26-02-03_Press_Release_Gemini_Suez-Update_EN.pdf",
+    "title": "Hapag-Lloyd and Maersk to transit Red Sea with one Gemini service (press release)",
+    "date": "2026-02-03",
+    "date_basis": "published",
+    "available_at": "2026-02-04T12:00:00Z",
+    "excerpt": "A.P. Moller - Maersk (Maersk) and Hapag-Lloyd have decided to change the routing of one of their shared services under the Gemini Cooperation, transitioning it through the Red Sea and the Suez Canal.",
+    "locator": "p. 1 (dateline: Hamburg, Feb 3, 2026)"
+   }
+  },
+  {
+   "id": "company:maersk",
+   "type": "company",
+   "name": "A.P. Moller - Maersk A/S",
+   "attrs": {},
+   "source": {
+    "url": "https://www.hapag-lloyd.com/content/dam/website/downloads/pdf/26-02-03_Press_Release_Gemini_Suez-Update_EN.pdf",
+    "title": "Hapag-Lloyd and Maersk to transit Red Sea with one Gemini service (press release)",
+    "date": "2026-02-03",
+    "date_basis": "published",
+    "available_at": "2026-02-04T12:00:00Z",
+    "excerpt": "A.P. Moller - Maersk (Maersk) and Hapag-Lloyd have decided to change the routing of one of their shared services under the Gemini Cooperation, transitioning it through the Red Sea and the Suez Canal.",
+    "locator": "p. 1 (dateline: Hamburg, Feb 3, 2026)"
+   }
+  },
+  {
+   "id": "company:reliance-industries",
+   "type": "company",
+   "name": "Reliance Industries Limited",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260916161504/https://www.ril.com/investors/investor-relations",
+    "title": "Investor Relations | Reliance Industries Limited",
+    "date": "2026-09-16",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-16T16:15:04Z",
+    "excerpt": "Shares NSE (NSE: Reliance)",
+    "locator": "Shares"
+   }
+  },
+  {
+   "id": "security:reliance.ns",
+   "type": "security",
+   "name": "RELIANCE (National Stock Exchange of India)",
+   "attrs": {
+    "ticker": "RELIANCE",
+    "exchange": "National Stock Exchange of India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260916161504/https://www.ril.com/investors/investor-relations",
+    "title": "Investor Relations | Reliance Industries Limited",
+    "date": "2026-09-16",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-16T16:15:04Z",
+    "excerpt": "Shares NSE (NSE: Reliance)",
+    "locator": "Shares"
+   }
+  },
+  {
+   "id": "facility:reliance:jamnagar",
+   "type": "facility",
+   "name": "Reliance Jamnagar Manufacturing Division",
+   "lat": 22.47,
+   "lon": 70.06,
+   "location_precision": "city or town centroid (Jamnagar); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Jamnagar Manufacturing Division: Village Meghpar/Padana, Taluka Lalpur, Jamnagar - 361 280, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "facility:reliance:hazira",
+   "type": "facility",
+   "name": "Reliance Hazira Manufacturing Division",
+   "lat": 21.1,
+   "lon": 72.63,
+   "location_precision": "city or town centroid (Hazira, Surat); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Hazira Manufacturing Division: Village Mora, P.O. Bhatha, Surat-Hazira Road, Surat - 394 510, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "facility:reliance:dahej",
+   "type": "facility",
+   "name": "Reliance Dahej Manufacturing Division",
+   "lat": 21.7,
+   "lon": 72.53,
+   "location_precision": "city or town centroid (Dahej); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Dahej Manufacturing Division: P. O. Dahej- 392 130, Taluka: Vagra, District Bharuch, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "facility:reliance:vadodara",
+   "type": "facility",
+   "name": "Reliance Vadodara Manufacturing Division",
+   "lat": 22.31,
+   "lon": 73.18,
+   "location_precision": "city or town centroid (Vadodara); the complex may be tens of km away",
+   "attrs": {
+    "kind": "refining and petrochemicals",
+    "country": "India"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Vadodara Manufacturing Division: P. O. Petrochemicals, Vadodara - 391 346, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "company:kioxia",
+   "type": "company",
+   "name": "KIOXIA Corporation",
+   "attrs": {},
+   "source": {
+    "url": "https://web.archive.org/web/20260517150715/https://www.kioxia.com/en-jp/about/location.html",
+    "title": "Locations | KIOXIA - Japan (English)",
+    "date": "2026-05-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-05-17T15:07:15Z",
+    "excerpt": "KIOXIA’s Yokkaichi Plant is one of the world’s largest and most efficient flash memory production facilities.",
+    "locator": "Yokkaichi Plant (address 800 Yamanoisshiki-cho, Yokkaichi-shi, Mie)"
+   }
+  },
+  {
+   "id": "facility:kioxia:yokkaichi",
+   "type": "facility",
+   "name": "KIOXIA Yokkaichi Plant",
+   "lat": 34.965,
+   "lon": 136.624,
+   "location_precision": "city centroid (Yokkaichi); the plant may be several km away",
+   "attrs": {
+    "kind": "flash memory fab",
+    "country": "Japan"
+   },
+   "source": {
+    "url": "https://web.archive.org/web/20260517150715/https://www.kioxia.com/en-jp/about/location.html",
+    "title": "Locations | KIOXIA - Japan (English)",
+    "date": "2026-05-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-05-17T15:07:15Z",
+    "excerpt": "KIOXIA’s Yokkaichi Plant is one of the world’s largest and most efficient flash memory production facilities.",
+    "locator": "Yokkaichi Plant (address 800 Yamanoisshiki-cho, Yokkaichi-shi, Mie)"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "operates:tsmc:fab-2",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-2",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-3",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-3",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-5",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-5",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-8",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-8",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-12a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-12a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-12b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-12b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-20",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-20",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-1",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-1",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-6",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-6",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-14a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-14a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-14b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-14b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-18a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-18a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-18b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-18b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-2",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-2",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-15a",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-15a",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-15b",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-15b",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-5",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-5",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-22",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-22",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-16",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-16",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-10",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-10",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:arizona",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:arizona",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:fab-11",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:fab-11",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:jasm",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:jasm",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-3",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-3",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "operates:tsmc:ap-6",
+   "type": "operates",
+   "src": "company:tsmc",
+   "dst": "facility:tsmc:ap-6",
+   "confidence": 1.0,
+   "mechanism": "TSMC lists this fab among its own manufacturing sites.",
+   "source": {
+    "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+    "title": "TSMC Fabs (Taiwan Semiconductor Manufacturing Company)",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "listed_as:tsmc:tsm",
+   "type": "listed_as",
+   "src": "company:tsmc",
+   "dst": "security:tsm",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists TSM on NYSE for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "exposed_to:tsm:sic-3674",
+   "type": "exposed_to",
+   "src": "security:tsm",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001046179",
+    "title": "SEC EDGAR filer profile: TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "listed_as:nvidia:nvda",
+   "type": "listed_as",
+   "src": "company:nvidia",
+   "dst": "security:nvda",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists NVDA on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "exposed_to:nvda:sic-3674",
+   "type": "exposed_to",
+   "src": "security:nvda",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001045810",
+    "title": "SEC EDGAR filer profile: NVIDIA CORP",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "listed_as:amd:amd",
+   "type": "listed_as",
+   "src": "company:amd",
+   "dst": "security:amd",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists AMD on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "exposed_to:amd:sic-3674",
+   "type": "exposed_to",
+   "src": "security:amd",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000002488",
+    "title": "SEC EDGAR filer profile: ADVANCED MICRO DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "listed_as:apple:aapl",
+   "type": "listed_as",
+   "src": "company:apple",
+   "dst": "security:aapl",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists AAPL on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "exposed_to:aapl:sic-3571",
+   "type": "exposed_to",
+   "src": "security:aapl",
+   "dst": "sector:sic-3571",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3571.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193",
+    "title": "SEC EDGAR filer profile: Apple Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "listed_as:globalfoundries:gfs",
+   "type": "listed_as",
+   "src": "company:globalfoundries",
+   "dst": "security:gfs",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists GFS on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "exposed_to:gfs:sic-3674",
+   "type": "exposed_to",
+   "src": "security:gfs",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001709048",
+    "title": "SEC EDGAR filer profile: GLOBALFOUNDRIES Inc.",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "listed_as:analog-devices:adi",
+   "type": "listed_as",
+   "src": "company:analog-devices",
+   "dst": "security:adi",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR lists ADI on Nasdaq for this filer.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "exposed_to:adi:sic-3674",
+   "type": "exposed_to",
+   "src": "security:adi",
+   "dst": "sector:sic-3674",
+   "confidence": 1.0,
+   "mechanism": "SEC EDGAR classifies this filer under SIC 3674.",
+   "source": {
+    "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000006281",
+    "title": "SEC EDGAR filer profile: ANALOG DEVICES INC",
+    "date": "2026-11-14",
+    "date_basis": "retrieved",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "",
+    "locator": ""
+   }
+  },
+  {
+   "id": "supplies:tsmc:nvidia",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:nvidia",
+   "confidence": 0.9,
+   "mechanism": "NVIDIA names TSMC among the foundries that produce its semiconductor wafers.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+    "title": "NVIDIA Corporation Form 10-K for fiscal 2026 (accession 0001045810-26-000021)",
+    "date": "2026-02-25",
+    "date_basis": "filed",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We utilize foundries, such as Taiwan Semiconductor Manufacturing Company Limited, or TSMC, and Samsung Electronics Co., Ltd., or Samsung, to produce our semiconductor wafers.",
+    "locator": ""
+   }
+  },
+  {
+   "id": "supplies:samsung-electronics:nvidia",
+   "type": "supplies",
+   "src": "company:samsung-electronics",
+   "dst": "company:nvidia",
+   "confidence": 0.9,
+   "mechanism": "NVIDIA names Samsung among the foundries that produce its semiconductor wafers.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm",
+    "title": "NVIDIA Corporation Form 10-K for fiscal 2026 (accession 0001045810-26-000021)",
+    "date": "2026-02-25",
+    "date_basis": "filed",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We utilize foundries, such as Taiwan Semiconductor Manufacturing Company Limited, or TSMC, and Samsung Electronics Co., Ltd., or Samsung, to produce our semiconductor wafers.",
+    "locator": ""
+   }
+  },
+  {
+   "id": "supplies:tsmc:amd",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:amd",
+   "confidence": 0.95,
+   "mechanism": "AMD relies on TSMC for all microprocessor and GPU wafers at 7 nm or smaller.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000018/amd-20251227.htm",
+    "title": "Advanced Micro Devices Form 10-K for fiscal 2025 (accession 0000002488-26-000018)",
+    "date": "2026-02-04",
+    "date_basis": "filed",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We rely on Taiwan Semiconductor Manufacturing Company Limited (TSMC) for the production of all wafers for microprocessor and GPU products at 7 nanometer (nm) or smaller nodes, and we rely primarily on GLOBALFOUNDRIES Inc. (GF) for wafers for microprocessor and GPU products manufactured at process nodes larger than 7 nm.",
+    "locator": ""
+   }
+  },
+  {
+   "id": "supplies:globalfoundries:amd",
+   "type": "supplies",
+   "src": "company:globalfoundries",
+   "dst": "company:amd",
+   "confidence": 0.9,
+   "mechanism": "AMD relies primarily on GLOBALFOUNDRIES for microprocessor and GPU wafers above 7 nm.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/2488/000000248826000018/amd-20251227.htm",
+    "title": "Advanced Micro Devices Form 10-K for fiscal 2025 (accession 0000002488-26-000018)",
+    "date": "2026-02-04",
+    "date_basis": "filed",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We rely on Taiwan Semiconductor Manufacturing Company Limited (TSMC) for the production of all wafers for microprocessor and GPU products at 7 nanometer (nm) or smaller nodes, and we rely primarily on GLOBALFOUNDRIES Inc. (GF) for wafers for microprocessor and GPU products manufactured at process nodes larger than 7 nm.",
+    "locator": ""
+   }
+  },
+  {
+   "id": "supplies:tsmc:analog-devices",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:analog-devices",
+   "confidence": 0.8,
+   "mechanism": "ADI names TSMC among the third-party foundries supplying more than half of its wafers.",
+   "source": {
+    "url": "https://www.sec.gov/Archives/edgar/data/6281/000000628125000153/adi-20251101.htm",
+    "title": "Analog Devices Form 10-K for fiscal 2025 (accession 0000006281-25-000153)",
+    "date": "2025-11-25",
+    "date_basis": "filed",
+    "available_at": "2026-11-14T11:00:00Z",
+    "excerpt": "We currently source more than half of our wafer requirements annually from third-party wafer foundries, including Taiwan Semiconductor Manufacturing Company (TSMC) and others.",
+    "locator": ""
+   }
+  },
+  {
+   "id": "supplies:tsmc:apple",
+   "type": "supplies",
+   "src": "company:tsmc",
+   "dst": "company:apple",
+   "confidence": 0.7,
+   "mechanism": "Apple lists TSMC among semiconductor manufacturers with Apple-related production.",
+   "source": {
+    "url": "https://www.apple.com/jp/environment/pdf/Apple_Environmental_Progress_Report_2025.pdf",
+    "title": "Apple 2025 Environmental Progress Report",
+    "date": "2025-04-17",
+    "date_basis": "created",
+    "available_at": "2026-11-15T10:35:00Z",
+    "excerpt": "As of March 2025, 26 semiconductor manufacturers have committed to at least 90% F-GHG emissions abatement for their entire facilities with Apple-related production. Committed semiconductor manufacturers include, but not limited to, the following: [...] Taiwan Semiconductor Manufacturing Company Limited [...]",
+    "locator": "p. 32, F-GHG abatement commitment"
+   }
+  },
+  {
+   "id": "supplies:samsung-electronics:apple",
+   "type": "supplies",
+   "src": "company:samsung-electronics",
+   "dst": "company:apple",
+   "confidence": 0.7,
+   "mechanism": "Apple lists Samsung Electronics among semiconductor manufacturers with Apple-related production.",
+   "source": {
+    "url": "https://www.apple.com/jp/environment/pdf/Apple_Environmental_Progress_Report_2025.pdf",
+    "title": "Apple 2025 Environmental Progress Report",
+    "date": "2025-04-17",
+    "date_basis": "created",
+    "available_at": "2026-11-15T10:35:00Z",
+    "excerpt": "As of March 2025, 26 semiconductor manufacturers have committed to at least 90% F-GHG emissions abatement for their entire facilities with Apple-related production. Committed semiconductor manufacturers include, but not limited to, the following: [...] Samsung Electronics Co. [...]",
+    "locator": "p. 32, F-GHG abatement commitment"
+   }
+  },
+  {
+   "id": "supplies:globalfoundries:apple",
+   "type": "supplies",
+   "src": "company:globalfoundries",
+   "dst": "company:apple",
+   "confidence": 0.7,
+   "mechanism": "Apple lists GlobalFoundries among semiconductor manufacturers with Apple-related production.",
+   "source": {
+    "url": "https://www.apple.com/jp/environment/pdf/Apple_Environmental_Progress_Report_2025.pdf",
+    "title": "Apple 2025 Environmental Progress Report",
+    "date": "2025-04-17",
+    "date_basis": "created",
+    "available_at": "2026-11-15T10:35:00Z",
+    "excerpt": "As of March 2025, 26 semiconductor manufacturers have committed to at least 90% F-GHG emissions abatement for their entire facilities with Apple-related production. Committed semiconductor manufacturers include, but not limited to, the following: [...] GlobalFoundries [...]",
+    "locator": "p. 32, F-GHG abatement commitment"
+   }
+  },
+  {
+   "id": "supplies:analog-devices:apple",
+   "type": "supplies",
+   "src": "company:analog-devices",
+   "dst": "company:apple",
+   "confidence": 0.7,
+   "mechanism": "Apple lists Analog Devices among semiconductor manufacturers with Apple-related production.",
+   "source": {
+    "url": "https://www.apple.com/jp/environment/pdf/Apple_Environmental_Progress_Report_2025.pdf",
+    "title": "Apple 2025 Environmental Progress Report",
+    "date": "2025-04-17",
+    "date_basis": "created",
+    "available_at": "2026-11-15T10:35:00Z",
+    "excerpt": "As of March 2025, 26 semiconductor manufacturers have committed to at least 90% F-GHG emissions abatement for their entire facilities with Apple-related production. Committed semiconductor manufacturers include, but not limited to, the following: [...] Analog Devices, Inc. (ADI) [...]",
+    "locator": "p. 32, F-GHG abatement commitment"
+   }
+  },
+  {
+   "id": "listed_as:toyota:7203.t",
+   "type": "listed_as",
+   "src": "company:toyota",
+   "dst": "security:7203.t",
+   "confidence": 1.0,
+   "mechanism": "Toyota's stock overview gives securities code 7203 (Japan) with listings in Tokyo and Nagoya.",
+   "source": {
+    "url": "https://web.archive.org/web/20260610103317/https://global.toyota/en/ir/stock/outline/",
+    "title": "Stock Overview | Stock Information & Ratings | Shareholders & Investors News | Toyota Motor Corporation Official Global Website",
+    "date": "2026-06-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-10T10:33:17Z",
+    "excerpt": "Stock listings Japan Tokyo, Nagoya Overseas New York, London",
+    "locator": "Corporate Stock Summary"
+   }
+  },
+  {
+   "id": "operates:toyota:tmmin-sunter",
+   "type": "operates",
+   "src": "company:toyota",
+   "dst": "facility:toyota:tmmin-sunter",
+   "confidence": 0.9,
+   "mechanism": "Toyota lists this plant of TMMIN, its vehicle production subsidiary in Indonesia (Toyota 95%).",
+   "source": {
+    "url": "https://global.toyota/en/detail/11335257/",
+    "title": "Toyota Begins Production at Efficient New Engine Plant in Indonesia",
+    "date": "2016-03-07",
+    "date_basis": "published",
+    "available_at": "2016-03-08T12:00:00Z",
+    "excerpt": "Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia North Jakarta, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
+   }
+  },
+  {
+   "id": "operates:toyota:tmmin-karawang",
+   "type": "operates",
+   "src": "company:toyota",
+   "dst": "facility:toyota:tmmin-karawang",
+   "confidence": 0.9,
+   "mechanism": "Toyota lists this plant of TMMIN, its vehicle production subsidiary in Indonesia (Toyota 95%).",
+   "source": {
+    "url": "https://global.toyota/en/detail/11335257/",
+    "title": "Toyota Begins Production at Efficient New Engine Plant in Indonesia",
+    "date": "2016-03-07",
+    "date_basis": "published",
+    "available_at": "2016-03-08T12:00:00Z",
+    "excerpt": "Plant 1 Karawang Plant 2 Karawang Karawang Engine Plant Plant 1 Sunter Plant 2 Sunter Location Karawang, Indonesia",
+    "locator": "table 'Overview of TMMIN'; joined table cells (plant header row, then the Location row). The opening paragraph calls TMMIN Toyota Motor Corporation's vehicle production subsidiary in Indonesia"
+   }
+  },
+  {
+   "id": "listed_as:nippon-steel:5401.t",
+   "type": "listed_as",
+   "src": "company:nippon-steel",
+   "dst": "security:5401.t",
+   "confidence": 1.0,
+   "mechanism": "Nippon Steel gives its stock code as 5401 and lists the Tokyo Stock Exchange among its listings.",
+   "source": {
+    "url": "https://web.archive.org/web/20260610185258/https://www.nipponsteel.com/en/ir/faq/",
+    "title": "Investor FAQs | Nippon Steel Corporation",
+    "date": "2026-06-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-10T18:52:58Z",
+    "excerpt": "In Japan, we are listed on the Tokyo, Nagoya, Fukuoka and Sapporo stock exchanges.",
+    "locator": "Investor FAQs: Shares"
+   }
+  },
+  {
+   "id": "operates:nippon-steel:kashima",
+   "type": "operates",
+   "src": "company:nippon-steel",
+   "dst": "facility:nippon-steel:kashima",
+   "confidence": 1.0,
+   "mechanism": "Nippon Steel lists this works among its own manufacturing bases.",
+   "source": {
+    "url": "https://web.archive.org/web/20260712033551/https://www.nipponsteel.com/en/company/bases/",
+    "title": "Manufacturing Bases | Nippon Steel Corporation",
+    "date": "2026-07-12",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-12T03:35:51Z",
+    "excerpt": "Kashima Area 3 Hikari, Kashima City, Ibaraki Pref. 314-0014, Japan",
+    "locator": "East Nippon Works"
+   }
+  },
+  {
+   "id": "operates:nippon-steel:kimitsu",
+   "type": "operates",
+   "src": "company:nippon-steel",
+   "dst": "facility:nippon-steel:kimitsu",
+   "confidence": 1.0,
+   "mechanism": "Nippon Steel lists this works among its own manufacturing bases.",
+   "source": {
+    "url": "https://web.archive.org/web/20260712033551/https://www.nipponsteel.com/en/company/bases/",
+    "title": "Manufacturing Bases | Nippon Steel Corporation",
+    "date": "2026-07-12",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-12T03:35:51Z",
+    "excerpt": "Kimitsu Area 1 Kimitsu, Kimitsu City, Chiba Pref. 299-1141, Japan",
+    "locator": "East Nippon Works"
+   }
+  },
+  {
+   "id": "listed_as:catl:300750.sz",
+   "type": "listed_as",
+   "src": "company:catl",
+   "dst": "security:300750.sz",
+   "confidence": 1.0,
+   "mechanism": "CATL's profile records its Shenzhen Stock Exchange listing, stock code 300750.",
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "Listed on the shenzhen stock Exchange (stock code: 300750).",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "listed_as:catl:3750.hk",
+   "type": "listed_as",
+   "src": "company:catl",
+   "dst": "security:3750.hk",
+   "confidence": 1.0,
+   "mechanism": "CATL's profile records its Hong Kong Main Board listing, stock code 03750.HK.",
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "Listed on the Main Board of the Hong kong stock Exchange (stock code: 03750 . HK)",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "operates:catl:yibin",
+   "type": "operates",
+   "src": "company:catl",
+   "dst": "facility:catl:yibin",
+   "confidence": 1.0,
+   "mechanism": "CATL names this plant as one of its own factories.",
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "3 plants selected as Lighthouse factory by the World Economic Forum: CATL-Ningde Plant, CATL-Yibin Plant, CATL-Liyang Plant",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "operates:catl:ningde",
+   "type": "operates",
+   "src": "company:catl",
+   "dst": "facility:catl:ningde",
+   "confidence": 1.0,
+   "mechanism": "CATL names this plant as one of its own factories.",
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "3 plants selected as Lighthouse factory by the World Economic Forum: CATL-Ningde Plant, CATL-Yibin Plant, CATL-Liyang Plant",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "operates:catl:liyang",
+   "type": "operates",
+   "src": "company:catl",
+   "dst": "facility:catl:liyang",
+   "confidence": 1.0,
+   "mechanism": "CATL names this plant as one of its own factories.",
+   "source": {
+    "url": "https://web.archive.org/web/20260909113158/https://www.catl.com/en/about/profile/",
+    "title": "Company Profile",
+    "date": "2026-09-09",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-09T11:31:58Z",
+    "excerpt": "3 plants selected as Lighthouse factory by the World Economic Forum: CATL-Ningde Plant, CATL-Yibin Plant, CATL-Liyang Plant",
+    "locator": "Company Profile: milestones"
+   }
+  },
+  {
+   "id": "listed_as:methanex:meoh",
+   "type": "listed_as",
+   "src": "company:methanex",
+   "dst": "security:meoh",
+   "confidence": 1.0,
+   "mechanism": "Methanex's own site quotes its shares as NASDAQ: MEOH.",
+   "source": {
+    "url": "https://web.archive.org/web/20260715095933/https://www.methanex.com/about-us/global-locations/new-zealand/",
+    "title": "New Zealand - Methanex | Methanex",
+    "date": "2026-07-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-15T09:59:33Z",
+    "excerpt": "NASDAQ: MEOH",
+    "locator": "page header"
+   }
+  },
+  {
+   "id": "listed_as:methanex:mx.to",
+   "type": "listed_as",
+   "src": "company:methanex",
+   "dst": "security:mx.to",
+   "confidence": 1.0,
+   "mechanism": "Methanex's own site quotes its shares as TSX: MX.",
+   "source": {
+    "url": "https://web.archive.org/web/20260715095933/https://www.methanex.com/about-us/global-locations/new-zealand/",
+    "title": "New Zealand - Methanex | Methanex",
+    "date": "2026-07-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-15T09:59:33Z",
+    "excerpt": "TSX: MX",
+    "locator": "page header"
+   }
+  },
+  {
+   "id": "operates:methanex:motunui",
+   "type": "operates",
+   "src": "company:methanex",
+   "dst": "facility:methanex:motunui",
+   "confidence": 1.0,
+   "mechanism": "Methanex says it produces methanol at its own plant in Taranaki (address Motunui).",
+   "source": {
+    "url": "https://web.archive.org/web/20260715095933/https://www.methanex.com/about-us/global-locations/new-zealand/",
+    "title": "New Zealand - Methanex | Methanex",
+    "date": "2026-07-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-15T09:59:33Z",
+    "excerpt": "Methanex is New Zealand’s only methanol manufacturer. We produce methanol at our plant in Taranaki; approximately 95 per cent of our production is exported to customers in the Asia Pacific region.",
+    "locator": "contact address: 409 Main North Road, SH3, Motunui"
+   }
+  },
+  {
+   "id": "operates:methanex:damietta",
+   "type": "operates",
+   "src": "company:methanex",
+   "dst": "facility:methanex:damietta",
+   "confidence": 0.5,
+   "mechanism": "Methanex holds a 50% interest in the Methanex Egypt joint venture that runs the Damietta plant.",
+   "source": {
+    "url": "https://web.archive.org/web/20260915124109/https://www.methanex.com/about-us/global-locations/egypt/",
+    "title": "Egypt - Methanex | Methanex",
+    "date": "2026-09-15",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-15T12:41:09Z",
+    "excerpt": "Methanex Egypt is a joint venture of Methanex Corporation which holds a 50% interest, together with the Egyptian government partners in addition to the Arab Petroleum Investments Corporation (APICORP).",
+    "locator": "Egypt"
+   }
+  },
+  {
+   "id": "operates:hutchison-ports:jict",
+   "type": "operates",
+   "src": "company:hutchison-ports",
+   "dst": "port:jakarta:jict",
+   "confidence": 0.5,
+   "mechanism": "JICT describes itself as a joint venture between Hutchison Port and Pelabuhan Indonesia.",
+   "source": {
+    "url": "https://web.archive.org/web/20250802222546/https://www.jict.co.id/about",
+    "title": "Jakarta International Container Terminal",
+    "date": "2025-08-02",
+    "date_basis": "retrieved",
+    "available_at": "2025-08-02T22:25:46Z",
+    "excerpt": "Jakarta International Container Terminal (JICT), a joint venture between Hutchison Port and Pelabuhan Indonesia (Persero) is the largest container terminal in Indonesia.",
+    "locator": "About JICT: JICT in brief"
+   }
+  },
+  {
+   "id": "ships_through:norden:hormuz",
+   "type": "ships_through",
+   "src": "company:norden",
+   "dst": "chokepoint:hormuz",
+   "confidence": 0.8,
+   "mechanism": "NORDEN reports that the closure of the Strait of Hormuz directly impacted its dry cargo earnings in Q1 2026.",
+   "source": {
+    "url": "https://mb.cision.com/Main/21709/4345048/4078415.pdf",
+    "title": "Dampskibsselskabet NORDEN A/S Interim Report First Quarter 2026 (Announcement No. 108)",
+    "date": "2026-05-06",
+    "date_basis": "published",
+    "available_at": "2026-05-07T12:00:00Z",
+    "excerpt": "Losses in Dry cargo were driven by regional positioning as well as the Persian Gulf conflict, which directly impacted earnings through the closure of the Strait of Hormuz and one-off regional bunker premiums.",
+    "locator": "p. 2, Business highlights"
+   }
+  },
+  {
+   "id": "listed_as:umc:umc",
+   "type": "listed_as",
+   "src": "company:umc",
+   "dst": "security:umc",
+   "confidence": 1.0,
+   "mechanism": "UMC's own release gives its listings as NYSE: UMC and TWSE: 2303.",
+   "source": {
+    "url": "https://web.archive.org/web/20250811143358/https://www.umc.com/en/News/press_release/Content/investor/20240425",
+    "title": "UMC Files Form 20-F for 2023 with US Securities and Exchange Commission",
+    "date": "2024-04-25",
+    "date_basis": "published",
+    "available_at": "2024-04-26T12:00:00Z",
+    "excerpt": "UMC (NYSE: UMC, TWSE: 2303) is a leading global semiconductor foundry company.",
+    "locator": "About UMC"
+   }
+  },
+  {
+   "id": "listed_as:umc:2303.tw",
+   "type": "listed_as",
+   "src": "company:umc",
+   "dst": "security:2303.tw",
+   "confidence": 1.0,
+   "mechanism": "UMC's own release gives its listings as NYSE: UMC and TWSE: 2303.",
+   "source": {
+    "url": "https://web.archive.org/web/20250811143358/https://www.umc.com/en/News/press_release/Content/investor/20240425",
+    "title": "UMC Files Form 20-F for 2023 with US Securities and Exchange Commission",
+    "date": "2024-04-25",
+    "date_basis": "published",
+    "available_at": "2024-04-26T12:00:00Z",
+    "excerpt": "UMC (NYSE: UMC, TWSE: 2303) is a leading global semiconductor foundry company.",
+    "locator": "About UMC"
+   }
+  },
+  {
+   "id": "operates:umc:fab-12a",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-12a",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 12A Location : Tainan, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-12i",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-12i",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 12i Location : Singapore",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-12x",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-12x",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "United Semi (Fab 12X) Location : Xiamen, China",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-12m",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-12m",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "USJC (Fab 12M) Location : Kuwana, Mie, Japan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-8a",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-8a",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8A Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-8c",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-8c",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8C Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-8d",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-8d",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8D Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-8e",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-8e",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8E Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-8f",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-8f",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8F Location : Hsinchu,Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "operates:umc:fab-8s",
+   "type": "operates",
+   "src": "company:umc",
+   "dst": "facility:umc:fab-8s",
+   "confidence": 1.0,
+   "mechanism": "UMC lists this fab among its own wafer fabs.",
+   "source": {
+    "url": "https://web.archive.org/web/20260703082027/https://www.umc.com/en/Html/fab_information",
+    "title": "Fab Information - UMC",
+    "date": "2026-07-03",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-03T08:20:27Z",
+    "excerpt": "Fab 8S Location : Hsinchu, Taiwan",
+    "locator": "fab cards; joined table cells (fab title, then its Location line)"
+   }
+  },
+  {
+   "id": "listed_as:micron:mu",
+   "type": "listed_as",
+   "src": "company:micron",
+   "dst": "security:mu",
+   "confidence": 1.0,
+   "mechanism": "Micron's own results release identifies it as Micron Technology, Inc. (Nasdaq: MU).",
+   "source": {
+    "url": "https://web.archive.org/web/20260714041632/https://investors.micron.com/news-releases/news-release-details/micron-technology-inc-reports-results-first-quarter-fiscal-2025",
+    "title": "Micron Technology, Inc. Reports Results for the First Quarter of Fiscal 2025",
+    "date": "2024-12-18",
+    "date_basis": "published",
+    "available_at": "2024-12-19T12:00:00Z",
+    "excerpt": "Micron Technology, Inc. (Nasdaq: MU) today announced results for its first quarter of fiscal 2025, which ended November 28, 2024.",
+    "locator": "dateline: BOISE, Idaho, Dec. 18, 2024"
+   }
+  },
+  {
+   "id": "operates:micron:hiroshima",
+   "type": "operates",
+   "src": "company:micron",
+   "dst": "facility:micron:hiroshima",
+   "confidence": 1.0,
+   "mechanism": "Micron lists this city among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "operates:micron:taichung",
+   "type": "operates",
+   "src": "company:micron",
+   "dst": "facility:micron:taichung",
+   "confidence": 1.0,
+   "mechanism": "Micron lists this city among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "operates:micron:tainan",
+   "type": "operates",
+   "src": "company:micron",
+   "dst": "facility:micron:tainan",
+   "confidence": 1.0,
+   "mechanism": "Micron lists this city among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "operates:micron:taoyuan",
+   "type": "operates",
+   "src": "company:micron",
+   "dst": "facility:micron:taoyuan",
+   "confidence": 1.0,
+   "mechanism": "Micron lists this city among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "operates:micron:singapore",
+   "type": "operates",
+   "src": "company:micron",
+   "dst": "facility:micron:singapore",
+   "confidence": 1.0,
+   "mechanism": "Micron lists this city among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "operates:micron:xian",
+   "type": "operates",
+   "src": "company:micron",
+   "dst": "facility:micron:xian",
+   "confidence": 1.0,
+   "mechanism": "Micron lists this city among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260810230753/https://www.micron.com/about/company/corporate-profile",
+    "title": "Corporate profile | Micron Technology Inc.",
+    "date": "2026-08-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-08-10T23:07:53Z",
+    "excerpt": "Manufacturing locations Boise, Idaho, USA Gujarat, India Hiroshima, Japan Manassas, Virginia, USA Muar, Malaysia Penang, Malaysia Singapore Taichung, Taiwan Tainan, Taiwan Taoyuan, Taiwan Xian, China",
+    "locator": "Manufacturing locations"
+   }
+  },
+  {
+   "id": "listed_as:samsung-electronics:005930.ks",
+   "type": "listed_as",
+   "src": "company:samsung-electronics",
+   "dst": "security:005930.ks",
+   "confidence": 1.0,
+   "mechanism": "Samsung lists its original common shares on the Korea Exchange under ticker 005930.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924213605/https://www.samsung.com/global/ir/stock-information/listing-Info/",
+    "title": "Listing Information │ Stock Information │ Investor Relations │ Samsung Global |",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T21:36:05Z",
+    "excerpt": "Samsung Electronics' original shares are listed on the Korea Exchange (KRX). Our GDRs are listed on the London Stock Exchange (LSE).",
+    "locator": "Listing Information: Ticker Symbols (KRX 005930)"
+   }
+  },
+  {
+   "id": "operates:samsung-electronics:giheung",
+   "type": "operates",
+   "src": "company:samsung-electronics",
+   "dst": "facility:samsung:giheung",
+   "confidence": 1.0,
+   "mechanism": "Samsung Foundry lists this site among its own manufacturing sites.",
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Giheung Giheung, Korea",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "operates:samsung-electronics:hwaseong",
+   "type": "operates",
+   "src": "company:samsung-electronics",
+   "dst": "facility:samsung:hwaseong",
+   "confidence": 1.0,
+   "mechanism": "Samsung Foundry lists this site among its own manufacturing sites.",
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Hwaseong Hwaseong, Korea",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "operates:samsung-electronics:pyeongtaek",
+   "type": "operates",
+   "src": "company:samsung-electronics",
+   "dst": "facility:samsung:pyeongtaek",
+   "confidence": 1.0,
+   "mechanism": "Samsung Foundry lists this site among its own manufacturing sites.",
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Pyeongtaek Pyeongtaek, Korea",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "operates:samsung-electronics:austin",
+   "type": "operates",
+   "src": "company:samsung-electronics",
+   "dst": "facility:samsung:austin",
+   "confidence": 1.0,
+   "mechanism": "Samsung Foundry lists this site among its own manufacturing sites.",
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Austin Texas, USA",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "operates:samsung-electronics:taylor",
+   "type": "operates",
+   "src": "company:samsung-electronics",
+   "dst": "facility:samsung:taylor",
+   "confidence": 1.0,
+   "mechanism": "Samsung Foundry lists this site among its own manufacturing sites.",
+   "source": {
+    "url": "https://web.archive.org/web/20260905195542/https://semiconductor.samsung.com/foundry/manufacturing/manufacturing-sites/",
+    "title": "Manufacturing sites | Manufacturing | Samsung Semiconductor Global",
+    "date": "2026-09-05",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-05T19:55:42Z",
+    "excerpt": "Taylor Texas, USA",
+    "locator": "Manufacturing excellence across the map"
+   }
+  },
+  {
+   "id": "listed_as:sk-hynix:000660.ks",
+   "type": "listed_as",
+   "src": "company:sk-hynix",
+   "dst": "security:000660.ks",
+   "confidence": 1.0,
+   "mechanism": "SK hynix lists its common stock on the Korea Stock Exchange under ticker 000660.",
+   "source": {
+    "url": "https://web.archive.org/web/20260427025714/https://www.skhynix.com/ir/UI-FR-IR03/",
+    "title": "SK hynix IR: Listing Information",
+    "date": "2026-04-27",
+    "date_basis": "retrieved",
+    "available_at": "2026-04-27T02:57:14Z",
+    "excerpt": "Original shares Common stocks Korea Stock Exchange KS 000660",
+    "locator": "Our Stock (page heading Listing Information; the page has no HTML title)"
+   }
+  },
+  {
+   "id": "operates:sk-hynix:icheon",
+   "type": "operates",
+   "src": "company:sk-hynix",
+   "dst": "facility:sk-hynix:icheon",
+   "confidence": 1.0,
+   "mechanism": "SK hynix says it operates fabs here.",
+   "source": {
+    "url": "https://web.archive.org/web/20260613025706/https://news.skhynix.com/semiconductor-101-sk-hynix-on-where-chips-are-made-and-used/",
+    "title": "Semiconductor 101: SK hynix on Where Chips Are Made & Used",
+    "date": "2026-06-13",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-13T02:57:06Z",
+    "excerpt": "SK hynix operates three fabs at its headquarters in Icheon—M10, M14, and M16.",
+    "locator": "Current Sites"
+   }
+  },
+  {
+   "id": "operates:sk-hynix:cheongju",
+   "type": "operates",
+   "src": "company:sk-hynix",
+   "dst": "facility:sk-hynix:cheongju",
+   "confidence": 1.0,
+   "mechanism": "SK hynix says it operates fabs here.",
+   "source": {
+    "url": "https://web.archive.org/web/20260613025706/https://news.skhynix.com/semiconductor-101-sk-hynix-on-where-chips-are-made-and-used/",
+    "title": "Semiconductor 101: SK hynix on Where Chips Are Made & Used",
+    "date": "2026-06-13",
+    "date_basis": "retrieved",
+    "available_at": "2026-06-13T02:57:06Z",
+    "excerpt": "In Cheongju, the company runs a fab called M15 which strengthens the company’s NAND flash business.",
+    "locator": "Current Sites"
+   }
+  },
+  {
+   "id": "listed_as:adani-ports:adaniports.ns",
+   "type": "listed_as",
+   "src": "company:adani-ports",
+   "dst": "security:adaniports.ns",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports gives its listings as BSE 532921 and NSE ADANIPORTS.",
+   "source": {
+    "url": "https://web.archive.org/web/20260901100512/https://www.adaniports.com/investors",
+    "title": "Investor Relations - Adani Ports and SEZ Ltd",
+    "date": "2026-09-01",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-01T10:05:12Z",
+    "excerpt": "Listed on: BSE & NSE Tickers: BSE – 532921 NSE – ADANIPORTS",
+    "locator": "Listing Information"
+   }
+  },
+  {
+   "id": "operates:adani-ports:mundra",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:mundra",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Mundra Port, Gujarat | India's largest commercial port",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:hazira",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:hazira",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Hazira Port, Gujarat",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:dahej",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:dahej",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Dahej Port, Gujarat",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:tuna",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:tuna",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Tuna Terminal, Gujarat",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:mormugao",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:mormugao",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Mormugao, Goa",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:vizhinjam",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:vizhinjam",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Vizhinjam Port, Kerala",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:kattupalli",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:kattupalli",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Kattupalli Port, Tamil Nadu",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:krishnapatnam",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:krishnapatnam",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Krishnapatnam Port",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:gangavaram",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:gangavaram",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Gangavaram Port",
+    "locator": "Our Ports & Terminals"
+   }
+  },
+  {
+   "id": "operates:adani-ports:dhamra",
+   "type": "operates",
+   "src": "company:adani-ports",
+   "dst": "port:adani:dhamra",
+   "confidence": 1.0,
+   "mechanism": "Adani Ports lists this port among its own ports and terminals.",
+   "source": {
+    "url": "https://web.archive.org/web/20260923215438/https://www.adaniports.com/Ports-and-Terminals",
+    "title": "Ports and Terminals | Adani Ports and SEZ Ltd",
+    "date": "2026-09-23",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-23T21:54:38Z",
+    "excerpt": "Dhamra Port Odisha",
+    "locator": "map marker for Dhamra Port; joined elements (heading 'Dhamra Port' and its state line 'Odisha')"
+   }
+  },
+  {
+   "id": "listed_as:saudi-aramco:2222.sr",
+   "type": "listed_as",
+   "src": "company:saudi-aramco",
+   "dst": "security:2222.sr",
+   "confidence": 1.0,
+   "mechanism": "Aramco's share information page quotes Saudi Arabian Oil Co on Saudi Exchange: 2222.",
+   "source": {
+    "url": "https://web.archive.org/web/20260710203813/https://www.aramco.com/en/investors/shareholder-information/share-information",
+    "title": "Share information | Aramco",
+    "date": "2026-07-10",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-10T20:38:13Z",
+    "excerpt": "Saudi Arabian Oil Co on Saudi Exchange: 2222",
+    "locator": "Share Tools"
+   }
+  },
+  {
+   "id": "operates:saudi-aramco:ras-tanura",
+   "type": "operates",
+   "src": "company:saudi-aramco",
+   "dst": "port:aramco:ras-tanura",
+   "confidence": 1.0,
+   "mechanism": "Aramco's ports and terminals guide covers this among all Aramco terminals in Saudi Arabia.",
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Ras Tanura North Pier and Sea Island Terminals'"
+   }
+  },
+  {
+   "id": "operates:saudi-aramco:yanbu",
+   "type": "operates",
+   "src": "company:saudi-aramco",
+   "dst": "port:aramco:yanbu",
+   "confidence": 1.0,
+   "mechanism": "Aramco's ports and terminals guide covers this among all Aramco terminals in Saudi Arabia.",
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Yanbu Terminals'"
+   }
+  },
+  {
+   "id": "operates:saudi-aramco:jazan",
+   "type": "operates",
+   "src": "company:saudi-aramco",
+   "dst": "port:aramco:jazan",
+   "confidence": 1.0,
+   "mechanism": "Aramco's ports and terminals guide covers this among all Aramco terminals in Saudi Arabia.",
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jazan Bulk Plant Terminal'"
+   }
+  },
+  {
+   "id": "operates:saudi-aramco:jeddah",
+   "type": "operates",
+   "src": "company:saudi-aramco",
+   "dst": "port:aramco:jeddah",
+   "confidence": 1.0,
+   "mechanism": "Aramco's ports and terminals guide covers this among all Aramco terminals in Saudi Arabia.",
+   "source": {
+    "url": "https://web.archive.org/web/20260717144220/https://www.aramco.com/en/what-we-do/operations/ports-and-terminals",
+    "title": "Ports and Terminals - Suppliers | Aramco",
+    "date": "2026-07-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-07-17T14:42:20Z",
+    "excerpt": "Our Ports and Terminals publication is a reference guide for Owners, Charterers, Masters of Vessels and others that covers the general conditions, rules, regulations, facilities, and available services at all Aramco terminals in Saudi Arabia.",
+    "locator": "the port appears only as a section of the page's download list: 'Port of Jeddah'"
+   }
+  },
+  {
+   "id": "ships_through:hapag-lloyd:suez",
+   "type": "ships_through",
+   "src": "company:hapag-lloyd",
+   "dst": "chokepoint:suez",
+   "confidence": 0.8,
+   "mechanism": "Hapag-Lloyd and Maersk routed their shared Gemini IMX service (India and Middle East to the Mediterranean) through the Red Sea and the Suez Canal from mid-February 2026.",
+   "source": {
+    "url": "https://www.hapag-lloyd.com/content/dam/website/downloads/pdf/26-02-03_Press_Release_Gemini_Suez-Update_EN.pdf",
+    "title": "Hapag-Lloyd and Maersk to transit Red Sea with one Gemini service (press release)",
+    "date": "2026-02-03",
+    "date_basis": "published",
+    "available_at": "2026-02-04T12:00:00Z",
+    "excerpt": "A.P. Moller - Maersk (Maersk) and Hapag-Lloyd have decided to change the routing of one of their shared services under the Gemini Cooperation, transitioning it through the Red Sea and the Suez Canal.",
+    "locator": "p. 1 (dateline: Hamburg, Feb 3, 2026)"
+   }
+  },
+  {
+   "id": "ships_through:maersk:suez",
+   "type": "ships_through",
+   "src": "company:maersk",
+   "dst": "chokepoint:suez",
+   "confidence": 0.8,
+   "mechanism": "Hapag-Lloyd and Maersk routed their shared Gemini IMX service (India and Middle East to the Mediterranean) through the Red Sea and the Suez Canal from mid-February 2026.",
+   "source": {
+    "url": "https://www.hapag-lloyd.com/content/dam/website/downloads/pdf/26-02-03_Press_Release_Gemini_Suez-Update_EN.pdf",
+    "title": "Hapag-Lloyd and Maersk to transit Red Sea with one Gemini service (press release)",
+    "date": "2026-02-03",
+    "date_basis": "published",
+    "available_at": "2026-02-04T12:00:00Z",
+    "excerpt": "A.P. Moller - Maersk (Maersk) and Hapag-Lloyd have decided to change the routing of one of their shared services under the Gemini Cooperation, transitioning it through the Red Sea and the Suez Canal.",
+    "locator": "p. 1 (dateline: Hamburg, Feb 3, 2026)"
+   }
+  },
+  {
+   "id": "listed_as:reliance-industries:reliance.ns",
+   "type": "listed_as",
+   "src": "company:reliance-industries",
+   "dst": "security:reliance.ns",
+   "confidence": 1.0,
+   "mechanism": "Reliance's investor relations page quotes its shares on the NSE (NSE: Reliance).",
+   "source": {
+    "url": "https://web.archive.org/web/20260916161504/https://www.ril.com/investors/investor-relations",
+    "title": "Investor Relations | Reliance Industries Limited",
+    "date": "2026-09-16",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-16T16:15:04Z",
+    "excerpt": "Shares NSE (NSE: Reliance)",
+    "locator": "Shares"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:jamnagar",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:jamnagar",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Jamnagar Manufacturing Division: Village Meghpar/Padana, Taluka Lalpur, Jamnagar - 361 280, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:hazira",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:hazira",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Hazira Manufacturing Division: Village Mora, P.O. Bhatha, Surat-Hazira Road, Surat - 394 510, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:dahej",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:dahej",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Dahej Manufacturing Division: P. O. Dahej- 392 130, Taluka: Vagra, District Bharuch, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:reliance-industries:vadodara",
+   "type": "operates",
+   "src": "company:reliance-industries",
+   "dst": "facility:reliance:vadodara",
+   "confidence": 1.0,
+   "mechanism": "Reliance lists this manufacturing division among its own manufacturing locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260924110451/https://www.ril.com/about/manufacturing-locations",
+    "title": "Manufacturing Locations - Reliance Industries",
+    "date": "2026-09-24",
+    "date_basis": "retrieved",
+    "available_at": "2026-09-24T11:04:51Z",
+    "excerpt": "Vadodara Manufacturing Division: P. O. Petrochemicals, Vadodara - 391 346, Gujarat, India",
+    "locator": "Locations: Petrochemicals"
+   }
+  },
+  {
+   "id": "operates:kioxia:yokkaichi",
+   "type": "operates",
+   "src": "company:kioxia",
+   "dst": "facility:kioxia:yokkaichi",
+   "confidence": 1.0,
+   "mechanism": "KIOXIA lists the Yokkaichi Plant among its own locations.",
+   "source": {
+    "url": "https://web.archive.org/web/20260517150715/https://www.kioxia.com/en-jp/about/location.html",
+    "title": "Locations | KIOXIA - Japan (English)",
+    "date": "2026-05-17",
+    "date_basis": "retrieved",
+    "available_at": "2026-05-17T15:07:15Z",
+    "excerpt": "KIOXIA’s Yokkaichi Plant is one of the world’s largest and most efficient flash memory production facilities.",
+    "locator": "Yokkaichi Plant (address 800 Yamanoisshiki-cho, Yokkaichi-shi, Mie)"
+   }
+  }
+ ]
+}

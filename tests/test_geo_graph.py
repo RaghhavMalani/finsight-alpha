@@ -1,10 +1,12 @@
 """Sourced knowledge graph: schema guards, as_of-respecting propagation, honest statuses and the API."""
+from datetime import timedelta
 import json
 
 import pytest
 
 from src.geo.graph import graph as G
 from src.geo.graph import load_graph, propagate
+from src.geo.graph.model import parse_instant
 
 T, AS_OF = "2026-11-16T00:00:00Z", "2026-11-16T01:00:00Z"  # after every source in the seed was checked
 QUAKE = {"kind": "earthquake", "magnitude": 6.8, "lat": 23.9, "lon": 121.6, "time": T}
@@ -134,7 +136,7 @@ def test_score_weights_proximity_by_every_edge_confidence():
 
 def test_empty_answers_say_why_instead_of_looking_like_no_exposure():
     graph = load_graph()
-    far = propagate(graph, {**QUAKE, "lat": 36.99, "lon": 127.11, "magnitude": 8.0}, as_of=AS_OF)
+    far = propagate(graph, {**QUAKE, "lat": 0.0, "lon": -150.0, "magnitude": 8.0}, as_of=AS_OF)  # mid-Pacific
     assert far["status"] == "NO_COVERAGE" and "says nothing about real exposure" in far["reason"]
     assert far["nearest_site_km"] > 400 and far["securities"] == []
     small = propagate(graph, {**HSINCHU, "magnitude": 2.0}, as_of=AS_OF)
@@ -142,7 +144,10 @@ def test_empty_answers_say_why_instead_of_looking_like_no_exposure():
     hormuz = propagate(graph, {"kind": "conflict", "lat": 26.57, "lon": 56.25, "time": T}, as_of=AS_OF)
     assert hormuz["status"] == "PARTIAL" and hormuz["securities"] == []
     assert [s["site"] for s in hormuz["unlinked_sites"]] == ["chokepoint:hormuz"]
-    early = propagate(graph, {**HSINCHU, "time": "2026-11-13T00:00:00Z"}, as_of="2026-11-13T01:00:00Z")
+    # Before the earliest sourced fact in the graph, nothing is known: UNAVAILABLE, never NO_COVERAGE.
+    first = min(parse_instant(n.source.available_at) for n in graph.nodes.values())
+    t0 = (first - timedelta(days=1)).isoformat().replace("+00:00", "Z")
+    early = propagate(graph, {**HSINCHU, "time": t0}, as_of=t0)
     assert early["status"] == "UNAVAILABLE" and early["nodes_not_yet_available"] == len(graph.nodes)
     before = propagate(graph, QUAKE, as_of="2026-11-15T23:00:00Z")
     assert before["status"] == "UNAVAILABLE" and before["reason"] == "as_of precedes the event"
@@ -232,14 +237,31 @@ def client():
 def test_api_reads_the_graph_as_of_a_time_and_propagates():
     c = client()
     body = c.get("/geo/graph").json()
-    assert body["version"] == "v1" and len(body["edges"]) >= 40 and body["edges_not_yet_available"] == 0
+    assert body["version"] == G.LATEST and len(body["edges"]) >= 40 and body["edges_not_yet_available"] == 0
     early = c.get("/geo/graph", params={"as_of": "2026-11-14T12:00:00Z"}).json()
-    assert early["edges_not_yet_available"] == 4  # the Apple edges were checked a day later
+    cut = parse_instant("2026-11-14T12:00:00Z")
+    later = [e.id for e in load_graph().edges if parse_instant(e.source.available_at) > cut]
+    # The Apple edges were checked a day later than the rest of v1, so they are not yet available.
+    apple = {e["id"] for e in seed()["edges"] if e["type"] == "supplies" and e["dst"] == "company:apple"}
+    assert len(apple) == 4 and apple <= set(later)
+    assert early["edges_not_yet_available"] == len(later) >= 4
     assert all("apple" not in e["id"] or e["type"] != "supplies" for e in early["edges"])
     # Explicit past instants: the route refuses a future as_of, so the test must not depend on "now".
     past = {**QUAKE, "time": "2026-11-14T11:05:00Z", "as_of": "2026-11-14T11:10:00Z"}
     r = c.post("/geo/graph/propagate", json=past)
     assert r.status_code == 200 and r.json()["status"] == "AVAILABLE" and r.json()["securities"]
+
+
+def test_api_serves_the_frozen_v1_seed_by_version_and_v2_by_default():
+    c = client()
+    v1 = c.get("/geo/graph", params={"version": "v1"})
+    assert v1.status_code == 200 and v1.json()["version"] == "v1"
+    assert len(v1.json()["nodes"]) == 44 and len(v1.json()["edges"]) == 46
+    default = c.get("/geo/graph").json()
+    assert default["version"] == "v2" and len(default["nodes"]) > 44
+    assert c.get("/geo/graph", params={"version": "v3"}).status_code == 404
+    past = {**QUAKE, "time": "2026-11-14T11:05:00Z", "as_of": "2026-11-14T11:10:00Z"}
+    assert c.post("/geo/graph/propagate?version=v1", json=past).json()["graph"]["version"] == "v1"
 
 
 def test_api_answers_bad_input_with_4xx_never_500():
@@ -264,3 +286,35 @@ def test_the_real_app_requires_a_session_for_the_graph():
     from backend.main import app
 
     assert TestClient(app).get("/geo/graph").status_code == 401
+
+
+def test_seed_v2_keeps_v1_unchanged_and_dates_every_addition_by_its_evidence():
+    v1 = seed()
+    v2 = json.loads((G.SEED_DIR / "v2.json").read_text(encoding="utf-8"))
+    assert G.LATEST == "v2" and v2["schema_version"] == v1["schema_version"]
+    # Frozen v1 facts are carried over byte-for-byte in meaning: same ids, same content.
+    assert v2["nodes"][: len(v1["nodes"])] == v1["nodes"] and v2["edges"][: len(v1["edges"])] == v1["edges"]
+    added = v2["nodes"][len(v1["nodes"]):] + v2["edges"][len(v1["edges"]):]
+    assert len(added) >= 100
+    for item in added:
+        src = item["source"]
+        if src["url"].startswith("https://web.archive.org/web/") and src["date_basis"] == "retrieved":
+            # A snapshot is relied on from its own timestamp, never earlier.
+            ts = src["url"].split("/")[4]
+            assert src["available_at"] == f"{ts[0:4]}-{ts[4:6]}-{ts[6:8]}T{ts[8:10]}:{ts[10:12]}:{ts[12:14]}Z"
+        elif src["date_basis"] == "published":
+            # A document dated by its own printed date is relied on only after that day has ended everywhere.
+            assert parse_instant(src["available_at"]) > parse_instant(src["date"] + "T23:59:59Z")
+        else:
+            assert src["date_basis"] == "retrieved" and src["available_at"] >= "2026-11-24"
+
+
+def test_chokepoints_have_cited_ships_through_edges():
+    graph = load_graph()
+    ships = [e for e in graph.edges if e.type == "ships_through"]
+    assert {e.dst for e in ships} >= {"chokepoint:hormuz", "chokepoint:suez"}
+    for e in ships:
+        assert graph.nodes[e.src].type == "company" and len(e.source.excerpt.split()) >= 8
+    # NORDEN is not listed in the graph, so a Hormuz event still reaches no security (see test above).
+    hormuz = propagate(graph, {"kind": "conflict", "lat": 26.57, "lon": 56.25, "time": T}, as_of=AS_OF)
+    assert hormuz["status"] == "PARTIAL"

@@ -77,6 +77,14 @@ pytest -q tests/test_geo_graph.py
 - An independent adversarial review found one blocker (empty results reported as `AVAILABLE`) and eleven
   should-fix items; all are fixed here.
 
+## Seed v2 (U3 part 2)
+
+v1 is frozen. `seed/v2.json` carries every v1 item unchanged plus 81 nodes and 69 edges, and
+`LATEST` is now `v2`. The additions are dated by evidence of earlier availability, an Internet
+Archive snapshot or the document's printed date, rather than by when this project fetched them.
+As a result, five recorded Replay quakes reach securities at their own time. See
+[u3b-graph-growth.md](u3b-graph-growth.md).
+
 ## Knowingly left
 
 - Seed breadth: the brief asks for 50–80 companies, including ASML, Samsung fabs, Micron, Intel, shipping and

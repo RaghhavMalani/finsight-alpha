@@ -668,11 +668,40 @@ function GraphOverlay({ overlay }: { overlay: GeoOverlay }) {
           gl_FragColor = vec4(vColor, ring); }`,
       }),
     );
-    return { lines, dots };
+    // The selected event itself: a larger ring than any site, in the event's own hue, so a
+    // recorded quake's origin stays findable however faint its arcs are.
+    const mg = new BufferGeometry();
+    const mp = ev ? toVec(ev.lat, ev.lon, R * 1.006) : null;
+    const mc = new Color().setRGB(...arcRgb("proximity", 1, overlay.scenario), SRGBColorSpace);
+    mg.setAttribute(
+      "position",
+      new BufferAttribute(new Float32Array(mp ? [mp.x, mp.y, mp.z] : []), 3),
+    );
+    mg.setAttribute(
+      "aColor",
+      new BufferAttribute(new Float32Array(mp ? [mc.r, mc.g, mc.b] : []), 3),
+    );
+    const marker = new Points(
+      mg,
+      new ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        vertexShader: `attribute vec3 aColor; varying vec3 vColor; varying float vFacing;
+          void main(){ vColor = aColor; vec4 mv = modelViewMatrix*vec4(position,1.0);
+          vFacing = dot(normalize(normalMatrix*normalize(position)), normalize(-mv.xyz));
+          gl_PointSize = max(18.0, 520.0/(-mv.z)); gl_Position = projectionMatrix*mv; }`,
+        fragmentShader: `varying vec3 vColor; varying float vFacing; void main(){
+          float d = length(gl_PointCoord-0.5); if (d > 0.5 || vFacing < 0.0) discard;
+          float ring = smoothstep(0.06, 0.0, abs(d-0.40)) + 0.9*smoothstep(0.12, 0.0, d);
+          gl_FragColor = vec4(vColor, ring); }`,
+      }),
+    );
+    return { lines, dots, marker };
   }, [overlay]);
   useEffect(
     () => () => {
-      for (const o of [data.lines, data.dots]) {
+      for (const o of [data.lines, data.dots, data.marker]) {
         o.geometry.dispose();
         (o.material as ShaderMaterial).dispose();
       }
@@ -683,8 +712,40 @@ function GraphOverlay({ overlay }: { overlay: GeoOverlay }) {
     <>
       <primitive object={data.lines} />
       {overlay.sites.length > 0 && <primitive object={data.dots} />}
+      {overlay.event && <primitive object={data.marker} />}
     </>
   );
+}
+
+/**
+ * Turns the view toward a newly selected event (keeping the zoom), so its marker, arcs and tier
+ * labels face the viewer instead of sitting on the limb. Reduced motion jumps instead of easing.
+ */
+function FocusOn({
+  target,
+  reduced,
+}: {
+  target: { lat: number; lon: number } | null;
+  reduced: boolean;
+}) {
+  const goal = useRef<Vector3 | null>(null);
+  const key = target ? `${target.lat},${target.lon}` : "";
+  useEffect(() => {
+    goal.current = target ? toVec(target.lat, target.lon, 1).normalize() : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  useFrame(({ camera }) => {
+    const g = goal.current;
+    if (!g) return;
+    const r = camera.position.length();
+    const want = g.clone().multiplyScalar(r);
+    if (reduced || camera.position.distanceTo(want) < 0.002 * r) {
+      camera.position.copy(want);
+      goal.current = null;
+    } else camera.position.lerp(want, 0.12).setLength(r);
+    camera.lookAt(0, 0, 0);
+  });
+  return null;
 }
 
 /** Hub and ISS names, projected each frame and hidden on the far side of the globe. */
@@ -893,7 +954,7 @@ export default function GlobeScene({
         rotateSpeed={0.5}
         minDistance={R * 1.35}
         maxDistance={R * 6}
-        autoRotate={!reduced}
+        autoRotate={!reduced && !overlay?.event}
         autoRotateSpeed={0.25}
       />
       <Earth sun={sun} />
@@ -904,6 +965,7 @@ export default function GlobeScene({
       )}
       {markers && markers.length > 0 && <Markers markers={markers} />}
       {overlay && <GraphOverlay overlay={overlay} />}
+      {overlay && <FocusOn target={overlay.event} reduced={reduced} />}
       {layers.satellites && tles.length > 0 && (
         <Satellites tles={tles} onCount={onSatellites} iss={iss} dim={!!overlay?.scenario} />
       )}
