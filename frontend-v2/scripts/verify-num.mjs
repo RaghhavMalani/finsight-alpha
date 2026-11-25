@@ -39,7 +39,10 @@ export const SEALED_CHROME = [
   ".shell-cutoff",
 ];
 // Routes that must have zero raw numbers.
-export const ENFORCED = ["/", "/research", "/markets", "/markets/:ticker", "/risk"];
+export const ENFORCED = ["/", "/research", "/markets", "/markets/:ticker", "/risk", "/data"];
+// Rendered by frontend-v2/src/forge, which scripts/research_archive.py protects as closed phase
+// evidence (SHARED_PATHS): its components cannot be edited, so these stay report-only.
+export const PROTECTED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs"];
 
 function tokens(s) {
   const g = new RegExp(TOKEN.source, "g");
@@ -239,9 +242,16 @@ try {
   );
   const riskManifestUrl = /projection:\s*\{\s*url:\s*"([^"]+)"/.exec(plan)[1];
   const riskManifest = await (await context.request.get(base + riskManifestUrl)).json();
-  const MANIFEST_FILES = new Set(["/replay-manifest.json", riskManifestUrl]);
+  // The Factor read manifest, which /factors reads its artifacts through (URL from its read plan).
+  const factorPlan = readFileSync(
+    fileURLToPath(new URL("../src/factors/read-plan.generated.ts", import.meta.url)),
+    "utf8",
+  );
+  const factorManifestUrl = /projection:\s*\{\s*url:\s*"([^"]+)"/.exec(factorPlan)[1];
+  const factorManifest = await (await context.request.get(base + factorManifestUrl)).json();
+  const MANIFEST_FILES = new Set(["/replay-manifest.json", riskManifestUrl, factorManifestUrl]);
   const digests = new Map();
-  for (const m of [manifest, riskManifest])
+  for (const m of [manifest, riskManifest, factorManifest])
     for (const e of Object.values(m.artifacts)) if (e.url) digests.set(e.url, e.sha256);
   /** A replay value must name a checked artifact and exactly the digest its manifest names. */
   const judge = (r) => {
@@ -500,6 +510,17 @@ try {
         await p.waitForTimeout(800);
       },
     },
+    ...["revisions", "lineage", "costs", "issues"].map((section) => ({
+      route: "/data",
+      name: section,
+      run: async (p) => {
+        await p.goto(base + "/data", { waitUntil: "networkidle" });
+        await until(p, '.data-workspace[data-state="ready"]');
+        await p.getByRole("button", { name: section, exact: false }).first().click();
+        await until(p, `.data-workspace[data-view="${section}"]`, 10000);
+        await p.waitForTimeout(800);
+      },
+    })),
     {
       route: "/risk",
       name: "coverage",

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import type { Country } from "./contracts";
+import { KNOWN_IDS, type Country } from "./contracts";
 import { useFactorLineage } from "./query";
+import { useFactorProv } from "./prov";
 export function LineageDrawer({
   country,
   cutoff,
@@ -11,6 +12,7 @@ export function LineageDrawer({
   onClose: () => void;
 }) {
   const q = useFactorLineage(country, cutoff);
+  const P = useFactorProv(KNOWN_IDS[country + "|" + cutoff]?.lineage);
   const drawer = useRef<HTMLElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -61,7 +63,8 @@ export function LineageDrawer({
           </button>
         </header>
         <p className="factor-footnote">
-          Cutoff {cutoff} · source values LOCAL ONLY. No runtime is opened.
+          Cutoff <span data-num-exempt="date">{cutoff}</span> · source values LOCAL ONLY. No runtime
+          is opened.
         </p>
         {q.isPending ? (
           <p role="status">Checking lineage metadata…</p>
@@ -75,15 +78,27 @@ export function LineageDrawer({
                   <span>
                     {node.kind} · {node.status}
                   </span>
-                  <code>{node.id}</code>
+                  <code data-num-exempt="id">{node.id}</code>
                   <small>{node.reason_code.replaceAll("_", " ")}</small>
                 </article>
               ))}
             </div>
             <details>
-              <summary>{q.data.payload.edges.length} declared relationships</summary>
+              <summary>
+                {P.N(
+                  "/payload/edges",
+                  q.data.payload.edges.length,
+                  "Declared relationships",
+                  undefined,
+                  {
+                    formula: "count of /payload/edges",
+                  },
+                  "int",
+                )}{" "}
+                declared relationships
+              </summary>
               {q.data.payload.edges.map((edge, i) => (
-                <p className="factor-hash" key={i}>
+                <p className="factor-hash" key={i} data-num-exempt="id">
                   {edge.from} → {edge.to}
                   <br />
                   {edge.relationship}
@@ -92,7 +107,7 @@ export function LineageDrawer({
             </details>
             <h3>Six unsafe publications remain withdrawn</h3>
             {q.data.payload.withdrawals.map((x, i) => (
-              <p className="factor-hash" key={i}>
+              <p className="factor-hash" key={i} data-num-exempt="copy">
                 {JSON.stringify(x)}
               </p>
             ))}
