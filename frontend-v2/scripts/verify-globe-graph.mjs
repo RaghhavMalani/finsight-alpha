@@ -436,6 +436,40 @@ try {
       checkMapping(drawn, true, (k, v, s) => contract(k, v, s, (x) => 0.3 + 0.7 * x)),
     );
     assert.throws(() => checkMapping(drawn, false), undefined, "scenario palette must differ");
+    // At most five ticker labels (top chain scores); the rest are named by a "+N more" chip.
+    const nSec = taiwan.point_in_time.securities.length;
+    assert.equal(await stage(page, "companies"), Math.min(5, nSec), "globe labels capped at five");
+    if (nSec > 5)
+      assert.equal(
+        Number(await page.locator("[data-geo-more]").getAttribute("data-geo-more")),
+        nSec - 5,
+      );
+    // Layout: the scenario chip never overlaps the kicker or title; scenario badges clear their titles.
+    const overlaps = (a, b) =>
+      a &&
+      b &&
+      a.x < b.x + b.width &&
+      b.x < a.x + a.width &&
+      a.y < b.y + b.height &&
+      b.y < a.y + a.height;
+    const chipBox = await page.locator("[data-geo-hypothetical]").boundingBox();
+    for (const sel of [".ge-title .ge-eyebrow", ".ge-title h1"])
+      assert.ok(
+        !overlaps(chipBox, await page.locator(sel).boundingBox()),
+        `${w}: chip overlaps ${sel}`,
+      );
+    for (const row of await page.locator("[data-geo-scenario]").all()) {
+      const [bb, sb] = [
+        await row.locator("b").boundingBox(),
+        await row.locator("span").first().boundingBox(),
+      ];
+      assert.ok(bb.x + bb.width <= sb.x, `${w}: scenario badge overlaps its title`);
+    }
+    // Each reached-security row is one line.
+    for (const row of await page.locator("[data-geo-security] summary").all()) {
+      const box = await row.boundingBox();
+      assert.ok(box.height <= 24, `${w}: security row wraps (${box.height}px)`);
+    }
     // On the globe: tickers only, at a readable size.
     const tickers = new Set(
       Object.values(P.nodes)
@@ -526,19 +560,47 @@ try {
     assert.equal(realWord, "AVAILABLE", "the recorded quake reaches securities at its own time");
     {
       assert.ok((await stage(page, "arcs")) > 0, "a recorded quake draws its cited chain");
-      assert.equal(await page.locator("[data-geo-hypothetical]").count(), 0, "recorded is not hypothetical");
+      assert.equal(
+        await page.locator("[data-geo-hypothetical]").count(),
+        0,
+        "recorded is not hypothetical",
+      );
       const realListed = await page
         .locator("[data-geo-security]")
         .evaluateAll((els) => els.map((e) => e.dataset.geoSecurity));
-      assert.deepEqual(realListed, real.point_in_time.securities.map((x) => x.security));
+      assert.deepEqual(
+        realListed,
+        real.point_in_time.securities.map((x) => x.security),
+      );
+      // The view turns to the selected quake: its ticker label is drawn, not hidden on the far side.
+      await page.waitForTimeout(1500);
+      assert.ok(
+        (await page.locator(".ge-labels .lb.sec").count()) >= 1,
+        "recorded chain label visible",
+      );
+      if (shots) {
+        await page.evaluate(() => {
+          document.querySelector(".ge-panel").scrollTop = 0;
+          window.scrollTo(0, 0);
+        });
+        // At phone width the answer comes first; show the globe with the quake's chain instead.
+        if (w < 768) await page.locator(".ge-stage").scrollIntoViewIfNeeded();
+        await page.waitForTimeout(800);
+        await page.screenshot({ path: resolve(shotDir, `u3-globe-recorded-${w}.png`) });
+      }
     }
     await noScroll(page, `/globe ${w}`);
     assert.deepEqual(forbidden, [], `/globe ${w}: Replay contacted a non-origin or API URL`);
     await page.close();
   }
   assert.deepEqual(
-    ["AVAILABLE", "BELOW_THRESHOLD", "NO_COVERAGE", "PARTIAL", ...(statuses.has("UNAVAILABLE") ? ["UNAVAILABLE"] : [])]
-      .filter((x) => !seen.has(x)),
+    [
+      "AVAILABLE",
+      "BELOW_THRESHOLD",
+      "NO_COVERAGE",
+      "PARTIAL",
+      ...(statuses.has("UNAVAILABLE") ? ["UNAVAILABLE"] : []),
+    ].filter((x) => !seen.has(x)),
     [],
     "every status in the projection rendered in words (UNAVAILABLE also below: tampered and refused answers)",
   );

@@ -632,9 +632,46 @@
   cursor: pointer;
   font-size: 12px;
 }
+/* One line per reached security: ticker, the route (truncated), the distance right-aligned. */
+.ge-secs summary.ge-sec-row {
+  display: grid;
+  grid-template-columns: 10px auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 8px;
+  list-style: none;
+}
+.ge-secs summary.ge-sec-row::-webkit-details-marker {
+  display: none;
+}
+.ge-secs summary.ge-sec-row::before {
+  content: "▸";
+  color: var(--ge-faint);
+}
+.ge-secs details[open] > summary.ge-sec-row::before {
+  content: "▾";
+}
+.ge-sec-via {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ge-sec-km {
+  color: var(--ge-muted);
+  text-align: right;
+  white-space: nowrap;
+}
 .ge-secs summary b {
-  margin-right: 8px;
   color: var(--ge-amber);
+}
+.ge-more {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--ge-line);
+  border-radius: 2px;
+  background: rgba(3, 6, 7, 0.75);
+  color: var(--ge-fg);
+  font-size: 11px;
 }
 .ge-secs summary > span {
   color: var(--ge-muted);
@@ -722,7 +759,15 @@
 .ge-scen button[aria-pressed="true"] {
   background: rgba(63, 224, 255, 0.1);
 }
+/* The kind badge ("M6.8", "conflict") gets its own fixed column, clear of the title. */
+.ge-scen button {
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  column-gap: 10px;
+}
 .ge-scen b {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--ge-amber);
 }
 .ge-scen em {
@@ -754,8 +799,7 @@
 /* A scenario is never mistaken for a recording: a solid chip on the globe, hero copy hidden. */
 .ge-hypo {
   top: 30px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 34px;
   padding: 4px 10px;
   border-radius: 2px;
   background: var(--ge-amber);
@@ -765,6 +809,10 @@
   text-transform: uppercase;
   white-space: nowrap;
   pointer-events: none;
+}
+/* The chip and the title are stacked, never overlapping: the title moves down under the chip. */
+.globe.ge-scenario .ge-title {
+  top: 64px;
 }
 /* Text is either legible or absent: the hero copy and the readout step aside during a scenario. */
 .globe.ge-scenario .ge-title p,
@@ -825,11 +873,15 @@
   .ge-focus {
     display: none;
   }
+  /* Stacked, never overlapping: the scenario chip first, then the kicker and title below it. */
   .ge-hypo {
-    top: auto;
-    bottom: calc(100% - 44px);
-    left: auto;
+    top: 16px;
+    left: 16px;
     right: 16px;
-    transform: none;
+    white-space: normal;
+    text-align: center;
+  }
+  .globe.ge-scenario .ge-title {
+    top: 70px;
   }
 }

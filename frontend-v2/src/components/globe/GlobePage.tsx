@@ -286,6 +286,12 @@ export default function GlobePage() {
           <header className="ge-hud ge-title">
             <div className="ge-eyebrow">FinSight · God's Eye</div>
             <h1>The planet, as public signals</h1>
+            {overlay && overlay.moreLabels > 0 && (
+              <div className="ge-more mono" data-geo-more={overlay.moreLabels}>
+                +{overlay.moreLabels} more reached{" "}
+                {overlay.moreLabels === 1 ? "security" : "securities"}, listed in the panel
+              </div>
+            )}
             <p>
               {mode === "replay"
                 ? "Checked USGS earthquakes and a frozen CelesTrak satellite snapshot over eight market hubs. Each layer records its own cutoff."

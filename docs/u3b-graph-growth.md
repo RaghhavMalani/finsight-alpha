@@ -126,6 +126,26 @@ quake with Toyota's linked Sunter plant.
 - **Seed breadth.** v2 has 22 companies, short of the ~100 aimed for. Breadth was traded for one
   opened, dated source per fact.
 
+## Globe changes for the larger graph
+
+- **Ticker labels.** At most five ticker labels are drawn, the highest chain scores first (`MAX_LABELS` in
+  `geo-overlay.ts`). The other securities keep their arcs, and a "+N more reached securities, listed
+  in the panel" chip sits under the title. Tier positions fan out: wider spacing, and alternate nodes
+  staggered in latitude, so neighbouring labels no longer share a line.
+- **Selected event.** When an event is selected, the view turns to centre it (a jump under reduced
+  motion), and auto-rotation stops. The event gets a ring marker larger than any site, in the hue of
+  its own mode: recorded yellow, scenario pale amber. Arc brightness still encodes only confidence
+  or proximity. WebGL lines cannot vary in width, so visibility comes from centring and the marker.
+- **Stacked chip.** The scenario chip is stacked above the kicker and title at every width, and the
+  title moves down while a scenario is shown.
+- **Panel rows.** Scenario badges have a fixed 64 px column. Each reached-security row is one line:
+  the ticker, the route truncated with an ellipsis, then the distance in a right-aligned column.
+- **Verifier checks.** `verify-globe-graph.mjs` checks the label cap and the "+N" count. It checks
+  that the chip overlaps neither the kicker nor the title, that no badge overlaps its title, that
+  security rows are one line, and that the recorded Java Sea quake's ticker label is drawn after the
+  view turns.
+- **Screenshots.** `--screenshots` also writes `u3-globe-recorded-{1440,390}.png`.
+
 ## How to regenerate
 
 ```bash
