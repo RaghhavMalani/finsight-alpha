@@ -39,10 +39,20 @@ export const SEALED_CHROME = [
   ".shell-cutoff",
 ];
 // Routes that must have zero raw numbers.
-export const ENFORCED = ["/", "/research", "/markets", "/markets/:ticker", "/risk", "/data"];
-// Rendered by frontend-v2/src/forge, which scripts/research_archive.py protects as closed phase
-// evidence (SHARED_PATHS): its components cannot be edited, so these stay report-only.
-export const PROTECTED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs"];
+export const ENFORCED = [
+  "/",
+  "/research",
+  "/markets",
+  "/markets/:ticker",
+  "/risk",
+  "/data",
+  "/regimes",
+];
+// Report-only because their remaining numbers are rendered by components that cannot be edited:
+// /forge … /runs by frontend-v2/src/forge, which scripts/research_archive.py protects as closed
+// phase evidence (SHARED_PATHS); /dynamics by the sealed src/replay/FactorRegimeEvidence.tsx
+// (eval/factors/v0.1/phase5-freeze.json). Everything else on /dynamics is provenanced.
+export const PROTECTED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs", "/dynamics"];
 
 function tokens(s) {
   const g = new RegExp(TOKEN.source, "g");
