@@ -121,10 +121,10 @@ export function DataWorkspace() {
             </b>
             <span>open availability issues</span>
           </div>
-          <div>
-            {/* A design property of the Data Organ (it runs no models), fixed in this page; not read from evidence. */}
-            <b data-num-exempt="copy">0</b>
-            <span>model runs / holdout openings</span>
+          <div title="A design property of the Data Organ (docs/data-organ-guide.md), not a count read from evidence.">
+            {/* Stated as what it is: a design rule, not a measured zero. No artifact records it. */}
+            <b data-num-exempt="copy">By design</b>
+            <span>no models run, no holdouts opened</span>
           </div>
         </div>
         <nav className="data-tabs" aria-label="Data views">

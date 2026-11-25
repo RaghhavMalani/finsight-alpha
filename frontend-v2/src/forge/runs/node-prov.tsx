@@ -28,6 +28,8 @@ export function nodeNums(P: ForgeProv, node: TrajectoryNode, index: number, iner
       node.tokens.toLocaleString(),
       t
         ? {
+            // Both summed fields are named, so the popover does not point at the input side only.
+            ptr2: t.outputTokens.provenance.fieldPath,
             formula: `${t.inputTokens.provenance.fieldPath} + ${t.outputTokens.provenance.fieldPath}`,
           }
         : missing,
