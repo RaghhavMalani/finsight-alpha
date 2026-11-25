@@ -15,6 +15,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useDataMode } from "@/replay/mode";
 import { WorkspaceHotkeys } from "@/app/shell/WorkspaceHotkeys";
+import { PublicReplayBanner } from "@/app/shell/PublicReplayBanner";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-500.css";
 import "@fontsource/inter/latin-600.css";
@@ -139,6 +140,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <WorkspaceHotkeys />
+      <PublicReplayBanner />
       <Outlet key={mode} />
       <Toaster
         theme="dark"
