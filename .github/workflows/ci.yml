@@ -101,6 +101,7 @@ jobs:
                 node scripts/verify-$v.mjs
               done
               node scripts/generate-terminal-index.mjs --check
+              node scripts/check-deploy-inputs.mjs
               node scripts/verify-terminal-context.mjs
               npm run build
           - shard: risk

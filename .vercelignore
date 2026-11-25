@@ -1,5 +1,11 @@
 /notebooks/
-/data/
+# /data is excluded except the sealed Research OS exports, which the build verifies against their
+# manifests and the freeze inventory to produce the public Research graph (scripts/check-deploy-inputs.mjs).
+/data/*
+!/data/exports/
+/data/exports/*
+!/data/exports/research_os_v0_1/
+!/data/exports/research_os_v0_1_1/
 /docs/
 /tests/
 /infra/
