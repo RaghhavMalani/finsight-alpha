@@ -47,33 +47,38 @@ const started = Date.now();
 const log = (s) => console.log(`${((Date.now() - started) / 1000).toFixed(1).padStart(6)}s  ${s}`);
 
 /** Shows a narration caption at the bottom of the frame for `ms`. */
-async function say(text, ms) {
-  await page.evaluate((t) => {
-    let el = document.getElementById("__demo_caption");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "__demo_caption";
-      el.setAttribute("aria-hidden", "true");
-      Object.assign(el.style, {
-        position: "fixed",
-        left: "50%",
-        bottom: "28px",
-        transform: "translateX(-50%)",
-        maxWidth: "980px",
-        padding: "10px 18px",
-        background: "rgba(5,8,12,0.92)",
-        border: "1px solid rgba(240,169,41,0.55)",
-        borderLeft: "3px solid #f0a929",
-        color: "#e7eaec",
-        font: "500 17px/1.45 Inter, system-ui, sans-serif",
-        zIndex: "2147483647",
-        pointerEvents: "none",
-        textAlign: "center",
-      });
-      document.body.appendChild(el);
-    }
-    el.textContent = t;
-  }, text);
+async function say(text, ms, at = "bottom") {
+  await page.evaluate(
+    ([t, where]) => {
+      let el = document.getElementById("__demo_caption");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "__demo_caption";
+        el.setAttribute("aria-hidden", "true");
+        Object.assign(el.style, {
+          position: "fixed",
+          left: "50%",
+          bottom: "28px",
+          transform: "translateX(-50%)",
+          maxWidth: "980px",
+          padding: "10px 18px",
+          background: "rgba(5,8,12,0.92)",
+          border: "1px solid rgba(240,169,41,0.55)",
+          borderLeft: "3px solid #f0a929",
+          color: "#e7eaec",
+          font: "500 17px/1.45 Inter, system-ui, sans-serif",
+          zIndex: "2147483647",
+          pointerEvents: "none",
+          textAlign: "center",
+        });
+        document.body.appendChild(el);
+      }
+      el.textContent = t;
+      el.style.top = where === "top" ? "238px" : "auto";
+      el.style.bottom = where === "top" ? "auto" : "28px";
+    },
+    [text, at],
+  );
   log(text);
   // Optional stills for reviewing the cut without a video decoder.
   if (stills) {
@@ -113,7 +118,7 @@ try {
     6500,
   );
   await say(
-    "Seven workspaces. F1 Command is mission control over the globe; live data stays on your own machine.",
+    "Seven workspaces along the top. F1 Command says it plainly: live data is local only; this public build replays.",
     6000,
   );
 
@@ -149,7 +154,7 @@ try {
     await scenario.focus();
     await page.keyboard.press("Enter");
     await say(
-      "A labelled hypothetical: an M6.8 quake in eastern Taiwan reaches TSM, NVDA, AMD and Apple through quoted filings and reports.",
+      "A labelled hypothetical: an M6.8 quake in eastern Taiwan reaches TSM, NVDA, AMD and AAPL through cited edges.",
       8500,
     );
   }
@@ -171,15 +176,19 @@ try {
         await page.keyboard.press("Enter");
       }
       await say(
-        "A recorded quake, judged only with what was known at the time: the M6.5 Java Sea event reaches Toyota.",
+        "A recorded quake at event time, using only what was known then: M6.5 near Teluknaga, Indonesia reaches 7203 (Toyota).",
         8000,
+        "top",
       );
     }
   }
 
   // 4. F6 Markets.
   await go("/markets", 'button[data-num][data-origin-kind="replay"]');
-  await say("F6 Markets: US and India, each value traced to a checked Replay artifact.", 5500);
+  await say(
+    "F6 Markets, here US-MKT. Click a value and it names the checked Replay artifact it came from.",
+    5500,
+  );
   await openOrigin(
     page
       .locator('button[data-num][data-origin-kind="replay"]:not([data-src$="manifest.json"])')
@@ -194,7 +203,7 @@ try {
   // 5. Alt 7 Risk.
   await go("/risk", '[data-testid="risk-issue-select"]');
   await say(
-    "Alt 7 Risk: independent checks over every feed and artifact, with the evidence behind each issue.",
+    "Alt 7 Risk: checks over feeds and artifacts. Coverage is reported as partial, and no unmeasured check is assumed clear.",
     6000,
   );
   await page.locator('[data-testid="risk-issue-select"]').first().click();
@@ -203,10 +212,7 @@ try {
 
   // 6. F4 Forge.
   await go("/runs");
-  await say(
-    "F4 Forge: coding-agent runs, replayed step by step and graded by programmatic verifiers.",
-    6500,
-  );
+  await say("F4 Forge: recorded coding-agent runs, each with its verifier grade.", 6500);
   await say("Code, verifiers and sealed evidence: github.com/RaghhavMalani/finsight-alpha", 6000);
 } finally {
   const video = page.video();

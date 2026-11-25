@@ -4,7 +4,7 @@
 
 **Live demo: [finsight-alpha-web.vercel.app](https://finsight-alpha-web.vercel.app)**. This is a Replay of checked artifacts: every number traces to recorded, hash-verified files. It has no live feeds, no backend, and nothing is executed.
 
-**2-minute tour: [docs/demo/finsight-forge-demo.webm](docs/demo/finsight-forge-demo.webm)**. A captioned walk through the seven workspaces, recorded from the public demo. It is reproducible with `node frontend-v2/scripts/record-demo.mjs`.
+**2-minute tour: [docs/demo/finsight-forge-demo.webm](docs/demo/finsight-forge-demo.webm)**. A captioned walk through Command, Research, Global Eye, Markets and Risk, plus the Forge run list, recorded from the public demo. It is reproducible with `node frontend-v2/scripts/record-demo.mjs`.
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-1f6feb?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-087f5b?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)

@@ -23,7 +23,7 @@
 - **Spend cap is $0.** U10 will dry-run with a labelled mock.
 
 ## Known flake
-- `verify-shell`'s palette step ("F6 · FACTORS") timed out twice on Linux Edge for #45, then passed on a re-run with no code change. It passes locally in all three browsers. Logged; not yet root-caused.
+- `verify-shell`'s palette step ("F6 · FACTORS") timed out twice on Linux Edge for #45 (CI run 45661545492), then passed when the failed job was re-run with no code change. It passes locally in all three browsers. Logged; not yet root-caused.
 
 ## Spend
 - Model API: $0 of $0.
