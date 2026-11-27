@@ -357,6 +357,7 @@ if (urlIndex > 0) {
                   dialogs: document.querySelectorAll('[role="dialog"]').length,
                   input: dialog?.querySelector('[role="combobox"]')?.value ?? null,
                   busy: dialog?.getAttribute("aria-busy") ?? null,
+                  mount: dialog?.getAttribute("data-palette-mount") ?? null,
                   options: [...document.querySelectorAll('[role="option"]')]
                     .map((o) => o.textContent.trim().slice(0, 60))
                     .slice(0, 10),
