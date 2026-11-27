@@ -66,6 +66,9 @@ function resolutionItems(result: CommandResolution, query: string): Item[] {
     target: choice.target,
   }));
 }
+// Counts palette mounts on the page, exposed as data-palette-mount, so a verifier can tell a
+// remount (fresh, empty state) from a cleared query.
+let paletteMounts = 0;
 export function ForgeCommandPalette({
   open,
   onClose,
@@ -78,6 +81,9 @@ export function ForgeCommandPalette({
   const investigation = useInvestigation();
   const navigate = useNavigate();
   const mode = useDataMode();
+  // Counted in an effect, not during render: render may run twice (StrictMode) or on a server.
+  const [mount, setMount] = useState<number>();
+  useEffect(() => setMount(++paletteMounts), []);
   const [query, setQuery] = useState("");
   const [history, setHistory] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
@@ -99,15 +105,21 @@ export function ForgeCommandPalette({
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+  // Reset when the palette closes, not when it opens. An open-time reset ran in a passive effect
+  // after the input was already shown and typeable, so text typed right after Ctrl+K could be
+  // erased (seen in CI: the query read "" after typing). A freshly mounted palette starts empty.
   useEffect(() => {
-    if (!open) return;
-    restoreRef.current = returnFocus ?? (document.activeElement as HTMLElement | null);
+    if (open) return;
     setQuery("");
     setHistory(false);
     setActive(0);
     setChoices(undefined);
     setItems([]);
     setBusy(true);
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    restoreRef.current = returnFocus ?? (document.activeElement as HTMLElement | null);
     const frame = requestAnimationFrame(() => inputRef.current?.focus());
     return () => {
       cancelAnimationFrame(frame);
@@ -341,6 +353,7 @@ export function ForgeCommandPalette({
         role="dialog"
         aria-modal="true"
         aria-labelledby="forge-command-title"
+        data-palette-mount={mount}
         className="w-full max-w-3xl border border-[#3b4651] bg-[#0B0D10] shadow-xl"
         onKeyDown={(event) => {
           event.stopPropagation();
