@@ -124,6 +124,28 @@ per surface, following `docs/forge-ui-v3-preimplementation.md` §4.2–§4.4.
 - The provenance panel names the artifact, schema, integrity status, primary metric and alpha
   survival; the unbound certification hash reads `unavailable`.
 
+## Review fixes (PR #52)
+
+- Debugger: below 480px the 2D graph stacks its nodes in recorded order, so no node is clipped and
+  the selected one is on screen. The graph legend is shown at every width. `validateSearch` returns
+  every key (the router keeps raw keys a validator omits, which let `?step=abc` hide `?node=`). A
+  step that is not in the run (`999`, `0`, `-1`, `abc`) shows "Step N is not in this run; showing
+  step 01". The list has a one-line selected-step summary and a one-line motion note. Focus stays on
+  the selected step when Prev/Next disable at an end, and reduced motion stops playback.
+- Ladder: "matches the artifact" now also requires the recorded `component` to name the computed
+  checkpoint pair. The pair each component measures (`COMPONENT_STEPS`) is checked against the
+  artifact's `decomposition` values. When no step lowers Sharpe, the recorded degradation is still
+  shown, as a mismatch. An unknown `?checkpoint=` is announced, and no ring is drawn unless a
+  checkpoint is chosen. The chart labels a run of equal values once (`L0–L2 = 4.7991`), uses one
+  row of short x codes keyed in the legend, draws zero-based y ticks, marks the largest Sharpe step
+  with a thick segment (keyed), keys the grey line, and is about 220px tall at 390. The degradation
+  banner sits directly under the title.
+- Bench: the relation box comes before the table on narrow screens. The Model column is pinned,
+  with a scroll cue and hint. Ties and order are judged at the displayed precision (the verifier
+  does the same). Releases without an artifact are one line each.
+- Values: `MetricCell` drops the per-value class chip and "provenance" row (the value opens its
+  origin); each card names its epistemic classes once (`ClassChips`).
+
 ## Verifiers
 
 - `scripts/verify-forge2.mjs` (CI shard `browser-agents-shell-plugins-data-research`) reads the
@@ -132,10 +154,14 @@ per surface, following `docs/forge-ui-v3-preimplementation.md` §4.2–§4.4.
   page. It checks keyboard stepping (↓, j, k, ↑, End, Home), focus, the `?step` deep link across a
   reload, disabled playback under reduced motion, playback visiting exactly the recorded order and
   stopping at the end, UNAVAILABLE releases, that chart and table show the same records, no
-  horizontal scroll and no text under 11px at 1440 and 390. Sabotage, one per surface: a tampered
-  run turn's tokens, a tampered model summary, and a tampered checkpoint Sharpe (each re-hashed in
-  the manifest so it loads) must each be detected; the ladder page must also say it no longer
-  matches the artifact.
+  horizontal scroll and no text under 11px at 1440 and 390. Since the review it also checks that
+  the selected graph node, the graph legend and the step summary are on screen at 390,
+  `?step=abc&node=N`, the out-of-range notices (`?step=999/0/-1/abc`, `?checkpoint=BOGUS`),
+  focus after Next disables, no default ring, the equal-run chart labels, the banner above the
+  fold, the pinned Model column, and the page's match verdict against its own component mapping.
+  Sabotage: a tampered run turn's tokens, a tampered model summary, a tampered checkpoint Sharpe and
+  a tampered degradation component (each re-hashed in the manifest so it loads) must each be
+  detected; on the ladder the page must also say it no longer matches the artifact.
 - `verify-num.mjs`: `/reality/$artifactId` is now visited as ten views (chart and table, each
   metric), enforced at zero raw numbers, and `/reality` is pointer-checked.
 - `verify-agents.mjs`: the run-route URL assertions use `step=`.
