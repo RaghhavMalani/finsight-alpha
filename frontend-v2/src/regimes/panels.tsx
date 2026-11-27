@@ -1,6 +1,10 @@
 import { useState } from "react";
 import type { HmmSummary, ModuleStatus, Snapshot, Term, Timeline } from "./contracts";
 import { fmt, pct } from "./format";
+import { seg, useSnapshotProv } from "./prov";
+import { Hash } from "@/visual/Num";
+import { ref } from "@/visual/origins";
+import type { RouteProv } from "@/visual/route-origin";
 
 const STATE_COLORS = ["#3E7CB1", "#E0A23B", "#C4553E", "#8E6BBF"];
 const VOL_COLORS: Record<string, string> = {
@@ -38,12 +42,15 @@ export function Panel({
   id,
   title,
   subtitle,
+  subtitleExempt = false,
   status,
   children,
 }: {
   id: string;
   title: string;
   subtitle?: string;
+  /** Fixed product prose naming a frozen version (D0.4.2): copy, not a value. */
+  subtitleExempt?: boolean;
   status?: ModuleStatus;
   children?: React.ReactNode;
 }) {
@@ -57,7 +64,12 @@ export function Panel({
           </span>
         )}
       </header>
-      {subtitle && <p className="regimes-subtitle">{subtitle}</p>}
+      {subtitle && (
+        <p className="regimes-subtitle" data-num-exempt={subtitleExempt ? "copy" : undefined}>
+          {subtitle}
+        </p>
+      )}
+
       {status &&
         status.status !== "AVAILABLE" &&
         status.reason &&
@@ -172,10 +184,12 @@ export function TimelinePanel({
   snapshot,
   timeline,
   status,
+  tp,
 }: {
   snapshot: Snapshot;
   timeline: Timeline | undefined;
   status: ModuleStatus;
+  tp: RouteProv;
 }) {
   const hmm = timeline?.hmm2;
   const dates = timeline?.dates ?? [];
@@ -228,8 +242,15 @@ export function TimelinePanel({
             />
           </div>
           <div className="regimes-axis">
-            <span>{dates[0]}</span>
-            <span>{dates[dates.length - 1]}</span>
+            <span>{tp.D("/payload/dates/0", dates[0], "First timeline date", dates[0])}</span>
+            <span>
+              {tp.D(
+                `/payload/dates/${dates.length - 1}`,
+                dates[dates.length - 1],
+                "Last timeline date",
+                dates[dates.length - 1],
+              )}
+            </span>
           </div>
           <label className="regimes-scrub">
             <span>Within-run scrubber · PARAMETER_RETROSPECTIVE</span>
@@ -244,10 +265,20 @@ export function TimelinePanel({
           </label>
           {at !== null && (
             <p className="regimes-readout" aria-live="polite">
-              {dates[at]} ·{" "}
-              {own >= 0
-                ? `${hmm.labels[hmm.state_codes[own]]} · filtered confidence ${pct(hmm.confidence[own])}`
-                : "hmm2 warm-up · no filtered state before the minimum observations"}
+              {tp.D(`/payload/dates/${at}`, dates[at], "Scrubbed date", dates[at])} ·{" "}
+              {own >= 0 ? (
+                <>
+                  {hmm.labels[hmm.state_codes[own]]} · filtered confidence{" "}
+                  {tp.N(
+                    `/payload/hmm2/confidence/${own}`,
+                    hmm.confidence[own],
+                    "hmm2 filtered confidence",
+                    pct(hmm.confidence[own]),
+                  )}
+                </>
+              ) : (
+                "hmm2 warm-up · no filtered state before the minimum observations"
+              )}
             </p>
           )}
           <ul className="regimes-legend">
@@ -277,11 +308,15 @@ export function VolatilityPanel({
   const lm = snapshot.volatility.arch_lm as Record<string, number | string> | null;
   const unit = snapshot.observation_unit;
   const annual = snapshot.current.volatility.realized_vol_20_annualised as number | undefined;
+  const { N } = useSnapshotProv();
+  const cv = "/payload/current/volatility",
+    gp = "/payload/volatility/garch";
   return (
     <Panel
       id="volatility"
       title="2 · Volatility clustering"
       subtitle="Frozen D0.4.2 states per observation · ARCH-LM and arch GARCH(1,1) as DIAGNOSTIC_ASYMPTOTIC"
+      subtitleExempt
       status={status}
     >
       <div className="regimes-kv">
@@ -290,19 +325,35 @@ export function VolatilityPanel({
           <strong>{String(snapshot.current.volatility.volatility_state)}</strong>
         </div>
         <div>
-          <span>RV20 (per observation)</span>
-          <strong>{fmt(snapshot.current.volatility.realized_vol_20 as number, 4)}</strong>
+          <span data-num-exempt="copy">RV20 (per observation)</span>
+          <strong>
+            {N(
+              `${cv}/realized_vol_20`,
+              snapshot.current.volatility.realized_vol_20 as number,
+              "RV20 per observation",
+              fmt(snapshot.current.volatility.realized_vol_20 as number, 4),
+            )}
+          </strong>
         </div>
         {annual !== undefined && (
           <div>
-            <span>RV20 annualised (√252, XNYS)</span>
-            <strong>{pct(annual)}</strong>
+            <span data-num-exempt="copy">RV20 annualised (√252, XNYS)</span>
+            <strong>
+              {N(`${cv}/realized_vol_20_annualised`, annual, "RV20 annualised", pct(annual))}
+            </strong>
           </div>
         )}
         <div>
           <span>GARCH α + β</span>
           <strong>
-            {g.fit_status === "CONVERGED" ? fmt(g.persistence as number, 4) : "not identified"}
+            {g.fit_status === "CONVERGED"
+              ? N(
+                  `${gp}/persistence`,
+                  g.persistence as number,
+                  "GARCH α + β",
+                  fmt(g.persistence as number, 4),
+                )
+              : "not identified"}
           </strong>
         </div>
         <div>
@@ -310,7 +361,12 @@ export function VolatilityPanel({
           <strong>
             {g.half_life_observations === null
               ? String(g.half_life_domain ?? "—").split(":")[0]
-              : fmt(g.half_life_observations as number, 1)}
+              : N(
+                  `${gp}/half_life_observations`,
+                  g.half_life_observations as number,
+                  "GARCH half-life",
+                  fmt(g.half_life_observations as number, 1),
+                )}
           </strong>
         </div>
         <div>
@@ -321,9 +377,12 @@ export function VolatilityPanel({
           <span>ARCH-LM p (5 lags)</span>
           <strong>
             {lm && lm.status === "AVAILABLE"
-              ? (lm.lm_pvalue as number) < 1e-4
-                ? "< 0.0001"
-                : fmt(lm.lm_pvalue as number, 4)
+              ? N(
+                  "/payload/volatility/arch_lm/lm_pvalue",
+                  lm.lm_pvalue as number,
+                  "ARCH-LM p-value",
+                  (lm.lm_pvalue as number) < 1e-4 ? "< 0.0001" : fmt(lm.lm_pvalue as number, 4),
+                )
               : "—"}
           </strong>
         </div>
@@ -335,9 +394,17 @@ export function VolatilityPanel({
         />
       )}
       <p className="regimes-footnote">
-        ω {fmt(g.omega_percent2 as number, 4)} · α {fmt(g.alpha as number, 4)} · β{" "}
-        {fmt(g.beta as number, 4)} · {String(g.inference ?? "")}. Confidence means window
-        sufficiency, never a calibrated probability.
+        ω{" "}
+        {N(
+          `${gp}/omega_percent2`,
+          g.omega_percent2 as number,
+          "GARCH ω",
+          fmt(g.omega_percent2 as number, 4),
+        )}{" "}
+        · α {N(`${gp}/alpha`, g.alpha as number, "GARCH α", fmt(g.alpha as number, 4))} · β{" "}
+        {N(`${gp}/beta`, g.beta as number, "GARCH β", fmt(g.beta as number, 4))} ·{" "}
+        {String(g.inference ?? "")}. Confidence means window sufficiency, never a calibrated
+        probability.
       </p>
     </Panel>
   );
@@ -384,6 +451,8 @@ function Posterior({ hmm, label }: { hmm: HmmSummary; label: string }) {
 export function HmmPanel({ snapshot, status }: { snapshot: Snapshot; status: ModuleStatus }) {
   const two = snapshot.hmm.hmm2,
     four = snapshot.hmm.hmm4;
+  const { N, T } = useSnapshotProv();
+  const hp = "/payload/hmm/hmm2";
   return (
     <Panel
       id="hmm"
@@ -402,12 +471,32 @@ export function HmmPanel({ snapshot, status }: { snapshot: Snapshot; status: Mod
             </div>
             <div>
               <span>Filtered posterior</span>
-              <strong>{(two.current_posterior ?? []).map((p) => pct(p)).join(" / ")}</strong>
+              <strong>
+                {(two.current_posterior ?? []).map((p, i) => (
+                  <span key={i}>
+                    {i ? " / " : ""}
+                    {N(`${hp}/current_posterior/${i}`, p, `Filtered posterior, state ${i}`, pct(p))}
+                  </span>
+                ))}
+              </strong>
             </div>
             <div>
               <span>Convergence</span>
               <strong>
-                {two.converged ? `CONVERGED · ${two.iterations} it` : "UNCONVERGED · retained"}
+                {two.converged ? (
+                  <>
+                    CONVERGED ·{" "}
+                    {N(
+                      `${hp}/iterations`,
+                      two.iterations,
+                      "EM iterations",
+                      two.iterations == null ? undefined : String(two.iterations),
+                    )}{" "}
+                    it
+                  </>
+                ) : (
+                  "UNCONVERGED · retained"
+                )}
               </strong>
             </div>
             <div>
@@ -421,7 +510,8 @@ export function HmmPanel({ snapshot, status }: { snapshot: Snapshot; status: Mod
           </div>
           <Posterior hmm={two} label="Last 250 filtered hmm2 posteriors" />
           <p className="regimes-footnote">
-            {two.labelling_rule}. {two.convergence_rule}.
+            {T(`${hp}/labelling_rule`, two.labelling_rule, "hmm2 labelling rule")}.{" "}
+            {T(`${hp}/convergence_rule`, two.convergence_rule, "hmm2 convergence rule")}.
           </p>
         </>
       )}
@@ -437,6 +527,8 @@ export function TransitionPanel({
   status: ModuleStatus;
 }) {
   const h = snapshot.hmm.hmm2;
+  const { N } = useSnapshotProv();
+  const hp = "/payload/hmm/hmm2";
   if (!h.transition_matrix)
     return <Panel id="transitions" title="4 · Transition matrix" status={status} />;
   return (
@@ -471,27 +563,61 @@ export function TransitionPanel({
                     key={j}
                     style={{ background: `rgba(240,169,41,${(0.08 + 0.6 * p).toFixed(3)})` }}
                   >
-                    {fmt(p, 3)}
+                    {N(
+                      `${hp}/transition_matrix/${i}/${j}`,
+                      p,
+                      `Transition ${h.labels![i]} → ${h.labels![j]}`,
+                      fmt(p, 3),
+                    )}
                   </td>
                 ))}
-                <td>{fmt(h.expected_duration?.[i] ?? null, 1)}</td>
-                <td>{fmt(h.transition_entropy?.[i], 3)}</td>
-                <td>{pct(h.occupancy?.[i])}</td>
+                <td>
+                  {N(
+                    `${hp}/expected_duration/${i}`,
+                    h.expected_duration?.[i],
+                    "Expected duration",
+                    fmt(h.expected_duration?.[i] ?? null, 1),
+                  )}
+                </td>
+                <td>
+                  {N(
+                    `${hp}/transition_entropy/${i}`,
+                    h.transition_entropy?.[i],
+                    "Transition entropy",
+                    fmt(h.transition_entropy?.[i], 3),
+                  )}
+                </td>
+                <td>
+                  {N(`${hp}/occupancy/${i}`, h.occupancy?.[i], "Occupancy", pct(h.occupancy?.[i]))}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="regimes-footnote">
-        Per-state return mean {h.return_mean?.map((m) => fmt(m, 5)).join(" / ")} · variance{" "}
-        {h.return_variance?.map((v) => v.toExponential(2)).join(" / ")} (per observation; numbers,
-        not sentiment labels).
+        Per-state return mean{" "}
+        {h.return_mean?.map((m, i) => (
+          <span key={i}>
+            {i ? " / " : ""}
+            {N(`${hp}/return_mean/${i}`, m, `Return mean, state ${i}`, fmt(m, 5))}
+          </span>
+        ))}{" "}
+        · variance{" "}
+        {h.return_variance?.map((v, i) => (
+          <span key={i}>
+            {i ? " / " : ""}
+            {N(`${hp}/return_variance/${i}`, v, `Return variance, state ${i}`, v.toExponential(2))}
+          </span>
+        ))}{" "}
+        (per observation; numbers, not sentiment labels).
       </p>
     </Panel>
   );
 }
 
-function TermTable({ terms }: { terms: Term[] }) {
+function TermTable({ terms, base }: { terms: Term[]; base: string }) {
+  const { N } = useSnapshotProv();
   return (
     <div className="regimes-table-wrap" tabIndex={0}>
       <table className="regimes-table">
@@ -500,18 +626,41 @@ function TermTable({ terms }: { terms: Term[] }) {
             <th scope="col">term</th>
             <th scope="col">coef</th>
             <th scope="col">HAC se</th>
-            <th scope="col">95% interval</th>
+            <th scope="col" data-num-exempt="copy">
+              95% interval
+            </th>
             <th scope="col">neutrality</th>
           </tr>
         </thead>
         <tbody>
-          {terms.map((t) => (
+          {terms.map((t, i) => (
             <tr key={t.term}>
               <th scope="row">{t.term === "intercept" ? "intercept (descriptive)" : t.term}</th>
-              <td>{fmt(t.coefficient, 4)}</td>
-              <td>{fmt(t.hac_se, 4)}</td>
               <td>
-                [{fmt(t.interval_95[0], 3)}, {fmt(t.interval_95[1], 3)}]
+                {N(
+                  `${base}/${i}/coefficient`,
+                  t.coefficient,
+                  `${t.term} coefficient`,
+                  fmt(t.coefficient, 4),
+                )}
+              </td>
+              <td>{N(`${base}/${i}/hac_se`, t.hac_se, `${t.term} HAC se`, fmt(t.hac_se, 4))}</td>
+              <td>
+                [
+                {N(
+                  `${base}/${i}/interval_95/0`,
+                  t.interval_95[0],
+                  `${t.term} 95% interval, lower`,
+                  fmt(t.interval_95[0], 3),
+                )}
+                ,{" "}
+                {N(
+                  `${base}/${i}/interval_95/1`,
+                  t.interval_95[1],
+                  `${t.term} 95% interval, upper`,
+                  fmt(t.interval_95[1], 3),
+                )}
+                ]
               </td>
               <td>{t.neutrality ?? "—"}</td>
             </tr>
@@ -525,6 +674,8 @@ function TermTable({ terms }: { terms: Term[] }) {
 export function FactorPanel({ snapshot, status }: { snapshot: Snapshot; status: ModuleStatus }) {
   const f = snapshot.factors;
   const d = f.decomposition?.cumulative;
+  const { N, T } = useSnapshotProv();
+  const fw = "/payload/factors/full_window";
   const scale = Math.max(
     Math.abs(d?.raw ?? 0),
     Math.abs(d?.explained ?? 0),
@@ -539,10 +690,28 @@ export function FactorPanel({ snapshot, status }: { snapshot: Snapshot; status: 
       status={status}
     >
       <p className="regimes-partial">{f.seven_factor}</p>
-      {f.full_window?.terms && <TermTable terms={f.full_window.terms} />}
+      {f.full_window?.terms && <TermTable terms={f.full_window.terms} base={`${fw}/terms`} />}
       <p className="regimes-footnote">
-        R² {fmt(f.full_window?.r_squared ?? null, 3)} · n {f.full_window?.n ?? "—"} ·{" "}
-        {f.full_window?.inference}
+        R²{" "}
+        {N(
+          `${fw}/r_squared`,
+          f.full_window?.r_squared,
+          "R²",
+          fmt(f.full_window?.r_squared ?? null, 3),
+        )}{" "}
+        · n{" "}
+        {f.full_window?.n == null
+          ? "—"
+          : N(
+              `${fw}/n`,
+              f.full_window.n,
+              "Observations",
+              f.full_window.n == null ? undefined : String(f.full_window.n),
+            )}{" "}
+        ·{" "}
+        {f.full_window?.inference
+          ? T(`${fw}/inference`, f.full_window.inference, "Inference")
+          : null}
       </p>
       {d && (
         <div
@@ -562,7 +731,14 @@ export function FactorPanel({ snapshot, status }: { snapshot: Snapshot; status: 
                     (d[k] ?? 0) < 0 ? `${50 - (50 * Math.abs(d[k] ?? 0)) / scale}%` : "50%",
                 }}
               />
-              <b>{fmt(d[k], 4)}</b>
+              <b>
+                {N(
+                  `/payload/factors/decomposition/cumulative/${k}`,
+                  d[k],
+                  `Cumulative ${k}`,
+                  fmt(d[k], 4),
+                )}
+              </b>
             </div>
           ))}
         </div>
@@ -575,16 +751,19 @@ export function FactorPanel({ snapshot, status }: { snapshot: Snapshot; status: 
 function SummaryTable({
   rows,
   caption,
+  base,
   sharpe = false,
 }: {
   rows: Record<string, Record<string, unknown>>;
   caption: string;
+  base: string;
   sharpe?: boolean;
 }) {
+  const { N, T } = useSnapshotProv();
   return (
     <div className="regimes-table-wrap" tabIndex={0}>
       <table className="regimes-table">
-        <caption>{caption}</caption>
+        <caption data-num-exempt="copy">{caption}</caption>
         <thead>
           <tr>
             <th scope="col">state</th>
@@ -596,20 +775,39 @@ function SummaryTable({
           </tr>
         </thead>
         <tbody>
-          {Object.entries(rows).map(([state, s]) => (
-            <tr key={state}>
-              <th scope="row">{state}</th>
-              <td>{String(s.n)}</td>
-              <td>{fmt(s.mean as number, 4)}</td>
-              <td>{fmt(s.median as number, 4)}</td>
-              <td>{pct(s.positive_fraction as number)}</td>
-              <td>
-                {sharpe
-                  ? `${fmt(s.descriptive_sharpe as number, 2)} (${String(s.sharpe_unit)})`
-                  : `${fmt(s.mad as number, 4)} / ${fmt(s.sd as number, 4)}`}
-              </td>
-            </tr>
-          ))}
+          {Object.entries(rows).map(([state, s]) => {
+            const at = `${base}/${seg(state)}`;
+            const n = (k: string, label: string, display: string) =>
+              N(`${at}/${k}`, s[k] as number, `${state} ${label}`, display);
+            return (
+              <tr key={state}>
+                <th scope="row">{state}</th>
+                <td>{n("n", "n", String(s.n))}</td>
+                <td>{n("mean", "mean", fmt(s.mean as number, 4))}</td>
+                <td>{n("median", "median", fmt(s.median as number, 4))}</td>
+                <td>
+                  {n("positive_fraction", "positive share", pct(s.positive_fraction as number))}
+                </td>
+                <td>
+                  {sharpe ? (
+                    <>
+                      {n(
+                        "descriptive_sharpe",
+                        "descriptive Sharpe",
+                        fmt(s.descriptive_sharpe as number, 2),
+                      )}{" "}
+                      ({T(`${at}/sharpe_unit`, String(s.sharpe_unit), `${state} Sharpe unit`)})
+                    </>
+                  ) : (
+                    <>
+                      {n("mad", "MAD", fmt(s.mad as number, 4))} /{" "}
+                      {n("sd", "SD", fmt(s.sd as number, 4))}
+                    </>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -619,6 +817,7 @@ function SummaryTable({
 export function MomentumPanels({ snapshot, status }: { snapshot: Snapshot; status: ModuleStatus }) {
   const m = snapshot.momentum,
     frozen = snapshot.frozen_research;
+  const { N, T, at } = useSnapshotProv();
   return (
     <div className="regimes-split" id="regimes-momentum">
       <Panel
@@ -629,24 +828,32 @@ export function MomentumPanels({ snapshot, status }: { snapshot: Snapshot; statu
       >
         <div className="regimes-kv">
           <div>
-            <span>Current 12–1 signal</span>
+            <span data-num-exempt="copy">Current 12–1 signal</span>
             <strong>
-              {pct(snapshot.current.momentum?.momentum_signal ?? null, 2)} ·{" "}
-              {snapshot.current.momentum?.momentum_sign ?? "—"}
+              {N(
+                "/payload/current/momentum/momentum_signal",
+                snapshot.current.momentum?.momentum_signal,
+                "Current 12–1 signal",
+                pct(snapshot.current.momentum?.momentum_signal ?? null, 2),
+              )}{" "}
+              · {snapshot.current.momentum?.momentum_sign ?? "—"}
             </strong>
           </div>
           <div>
             <span>Window</span>
-            <strong>{m.index_label}</strong>
+            <strong>{T("/payload/momentum/index_label", m.index_label, "Momentum window")}</strong>
           </div>
         </div>
         {m.signal_by_state && (
           <SummaryTable
             rows={m.signal_by_state as never}
+            base="/payload/momentum/signal_by_state"
             caption="12–1 market-factor signal distribution by hmm2 state (the signal itself, not a return)"
           />
         )}
-        <p className="regimes-footnote">{m.definition}</p>
+        <p className="regimes-footnote">
+          {T("/payload/momentum/definition", m.definition, "Momentum definition")}
+        </p>
       </Panel>
       <Panel
         id="mom-factor"
@@ -656,11 +863,18 @@ export function MomentumPanels({ snapshot, status }: { snapshot: Snapshot; statu
         {m.mom_factor_by_regime && (
           <SummaryTable
             rows={m.mom_factor_by_regime as never}
+            base="/payload/momentum/mom_factor_by_regime"
             caption="Next-observation published MOM factor by lagged filtered state"
             sharpe
           />
         )}
-        <p className="regimes-footnote">{m.mom_factor_semantics}</p>
+        <p className="regimes-footnote">
+          {T(
+            "/payload/momentum/mom_factor_semantics",
+            m.mom_factor_semantics,
+            "MOM factor semantics",
+          )}
+        </p>
       </Panel>
       <section className="regimes-frozen" aria-labelledby="regimes-frozen-title">
         <h2 id="regimes-frozen-title">{frozen.title}</h2>
@@ -676,7 +890,14 @@ export function MomentumPanels({ snapshot, status }: { snapshot: Snapshot; statu
           Research OS {frozen.research_os} · inference replacement {frozen.inference_replacement}
         </p>
         <p className="regimes-footnote">
-          {frozen.note} · {frozen.source} sha256 {frozen.sha256.slice(0, 12)}…
+          {frozen.note} · {frozen.source} <span data-num-exempt="id">sha256</span>{" "}
+          <Hash
+            h={ref(at("/payload/frozen_research/sha256"), frozen.sha256)}
+            label="Frozen research SHA-256"
+            display={frozen.sha256.slice(0, 12)}
+            className="vx-inherit"
+          />
+          …
         </p>
       </section>
     </div>

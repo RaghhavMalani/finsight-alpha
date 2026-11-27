@@ -3,7 +3,10 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { API_BASE } from "@/lib/api";
 import { HMMReadout, HMMStatus } from "./HMMReadout";
-import { hmmView, paintRegimeRibbon } from "./hmm-model";
+import { hmmView, paintRegimeRibbon, type TraceOrigin } from "./hmm-model";
+import { Hash, ProvenanceProvider, Stamp } from "@/visual/Num";
+import { liveOrigin, manifestOrigin, ref, replayOrigin } from "@/visual/origins";
+import { provHelpers } from "@/visual/route-origin";
 import { MethodDrawer, type SourceMode } from "./MethodDrawer";
 import { NeuralEditor } from "./NeuralEditor";
 import { NEURAL_FAMILY_COLORS, paintNeuralRibbon } from "./neural-model";
@@ -119,6 +122,23 @@ export default function ObservatoryPage() {
       : mode === "replay"
         ? (artifact?.url ?? null)
         : `${API_BASE}${endpoint}?${params}`;
+  const liveRoute = `${endpoint}?${params}`;
+  // Pointers address the trace body: the checked Replay artifact, or the streamed event's trace.
+  const traceAt = useCallback<TraceOrigin>(
+    (ptr, extra = {}) =>
+      mode === "replay"
+        ? replayOrigin(artifact ?? null, ptr, extra)
+        : liveOrigin(
+            `GET ${liveRoute}`,
+            `/trace${ptr}`,
+            {},
+            {
+              note: "the trace carried by the model-run response",
+              ...extra,
+            },
+          ),
+    [mode, artifact, liveRoute],
+  );
   const stream = useTrainingStream(
     url,
     { kind: neuralScene ? "signal" : kind, ticker, asOf },
@@ -144,8 +164,8 @@ export default function ObservatoryPage() {
 
   // Scrub position and playback belong to one trace; a new trace starts at its final frame.
   const hmm = useMemo(
-      () => (!neuralScene && trace?.kind === "hmm" ? hmmView(trace) : null),
-      [trace, neuralScene],
+      () => (!neuralScene && trace?.kind === "hmm" ? hmmView(trace, traceAt) : null),
+      [trace, neuralScene, traceAt],
     ),
     signal = useMemo(
       () => (!neuralScene && trace?.kind === "signal" ? signalView(trace) : null),
@@ -230,6 +250,32 @@ export default function ObservatoryPage() {
   const hash = neuralScene ? nn.hash : stream.hash;
   const shortSha = hash ? `${hash.slice(0, 8)}…${hash.slice(-4)}` : null;
   const editorWidth = neuralScene && editorOpen ? EDITOR : 0;
+  const tp = provHelpers(traceAt);
+  const artifactId = `observatory:${ticker}:${kind}`;
+  const replaySha =
+    !neuralScene && mode === "replay" && hash && shortSha ? (
+      <>
+        Replay ·{" "}
+        <Hash
+          h={ref(manifestOrigin(`/artifacts/${artifactId}/sha256`), hash)}
+          label="Trace artifact SHA-256"
+          display={shortSha}
+          className="vx-inherit"
+        />
+      </>
+    ) : null;
+  const asOfChip = neuralScene ? (
+    nn.asOf.slice(0, 10)
+  ) : mode === "replay" && (artifact?.as_of || manifest?.as_of) ? (
+    <Stamp
+      s={ref(manifestOrigin(artifact?.as_of ? `/artifacts/${artifactId}/as_of` : "/as_of"), asOf)}
+      label="Trace as of"
+      display={asOf.slice(0, 10)}
+      className="vx-inherit"
+    />
+  ) : (
+    <span data-num-exempt="date">{asOf.slice(0, 10)}</span>
+  );
   const sourceChip = neuralScene
     ? nn.source === "lab"
       ? "Lab · synthetic world"
@@ -241,270 +287,317 @@ export default function ObservatoryPage() {
       : "Live model run";
   return (
     <ForgeShell bleed>
-      <div
-        className="observatory"
-        data-scene={kind}
-        data-editor={neuralScene && editorOpen ? "open" : undefined}
-      >
-        <header className="obs-bar">
-          <div className="obs-brand">Model Observatory</div>
-          <nav className="obs-tabs" role="tablist" aria-label="Scene">
-            <button role="tab" aria-selected={kind === "hmm"} onClick={() => setKind("hmm")}>
-              Regime space
-            </button>
-            <button role="tab" aria-selected={kind === "signal"} onClick={() => setKind("signal")}>
-              Feature flow
-            </button>
-            <button role="tab" aria-selected={kind === "neural"} onClick={() => setKind("neural")}>
-              Neural net
-            </button>
-            <button
-              role="tab"
-              aria-selected={false}
-              onClick={() => void navigate({ search: { scene: "plugin", ticker } })}
-            >
-              Plugin runs
-            </button>
-          </nav>
-          <div className="obs-chips">
-            <label className="obs-chip obs-ticker">
-              <select
-                aria-label="Observatory ticker"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value)}
+      <ProvenanceProvider>
+        <div
+          className="observatory"
+          data-scene={kind}
+          data-editor={neuralScene && editorOpen ? "open" : undefined}
+        >
+          <header className="obs-bar">
+            <div className="obs-brand">Model Observatory</div>
+            <nav className="obs-tabs" role="tablist" aria-label="Scene">
+              <button role="tab" aria-selected={kind === "hmm"} onClick={() => setKind("hmm")}>
+                Regime space
+              </button>
+              <button
+                role="tab"
+                aria-selected={kind === "signal"}
+                onClick={() => setKind("signal")}
               >
-                {tickers.map((t) => (
-                  <option key={t} value={t}>
-                    {factorSeries(t)?.name ?? t}
-                  </option>
+                Feature flow
+              </button>
+              <button
+                role="tab"
+                aria-selected={kind === "neural"}
+                onClick={() => setKind("neural")}
+              >
+                Neural net
+              </button>
+              <button
+                role="tab"
+                aria-selected={false}
+                onClick={() => void navigate({ search: { scene: "plugin", ticker } })}
+              >
+                Plugin runs
+              </button>
+            </nav>
+            <div className="obs-chips">
+              <label className="obs-chip obs-ticker">
+                <select
+                  aria-label="Observatory ticker"
+                  value={ticker}
+                  onChange={(e) => setTicker(e.target.value)}
+                >
+                  {tickers.map((t) => (
+                    <option key={t} value={t}>
+                      {factorSeries(t)?.name ?? t}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span
+                className={`obs-chip${(neuralScene ? nn.source === "live" : mode === "live") ? " obs-live" : ""}${neuralScene && nn.source === "lab" ? " obs-synthetic-chip" : ""}`}
+                title={hash ? `sha256 ${hash}` : neuralScene ? "In-browser lab" : endpoint}
+              >
+                <span className="obs-dot" />
+                {replaySha ?? sourceChip}
+              </span>
+              {!(neuralScene && nn.source === "lab") && (
+                <span className="obs-chip">As of {asOfChip}</span>
+              )}
+              <button
+                type="button"
+                className="obs-ghost"
+                aria-controls="obs-method"
+                aria-expanded={methodOpen}
+                onClick={() => setMethodOpen(true)}
+              >
+                Method
+              </button>
+            </div>
+          </header>
+          <div className="obs-stage">
+            <Suspense
+              fallback={
+                neuralScene ? null : <div className="obs-status">Initializing model geometry…</div>
+              }
+            >
+              <ObservatoryStage
+                kind={kind}
+                hmm={hmm}
+                signal={signal}
+                neural={neural}
+                editorWidth={editorWidth}
+                index={index}
+                reduced={reduced}
+                labelsRoot={labelsRoot}
+                tip={tip}
+                onFps={showFps ? setFps : undefined}
+              />
+            </Suspense>
+            <div className="obs-labels" ref={setLabelsRoot} />
+            <div className="obs-tip" ref={setTip} role="tooltip" />
+            {error ? (
+              <div className="obs-status" role="alert">
+                <div>
+                  <strong>Trace unavailable</strong>
+                  {error}
+                </div>
+              </div>
+            ) : neuralScene ? (
+              !neural && (
+                <div className="obs-status nn-empty" role="status">
+                  {nn.loading
+                    ? "Training on installed evidence…"
+                    : nn.source === "live"
+                      ? "Set the network on the left, then train it on installed evidence."
+                      : "Set the network on the left and press Train. It learns in your browser, epoch by epoch."}
+                </div>
+              )
+            ) : (
+              !trace && (
+                <div className="obs-status" role="status">
+                  {stream.loading
+                    ? "Verifying model evidence…"
+                    : "Loading checked replay manifest…"}
+                </div>
+              )
+            )}
+            <section className="obs-hud obs-title">
+              {factor && (
+                <p className="obs-factor-label">
+                  {factor.country} · market factor, not a ticker · {factor.source}
+                </p>
+              )}
+              <h1>{title}</h1>
+              <p data-num-exempt="copy">{lead}</p>
+              {factor && trace && (
+                <p>
+                  {tp.D(
+                    "/provenance/market_start",
+                    trace.provenance.market_start,
+                    "Market data start",
+                    trace.provenance.market_start,
+                  )}
+                  –
+                  {tp.D(
+                    "/provenance/market_end",
+                    trace.provenance.market_end,
+                    "Market data end",
+                    trace.provenance.market_end,
+                  )}{" "}
+                  · one revised capture; chronological research, no historical-vintage PIT claim.
+                </p>
+              )}
+            </section>
+            {hmm && (
+              <div className="obs-hud obs-legend">
+                {byOrder(hmm.states).map((st) => (
+                  <span key={st.index}>
+                    <i style={{ background: st.color, color: st.color }} />
+                    {st.name}
+                  </span>
                 ))}
-              </select>
-            </label>
-            <span
-              className={`obs-chip${(neuralScene ? nn.source === "live" : mode === "live") ? " obs-live" : ""}${neuralScene && nn.source === "lab" ? " obs-synthetic-chip" : ""}`}
-              title={hash ? `sha256 ${hash}` : neuralScene ? "In-browser lab" : endpoint}
-            >
-              <span className="obs-dot" />
-              {sourceChip}
-            </span>
-            {!(neuralScene && nn.source === "lab") && (
-              <span className="obs-chip">As of {(neuralScene ? nn.asOf : asOf).slice(0, 10)}</span>
-            )}
-            <button
-              type="button"
-              className="obs-ghost"
-              aria-controls="obs-method"
-              aria-expanded={methodOpen}
-              onClick={() => setMethodOpen(true)}
-            >
-              Method
-            </button>
-          </div>
-        </header>
-        <div className="obs-stage">
-          <Suspense
-            fallback={
-              neuralScene ? null : <div className="obs-status">Initializing model geometry…</div>
-            }
-          >
-            <ObservatoryStage
-              kind={kind}
-              hmm={hmm}
-              signal={signal}
-              neural={neural}
-              editorWidth={editorWidth}
-              index={index}
-              reduced={reduced}
-              labelsRoot={labelsRoot}
-              tip={tip}
-              onFps={showFps ? setFps : undefined}
-            />
-          </Suspense>
-          <div className="obs-labels" ref={setLabelsRoot} />
-          <div className="obs-tip" ref={setTip} role="tooltip" />
-          {error ? (
-            <div className="obs-status" role="alert">
-              <div>
-                <strong>Trace unavailable</strong>
-                {error}
               </div>
-            </div>
-          ) : neuralScene ? (
-            !neural && (
-              <div className="obs-status nn-empty" role="status">
-                {nn.loading
-                  ? "Training on installed evidence…"
-                  : nn.source === "live"
-                    ? "Set the network on the left, then train it on installed evidence."
-                    : "Set the network on the left and press Train. It learns in your browser, epoch by epoch."}
-              </div>
-            )
-          ) : (
-            !trace && (
-              <div className="obs-status" role="status">
-                {stream.loading ? "Verifying model evidence…" : "Loading checked replay manifest…"}
-              </div>
-            )
-          )}
-          <section className="obs-hud obs-title">
-            {factor && (
-              <p className="obs-factor-label">
-                {factor.country} · market factor, not a ticker · {factor.source}
-              </p>
             )}
-            <h1>{title}</h1>
-            <p>{lead}</p>
-            {factor && trace && (
-              <p>
-                {trace.provenance.market_start}–{trace.provenance.market_end} · one revised capture;
-                chronological research, no historical-vintage PIT claim.
-              </p>
+            {signal && (
+              <div className="obs-hud obs-legend">
+                {signal.families.map((name) => (
+                  <span key={name}>
+                    <i style={{ background: FAMILY_COLORS[name], color: FAMILY_COLORS[name] }} />
+                    {name}
+                  </span>
+                ))}
+              </div>
             )}
-          </section>
-          {hmm && (
-            <div className="obs-hud obs-legend">
-              {byOrder(hmm.states).map((st) => (
-                <span key={st.index}>
-                  <i style={{ background: st.color, color: st.color }} />
-                  {st.name}
-                </span>
-              ))}
-            </div>
-          )}
-          {signal && (
-            <div className="obs-hud obs-legend">
-              {signal.families.map((name) => (
-                <span key={name}>
-                  <i style={{ background: FAMILY_COLORS[name], color: FAMILY_COLORS[name] }} />
-                  {name}
-                </span>
-              ))}
-            </div>
-          )}
-          {neural && (
-            <div className="obs-hud obs-legend">
-              <span>
-                <i style={{ background: "#3FE0FF", color: "#3FE0FF" }} />
-                Positive weight
-              </span>
-              <span>
-                <i style={{ background: "#FF4FD8", color: "#FF4FD8" }} />
-                Negative weight
-              </span>
-              {neural.families.map((name) => (
-                <span key={name}>
-                  <i
-                    style={{
-                      background: NEURAL_FAMILY_COLORS[name],
-                      color: NEURAL_FAMILY_COLORS[name],
-                    }}
-                  />
-                  {name}
-                </span>
-              ))}
-            </div>
-          )}
-          {neuralScene && (
-            <NeuralEditor
-              open={editorOpen}
-              onToggle={() => setEditorOpen((v) => !v)}
-              source={nn.source}
-              onSource={nn.setSource}
-              replayAvailable={nn.replayAvailable}
-              architecture={nn.architecture}
-              onArchitecture={nn.setArchitecture}
-              families={nn.families}
-              onFamilies={nn.setFamilies}
-              world={nn.world}
-              onWorld={nn.setWorld}
-              training={nn.training}
-              loading={nn.loading}
-              progress={neural ? neural.epochs.length / neural.run.architecture.epochs : 0}
-              onTrain={() => void nn.train()}
-              onStop={nn.stop}
-            />
-          )}
-          <div className="obs-hud obs-hint">Drag to orbit · scroll to zoom · hover to inspect</div>
-          {showFps && (
-            <div className="obs-hud obs-fps">
-              {fps == null ? "measuring" : `${Math.round(fps)} fps`}
-            </div>
-          )}
-        </div>
-        {(hmm || signal || neural) && (
-          <aside className="obs-readout" aria-live="polite">
-            {hmm && <HMMReadout view={hmm} index={index} />}
-            {signal && <SignalReadout view={signal} index={index} />}
             {neural && (
-              <NeuralReadout
-                view={neural}
-                epoch={index}
-                summary={nn.summary}
-                compared={nn.compared}
-                holdoutLooks={nn.holdoutLooks}
-                onOpenHoldout={nn.openHoldout}
-                openingHoldout={nn.openingHoldout}
+              <div className="obs-hud obs-legend">
+                <span>
+                  <i style={{ background: "#3FE0FF", color: "#3FE0FF" }} />
+                  Positive weight
+                </span>
+                <span>
+                  <i style={{ background: "#FF4FD8", color: "#FF4FD8" }} />
+                  Negative weight
+                </span>
+                {neural.families.map((name) => (
+                  <span key={name}>
+                    <i
+                      style={{
+                        background: NEURAL_FAMILY_COLORS[name],
+                        color: NEURAL_FAMILY_COLORS[name],
+                      }}
+                    />
+                    {name}
+                  </span>
+                ))}
+              </div>
+            )}
+            {neuralScene && (
+              <NeuralEditor
+                open={editorOpen}
+                onToggle={() => setEditorOpen((v) => !v)}
+                source={nn.source}
+                onSource={nn.setSource}
+                replayAvailable={nn.replayAvailable}
+                architecture={nn.architecture}
+                onArchitecture={nn.setArchitecture}
+                families={nn.families}
+                onFamilies={nn.setFamilies}
+                world={nn.world}
+                onWorld={nn.setWorld}
+                training={nn.training}
+                loading={nn.loading}
+                progress={neural ? neural.epochs.length / neural.run.architecture.epochs : 0}
+                onTrain={() => void nn.train()}
+                onStop={nn.stop}
               />
             )}
-          </aside>
-        )}
-        <Timeline
-          count={count}
-          value={index}
-          playing={playing}
-          reduced={reduced}
-          label={kind === "hmm" ? "EM" : kind === "neural" ? "Epoch" : "Boosting stage"}
-          status={
-            hmm ? (
-              <HMMStatus view={hmm} index={index} />
-            ) : signal ? (
-              <SignalStatus view={signal} index={index} />
-            ) : neural ? (
-              <NeuralStatus view={neural} epoch={index} />
-            ) : (
-              "—"
-            )
-          }
-          axis={
-            hmm
-              ? [hmm.dates[0], "Regime by day · last 250 sessions", hmm.dates[hmm.dates.length - 1]]
-              : signal
+            <div className="obs-hud obs-hint">
+              Drag to orbit · scroll to zoom · hover to inspect
+            </div>
+            {showFps && (
+              <div className="obs-hud obs-fps">
+                {fps == null ? "measuring" : `${Math.round(fps)} fps`}
+              </div>
+            )}
+          </div>
+          {(hmm || signal || neural) && (
+            <aside className="obs-readout" aria-live="polite">
+              {hmm && <HMMReadout view={hmm} index={index} />}
+              {signal && <SignalReadout view={signal} index={index} />}
+              {neural && (
+                <NeuralReadout
+                  view={neural}
+                  epoch={index}
+                  summary={nn.summary}
+                  compared={nn.compared}
+                  holdoutLooks={nn.holdoutLooks}
+                  onOpenHoldout={nn.openHoldout}
+                  openingHoldout={nn.openingHoldout}
+                />
+              )}
+            </aside>
+          )}
+          <Timeline
+            count={count}
+            value={index}
+            playing={playing}
+            reduced={reduced}
+            label={kind === "hmm" ? "EM" : kind === "neural" ? "Epoch" : "Boosting stage"}
+            status={
+              hmm ? (
+                <HMMStatus view={hmm} index={index} />
+              ) : signal ? (
+                <SignalStatus view={signal} index={index} />
+              ) : neural ? (
+                <NeuralStatus view={neural} epoch={index} />
+              ) : (
+                "—"
+              )
+            }
+            axis={
+              hmm
                 ? [
-                    "Fold 1",
-                    "Validation AUC above / below 0.50, every boosting stage",
-                    `Fold ${signal.folds.length}`,
+                    tp.D("/dates_tail/0", hmm.trace.dates_tail[0], "First session", hmm.dates[0]),
+                    <>
+                      Regime by day · last{" "}
+                      {tp.N(
+                        "/dates_tail",
+                        hmm.dates.length,
+                        "Sessions shown",
+                        hmm.dates.length == null ? undefined : String(hmm.dates.length),
+                        {
+                          formula: "count of /dates_tail",
+                        },
+                      )}{" "}
+                      sessions
+                    </>,
+                    tp.D(
+                      `/dates_tail/${hmm.dates.length - 1}`,
+                      hmm.trace.dates_tail[hmm.dates.length - 1],
+                      "Last session",
+                      hmm.dates[hmm.dates.length - 1],
+                    ),
                   ]
-                : neural
+                : signal
                   ? [
-                      "Epoch 0",
-                      "Validation AUC above / below 0.50, every epoch",
-                      `Epoch ${neural.run.architecture.epochs}`,
+                      "Fold 1",
+                      "Validation AUC above / below 0.50, every boosting stage",
+                      `Fold ${signal.folds.length}`,
                     ]
-                  : ["", "", ""]
-          }
-          paint={ribbon}
-          onScrub={(i) => setIndex(i)}
-          onPlay={togglePlay}
-        />
-        <MethodDrawer
-          licence={
-            mode === "replay"
-              ? sharedManifest?.artifacts[`observatory:${ticker}:${kind}`]?.licence
-              : undefined
-          }
-          open={methodOpen}
-          onClose={() => setMethodOpen(false)}
-          kind={kind}
-          trace={trace}
-          hash={hash}
-          url={url}
-          mode={neuralScene ? (nn.source === "live" ? "live" : "replay") : mode}
-          onMode={neuralScene ? (m) => nn.setSource(m) : setMode}
-          draftCutoff={mode === "replay" ? asOf.slice(0, 16) : draftCutoff}
-          onDraftCutoff={setDraftCutoff}
-          onRun={() => setCutoff(new Date(draftCutoff + "Z").toISOString())}
-        />
-      </div>
+                  : neural
+                    ? [
+                        "Epoch 0",
+                        "Validation AUC above / below 0.50, every epoch",
+                        `Epoch ${neural.run.architecture.epochs}`,
+                      ]
+                    : ["", "", ""]
+            }
+            paint={ribbon}
+            onScrub={(i) => setIndex(i)}
+            onPlay={togglePlay}
+          />
+          <MethodDrawer
+            licence={
+              mode === "replay"
+                ? sharedManifest?.artifacts[`observatory:${ticker}:${kind}`]?.licence
+                : undefined
+            }
+            open={methodOpen}
+            onClose={() => setMethodOpen(false)}
+            kind={kind}
+            trace={trace}
+            hash={hash}
+            url={url}
+            mode={neuralScene ? (nn.source === "live" ? "live" : "replay") : mode}
+            onMode={neuralScene ? (m) => nn.setSource(m) : setMode}
+            draftCutoff={mode === "replay" ? asOf.slice(0, 16) : draftCutoff}
+            onDraftCutoff={setDraftCutoff}
+            onRun={() => setCutoff(new Date(draftCutoff + "Z").toISOString())}
+          />
+        </div>
+      </ProvenanceProvider>
     </ForgeShell>
   );
 }

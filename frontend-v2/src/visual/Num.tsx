@@ -35,6 +35,8 @@ export type Origin = {
   reason?: string;
   /** Replay only: the SHA-256 the checked manifest names for `src`. */
   sha256?: string | null;
+  /** Replay only: what names that digest, when it is not /replay-manifest.json (a build-time pin). */
+  shaNamedBy?: string;
   /** Replay/live: the artifact or response as-of time, when the source states one. */
   asOf?: string | null;
   /** Live: the record's clocks and stream sequence number, when the source states them. */
@@ -213,7 +215,11 @@ export function ProvenanceProvider({
             {kind === "replay" && (
               <>
                 <dt>Source</dt>
-                <dd>checked Replay artifact · not a seal</dd>
+                <dd>
+                  {current.origin.shaNamedBy
+                    ? "pinned build asset · not a seal"
+                    : "checked Replay artifact · not a seal"}
+                </dd>
                 <dt>File</dt>
                 <dd className="vx-break" data-origin-file>
                   {current.origin.src}
@@ -221,7 +227,7 @@ export function ProvenanceProvider({
                 <dt>SHA-256</dt>
                 <dd className="vx-break" data-origin-sha>
                   {current.origin.sha256
-                    ? `${current.origin.sha256} (named by /replay-manifest.json, verified on load)`
+                    ? `${current.origin.sha256} (named by ${current.origin.shaNamedBy ?? "/replay-manifest.json"}, verified on load)`
                     : "unavailable · the Replay manifest names no digest"}
                 </dd>
               </>

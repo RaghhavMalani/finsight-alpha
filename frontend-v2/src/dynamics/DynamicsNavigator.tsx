@@ -177,7 +177,10 @@ export function DynamicsNavigator() {
             <h1 className="mt-2 max-w-4xl text-balance text-2xl font-semibold tracking-[-0.03em] text-[#E8ECEF] sm:text-3xl">
               Markets as published. History as known.
             </h1>
-            <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]">
+            <p
+              className="mt-2 max-w-3xl text-[11px] leading-5 text-[#7D8992]"
+              data-num-exempt="copy"
+            >
               Publication-aware asset analytics, historical replay and snapshot comparison. Frozen
               D0.4.2 instruments power the product; the complete research lineage remains in the
               secondary evidence drawer. Experimental composites are not market or causal
@@ -199,7 +202,7 @@ export function DynamicsNavigator() {
           Open current product
         </button>
         <details className="border border-[#25313A] p-3">
-          <summary className="cursor-pointer text-xs text-[#B7C6D0]">
+          <summary className="cursor-pointer text-xs text-[#B7C6D0]" data-num-exempt="id">
             Frozen research evidence / D0–D0.4.2 lineage
           </summary>
           <aside

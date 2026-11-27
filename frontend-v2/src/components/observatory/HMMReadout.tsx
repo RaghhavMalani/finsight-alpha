@@ -1,6 +1,7 @@
 import { fmt } from "./format";
 import { occupancy, type HMMView } from "./hmm-model";
 import { byOrder } from "./regime-palette";
+import { provHelpers } from "@/visual/route-origin";
 
 function Spark({ values, index, color }: { values: number[]; index: number; color: string }) {
   const lo = Math.min(...values),
@@ -44,10 +45,37 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
     now = states[f.dominant[day]],
     p = f.posterior[day],
     occ = occupancy(f, states.length);
+  const { N, D } = provHelpers(view.at),
+    fp = `/frames/${index}`;
+  const nStates = N(
+    "/n_states",
+    trace.n_states,
+    "HMM states",
+    trace.n_states == null ? undefined : String(trace.n_states),
+  );
+  const nFeatures = N(
+    "/feature_names",
+    trace.feature_names.length,
+    "Fit features",
+    trace.feature_names.length == null ? undefined : String(trace.feature_names.length),
+    {
+      formula: "count of /feature_names",
+    },
+  );
+  const tail = (label: string) =>
+    N(
+      `${fp}/posterior_tail`,
+      f.dominant.length,
+      label,
+      f.dominant.length == null ? undefined : String(f.dominant.length),
+      {
+        formula: `count of ${fp}/posterior_tail`,
+      },
+    );
   return (
     <>
       <div className="obs-eyebrow">
-        Gaussian HMM · {states.length} states · {trace.feature_names.length} features
+        Gaussian HMM · {nStates} states · {nFeatures} features
       </div>
       <div>
         <div className="obs-k">Current regime</div>
@@ -55,36 +83,81 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
           {now.name}
         </div>
         <div className="obs-sub mono">
-          posterior {p >= 0.9995 ? "≥ 0.999" : p.toFixed(3)} · {view.dates[day]}
+          posterior{" "}
+          {N(
+            `${fp}/posterior_tail/${day}`,
+            p,
+            "Posterior of the current regime",
+            p >= 0.9995 ? "≥ 0.999" : p.toFixed(3),
+            {
+              formula: `max over states of ${fp}/posterior_tail/${day}`,
+            },
+          )}{" "}
+          · {D(`/dates_tail/${day}`, trace.dates_tail[day], "Session", view.dates[day])}
         </div>
       </div>
       <div>
         <div className="obs-k">Log-likelihood</div>
-        <div className="obs-num">{fmt(f.loglik, 1)}</div>
+        <div className="obs-num">
+          {N(`${fp}/loglik`, f.loglik, "Log-likelihood", fmt(f.loglik, 1))}
+        </div>
         <Spark values={view.frames.map((x) => x.loglik)} index={index} color="#42C98B" />
       </div>
       <div className="obs-rows">
         <div>
           <span>EM iteration</span>
           <b>
-            {f.iteration} / {last.iteration}
+            {N(
+              `${fp}/iteration`,
+              f.iteration,
+              "EM iteration",
+              f.iteration == null ? undefined : String(f.iteration),
+            )}{" "}
+            /{" "}
+            {N(
+              `/frames/${view.frames.length - 1}/iteration`,
+              last.iteration,
+              "Last EM iteration",
+              last.iteration == null ? undefined : String(last.iteration),
+            )}
           </b>
         </div>
         <div>
           <span>Change in fit</span>
-          <b>{f.delta == null ? "—" : f.delta.toFixed(4)}</b>
+          <b>
+            {f.delta == null
+              ? "—"
+              : N(`${fp}/convergence_delta`, f.delta, "Change in fit", f.delta.toFixed(4))}
+          </b>
         </div>
         <div>
           <span>Converged</span>
           <b>
-            {f.converged
-              ? `Yes${trace.tolerance != null ? `, below ${trace.tolerance}` : ""}`
-              : "Not yet"}
+            {f.converged ? (
+              <>
+                Yes
+                {trace.tolerance != null ? (
+                  <>
+                    , below{" "}
+                    {N(
+                      "/tolerance",
+                      trace.tolerance,
+                      "Convergence tolerance",
+                      String(trace.tolerance),
+                    )}
+                  </>
+                ) : null}
+              </>
+            ) : (
+              "Not yet"
+            )}
           </b>
         </div>
         <div>
           <span>Fit window</span>
-          <b>{trace.fit_rows.toLocaleString()} days</b>
+          <b>
+            {N("/fit_rows", trace.fit_rows, "Fit window", trace.fit_rows.toLocaleString())} days
+          </b>
         </div>
       </div>
       <div>
@@ -95,13 +168,13 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
         >
           <span className="h" />
           {ordered.map((s) => (
-            <span key={s.index} className="h" title={s.name}>
+            <span key={s.index} className="h" title={s.name} data-num-exempt="id">
               <i className="obs-dotc" style={{ background: s.color, width: 5, height: 5 }} />
               {s.index}
             </span>
           ))}
           {ordered.map((from) => [
-            <span key={`r${from.index}`} className="r" title={from.name}>
+            <span key={`r${from.index}`} className="r" title={from.name} data-num-exempt="id">
               <i className="obs-dotc" style={{ background: from.color }} />
               {from.index}
             </span>,
@@ -115,7 +188,12 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
                     color: q >= 0.2 ? "var(--obs-fg)" : "var(--obs-faint)",
                   }}
                 >
-                  {q.toFixed(2)}
+                  {N(
+                    `${fp}/transmat/${from.index}/${to.index}`,
+                    q,
+                    `Transition ${from.name} → ${to.name}`,
+                    q.toFixed(2),
+                  )}
                 </span>
               );
             }),
@@ -123,7 +201,7 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
         </div>
       </div>
       <div>
-        <div className="obs-k">Last {f.dominant.length} trading days</div>
+        <div className="obs-k">Last {tail("Sessions in the posterior tail")} trading days</div>
         <div className="obs-stack">
           {ordered.map((s) =>
             occ[s.index] ? (
@@ -144,26 +222,51 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
               {s.name}
             </span>,
             <b key={`c${s.index}`} style={occ[s.index] ? undefined : { color: "var(--obs-faint)" }}>
-              {occ[s.index]}
+              {N(
+                `${fp}/posterior_tail`,
+                occ[s.index],
+                `Days in ${s.name}`,
+                occ[s.index] == null ? undefined : String(occ[s.index]),
+                {
+                  formula: `count of ${fp}/posterior_tail rows whose largest posterior is state ${s.index}`,
+                },
+              )}
             </b>,
           ])}
         </div>
       </div>
       <p className="obs-fine">
-        Positions are the model's own state means on 3 of its {trace.feature_names.length} features,
-        in standard deviations. Clouds sample each state's spread on those features. This is a
-        description of the fit, not a forecast.
+        Positions are the model's own state means on 3 of its {nFeatures} features, in standard
+        deviations. Clouds sample each state's spread on those features. This is a description of
+        the fit, not a forecast.
       </p>
     </>
   );
 }
 
 export function HMMStatus({ view, index }: { view: HMMView; index: number }) {
-  const f = view.frames[index];
+  const f = view.frames[index],
+    n = view.frames.length - 1;
+  const { N } = provHelpers(view.at);
   return (
     <>
-      EM <b>{f.iteration}</b> / {view.frames[view.frames.length - 1].iteration} · LL{" "}
-      <b>{fmt(f.loglik, 1)}</b>
+      EM{" "}
+      <b>
+        {N(
+          `/frames/${index}/iteration`,
+          f.iteration,
+          "EM iteration",
+          f.iteration == null ? undefined : String(f.iteration),
+        )}
+      </b>{" "}
+      /{" "}
+      {N(
+        `/frames/${n}/iteration`,
+        view.frames[n].iteration,
+        "Last EM iteration",
+        view.frames[n].iteration == null ? undefined : String(view.frames[n].iteration),
+      )}{" "}
+      · LL <b>{N(`/frames/${index}/loglik`, f.loglik, "Log-likelihood", fmt(f.loglik, 1))}</b>
     </>
   );
 }
