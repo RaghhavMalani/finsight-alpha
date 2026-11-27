@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { canonicalRoute, loadReplayManifest } from "@/replay/client";
 import { useDataMode } from "@/replay/mode";
 import type { Origin } from "@/visual/Num";
-import { liveOrigin, replayOrigin } from "@/visual/origins";
+import { liveOrigin, manifestOrigin, replayOrigin } from "@/visual/origins";
 import { provHelpers, type RouteProv } from "@/visual/route-origin";
 import type { RegimeKind } from "./contracts";
 
@@ -56,13 +56,7 @@ export function useRegimeOrigin(
 
 /** The manifest entry's own digest: read from the manifest, which has no digest of its own. */
 export function manifestDigestOrigin(id: string): Origin {
-  return {
-    kind: "replay",
-    src: "/replay-manifest.json",
-    sha256: null,
-    ptr: `/artifacts/${seg(id)}/sha256`,
-    note: "The Replay manifest is the root of the Replay check and has no digest of its own.",
-  };
+  return manifestOrigin(`/artifacts/${seg(id)}/sha256`);
 }
 
 const SnapshotProv = createContext<RouteProv | null>(null);

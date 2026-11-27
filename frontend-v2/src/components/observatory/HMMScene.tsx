@@ -14,6 +14,8 @@ import {
 } from "three";
 import { createLineBundle, createPointCloud } from "@/visual/gl/bundles";
 import { esc, gauss, rng, sigma } from "./format";
+import type { Origin } from "@/visual/Num";
+import { svgProv } from "@/visual/origins";
 import { GlowCurves } from "@/visual/gl/GlowCurves";
 import { GlowPoints } from "@/visual/gl/GlowPoints";
 import { interpolate, occupancy, SIGMA, stationary, type HMMView } from "./hmm-model";
@@ -26,6 +28,18 @@ const CLOUD = 1500,
   SEGMENTS = 40;
 const WHITE = new Color("#ffffff"),
   UP = new Vector3(0, 1, 0);
+/**
+ * A value inside label HTML, which cannot hold a Num button: the same provenance data attributes
+ * and a tooltip, read by the checker like an SVG tick.
+ */
+function provSpan(origin: Origin, label: string, value: number, display: string) {
+  const { attrs, title } = svgProv(origin, label, value);
+  const a = Object.entries({ ...attrs, title })
+    .map(([k, v]) => `${k}="${esc(String(v))}"`)
+    .join(" ");
+  return `<span ${a}>${esc(display)}</span>`;
+}
+
 const AXIS_ENDS: [[number, number, number], string][] = [
   [[1, 0, 0], "Rising 20d return"],
   [[-1, 0, 0], "Falling 20d return"],
@@ -252,16 +266,49 @@ export default function HMMScene({
       now = f.dominant[f.dominant.length - 1],
       occ = occupancy(f, sim.K),
       days = f.dominant.length;
-    const list: LabelSpec[] = view.states.map((st) => ({
-      pos: sim.mus[st.index].clone().add(new Vector3(0, 0.95, 0)),
-      cls: "state" + (st.index === now ? " today" : ""),
-      color: st.color,
-      pri: 3,
-      html: `${esc(st.name)}${st.index === now ? " · now" : ""}<small>stays ${(sim.transmat[st.index][st.index] * 100).toFixed(0)}% · ${occ[st.index]} of last ${days} days</small>`,
-    }));
+    const fp = `/frames/${sim.frame}`;
+    const list: LabelSpec[] = view.states.map((st) => {
+      const i = st.index,
+        stay = sim.transmat[i][i];
+      const stays = provSpan(
+        view.at(`${fp}/transmat/${i}/${i}`, {
+          note: "While replay animates, the label eases between recorded EM iterations.",
+        }),
+        `${st.name} stays next day`,
+        stay,
+        `${(stay * 100).toFixed(0)}%`,
+      );
+      const inState = provSpan(
+        view.at(`${fp}/posterior_tail`, {
+          formula: `count of ${fp}/posterior_tail rows whose largest posterior is state ${i}`,
+        }),
+        `Days in ${st.name}`,
+        occ[i],
+        String(occ[i]),
+      );
+      const total = provSpan(
+        view.at(`${fp}/posterior_tail`, { formula: `count of ${fp}/posterior_tail` }),
+        "Sessions in the posterior tail",
+        days,
+        String(days),
+      );
+      return {
+        pos: sim.mus[i].clone().add(new Vector3(0, 0.95, 0)),
+        cls: "state" + (i === now ? " today" : ""),
+        color: st.color,
+        pri: 3,
+        html: `${esc(st.name)}${i === now ? " · now" : ""}<small>stays ${stays} · ${inState} of last ${total} days</small>`,
+      };
+    });
     const e = 3.5 * SIGMA;
     for (const [[x, y, z], text] of AXIS_ENDS)
-      list.push({ pos: new Vector3(x * e, y * e, z * e), cls: "axis", pri: 1, html: text });
+      list.push({
+        pos: new Vector3(x * e, y * e, z * e),
+        cls: "axis",
+        pri: 1,
+        html: `<span data-num-exempt="axis">${esc(text)}</span>`,
+      });
+
     labels.set(list);
   }
 

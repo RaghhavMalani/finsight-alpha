@@ -47,6 +47,7 @@ export const ENFORCED = [
   "/risk",
   "/data",
   "/regimes",
+  "/observatory",
 ];
 // Report-only because their remaining numbers are rendered by components that cannot be edited:
 // /forge … /runs by frontend-v2/src/forge, which scripts/research_archive.py protects as closed

@@ -1,6 +1,10 @@
 import { regimeStates, type RegimeState } from "./regime-palette";
 import type { CameraFit } from "./SceneFrame";
 import type { HMMTrace } from "./types";
+import type { Origin } from "@/visual/Num";
+
+/** Builds the origin of a value at a JSON pointer into the trace body. */
+export type TraceOrigin = (ptr: string, extra?: Partial<Origin>) => Origin;
 
 /** The three fit features that place a state: 20d return (x), 20d vol (y), 52w drawdown (z). */
 export const HMM_AXES = ["rolling_return_20", "realized_vol_20", "drawdown_from_252_high"] as const;
@@ -28,9 +32,11 @@ export type HMMView = {
   /** Centre of the final state means (world units), and the radius that frames them. */
   center: [number, number, number];
   radius: number;
+  /** Where the trace was read from; pointers address the trace body. */
+  at: TraceOrigin;
 };
 
-export function hmmView(trace: HMMTrace): HMMView {
+export function hmmView(trace: HMMTrace, at: TraceOrigin): HMMView {
   const axes = HMM_AXES.map((name) => trace.feature_names.indexOf(name));
   if (axes.some((j) => j < 0)) throw new Error("HMM trace lacks the regime-space axes");
   const frames = trace.frames.map((f) => ({
@@ -58,6 +64,7 @@ export function hmmView(trace: HMMTrace): HMMView {
     dates: trace.dates_tail.map((d) => d.slice(0, 10)),
     center,
     radius,
+    at,
   };
 }
 
