@@ -59,7 +59,7 @@ export const ENFORCED = [
 // Forge routes, rendered by frontend-v2/src/forge2 (the versioned successor of the frozen v1 UI):
 // besides naming the manifest's artifact and SHA-256, each replay value's data-ptr must resolve in
 // that artifact's JSON body, read here by the checker.
-export const POINTER_CHECKED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs"];
+export const POINTER_CHECKED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs", "/reality"];
 // Report-only because its remaining numbers are rendered by a component that cannot be edited:
 // /dynamics by the sealed src/replay/FactorRegimeEvidence.tsx (sealed by
 // eval/risk_manager/v0.1/phase0-6-freeze.json). Everything else on /dynamics is provenanced.
@@ -609,6 +609,26 @@ try {
         await p.waitForTimeout(1000);
       },
     },
+    // /reality/$artifactId (U4): the Reality Ladder reached from the bound baseline, as the 2D
+    // chart and as the checkpoint table, on each metric tab. Enforced as views (zero raw).
+    ...["chart", "table"].flatMap((view) =>
+      ["sharpe", "maxDrawdown", "slippage", "latencyCost", "runtime"].map((metric) => ({
+        route: "/reality/:artifactId",
+        name: `reality · ${view} · ${metric}`,
+        run: async (p) => {
+          await p.goto(base + "/bench", { waitUntil: "networkidle" });
+          await p.locator('a.agents-link[href^="/bench/"]').first().click();
+          await until(p, 'a[href^="/reality/"]', 20000);
+          const href = await p.locator('a[href^="/reality/"]').first().getAttribute("href");
+          const id = new URL(base + href).pathname.split("/").pop();
+          await p.goto(`${base}/reality/${id}?metric=${metric}&view=${view}`, {
+            waitUntil: "networkidle",
+          });
+          await until(p, ".agents-page .agents-header h1", 20000);
+          await p.waitForTimeout(1000);
+        },
+      })),
+    ),
     // /runs/$runId: the first recorded run, on each inspector tab.
     ...["action", "turns", "checks"].map((tab) => ({
       route: "/runs",
