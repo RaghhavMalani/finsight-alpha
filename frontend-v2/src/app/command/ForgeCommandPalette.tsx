@@ -81,7 +81,9 @@ export function ForgeCommandPalette({
   const investigation = useInvestigation();
   const navigate = useNavigate();
   const mode = useDataMode();
-  const [mount] = useState(() => ++paletteMounts);
+  // Counted in an effect, not during render: render may run twice (StrictMode) or on a server.
+  const [mount, setMount] = useState<number>();
+  useEffect(() => setMount(++paletteMounts), []);
   const [query, setQuery] = useState("");
   const [history, setHistory] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
