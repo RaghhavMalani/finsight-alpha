@@ -41,7 +41,8 @@ function cell(key: string, c: MatrixCell, ptr: string, P: RouteProv) {
     );
   if (key === "data_quality")
     return <>{P.N(ptr, v, "Open issues", c.value == null ? undefined : String(c.value))} open</>;
-  if (typeof c.value === "number") return P.N(ptr, c.value, key);
+  if (typeof c.value === "number")
+    return P.N(ptr, c.value, key, c.value == null ? undefined : String(c.value));
   return String(c.value ?? "—");
 }
 
@@ -145,8 +146,14 @@ export function CrossMarketMatrix({
                 "Historical agreement",
                 pct(h.agreement_share),
               )}{" "}
-              over {P.N(`${hp}/overlapping_dates`, h.overlapping_dates, "Shared dates")} shared
-              dates (
+              over{" "}
+              {P.N(
+                `${hp}/overlapping_dates`,
+                h.overlapping_dates,
+                "Shared dates",
+                h.overlapping_dates == null ? undefined : String(h.overlapping_dates),
+              )}{" "}
+              shared dates (
               {P.D(
                 `${hp}/first_overlap`,
                 h.first_overlap,

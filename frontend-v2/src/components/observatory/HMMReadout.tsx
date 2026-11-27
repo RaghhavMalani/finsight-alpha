@@ -47,14 +47,31 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
     occ = occupancy(f, states.length);
   const { N, D } = provHelpers(view.at),
     fp = `/frames/${index}`;
-  const nStates = N("/n_states", trace.n_states, "HMM states");
-  const nFeatures = N("/feature_names", trace.feature_names.length, "Fit features", undefined, {
-    formula: "count of /feature_names",
-  });
+  const nStates = N(
+    "/n_states",
+    trace.n_states,
+    "HMM states",
+    trace.n_states == null ? undefined : String(trace.n_states),
+  );
+  const nFeatures = N(
+    "/feature_names",
+    trace.feature_names.length,
+    "Fit features",
+    trace.feature_names.length == null ? undefined : String(trace.feature_names.length),
+    {
+      formula: "count of /feature_names",
+    },
+  );
   const tail = (label: string) =>
-    N(`${fp}/posterior_tail`, f.dominant.length, label, undefined, {
-      formula: `count of ${fp}/posterior_tail`,
-    });
+    N(
+      `${fp}/posterior_tail`,
+      f.dominant.length,
+      label,
+      f.dominant.length == null ? undefined : String(f.dominant.length),
+      {
+        formula: `count of ${fp}/posterior_tail`,
+      },
+    );
   return (
     <>
       <div className="obs-eyebrow">
@@ -90,8 +107,19 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
         <div>
           <span>EM iteration</span>
           <b>
-            {N(`${fp}/iteration`, f.iteration, "EM iteration")} /{" "}
-            {N(`/frames/${view.frames.length - 1}/iteration`, last.iteration, "Last EM iteration")}
+            {N(
+              `${fp}/iteration`,
+              f.iteration,
+              "EM iteration",
+              f.iteration == null ? undefined : String(f.iteration),
+            )}{" "}
+            /{" "}
+            {N(
+              `/frames/${view.frames.length - 1}/iteration`,
+              last.iteration,
+              "Last EM iteration",
+              last.iteration == null ? undefined : String(last.iteration),
+            )}
           </b>
         </div>
         <div>
@@ -194,9 +222,15 @@ export function HMMReadout({ view, index }: { view: HMMView; index: number }) {
               {s.name}
             </span>,
             <b key={`c${s.index}`} style={occ[s.index] ? undefined : { color: "var(--obs-faint)" }}>
-              {N(`${fp}/posterior_tail`, occ[s.index], `Days in ${s.name}`, undefined, {
-                formula: `count of ${fp}/posterior_tail rows whose largest posterior is state ${s.index}`,
-              })}
+              {N(
+                `${fp}/posterior_tail`,
+                occ[s.index],
+                `Days in ${s.name}`,
+                occ[s.index] == null ? undefined : String(occ[s.index]),
+                {
+                  formula: `count of ${fp}/posterior_tail rows whose largest posterior is state ${s.index}`,
+                },
+              )}
             </b>,
           ])}
         </div>
@@ -216,9 +250,23 @@ export function HMMStatus({ view, index }: { view: HMMView; index: number }) {
   const { N } = provHelpers(view.at);
   return (
     <>
-      EM <b>{N(`/frames/${index}/iteration`, f.iteration, "EM iteration")}</b> /{" "}
-      {N(`/frames/${n}/iteration`, view.frames[n].iteration, "Last EM iteration")} · LL{" "}
-      <b>{N(`/frames/${index}/loglik`, f.loglik, "Log-likelihood", fmt(f.loglik, 1))}</b>
+      EM{" "}
+      <b>
+        {N(
+          `/frames/${index}/iteration`,
+          f.iteration,
+          "EM iteration",
+          f.iteration == null ? undefined : String(f.iteration),
+        )}
+      </b>{" "}
+      /{" "}
+      {N(
+        `/frames/${n}/iteration`,
+        view.frames[n].iteration,
+        "Last EM iteration",
+        view.frames[n].iteration == null ? undefined : String(view.frames[n].iteration),
+      )}{" "}
+      · LL <b>{N(`/frames/${index}/loglik`, f.loglik, "Log-likelihood", fmt(f.loglik, 1))}</b>
     </>
   );
 }

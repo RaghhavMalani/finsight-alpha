@@ -484,7 +484,16 @@ export function HmmPanel({ snapshot, status }: { snapshot: Snapshot; status: Mod
               <span>Convergence</span>
               <strong>
                 {two.converged ? (
-                  <>CONVERGED · {N(`${hp}/iterations`, two.iterations, "EM iterations")} it</>
+                  <>
+                    CONVERGED ·{" "}
+                    {N(
+                      `${hp}/iterations`,
+                      two.iterations,
+                      "EM iterations",
+                      two.iterations == null ? undefined : String(two.iterations),
+                    )}{" "}
+                    it
+                  </>
                 ) : (
                   "UNCONVERGED · retained"
                 )}
@@ -690,7 +699,16 @@ export function FactorPanel({ snapshot, status }: { snapshot: Snapshot; status: 
           "R²",
           fmt(f.full_window?.r_squared ?? null, 3),
         )}{" "}
-        · n {f.full_window?.n == null ? "—" : N(`${fw}/n`, f.full_window.n, "Observations")} ·{" "}
+        · n{" "}
+        {f.full_window?.n == null
+          ? "—"
+          : N(
+              `${fw}/n`,
+              f.full_window.n,
+              "Observations",
+              f.full_window.n == null ? undefined : String(f.full_window.n),
+            )}{" "}
+        ·{" "}
         {f.full_window?.inference
           ? T(`${fw}/inference`, f.full_window.inference, "Inference")
           : null}

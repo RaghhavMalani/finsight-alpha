@@ -220,9 +220,15 @@ function Issues({ snapshot }: { snapshot: Snapshot }) {
   return (
     <details className="regimes-issues">
       <summary>
-        {N("/payload/issues", snapshot.issues.length, "Open issue hooks", undefined, {
-          formula: "count of /payload/issues",
-        })}{" "}
+        {N(
+          "/payload/issues",
+          snapshot.issues.length,
+          "Open issue hooks",
+          snapshot.issues.length == null ? undefined : String(snapshot.issues.length),
+          {
+            formula: "count of /payload/issues",
+          },
+        )}{" "}
         open issue hooks · fracture{" "}
         {snapshot.fracture ? (
           <>

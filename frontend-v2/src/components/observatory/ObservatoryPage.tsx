@@ -542,9 +542,15 @@ export default function ObservatoryPage() {
                     tp.D("/dates_tail/0", hmm.trace.dates_tail[0], "First session", hmm.dates[0]),
                     <>
                       Regime by day · last{" "}
-                      {tp.N("/dates_tail", hmm.dates.length, "Sessions shown", undefined, {
-                        formula: "count of /dates_tail",
-                      })}{" "}
+                      {tp.N(
+                        "/dates_tail",
+                        hmm.dates.length,
+                        "Sessions shown",
+                        hmm.dates.length == null ? undefined : String(hmm.dates.length),
+                        {
+                          formula: "count of /dates_tail",
+                        },
+                      )}{" "}
                       sessions
                     </>,
                     tp.D(
