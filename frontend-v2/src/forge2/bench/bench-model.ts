@@ -82,6 +82,12 @@ export function benchMetric(key: BenchMetricKey): BenchMetric {
   return BENCH_METRICS.find((m) => m.key === key) ?? BENCH_METRICS[0];
 }
 
+/**
+ * The value as displayed (rounded to the metric's precision). Ties and order are judged on it, so
+ * the printed numbers never contradict the sentence (review nit).
+ */
+const shown = (metric: ResearchMetric) => Number(metric.value.toFixed(metric.precision));
+
 /** One piece of the sentence: prose, or a model's value for a field (rendered with its origin). */
 export type RelationPart =
   Readonly<{ text: string }> | Readonly<{ model: BaselineModel; field: BenchField }>;
@@ -103,7 +109,7 @@ function listed(models: readonly BaselineModel[], field: BenchField): RelationPa
 }
 
 function directional(models: readonly BaselineModel[], field: BenchField): RelationPart[] {
-  const v = (m: BaselineModel) => field.get(m).value;
+  const v = (m: BaselineModel) => shown(field.get(m));
   const higher = field.better === "higher";
   const best = higher ? Math.max(...models.map(v)) : Math.min(...models.map(v));
   const leaders = models.filter((m) => v(m) === best);
@@ -140,7 +146,7 @@ function directional(models: readonly BaselineModel[], field: BenchField): Relat
 }
 
 function range(models: readonly BaselineModel[], field: BenchField): RelationPart[] {
-  const v = (m: BaselineModel) => field.get(m).value;
+  const v = (m: BaselineModel) => shown(field.get(m));
   const min = Math.min(...models.map(v));
   const max = Math.max(...models.map(v));
   const lo = models.filter((m) => v(m) === min);
@@ -166,12 +172,12 @@ function range(models: readonly BaselineModel[], field: BenchField): RelationPar
  * verified finding and on latency (the wireframe's tie-break). Says nothing when no one is.
  */
 function tieBreak(models: readonly BaselineModel[]): RelationPart[] {
-  const best = Math.max(...models.map((m) => m.verifiedResearch.value));
-  const tied = models.filter((m) => m.verifiedResearch.value === best);
+  const best = Math.max(...models.map((m) => shown(m.verifiedResearch)));
+  const tied = models.filter((m) => shown(m.verifiedResearch) === best);
   if (tied.length < 2) return [];
   const lowest = (field: BenchField) => {
-    const min = Math.min(...tied.map((m) => field.get(m).value));
-    const at = tied.filter((m) => field.get(m).value === min);
+    const min = Math.min(...tied.map((m) => shown(field.get(m))));
+    const at = tied.filter((m) => shown(field.get(m)) === min);
     return at.length === 1 ? at[0] : null;
   };
   const word = tied.length === 2 ? "lower" : "lowest";

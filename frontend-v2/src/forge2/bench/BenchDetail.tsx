@@ -4,7 +4,8 @@
 // those fields (bench-model.ts), and releases without a verified artifact shown as UNAVAILABLE.
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
+import { HashValue } from "@/epistemic/EpistemicValue";
+import { ClassChips, MetricCell } from "@/forge2/shared/MetricCell";
 import { DEFAULT_REALITY_ID, type BaselineModel } from "@/forge/contracts/observer";
 import { baselineIndexQuery, baselineQuery, realityQuery } from "@/forge/data/forge-queries";
 import { AgentsShell } from "@/forge2/shared/AgentsShell";
@@ -71,6 +72,12 @@ export function BenchDetail({
   const models = baseline.models;
   const verified = baseline.binding.integrityStatus === "MANIFEST_MATCH";
   const listed = new Set((index.data ?? []).map((item) => item.binding.artifactId));
+  const totals = [
+    baseline.overall.episodes,
+    baseline.excludedAttempts,
+    baseline.allAttemptCost,
+    baseline.admittedCost,
+  ];
   const ladderBound =
     reality.data && reality.data.binding.artifactHash === baseline.realityLadderArtifactHash;
 
@@ -109,50 +116,82 @@ export function BenchDetail({
       </nav>
 
       <div className="f2-bench-grid mt-3">
-        <InstrumentPanel title="Model observations" code="SUITE-SPECIFIC">
-          <div className="overflow-x-auto">
-            <table className="f2-bench-table">
-              <caption className="sr-only">Frozen baseline metrics by model</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Model</th>
-                  {BENCH_FIELDS.map((field) => (
-                    <th
-                      key={field.header}
-                      scope="col"
-                      data-selected={selected.has(field) ? "true" : undefined}
-                    >
-                      {field.header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {models
-                  .filter((m) => !selectedModel || m.id === selectedModel)
-                  .map((model) => (
-                    <tr key={model.id}>
-                      <th scope="row">
-                        <Link
-                          to="/bench/$benchmarkId"
-                          params={{ benchmarkId }}
-                          search={{ model: model.id, metric: tab.key }}
-                        >
-                          {model.label}
-                        </Link>
+        <InstrumentPanel
+          title="Observed relation"
+          code={tab.tab.toUpperCase()}
+          className="f2-area-relation"
+        >
+          <div className="f2-panel-body">
+            <p className="f2-sentence" data-testid="bench-relation">
+              {observedRelation(models, tab).map((part, i) =>
+                "text" in part ? (
+                  <span key={i}>{part.text}</span>
+                ) : (
+                  <span key={i}>{B.M(part.field.get(part.model))}</span>
+                ),
+              )}
+            </p>
+            <p className="f2-scope" data-testid="bench-scope">
+              Observed in this suite (
+              {B.M(
+                baseline.overall.episodes,
+                "Admitted episodes",
+                String(baseline.overall.episodes.value),
+              )}{" "}
+              admitted episodes); not a global ranking. Ties and order use the displayed precision.
+            </p>
+          </div>
+        </InstrumentPanel>
+
+        <InstrumentPanel title="Model observations" code="SUITE-SPECIFIC" className="f2-area-table">
+          <p className="f2-scroll-hint">
+            Model is pinned; swipe the table for cost, latency and use →
+          </p>
+          <div className="f2-scroll">
+            <div className="overflow-x-auto">
+              <table className="f2-bench-table">
+                <caption className="sr-only">Frozen baseline metrics by model</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Model</th>
+                    {BENCH_FIELDS.map((field) => (
+                      <th
+                        key={field.header}
+                        scope="col"
+                        data-selected={selected.has(field) ? "true" : undefined}
+                      >
+                        {field.header}
                       </th>
-                      {BENCH_FIELDS.map((field) => (
-                        <td
-                          key={field.header}
-                          data-selected={selected.has(field) ? "true" : undefined}
-                        >
-                          {B.M(field.get(model))}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {models
+                    .filter((m) => !selectedModel || m.id === selectedModel)
+                    .map((model) => (
+                      <tr key={model.id}>
+                        <th scope="row">
+                          <Link
+                            to="/bench/$benchmarkId"
+                            params={{ benchmarkId }}
+                            search={{ model: model.id, metric: tab.key }}
+                          >
+                            {model.label}
+                          </Link>
+                        </th>
+                        {BENCH_FIELDS.map((field) => (
+                          <td
+                            key={field.header}
+                            data-selected={selected.has(field) ? "true" : undefined}
+                          >
+                            {B.M(field.get(model))}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
           {selectedModel && (
             <Link
@@ -169,42 +208,14 @@ export function BenchDetail({
           ))}
         </InstrumentPanel>
 
-        <div className="grid content-start gap-3">
-          <InstrumentPanel title="Observed relation" code={tab.tab.toUpperCase()}>
-            <div className="f2-panel-body">
-              <p className="f2-sentence" data-testid="bench-relation">
-                {observedRelation(models, tab).map((part, i) =>
-                  "text" in part ? (
-                    <span key={i}>{part.text}</span>
-                  ) : (
-                    <span key={i}>{B.M(part.field.get(part.model))}</span>
-                  ),
-                )}
-              </p>
-              <p className="f2-scope" data-testid="bench-scope">
-                Observed in this suite (
-                {B.M(
-                  baseline.overall.episodes,
-                  "Admitted episodes",
-                  String(baseline.overall.episodes.value),
-                )}{" "}
-                admitted episodes); not a global ranking.
-              </p>
+        <div className="f2-area-side grid content-start gap-3">
+          <InstrumentPanel title="Artifact" code={<ClassChips metrics={totals} />}>
+            <div className="f2-subhead">
+              <span data-num-exempt="id">{baseline.binding.sourceSchemaVersion}</span>
             </div>
-          </InstrumentPanel>
-
-          <InstrumentPanel
-            title="Artifact"
-            code={<span data-num-exempt="id">{baseline.binding.sourceSchemaVersion}</span>}
-          >
-            <div className="grid gap-px bg-[#1D232B] sm:grid-cols-2">
-              {[
-                baseline.overall.episodes,
-                baseline.excludedAttempts,
-                baseline.allAttemptCost,
-                baseline.admittedCost,
-              ].map((m) => (
-                <ResearchValue key={m.id} metric={m} value={B.M(m)} className="bg-[#0B0E11] p-3" />
+            <div className="grid grid-cols-2 gap-px bg-[#1D232B]">
+              {totals.map((m) => (
+                <MetricCell key={m.id} metric={m} value={B.M(m)} />
               ))}
             </div>
             <div className="grid gap-2 p-3">
@@ -226,15 +237,13 @@ export function BenchDetail({
           </InstrumentPanel>
 
           <InstrumentPanel title="Other releases" code="UNAVAILABLE">
-            <div className="grid gap-2 p-3">
-              {PLANNED_RELEASES.filter((r) => !listed.has(r.id)).map((r) => (
-                <div key={r.id} className="f2-unavailable" data-release={r.id}>
-                  <strong>UNAVAILABLE</strong>
-                  <span data-num-exempt="id">{r.label}</span>
-                  <span>No verified artifact loaded.</span>
-                </div>
-              ))}
-            </div>
+            {PLANNED_RELEASES.filter((r) => !listed.has(r.id)).map((r) => (
+              <div key={r.id} className="f2-release" data-release={r.id}>
+                <strong>UNAVAILABLE</strong>
+                <span data-num-exempt="id">{r.label}</span>
+                <span>no verified artifact loaded</span>
+              </div>
+            ))}
           </InstrumentPanel>
         </div>
       </div>
