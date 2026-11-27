@@ -1,0 +1,621 @@
+/* Forge v2 stage B (U4): the debugger, Bench and Reality Ladder surfaces. New in v2. */
+
+/* ---- Run Observer: trajectory list beside the selected action (wireframe §4.2) ---- */
+.f2-debugger {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(17rem, 24rem) minmax(0, 1fr);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .f2-debugger {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.f2-debugger > * {
+  min-width: 0;
+}
+.f2-replay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px 0;
+}
+.f2-replay button,
+.f2-toggle button,
+.f2-tabs a {
+  border: 1px solid var(--ag-line-2);
+  background: transparent;
+  color: var(--ag-muted);
+  font:
+    500 12px/1 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.f2-replay button:hover:not(:disabled),
+.f2-toggle button:hover,
+.f2-tabs a:hover {
+  color: var(--ag-fg);
+  border-color: var(--ag-faint);
+}
+.f2-replay button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.f2-replay button[data-playing="true"],
+.f2-toggle button[aria-pressed="true"],
+.f2-tabs a[aria-current="page"] {
+  color: var(--ag-amber);
+  border-color: var(--ag-amber);
+}
+.f2-replay-pos {
+  margin-left: auto;
+  font:
+    500 12px/1.4 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-muted);
+  white-space: nowrap;
+}
+.f2-note {
+  padding: 8px 12px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ag-faint);
+}
+.f2-steps {
+  display: grid;
+  border-top: 1px solid var(--ag-line);
+}
+.f2-steps > li {
+  list-style: none;
+  border-bottom: 1px solid var(--ag-line);
+}
+.f2-step {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  border-left: 2px solid transparent;
+  color: var(--ag-fg);
+  cursor: pointer;
+}
+.f2-step:hover {
+  background: var(--ag-raised);
+}
+.f2-step[aria-current="step"] {
+  border-left-color: var(--ag-amber);
+  background: #13120e;
+}
+.f2-step-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.f2-step-seq,
+.f2-step-usage,
+.f2-step-status {
+  font:
+    500 12px/1.4 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+}
+.f2-step-seq {
+  color: var(--ag-faint);
+}
+.f2-step-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.f2-step-status {
+  color: var(--ag-muted);
+}
+.f2-step-status[data-verifier="PASS"]::before {
+  content: "◆ ";
+  color: var(--ag-pass);
+}
+.f2-step-status[data-verifier="FAIL"]::before {
+  content: "× ";
+  color: var(--ag-fail);
+}
+.f2-step-usage {
+  padding-left: 30px;
+  color: var(--ag-muted);
+}
+
+/* 2D trajectory node values: one row each (U4 review fix for the overlapping "selected" mark). */
+.f2-node-values {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+}
+.f2-node-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ---- Shared U4 controls ---- */
+.f2-tabs,
+.f2-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.f2-panel-body {
+  padding: 12px;
+}
+.f2-sentence {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ag-fg);
+}
+.f2-scope {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ag-faint);
+}
+.f2-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--ag-line);
+  font:
+    500 12px/1.4 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-faint);
+}
+.f2-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.f2-unavailable {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px dashed var(--ag-line-2);
+  font-size: 12px;
+  color: var(--ag-muted);
+}
+.f2-unavailable strong {
+  font:
+    600 12px/1.3 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: #8a939d;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Bench (wireframe §4.4) ---- */
+.f2-bench-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .f2-bench-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.f2-bench-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.f2-bench-table th,
+.f2-bench-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--ag-line);
+  text-align: right;
+  white-space: nowrap;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+.f2-bench-table th:first-child,
+.f2-bench-table td:first-child {
+  text-align: left;
+}
+.f2-bench-table thead th {
+  font-weight: 500;
+  color: var(--ag-faint);
+}
+.f2-bench-table [data-selected="true"] {
+  color: var(--ag-amber);
+}
+.f2-bench-table tbody th {
+  font-family: Inter, sans-serif;
+  font-weight: 600;
+  color: var(--ag-fg);
+}
+.f2-bars {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+.f2-bar {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font:
+    500 12px/1.3 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+}
+.f2-bar-track {
+  height: 8px;
+  background: var(--ag-line);
+}
+.f2-bar-fill {
+  display: block;
+  height: 100%;
+  background: #52a8ff;
+}
+
+/* ---- Reality Ladder (wireframe §4.3) ---- */
+.f2-ladder-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .f2-ladder-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.f2-chart {
+  position: relative;
+  margin: 12px;
+}
+.f2-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.f2-chart-label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding-bottom: 14px;
+  font:
+    500 12px/1.2 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-fg);
+  white-space: nowrap;
+}
+.f2-chart-label[data-below="true"] {
+  transform: translate(-50%, 0);
+  padding: 14px 0 0;
+}
+.f2-chart-point {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+.f2-chart-point:focus-visible {
+  outline: 2px solid var(--ag-amber);
+}
+.f2-chart-axis {
+  position: relative;
+  height: 40px;
+  margin: 0 12px 12px;
+  font:
+    500 12px/1.3 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-faint);
+}
+.f2-chart-axis > span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+/* The end labels align to the chart edges instead of centring, so they stay inside the card. */
+.f2-chart-axis > span[data-edge="first"] {
+  left: 0;
+  transform: none;
+}
+.f2-chart-axis > span[data-edge="last"] {
+  right: 0;
+  transform: none;
+}
+.f2-ladder-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.f2-ladder-table th,
+.f2-ladder-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--ag-line);
+  text-align: right;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+.f2-ladder-table th:first-child,
+.f2-ladder-table td:first-child {
+  text-align: left;
+}
+.f2-ladder-table thead th {
+  font-weight: 500;
+  color: var(--ag-faint);
+}
+.f2-ladder-table tbody tr[aria-selected="true"] {
+  background: #13120e;
+}
+.f2-degradation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: baseline;
+  padding: 12px;
+  font-size: 13px;
+}
+.f2-degradation output {
+  font:
+    600 16px/1.2 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-fg);
+}
+.f2-kv {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  padding: 12px;
+  font-size: 12px;
+}
+.f2-kv dt {
+  color: var(--ag-faint);
+}
+.f2-kv dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .f2-step,
+  .f2-bar-fill {
+    transition:
+      background-color 150ms ease,
+      width 180ms ease;
+  }
+}
+
+/* ---- U4 review fixes ---- */
+.f2-notice {
+  border: 1px solid var(--ag-warn);
+  background: #15120a;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ag-fg);
+}
+.f2-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--ag-line);
+  font-size: 12px;
+  color: var(--ag-muted);
+}
+.f2-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.f2-metric {
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--ag-panel);
+}
+.f2-metric-label {
+  font-size: 12px;
+  color: var(--ag-muted);
+}
+.f2-metric-value {
+  display: block;
+  margin-top: 2px;
+  font:
+    500 15px/1.3 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-fg);
+  overflow-wrap: anywhere;
+}
+.f2-current {
+  padding: 8px 12px 0;
+  font-size: 13px;
+  color: var(--ag-fg);
+}
+.f2-current-k {
+  font-size: 12px;
+  color: var(--ag-muted);
+}
+.f2-note,
+.f2-scope,
+.f2-legend,
+.f2-chart-axis {
+  color: var(--ag-muted);
+}
+.f2-note {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Trajectory graph legend: always shown, wrapping (review MUST 2). */
+.f2-graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ag-line);
+  font:
+    500 12px/1.4 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-muted);
+}
+.f2-axis-stacked {
+  display: none;
+}
+/* Below 480px the 2D graph stacks its nodes in recorded order, so nothing is clipped and the
+   selected node is on screen (review MUST 1). Positions are inline styles, hence !important. */
+@media (max-width: 480px) {
+  .f2-graph {
+    overflow-x: visible;
+  }
+  .f2-graph-canvas {
+    min-width: 0 !important;
+    height: auto !important;
+  }
+  .f2-graph-edges {
+    display: none;
+  }
+  .f2-graph-nodes {
+    position: static !important;
+    display: grid;
+    gap: 22px;
+    padding: 12px;
+  }
+  .f2-graph-nodes > li {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: auto !important;
+  }
+  .f2-graph-nodes > li + li::before {
+    content: "↓";
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    font-size: 13px;
+    color: var(--ag-faint);
+  }
+  .f2-graph-nodes button {
+    height: auto !important;
+  }
+  .f2-graph-axis {
+    position: static !important;
+    padding: 0 12px 12px;
+  }
+  .f2-axis-wide {
+    display: none;
+  }
+  .f2-axis-stacked {
+    display: inline;
+  }
+}
+
+/* Bench: relation above the table on narrow screens (review S3). */
+.f2-bench-grid {
+  grid-template-areas:
+    "table relation"
+    "table side";
+}
+.f2-area-table {
+  grid-area: table;
+}
+.f2-area-relation {
+  grid-area: relation;
+}
+.f2-area-side {
+  grid-area: side;
+}
+@media (max-width: 900px) {
+  .f2-bench-grid {
+    grid-template-areas:
+      "relation"
+      "table"
+      "side";
+  }
+}
+/* Bench table: pinned model column and a scroll cue (review S4). */
+.f2-scroll {
+  position: relative;
+}
+.f2-scroll > .overflow-x-auto {
+  overflow-x: auto;
+}
+.f2-bench-table th:first-child,
+.f2-bench-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--ag-panel);
+}
+.f2-scroll-hint {
+  display: none;
+  padding: 6px 12px 0;
+  font-size: 12px;
+  color: var(--ag-muted);
+}
+@media (max-width: 900px) {
+  .f2-scroll::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 28px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--ag-panel));
+  }
+  .f2-scroll-hint {
+    display: block;
+  }
+}
+.f2-release {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  padding: 8px 12px;
+  border-top: 1px dashed var(--ag-line-2);
+  font-size: 12px;
+  color: var(--ag-muted);
+}
+.f2-release strong {
+  font:
+    600 12px/1.4 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: #8a939d;
+}
+
+/* Reality Ladder chart: y ticks and a single row of short x labels (review S1). */
+.f2-chart-tick {
+  position: absolute;
+  left: 0;
+  transform: translateY(-110%);
+  font:
+    500 12px/1 "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  color: var(--ag-muted);
+}
+.f2-chart-axis {
+  height: 22px;
+}

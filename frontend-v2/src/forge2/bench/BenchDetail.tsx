@@ -1,9 +1,13 @@
 // Forge v2 successor of frontend-v2/src/forge/bench/BenchDetail.tsx.
 // Kept separate because v1 is frozen phase evidence (scripts/research_archive.py SHARED_PATHS).
+// U4: metric tabs over the artifact's own fields, an observed-relation sentence computed from
+// those fields (bench-model.ts), and releases without a verified artifact shown as UNAVAILABLE.
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
-import { baselineQuery } from "@/forge/data/forge-queries";
+import { HashValue } from "@/epistemic/EpistemicValue";
+import { ClassChips, MetricCell } from "@/forge2/shared/MetricCell";
+import { DEFAULT_REALITY_ID, type BaselineModel } from "@/forge/contracts/observer";
+import { baselineIndexQuery, baselineQuery, realityQuery } from "@/forge/data/forge-queries";
 import { AgentsShell } from "@/forge2/shared/AgentsShell";
 import {
   InstrumentPanel,
@@ -12,16 +16,38 @@ import {
   SurfaceHeader,
   UnavailableState,
 } from "@/forge2/shared/SurfacePrimitives";
-import { useForgeProv } from "@/forge2/shared/forge-prov";
+import { useForgeProv, type ForgeProv } from "@/forge2/shared/forge-prov";
+import {
+  BENCH_FIELDS,
+  BENCH_METRICS,
+  benchMetric,
+  formatBenchValue,
+  observedRelation,
+  type BenchField,
+  type BenchMetricKey,
+} from "./bench-model";
+
+/**
+ * Releases the design plan names (docs/forge-ui-v3-preimplementation.md §4.4). A release is shown
+ * with values only when the baseline index lists a verified artifact for it.
+ */
+const PLANNED_RELEASES = [
+  { id: "forge-v0.2.5.1", label: "v0.2.5.1 hardened" },
+  { id: "forge-v0.3", label: "v0.3 multi-agent" },
+] as const;
 
 export function BenchDetail({
   benchmarkId,
   selectedModel,
+  metric,
 }: {
   benchmarkId: string;
   selectedModel?: string;
+  metric: BenchMetricKey;
 }) {
   const query = useQuery(baselineQuery(benchmarkId));
+  const index = useQuery(baselineIndexQuery);
+  const reality = useQuery(realityQuery(DEFAULT_REALITY_ID));
   const B = useForgeProv(`/forge/baselines/${benchmarkId}`);
   if (query.isPending)
     return (
@@ -41,9 +67,19 @@ export function BenchDetail({
     );
   }
   const baseline = query.data;
-  const models = selectedModel
-    ? baseline.models.filter((model) => model.id === selectedModel)
-    : baseline.models;
+  const tab = benchMetric(metric);
+  const selected = new Set(tab.fields);
+  const models = baseline.models;
+  const verified = baseline.binding.integrityStatus === "MANIFEST_MATCH";
+  const listed = new Set((index.data ?? []).map((item) => item.binding.artifactId));
+  const totals = [
+    baseline.overall.episodes,
+    baseline.excludedAttempts,
+    baseline.allAttemptCost,
+    baseline.admittedCost,
+  ];
+  const ladderBound =
+    reality.data && reality.data.binding.artifactHash === baseline.realityLadderArtifactHash;
 
   return (
     <AgentsShell>
@@ -52,141 +88,205 @@ export function BenchDetail({
         title="Real API model baseline"
         description={
           <span data-num-exempt="copy">
-            The exact frozen v0.2.5 summary and manifest binding. Display rounding is
-            presentation-only; provenance exposes the canonical source field.
+            The frozen v0.2.5 summary and manifest binding. Display rounding is presentation-only;
+            every value opens its source field.
           </span>
         }
-        meta={<StatusMark status="PASS" label={baseline.binding.integrityStatus} />}
+        meta={
+          <StatusMark
+            status={verified ? "PASS" : "INFO"}
+            label={verified ? `VERIFIED · ${baseline.binding.integrityStatus}` : "UNVERIFIED"}
+          />
+        }
       />
-      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.6fr)]">
-        <InstrumentPanel title="Model observations" code="SUITE-SPECIFIC">
-          <div className="relative overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left">
-              <caption className="sr-only">Frozen baseline metrics by model</caption>
-              <thead>
-                <tr className="border-b border-[#1D232B] font-mono text-[8px] uppercase tracking-[0.1em] text-[#65707c]">
-                  <th scope="col" className="px-3 py-3 font-medium">
-                    Model
-                  </th>
-                  <th scope="col" className="px-3 py-3 font-medium">
-                    Verified research
-                  </th>
-                  <th scope="col" className="px-3 py-3 font-medium">
-                    False alpha
-                  </th>
-                  <th scope="col" className="px-3 py-3 font-medium">
-                    Critical failures
-                  </th>
-                  <th scope="col" className="px-3 py-3 font-medium">
-                    Cost / verified
-                  </th>
-                  <th scope="col" className="px-3 py-3 font-medium">
-                    Latency
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#171d23]">
-                {models.map((model) => (
-                  <tr key={model.id} className="align-top hover:bg-[#0e1216]">
-                    <th scope="row" className="px-3 py-4">
-                      <Link
-                        to="/bench/$benchmarkId"
-                        params={{ benchmarkId }}
-                        search={{ model: model.id }}
-                        className="font-medium text-[#E6E8EB] hover:text-[#FFB000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000]"
+
+      <nav aria-label="Bench metric" className="f2-tabs mt-4">
+        {BENCH_METRICS.map((item) => (
+          <Link
+            key={item.key}
+            to="/bench/$benchmarkId"
+            params={{ benchmarkId }}
+            search={{ model: selectedModel, metric: item.key }}
+            aria-current={item.key === tab.key ? "page" : undefined}
+            data-metric={item.key}
+          >
+            {item.tab}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="f2-bench-grid mt-3">
+        <InstrumentPanel
+          title="Observed relation"
+          code={tab.tab.toUpperCase()}
+          className="f2-area-relation"
+        >
+          <div className="f2-panel-body">
+            <p className="f2-sentence" data-testid="bench-relation">
+              {observedRelation(models, tab).map((part, i) =>
+                "text" in part ? (
+                  <span key={i}>{part.text}</span>
+                ) : (
+                  <span key={i}>{B.M(part.field.get(part.model))}</span>
+                ),
+              )}
+            </p>
+            <p className="f2-scope" data-testid="bench-scope">
+              Observed in this suite (
+              {B.M(
+                baseline.overall.episodes,
+                "Admitted episodes",
+                String(baseline.overall.episodes.value),
+              )}{" "}
+              admitted episodes); not a global ranking. Ties and order use the displayed precision.
+            </p>
+          </div>
+        </InstrumentPanel>
+
+        <InstrumentPanel title="Model observations" code="SUITE-SPECIFIC" className="f2-area-table">
+          <p className="f2-scroll-hint">
+            Model is pinned; swipe the table for cost, latency and use →
+          </p>
+          <div className="f2-scroll">
+            <div className="overflow-x-auto">
+              <table className="f2-bench-table">
+                <caption className="sr-only">Frozen baseline metrics by model</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Model</th>
+                    {BENCH_FIELDS.map((field) => (
+                      <th
+                        key={field.header}
+                        scope="col"
+                        data-selected={selected.has(field) ? "true" : undefined}
                       >
-                        {model.label}
-                      </Link>
-                      <div className="mt-1 font-mono text-[8px] uppercase text-[#59636e]">
-                        {model.provider}
-                      </div>
-                    </th>
-                    {[
-                      model.verifiedResearch,
-                      model.falseAlpha,
-                      model.criticalFailures,
-                      model.costPerVerifiedFinding,
-                      model.latency,
-                    ].map((metric) => (
-                      <td key={metric.id} className="px-3 py-4">
-                        <ResearchValue metric={metric} value={B.M(metric)} compact />
-                      </td>
+                        {field.header}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {models
+                    .filter((m) => !selectedModel || m.id === selectedModel)
+                    .map((model) => (
+                      <tr key={model.id}>
+                        <th scope="row">
+                          <Link
+                            to="/bench/$benchmarkId"
+                            params={{ benchmarkId }}
+                            search={{ model: model.id, metric: tab.key }}
+                          >
+                            {model.label}
+                          </Link>
+                        </th>
+                        {BENCH_FIELDS.map((field) => (
+                          <td
+                            key={field.header}
+                            data-selected={selected.has(field) ? "true" : undefined}
+                          >
+                            {B.M(field.get(model))}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
           {selectedModel && (
             <Link
               to="/bench/$benchmarkId"
               params={{ benchmarkId }}
-              search={{ model: undefined }}
-              className="block border-t border-[#1D232B] px-3 py-3 font-mono text-[9px] uppercase tracking-[0.1em] text-[#52A8FF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000]"
+              search={{ model: undefined, metric: tab.key }}
+              className="block border-t border-[#1D232B] px-3 py-3 text-[12px] text-[#52A8FF]"
             >
               Clear model focus
             </Link>
           )}
+          {tab.fields.map((field) => (
+            <Bars key={field.header} models={models} field={field} B={B} />
+          ))}
         </InstrumentPanel>
 
-        <div className="grid content-start gap-4">
-          <InstrumentPanel
-            title="Artifact totals"
-            code={<span data-num-exempt="id">{baseline.tag}</span>}
-          >
-            <div className="grid gap-px bg-[#1D232B] sm:grid-cols-2 xl:grid-cols-1">
-              {[
-                baseline.overall.episodes,
-                baseline.excludedAttempts,
-                baseline.allAttemptCost,
-                baseline.admittedCost,
-              ].map((metric) => (
-                <ResearchValue
-                  key={metric.id}
-                  metric={metric}
-                  value={B.M(metric)}
-                  className="bg-[#0B0E11] p-3"
-                />
+        <div className="f2-area-side grid content-start gap-3">
+          <InstrumentPanel title="Artifact" code={<ClassChips metrics={totals} />}>
+            <div className="f2-subhead">
+              <span data-num-exempt="id">{baseline.binding.sourceSchemaVersion}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-px bg-[#1D232B]">
+              {totals.map((m) => (
+                <MetricCell key={m.id} metric={m} value={B.M(m)} />
               ))}
             </div>
-          </InstrumentPanel>
-          <InstrumentPanel
-            title="Bindings"
-            code={<span data-num-exempt="id">{baseline.binding.sourceSchemaVersion}</span>}
-          >
-            <div className="grid gap-3 p-3">
+            <div className="grid gap-2 p-3">
               <HashValue label="baseline" value={baseline.binding.artifactHash} />
               <HashValue label="suite" value={baseline.suiteHash} />
               <HashValue label="certification" value={baseline.certificationArtifactHash} />
-              <HashValue label="reality" value={baseline.realityLadderArtifactHash} />
+              <HashValue label="reality ladder" value={baseline.realityLadderArtifactHash} />
+              {ladderBound ? (
+                <Link
+                  to="/reality/$artifactId"
+                  params={{ artifactId: DEFAULT_REALITY_ID }}
+                  search={{ checkpoint: undefined, metric: "sharpe", view: "chart" }}
+                  className="agents-link text-[12px]"
+                >
+                  Open the bound Reality Ladder →
+                </Link>
+              ) : null}
             </div>
           </InstrumentPanel>
-          <section className="border border-[#28323b] bg-[#0B0E11] p-4">
-            <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#52A8FF]">
-              Interpretation boundary
-            </div>
-            <p className="mt-2 text-sm leading-6 text-[#8b949e]">
-              Observer Foundation exposes suite observations and provenance. It does not promote
-              them into a global model ranking.
-            </p>
-          </section>
-          <UnavailableRelease label="v0.2.5.1 hardened" />
+
+          <InstrumentPanel title="Other releases" code="UNAVAILABLE">
+            {PLANNED_RELEASES.filter((r) => !listed.has(r.id)).map((r) => (
+              <div key={r.id} className="f2-release" data-release={r.id}>
+                <strong>UNAVAILABLE</strong>
+                <span data-num-exempt="id">{r.label}</span>
+                <span>no verified artifact loaded</span>
+              </div>
+            ))}
+          </InstrumentPanel>
         </div>
       </div>
     </AgentsShell>
   );
 }
 
-function UnavailableRelease({ label }: { label: string }) {
+/** Bar length encodes the named field, scaled to the largest observed value (zero at the left). */
+function Bars({
+  models,
+  field,
+  B,
+}: {
+  models: readonly BaselineModel[];
+  field: BenchField;
+  B: ForgeProv;
+}) {
+  const max = Math.max(...models.map((m) => field.get(m).value));
   return (
-    <section className="border border-dashed border-[#303842] bg-[#090b0e] p-4">
-      <div className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#616A75]">
-        UNAVAILABLE
+    <figure className="border-t border-[#1D232B]">
+      <div className="f2-bars" role="list" aria-label={`${field.name} by model`}>
+        {models.map((m) => {
+          const metric = field.get(m);
+          return (
+            <div key={m.id} className="f2-bar" role="listitem">
+              <span>{m.label}</span>
+              <span className="f2-bar-track" aria-hidden="true">
+                <span
+                  className="f2-bar-fill"
+                  style={{ width: max > 0 ? `${(metric.value / max) * 100}%` : "0%" }}
+                />
+              </span>
+              <span>{B.M(metric, metric.label, formatBenchValue(metric))}</span>
+            </div>
+          );
+        })}
       </div>
-      <h2 className="mt-2 text-sm font-medium text-[#aab2ba]" data-num-exempt="id">
-        {label}
-      </h2>
-      <p className="mt-1 text-xs text-[#65707c]">No verified artifact is loaded.</p>
-    </section>
+      <figcaption className="f2-legend">
+        <span>
+          <span className="f2-swatch bg-[#52A8FF]" aria-hidden="true" />
+          bar length · {field.name}, from zero to the largest observed value
+        </span>
+      </figcaption>
+    </figure>
   );
 }

@@ -220,7 +220,7 @@ export function RunIndex(filters: RunFilters) {
                       className="agents-link"
                       to="/runs/$runId"
                       params={{ runId: run.runId }}
-                      search={{ node: 1, tab: "action" }}
+                      search={{ step: 1, tab: "action" }}
                     >
                       {run.taskId}
                     </Link>

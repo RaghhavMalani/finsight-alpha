@@ -299,7 +299,7 @@ if (flag > 0) {
       } else {
         if (name === "run") {
           await page.getByRole("button", { name: /action 2,/ }).click();
-          await page.waitForURL(/node=2/);
+          await page.waitForURL(/step=2/);
           const tabs = page.getByRole("navigation", { name: "Run observer views" });
           await tabs.getByRole("link", { name: "checks", exact: true }).click();
           await page.waitForURL(/tab=checks/);
@@ -316,7 +316,7 @@ if (flag > 0) {
             const nodes = page.getByTestId("trajectory-3d").getByRole("button");
             await nodes.first().waitFor();
             await nodes.nth(cycle).click();
-            await page.waitForURL(new RegExp("node=" + (cycle + 1)));
+            await page.waitForURL(new RegExp("step=" + (cycle + 1)));
             await page.getByRole("button", { name: "2D", exact: true }).click();
             await page.getByTestId("trajectory-2d").waitFor();
           }

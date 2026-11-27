@@ -127,6 +127,7 @@ jobs:
             run: |
               serve
               node scripts/verify-agents.mjs --url "$APP"
+              node scripts/verify-forge2.mjs --url "$APP"
               node scripts/verify-shell.mjs --url "$APP"
               node scripts/verify-plugins.mjs --url "$APP"
               node scripts/verify-data.mjs --url "$APP"

@@ -1,6 +1,7 @@
 // Forge v2 successor of frontend-v2/src/forge/runs/TrajectoryEvidenceInspector.tsx.
 // Kept separate because v1 is frozen phase evidence (scripts/research_archive.py SHARED_PATHS).
-import { EpistemicBadge, HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
+import { EpistemicBadge, HashValue } from "@/epistemic/EpistemicValue";
+import { ClassChips, MetricCell } from "@/forge2/shared/MetricCell";
 import type { RunDetail } from "@/forge/contracts/observer";
 import type { TrajectoryNode } from "@/forge2/runs/trajectory-model";
 import { formatNodeCost, formatNodeLatency } from "@/forge2/runs/trajectory-model";
@@ -76,18 +77,19 @@ export function TrajectoryEvidenceInspector({
       </dl>
 
       {node.metrics.length ? (
-        <div
-          className={`grid gap-px border-b border-[#1D232B] bg-[#1D232B] ${compact ? "grid-cols-2" : "sm:grid-cols-2"}`}
-        >
-          {node.metrics.map((metric) => (
-            <ResearchValue
-              key={metric.id}
-              metric={metric}
-              value={P.M(metric)}
-              className="bg-[#0B0E11] p-3"
-            />
-          ))}
-        </div>
+        <>
+          <div className="f2-subhead">
+            Evidence
+            <ClassChips metrics={node.metrics} />
+          </div>
+          <div
+            className={`grid gap-px border-b border-[#1D232B] bg-[#1D232B] ${compact ? "grid-cols-2" : "sm:grid-cols-2"}`}
+          >
+            {node.metrics.map((metric) => (
+              <MetricCell key={metric.id} metric={metric} value={P.M(metric)} />
+            ))}
+          </div>
+        </>
       ) : (
         <div className="border-b border-[#1D232B] p-3 text-[11px] leading-5 text-[#65707c]">
           This action produced no numerical evidence fields.

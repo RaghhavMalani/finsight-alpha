@@ -793,7 +793,7 @@ function RunPreview({
                         className="agents-link"
                         to="/runs/$runId"
                         params={{ runId }}
-                        search={{ node: action.sequence, tab: "action" }}
+                        search={{ step: action.sequence, tab: "action" }}
                       >
                         {words(action.tool.replace("research.", ""))}
                       </Link>
@@ -855,7 +855,7 @@ function RunPreview({
               className="agents-link"
               to="/runs/$runId"
               params={{ runId }}
-              search={{ node, tab: "action" }}
+              search={{ step: node, tab: "action" }}
             >
               Open full trajectory and evidence inspector →
             </Link>

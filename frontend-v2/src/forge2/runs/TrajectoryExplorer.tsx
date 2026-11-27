@@ -2,6 +2,7 @@
 // Kept separate because v1 is frozen phase evidence (scripts/research_archive.py SHARED_PATHS).
 import { lazy, Suspense, useEffect, useState } from "react";
 import { TrajectoryGraph2D } from "@/forge2/runs/TrajectoryGraph2D";
+import { useReducedMotion } from "@/forge2/shared/motion";
 import type { TrajectoryViewModel } from "@/forge2/runs/trajectory-model";
 
 const loadTrajectoryGraph3D = () => import("@/forge2/runs/TrajectoryGraph3D");
@@ -20,15 +21,10 @@ export function TrajectoryExplorer({
 }) {
   const [view, setView] = useState<"2D" | "3D">("2D");
   const [mounted, setMounted] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(true);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     setMounted(true);
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReducedMotion(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
   }, []);
 
   return (
@@ -41,11 +37,6 @@ export function TrajectoryExplorer({
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-3 font-mono text-[7px] uppercase tracking-[0.08em] text-[#65707c] lg:flex">
-            <span className="text-[#FFB000]">● cost</span>
-            <span className="text-[#52A8FF]">■ computed</span>
-            <span className="text-[#35C78A]">— verified</span>
-          </div>
           <div className="flex border border-[#303842]" aria-label="Trajectory view">
             {(["2D", "3D"] as const).map((item) => (
               <button
@@ -67,6 +58,27 @@ export function TrajectoryExplorer({
           </div>
         </div>
       </header>
+
+      {/* U4: the legend names every channel the visible view encodes (2D and 3D differ), at
+          every width (review: it was hidden below the lg breakpoint). */}
+      <div className="f2-graph-legend" data-legend={view}>
+        {view === "2D" ? (
+          <>
+            <span className="text-[#FFB000]">amber text · cost</span>
+            <span className="text-[#52A8FF]">blue text · engine</span>
+            <span>top rule · verifier (green pass, red fail)</span>
+            <span className="text-[#FFB000]">amber border · selected</span>
+          </>
+        ) : (
+          <>
+            <span className="text-[#FFB000]">box tone · cost</span>
+            <span>box size · tokens</span>
+            <span>depth · cumulative latency</span>
+            <span>wireframe · verifier (green pass, red fail)</span>
+            <span>height · stage depth</span>
+          </>
+        )}
+      </div>
 
       {view === "2D" || !mounted ? (
         <TrajectoryGraph2D

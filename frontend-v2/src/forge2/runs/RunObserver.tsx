@@ -1,13 +1,16 @@
 // Forge v2 successor of frontend-v2/src/forge/runs/RunObserver.tsx.
 // Kept separate because v1 is frozen phase evidence (scripts/research_archive.py SHARED_PATHS).
+import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
+import { HashValue } from "@/epistemic/EpistemicValue";
+import { ClassChips, MetricCell } from "@/forge2/shared/MetricCell";
 import type { RunDetail } from "@/forge/contracts/observer";
 import { runQuery } from "@/forge/data/forge-queries";
 import { AgentsShell } from "@/forge2/shared/AgentsShell";
 import { TrajectoryEvidenceInspector } from "@/forge2/runs/TrajectoryEvidenceInspector";
 import { TrajectoryExplorer } from "@/forge2/runs/TrajectoryExplorer";
+import { TrajectoryStepper } from "@/forge2/runs/TrajectoryStepper";
 import { buildTrajectoryViewModel } from "@/forge2/runs/trajectory-model";
 import { useForgeProv, type ForgeProv } from "@/forge2/shared/forge-prov";
 import {
@@ -22,16 +25,32 @@ type ObserverTab = "action" | "turns" | "checks";
 
 export function RunObserver({
   runId,
-  node,
+  step,
+  requested,
   tab,
 }: {
   runId: string;
-  node: number;
+  step: number;
+  /** The step the URL asked for, as written, when it named one. */
+  requested?: string;
   tab: ObserverTab;
 }) {
   const query = useQuery(runQuery(runId));
   const navigate = useNavigate();
   const X = useForgeProv(`/forge/runs/${runId}`);
+  // Stepping replaces the history entry: the URL always deep-links the selected step, and a
+  // replayed or keyboard-stepped walk does not flood the back button.
+  const selectNode = useCallback(
+    (sequence: number) => {
+      void navigate({
+        to: "/runs/$runId",
+        params: { runId },
+        search: { step: sequence, tab },
+        replace: true,
+      });
+    },
+    [navigate, runId, tab],
+  );
 
   if (query.isPending) {
     return (
@@ -54,8 +73,10 @@ export function RunObserver({
 
   const run = query.data;
   const trajectory = buildTrajectoryViewModel(run);
-  const selectedNode =
-    trajectory.nodes.find((item) => item.sequence === node) ?? trajectory.nodes[0];
+  const found = trajectory.nodes.find((item) => item.sequence === step);
+  const selectedNode = found ?? trajectory.nodes[0];
+  // A requested step that is not in this run is said so, never silently replaced.
+  const missing = requested !== undefined && (!found || String(step) !== requested);
 
   if (!selectedNode) {
     return (
@@ -68,13 +89,7 @@ export function RunObserver({
     );
   }
 
-  const selectNode = (sequence: number) => {
-    void navigate({
-      to: "/runs/$runId",
-      params: { runId },
-      search: { node: sequence, tab: "action" },
-    });
-  };
+  const selectedIndex = trajectory.nodes.indexOf(selectedNode);
 
   return (
     <AgentsShell>
@@ -101,9 +116,22 @@ export function RunObserver({
         <HashValue label="task" value={run.taskHash} />
       </div>
 
-      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(34rem,1fr)_20rem]">
+      {missing && selectedNode ? (
+        <p className="f2-notice mt-3" role="status" data-testid="step-notice">
+          Step <span data-num-exempt="input">{requested}</span> is not in this run; showing step{" "}
+          {X.N(
+            "/run/actions/0/sequence",
+            selectedNode.sequence,
+            "Action sequence",
+            String(selectedNode.sequence).padStart(2, "0"),
+          )}
+          .
+        </p>
+      ) : null}
+
+      <div className="f2-debugger mt-3">
         <InstrumentPanel
-          title="Execution trace"
+          title="Trajectory"
           code={
             <>
               {X.N("/run/actions", run.actions.length, "Actions", String(run.actions.length), {
@@ -113,32 +141,44 @@ export function RunObserver({
             </>
           }
         >
-          <TrajectoryExplorer
-            runId={runId}
+          <TrajectoryStepper
             model={trajectory}
             selectedSequence={selectedNode.sequence}
-            onSelect={selectNode}
+            onStep={selectNode}
+            P={X}
           />
-          <div className="grid grid-cols-3 gap-px border-t border-[#1D232B] bg-[#1D232B]">
+          <div className="f2-subhead">
+            Run totals
+            <ClassChips metrics={[run.usage.tokens, run.usage.cost, run.usage.wallSeconds]} />
+          </div>
+          <div className="grid grid-cols-3 gap-px bg-[#1D232B]">
             {[run.usage.tokens, run.usage.cost, run.usage.wallSeconds].map((metric) => (
-              <ResearchValue
-                key={metric.id}
-                metric={metric}
-                value={X.M(metric)}
-                className="bg-[#0B0E11] p-3"
-              />
+              <MetricCell key={metric.id} metric={metric} value={X.M(metric)} />
             ))}
           </div>
         </InstrumentPanel>
 
-        <InstrumentPanel title="Evidence inspector" code={tab.toUpperCase()}>
+        <InstrumentPanel
+          title={
+            <>
+              Selected action ·{" "}
+              {X.N(
+                `/run/actions/${selectedIndex}/sequence`,
+                selectedNode.sequence,
+                "Action sequence",
+                String(selectedNode.sequence).padStart(2, "0"),
+              )}
+            </>
+          }
+          code={tab.toUpperCase()}
+        >
           <nav aria-label="Run observer views" className="flex border-b border-[#1D232B]">
             {(["action", "turns", "checks"] as const).map((item) => (
               <Link
                 key={item}
                 to="/runs/$runId"
                 params={{ runId }}
-                search={{ node: selectedNode.sequence, tab: item }}
+                search={{ step: selectedNode.sequence, tab: item }}
                 aria-current={tab === item ? "page" : undefined}
                 className={`border-r border-[#1D232B] px-3 py-2.5 font-mono text-[8px] uppercase tracking-[0.1em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FFB000] ${
                   tab === item
@@ -156,6 +196,15 @@ export function RunObserver({
           {tab === "turns" ? <TurnInspector run={run} X={X} /> : null}
           {tab === "checks" ? <CheckInspector run={run} /> : null}
         </InstrumentPanel>
+      </div>
+
+      <div className="agents-card mt-3">
+        <TrajectoryExplorer
+          runId={runId}
+          model={trajectory}
+          selectedSequence={selectedNode.sequence}
+          onSelect={selectNode}
+        />
       </div>
 
       <section className="mt-3 grid gap-3 border border-[#1D232B] bg-[#0B0E11] p-3 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -187,14 +236,13 @@ function TurnInspector({ run, X }: { run: RunDetail; X: ForgeProv }) {
           <p className="mt-2 whitespace-pre-wrap break-words text-[11px] leading-5 text-[#c3cad0]">
             {X.T(`/model_turns/${i}/text`, turn.text, "Model turn text")}
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-px bg-[#1D232B]">
+          <div className="f2-subhead mt-3">
+            Usage
+            <ClassChips metrics={[turn.inputTokens, turn.outputTokens, turn.cost, turn.latency]} />
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-[#1D232B]">
             {[turn.inputTokens, turn.outputTokens, turn.cost, turn.latency].map((metric) => (
-              <ResearchValue
-                key={metric.id}
-                metric={metric}
-                value={X.M(metric)}
-                className="bg-[#0B0E11] p-2.5"
-              />
+              <MetricCell key={metric.id} metric={metric} value={X.M(metric)} />
             ))}
           </div>
         </li>

@@ -6,9 +6,9 @@ import { formatNodeCost, formatNodeLatency } from "@/forge2/runs/trajectory-mode
 import { useForgeProv } from "@/forge2/shared/forge-prov";
 import { nodeNums } from "./node-prov";
 
-const NODE_WIDTH = 144;
+const NODE_WIDTH = 176;
 const NODE_HEIGHT = 160;
-const STEP_X = 172;
+const STEP_X = 204;
 
 function nodePosition(node: TrajectoryNode, index: number) {
   return {
@@ -39,12 +39,17 @@ export function TrajectoryGraph2D({
   );
 
   return (
-    <div className="overflow-x-auto" data-testid="trajectory-2d">
+    <div className="f2-graph overflow-x-auto" data-testid="trajectory-2d">
       <div
-        className="relative bg-[linear-gradient(#151a20_1px,transparent_1px),linear-gradient(90deg,#151a20_1px,transparent_1px)] bg-[size:32px_32px]"
+        className="f2-graph-canvas relative bg-[linear-gradient(#151a20_1px,transparent_1px),linear-gradient(90deg,#151a20_1px,transparent_1px)] bg-[size:32px_32px]"
         style={{ minWidth: width, height }}
       >
-        <svg aria-hidden="true" className="absolute left-0 top-0" width={width} height={height}>
+        <svg
+          aria-hidden="true"
+          className="f2-graph-edges absolute left-0 top-0"
+          width={width}
+          height={height}
+        >
           <defs>
             <marker
               id="trajectory-arrow"
@@ -79,7 +84,7 @@ export function TrajectoryGraph2D({
           })}
         </svg>
 
-        <ol aria-label="Ordered trajectory actions" className="absolute inset-0">
+        <ol aria-label="Ordered trajectory actions" className="f2-graph-nodes absolute inset-0">
           {model.nodes.map((node, index) => {
             const active = node.sequence === selectedSequence;
             // Inert: the node is itself a button; the selected node's values open in the inspector.
@@ -96,6 +101,7 @@ export function TrajectoryGraph2D({
                   type="button"
                   onClick={() => onSelect(node.sequence)}
                   aria-pressed={active}
+                  data-node={node.sequence}
                   aria-label={`${node.label}, action ${node.sequence}, ${node.tokens} tokens, ${formatNodeCost(node.cost)}, ${formatNodeLatency(node.latency)}, verifier ${node.verifierState}`}
                   className={`group relative h-[160px] w-full border bg-[#090c0f] p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:bg-[#0f1419] active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
                     active
@@ -119,31 +125,37 @@ export function TrajectoryGraph2D({
                     </span>
                     <EpistemicBadge type={node.epistemicType} />
                   </span>
-                  <span className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[8px] tabular-nums">
-                    <span className="text-[#88929c]">{v.tokens} tok</span>
-                    <span className="text-right text-[#FFB000]">{v.cost}</span>
-                    <span className="truncate text-[#52A8FF]" title={node.engine}>
-                      {node.engine.replace("gpt-5.6-", "")}
+                  {/* U4 review fix: one value per row, nothing absolutely positioned, so the
+                      "selected" mark cannot overlap the latency and token counts cannot wrap. */}
+                  <span className="f2-node-values font-mono text-[8px] tabular-nums">
+                    <span className="f2-node-row">
+                      <span className="whitespace-nowrap text-[#88929c]">{v.tokens} tok</span>
+                      <span className="whitespace-nowrap text-[#FFB000]">{v.cost}</span>
                     </span>
-                    <span className="text-right text-[#88929c]">{v.latency}</span>
+                    <span className="f2-node-row">
+                      <span className="min-w-0 truncate text-[#52A8FF]" title={node.engine}>
+                        {node.engine.replace("gpt-5.6-", "")}
+                      </span>
+                      <span className="whitespace-nowrap text-[#88929c]">{v.latency}</span>
+                    </span>
+                    <span className="f2-node-row">
+                      <span className="text-[#88929c]">{node.verifierState}</span>
+                      {active ? (
+                        <span className="font-semibold uppercase text-[#FFB000]">selected</span>
+                      ) : null}
+                    </span>
                   </span>
-                  {active ? (
-                    <span className="absolute bottom-2 right-2 font-mono text-[7px] font-semibold uppercase tracking-[0.12em] text-[#FFB000]">
-                      selected
-                    </span>
-                  ) : null}
                 </button>
               </li>
             );
           })}
         </ol>
 
-        <div
-          aria-hidden="true"
-          className="absolute bottom-2 left-3 flex gap-4 font-mono text-[7px] uppercase tracking-[0.1em] text-[#4f5963]"
-        >
-          <span>X / progression →</span>
-          <span>Y / experiment depth ↓</span>
+        {/* Below 480px the nodes stack in recorded order (u4.css), so the axis key changes too. */}
+        <div className="f2-graph-axis absolute bottom-2 left-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[7px] uppercase tracking-[0.1em] text-[#4f5963]">
+          <span className="f2-axis-wide">X · recorded action order →</span>
+          <span className="f2-axis-wide">Y · stage depth (from the action stage) ↓</span>
+          <span className="f2-axis-stacked">Recorded action order ↓ (stacked at this width)</span>
           <span>Time is printed per node</span>
         </div>
       </div>
