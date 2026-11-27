@@ -56,21 +56,27 @@ const TABS = {
 const and = (xs) =>
   xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs.at(-1);
 
-/** The sentence the Bench must print for a tab, from the raw model summaries. */
+/**
+ * The sentence the Bench must print for a tab, from the raw model summaries. Ties and order are
+ * judged on the displayed (rounded) values, so the sentence never contradicts its own numbers.
+ */
 export function expectedRelation(summaries, tab) {
   const rows = summaries.map((s) => ({ name: label(s.model), s }));
   if (rows.length < 2) return "A relation needs at least two models in the suite.";
+  const shown = (F, r) => Number(F.f(r.s[F.key]).replace(/[$%s]/g, ""));
   const out = TABS[tab].map((fk) => {
     const F = FIELDS[fk];
-    const v = (r) => r.s[F.key];
+    const v = (r) => shown(F, r);
+    const f = (r) => F.f(r.s[F.key]);
     const vals = rows.map(v);
     if (F.better === 0) {
       const lo = Math.min(...vals),
         hi = Math.max(...vals);
-      if (lo === hi) return `All ${rows.length} models record the same ${F.name} (${F.f(lo)}).`;
-      const at = (x) => and(rows.filter((r) => v(r) === x).map((r) => r.name));
+      const at = (x) => rows.filter((r) => v(r) === x);
+      if (lo === hi) return `All ${rows.length} models record the same ${F.name} (${f(rows[0])}).`;
+      const names = (x) => and(at(x).map((r) => r.name));
       const cap = F.name[0].toUpperCase() + F.name.slice(1);
-      return `${cap} range from ${F.f(lo)} (${at(lo)}) to ${F.f(hi)} (${at(hi)}).`;
+      return `${cap} range from ${f(at(lo)[0])} (${names(lo)}) to ${f(at(hi)[0])} (${names(hi)}).`;
     }
     const best = F.better > 0 ? Math.max(...vals) : Math.min(...vals);
     const top = rows.filter((r) => v(r) === best);
@@ -79,24 +85,24 @@ export function expectedRelation(summaries, tab) {
       .map((r, i) => ({ r, i }))
       .sort((a, b) => (F.better > 0 ? v(b.r) - v(a.r) : v(a.r) - v(b.r)) || a.i - b.i)
       .map((x) => x.r);
-    if (!rest.length) return `All ${rows.length} models tie on ${F.name} (${F.f(best)}).`;
+    if (!rest.length) return `All ${rows.length} models tie on ${F.name} (${f(top[0])}).`;
     const head =
       top.length > 1
-        ? `${and(top.map((r) => r.name))} tie on ${F.name} (${F.f(best)}); `
-        : `${top[0].name} has the ${F.better > 0 ? "highest" : "lowest"} ${F.name} (${F.f(best)}); `;
-    const list = and(rest.map((r) => `${r.name} (${F.f(v(r))})`));
+        ? `${and(top.map((r) => r.name))} tie on ${F.name} (${f(top[0])}); `
+        : `${top[0].name} has the ${F.better > 0 ? "highest" : "lowest"} ${F.name} (${f(top[0])}); `;
+    const list = and(rest.map((r) => `${r.name} (${f(r)})`));
     return `${head}${list} ${rest.length > 1 ? "are" : "is"} ${F.better > 0 ? "lower" : "higher"}.`;
   });
   let text = out.join(" ");
   if (tab === "verified") {
-    const V = FIELDS.verified.key;
-    const best = Math.max(...rows.map((r) => r.s[V]));
-    const tied = rows.filter((r) => r.s[V] === best);
+    const V = FIELDS.verified;
+    const best = Math.max(...rows.map((r) => shown(V, r)));
+    const tied = rows.filter((r) => shown(V, r) === best);
     if (tied.length > 1) {
       const word = tied.length === 2 ? "lower" : "lowest";
       const low = (F) => {
-        const m = Math.min(...tied.map((r) => r.s[F.key]));
-        const at = tied.filter((r) => r.s[F.key] === m);
+        const m = Math.min(...tied.map((r) => shown(F, r)));
+        const at = tied.filter((r) => shown(F, r) === m);
         return at.length === 1 ? at[0] : null;
       };
       const c = low(FIELDS.cost),
@@ -127,6 +133,49 @@ function fmtDelta(d, { p, unit }) {
   const n = Math.abs(d).toFixed(p);
   const sign = Number(n) === 0 ? "" : d < 0 ? "−" : "+";
   return sign + (unit === "$" ? "$" : "") + n + (unit === "s" ? "s" : "");
+}
+// The checkpoint pair each recorded decomposition component measures (forge-reality-ladder/0.2.4.1),
+// declared here independently of the page and checked against the artifact's decomposition values.
+const COMPONENT = {
+  idealization_gap: ["L0_ANALYTICAL", "L1_VECTORBT"],
+  model_semantic_decay: ["L1_VECTORBT", "L2_NAUTILUS"],
+  fee_decay: ["L2_NAUTILUS", "L3_FEES_SLIPPAGE"],
+  latency_decay: ["L3_FEES_SLIPPAGE", "L3_LATENCY"],
+  stress_decay: ["L3_LATENCY", "L4_COUNTERFACTUAL_STRESS"],
+};
+/** Whether the artifact's recorded largest degradation names the computed step. */
+export function expectedMatch(reality) {
+  const { worst } = expectedLadder(reality, "sharpe");
+  const rec = reality.aggregate.largest_degradation;
+  const pair = COMPONENT[rec.component];
+  return (
+    !!worst &&
+    !!pair &&
+    pair[0] === worst.from &&
+    pair[1] === worst.to &&
+    Math.abs(worst.d - rec.sharpe_change) < 1e-9
+  );
+}
+/** Short x codes (L0…L4, lettered where a level repeats) and the chart's run labels. */
+export function expectedChartLabels(reality, metric) {
+  const cps = reality.aggregate.checkpoints;
+  const pre = cps.map((c) => c.checkpoint.split("_")[0]);
+  const code = pre.map((p, i) =>
+    pre.filter((q) => q === p).length < 2
+      ? p
+      : p + "abcdef"[pre.slice(0, i).filter((q) => q === p).length],
+  );
+  const M = LADDER[metric];
+  const fmt = (c) =>
+    (M.unit === "$" ? "$" : "") + M.get(c).toFixed(M.p) + (M.unit === "s" ? "s" : "");
+  const out = [];
+  for (let i = 0; i < cps.length;) {
+    let j = i;
+    while (j + 1 < cps.length && M.get(cps[j + 1]) === M.get(cps[i])) j++;
+    out.push((j > i ? `${code[i]}–${code[j]} = ` : "") + fmt(cps[i]));
+    i = j + 1;
+  }
+  return out;
 }
 /** Consecutive deltas by checkpoint id, and the most negative Sharpe step. */
 export function expectedLadder(reality, metric) {
@@ -174,6 +223,28 @@ checks += 2;
   assert.equal(expectedLadder(r, "sharpe").worst.to, "L3_FEES_SLIPPAGE");
   checks += 2;
 }
+for (const [component, [from, to]] of Object.entries(COMPONENT)) {
+  const cps = rawReality.aggregate.checkpoints;
+  const at = (id) => cps.find((c) => c.checkpoint === id).metrics.sharpe;
+  assert.ok(
+    Math.abs(at(to) - at(from) - rawReality.aggregate.decomposition[component]) < 1e-9,
+    "decomposition component " + component,
+  );
+  checks++;
+}
+assert.equal(expectedMatch(rawReality), true);
+{
+  const r = structuredClone(rawReality);
+  r.aggregate.largest_degradation.component = "fee_decay";
+  assert.equal(expectedMatch(r), false);
+}
+assert.deepEqual(expectedChartLabels(rawReality, "sharpe"), [
+  "L0–L2 = 4.7991",
+  "4.6118",
+  "3.7292",
+  "0.3449",
+]);
+checks += 3;
 console.log(`Forge2: ${checks} static recomputation and sabotage checks passed.`);
 
 // ------------------------------------------------------------------------------ browser stage
@@ -309,11 +380,59 @@ async function checkDebugger(width) {
     norm(await page.locator(".agents-card-head h2").nth(1).innerText()),
     new RegExp(`Selected action · 0?${seqs[2]}$`),
   );
-  if (screenshots)
+  if (screenshots) {
+    await page.evaluate(() => {
+      document.activeElement?.blur();
+      scrollTo(0, 0);
+    });
     await page.screenshot({
       path: fileURLToPath(new URL(`u4-debugger-${width}.png`, shotDir)),
       fullPage: true,
     });
+  }
+  // The selected graph node, the graph legend and its axis key are on screen at every width.
+  const onScreen = (sel) =>
+    page
+      .locator(sel)
+      .first()
+      .evaluate((el) => {
+        el.scrollIntoView({ block: "center" });
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= innerWidth + 0.5;
+      });
+  for (const sel of [
+    `[data-testid="trajectory-2d"] button[data-node="${seqs[2]}"]`,
+    ".f2-graph-legend",
+    ".f2-graph-axis",
+    '[data-testid="step-summary"]',
+  ])
+    assert.equal(await onScreen(sel), true, `${sel} on screen at ${width}`);
+  // Next onto the last step disables Next; focus stays in the stepper, on that step.
+  await page.goto(`${base}/runs/${runId}?step=${seqs.at(-2)}`, { waitUntil: "networkidle" });
+  await ready(page);
+  await page.getByRole("button", { name: /Next/ }).click();
+  await page.waitForFunction(
+    (s) => new URL(location.href).searchParams.get("step") === s,
+    seqs.at(-1),
+  );
+  await page.waitForFunction(
+    (s) => document.activeElement?.getAttribute("data-step") === s,
+    seqs.at(-1),
+  );
+  // An unparseable step falls back to the legacy node; a step not in the run is announced.
+  await page.goto(`${base}/runs/${runId}?step=abc&node=${seqs[1]}`, { waitUntil: "networkidle" });
+  await ready(page);
+  assert.equal(await current(page), seqs[1], "?step=abc&node= selects node");
+  assert.equal(await page.getByTestId("step-notice").count(), 0);
+  for (const bad of ["999", "0", "-1", "abc"]) {
+    await page.goto(`${base}/runs/${runId}?step=${bad}`, { waitUntil: "networkidle" });
+    await ready(page);
+    assert.equal(await current(page), seqs[0], "fallback for ?step=" + bad);
+    assert.match(
+      norm(await page.getByTestId("step-notice").innerText()),
+      new RegExp(`^Step ${bad} is not in this run; showing step 0?${seqs[0]}\\.$`),
+    );
+  }
   await ctx.close();
 }
 
@@ -382,6 +501,23 @@ async function checkBench(width) {
   }
   await page.locator('.f2-tabs a[data-metric="verified"]').click();
   await page.waitForURL(/metric=verified/);
+  // Key state first: on narrow screens the relation sits above the table (beside it when wide).
+  const top = (sel) =>
+    page
+      .locator(sel)
+      .first()
+      .evaluate((el) => el.getBoundingClientRect().top);
+  if (width < 900)
+    assert.ok((await top('[data-testid="bench-relation"]')) < (await top(".f2-bench-table")));
+  // The Model column stays pinned when the table scrolls sideways.
+  const pinned = await page.locator(".f2-scroll .overflow-x-auto").evaluate((box) => {
+    box.scrollLeft = box.scrollWidth;
+    const cell = box.querySelector("tbody th");
+    return Math.abs(cell.getBoundingClientRect().left - box.getBoundingClientRect().left) < 2;
+  });
+  assert.equal(pinned, true, "model column pinned at " + width);
+  await page.locator(".f2-scroll .overflow-x-auto").evaluate((box) => (box.scrollLeft = 0));
+  if (width < 900) assert.equal(await page.locator(".f2-scroll-hint").isVisible(), true);
   if (screenshots)
     await page.screenshot({
       path: fileURLToPath(new URL(`u4-bench-${width}.png`, shotDir)),
@@ -423,6 +559,9 @@ async function ladderMismatches(page, artifactId) {
       const exp = [want.worst.from, want.worst.to, want.worst.text];
       if (JSON.stringify(got) !== JSON.stringify(exp))
         bad.push(`largest degradation ${JSON.stringify(got)} != ${JSON.stringify(exp)}`);
+      const match = await box.getAttribute("data-match");
+      if (match !== String(expectedMatch(rawReality)))
+        bad.push(`match ${match} != ${expectedMatch(rawReality)}`);
     }
   }
   return bad;
@@ -438,11 +577,34 @@ async function checkLadder(width) {
   const sharpe = rawReality.aggregate.checkpoints.map((c) => c.metrics.sharpe.toFixed(4));
   assert.deepEqual(
     (await page.locator(".f2-chart-label").allInnerTexts()).map(norm),
-    sharpe,
-    "chart labels are the recorded Sharpe values",
+    expectedChartLabels(rawReality, "sharpe"),
+    "chart labels are the recorded Sharpe values, an equal run labelled once",
   );
   assert.equal(await page.locator(".f2-chart-point").count(), sharpe.length);
-  assert.match(await page.getByTestId("largest-degradation").innerText(), /MATCHES THE ARTIFACT/);
+  assert.equal(
+    await page.locator('.f2-chart-point[aria-current="step"]').count(),
+    0,
+    "no default ring",
+  );
+  assert.equal(
+    await page.getByTestId("worst-segment").count(),
+    expectedLadder(rawReality, "sharpe").worst ? 1 : 0,
+  );
+  const banner = page.getByTestId("largest-degradation");
+  assert.equal(await banner.getAttribute("data-match"), String(expectedMatch(rawReality)));
+  assert.match(
+    await banner.innerText(),
+    expectedMatch(rawReality) ? /MATCHES THE ARTIFACT/ : /DOES NOT MATCH/,
+  );
+  assert.ok(
+    (await banner.evaluate((el) => el.getBoundingClientRect().top)) < 1000,
+    "degradation above the fold at " + width,
+  );
+  const legendFits = await page.getByTestId("ladder-legend").evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.left >= 0 && r.right <= innerWidth + 0.5;
+  });
+  assert.equal(legendFits, true, "ladder legend on screen at " + width);
   if (screenshots)
     await page.screenshot({
       path: fileURLToPath(new URL(`u4-ladder-${width}.png`, shotDir)),
@@ -456,6 +618,14 @@ async function checkLadder(width) {
     .evaluateAll((rows) => rows.map((r) => r.querySelectorAll("td")[1].textContent.trim()));
   assert.deepEqual(tableSharpe, sharpe, "table holds the same Sharpe records");
   assert.deepEqual(await ladderMismatches(page, artifactId), []);
+  // An unknown checkpoint is announced and nothing is selected.
+  await page.goto(`${base}/reality/${artifactId}?checkpoint=BOGUS`, { waitUntil: "networkidle" });
+  await ready(page);
+  assert.match(
+    await page.getByTestId("checkpoint-notice").innerText(),
+    /BOGUS is not in this artifact/,
+  );
+  assert.equal(await page.locator('.f2-chart-point[aria-current="step"]').count(), 0);
   await ctx.close();
 }
 
@@ -532,6 +702,26 @@ try {
     // The page itself flags that its computation no longer matches the artifact's record.
     assert.match(await page.getByTestId("largest-degradation").innerText(), /DOES NOT MATCH/);
     sab.push("ladder delta");
+    await ctx.close();
+  }
+  {
+    // The recorded component names a different step: the number alone must not pass as a match.
+    const ctx = await newContext(
+      {},
+      {
+        "forge:reality": (d) => {
+          d.aggregate.largest_degradation.component = "fee_decay";
+        },
+      },
+    );
+    const page = await ctx.newPage();
+    const bad = await ladderMismatches(page, rawReality.artifact_id);
+    assert.ok(
+      bad.some((b) => b.startsWith("match")),
+      "sabotage: tampered degradation component not detected",
+    );
+    assert.match(await page.getByTestId("largest-degradation").innerText(), /DOES NOT MATCH/);
+    sab.push("ladder component");
     await ctx.close();
   }
   assert.deepEqual(errors, []);
