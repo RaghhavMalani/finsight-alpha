@@ -299,7 +299,8 @@ function LadderChart({
             key={c.id}
             title={c.realityLevel}
             data-row={i % 2}
-            style={{ left: `${(pts[i][0] / W) * 100}%` }}
+            data-edge={i === 0 ? "first" : i === cps.length - 1 ? "last" : undefined}
+            style={i === 0 || i === cps.length - 1 ? {} : { left: `${(pts[i][0] / W) * 100}%` }}
           >
             {c.label}
           </span>

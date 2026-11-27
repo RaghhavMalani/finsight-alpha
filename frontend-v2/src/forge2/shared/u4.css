@@ -334,6 +334,15 @@
 .f2-chart-axis > span[data-row="1"] {
   top: 18px;
 }
+/* The end labels align to the chart edges instead of centring, so they stay inside the card. */
+.f2-chart-axis > span[data-edge="first"] {
+  left: 0;
+  transform: none;
+}
+.f2-chart-axis > span[data-edge="last"] {
+  right: 0;
+  transform: none;
+}
 .f2-ladder-table {
   width: 100%;
   border-collapse: collapse;
