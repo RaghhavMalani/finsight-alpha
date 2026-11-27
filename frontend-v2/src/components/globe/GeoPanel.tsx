@@ -6,6 +6,10 @@ import {
   type GeoLoad,
   type GeoProjection,
 } from "./geo-graph";
+import { Hash, Num, type Origin } from "@/visual/Num";
+import { num, ref, svgProv } from "@/visual/origins";
+import { provHelpers } from "@/visual/route-origin";
+import { eventIndex, projectionOrigin } from "./geo-prov";
 
 export type GeoView = "point_in_time" | "retrospective";
 export type GeoSelection = {
@@ -36,7 +40,10 @@ export function GeoPanel({
   onClear,
   arcs,
   choices,
+  quakeCount,
 }: {
+  /** Origin of the loaded quakes that `choices` counts. */
+  quakeCount: Origin;
   onClear: () => void;
   /** Earthquakes of M5 and above in the loaded feed, newest first, for keyboard selection. */
   choices: { id: string; label: string }[];
@@ -66,6 +73,8 @@ export function GeoPanel({
     );
   const p = geo.projection;
   const answer = selection?.answer ?? null;
+  const G = provHelpers((ptr, extra) => projectionOrigin(p, ptr, extra));
+  const idx = eventIndex(p);
   return (
     <section
       className="ge-prop"
@@ -159,7 +168,16 @@ export function GeoPanel({
         </>
       )}
       <label className="ge-pick">
-        <span>Earthquakes M5+ ({choices.length})</span>
+        <span>
+          Earthquakes M5+ (
+          <Num
+            n={num(quakeCount, choices.length)}
+            label="Earthquakes M5+ in the loaded feed"
+            display={String(choices.length)}
+            className="vx-inherit"
+          />
+          )
+        </span>
         <select
           value={choices.some((c) => c.id === selection?.event.id) ? selection!.event.id : ""}
           onChange={(e) => e.target.value && onScenario(e.target.value)}
@@ -183,8 +201,18 @@ export function GeoPanel({
               onClick={() => onScenario(s.id)}
               data-geo-scenario={s.id}
             >
-              <b className="mono">{s.magnitude != null ? `M${s.magnitude.toFixed(1)}` : s.kind}</b>
-              <span>{s.label.replace(/^Scenario: /, "")}</span>
+              {s.magnitude != null ? (
+                // The badge itself carries the provenance (the row's first span is its title).
+                <ProvB
+                  origin={projectionOrigin(p, `/events/${idx.get(s.id)}/magnitude`)}
+                  label="Declared scenario magnitude"
+                  value={s.magnitude}
+                  display={`M${s.magnitude.toFixed(1)}`}
+                />
+              ) : (
+                <b className="mono">{s.kind}</b>
+              )}
+              <span data-num-exempt="copy">{s.label.replace(/^Scenario: /, "")}</span>
               <em className="mono">{s.point_in_time.status}</em>
             </button>
           </li>
@@ -192,11 +220,54 @@ export function GeoPanel({
       </ol>
       <p className="ge-fine" data-geo-precision>
         {p.precision} Companies and securities have no coordinates in the graph; they are drawn on
-        tiers above the event, not at a place. {p.radius_rule} Graph {p.graph.version}, seed SHA-256{" "}
-        <code>{p.graph.seed_sha256_lf.slice(0, 12)}</code>, {p.graph.nodes} nodes, {p.graph.edges}{" "}
+        tiers above the event, not at a place. {G.T("/radius_rule", p.radius_rule, "Radius rule")}{" "}
+        Graph <span data-num-exempt="id">{p.graph.version}</span>,{" "}
+        <span data-num-exempt="id">seed SHA-256</span>{" "}
+        <code>
+          <Hash
+            h={ref(projectionOrigin(p, "/graph/seed_sha256_lf"), p.graph.seed_sha256_lf)}
+            label="Graph seed SHA-256 (LF)"
+            display={p.graph.seed_sha256_lf.slice(0, 12)}
+            className="vx-inherit"
+          />
+        </code>
+        ,{" "}
+        {G.N(
+          "/graph/nodes",
+          p.graph.nodes,
+          "Graph nodes",
+          p.graph.nodes == null ? undefined : String(p.graph.nodes),
+        )}{" "}
+        nodes,{" "}
+        {G.N(
+          "/graph/edges",
+          p.graph.edges,
+          "Graph cited edges",
+          p.graph.edges == null ? undefined : String(p.graph.edges),
+        )}{" "}
         cited edges.
       </p>
     </section>
+  );
+}
+
+/** A provenanced value rendered as the bold badge element itself, inside a button. */
+function ProvB({
+  origin,
+  label,
+  value,
+  display,
+}: {
+  origin: Origin;
+  label: string;
+  value: number;
+  display: string;
+}) {
+  const { attrs, title } = svgProv(origin, label, value);
+  return (
+    <b className="mono" {...attrs} title={title}>
+      {display}
+    </b>
   );
 }
 
