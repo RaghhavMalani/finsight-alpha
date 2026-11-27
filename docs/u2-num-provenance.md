@@ -175,7 +175,8 @@ cannot add provenance to them in place, and they stay report-only (`PROTECTED` i
 explicit decision to amend that protection; both are logged in `docs/questions-for-raghhav.md`.
 
 `/dynamics` is also report-only (`PROTECTED`), with **6** raw numbers, all in
-`src/replay/FactorRegimeEvidence.tsx`, which `eval/factors/v0.1/phase5-freeze.json` seals (its
+`src/replay/FactorRegimeEvidence.tsx`, which `eval/risk_manager/v0.1/phase0-6-freeze.json` seals, and
+which `scripts/verify-terminal-context.mjs` lists among the protected frontend sources (its
 coverage share, row count, sample range, generated time and a count link). It is not edited or
 wrapped from outside. Everything else on `/dynamics` (the Regime Intelligence workspace, the
 navigator and the product header) is provenanced, so the route would pass once that panel has a
@@ -207,7 +208,11 @@ in the sealed panel on `/dynamics`. Not visited: `/reality/$artifactId`, `/bench
   ledger, lineage drawer and the Factor clock are provenanced. No `/factors` number is in a sealed
   component (`src/replay/FactorRegimeEvidence.tsx` is not used by this route).
 - `/regimes` (enforced since slice 3): its one raw number was `D0.4.2` in the fixed prose of
-  `src/dynamics/RegimeProduct.tsx`, now `copy`.
+  `src/dynamics/RegimeProduct.tsx`, now `copy`. **Caveat: the enforcement is vacuous in Replay
+  today.** With no backend the page shows only "SPY real PIT input UNAVAILABLE", so the checker sees
+  no regime numbers (`raw 0 · provenanced 0`). The provenance added to `RegimeIntelligence.tsx`,
+  `panels.tsx`, `CrossMarketMatrix.tsx` and `src/regimes/prov.tsx` is not exercised by any check
+  until a view with regime data (a mocked or checked envelope) is added to `verify-num.mjs`.
 
 ## Known gaps
 

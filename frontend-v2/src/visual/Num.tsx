@@ -215,7 +215,11 @@ export function ProvenanceProvider({
             {kind === "replay" && (
               <>
                 <dt>Source</dt>
-                <dd>checked Replay artifact · not a seal</dd>
+                <dd>
+                  {current.origin.shaNamedBy
+                    ? "pinned build asset · not a seal"
+                    : "checked Replay artifact · not a seal"}
+                </dd>
                 <dt>File</dt>
                 <dd className="vx-break" data-origin-file>
                   {current.origin.src}
