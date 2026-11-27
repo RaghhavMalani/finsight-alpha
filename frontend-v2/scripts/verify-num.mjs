@@ -12,6 +12,7 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 // A numeric token: a currency amount, a percent, a decimal, or an integer of two or more digits.
 // Inside prose a single digit ("F1", "1 of 3") is not a token.
@@ -39,10 +40,22 @@ export const SEALED_CHROME = [
   ".shell-cutoff",
 ];
 // Routes that must have zero raw numbers.
-export const ENFORCED = ["/", "/research", "/markets", "/markets/:ticker", "/risk", "/data"];
-// Rendered by frontend-v2/src/forge, which scripts/research_archive.py protects as closed phase
-// evidence (SHARED_PATHS): its components cannot be edited, so these stay report-only.
-export const PROTECTED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs"];
+export const ENFORCED = [
+  "/",
+  "/research",
+  "/markets",
+  "/markets/:ticker",
+  "/risk",
+  "/data",
+  "/regimes",
+  "/observatory",
+  "/globe",
+];
+// Report-only because their remaining numbers are rendered by components that cannot be edited:
+// /forge … /runs by frontend-v2/src/forge, which scripts/research_archive.py protects as closed
+// phase evidence (SHARED_PATHS); /dynamics by the sealed src/replay/FactorRegimeEvidence.tsx
+// (sealed by eval/risk_manager/v0.1/phase0-6-freeze.json). Everything else on /dynamics is provenanced.
+export const PROTECTED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs", "/dynamics"];
 
 function tokens(s) {
   const g = new RegExp(TOKEN.source, "g");
@@ -250,13 +263,30 @@ try {
   const factorManifestUrl = /projection:\s*\{\s*url:\s*"([^"]+)"/.exec(factorPlan)[1];
   const factorManifest = await (await context.request.get(base + factorManifestUrl)).json();
   const MANIFEST_FILES = new Set(["/replay-manifest.json", riskManifestUrl, factorManifestUrl]);
+  // The Global Eye graph projection is not in a manifest: it is pinned at build time by
+  // src/components/globe/geo-pin.generated.ts (file name and SHA-256). Its served URL is a hashed
+  // build asset, so a value may name any URL whose file stem is the pinned file's, with exactly the
+  // pinned SHA-256; each such URL is fetched and its bytes hashed against the pin before PASS.
+  const geoPin = readFileSync(
+    fileURLToPath(new URL("../src/components/globe/geo-pin.generated.ts", import.meta.url)),
+    "utf8",
+  );
+  const pinFile = /file:\s*"([^"]+)"/.exec(geoPin)[1];
+  const pinSha = /sha256:\s*"([0-9a-f]{64})"/.exec(geoPin)[1];
+  const pinStem = pinFile.replace(/\.json$/, "").replace(/[.]/g, "\\.");
+  const pinUrl = new RegExp(`^/(?:[\\w-]+/)*${pinStem}(?:-[\\w-]+)?\\.json$`);
+  const pinSeen = new Set();
   const digests = new Map();
   for (const m of [manifest, riskManifest, factorManifest])
     for (const e of Object.values(m.artifacts)) if (e.url) digests.set(e.url, e.sha256);
   /** A replay value must name a checked artifact and exactly the digest its manifest names. */
   const judge = (r) => {
     for (const x of r.replay) {
-      if (MANIFEST_FILES.has(x.src)) {
+      if (pinUrl.test(x.src)) {
+        pinSeen.add(x.src);
+        if (x.sha !== pinSha)
+          r.bad.push({ ...x, why: `replay SHA ${x.sha || "(none)"} is not the geo pin's` });
+      } else if (MANIFEST_FILES.has(x.src)) {
         if (x.sha) r.bad.push({ ...x, why: `manifest file ${x.src} given a SHA-256` });
       } else if (!digests.has(x.src))
         r.bad.push({
@@ -618,6 +648,14 @@ try {
     console.log(
       "SABOTAGE raw number, single digit, bogus exemption, live SHA claim, swapped replay SHA and missing-as-0 were all flagged",
     );
+  }
+  for (const src of pinSeen) {
+    const bytes = await (await context.request.get(base + src)).body();
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    if (digest !== pinSha) {
+      console.log(`FAIL   geo pin ${src} hashes to ${digest}, not the pinned ${pinSha}`);
+      failed++;
+    } else console.log(`PIN    ${src} matches the pinned SHA-256`);
   }
   if (errors.length) console.log(`page errors: ${[...new Set(errors)].slice(0, 5).join(" | ")}`);
   const reportOnly = report.filter((r) => !r.enforced && r.raw);

@@ -26,7 +26,23 @@ export function replayOrigin(
   };
 }
 
+/**
+ * A value read from /replay-manifest.json itself (an entry's digest or as_of). The manifest is the
+ * root of the Replay check and has no digest of its own, so none is claimed.
+ */
+export function manifestOrigin(ptr: string, extra: Partial<Origin> = {}): Origin {
+  return {
+    kind: "replay",
+    src: "/replay-manifest.json",
+    sha256: null,
+    ptr,
+    note: "The Replay manifest is the root of the Replay check and has no digest of its own.",
+    ...extra,
+  };
+}
+
 /** A value from a local API response. Not sealed: no file, no SHA-256. */
+
 export function liveOrigin(
   endpoint: string,
   ptr: string,

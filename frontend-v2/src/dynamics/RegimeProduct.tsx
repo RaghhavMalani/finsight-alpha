@@ -45,7 +45,7 @@ export function RegimeProduct() {
           </div>
           <StatusMark status="ABSTAIN" label="NO MARKET / CAUSAL / ALPHA CLAIM" />
         </div>
-        <p className="max-w-3xl text-xs leading-6 text-[#9DABB5]">
+        <p className="max-w-3xl text-xs leading-6 text-[#9DABB5]" data-num-exempt="copy">
           Inspect the latest installed evidence, replay inputs admitted at a historical cutoff, or
           compare two complete snapshots. Analytics remain frozen at D0.4.2. This is not a live
           execution terminal.
