@@ -3,7 +3,8 @@
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { HashValue, ResearchValue } from "@/epistemic/EpistemicValue";
+import { HashValue } from "@/epistemic/EpistemicValue";
+import { ClassChips, MetricCell } from "@/forge2/shared/MetricCell";
 import type { RunDetail } from "@/forge/contracts/observer";
 import { runQuery } from "@/forge/data/forge-queries";
 import { AgentsShell } from "@/forge2/shared/AgentsShell";
@@ -25,10 +26,13 @@ type ObserverTab = "action" | "turns" | "checks";
 export function RunObserver({
   runId,
   step,
+  requested,
   tab,
 }: {
   runId: string;
   step: number;
+  /** The step the URL asked for, as written, when it named one. */
+  requested?: string;
   tab: ObserverTab;
 }) {
   const query = useQuery(runQuery(runId));
@@ -69,8 +73,10 @@ export function RunObserver({
 
   const run = query.data;
   const trajectory = buildTrajectoryViewModel(run);
-  const selectedNode =
-    trajectory.nodes.find((item) => item.sequence === step) ?? trajectory.nodes[0];
+  const found = trajectory.nodes.find((item) => item.sequence === step);
+  const selectedNode = found ?? trajectory.nodes[0];
+  // A requested step that is not in this run is said so, never silently replaced.
+  const missing = requested !== undefined && (!found || String(step) !== requested);
 
   if (!selectedNode) {
     return (
@@ -110,6 +116,19 @@ export function RunObserver({
         <HashValue label="task" value={run.taskHash} />
       </div>
 
+      {missing && selectedNode ? (
+        <p className="f2-notice mt-3" role="status" data-testid="step-notice">
+          Step <span data-num-exempt="input">{requested}</span> is not in this run; showing step{" "}
+          {X.N(
+            "/run/actions/0/sequence",
+            selectedNode.sequence,
+            "Action sequence",
+            String(selectedNode.sequence).padStart(2, "0"),
+          )}
+          .
+        </p>
+      ) : null}
+
       <div className="f2-debugger mt-3">
         <InstrumentPanel
           title="Trajectory"
@@ -128,14 +147,13 @@ export function RunObserver({
             onStep={selectNode}
             P={X}
           />
-          <div className="grid grid-cols-3 gap-px border-t border-[#1D232B] bg-[#1D232B]">
+          <div className="f2-subhead">
+            Run totals
+            <ClassChips metrics={[run.usage.tokens, run.usage.cost, run.usage.wallSeconds]} />
+          </div>
+          <div className="grid grid-cols-3 gap-px bg-[#1D232B]">
             {[run.usage.tokens, run.usage.cost, run.usage.wallSeconds].map((metric) => (
-              <ResearchValue
-                key={metric.id}
-                metric={metric}
-                value={X.M(metric)}
-                className="bg-[#0B0E11] p-3"
-              />
+              <MetricCell key={metric.id} metric={metric} value={X.M(metric)} />
             ))}
           </div>
         </InstrumentPanel>
@@ -218,14 +236,13 @@ function TurnInspector({ run, X }: { run: RunDetail; X: ForgeProv }) {
           <p className="mt-2 whitespace-pre-wrap break-words text-[11px] leading-5 text-[#c3cad0]">
             {X.T(`/model_turns/${i}/text`, turn.text, "Model turn text")}
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-px bg-[#1D232B]">
+          <div className="f2-subhead mt-3">
+            Usage
+            <ClassChips metrics={[turn.inputTokens, turn.outputTokens, turn.cost, turn.latency]} />
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-[#1D232B]">
             {[turn.inputTokens, turn.outputTokens, turn.cost, turn.latency].map((metric) => (
-              <ResearchValue
-                key={metric.id}
-                metric={metric}
-                value={X.M(metric)}
-                className="bg-[#0B0E11] p-2.5"
-              />
+              <MetricCell key={metric.id} metric={metric} value={X.M(metric)} />
             ))}
           </div>
         </li>

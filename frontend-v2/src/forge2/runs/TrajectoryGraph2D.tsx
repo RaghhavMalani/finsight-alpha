@@ -39,12 +39,17 @@ export function TrajectoryGraph2D({
   );
 
   return (
-    <div className="overflow-x-auto" data-testid="trajectory-2d">
+    <div className="f2-graph overflow-x-auto" data-testid="trajectory-2d">
       <div
-        className="relative bg-[linear-gradient(#151a20_1px,transparent_1px),linear-gradient(90deg,#151a20_1px,transparent_1px)] bg-[size:32px_32px]"
+        className="f2-graph-canvas relative bg-[linear-gradient(#151a20_1px,transparent_1px),linear-gradient(90deg,#151a20_1px,transparent_1px)] bg-[size:32px_32px]"
         style={{ minWidth: width, height }}
       >
-        <svg aria-hidden="true" className="absolute left-0 top-0" width={width} height={height}>
+        <svg
+          aria-hidden="true"
+          className="f2-graph-edges absolute left-0 top-0"
+          width={width}
+          height={height}
+        >
           <defs>
             <marker
               id="trajectory-arrow"
@@ -79,7 +84,7 @@ export function TrajectoryGraph2D({
           })}
         </svg>
 
-        <ol aria-label="Ordered trajectory actions" className="absolute inset-0">
+        <ol aria-label="Ordered trajectory actions" className="f2-graph-nodes absolute inset-0">
           {model.nodes.map((node, index) => {
             const active = node.sequence === selectedSequence;
             // Inert: the node is itself a button; the selected node's values open in the inspector.
@@ -96,6 +101,7 @@ export function TrajectoryGraph2D({
                   type="button"
                   onClick={() => onSelect(node.sequence)}
                   aria-pressed={active}
+                  data-node={node.sequence}
                   aria-label={`${node.label}, action ${node.sequence}, ${node.tokens} tokens, ${formatNodeCost(node.cost)}, ${formatNodeLatency(node.latency)}, verifier ${node.verifierState}`}
                   className={`group relative h-[160px] w-full border bg-[#090c0f] p-3 text-left transition-[background-color,border-color,transform] duration-150 hover:bg-[#0f1419] active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB000] ${
                     active
@@ -145,12 +151,11 @@ export function TrajectoryGraph2D({
           })}
         </ol>
 
-        <div
-          aria-hidden="true"
-          className="absolute bottom-2 left-3 flex gap-4 font-mono text-[7px] uppercase tracking-[0.1em] text-[#4f5963]"
-        >
-          <span>X · recorded action order →</span>
-          <span>Y · stage depth (from the action stage) ↓</span>
+        {/* Below 480px the nodes stack in recorded order (u4.css), so the axis key changes too. */}
+        <div className="f2-graph-axis absolute bottom-2 left-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[7px] uppercase tracking-[0.1em] text-[#4f5963]">
+          <span className="f2-axis-wide">X · recorded action order →</span>
+          <span className="f2-axis-wide">Y · stage depth (from the action stage) ↓</span>
+          <span className="f2-axis-stacked">Recorded action order ↓ (stacked at this width)</span>
           <span>Time is printed per node</span>
         </div>
       </div>

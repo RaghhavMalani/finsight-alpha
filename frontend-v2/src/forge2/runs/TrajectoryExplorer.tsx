@@ -37,28 +37,6 @@ export function TrajectoryExplorer({
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {/* U4: the legend names every channel the visible view encodes (2D and 3D differ). */}
-          <div
-            className="hidden flex-wrap items-center gap-3 font-mono text-[7px] uppercase tracking-[0.08em] text-[#65707c] lg:flex"
-            data-legend={view}
-          >
-            {view === "2D" ? (
-              <>
-                <span className="text-[#FFB000]">amber text · cost</span>
-                <span className="text-[#52A8FF]">blue text · engine</span>
-                <span>top rule · verifier (green pass, red fail)</span>
-                <span className="text-[#FFB000]">amber border · selected</span>
-              </>
-            ) : (
-              <>
-                <span className="text-[#FFB000]">box tone · cost</span>
-                <span>box size · tokens</span>
-                <span>depth · cumulative latency</span>
-                <span>wireframe · verifier (green pass, red fail)</span>
-                <span>height · stage depth</span>
-              </>
-            )}
-          </div>
           <div className="flex border border-[#303842]" aria-label="Trajectory view">
             {(["2D", "3D"] as const).map((item) => (
               <button
@@ -80,6 +58,27 @@ export function TrajectoryExplorer({
           </div>
         </div>
       </header>
+
+      {/* U4: the legend names every channel the visible view encodes (2D and 3D differ), at
+          every width (review: it was hidden below the lg breakpoint). */}
+      <div className="f2-graph-legend" data-legend={view}>
+        {view === "2D" ? (
+          <>
+            <span className="text-[#FFB000]">amber text · cost</span>
+            <span className="text-[#52A8FF]">blue text · engine</span>
+            <span>top rule · verifier (green pass, red fail)</span>
+            <span className="text-[#FFB000]">amber border · selected</span>
+          </>
+        ) : (
+          <>
+            <span className="text-[#FFB000]">box tone · cost</span>
+            <span>box size · tokens</span>
+            <span>depth · cumulative latency</span>
+            <span>wireframe · verifier (green pass, red fail)</span>
+            <span>height · stage depth</span>
+          </>
+        )}
+      </div>
 
       {view === "2D" || !mounted ? (
         <TrajectoryGraph2D

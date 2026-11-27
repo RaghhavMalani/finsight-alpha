@@ -40,6 +40,13 @@ export function TrajectoryStepper({
   const [playing, setPlaying] = useState(false);
   const active = playing && !reduced && index < last;
   const listRef = useRef<HTMLOListElement>(null);
+  // Set when Prev/Next steps to an end: that button disables, so focus moves to the list.
+  const refocus = useRef(false);
+
+  // Reduced motion switched on mid-playback stops it outright, not just pauses it.
+  useEffect(() => {
+    if (reduced) setPlaying(false);
+  }, [reduced]);
 
   // Playback: advance one recorded action per tick, and stop on the last one.
   useEffect(() => {
@@ -54,7 +61,8 @@ export function TrajectoryStepper({
   // Keep keyboard focus on the selected step while the reader steps through the list.
   useEffect(() => {
     const list = listRef.current;
-    if (!list || !list.contains(document.activeElement)) return;
+    if (!list || !(refocus.current || list.contains(document.activeElement))) return;
+    refocus.current = false;
     list.querySelector<HTMLButtonElement>(`[data-step="${selectedSequence}"]`)?.focus();
   }, [selectedSequence]);
 
@@ -76,11 +84,15 @@ export function TrajectoryStepper({
     setPlaying(true);
   };
   const current = nodes[index];
+  const step = (to: number) => {
+    refocus.current = to <= 0 || to >= last;
+    go(to);
+  };
 
   return (
     <div className="f2-stepper" onKeyDown={onKeyDown}>
       <div className="f2-replay" role="group" aria-label="Replay recorded actions">
-        <button type="button" onClick={() => go(index - 1)} disabled={index === 0}>
+        <button type="button" onClick={() => step(index - 1)} disabled={index === 0}>
           ◀ Prev
         </button>
         <button
@@ -92,7 +104,7 @@ export function TrajectoryStepper({
         >
           {active ? "❚❚ Pause" : "▶ Play"}
         </button>
-        <button type="button" onClick={() => go(index + 1)} disabled={index === last}>
+        <button type="button" onClick={() => step(index + 1)} disabled={index === last}>
           Next ▶
         </button>
         <span className="f2-replay-pos" aria-live="polite">
@@ -106,11 +118,21 @@ export function TrajectoryStepper({
           })}
         </span>
       </div>
+      <p className="f2-current" data-testid="step-summary">
+        <span className="f2-current-k">Selected</span>{" "}
+        {P.N(
+          `/run/actions/${index}/sequence`,
+          current.sequence,
+          "Action sequence",
+          String(current.sequence).padStart(2, "0"),
+        )}{" "}
+        <strong>{current.label}</strong> · {current.status} · verifier {current.verifierState}
+      </p>
       <p className="f2-note">
         {reduced
-          ? "Reduced motion is on, so playback is off: the selection changes only when you step."
-          : "Play steps through the recorded actions in their recorded order at a fixed display pace. The pace is not recorded timing."}{" "}
-        Keys: ↑ ↓ or j k to step, Home and End to jump.
+          ? "Reduced motion: playback off."
+          : "Recorded order, fixed display pace (not recorded timing)."}{" "}
+        Keys ↑ ↓ j k · Home End
       </p>
       <ol ref={listRef} className="f2-steps" aria-label="Recorded trajectory steps">
         {nodes.map((node, i) => (
