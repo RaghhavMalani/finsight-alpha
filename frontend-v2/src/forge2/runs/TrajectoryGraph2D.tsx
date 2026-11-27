@@ -6,9 +6,9 @@ import { formatNodeCost, formatNodeLatency } from "@/forge2/runs/trajectory-mode
 import { useForgeProv } from "@/forge2/shared/forge-prov";
 import { nodeNums } from "./node-prov";
 
-const NODE_WIDTH = 144;
+const NODE_WIDTH = 176;
 const NODE_HEIGHT = 160;
-const STEP_X = 172;
+const STEP_X = 204;
 
 function nodePosition(node: TrajectoryNode, index: number) {
   return {
@@ -119,19 +119,26 @@ export function TrajectoryGraph2D({
                     </span>
                     <EpistemicBadge type={node.epistemicType} />
                   </span>
-                  <span className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[8px] tabular-nums">
-                    <span className="text-[#88929c]">{v.tokens} tok</span>
-                    <span className="text-right text-[#FFB000]">{v.cost}</span>
-                    <span className="truncate text-[#52A8FF]" title={node.engine}>
-                      {node.engine.replace("gpt-5.6-", "")}
+                  {/* U4 review fix: one value per row, nothing absolutely positioned, so the
+                      "selected" mark cannot overlap the latency and token counts cannot wrap. */}
+                  <span className="f2-node-values font-mono text-[8px] tabular-nums">
+                    <span className="f2-node-row">
+                      <span className="whitespace-nowrap text-[#88929c]">{v.tokens} tok</span>
+                      <span className="whitespace-nowrap text-[#FFB000]">{v.cost}</span>
                     </span>
-                    <span className="text-right text-[#88929c]">{v.latency}</span>
+                    <span className="f2-node-row">
+                      <span className="min-w-0 truncate text-[#52A8FF]" title={node.engine}>
+                        {node.engine.replace("gpt-5.6-", "")}
+                      </span>
+                      <span className="whitespace-nowrap text-[#88929c]">{v.latency}</span>
+                    </span>
+                    <span className="f2-node-row">
+                      <span className="text-[#88929c]">{node.verifierState}</span>
+                      {active ? (
+                        <span className="font-semibold uppercase text-[#FFB000]">selected</span>
+                      ) : null}
+                    </span>
                   </span>
-                  {active ? (
-                    <span className="absolute bottom-2 right-2 font-mono text-[7px] font-semibold uppercase tracking-[0.12em] text-[#FFB000]">
-                      selected
-                    </span>
-                  ) : null}
                 </button>
               </li>
             );
@@ -142,8 +149,8 @@ export function TrajectoryGraph2D({
           aria-hidden="true"
           className="absolute bottom-2 left-3 flex gap-4 font-mono text-[7px] uppercase tracking-[0.1em] text-[#4f5963]"
         >
-          <span>X / progression →</span>
-          <span>Y / experiment depth ↓</span>
+          <span>X · recorded action order →</span>
+          <span>Y · stage depth (from the action stage) ↓</span>
           <span>Time is printed per node</span>
         </div>
       </div>

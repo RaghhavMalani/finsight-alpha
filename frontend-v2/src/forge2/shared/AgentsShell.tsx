@@ -5,6 +5,7 @@ import { ForgeShell } from "@/app/shell/ForgeShell";
 import { useDataMode } from "@/replay/mode";
 import { ProvenanceProvider } from "@/visual/Num";
 import "./agents.css";
+import "./u4.css";
 
 export function AgentsShell({
   children,
