@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RealityLadder, type RealityMetric } from "@/forge/reality/RealityLadder";
+import { RealityLadder, type RealityMetric } from "@/forge2/reality/RealityLadder";
 
 const METRICS = new Set<RealityMetric>(["sharpe", "maxDrawdown", "runtime"]);
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AgentsShell } from "@/forge/shared/AgentsShell";
-import { CommandCenter } from "@/forge/command-center/CommandCenter";
+import { AgentsShell } from "@/forge2/shared/AgentsShell";
+import { CommandCenter } from "@/forge2/command-center/CommandCenter";
 
 export const Route = createFileRoute("/forge")({
   head: () => ({

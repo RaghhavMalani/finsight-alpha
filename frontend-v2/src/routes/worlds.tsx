@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { WorldIndex } from "@/forge/worlds/WorldIndex";
+import { WorldIndex } from "@/forge2/worlds/WorldIndex";
 
 export const Route = createFileRoute("/worlds")({
   head: () => ({

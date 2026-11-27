@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArtifactIndex } from "@/forge/artifacts/ArtifactIndex";
+import { ArtifactIndex } from "@/forge2/artifacts/ArtifactIndex";
 
 export const Route = createFileRoute("/artifacts")({
   head: () => ({

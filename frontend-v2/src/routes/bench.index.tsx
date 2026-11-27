@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BenchIndex } from "@/forge/bench/BenchIndex";
+import { BenchIndex } from "@/forge2/bench/BenchIndex";
 
 export const Route = createFileRoute("/bench/")({
   head: () => ({
