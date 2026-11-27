@@ -74,9 +74,77 @@ Raw numbers in Replay (`verify-num.mjs`), v1 report-only against forge2 enforced
 (218 provenanced), `/forge` 57 → 0 (61), `/worlds` 19 → 0 (7), `/artifacts` 8 → 0 (4), `/bench`
 7 → 0 (4). Further views, all 0 raw: the `/forge` run drawer (72 provenanced), the first
 `/bench/$benchmarkId` (19), and the first `/runs/$runId` on its action (22), turns (35) and checks
-(17) tabs. Report-only total across the app: 602 → 239.
+(17) tabs. Report-only total across the app: 602 → 239. Stage B adds the `/reality/$artifactId`
+views below.
 
-## Left for stage B
+## Stage B: the debugger, Bench and Reality Ladder
 
-U4 proper: the trajectory debugger, Bench and Reality Ladder upgrades, built on forge2. Not yet
-covered by `verify-num`: `/reality/$artifactId` (not visited), the 3D trajectory view.
+Built only in `frontend-v2/src/forge2` (v1 and its contracts are read, never changed), one commit
+per surface, following `docs/forge-ui-v3-preimplementation.md` §4.2–§4.4.
+
+### Run Observer as a step-through debugger (`/runs/$runId`, §4.2)
+
+- `runs/TrajectoryStepper.tsx`: the recorded actions as a list beside the selected action's
+  inspector. Each row shows the action's sequence, label, recorded status (with a verifier mark)
+  and its model turn's `tokens_in` / `tokens_out`; an action without a turn reads `unavailable`.
+- Keyboard: ↑/↓ or j/k step, Home/End jump; focus follows the selection (roving tabindex).
+- `?step=N` is the selected action's recorded sequence. It deep-links and survives a reload;
+  stepping replaces the history entry. `?node=N`, the pre-U4 name, is still read because the
+  frozen v1 UI links with it.
+- Play/Prev/Next replay the recorded action order only. Playback moves at a fixed display pace,
+  stated on the page as not recorded timing (the record has no timestamps). Under
+  `prefers-reduced-motion` Play is disabled and the selection changes only when stepped.
+- Review fix in `TrajectoryGraph2D.tsx`: node values are one per row in normal flow, so the
+  `selected` mark no longer overlaps the latency, and the token count cannot wrap. The graph's
+  legend names every channel of the view on screen (2D and 3D differ).
+
+### Bench (`/bench/$benchmarkId`, §4.4)
+
+- Metric tabs (`?metric=`): verified research, false α, critical fail, cost per finding, latency,
+  tool/engine use. All are fields of `model_summaries` in the baseline artifact.
+- `bench/bench-model.ts` computes the observed-relation sentence from those fields: the best value
+  (ties by exact equality), the others in order, and for verified research the tie-break on cost
+  and latency among the tied models. It prints beside "Observed in this suite (N admitted
+  episodes); not a global ranking." Every value in it is a `<Num>` into the artifact.
+- A bar per model encodes the selected field from zero to the largest observed value (legend).
+- Planned releases (v0.2.5.1 hardened, v0.3 multi-agent) that the baseline index does not list
+  show as `UNAVAILABLE — No verified artifact loaded`. The Reality Ladder link appears only when the
+  loaded ladder's hash equals the baseline's `bindings.reality_ladder_artifact_hash`.
+
+### Reality Ladder (`/reality/$artifactId`, §4.3)
+
+- A 2D chart of one checkpoint metric (Sharpe, max drawdown, slippage, latency cost, runtime)
+  against realism level in artifact order; point colour is the epistemic class (computed or
+  counterfactual), the amber ring is the selected checkpoint, and the dashed lines mark the
+  highest and lowest recorded values. `?view=table` shows the same six records as a table, with
+  the signed Δ to the previous checkpoint for the selected metric.
+- `reality/ladder-model.ts` computes the deltas from the checkpoint records. The largest
+  degradation is the most negative Sharpe step (Sharpe is the artifact's primary metric), shown
+  with its Δ and compared with `aggregate.largest_degradation`: the page says whether they match.
+- The provenance panel names the artifact, schema, integrity status, primary metric and alpha
+  survival; the unbound certification hash reads `unavailable`.
+
+## Verifiers
+
+- `scripts/verify-forge2.mjs` (CI shard `browser-agents-shell-plugins-data-research`) reads the
+  checked artifacts itself and does not import forge2. It recomputes the relation sentence for
+  each Bench tab and the ladder deltas and largest degradation for each metric, and compares the
+  page. It checks keyboard stepping (↓, j, k, ↑, End, Home), focus, the `?step` deep link across a
+  reload, disabled playback under reduced motion, playback visiting exactly the recorded order and
+  stopping at the end, UNAVAILABLE releases, that chart and table show the same records, no
+  horizontal scroll and no text under 11px at 1440 and 390. Sabotage, one per surface: a tampered
+  run turn's tokens, a tampered model summary, and a tampered checkpoint Sharpe (each re-hashed in
+  the manifest so it loads) must each be detected; the ladder page must also say it no longer
+  matches the artifact.
+- `verify-num.mjs`: `/reality/$artifactId` is now visited as ten views (chart and table, each
+  metric), enforced at zero raw numbers, and `/reality` is pointer-checked.
+- `verify-agents.mjs`: the run-route URL assertions use `step=`.
+
+Screenshots: `docs/screenshots/u4-{debugger,bench,ladder}-{1440,390}.png`, written by
+`node scripts/verify-forge2.mjs --url <preview> --screenshots`.
+
+## Still not covered
+
+- The 3D trajectory view is not scanned by `verify-num` (its labels live in a WebGL overlay).
+- The Bench's planned-release list is the design plan's, not an artifact's; only the absence of a
+  verified artifact for them is checked.
