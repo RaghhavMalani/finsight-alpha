@@ -343,10 +343,31 @@ if (urlIndex > 0) {
         await page.locator(`.shell[data-ready="true"][data-workspace="market"]`).waitFor();
         await page.keyboard.press("Control+k");
         await page.getByRole("dialog").getByRole("combobox").fill(label);
+        // Intermittent in CI (the option never appeared within 30 s). On a timeout, print what the
+        // palette actually showed, so the next failure names its cause; the check is unchanged.
         await page
           .getByRole("option")
           .filter({ hasText: `F6 · ${label}` })
-          .click();
+          .click()
+          .catch(async (error) => {
+            const state = await page
+              .evaluate(() => {
+                const dialog = document.querySelector('[role="dialog"]');
+                return {
+                  dialogs: document.querySelectorAll('[role="dialog"]').length,
+                  input: dialog?.querySelector('[role="combobox"]')?.value ?? null,
+                  busy: dialog?.getAttribute("aria-busy") ?? null,
+                  options: [...document.querySelectorAll('[role="option"]')]
+                    .map((o) => o.textContent.trim().slice(0, 60))
+                    .slice(0, 10),
+                  text: dialog?.textContent.replace(/\s+/g, " ").trim().slice(0, 400) ?? null,
+                  focused: document.activeElement?.tagName,
+                };
+              })
+              .catch((e) => ({ evaluateFailed: String(e) }));
+            console.error(`palette state when "F6 · ${label}" was missing:`, JSON.stringify(state));
+            throw error;
+          });
       }
       // The nav labels name the keys that actually work.
       assert.deepEqual(
