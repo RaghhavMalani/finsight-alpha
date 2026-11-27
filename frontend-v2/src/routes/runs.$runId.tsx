@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RunObserver } from "@/forge/runs/RunObserver";
+import { RunObserver } from "@/forge2/runs/RunObserver";
 
 const TABS = new Set(["action", "turns", "checks"]);
 

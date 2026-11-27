@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RunIndex } from "@/forge/runs/RunIndex";
+import { RunIndex } from "@/forge2/runs/RunIndex";
 
 const VERDICTS = new Set(["ACCEPT", "REJECT", "ABSTAIN"]);
 const VERIFICATION = new Set(["verified", "failed"]);

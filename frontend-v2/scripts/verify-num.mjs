@@ -50,12 +50,20 @@ export const ENFORCED = [
   "/regimes",
   "/observatory",
   "/globe",
+  "/forge",
+  "/worlds",
+  "/artifacts",
+  "/bench",
+  "/runs",
 ];
-// Report-only because their remaining numbers are rendered by components that cannot be edited:
-// /forge … /runs by frontend-v2/src/forge, which scripts/research_archive.py protects as closed
-// phase evidence (SHARED_PATHS); /dynamics by the sealed src/replay/FactorRegimeEvidence.tsx
-// (sealed by eval/risk_manager/v0.1/phase0-6-freeze.json). Everything else on /dynamics is provenanced.
-export const PROTECTED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs", "/dynamics"];
+// Forge routes, rendered by frontend-v2/src/forge2 (the versioned successor of the frozen v1 UI):
+// besides naming the manifest's artifact and SHA-256, each replay value's data-ptr must resolve in
+// that artifact's JSON body, read here by the checker.
+export const POINTER_CHECKED = ["/forge", "/worlds", "/artifacts", "/bench", "/runs"];
+// Report-only because its remaining numbers are rendered by a component that cannot be edited:
+// /dynamics by the sealed src/replay/FactorRegimeEvidence.tsx (sealed by
+// eval/risk_manager/v0.1/phase0-6-freeze.json). Everything else on /dynamics is provenanced.
+export const PROTECTED = ["/dynamics"];
 
 function tokens(s) {
   const g = new RegExp(TOKEN.source, "g");
@@ -192,6 +200,7 @@ function scan({ source, alone, missing, exempt, kinds, chrome }) {
       replay.push({
         where: path(el),
         src: el.getAttribute("data-src") ?? "",
+        ptr: el.getAttribute("data-ptr") ?? "",
         sha,
         text: el.textContent,
       });
@@ -279,8 +288,47 @@ try {
   const digests = new Map();
   for (const m of [manifest, riskManifest, factorManifest])
     for (const e of Object.values(m.artifacts)) if (e.url) digests.set(e.url, e.sha256);
-  /** A replay value must name a checked artifact and exactly the digest its manifest names. */
-  const judge = (r) => {
+  // The checked JSON bodies, read by the checker itself, so a replay pointer can be resolved.
+  const bodies = new Map();
+  const body = (src) => {
+    if (!bodies.has(src))
+      bodies.set(
+        src,
+        context.request
+          .get(base + src)
+          .then((res) => (res.ok() ? res.json() : undefined))
+          .catch(() => undefined),
+      );
+    return bodies.get(src);
+  };
+  /** RFC 6901 pointer resolution; a `*` segment stands for any member (a formula over a set). */
+  const resolves = (doc, ptr) => {
+    if (doc === undefined || (ptr !== "" && !ptr.startsWith("/"))) return false;
+    let at = [doc];
+    for (const seg of ptr === "" ? [] : ptr.slice(1).split("/")) {
+      const k = seg.replace(/~1/g, "/").replace(/~0/g, "~");
+      at = at.flatMap((c) =>
+        c === null || typeof c !== "object"
+          ? []
+          : k === "*"
+            ? Object.values(c)
+            : Object.hasOwn(c, k)
+              ? [c[k]]
+              : [],
+      );
+      if (!at.length) return false;
+    }
+    return true;
+  };
+  /**
+   * A replay value must name a checked artifact and exactly the digest its manifest names. On the
+   * Forge routes (POINTER_CHECKED) its pointer must also resolve in that artifact's JSON body.
+   */
+  const judge = async (r, route) => {
+    if (POINTER_CHECKED.some((f) => route === f || route.startsWith(f + "/")))
+      for (const x of r.replay)
+        if (!resolves(await body(x.src), x.ptr))
+          r.bad.push({ ...x, why: `pointer ${x.ptr} does not resolve in ${x.src}` });
     for (const x of r.replay) {
       if (pinUrl.test(x.src)) {
         pinSeen.add(x.src);
@@ -310,7 +358,7 @@ try {
     await page.goto(base + concrete(route), { waitUntil: "networkidle", timeout: 60000 });
     await until(page, '.shell[data-ready="true"]').catch(() => {});
     await page.waitForTimeout(1500);
-    return judge(await page.evaluate(scan, scanArgs));
+    return judge(await page.evaluate(scan, scanArgs), route);
   };
 
   const routes = only ? [only] : [...new Set([...ENFORCED, ...allRoutes])];
@@ -540,6 +588,41 @@ try {
         await p.waitForTimeout(800);
       },
     },
+    {
+      route: "/forge",
+      name: "run selected",
+      run: async (p) => {
+        await p.goto(base + "/forge", { waitUntil: "networkidle" });
+        await p.locator("a.agents-seed").first().click();
+        await until(p, ".agents-drawer .agents-steps [data-num]", 20000);
+        await p.waitForTimeout(800);
+      },
+    },
+    {
+      route: "/bench",
+      name: "baseline detail",
+      run: async (p) => {
+        await p.goto(base + "/bench", { waitUntil: "networkidle" });
+        await p.locator('a.agents-link[href^="/bench/"]').first().click();
+        await until(p, ".agents-page .agents-header h1", 20000);
+        await p.waitForLoadState("networkidle");
+        await p.waitForTimeout(1000);
+      },
+    },
+    // /runs/$runId: the first recorded run, on each inspector tab.
+    ...["action", "turns", "checks"].map((tab) => ({
+      route: "/runs",
+      name: `run detail · ${tab}`,
+      run: async (p) => {
+        await p.goto(base + "/runs", { waitUntil: "networkidle" });
+        const href = await p.locator('a.agents-link[href^="/runs/"]').first().getAttribute("href");
+        await p.goto(base + href.replace(/tab=[a-z]+/, `tab=${tab}`), {
+          waitUntil: "networkidle",
+        });
+        await until(p, ".agents-page .agents-header h1", 20000);
+        await p.waitForTimeout(1000);
+      },
+    })),
     ...["revisions", "lineage", "costs", "issues"].map((section) => ({
       route: "/data",
       name: section,
@@ -570,7 +653,7 @@ try {
     let r;
     try {
       await v.run(p);
-      r = judge(await p.evaluate(scan, scanArgs));
+      r = await judge(await p.evaluate(scan, scanArgs), v.route);
     } catch (e) {
       console.log(
         `FAIL   ${v.route} · ${v.name}: ${String(e.message).split("\n").slice(0, 3).join(" ")}`,
@@ -620,7 +703,7 @@ try {
       host.prepend(a, b, c, d, e, f);
       return args;
     }, scanArgs);
-    const r = judge(await page.evaluate(scan, s));
+    const r = await judge(await page.evaluate(scan, s), "/markets");
     assert(
       r.raw.some((x) => x.text === "7"),
       "sabotage: single-digit value not flagged",
@@ -648,6 +731,23 @@ try {
     console.log(
       "SABOTAGE raw number, single digit, bogus exemption, live SHA claim, swapped replay SHA and missing-as-0 were all flagged",
     );
+    // A Forge value whose pointer names a field its artifact does not have must be flagged.
+    await visit("/worlds");
+    const t = await page.evaluate((args) => {
+      const real = document.querySelector(
+        '[data-origin-kind="replay"]:not([data-src$="manifest.json"])',
+      );
+      const g = real.cloneNode(true);
+      g.setAttribute("data-ptr", "/items/0/no_such_field");
+      (document.querySelector("main") ?? document.body).prepend(g);
+      return args;
+    }, scanArgs);
+    const w = await judge(await page.evaluate(scan, t), "/worlds");
+    assert(
+      w.bad.some((x) => /pointer \/items\/0\/no_such_field does not resolve/.test(x.why)),
+      "sabotage: unresolved Forge pointer not flagged",
+    );
+    console.log("SABOTAGE an unresolved Forge pointer was flagged");
   }
   for (const src of pinSeen) {
     const bytes = await (await context.request.get(base + src)).body();
