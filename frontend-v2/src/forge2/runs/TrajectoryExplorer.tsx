@@ -11,7 +11,9 @@ export function TrajectoryExplorer({
   model,
   selectedSequence,
   onSelect,
+  runId,
 }: {
+  runId: string;
   model: TrajectoryViewModel;
   selectedSequence: number;
   onSelect: (sequence: number) => void;
@@ -67,7 +69,12 @@ export function TrajectoryExplorer({
       </header>
 
       {view === "2D" || !mounted ? (
-        <TrajectoryGraph2D model={model} selectedSequence={selectedSequence} onSelect={onSelect} />
+        <TrajectoryGraph2D
+          runId={runId}
+          model={model}
+          selectedSequence={selectedSequence}
+          onSelect={onSelect}
+        />
       ) : (
         <Suspense
           fallback={

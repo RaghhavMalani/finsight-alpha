@@ -3,6 +3,8 @@
 import { EpistemicBadge } from "@/epistemic/EpistemicValue";
 import type { TrajectoryNode, TrajectoryViewModel } from "@/forge2/runs/trajectory-model";
 import { formatNodeCost, formatNodeLatency } from "@/forge2/runs/trajectory-model";
+import { useForgeProv } from "@/forge2/shared/forge-prov";
+import { nodeNums } from "./node-prov";
 
 const NODE_WIDTH = 144;
 const NODE_HEIGHT = 160;
@@ -19,11 +21,14 @@ export function TrajectoryGraph2D({
   model,
   selectedSequence,
   onSelect,
+  runId,
 }: {
   model: TrajectoryViewModel;
   selectedSequence: number;
   onSelect: (sequence: number) => void;
+  runId: string;
 }) {
+  const P = useForgeProv(`/forge/runs/${runId}`);
   const width = Math.max(720, model.nodes.length * STEP_X + 48);
   const height = Math.max(
     340,
@@ -77,6 +82,8 @@ export function TrajectoryGraph2D({
         <ol aria-label="Ordered trajectory actions" className="absolute inset-0">
           {model.nodes.map((node, index) => {
             const active = node.sequence === selectedSequence;
+            // Inert: the node is itself a button; the selected node's values open in the inspector.
+            const v = nodeNums(P, node, index, true);
             const position = positions.get(node.id) ?? { x: 0, y: 0 };
             const verifierTone = node.verifierState === "PASS" ? "#35C78A" : "#FF5A57";
             return (
@@ -104,7 +111,7 @@ export function TrajectoryGraph2D({
                   <span className="flex items-start justify-between gap-2">
                     <span>
                       <span className="block font-mono text-[8px] text-[#65707c]">
-                        {String(node.sequence).padStart(2, "0")}
+                        {v.sequence}
                       </span>
                       <span className="mt-1 block text-[11px] font-semibold tracking-[0.04em] text-[#E6E8EB]">
                         {node.label}
@@ -113,14 +120,12 @@ export function TrajectoryGraph2D({
                     <EpistemicBadge type={node.epistemicType} />
                   </span>
                   <span className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1 font-mono text-[8px] tabular-nums">
-                    <span className="text-[#88929c]">{node.tokens.toLocaleString()} tok</span>
-                    <span className="text-right text-[#FFB000]">{formatNodeCost(node.cost)}</span>
+                    <span className="text-[#88929c]">{v.tokens} tok</span>
+                    <span className="text-right text-[#FFB000]">{v.cost}</span>
                     <span className="truncate text-[#52A8FF]" title={node.engine}>
                       {node.engine.replace("gpt-5.6-", "")}
                     </span>
-                    <span className="text-right text-[#88929c]">
-                      {formatNodeLatency(node.latency)}
-                    </span>
+                    <span className="text-right text-[#88929c]">{v.latency}</span>
                   </span>
                   {active ? (
                     <span className="absolute bottom-2 right-2 font-mono text-[7px] font-semibold uppercase tracking-[0.12em] text-[#FFB000]">

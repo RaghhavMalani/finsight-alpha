@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { baselineIndexQuery } from "@/forge/data/forge-queries";
 import { AgentsShell } from "@/forge2/shared/AgentsShell";
+import { useForgeProv } from "@/forge2/shared/forge-prov";
 import {
   InstrumentPanel,
   LoadingState,
@@ -14,6 +15,7 @@ import {
 
 export function BenchIndex() {
   const query = useQuery(baselineIndexQuery);
+  const { N, D } = useForgeProv("/forge/baselines");
   return (
     <AgentsShell>
       <SurfaceHeader
@@ -52,10 +54,11 @@ export function BenchIndex() {
                 </tr>
               </thead>
               <tbody>
-                {query.data.map((b) => (
+                {query.data.map((b, i) => (
                   <tr key={b.binding.artifactHash}>
                     <td>
                       <Link
+                        data-num-exempt="id"
                         className="agents-link"
                         to="/bench/$benchmarkId"
                         params={{ benchmarkId: b.binding.artifactId }}
@@ -70,16 +73,34 @@ export function BenchIndex() {
                     <td>
                       <StatusMark status="PASS" label="Released" />
                     </td>
-                    <td className="agents-num">{b.episodes}</td>
-                    <td className="agents-num">{b.attempts}</td>
-                    <td className="agents-num">{b.excludedAttempts}</td>
+                    <td className="agents-num">
+                      {N(`/items/${i}/episodes`, b.episodes, "Episodes", String(b.episodes))}
+                    </td>
+                    <td className="agents-num">
+                      {N(`/items/${i}/attempts_total`, b.attempts, "Attempts", String(b.attempts))}
+                    </td>
+                    <td className="agents-num">
+                      {N(
+                        `/items/${i}/excluded_attempts`,
+                        b.excludedAttempts,
+                        "Excluded attempts",
+                        String(b.excludedAttempts),
+                      )}
+                    </td>
                     <td>
                       {b.models
                         .map((m) => m.replace("gpt-5.6-", ""))
                         .sort()
                         .join(", ")}
                     </td>
-                    <td className="agents-mono">{b.createdAt.slice(0, 10)}</td>
+                    <td className="agents-mono">
+                      {D(
+                        `/items/${i}/created_at`,
+                        b.createdAt,
+                        "Created",
+                        b.createdAt.slice(0, 10),
+                      )}
+                    </td>
                     <td>
                       <StatusMark
                         status={b.binding.integrityStatus === "MANIFEST_MATCH" ? "PASS" : "INFO"}
@@ -90,7 +111,7 @@ export function BenchIndex() {
                 ))}
                 {["v0.2.5.1 hardened", "v0.3 multi-agent"].map((label) => (
                   <tr key={label}>
-                    <td>{label}</td>
+                    <td data-num-exempt="id">{label}</td>
                     <td>
                       <StatusMark status="INFO" label="Not released" />
                     </td>

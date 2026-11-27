@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ForgeShell } from "@/app/shell/ForgeShell";
 import { useDataMode } from "@/replay/mode";
+import { ProvenanceProvider } from "@/visual/Num";
 import "./agents.css";
 
 export function AgentsShell({
@@ -29,7 +30,7 @@ export function AgentsShell({
           <span>{label}</span>
           <span className="agents-muted">Read only · no model execution</span>
         </aside>
-        {children}
+        <ProvenanceProvider>{children}</ProvenanceProvider>
       </div>
     </ForgeShell>
   );
