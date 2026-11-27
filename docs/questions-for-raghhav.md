@@ -53,3 +53,14 @@ Decisions taken while you were away. Newest last. Each says what I chose and how
 - Options, your call: (a) leave them as they are; (b) a versioned successor of the Forge UI outside
   the protected path, with the old one kept for the record; (c) amend the protection to admit a
   presentation-only change. I did not touch the guard.
+
+## 2026-11-27 — Owner chose a versioned Forge UI (U4 stage A)
+- Decision (yours, option (b) above): owner chose a versioned Forge UI. The new UI lives in
+  `frontend-v2/src/forge2/`; `frontend-v2/src/forge` and `frontend-v2/src/agents` stay byte for
+  byte as the record, and `scripts/research_archive.py` is untouched.
+- Done: forge2 ports the Forge components (contracts and data layer imported from v1, not copied),
+  the eight Forge route files render it, and the reverted U2 provenance is replayed onto it.
+  `/forge`, `/worlds`, `/artifacts`, `/bench` and `/runs` are enforced (363 raw numbers to 0), and
+  their replay pointers are checked to resolve. See `docs/u4-forge-v2.md`.
+- Undo: point the eight route files back at `@/forge/…`, delete `src/forge2`, and move the five
+  routes out of `ENFORCED` in `frontend-v2/scripts/verify-num.mjs`.

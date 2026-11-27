@@ -22,7 +22,9 @@ values (`num`, `ref`); non-finite or absent values become `null` with a reason, 
 `frontend-v2/src/visual/route-origin.tsx` (`useRouteOrigin`, `useRouteProv`) gives the origin of a
 body read through `api(route)`: in Replay the artifact `/replay-manifest.json` routes it to (URL
 and that entry's SHA-256), in local Live the endpoint `GET <route>` (live, no SHA). Pointers address
-that JSON body. `/data` uses one
+that JSON body. Forge pages (`src/forge2/shared/forge-prov.tsx`, the versioned successor of the
+frozen v1 UI, see `docs/u4-forge-v2.md`) add `M(metric)` for adapted
+metrics: the metric's own `fieldPath`, and a `× 100` formula for percentages. `/data` uses one
 origin per `/data/<kind>` artifact. `/factors` (`src/factors/prov.tsx`) names the entry of the
 checked Factor read manifest, the manifest it actually reads through; its artifact URLs and
 digests are the same as the global manifest's. Forge and Bench artifacts are never shown as
@@ -103,18 +105,24 @@ Two further, narrow allowances are coded in the checker:
   manifest file (`/replay-manifest.json`, or the Risk read manifest whose URL the checker reads from
   `src/risk-manager/read-plan.generated.ts`, or the Factor read manifest read from
   `src/factors/read-plan.generated.ts`) with no SHA, or an artifact URL listed in one of those
-  manifests with exactly that entry's `sha256`, as read by the checker itself.
+  manifests with exactly that entry's `sha256`, as read by the checker itself. On the Forge routes
+  (`POINTER_CHECKED`: `/forge`, `/worlds`, `/artifacts`, `/bench`, `/runs`, and their views) each
+  replay value's `data-ptr` must also resolve in that artifact's JSON body, fetched by the checker
+  (RFC 6901; a `*` segment means any member).
 - Further views of enforced routes: F1 Command in Local Live against a TEST-ONLY mocked spine
   (`/live/recent`, `/live/health`). The live close must be `live` with no SHA and a tooltip giving
   seq, observed_at, available_at, source and licence. The row link must keep its provenance title.
   A record without a close must show `unavailable`. The `#seq` origin button, reached by focus and
   Enter, must open a `LIVE` popover with Seq, Available and "none" for SHA. Also checked: the
   Markets popover, opened from the keyboard (its SHA equals the manifest's, and it does not cover
-  its value), Risk with an Issue selected, Sweep history, and Coverage, and the Data Revisions,
-  Lineage, Costs and Issues tabs.
+  its value), Risk with an Issue selected, Sweep history, and Coverage, the Forge run drawer
+  (`/forge?run=…`), the first baseline detail (`/bench/$benchmarkId`), the first run detail
+  (`/runs/$runId`) on its action, turns and checks tabs, and the Data Revisions, Lineage, Costs and
+  Issues tabs.
 - Sabotage: on `/markets` it injects a raw `Sharpe 1.37`, a lone `7`, an undocumented exemption, a
   live value claiming a SHA-256, a replay value with a swapped SHA-256 and a missing value shown
-  as `0`, and requires all six to be flagged.
+  as `0`, and requires all six to be flagged. On `/worlds` it gives a real replay value the
+  pointer `/items/0/no_such_field` and requires it to be flagged as unresolved.
 - Not scanned: `aria-label` and `title` text, closed `<details>`, tabs and panels the checker does
   not open, the Local Live Markets screens, the 3D trajectory view, and `/reality/$artifactId`.
 - `--route /path` checks one route; `--verbose` prints every raw number.
@@ -122,42 +130,32 @@ Two further, narrow allowances are coded in the checker:
 ## Enforced routes (zero raw numbers)
 
 `/` (F1 Command, Replay and mocked Local Live), `/research`, `/markets`, `/markets/$ticker`, `/risk`
-(feed, inspector, history, coverage), `/data` (all five tabs).
+(feed, inspector, history, coverage), `/forge` (and the run drawer), `/worlds`, `/artifacts`,
+`/bench` (and `/bench/$benchmarkId`), `/runs` (and `/runs/$runId`, three tabs), `/data` (all five
+tabs).
 
-Exemptions used by these routes: artifact and plugin identifiers, versions and hashes as `id`;
-the outlier rule `10 × MAD`, the citation in a lineage licence and fixed prose naming a version as
-`copy`; the Data Organ's design rule, shown as "By design · no models run, no holdouts opened" (a
-statement, not a count; no artifact records it, so it is not shown as a number); a revision year and
-the chosen Factor cutoff as `date`.
+Exemptions used by these routes: artifact, run, world, task and plugin identifiers, versions
+(`v0.2.5`, `D0.4.2`) and hashes as `id`; the outlier rule `10 × MAD`, the citation in a lineage
+licence and fixed prose naming a version as `copy`; the Data Organ's design rule, shown as "By
+design · no models run, no holdouts opened" (a statement, not a count; no artifact records it, so
+it is not shown as a number); a revision year and the chosen Factor cutoff as `date`. Node cards in the 2D trajectory graph are buttons, so
+their values are inert spans (origin in the tooltip); the selected node's values open from the
+evidence inspector beside it.
 
-## Protected Forge routes
-
-`/forge`, `/worlds`, `/artifacts`, `/bench` and `/runs` are rendered by `frontend-v2/src/forge`,
-which `scripts/research_archive.py` freezes as closed phase evidence (`SHARED_PATHS`, against its
-`BASELINE` commit), as it does `frontend-v2/src/agents`. Their components cannot be edited, so U2
-cannot add provenance to them in place, and they stay report-only (`PROTECTED` in
-`verify-num.mjs`). Giving them provenance needs either a versioned successor of the Forge UI or an
-explicit decision to amend that protection; both are logged in `docs/questions-for-raghhav.md`.
-
-## Report-only routes (raw numbers after U2 slice 2, Replay mode)
+## Report-only routes (raw numbers after U4 stage A, Replay mode)
 
 | Route                                                                                                  | Raw numbers | Why not enforced                                                         |
 | ------------------------------------------------------------------------------------------------------ | ----------: | ------------------------------------------------------------------------ |
-| `/runs`                                                                                                |         272 | protected Forge component (above)                                        |
-| `/forge`                                                                                               |          57 | protected Forge component (above)                                        |
-| `/worlds`                                                                                              |          19 | protected Forge component (above)                                        |
-| `/artifacts`                                                                                           |           8 | protected Forge component (above)                                        |
-| `/bench`                                                                                               |           7 | protected Forge component (above)                                        |
 | `/dynamics`                                                                                            |         116 | later slice                                                              |
 | `/observatory`                                                                                         |          59 | later slice                                                              |
-| `/globe`                                                                                               |          56 | later slice (45 at the U2 baseline; its data is being changed elsewhere) |
+| `/globe`                                                                                               |          57 | later slice (45 at the U2 baseline; its data is being changed elsewhere) |
 | `/factors`                                                                                             |           6 | overview counts, see below                                               |
 | `/regimes`                                                                                             |           1 | shared component, see below                                              |
 | `/execution`                                                                                           |           0 | no values in Replay                                                      |
 | `/markets/backtest`, `/markets/fundamentals`, `/markets/options`, `/markets/research`, `/markets/risk` |           0 | Live-only screens; Replay shows no values                                |
 
-Total 601 (680 at the U2 baseline), 363 of them on protected Forge routes. Not visited:
-`/reality/$artifactId`, `/bench/$benchmarkId`, `/runs/$runId`.
+Total 239 (680 at the U2 baseline; 602 before U4 enforced the 363 on the Forge routes). Not visited: `/reality/$artifactId`. `/bench/$benchmarkId` and
+`/runs/$runId` are checked through views of `/bench` and `/runs`.
 
 - `/factors` overview (`20 audited definitions`, `64` channels, `55 current + 9 derived`, `4 / 64`
   retained views, `0` new runs): fixed counts in `FactorsWorkspace.tsx` that describe the audit and
